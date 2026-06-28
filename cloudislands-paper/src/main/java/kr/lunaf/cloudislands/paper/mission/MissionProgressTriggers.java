@@ -5,9 +5,24 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 
 public final class MissionProgressTriggers {
+    private static final Set<String> GENERATOR_COLLECTIBLE_KEYS = Set.of(
+        "cobblestone",
+        "stone",
+        "basalt",
+        "blackstone",
+        "coal_ore",
+        "iron_ore",
+        "gold_ore",
+        "diamond_ore",
+        "emerald_ore",
+        "nether_quartz_ore",
+        "ancient_debris"
+    );
+
     private MissionProgressTriggers() {}
 
     public static List<Trigger> blockBreak(String materialKey) {
@@ -70,6 +85,10 @@ public final class MissionProgressTriggers {
             triggers.add(new Trigger("generator_collect:" + normalized, "MISSION", safeAmount));
         }
         return List.copyOf(triggers);
+    }
+
+    public static boolean generatorCollectible(String materialKey) {
+        return GENERATOR_COLLECTIBLE_KEYS.contains(normalizeKey(materialKey));
     }
 
     public static List<Trigger> merge(List<Trigger> fallback, List<Trigger> definitions) {

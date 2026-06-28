@@ -56,9 +56,13 @@ public final class IslandMissionProgressListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
-        progressAt(player, block, "BLOCK_BREAK", materialKey(block.getType()), 1L, MissionProgressTriggers.blockBreak(materialKey(block.getType())));
+        String materialKey = materialKey(block.getType());
+        progressAt(player, block, "BLOCK_BREAK", materialKey, 1L, MissionProgressTriggers.blockBreak(materialKey));
+        if (MissionProgressTriggers.generatorCollectible(materialKey)) {
+            progressAt(player, block, "GENERATOR_COLLECT", materialKey, 1L, MissionProgressTriggers.generatorCollect(materialKey, 1L));
+        }
         if (block.getBlockData() instanceof Ageable ageable && ageable.getAge() >= ageable.getMaximumAge()) {
-            progressAt(player, block, "FARM_HARVEST", materialKey(block.getType()), 1L, MissionProgressTriggers.farmHarvest(materialKey(block.getType())));
+            progressAt(player, block, "FARM_HARVEST", materialKey, 1L, MissionProgressTriggers.farmHarvest(materialKey));
         }
     }
 

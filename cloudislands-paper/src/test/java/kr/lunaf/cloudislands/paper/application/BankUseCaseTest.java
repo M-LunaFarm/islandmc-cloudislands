@@ -18,9 +18,14 @@ import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.economy.EconomyProviderState;
 import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
+import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.coreclient.BankCommandClient;
 import kr.lunaf.cloudislands.coreclient.BankQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.LevelView;
+import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
+import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
+import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import org.junit.jupiter.api.Test;
 
 class BankUseCaseTest {
@@ -80,6 +85,29 @@ class BankUseCaseTest {
             (_auditAction, operation) -> operation.get()
         ).join());
         assertEquals(List.of("withdraw:1:CloudIslands island bank deposit", "deposit:1:CloudIslands island bank deposit rollback"), economy.calls);
+    }
+
+    @Test
+    void successfulDepositAdvancesBankBalanceMissionProgress() {
+        FakeEconomy economy = new FakeEconomy(true);
+        ScriptedCoreBank core = new ScriptedCoreBank();
+        core.depositResult = ScriptedCoreBank.bankChange(true, "", "125.75");
+        RecordingProgressionCommands progression = new RecordingProgressionCommands();
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        CoreApiClient client = coreApiClient(core);
+        BankUseCase useCase = new BankUseCase(client, (BankQueryClient) client, (BankCommandClient) client, economy, progression);
+
+        BankUseCase.BankOperationResult result = useCase.deposit(
+            islandId,
+            actorUuid,
+            new BigDecimal("25.75"),
+            (_auditAction, operation) -> operation.get()
+        ).join();
+
+        assertEquals(BankUseCase.Status.SUCCESS, result.status());
+        assertEquals("125.75", result.balance());
+        assertEquals(List.of("bank_balance:MISSION:125"), progression.calls);
     }
 
     @Test
@@ -311,6 +339,36 @@ class BankUseCaseTest {
         @Override
         public CompletableFuture<BigDecimal> balance(UUID playerUuid) {
             return CompletableFuture.completedFuture(BigDecimal.ZERO);
+        }
+    }
+
+    private static final class RecordingProgressionCommands implements ProgressionCommandClient {
+        final List<String> calls = new ArrayList<>();
+
+        @Override
+        public CompletableFuture<LevelView> recalculateLevel(UUID islandId, UUID actorUuid) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public CompletableFuture<ProgressionUpgradePurchaseView> purchaseUpgrade(UUID islandId, UUID actorUuid, String upgradeKey) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public CompletableFuture<ProgressionMissionCompletionView> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public CompletableFuture<ProgressionMissionCompletionView> progressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
+            calls.add(missionKey + ":" + kind + ":" + amount);
+            return CompletableFuture.completedFuture(new ProgressionMissionCompletionView(true, "", missionKey, missionKey, ""));
+        }
+
+        @Override
+        public CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions) {
+            throw new UnsupportedOperationException();
         }
     }
 }

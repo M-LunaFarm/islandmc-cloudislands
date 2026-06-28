@@ -10,14 +10,21 @@ import kr.lunaf.cloudislands.coreclient.BankCommandClient;
 import kr.lunaf.cloudislands.coreclient.BankMutationView;
 import kr.lunaf.cloudislands.coreclient.BankQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
+import kr.lunaf.cloudislands.paper.mission.MissionProgressTriggers;
 
 public final class BankUseCase {
     private final CoreApiClient coreApiClient;
     private final BankQueryClient bankQueries;
     private final BankCommandClient bankCommands;
     private final EconomyBridge economyBridge;
+    private final ProgressionCommandClient progressionCommands;
 
     public BankUseCase(CoreApiClient coreApiClient, EconomyBridge economyBridge) {
+        this(coreApiClient, economyBridge, progressionCommandsOrNull(coreApiClient));
+    }
+
+    public BankUseCase(CoreApiClient coreApiClient, EconomyBridge economyBridge, ProgressionCommandClient progressionCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
@@ -25,13 +32,18 @@ public final class BankUseCase {
         this.bankQueries = coreApiClient.bank();
         this.bankCommands = coreApiClient.bankCommands();
         this.economyBridge = economyBridge;
+        this.progressionCommands = progressionCommands;
     }
 
     BankUseCase(CoreApiClient coreApiClient, BankQueryClient bankQueries, EconomyBridge economyBridge) {
-        this(coreApiClient, bankQueries, coreApiClient.bankCommands(), economyBridge);
+        this(coreApiClient, bankQueries, coreApiClient.bankCommands(), economyBridge, null);
     }
 
     BankUseCase(CoreApiClient coreApiClient, BankQueryClient bankQueries, BankCommandClient bankCommands, EconomyBridge economyBridge) {
+        this(coreApiClient, bankQueries, bankCommands, economyBridge, null);
+    }
+
+    BankUseCase(CoreApiClient coreApiClient, BankQueryClient bankQueries, BankCommandClient bankCommands, EconomyBridge economyBridge, ProgressionCommandClient progressionCommands) {
         if (coreApiClient == null) {
             throw new IllegalArgumentException("coreApiClient is required");
         }
@@ -45,6 +57,7 @@ public final class BankUseCase {
         this.bankQueries = bankQueries;
         this.bankCommands = bankCommands;
         this.economyBridge = economyBridge;
+        this.progressionCommands = progressionCommands;
     }
 
     public CompletableFuture<BankOperationResult> bank(UUID islandId) {
@@ -75,6 +88,7 @@ public final class BankUseCase {
                                 .thenApply(_ignored -> BankOperationResult.coreRejected(mutation.balance(), mutation.code()))
                                 .exceptionally(_refundError -> BankOperationResult.refundFailedAfterCoreRejection(mutation.balance(), mutation.code()));
                         }
+                        recordBankBalanceProgress(islandId, actorUuid, mutation.balance());
                         return CompletableFuture.completedFuture(BankOperationResult.success(mutation.balance()));
                     })
                     .exceptionallyCompose(error -> refundPlayer(actorUuid, amount).thenCompose(_ignored -> CompletableFuture.failedFuture(error)));
@@ -134,6 +148,44 @@ public final class BankUseCase {
             case OPERATION_FAILED -> BankOperationResult.economyOperationFailed();
             case API_COMPATIBLE, ACTIVE -> null;
         };
+    }
+
+    private static ProgressionCommandClient progressionCommandsOrNull(CoreApiClient coreApiClient) {
+        if (coreApiClient == null) {
+            return null;
+        }
+        try {
+            ProgressionCommandClient commands = coreApiClient.progressionCommands();
+            return commands;
+        } catch (UnsupportedOperationException exception) {
+            return null;
+        }
+    }
+
+    private void recordBankBalanceProgress(UUID islandId, UUID actorUuid, String balance) {
+        if (progressionCommands == null) {
+            return;
+        }
+        long amount = balanceAmount(balance);
+        for (MissionProgressTriggers.Trigger trigger : MissionProgressTriggers.bankBalance(amount)) {
+            progressionCommands.progressMission(islandId, actorUuid, trigger.missionKey(), trigger.kind(), trigger.amount())
+                .exceptionally(_error -> null);
+        }
+    }
+
+    private static long balanceAmount(String balance) {
+        if (balance == null || balance.isBlank()) {
+            return 1L;
+        }
+        try {
+            java.math.BigDecimal value = new java.math.BigDecimal(balance.trim());
+            if (value.signum() <= 0) {
+                return 1L;
+            }
+            return Math.max(1L, value.min(new java.math.BigDecimal(Long.MAX_VALUE)).longValue());
+        } catch (NumberFormatException exception) {
+            return 1L;
+        }
     }
 
     private static void requireIsland(UUID islandId) {

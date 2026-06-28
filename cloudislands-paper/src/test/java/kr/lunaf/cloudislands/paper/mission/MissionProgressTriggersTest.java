@@ -32,6 +32,9 @@ class MissionProgressTriggersTest {
         assertTrue(MissionProgressTriggers.bankBalance(1000L).stream().anyMatch(trigger -> trigger.missionKey().equals("bank_balance") && trigger.amount() == 1000L));
         assertTrue(MissionProgressTriggers.generatorCollect("minecraft:diamond_ore", 3L).stream().anyMatch(trigger -> trigger.missionKey().equals("generator_collect") && trigger.amount() == 3L));
         assertTrue(MissionProgressTriggers.generatorCollect("minecraft:diamond_ore", 3L).stream().anyMatch(trigger -> trigger.missionKey().equals("generator_collect:diamond_ore") && trigger.amount() == 3L));
+        assertTrue(MissionProgressTriggers.generatorCollectible("minecraft:diamond_ore"));
+        assertTrue(MissionProgressTriggers.generatorCollectible("basalt"));
+        assertFalse(MissionProgressTriggers.generatorCollectible("minecraft:dirt"));
     }
 
     @Test
