@@ -76,6 +76,7 @@ public final class IslandUpgradeRoutes implements RouteGroup {
     public void register(CoreRouteRegistry registry) {
         registry.routePost("/v1/islands/upgrades", this::upgrades);
         registry.routePost("/v1/islands/upgrades/purchase", this::purchase);
+        registry.routePost("/v1/islands/upgrades/recalculate", this::recalculate);
     }
 
     private void upgrades(HttpExchange exchange) throws IOException {
@@ -103,6 +104,31 @@ public final class IslandUpgradeRoutes implements RouteGroup {
             }
         }
         CoreHttpResponses.write(exchange, result.accepted() ? 202 : 409, upgradePurchaseJson(result));
+    }
+
+    private void recalculate(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
+        if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_UPGRADES)) {
+            return;
+        }
+        int applied = recalculateUpgradeEffects(islandId, actorUuid);
+        CoreHttpResponses.write(exchange, 202, upgradeRecalculationJson(islandId, applied, upgradeRepository.list(islandId)));
+    }
+
+    int recalculateUpgradeEffects(UUID islandId, UUID actorUuid) {
+        int applied = 0;
+        for (IslandUpgradeSnapshot upgrade : upgradeRepository.list(islandId)) {
+            if (upgrade.level() <= 0) {
+                continue;
+            }
+            effectApplier.apply(islandId, actorUuid, upgradePolicy.rule(upgrade.upgradeKey()), upgrade.type(), upgrade.level());
+            applied++;
+        }
+        islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_RECALCULATE", Map.of("applied", Integer.toString(applied)));
+        events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of("islandId", islandId.toString(), "operation", "RECALCULATE", "applied", Integer.toString(applied)));
+        return applied;
     }
 
     private boolean requireIslandPermission(HttpExchange exchange, UUID islandId, UUID actorUuid, IslandPermission permission) throws IOException {
@@ -144,6 +170,19 @@ public final class IslandUpgradeRoutes implements RouteGroup {
 
     static String upgradeJson(IslandUpgradeSnapshot upgrade) {
         return SimpleJson.stringify(upgradeMap(upgrade));
+    }
+
+    static String upgradeRecalculationJson(UUID islandId, int applied, List<IslandUpgradeSnapshot> upgrades) {
+        List<Object> renderedUpgrades = new ArrayList<>();
+        for (IslandUpgradeSnapshot upgrade : upgrades) {
+            renderedUpgrades.add(upgradeMap(upgrade));
+        }
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.put("islandId", islandId);
+        values.put("applied", applied);
+        values.put("upgrades", renderedUpgrades);
+        return SimpleJson.stringify(values);
     }
 
     private static Map<String, Object> upgradeMap(IslandUpgradeSnapshot upgrade) {
