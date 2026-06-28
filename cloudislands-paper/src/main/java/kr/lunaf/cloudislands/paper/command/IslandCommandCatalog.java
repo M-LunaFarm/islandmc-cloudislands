@@ -39,12 +39,14 @@ final class IslandCommandCatalog {
 
     static final List<String> HELP_COMMANDS = List.of(
         "섬 help [page]",
+        "섬 도움말 [category] [page]",
         "섬 command list [page]",
         "섬",
         "섬 메뉴",
         "섬 생성메뉴",
         "섬 템플릿",
         "섬 생성 [template]",
+        "섬 정보",
         "섬 목록",
         "섬 내섬",
         "섬 홈 [name]",
@@ -137,6 +139,139 @@ final class IslandCommandCatalog {
         "섬 삭제"
     );
 
+    static final List<HelpCategory> HELP_CATEGORIES = List.of(
+        new HelpCategory("기본", List.of("기본", "basic", "start", "시작"), "섬 기본 명령어", List.of(
+            "섬",
+            "섬 메뉴",
+            "섬 생성메뉴",
+            "섬 템플릿",
+            "섬 생성 [template]",
+            "섬 목록",
+            "섬 내섬",
+            "섬 정보"
+        )),
+        new HelpCategory("멤버", List.of("멤버", "member", "members", "team", "팀"), "섬 멤버 명령어", List.of(
+            "섬 멤버",
+            "섬 초대 <player>",
+            "섬 초대목록",
+            "섬 초대수락 <플레이어|섬|inviteId>",
+            "섬 초대거절 <플레이어|섬|inviteId>",
+            "섬 추방 <player>",
+            "섬 승급 <player>",
+            "섬 강등 <player>",
+            "섬 역할설정 <player> <role>",
+            "섬 역할목록",
+            "섬 역할편집 <role> <weight> <displayName>",
+            "섬 역할초기화 <role>",
+            "섬 양도 <player>",
+            "섬 신뢰 <player> [duration]",
+            "섬 협동 <player> [duration]",
+            "섬 신뢰해제 <player>",
+            "섬 밴 <player>",
+            "섬 밴해제 <player>",
+            "섬 밴목록",
+            "섬 방문자추방 <player>"
+        )),
+        new HelpCategory("방문", List.of("방문", "visit", "visitor", "travel"), "섬 방문 명령어", List.of(
+            "섬 홈 [name]",
+            "섬 홈목록",
+            "섬 셋홈 [name]",
+            "섬 방문 <섬|플레이어|random>",
+            "섬 랜덤방문",
+            "섬 공개섬 [limit]",
+            "섬 방문통계 [limit]",
+            "섬 후기",
+            "섬 평가 <islandUuid|current> <1-5> [후기]",
+            "섬 후기삭제 [islandUuid|current]",
+            "섬 워프목록",
+            "섬 워프 <name>",
+            "섬 워프설정 <name> [category]",
+            "섬 워프삭제 <name>",
+            "섬 워프공개 <name>",
+            "섬 워프비공개 <name>",
+            "섬 공개워프목록 [category] [query]"
+        )),
+        new HelpCategory("성장", List.of("성장", "growth", "progression", "경제", "economy"), "섬 성장 명령어", List.of(
+            "섬 랭킹 [limit]",
+            "섬 랭킹 worth [limit]",
+            "섬 가치랭킹 [limit]",
+            "섬 레벨",
+            "섬 레벨계산",
+            "섬 가치",
+            "섬 블록상세 [limit]",
+            "섬 은행",
+            "섬 입금 <amount>",
+            "섬 출금 <amount>",
+            "섬 창고",
+            "섬 창고입금 <material> <amount>",
+            "섬 창고출금 <material> <amount>",
+            "섬 업그레이드",
+            "섬 업그레이드목록",
+            "섬 업그레이드구매 <upgradeKey>",
+            "섬 생성기",
+            "섬 미션 [missionKey]",
+            "섬 챌린지 [challengeKey]"
+        )),
+        new HelpCategory("설정", List.of("설정", "setting", "settings", "config"), "섬 설정 명령어", List.of(
+            "섬 공개",
+            "섬 비공개",
+            "섬 잠금",
+            "섬 잠금해제",
+            "섬 비행 [true|false|on|off]",
+            "섬 인벤보존 [true|false|on|off]",
+            "섬 피빕 [true|false|on|off]",
+            "섬 공개워프 [true|false|on|off]",
+            "섬 크기",
+            "섬 경계",
+            "섬 바이옴 [biomeKey]",
+            "섬 설정",
+            "섬 언어 <ko_kr|en_us>",
+            "섬 이름 <name>",
+            "섬 권한",
+            "섬 권한설정 <role> <permission> <true|false|허용|거부>",
+            "섬 플래그",
+            "섬 권한예외 <player> <permission> <true|false|허용|거부>",
+            "섬 권한예외목록",
+            "섬 제한 [limitKey value]",
+            "섬 호퍼 <limit>",
+            "섬 스포너 <limit>",
+            "섬 엔티티 <limit>",
+            "섬 레드스톤 <limit>"
+        )),
+        new HelpCategory("관리자", List.of("관리자", "admin", "manage", "관리"), "섬 관리 명령어", List.of(
+            "섬 채팅 <message>",
+            "섬 팀채팅 <message>",
+            "섬 스냅샷 [reason]",
+            "섬 스냅샷목록",
+            "섬 복원 <snapshotNo>",
+            "섬 로그",
+            "섬 리셋 [reason]",
+            "섬 삭제"
+        ))
+    );
+
+    static List<String> helpCategoryNames() {
+        return HELP_CATEGORIES.stream()
+            .map(HelpCategory::name)
+            .toList();
+    }
+
+    static HelpCategory helpCategory(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String lower = value.toLowerCase(java.util.Locale.ROOT);
+        for (HelpCategory category : HELP_CATEGORIES) {
+            if (category.aliases().stream().anyMatch(alias -> alias.toLowerCase(java.util.Locale.ROOT).equals(lower))) {
+                return category;
+            }
+        }
+        return null;
+    }
+
     private IslandCommandCatalog() {
+    }
+
+    record HelpCategory(String name, List<String> aliases, String title, List<String> commands) {
     }
 }

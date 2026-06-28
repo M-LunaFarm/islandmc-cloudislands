@@ -37,6 +37,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(completer.contains("implements TabCompleter"));
         assertTrue(completer.contains("IslandCommandBackend.SUBCOMMANDS"));
         assertTrue(completer.contains("IslandCommandBackend.HELP_COMMANDS.size()"));
+        assertTrue(completer.contains("IslandCommandCatalog.helpCategoryNames()"));
+        assertTrue(completer.contains("IslandCommandCatalog.helpCategory("));
     }
 
     @Test
@@ -53,6 +55,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(router.contains("boolean handleCommand(@NotNull CommandSender sender"));
         assertTrue(router.contains("void handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(router.contains("CommandListPolicy.page"));
+        assertTrue(router.contains("helpCategoryRequest(args)"));
+        assertTrue(router.contains("helpCategoryRequest.category().commands()"));
     }
 
     @Test

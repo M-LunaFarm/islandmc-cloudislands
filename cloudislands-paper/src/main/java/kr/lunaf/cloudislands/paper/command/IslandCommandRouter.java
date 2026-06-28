@@ -69,6 +69,11 @@ final class IslandCommandRouter {
             return true;
         }
         String subcommand = args[0].toLowerCase(Locale.ROOT);
+        HelpCategoryRequest helpCategoryRequest = helpCategoryRequest(args);
+        if (helpCategoryRequest != null) {
+            sendCommandList(player, label, helpCategoryRequest.category().title(), helpCategoryRequest.category().commands(), helpCategoryRequest.page());
+            return true;
+        }
         int commandListPage = commandListPage(args);
         if (commandListPage > 0) {
             sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, commandListPage);
@@ -205,13 +210,43 @@ final class IslandCommandRouter {
             return 0;
         }
         String first = args[0].toLowerCase(Locale.ROOT);
-        if (first.equals("command") && args.length > 1 && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+        if (isCommandListRoot(args)) {
             return helpPage(args, 2);
         }
-        if (first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록")) {
+        if (isHelpRoot(first)) {
             return helpPage(args, 1);
         }
         return 0;
+    }
+
+    private HelpCategoryRequest helpCategoryRequest(String[] args) {
+        int categoryIndex = helpCategoryIndex(args);
+        if (args.length <= categoryIndex) {
+            return null;
+        }
+        IslandCommandCatalog.HelpCategory category = IslandCommandCatalog.helpCategory(args[categoryIndex]);
+        if (category == null) {
+            return null;
+        }
+        return new HelpCategoryRequest(category, helpPage(args, categoryIndex + 1));
+    }
+
+    private int helpCategoryIndex(String[] args) {
+        if (isCommandListRoot(args)) {
+            return 2;
+        }
+        if (args.length > 0 && isHelpRoot(args[0].toLowerCase(Locale.ROOT))) {
+            return 1;
+        }
+        return args.length;
+    }
+
+    private boolean isCommandListRoot(String[] args) {
+        return args.length > 1 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"));
+    }
+
+    private boolean isHelpRoot(String first) {
+        return first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록");
     }
 
     private int integer(String value, int fallback) {
@@ -226,5 +261,8 @@ final class IslandCommandRouter {
         void message(Player player, String message);
 
         String routeMessage(String key, String fallback);
+    }
+
+    private record HelpCategoryRequest(IslandCommandCatalog.HelpCategory category, int page) {
     }
 }

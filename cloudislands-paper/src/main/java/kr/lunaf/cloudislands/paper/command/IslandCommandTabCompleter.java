@@ -34,10 +34,16 @@ final class IslandCommandTabCompleter implements TabCompleter {
             return literalMatches(List.of("list", "목록"), args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
-            return literalMatches(commandListPageSuggestions(), args[2]);
+            return literalMatches(helpRootSuggestions(), args[2]);
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("command") && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))) {
+            return categoryPageSuggestions(args[2], args[3]);
         }
         if (args.length == 2) {
             String first = args[0].toLowerCase(Locale.ROOT);
+            if (isHelpRoot(first)) {
+                return literalMatches(helpRootSuggestions(), args[1]);
+            }
             if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("public-warps") || first.equals("공개워프")) {
                 return literalMatches(List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"), args[1]);
             }
@@ -123,6 +129,9 @@ final class IslandCommandTabCompleter implements TabCompleter {
         if (args.length == 3 && (args[0].equalsIgnoreCase("trust") || args[0].equalsIgnoreCase("coop") || args[0].equalsIgnoreCase("co-op") || args[0].equals("신뢰") || args[0].equals("협동"))) {
             return literalMatches(List.of("10m", "30m", "1h", "6h", "1d", "7d"), args[2]);
         }
+        if (args.length == 3 && isHelpRoot(args[0].toLowerCase(Locale.ROOT))) {
+            return categoryPageSuggestions(args[1], args[2]);
+        }
         if (args.length == 2 && (args[0].equalsIgnoreCase("border") || args[0].equalsIgnoreCase("border-ui") || args[0].equals("경계"))) {
             return literalMatches(List.of("apply", "visible", "hidden", "show", "hide", "color", "warning", "적용", "표시", "숨김", "색상", "경고"), args[1]);
         }
@@ -162,13 +171,31 @@ final class IslandCommandTabCompleter implements TabCompleter {
         return matches;
     }
 
-    private List<String> commandListPageSuggestions() {
-        int maxPage = CommandListPolicy.pages(IslandCommandBackend.HELP_COMMANDS.size());
+    private List<String> helpRootSuggestions() {
+        List<String> values = new ArrayList<>(IslandCommandCatalog.helpCategoryNames());
+        values.addAll(commandListPageSuggestions(IslandCommandBackend.HELP_COMMANDS.size()));
+        return values;
+    }
+
+    private List<String> categoryPageSuggestions(String categoryName, String typed) {
+        IslandCommandCatalog.HelpCategory category = IslandCommandCatalog.helpCategory(categoryName);
+        if (category == null) {
+            return List.of();
+        }
+        return literalMatches(commandListPageSuggestions(category.commands().size()), typed);
+    }
+
+    private List<String> commandListPageSuggestions(int commandCount) {
+        int maxPage = CommandListPolicy.pages(commandCount);
         List<String> values = new ArrayList<>();
         for (int page = 1; page <= maxPage; page++) {
             values.add(String.valueOf(page));
         }
         return values;
+    }
+
+    private boolean isHelpRoot(String first) {
+        return first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록");
     }
 
     private List<String> flagNames() {

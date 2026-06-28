@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,6 +42,23 @@ class IslandCommandCatalogTest {
         }
 
         assertEquals(List.of(), missing, "Help output must not advertise commands outside the executable subcommand catalog");
+    }
+
+    @Test
+    void categorizedHelpOnlyReferencesAdvertisedCommands() {
+        assertEquals(List.of("기본", "멤버", "방문", "성장", "설정", "관리자"), IslandCommandCatalog.helpCategoryNames());
+
+        List<String> missing = new ArrayList<>();
+        for (IslandCommandCatalog.HelpCategory category : IslandCommandCatalog.HELP_CATEGORIES) {
+            assertTrue(category.aliases().contains(category.name()), "Category aliases must include the displayed category name");
+            for (String command : category.commands()) {
+                if (!IslandCommandCatalog.HELP_COMMANDS.contains(command)) {
+                    missing.add(category.name() + ": " + command);
+                }
+            }
+        }
+
+        assertEquals(List.of(), missing, "Categorized help must be a subset of the advertised command list");
     }
 
     private static Set<String> handledSubcommands() throws IOException {
