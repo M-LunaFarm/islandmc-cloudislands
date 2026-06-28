@@ -235,7 +235,11 @@ class AdminCommandBackendPolicyTest {
     @Test
     void adminRouteRuntimeUsesTypedRoutingClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String adminSurface = source + "\n" + catalog;
 
+        assertTrue(adminSurface.contains("ciadmin route tickets <player>"), "Route tickets alias must be listed for operators");
+        assertTrue(source.contains("args[1].equalsIgnoreCase(\"ticket\") || args[1].equalsIgnoreCase(\"tickets\")"), "Route tickets alias must use the typed ticket lookup path");
         assertTrue(source.contains("coreApiClient.routingCommands().routeTicketStatus(ticket)"), "Admin route polling must use the typed routing API");
         assertTrue(source.contains("coreApiClient.routingCommands().publishRouteSession(ticket)"), "Admin route publish must use the typed routing API");
         assertTrue(source.contains("coreApiClient.routingCommands().clearRoute(ticket, reason)"), "Admin route cleanup must use the typed routing API");

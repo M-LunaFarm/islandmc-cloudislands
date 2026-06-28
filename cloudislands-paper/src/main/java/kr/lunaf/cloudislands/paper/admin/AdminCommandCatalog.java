@@ -13,7 +13,7 @@ final class AdminCommandCatalog {
     static final List<String> ISLAND_COMMANDS = List.of("info", "where", "visitor-stats", "visitors", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "quarantine", "repair", "delete");
     static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
     static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
-    static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "clear");
+    static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "tickets", "clear");
     static final List<String> DIAGNOSTICS_COMMANDS = List.of("export");
     static final List<String> RANKING_COMMANDS = List.of("level", "worth");
     static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
@@ -78,6 +78,7 @@ final class AdminCommandCatalog {
         "ciadmin jobs recover [nodeId] [minIdleMillis] [maxJobs]",
         "ciadmin route debug [all|player]",
         "ciadmin route ticket <ticket|player>",
+        "ciadmin route tickets <player>",
         "ciadmin route clear <player> [ticket]",
         "ciadmin rankings level [limit]",
         "ciadmin rankings worth [limit]",

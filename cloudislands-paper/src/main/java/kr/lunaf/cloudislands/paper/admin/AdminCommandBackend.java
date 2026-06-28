@@ -347,7 +347,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             targets.addAll(onlinePlayerNames());
             return matches(targets, args[2]);
         }
-        if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("ticket")) {
+        if (args.length == 3 && args[0].equalsIgnoreCase("route") && (args[1].equalsIgnoreCase("ticket") || args[1].equalsIgnoreCase("tickets"))) {
             return matches(onlinePlayerNames(), args[2]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("clear")) {
@@ -917,7 +917,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             });
             return true;
         }
-        if (args[1].equalsIgnoreCase("ticket")) {
+        if (args[1].equalsIgnoreCase("ticket") || args[1].equalsIgnoreCase("tickets")) {
             if (args.length < 3) {
                 sender.sendMessage(adminText("admin-command-route-ticket-target-required", "티켓 UUID, 플레이어 UUID 또는 플레이어 이름을 입력해주세요."));
                 return true;
@@ -1049,6 +1049,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         sendCommandUsage(sender, List.of(
             "/ciadmin route debug [all|playerUuid|playerName]",
             "/ciadmin route ticket <ticketUuid|playerUuid|playerName>",
+            "/ciadmin route tickets <playerUuid|playerName>",
             "/ciadmin route clear <playerUuid|playerName> [ticketUuid]"
         ));
     }
