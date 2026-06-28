@@ -200,6 +200,11 @@ class CoreSecurityControlsTest {
             "X-CloudIslands-Admin-Token", "admin-secret",
             "X-CloudIslands-Admin-Permissions", "audit-read"
         )));
+        assertTrue(guard.allowed("/v1/admin/support-bundle", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret",
+            "X-CloudIslands-Admin-Permissions", "audit-read"
+        )));
         assertFalse(new AdminEndpointGuard("admin-secret", false).allowed("/v1/admin/audit", exchange(
             "127.0.0.1",
             "X-CloudIslands-Admin-Token", "admin-secret",

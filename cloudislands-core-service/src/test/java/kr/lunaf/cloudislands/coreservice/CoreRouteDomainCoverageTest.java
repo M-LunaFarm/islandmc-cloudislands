@@ -87,6 +87,7 @@ class CoreRouteDomainCoverageTest {
             entry("AdminIslandLifecycleRoutes", List.of("domainServices.islandLifecycle()", "domainServices.islandDeleteService()")),
             entry("AdminNodeRoutes", List.of("nodes", "nodeFailureMonitor")),
             entry("AdminRuntimeRoutes", List.of("sessions", "tickets")),
+            entry("AdminSupportBundleRoutes", List.of("config", "nodes", "jobs", "tickets", "sessions", "inMemoryEvents", "dataSource", "deleteStorage")),
             entry("AuditRoutes", List.of("audit")),
             entry("CoreConfigRoutes", List.of("config", "nodes")),
             entry("EventRoutes", List.of("inMemoryEvents")),

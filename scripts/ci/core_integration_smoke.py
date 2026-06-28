@@ -299,12 +299,43 @@ def idempotency_evidence_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     return {"multi-core-e2e": ["idempotency-key-check"]}, [file_artifact(path, root) for path in required_files]
 
 
-def write_cluster_evidence(path: Path | None, artifacts: list[dict]) -> None:
+def support_bundle_evidence(support_bundle: dict | None) -> dict[str, list[str]]:
+    if not support_bundle:
+        return {}
+    required = {
+        "version": bool(support_bundle.get("version")),
+        "node-state": bool(support_bundle.get("nodeState")),
+        "core-redis-db-storage": bool(support_bundle.get("coreRedisDbStorage")),
+        "route-ticket-state": bool(support_bundle.get("routeTicketState")),
+        "config-redaction": bool(support_bundle.get("configRedaction", {}).get("secretsRedacted")),
+        "recent-failures": isinstance(support_bundle.get("recentFailures"), list),
+    }
+    missing = [name for name, present in required.items() if not present]
+    if missing:
+        raise RuntimeError(f"support bundle evidence signals are missing: {missing}")
+    text = json.dumps(support_bundle, sort_keys=True)
+    forbidden_patterns = (
+        '"coreToken":',
+        '"adminToken":',
+        '"nodeCredentials":',
+        '"storageSecretKey":',
+        '"databasePassword":',
+    )
+    leaked_patterns = [pattern for pattern in forbidden_patterns if pattern in text]
+    if leaked_patterns:
+        raise RuntimeError(f"support bundle exposed secret values: {leaked_patterns}")
+    if '"nonce":' in text and '"nonce":"hidden"' not in text and '"nonce": "hidden"' not in text:
+        raise RuntimeError("support bundle exposed an unmasked route nonce")
+    return {"support-bundle": list(required.keys())}
+
+
+def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bundle: dict | None = None) -> None:
     if path is None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     deployment_evidence, deployment_artifacts = deployment_template_artifacts()
     idempotency_evidence, idempotency_artifacts = idempotency_evidence_artifacts()
+    runtime_evidence = support_bundle_evidence(support_bundle)
     evidence = {
         "certificationScope": "partial-core-integration-smoke",
         "components": [
@@ -327,6 +358,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict]) -> None:
                 "route-recovery",
             ],
             **deployment_evidence,
+            **runtime_evidence,
         },
         "failureInjections": [],
         "assertions": [
@@ -342,6 +374,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict]) -> None:
             {"name": "audit-entries-visible-on-secondary-core", "result": "passed"},
             {"name": "node-down-recovery-restore", "result": "passed"},
             {"name": "post-recovery-route-targets-standby-node", "result": "passed"},
+            {"name": "support-bundle-redacted", "result": "passed" if runtime_evidence else "not-run"},
         ],
         "artifacts": artifacts + deployment_artifacts + idempotency_artifacts,
         "uncertifiedComponents": ["velocity", "lobby-paper", "island-paper-1", "island-paper-2", "player-protocol-client"],
@@ -580,12 +613,14 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         assert_contains_any_event(events, ["ROUTE_TICKET_CREATED", "ROUTE_SESSION_PUBLISHED", "ISLAND_ACTIVATED"])
         audit = request(secondary_admin_url, "POST", "/v1/audit", {"limit": 100}, admin=True, expect=(200,))
         assert_audit_entries(audit)
+        support_bundle = request(secondary_admin_url, "POST", "/v1/admin/support-bundle", {}, admin=True, expect=(200,))
+        support_bundle_evidence(support_bundle)
 
         print(
             "Core integration smoke passed: two Core services, PostgreSQL+Redis+MinIO config, "
             "cross-core create/job/route/session/consume, node-down recovery restore, reconnect"
         )
-        write_cluster_evidence(evidence_out, log_artifacts(processes))
+        write_cluster_evidence(evidence_out, log_artifacts(processes), support_bundle)
     finally:
         failures = []
         for process, log, log_path in processes:
