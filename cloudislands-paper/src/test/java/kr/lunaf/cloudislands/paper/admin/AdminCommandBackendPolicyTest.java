@@ -169,9 +169,16 @@ class AdminCommandBackendPolicyTest {
     @Test
     void adminStorageCommandUsesTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String adminSurface = source + "\n" + catalog;
 
+        assertTrue(adminSurface.contains("ciadmin storage verify <island>"), "Storage verify command must be listed for operators");
         assertTrue(source.contains("coreApiClient.adminStorage().status"), "Storage command must use the typed Core storage status API");
         assertTrue(source.contains("storageStatusMessage(AdminStorageStatusView"), "Storage command must render a typed storage view");
+        assertTrue(source.contains("handleStorage"), "Storage command must route through a dedicated handler");
+        assertTrue(source.contains("storageVerifyMessage(UUID"), "Storage verify must render a typed island storage check");
+        assertTrue(source.contains("coreApiClient.adminIslands().runtime"), "Storage verify must include typed island runtime state");
+        assertTrue(source.contains("coreApiClient.snapshots().listSnapshots"), "Storage verify must include typed snapshot metadata");
     }
 
     @Test

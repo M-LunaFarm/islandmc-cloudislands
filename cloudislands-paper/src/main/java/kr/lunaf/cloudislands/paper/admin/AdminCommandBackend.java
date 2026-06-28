@@ -71,6 +71,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> PLAYER_COMMANDS = AdminCommandCatalog.PLAYER_COMMANDS;
     private static final List<String> JOB_COMMANDS = AdminCommandCatalog.JOB_COMMANDS;
     private static final List<String> ROUTE_COMMANDS = AdminCommandCatalog.ROUTE_COMMANDS;
+    private static final List<String> STORAGE_COMMANDS = AdminCommandCatalog.STORAGE_COMMANDS;
     private static final List<String> DIAGNOSTICS_COMMANDS = AdminCommandCatalog.DIAGNOSTICS_COMMANDS;
     private static final List<String> RANKING_COMMANDS = AdminCommandCatalog.RANKING_COMMANDS;
     private static final List<String> BLOCK_VALUE_COMMANDS = AdminCommandCatalog.BLOCK_VALUE_COMMANDS;
@@ -205,8 +206,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return configHandler.handle(sender, args);
         }
         if (args[0].equalsIgnoreCase("storage")) {
-            run(sender, "Storage status", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
-            return true;
+            return handleStorage(sender, args);
         }
         if (args[0].equalsIgnoreCase("diagnostics")) {
             return handleDiagnostics(sender, args);
@@ -283,6 +283,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("route")) {
             return matches(ROUTE_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("storage")) {
+            return matches(STORAGE_COMMANDS, args[1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("diagnostics")) {
             return matches(DIAGNOSTICS_COMMANDS, args[1]);
@@ -682,6 +685,38 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                     .thenApply(runtime -> (CharSequence) (adminText("admin-command-island-where-player-prefix", "Player island where: player=") + playerLabel + " " + runtimeInfoMessage(runtime)));
             })
             .exceptionally(_error -> fallback);
+    }
+
+    private boolean handleStorage(CommandSender sender, String[] args) {
+        if (args.length < 2 || args[1].equalsIgnoreCase("status")) {
+            run(sender, "Storage status", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("verify")) {
+            if (args.length < 3) {
+                sendStorageCommandUsage(sender);
+                return true;
+            }
+            resolveIslandUuid(sender, args[2]).thenAccept(islandId -> {
+                if (islandId != null) {
+                    run(sender, "Storage verify", storageVerifyMessage(islandId));
+                }
+            }).exceptionally(error -> {
+                sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[2]);
+                return null;
+            });
+            return true;
+        }
+        sendStorageCommandUsage(sender);
+        return true;
+    }
+
+    private void sendStorageCommandUsage(CommandSender sender) {
+        sendCommandUsage(sender, List.of(
+            "/ciadmin storage",
+            "/ciadmin storage status",
+            "/ciadmin storage verify <island>"
+        ));
     }
 
     private MessageRenderer messagesFor(Player player) {
@@ -1231,6 +1266,34 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + adminText("admin-command-storage-bundle-policy-prefix", ", bundle=") + "portable"
             + adminText("admin-command-storage-manifest-policy-prefix", ", manifest=") + "manifest.json+checksums.sha256"
             + adminText("admin-command-storage-restore-policy-prefix", ", restore=") + "verify-manifest-checksum)";
+    }
+
+    private CompletableFuture<CharSequence> storageVerifyMessage(UUID islandId) {
+        CompletableFuture<AdminStorageStatusView> storage = coreApiClient.adminStorage().status();
+        CompletableFuture<AdminIslandRuntimeView> runtime = coreApiClient.adminIslands().runtime(islandId);
+        CompletableFuture<List<CoreGuiViews.SnapshotView>> snapshots = coreApiClient.snapshots().listSnapshots(islandId, 5);
+        return CompletableFuture.allOf(storage, runtime, snapshots)
+            .thenApply(ignored -> (CharSequence) storageVerifyMessage(islandId, storage.join(), runtime.join(), snapshots.join()));
+    }
+
+    private String storageVerifyMessage(UUID islandId, AdminStorageStatusView status, AdminIslandRuntimeView runtime, List<CoreGuiViews.SnapshotView> snapshots) {
+        return adminText("admin-command-storage-verify-prefix", "Storage verify: island=") + shortId(islandId.toString())
+            + " | " + runtimeInfoMessage(runtime)
+            + " | " + snapshotStorageSummary(snapshots)
+            + " | " + storageStatusMessage(status);
+    }
+
+    private String snapshotStorageSummary(List<CoreGuiViews.SnapshotView> snapshots) {
+        if (snapshots.isEmpty()) {
+            return adminText("admin-command-storage-verify-snapshot-empty", "snapshot=none");
+        }
+        CoreGuiViews.SnapshotView latest = snapshots.stream()
+            .max((left, right) -> Long.compare(left.snapshotNo(), right.snapshotNo()))
+            .orElse(snapshots.get(0));
+        return adminText("admin-command-storage-verify-snapshot-prefix", "snapshot=#") + latest.snapshotNo()
+            + (latest.storagePath().isBlank() ? adminText("admin-command-storage-verify-path-missing", " path=missing") : adminText("admin-command-snapshot-path-prefix", " path=") + latest.storagePath())
+            + (latest.checksum().isBlank() ? adminText("admin-command-storage-verify-checksum-missing", " checksum=missing") : adminText("admin-command-snapshot-checksum-prefix", " checksum=") + shortChecksum(latest.checksum()))
+            + adminText("admin-command-storage-verify-snapshot-count-prefix", " checked=") + snapshots.size();
     }
 
     private String jobListMessage(List<JobView> jobs) {
