@@ -6,9 +6,11 @@ import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot;
+import kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
-import kr.lunaf.cloudislands.coreclient.ProgressionQueryClient;
+import kr.lunaf.cloudislands.coreclient.GeneratorQueryClient;
 import org.junit.jupiter.api.Test;
 
 class GeneratorInfoUseCaseTest {
@@ -45,12 +47,13 @@ class GeneratorInfoUseCaseTest {
     private static CoreApiClient client() {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
-            new Class<?>[] {CoreApiClient.class, ProgressionQueryClient.class},
+            new Class<?>[] {CoreApiClient.class, GeneratorQueryClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
-                case "progression" -> (ProgressionQueryClient) _proxy;
-                case "upgrades" -> CompletableFuture.completedFuture(List.of(
-                    new CoreGuiViews.UpgradeView("generator", "GENERATOR", 1, ""),
-                    new CoreGuiViews.UpgradeView("generator:nether", "GENERATOR", 2, "")
+                case "generators" -> (GeneratorQueryClient) _proxy;
+                case "generator" -> CompletableFuture.completedFuture(new IslandGeneratorSnapshot((UUID) args[0], "nether", 2, null));
+                case "generatorRules" -> CompletableFuture.completedFuture(List.of(
+                    new GeneratorRuleSnapshot("nether", "minecraft:basalt", 80.0D, 0, 1, "*", true),
+                    new GeneratorRuleSnapshot("nether", "minecraft:blackstone", 20.0D, 0, 1, "*", true)
                 ));
                 default -> throw new UnsupportedOperationException(method.getName());
             });

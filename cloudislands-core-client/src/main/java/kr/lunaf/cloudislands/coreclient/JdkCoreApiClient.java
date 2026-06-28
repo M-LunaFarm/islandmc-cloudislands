@@ -29,6 +29,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final IslandQueryClient islandClient;
     private final ProgressionQueryClient progressionQueryClient;
     private final ProgressionCommandClient progressionCommandClient;
+    private final GeneratorQueryClient generatorQueryClient;
     private final MemberQueryClient memberQueryClient;
     private final MemberCommandClient memberCommandClient;
     private final IslandVisitorStatsQueryClient visitorStatsClient;
@@ -88,6 +89,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.islandClient = new JdkIslandQueryClient(this);
         this.progressionQueryClient = new JdkProgressionQueryClient(this);
         this.progressionCommandClient = new JdkProgressionCommandClient(this);
+        this.generatorQueryClient = new JdkGeneratorQueryClient(this);
         this.memberQueryClient = new JdkMemberQueryClient(this);
         this.memberCommandClient = new JdkMemberCommandClient(this);
         this.visitorStatsClient = new JdkIslandVisitorStatsQueryClient(this);
@@ -218,6 +220,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public ProgressionCommandClient progressionCommands() {
         return progressionCommandClient;
+    }
+
+    @Override
+    public GeneratorQueryClient generators() {
+        return generatorQueryClient;
     }
 
     @Override

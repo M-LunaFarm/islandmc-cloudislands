@@ -30,6 +30,9 @@ import kr.lunaf.cloudislands.coreservice.event.CompositeGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
+import kr.lunaf.cloudislands.coreservice.generator.InMemoryIslandGeneratorRepository;
+import kr.lunaf.cloudislands.coreservice.generator.IslandGeneratorRepository;
+import kr.lunaf.cloudislands.coreservice.generator.JdbcIslandGeneratorRepository;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpRouteRegistrar;
 import kr.lunaf.cloudislands.coreservice.islandlog.CachingIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
@@ -239,6 +242,7 @@ final class CoreBootstrap {
         IslandMissionRepository missionRepository = redisEnabled
             ? new CachingIslandMissionRepository(baseMissionRepository, config.redisUri())
             : baseMissionRepository;
+        IslandGeneratorRepository generatorRepository = config.jdbcRepositories() ? new JdbcIslandGeneratorRepository(dataSource) : new InMemoryIslandGeneratorRepository();
         IslandLimitRepository baseLimitRepository = config.jdbcRepositories() ? new JdbcIslandLimitRepository(dataSource) : new InMemoryIslandLimitRepository();
         IslandLimitRepository limitRepository = redisEnabled
             ? new CachingIslandLimitRepository(baseLimitRepository, config.redisUri())
@@ -279,6 +283,7 @@ final class CoreBootstrap {
             upgradeRepository,
             bankRepository,
             missionRepository,
+            generatorRepository,
             limitRepository,
             templateRepository,
             addonStates,

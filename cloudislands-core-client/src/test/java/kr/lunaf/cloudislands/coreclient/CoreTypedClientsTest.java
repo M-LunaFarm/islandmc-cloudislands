@@ -1696,6 +1696,38 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void generatorQueryClientReturnsTypedProfileAndRules() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000061");
+        List<String> calls = new ArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/generator", exchange -> respondMemberTest(exchange, calls, "generator", """
+            {"generator":{"islandId":"%s","generatorKey":"nether","level":3,"updatedAt":"2026-01-02T03:04:05Z"}}
+            """.formatted(islandId)));
+        server.createContext("/v1/islands/generator/rules", exchange -> respondMemberTest(exchange, calls, "rules", """
+            {"generatorKey":"nether","level":3,"rules":[{"generatorKey":"nether","materialKey":"minecraft:basalt","chance":70.0,"minIslandLevel":0,"minUpgradeLevel":1,"biomeKey":"nether_wastes","enabled":true}]}
+            """));
+        server.start();
+        try {
+            GeneratorQueryClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).generators();
+
+            kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot profile = client.generator(islandId).join();
+            List<kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot> rules = client.generatorRules(islandId).join();
+
+            assertEquals("nether", profile.generatorKey());
+            assertEquals(3, profile.level());
+            assertEquals("minecraft:basalt", rules.getFirst().materialKey());
+            assertEquals(70.0D, rules.getFirst().chance());
+            assertEquals("nether_wastes", rules.getFirst().biomeKey());
+            assertEquals(List.of(
+                "generator:{\"islandId\":\"" + islandId + "\"}",
+                "rules:{\"islandId\":\"" + islandId + "\"}"
+            ), calls);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void progressionCommandClientReturnsTypedMutationViews() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

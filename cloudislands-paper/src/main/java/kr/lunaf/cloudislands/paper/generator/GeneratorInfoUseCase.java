@@ -2,9 +2,9 @@ package kr.lunaf.cloudislands.paper.generator;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 
 public final class GeneratorInfoUseCase {
@@ -29,19 +29,29 @@ public final class GeneratorInfoUseCase {
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
-        return client.progression().upgrades(islandId)
-            .thenApply(upgrades -> {
-                GeneratorLevelCache.GeneratorProfile profile = GeneratorLevelCache.resolveProfile(upgrades, defaultGeneratorKey);
-                GeneratorRule rule = registry.rule(profile.generatorKey(), profile.level());
-                return new GeneratorInfoView(profile.generatorKey(), profile.level(), sortedMaterials(rule.materialWeights()), rule.totalWeight());
-            });
+        CompletableFuture<kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot> profile = client.generators().generator(islandId);
+        CompletableFuture<List<GeneratorRuleSnapshot>> rules = client.generators().generatorRules(islandId);
+        return profile.thenCombine(rules, (generator, generatorRules) -> new GeneratorInfoView(
+            generator.generatorKey().isBlank() ? defaultGeneratorKey : generator.generatorKey(),
+            generator.level(),
+            sortedMaterials(generatorRules),
+            totalChance(generatorRules)
+        ));
     }
 
-    private static List<GeneratorMaterialView> sortedMaterials(Map<String, Integer> weights) {
-        return (weights == null ? Map.<String, Integer>of() : weights).entrySet().stream()
-            .sorted(Comparator.comparing(Map.Entry<String, Integer>::getValue).reversed().thenComparing(Map.Entry::getKey))
-            .map(entry -> new GeneratorMaterialView(entry.getKey(), entry.getValue()))
+    private static List<GeneratorMaterialView> sortedMaterials(List<GeneratorRuleSnapshot> rules) {
+        return (rules == null ? List.<GeneratorRuleSnapshot>of() : rules).stream()
+            .filter(GeneratorRuleSnapshot::enabled)
+            .sorted(Comparator.comparing(GeneratorRuleSnapshot::chance).reversed().thenComparing(GeneratorRuleSnapshot::materialKey))
+            .map(rule -> new GeneratorMaterialView(rule.materialKey(), (int) Math.round(rule.chance())))
             .toList();
+    }
+
+    private static int totalChance(List<GeneratorRuleSnapshot> rules) {
+        return (int) Math.round((rules == null ? List.<GeneratorRuleSnapshot>of() : rules).stream()
+            .filter(GeneratorRuleSnapshot::enabled)
+            .mapToDouble(GeneratorRuleSnapshot::chance)
+            .sum());
     }
 
     public record GeneratorInfoView(String generatorKey, int level, List<GeneratorMaterialView> materials, int totalWeight) {

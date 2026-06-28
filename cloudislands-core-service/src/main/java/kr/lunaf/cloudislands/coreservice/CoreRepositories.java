@@ -6,6 +6,7 @@ import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.generator.IslandGeneratorRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
@@ -46,6 +47,7 @@ public record CoreRepositories(
     IslandUpgradeRepository upgradeRepository,
     IslandBankRepository bankRepository,
     IslandMissionRepository missionRepository,
+    IslandGeneratorRepository generatorRepository,
     IslandLimitRepository limitRepository,
     IslandTemplateRepository templateRepository,
     AddonStateRepository addonStates,

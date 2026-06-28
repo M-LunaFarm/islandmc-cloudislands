@@ -178,6 +178,13 @@ public interface CoreApiClient {
         throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed progression queries");
     }
 
+    default GeneratorQueryClient generators() {
+        if (this instanceof GeneratorQueryClient queries) {
+            return queries;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed generator queries");
+    }
+
     default ProgressionCommandClient progressionCommands() {
         if (this instanceof ProgressionCommandClient commands) {
             return commands;
