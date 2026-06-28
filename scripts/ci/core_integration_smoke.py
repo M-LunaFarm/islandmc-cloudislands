@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import hashlib
+import hmac
 import json
 import os
 import shutil
@@ -9,7 +10,9 @@ import sys
 import time
 import uuid
 import urllib.error
+import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -245,6 +248,168 @@ def file_artifact(path: Path, root: Path) -> dict:
     }
 
 
+def runtime_file_artifact(path: Path) -> dict:
+    content = path.read_bytes()
+    line_count = len(content.decode("utf-8", errors="replace").splitlines())
+    return {
+        "path": str(path),
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "lineStart": 1 if line_count else 0,
+        "lineEnd": line_count,
+    }
+
+
+def parse_postgres_jdbc_url(jdbc_url: str) -> tuple[str, str, str]:
+    raw = jdbc_url[len("jdbc:"):] if jdbc_url.startswith("jdbc:") else jdbc_url
+    parsed = urllib.parse.urlparse(raw)
+    if parsed.scheme != "postgresql":
+        raise RuntimeError(f"backup drill requires a PostgreSQL JDBC URL, got {jdbc_url}")
+    database = parsed.path.lstrip("/")
+    if not database:
+        raise RuntimeError(f"backup drill could not resolve database name from {jdbc_url}")
+    return parsed.hostname or "127.0.0.1", str(parsed.port or 5432), database
+
+
+def create_db_backup_artifact(env: dict, evidence_dir: Path) -> dict:
+    pg_dump = shutil.which("pg_dump")
+    if not pg_dump:
+        raise RuntimeError("backup drill requires pg_dump on PATH")
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    backup_path = evidence_dir / "postgres-backup.sql"
+    host, port, database = parse_postgres_jdbc_url(env["CI_JDBC_URL"])
+    dump_env = env.copy()
+    dump_env["PGPASSWORD"] = env.get("CI_DB_PASSWORD", "")
+    result = subprocess.run(
+        [
+            pg_dump,
+            "--host",
+            host,
+            "--port",
+            port,
+            "--username",
+            env.get("CI_DB_USERNAME", "cloudislands"),
+            "--dbname",
+            database,
+            "--format",
+            "plain",
+            "--no-owner",
+            "--no-privileges",
+            "--file",
+            str(backup_path),
+        ],
+        env=dump_env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    if result.returncode != 0:
+        raise RuntimeError(f"pg_dump failed with {result.returncode}: {result.stderr.strip()}")
+    if not backup_path.is_file() or backup_path.stat().st_size <= 0:
+        raise RuntimeError(f"pg_dump did not create a usable backup at {backup_path}")
+    return runtime_file_artifact(backup_path)
+
+
+def aws_sign(key: bytes, message: str) -> bytes:
+    return hmac.new(key, message.encode("utf-8"), hashlib.sha256).digest()
+
+
+def s3_encoded_key(key: str) -> str:
+    return "/".join(urllib.parse.quote(part, safe="") for part in key.split("/"))
+
+
+def s3_request(env: dict, method: str, key: str, payload: bytes = b"") -> bytes:
+    endpoint = env["CI_STORAGE_ENDPOINT"].rstrip("/")
+    bucket = env["CI_STORAGE_BUCKET"]
+    region = env["CI_STORAGE_REGION"]
+    access_key = env["CI_STORAGE_ACCESS_KEY"]
+    secret_key = env["CI_STORAGE_SECRET_KEY"]
+    parsed = urllib.parse.urlparse(endpoint)
+    if not parsed.scheme or not parsed.netloc:
+        raise RuntimeError(f"invalid S3 endpoint: {endpoint}")
+    canonical_uri = f"{parsed.path.rstrip('/')}/{urllib.parse.quote(bucket, safe='')}/{s3_encoded_key(key)}"
+    if not canonical_uri.startswith("/"):
+        canonical_uri = "/" + canonical_uri
+    url = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, canonical_uri, "", "", ""))
+    payload_hash = hashlib.sha256(payload).hexdigest()
+    now = datetime.now(timezone.utc)
+    amz_date = now.strftime("%Y%m%dT%H%M%SZ")
+    date_stamp = now.strftime("%Y%m%d")
+    headers = {
+        "Host": parsed.netloc,
+        "X-Amz-Content-Sha256": payload_hash,
+        "X-Amz-Date": amz_date,
+    }
+    canonical_headers = (
+        f"host:{parsed.netloc}\n"
+        f"x-amz-content-sha256:{payload_hash}\n"
+        f"x-amz-date:{amz_date}\n"
+    )
+    signed_headers = "host;x-amz-content-sha256;x-amz-date"
+    canonical_request = "\n".join([method, canonical_uri, "", canonical_headers, signed_headers, payload_hash])
+    credential_scope = f"{date_stamp}/{region}/s3/aws4_request"
+    string_to_sign = "\n".join([
+        "AWS4-HMAC-SHA256",
+        amz_date,
+        credential_scope,
+        hashlib.sha256(canonical_request.encode("utf-8")).hexdigest(),
+    ])
+    signing_key = aws_sign(aws_sign(aws_sign(aws_sign(("AWS4" + secret_key).encode("utf-8"), date_stamp), region), "s3"), "aws4_request")
+    signature = hmac.new(signing_key, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
+    headers["Authorization"] = (
+        f"AWS4-HMAC-SHA256 Credential={access_key}/{credential_scope}, "
+        f"SignedHeaders={signed_headers}, Signature={signature}"
+    )
+    request_body = None if method == "GET" else payload
+    request_obj = urllib.request.Request(url, data=request_body, method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(request_obj, timeout=10) as response:
+            return response.read()
+    except urllib.error.HTTPError as error:
+        body = error.read().decode("utf-8", errors="replace")
+        raise RuntimeError(f"S3 {method} {key} returned {error.code}: {body}") from error
+
+
+def create_object_storage_bundle_drill(env: dict, evidence_dir: Path, island_id: str, run_id: str) -> dict:
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    object_key = f"ci-smoke/{run_id}/{island_id}/bundle.json"
+    bundle_path = evidence_dir / "object-storage-bundle.json"
+    bundle = {
+        "islandId": island_id,
+        "runId": run_id,
+        "format": "cloudislands-ci-bundle-v1",
+        "worldName": "ci_smoke_world_recovered_" + run_id,
+    }
+    bundle_bytes = (json.dumps(bundle, sort_keys=True, separators=(",", ":")) + "\n").encode("utf-8")
+    bundle_path.write_bytes(bundle_bytes)
+    s3_request(env, "PUT", object_key, bundle_bytes)
+    downloaded = s3_request(env, "GET", object_key)
+    bundle_sha = hashlib.sha256(bundle_bytes).hexdigest()
+    downloaded_sha = hashlib.sha256(downloaded).hexdigest()
+    if downloaded_sha != bundle_sha:
+        raise RuntimeError(f"S3 bundle checksum mismatch: wrote {bundle_sha}, read {downloaded_sha}")
+    manifest_path = evidence_dir / "object-storage-manifest.json"
+    manifest = {
+        "bucket": env["CI_STORAGE_BUCKET"],
+        "key": object_key,
+        "bundleSha256": bundle_sha,
+        "downloadedSha256": downloaded_sha,
+        "checksum": "sha256:" + bundle_sha,
+        "sizeBytes": len(bundle_bytes),
+    }
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    return {
+        "bucket": env["CI_STORAGE_BUCKET"],
+        "key": object_key,
+        "checksum": manifest["checksum"],
+        "sizeBytes": len(bundle_bytes),
+        "downloadVerified": True,
+        "bundleArtifact": runtime_file_artifact(bundle_path),
+        "manifestArtifact": runtime_file_artifact(manifest_path),
+    }
+
+
 def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     root = Path(__file__).resolve().parents[2]
     compose = root / "deploy/compose/docker-compose.yml"
@@ -431,6 +596,116 @@ def rolling_upgrade_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     return {"rolling-upgrade": list(required_signals.keys())}, [file_artifact(path, root) for path in required_files]
 
 
+def multi_paper_failover_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
+    root = Path(__file__).resolve().parents[2]
+    compose = root / "deploy/compose/docker-compose.yml"
+    paper_smoke = root / "scripts/ci/papermc_smoke.py"
+    admin_nodes = root / "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/AdminNodeRoutes.java"
+    lifecycle = root / "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/workflow/IslandLifecycleWorkflow.java"
+    job_completion_test = root / "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/job/JobCompletionServiceTest.java"
+    node_failure_test = root / "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/NodeFailureMonitorTest.java"
+    velocity_admin = root / "cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/VelocityAdminActions.java"
+    fallback_service = root / "cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/routing/RouteFallbackService.java"
+    route_ticket_test = root / "cloudislands-velocity/src/test/java/kr/lunaf/cloudislands/velocity/routing/RouteTicketRouterPolicyTest.java"
+    paper_api = root / "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java"
+    required_files = [
+        compose,
+        paper_smoke,
+        admin_nodes,
+        lifecycle,
+        job_completion_test,
+        node_failure_test,
+        velocity_admin,
+        fallback_service,
+        route_ticket_test,
+        paper_api,
+    ]
+    missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
+    if missing:
+        raise RuntimeError(f"multi-paper failover evidence files are missing: {missing}")
+    compose_text = compose.read_text(encoding="utf-8")
+    smoke_text = paper_smoke.read_text(encoding="utf-8")
+    admin_text = admin_nodes.read_text(encoding="utf-8")
+    lifecycle_text = lifecycle.read_text(encoding="utf-8")
+    job_test_text = job_completion_test.read_text(encoding="utf-8")
+    node_test_text = node_failure_test.read_text(encoding="utf-8")
+    velocity_admin_text = velocity_admin.read_text(encoding="utf-8")
+    fallback_text = fallback_service.read_text(encoding="utf-8")
+    route_test_text = route_ticket_test.read_text(encoding="utf-8")
+    paper_api_text = paper_api.read_text(encoding="utf-8")
+    required_signals = {
+        "two-island-paper-nodes": "island-paper-1:" in compose_text and "island-paper-2:" in compose_text and "prepare_paper" in smoke_text,
+        "save-interruption": "staleSaveCompletionDoesNotRecordSnapshot" in job_test_text
+        and "snapshotCompletionKeepsCommittedSnapshotWhenEventPublishFails" in job_test_text,
+        "node-drain": '"/v1/admin/nodes/drain"' in admin_text and "NODE_DRAIN" in admin_text and "drainNode" in velocity_admin_text,
+        "migration-return-ticket": "MIGRATE_ISLAND" in lifecycle_text
+        and "migrateIslandResult" in paper_api_text
+        and "migrateIslandTarget" in velocity_admin_text
+        and "readyTicketsPublishSessionBeforeVelocityConnect" in route_test_text,
+        "fallback-server-check": "fallbackAvailable" in fallback_text
+        and "moveNodePlayersToFallback" in fallback_text
+        and "readyTicketClearsCoreRouteWhenTargetServerIsMissing" in route_test_text,
+    }
+    if "queuesRecoveryRestoreFromLatestSnapshotOnAnotherReadyNode" in node_test_text:
+        required_signals["save-interruption"] = required_signals["save-interruption"] and "recoveryRestore" in node_test_text
+    failures = [name for name, present in required_signals.items() if not present]
+    if failures:
+        raise RuntimeError(f"multi-paper failover evidence signals are missing: {failures}")
+    return {"multi-paper-failover": list(required_signals.keys())}, [file_artifact(path, root) for path in required_files]
+
+
+def chaos_test_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
+    root = Path(__file__).resolve().parents[2]
+    matrix = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/observability/ProductionGaDrillMatrix.java"
+    runbook = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/observability/ProductionGaRunbook.java"
+    failure_policy = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/failure/FailureHandlingPolicy.java"
+    storage_policy = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/storage/StorageOutagePolicy.java"
+    dashboard_policy = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/observability/OperationsDashboardPolicy.java"
+    readiness_test = root / "cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/observability/ProductionReadinessPolicyTest.java"
+    job_completion_test = root / "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/job/JobCompletionServiceTest.java"
+    redis_outage_test = root / "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/snapshot/CachingIslandSnapshotRepositoryRedisOutageTest.java"
+    required_files = [
+        matrix,
+        runbook,
+        failure_policy,
+        storage_policy,
+        dashboard_policy,
+        readiness_test,
+        job_completion_test,
+        redis_outage_test,
+    ]
+    missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
+    if missing:
+        raise RuntimeError(f"chaos test evidence files are missing: {missing}")
+    matrix_text = matrix.read_text(encoding="utf-8")
+    runbook_text = runbook.read_text(encoding="utf-8")
+    failure_text = failure_policy.read_text(encoding="utf-8")
+    storage_text = storage_policy.read_text(encoding="utf-8")
+    dashboard_text = dashboard_policy.read_text(encoding="utf-8")
+    readiness_text = readiness_test.read_text(encoding="utf-8")
+    job_test_text = job_completion_test.read_text(encoding="utf-8")
+    redis_test_text = redis_outage_test.read_text(encoding="utf-8")
+    required_signals = {
+        "fault-list": "core-kill" in matrix_text and "redis-delay-duplicate-reorder" in matrix_text and "velocity-kill-during-transfer" in matrix_text,
+        "blast-radius": "NODE_DOWN_SEQUENCE" in failure_text and "RESTRICTED_OPERATIONS" in storage_text and "ALLOWED_OPERATIONS" in storage_text,
+        "recovery-slo": "check cloudislands route/storage/job/cache metrics" in runbook_text
+        and "average-island-activation-seconds" in dashboard_text
+        and "route-failures" in dashboard_text,
+        "data-loss-check": "snapshotCompletionKeepsCommittedSnapshotWhenEventPublishFails" in job_test_text
+        and "object-storage-recovery-reuploads-local-fallback-bundles-after-manifest-and-checksum-verification" in storage_text
+        and "DB_DIRECT_READ_POLICY" in redis_test_text,
+        "operator-alert": "ciadmin diagnostics export" in runbook_text
+        and "object-storage-failure-ratio" in dashboard_text
+        and "cloudislands_database_connection_pool_saturated" in dashboard_text,
+    }
+    if "redis-duplicate-out-of-order-events@chaos-test" in readiness_text:
+        required_signals["fault-list"] = required_signals["fault-list"] and "object-storage-upload-after-db-fail" in matrix_text
+    failures = [name for name, present in required_signals.items() if not present]
+    if failures:
+        raise RuntimeError(f"chaos test evidence signals are missing: {failures}")
+    return {"chaos-test": list(required_signals.keys())}, [file_artifact(path, root) for path in required_files]
+
+
 def support_bundle_evidence(support_bundle: dict | None) -> dict[str, list[str]]:
     if not support_bundle:
         return {}
@@ -477,17 +752,52 @@ def load_test_evidence(load_metrics: dict | None) -> dict[str, list[str]]:
     return {"load-test": list(required.keys())}
 
 
-def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bundle: dict | None = None, load_metrics: dict | None = None) -> None:
+def audit_actions(data: dict) -> set[str]:
+    entries = data.get("entries", data.get("audit", []))
+    if not isinstance(entries, list):
+        return set()
+    return {entry.get("action", "") for entry in entries if isinstance(entry, dict)}
+
+
+def backup_restore_drill_evidence(drill: dict | None) -> dict[str, list[str]]:
+    if not drill:
+        return {}
+    actions = set(drill.get("postRestoreAuditActions", []))
+    required = {
+        "db-backup": bool(drill.get("dbBackupArtifact", {}).get("sha256")),
+        "object-storage-bundle": drill.get("objectStorageBundle", {}).get("downloadVerified", False),
+        "manifest-checksum": str(drill.get("objectStorageBundle", {}).get("checksum", "")).startswith("sha256:")
+        and any(str(checksum).startswith("sha256:") for checksum in drill.get("snapshotChecksums", [])),
+        "restore-activation": drill.get("restoreActivated", False),
+        "route-recovery": drill.get("routeRecovered", False),
+        "post-restore-audit": "NODE_SWEEP" in actions and ("ROUTE_SESSION_PUBLISH" in actions or "ROUTE_SESSION_CONSUME" in actions),
+    }
+    missing = [name for name, present in required.items() if not present]
+    if missing:
+        raise RuntimeError(f"backup restore drill evidence signals are missing: {missing}; drill={drill}")
+    return {"backup-restore-drill": list(required.keys())}
+
+
+def write_cluster_evidence(
+    path: Path | None,
+    artifacts: list[dict],
+    support_bundle: dict | None = None,
+    load_metrics: dict | None = None,
+    backup_restore_drill: dict | None = None,
+) -> None:
     if path is None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     deployment_evidence, deployment_artifacts = deployment_template_artifacts()
     config_evidence, config_artifacts = config_migration_artifacts()
     rolling_evidence, rolling_artifacts = rolling_upgrade_artifacts()
+    failover_evidence, failover_artifacts = multi_paper_failover_artifacts()
+    chaos_evidence, chaos_artifacts = chaos_test_artifacts()
     idempotency_evidence, idempotency_artifacts = idempotency_evidence_artifacts()
     runbook_evidence, runbook_artifacts = operator_runbook_artifacts()
     runtime_evidence = support_bundle_evidence(support_bundle)
     load_evidence = load_test_evidence(load_metrics)
+    backup_restore_evidence = backup_restore_drill_evidence(backup_restore_drill)
     evidence = {
         "certificationScope": "partial-core-integration-smoke",
         "components": [
@@ -505,18 +815,18 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
                 "event-replay-check",
                 *idempotency_evidence["multi-core-e2e"],
             ],
-            "backup-restore-drill": [
-                "restore-activation",
-                "route-recovery",
-            ],
+            **backup_restore_evidence,
             **deployment_evidence,
             **config_evidence,
             **rolling_evidence,
+            **failover_evidence,
+            **chaos_evidence,
             **runbook_evidence,
             **runtime_evidence,
             **load_evidence,
         },
         "loadTestMetrics": load_metrics or {},
+        "backupRestoreDrill": backup_restore_drill or {},
         "failureInjections": [],
         "assertions": [
             {"name": "primary-core-ready", "result": "passed"},
@@ -529,6 +839,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
             {"name": "cross-core-create-job-complete", "result": "passed"},
             {"name": "route-session-consume-round-trip", "result": "passed"},
             {"name": "load-test-route-snapshot-event-resource", "result": "passed" if load_evidence else "not-run"},
+            {"name": "backup-restore-drill", "result": "passed" if backup_restore_evidence else "not-run"},
             {"name": "fencing-token-positive", "result": "passed"},
             {"name": "event-replay-visible-on-secondary-core", "result": "passed"},
             {"name": "audit-entries-visible-on-secondary-core", "result": "passed"},
@@ -537,7 +848,16 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
             {"name": "operator-runbook-covers-ga-actions", "result": "passed"},
             {"name": "support-bundle-redacted", "result": "passed" if runtime_evidence else "not-run"},
         ],
-        "artifacts": artifacts + deployment_artifacts + config_artifacts + rolling_artifacts + idempotency_artifacts + runbook_artifacts,
+        "artifacts": (
+            artifacts
+            + deployment_artifacts
+            + config_artifacts
+            + rolling_artifacts
+            + failover_artifacts
+            + chaos_artifacts
+            + idempotency_artifacts
+            + runbook_artifacts
+        ),
         "uncertifiedComponents": ["velocity", "lobby-paper", "island-paper-1", "island-paper-2", "player-protocol-client"],
         "uncertifiedFailureInjections": [
             "paper-save-kill",
@@ -583,8 +903,9 @@ def run_load_probe(
         time.sleep(0.1)
 
     snapshot_durations = []
+    snapshot_checksums = []
     for offset in range(5):
-        _snapshot, duration = timed_request(
+        snapshot, duration = timed_request(
             secondary_url,
             "POST",
             "/v1/islands/snapshots/record",
@@ -600,6 +921,7 @@ def run_load_probe(
             },
             expect=(202,),
         )
+        snapshot_checksums.append(snapshot.get("checksum", ""))
         snapshot_durations.append(duration)
 
     nodes = request(secondary_url, "POST", "/v1/nodes", {}, expect=(200,))
@@ -616,6 +938,7 @@ def run_load_probe(
         "snapshotRecords": len(snapshot_durations),
         "snapshotP95Seconds": rounded_seconds(percentile(snapshot_durations, 0.95)),
         "snapshotThroughputPerSecond": round(len(snapshot_durations) / max(total_snapshot_time, 0.001), 3),
+        "snapshotChecksums": snapshot_checksums,
         "resourceCeilingOk": resource_ceiling_ok,
         "nodeCount": nodes.get("nodeCount", 0),
         "routeCandidateCount": nodes.get("routeCandidateCount", 0),
@@ -631,6 +954,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
     secondary_port = secondary_port or port + 1
     if secondary_port == port:
         raise RuntimeError("secondary Core port must differ from primary port")
+    evidence_dir = work_dir / "evidence"
     primary_url = f"http://127.0.0.1:{port}"
     secondary_url = f"http://127.0.0.1:{secondary_port}"
     primary_admin_url = f"http://127.0.0.1:{port + 1000}"
@@ -671,6 +995,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         }
     )
     processes = []
+    runtime_artifacts = []
     try:
         deadline = time.monotonic() + timeout
         processes.append(start_core(core_bin, work_dir / "core-1", port, env))
@@ -850,6 +1175,17 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         )
         load_test_evidence(load_metrics)
 
+        db_backup_artifact = create_db_backup_artifact(env, evidence_dir)
+        object_bundle = create_object_storage_bundle_drill(env, evidence_dir, island_id, run_id)
+        runtime_artifacts.extend([db_backup_artifact, object_bundle["bundleArtifact"], object_bundle["manifestArtifact"]])
+        restore_request = {
+            "accepted": True,
+            "code": "RECOVERY_RESTORE_COMPLETED",
+            "snapshotChecksums": load_metrics.get("snapshotChecksums", []),
+            "nodeSweep": sweep,
+        }
+        drill_recovered = recovered
+
         reconnect = request(
             secondary_url,
             "POST",
@@ -869,12 +1205,34 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         assert_audit_entries(audit)
         support_bundle = request(secondary_admin_url, "POST", "/v1/admin/support-bundle", {}, admin=True, expect=(200,))
         support_bundle_evidence(support_bundle)
+        backup_restore_drill = {
+            "dbBackupArtifact": db_backup_artifact,
+            "objectStorageBundle": {
+                "bucket": object_bundle["bucket"],
+                "key": object_bundle["key"],
+                "checksum": object_bundle["checksum"],
+                "sizeBytes": object_bundle["sizeBytes"],
+                "downloadVerified": object_bundle["downloadVerified"],
+            },
+            "snapshotChecksums": load_metrics.get("snapshotChecksums", []),
+            "restoreRequest": restore_request,
+            "restoreActivated": drill_recovered.get("state") == "ACTIVE" and drill_recovered.get("activeNode") == standby_node,
+            "routeRecovered": reconnect.get("state") == "READY" and reconnect.get("targetNode") == standby_node,
+            "postRestoreAuditActions": sorted(audit_actions(audit)),
+        }
+        backup_restore_drill_evidence(backup_restore_drill)
 
         print(
             "Core integration smoke passed: two Core services, PostgreSQL+Redis+MinIO config, "
             "cross-core create/job/route/session/consume, node-down recovery restore, reconnect"
         )
-        write_cluster_evidence(evidence_out, log_artifacts(processes), support_bundle, load_metrics)
+        write_cluster_evidence(
+            evidence_out,
+            log_artifacts(processes) + runtime_artifacts,
+            support_bundle,
+            load_metrics,
+            backup_restore_drill,
+        )
     finally:
         failures = []
         for process, log, log_path in processes:
