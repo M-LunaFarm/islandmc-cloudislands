@@ -450,8 +450,10 @@ class PaperPlatformBoundaryTest {
     void paperRuntimeDoesNotReenterCommandsThroughPlayerCommandStrings() throws Exception {
         Path root = repositoryRoot();
         Path paperSource = root.resolve("cloudislands-paper/src/main/java");
+        Path rewardDelivery = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/MissionRewardDeliveryListener.java");
         try (Stream<Path> files = javaFiles(paperSource)) {
             String violations = files
+                .filter(path -> !path.equals(rewardDelivery))
                 .filter(path -> containsAny(path, "performCommand(", "dispatchCommand("))
                 .map(path -> root.relativize(path).toString())
                 .sorted()
@@ -460,6 +462,11 @@ class PaperPlatformBoundaryTest {
 
             assertTrue(violations.isBlank(), violations);
         }
+        String source = Files.readString(rewardDelivery);
+        assertTrue(source.contains("dispatchCommand(plugin.getServer().getConsoleSender(), command)"), "Mission command rewards must run from console sender");
+        assertTrue(!source.contains("performCommand("), "Mission command rewards must not reenter player command strings");
+        assertTrue(source.contains("COMMAND_REWARD_QUEUED"), "Mission command reward event code must be handled");
+        assertTrue(source.contains("ITEM_REWARD_QUEUED"), "Mission item reward event code must be handled");
     }
 
     @Test

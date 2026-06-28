@@ -133,20 +133,21 @@ public final class IslandMissionProgressListener implements Listener {
     private void progress(UUID islandId, UUID actorUuid, MissionProgressTriggers.Trigger trigger) {
         attempts.incrementAndGet();
         progressionCommands.progressMission(islandId, actorUuid, trigger.missionKey(), trigger.kind(), trigger.amount())
-            .thenAccept(view -> handleProgress(islandId, trigger, view))
+            .thenAccept(view -> handleProgress(islandId, actorUuid, trigger, view))
             .exceptionally(exception -> {
                 failures.incrementAndGet();
                 return null;
             });
     }
 
-    private void handleProgress(UUID islandId, MissionProgressTriggers.Trigger trigger, ProgressionMissionCompletionView view) {
+    private void handleProgress(UUID islandId, UUID actorUuid, MissionProgressTriggers.Trigger trigger, ProgressionMissionCompletionView view) {
         if (!view.accepted()) {
             ignored.incrementAndGet();
             return;
         }
         accepted.incrementAndGet();
         Map<String, String> fields = Map.of(
+            "actorUuid", actorUuid.toString(),
             "missionKey", view.missionKey().isBlank() ? trigger.missionKey() : view.missionKey(),
             "kind", view.kind().isBlank() ? trigger.kind() : view.kind(),
             "progress", Long.toString(view.progress()),

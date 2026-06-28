@@ -26,6 +26,7 @@ import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.mission.IslandMissionProgressListener;
+import kr.lunaf.cloudislands.paper.mission.MissionRewardDeliveryListener;
 import kr.lunaf.cloudislands.paper.message.TranslationManager;
 import kr.lunaf.cloudislands.paper.platform.compatibility.PaperRuntimeCompatibility;
 import kr.lunaf.cloudislands.paper.platform.compatibility.PaperVersionAdapterRegistry;
@@ -95,6 +96,7 @@ final class PaperPluginBootstrap {
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperBrandingListener(plugin, plugin.messages, plugin.playerLocales));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperChatListener(plugin.messages, plugin.playerLocales));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperScoreboardListener(plugin, plugin.messages, plugin.playerLocales));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new MissionRewardDeliveryListener(plugin));
         if (role == AgentRole.ISLAND_NODE) {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandProtectionListener(plugin.agent.protection(), blockDeltas, config.protection().denyMessageCooldownMs(), config.protection().denyMessages()));
             plugin.boundaryListener = new IslandBoundaryListener(plugin.agent.protection(), plugin.messages);

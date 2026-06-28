@@ -45,8 +45,13 @@ class MissionRewardServiceTest {
     void queuesPaperDeliveredMissionRewards() {
         MissionRewardService rewards = new MissionRewardService(null, null, null, null);
 
-        assertEquals("COMMAND_REWARD_QUEUED", rewards.apply(mission("COMMAND", "give %player% diamond 1"), ACTOR_UUID).code());
-        assertEquals("ITEM_REWARD_QUEUED", rewards.apply(mission("ITEM", "minecraft:diamond 1"), ACTOR_UUID).code());
+        MissionRewardService.MissionRewardResult command = rewards.apply(mission("COMMAND", "give %player% diamond 1"), ACTOR_UUID);
+        MissionRewardService.MissionRewardResult item = rewards.apply(mission("ITEM", "minecraft:diamond 1"), ACTOR_UUID);
+
+        assertEquals("COMMAND_REWARD_QUEUED", command.code());
+        assertEquals("give %player% diamond 1", command.details().get("command"));
+        assertEquals("ITEM_REWARD_QUEUED", item.code());
+        assertEquals("minecraft:diamond 1", item.details().get("item"));
         assertEquals("UPGRADE_DISCOUNT_RECORDED", rewards.apply(mission("UPGRADE_DISCOUNT", "generator 10% 1h"), ACTOR_UUID).code());
     }
 

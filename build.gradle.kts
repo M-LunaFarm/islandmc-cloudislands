@@ -1512,18 +1512,27 @@ tasks.register("verifyMissionRewardCoverage") {
     group = "verification"
     description = "Verifies mission reward types cover bank, command, item, upgrade discount, permission, limits, and generator tier."
     dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
     val service = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/mission/MissionRewardService.java")
     val test = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/mission/MissionRewardServiceTest.java")
-    inputs.files(service, test)
+    val paperDelivery = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/MissionRewardDeliveryListener.java")
+    val paperDeliveryTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/mission/MissionRewardDeliveryListenerTest.java")
+    inputs.files(service, test, paperDelivery, paperDeliveryTest)
     doLast {
         val source = service.asFile.readText()
         val tests = test.asFile.readText()
+        val delivery = paperDelivery.asFile.readText()
+        val deliveryTests = paperDeliveryTest.asFile.readText()
         val requiredTypes = listOf("BANK_DEPOSIT", "COMMAND", "ITEM", "UPGRADE_DISCOUNT", "PERMISSION_TEMPORARY", "LIMIT_INCREASE", "GENERATOR_TIER")
         val missingTypes = requiredTypes.filterNot(source::contains)
         val missingTests = listOf("appliesCoreBackedMissionRewards", "queuesPaperDeliveredMissionRewards").filterNot(tests::contains)
+        val missingDelivery = listOf("COMMAND_REWARD_QUEUED", "ITEM_REWARD_QUEUED", "dispatchCommand(plugin.getServer().getConsoleSender(), command)", "player.getInventory().addItem").filterNot(delivery::contains)
+        val missingDeliveryTests = listOf("commandRewardReplacesPlayerAndUuidPlaceholders", "itemRewardParsesNamespacedMaterialAndClampsAmount").filterNot(deliveryTests::contains)
         val failures = buildList {
             if (missingTypes.isNotEmpty()) add("MissionRewardService missing reward types: ${missingTypes.joinToString(", ")}")
             if (missingTests.isNotEmpty()) add("MissionRewardServiceTest missing coverage: ${missingTests.joinToString(", ")}")
+            if (missingDelivery.isNotEmpty()) add("MissionRewardDeliveryListener missing delivery behavior: ${missingDelivery.joinToString(", ")}")
+            if (missingDeliveryTests.isNotEmpty()) add("MissionRewardDeliveryListenerTest missing coverage: ${missingDeliveryTests.joinToString(", ")}")
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))

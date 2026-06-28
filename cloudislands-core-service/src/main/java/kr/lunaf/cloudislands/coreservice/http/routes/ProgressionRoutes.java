@@ -135,9 +135,9 @@ public final class ProgressionRoutes implements RouteGroup {
             java.util.Optional<IslandMissionSnapshot> completed = missionRepository.complete(islandId, actorUuid, missionKey, kind);
             completed.ifPresent(snapshot -> {
                 MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
-                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward));
-                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", missionCompleteFields(snapshot, reward));
-                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward));
+                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward, actorUuid));
+                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", missionCompleteFields(snapshot, reward, actorUuid));
+                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward, actorUuid));
             });
             CoreHttpResponses.write(exchange, completed.isPresent() ? 202 : 404, completed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
@@ -163,9 +163,9 @@ public final class ProgressionRoutes implements RouteGroup {
             )));
             progressed.filter(IslandMissionSnapshot::completed).ifPresent(snapshot -> {
                 MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
-                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward));
-                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", missionCompleteFields(snapshot, reward));
-                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward));
+                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward, actorUuid));
+                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", missionCompleteFields(snapshot, reward, actorUuid));
+                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward, actorUuid));
             });
             CoreHttpResponses.write(exchange, progressed.isPresent() ? 202 : 404, progressed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
@@ -222,8 +222,9 @@ public final class ProgressionRoutes implements RouteGroup {
         return MissionRewardService.bankDepositRewardAmount(snapshot);
     }
 
-    private static Map<String, String> missionCompleteFields(IslandMissionSnapshot snapshot, MissionRewardApplication reward) {
+    private static Map<String, String> missionCompleteFields(IslandMissionSnapshot snapshot, MissionRewardApplication reward, UUID actorUuid) {
         LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+        fields.put("actorUuid", actorUuid.toString());
         fields.put("missionKey", snapshot.missionKey());
         fields.put("kind", snapshot.kind());
         fields.put("rewardType", snapshot.rewardType());
@@ -237,8 +238,8 @@ public final class ProgressionRoutes implements RouteGroup {
         return fields;
     }
 
-    private static Map<String, String> missionCompleteEventFields(IslandMissionSnapshot snapshot, MissionRewardApplication reward) {
-        LinkedHashMap<String, String> fields = new LinkedHashMap<>(missionCompleteFields(snapshot, reward));
+    private static Map<String, String> missionCompleteEventFields(IslandMissionSnapshot snapshot, MissionRewardApplication reward, UUID actorUuid) {
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>(missionCompleteFields(snapshot, reward, actorUuid));
         fields.put("islandId", snapshot.islandId().toString());
         return fields;
     }
