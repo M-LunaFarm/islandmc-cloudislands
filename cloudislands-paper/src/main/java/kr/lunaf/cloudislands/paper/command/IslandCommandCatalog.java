@@ -139,6 +139,25 @@ final class IslandCommandCatalog {
         "섬 삭제"
     );
 
+    static final List<String> UPGRADE_KEYS = List.of(
+        "size",
+        "members",
+        "warps",
+        "hoppers",
+        "spawners",
+        "generator",
+        "mob",
+        "crop",
+        "fly",
+        "redstone",
+        "bank",
+        "border",
+        "homes",
+        "biome",
+        "keep-inventory",
+        "border-color"
+    );
+
     static final List<HelpCategory> HELP_CATEGORIES = List.of(
         new HelpCategory("기본", List.of("기본", "basic", "start", "시작"), "섬 기본 명령어", List.of(
             "섬",
@@ -254,6 +273,10 @@ final class IslandCommandCatalog {
         return HELP_CATEGORIES.stream()
             .map(HelpCategory::name)
             .toList();
+    }
+
+    static List<String> upgradeKeys() {
+        return UPGRADE_KEYS;
     }
 
     static HelpCategory helpCategory(String value) {

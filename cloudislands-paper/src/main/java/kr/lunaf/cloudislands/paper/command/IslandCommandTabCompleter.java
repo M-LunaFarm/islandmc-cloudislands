@@ -86,6 +86,9 @@ final class IslandCommandTabCompleter implements TabCompleter {
             if (first.equals("warehouse-deposit") || first.equals("warehouse-withdraw") || first.equals("창고입금") || first.equals("창고출금")) {
                 return literalMatches(List.of("minecraft:cobblestone", "minecraft:dirt", "minecraft:oak_log", "minecraft:iron_ingot"), args[1]);
             }
+            if (first.equals("buyupgrade") || first.equals("upgrade-buy") || first.equals("업그레이드구매")) {
+                return literalMatches(IslandCommandCatalog.upgradeKeys(), args[1]);
+            }
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {
                 return literalMatches(roleCatalog(sender, true), args[1]);
             }

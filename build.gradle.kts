@@ -1605,8 +1605,14 @@ tasks.register("verifyCommandHelpCoverage") {
         if (!completer.asFile.readText().contains("helpRootSuggestions()")) {
             throw GradleException("IslandCommandTabCompleter no longer suggests help categories")
         }
+        if (!completer.asFile.readText().contains("IslandCommandCatalog.upgradeKeys()")) {
+            throw GradleException("IslandCommandTabCompleter no longer suggests upgrade keys")
+        }
         if (!test.asFile.readText().contains("categorizedHelpOnlyReferencesAdvertisedCommands")) {
             throw GradleException("Categorized help catalog test is missing")
+        }
+        if (!test.asFile.readText().contains("upgradeKeySuggestionsCoverConfiguredUpgradeEffects")) {
+            throw GradleException("Upgrade key suggestion coverage test is missing")
         }
     }
 }

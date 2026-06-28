@@ -61,6 +61,28 @@ class IslandCommandCatalogTest {
         assertEquals(List.of(), missing, "Categorized help must be a subset of the advertised command list");
     }
 
+    @Test
+    void upgradeKeySuggestionsCoverConfiguredUpgradeEffects() {
+        assertEquals(List.of(
+            "size",
+            "members",
+            "warps",
+            "hoppers",
+            "spawners",
+            "generator",
+            "mob",
+            "crop",
+            "fly",
+            "redstone",
+            "bank",
+            "border",
+            "homes",
+            "biome",
+            "keep-inventory",
+            "border-color"
+        ), IslandCommandCatalog.upgradeKeys());
+    }
+
     private static Set<String> handledSubcommands() throws IOException {
         Set<String> handled = new LinkedHashSet<>();
         Path commandSource = Path.of("src/main/java/kr/lunaf/cloudislands/paper/command");

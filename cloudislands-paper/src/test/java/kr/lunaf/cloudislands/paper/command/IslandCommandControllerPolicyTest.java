@@ -39,6 +39,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(completer.contains("IslandCommandBackend.HELP_COMMANDS.size()"));
         assertTrue(completer.contains("IslandCommandCatalog.helpCategoryNames()"));
         assertTrue(completer.contains("IslandCommandCatalog.helpCategory("));
+        assertTrue(completer.contains("IslandCommandCatalog.upgradeKeys()"), "upgrade purchase tab completion must suggest known upgrade keys");
+        assertTrue(completer.contains("first.equals(\"buyupgrade\")") && completer.contains("first.equals(\"upgrade-buy\")") && completer.contains("first.equals(\"업그레이드구매\")"));
     }
 
     @Test
