@@ -18,12 +18,13 @@ public final class ClusterSmokeVerifier {
     }
 
     public static ClusterSmokeReport verify(ClusterSmokeEvidence evidence) {
-        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null) : evidence;
+        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null, null) : evidence;
         return new ClusterSmokeReport(
             CERTIFICATION_LEVEL,
             missingComponents(safeEvidence),
             ProductionGaDrillMatrix.incompleteGates(safeEvidence.evidenceByGate()),
             missingFailureInjections(safeEvidence),
+            missingFailureInjectionEvidence(safeEvidence),
             missingEvidenceByGate(safeEvidence),
             missingScenarioEvidence(safeEvidence),
             missingScenarioFailureInjections(safeEvidence),
@@ -56,13 +57,17 @@ public final class ClusterSmokeVerifier {
         for (ProductionGaDrill drill : ProductionGaDrillMatrix.drills()) {
             builder.evidence(drill.gate(), drill.requiredEvidence());
             for (String failureInjection : drill.failureInjections()) {
-                builder.failureInjection(failureInjection);
+                builder
+                    .failureInjection(failureInjection)
+                    .failureInjectionEvidence(failureInjection, "fixture/cluster-smoke.log:1-1");
             }
         }
         for (ProductionGaScenarioRequirement scenario : ProductionGaDrillMatrix.scenarioRequirements()) {
             builder.evidence(scenario.gate(), scenario.requiredEvidence());
             for (String failureInjection : scenario.failureInjections()) {
-                builder.failureInjection(failureInjection);
+                builder
+                    .failureInjection(failureInjection)
+                    .failureInjectionEvidence(failureInjection, "fixture/cluster-smoke.log:1-1");
             }
         }
         return builder.build();
@@ -88,8 +93,18 @@ public final class ClusterSmokeVerifier {
         return List.copyOf(missing);
     }
 
+    private static List<String> missingFailureInjectionEvidence(ClusterSmokeEvidence evidence) {
+        List<String> missing = new ArrayList<>();
+        for (String failureInjection : requiredFailureInjections()) {
+            if (evidence.injected(failureInjection) && !evidence.hasFailureInjectionEvidence(failureInjection)) {
+                missing.add(failureInjection);
+            }
+        }
+        return List.copyOf(missing);
+    }
+
     public static Map<String, List<String>> missingEvidenceByGate(ClusterSmokeEvidence evidence) {
-        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null) : evidence;
+        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null, null) : evidence;
         LinkedHashMap<String, List<String>> missingByGate = new LinkedHashMap<>();
         for (ProductionGaDrill drill : ProductionGaDrillMatrix.drills()) {
             List<String> observed = safeEvidence.evidenceByGate().getOrDefault(drill.gate(), List.of());
@@ -104,7 +119,7 @@ public final class ClusterSmokeVerifier {
     }
 
     public static Map<String, List<String>> missingScenarioEvidence(ClusterSmokeEvidence evidence) {
-        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null) : evidence;
+        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null, null) : evidence;
         LinkedHashMap<String, List<String>> missingByScenario = new LinkedHashMap<>();
         for (ProductionGaScenarioRequirement scenario : ProductionGaDrillMatrix.scenarioRequirements()) {
             List<String> observed = safeEvidence.evidenceByGate().getOrDefault(scenario.gate(), List.of());
@@ -119,7 +134,7 @@ public final class ClusterSmokeVerifier {
     }
 
     public static Map<String, List<String>> missingScenarioFailureInjections(ClusterSmokeEvidence evidence) {
-        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null) : evidence;
+        ClusterSmokeEvidence safeEvidence = evidence == null ? new ClusterSmokeEvidence(null, null, null, null, null, null) : evidence;
         LinkedHashMap<String, List<String>> missingByScenario = new LinkedHashMap<>();
         for (ProductionGaScenarioRequirement scenario : ProductionGaDrillMatrix.scenarioRequirements()) {
             List<String> missing = scenario.failureInjections().stream()

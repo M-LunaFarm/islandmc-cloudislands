@@ -9,6 +9,7 @@ public record ClusterSmokeReport(
     List<String> missingComponents,
     List<String> incompleteGates,
     List<String> missingFailureInjections,
+    List<String> missingFailureInjectionEvidence,
     Map<String, List<String>> missingEvidenceByGate,
     Map<String, List<String>> missingScenarioEvidence,
     Map<String, List<String>> missingScenarioFailureInjections,
@@ -19,6 +20,7 @@ public record ClusterSmokeReport(
         missingComponents = missingComponents == null ? List.of() : List.copyOf(missingComponents);
         incompleteGates = incompleteGates == null ? List.of() : List.copyOf(incompleteGates);
         missingFailureInjections = missingFailureInjections == null ? List.of() : List.copyOf(missingFailureInjections);
+        missingFailureInjectionEvidence = missingFailureInjectionEvidence == null ? List.of() : List.copyOf(missingFailureInjectionEvidence);
         missingEvidenceByGate = missingEvidenceByGate == null ? Map.of() : Map.copyOf(missingEvidenceByGate);
         missingScenarioEvidence = missingScenarioEvidence == null ? Map.of() : Map.copyOf(missingScenarioEvidence);
         missingScenarioFailureInjections = missingScenarioFailureInjections == null ? Map.of() : Map.copyOf(missingScenarioFailureInjections);
@@ -29,6 +31,7 @@ public record ClusterSmokeReport(
         return missingComponents.isEmpty()
             && incompleteGates.isEmpty()
             && missingFailureInjections.isEmpty()
+            && missingFailureInjectionEvidence.isEmpty()
             && missingEvidenceByGate.isEmpty()
             && missingScenarioEvidence.isEmpty()
             && missingScenarioFailureInjections.isEmpty()
@@ -45,6 +48,9 @@ public record ClusterSmokeReport(
         }
         if (!missingFailureInjections.isEmpty()) {
             failures.add("missing-failure-injections:" + String.join(",", missingFailureInjections));
+        }
+        if (!missingFailureInjectionEvidence.isEmpty()) {
+            failures.add("missing-failure-injection-evidence:" + String.join(",", missingFailureInjectionEvidence));
         }
         if (!missingEvidenceByGate.isEmpty()) {
             failures.add("missing-evidence:" + missingEvidenceSummary());

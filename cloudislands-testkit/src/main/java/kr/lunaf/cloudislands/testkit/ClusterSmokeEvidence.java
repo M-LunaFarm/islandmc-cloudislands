@@ -11,6 +11,7 @@ public record ClusterSmokeEvidence(
     Set<String> components,
     Map<String, List<String>> evidenceByGate,
     Set<String> failureInjections,
+    Map<String, List<String>> failureInjectionEvidence,
     Set<String> passedAssertions,
     List<Artifact> artifacts
 ) {
@@ -34,6 +35,7 @@ public record ClusterSmokeEvidence(
         components = copySet(components);
         evidenceByGate = copyEvidence(evidenceByGate);
         failureInjections = copySet(failureInjections);
+        failureInjectionEvidence = copyEvidence(failureInjectionEvidence);
         passedAssertions = copySet(passedAssertions);
         artifacts = copyArtifacts(artifacts);
     }
@@ -62,6 +64,10 @@ public record ClusterSmokeEvidence(
 
     public boolean injected(String failureInjection) {
         return failureInjection != null && failureInjections.contains(failureInjection);
+    }
+
+    public boolean hasFailureInjectionEvidence(String failureInjection) {
+        return failureInjection != null && !failureInjectionEvidence.getOrDefault(failureInjection, List.of()).isEmpty();
     }
 
     public boolean hasPassedAssertions() {
@@ -140,6 +146,7 @@ public record ClusterSmokeEvidence(
         private final Set<String> components = new LinkedHashSet<>();
         private final Map<String, List<String>> evidenceByGate = new LinkedHashMap<>();
         private final Set<String> failureInjections = new LinkedHashSet<>();
+        private final Map<String, List<String>> failureInjectionEvidence = new LinkedHashMap<>();
         private final Set<String> passedAssertions = new LinkedHashSet<>();
         private final List<Artifact> artifacts = new ArrayList<>();
 
@@ -188,6 +195,20 @@ public record ClusterSmokeEvidence(
             return this;
         }
 
+        public Builder failureInjectionEvidence(String failureInjection, String evidence) {
+            if (failureInjection != null && !failureInjection.isBlank() && evidence != null && !evidence.isBlank()) {
+                failureInjectionEvidence.computeIfAbsent(failureInjection.trim(), ignored -> new ArrayList<>()).add(evidence.trim());
+            }
+            return this;
+        }
+
+        public Builder failureInjectionEvidence(String failureInjection, List<String> evidence) {
+            if (evidence != null) {
+                evidence.forEach(value -> failureInjectionEvidence(failureInjection, value));
+            }
+            return this;
+        }
+
         public Builder passedAssertion(String assertion) {
             if (assertion != null && !assertion.isBlank()) {
                 passedAssertions.add(assertion.trim());
@@ -201,7 +222,7 @@ public record ClusterSmokeEvidence(
         }
 
         public ClusterSmokeEvidence build() {
-            return new ClusterSmokeEvidence(components, evidenceByGate, failureInjections, passedAssertions, artifacts);
+            return new ClusterSmokeEvidence(components, evidenceByGate, failureInjections, failureInjectionEvidence, passedAssertions, artifacts);
         }
     }
 }

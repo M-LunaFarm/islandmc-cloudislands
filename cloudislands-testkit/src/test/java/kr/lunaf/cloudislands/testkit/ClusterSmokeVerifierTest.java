@@ -38,7 +38,10 @@ class ClusterSmokeVerifierTest {
 
         assertFalse(report.certified());
         assertEquals(java.util.List.of("passed-assertions", "artifact-sha256-line-range"), report.missingEvidenceLinks());
+        assertTrue(report.missingFailureInjectionEvidence().contains("paper-save-kill"));
+        assertTrue(report.missingFailureInjectionEvidence().contains("ready-route-ticket-target-node-down"));
         assertTrue(report.failures().stream().anyMatch(failure -> failure.contains("missing-evidence-links:")));
+        assertTrue(report.failures().stream().anyMatch(failure -> failure.contains("missing-failure-injection-evidence:")));
     }
 
     @Test
@@ -178,6 +181,10 @@ class ClusterSmokeVerifierTest {
                 "backup-restore-drill": ["restore-activation", "route-recovery"]
               },
               "failureInjections": ["paper-save-kill", "snapshot-restore-node-failure"],
+              "failureInjectionEvidence": {
+                "paper-save-kill": ["build/smoke/core-integration/core-1.log:1-42"],
+                "snapshot-restore-node-failure": ["build/smoke/core-integration/core-1.log:1-42"]
+              },
               "assertions": [{"name": "paper-failover-smoke", "result": "passed"}],
               "artifacts": [{
                 "path": "build/smoke/core-integration/core-1.log",
@@ -196,12 +203,14 @@ class ClusterSmokeVerifierTest {
         assertTrue(parsed.hasComponent("island-paper-2"));
         assertTrue(parsed.hasPassedAssertions());
         assertTrue(parsed.hasLinkedArtifact());
+        assertTrue(parsed.hasFailureInjectionEvidence("paper-save-kill"));
         assertTrue(report.missingComponents().contains("core-2"));
         assertTrue(report.missingComponents().contains("player-protocol-client"));
         assertTrue(report.missingEvidenceByGate().get("multi-paper-failover").contains("node-drain"));
         assertTrue(report.missingScenarioEvidence().containsKey("paper-bundle-save-crash"));
         assertTrue(json.contains("missingScenarioEvidence"));
         assertTrue(json.contains("missingScenarioFailureInjections"));
+        assertTrue(json.contains("missingFailureInjectionEvidence"));
         assertTrue(json.contains("\"certified\":false"));
         assertTrue(json.contains("missingEvidenceByGate"));
         assertTrue(json.contains("missingEvidenceLinks"));
@@ -217,6 +226,8 @@ class ClusterSmokeVerifierTest {
             .evidence("rolling-upgrade", " ")
             .failureInjection("old-paper-save-attempt")
             .failureInjection(" ")
+            .failureInjectionEvidence("old-paper-save-attempt", "tests/rolling-upgrade.log:4-8")
+            .failureInjectionEvidence("old-paper-save-attempt", " ")
             .build();
 
         assertTrue(evidence.hasComponent("core-1"));
@@ -224,5 +235,7 @@ class ClusterSmokeVerifierTest {
         assertTrue(evidence.hasEvidence("rolling-upgrade", "compatibility-matrix"));
         assertFalse(evidence.hasEvidence("rolling-upgrade", " "));
         assertTrue(evidence.injected("old-paper-save-attempt"));
+        assertTrue(evidence.hasFailureInjectionEvidence("old-paper-save-attempt"));
+        assertFalse(evidence.hasFailureInjectionEvidence(" "));
     }
 }
