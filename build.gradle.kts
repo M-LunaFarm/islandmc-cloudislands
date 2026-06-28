@@ -1373,6 +1373,142 @@ tasks.register("verifyIntegrationMatrix") {
     }
 }
 
+tasks.register("verifyMigrationFixtures") {
+    group = "verification"
+    description = "Verifies SuperiorSkyblock2 migration fixtures cover YAML, JSON, legacy, Korean, broken, and large samples."
+    dependsOn(project(":cloudislands-migration").tasks.named("test"))
+    val fixtureRoot = layout.projectDirectory.dir("cloudislands-migration/src/test/resources/fixtures/ss2")
+    inputs.dir(fixtureRoot)
+    doLast {
+        val requiredFixtures = listOf("yaml-basic", "json-basic", "legacy-format", "korean-names", "broken-files", "large-sample")
+        val missing = requiredFixtures.filterNot { fixtureRoot.dir(it).asFile.isDirectory }
+        if (missing.isNotEmpty()) {
+            throw GradleException("SS2 migration fixtures missing: ${missing.joinToString(", ")}")
+        }
+    }
+}
+
+tasks.register("verifyGeneratorRules") {
+    group = "verification"
+    description = "Verifies generator rule domain, Core routes, Paper listener, and tests remain present."
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val requiredFiles = listOf(
+        "cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/generator/GeneratorRuleSnapshot.java",
+        "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/generator/IslandGeneratorRepository.java",
+        "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/GeneratorRoutes.java",
+        "cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/GeneratorQueryClient.java",
+        "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/IslandGeneratorListener.java",
+        "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/GeneratorRoutesTest.java",
+        "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/generator/GeneratorSystemPolicyTest.java"
+    )
+    inputs.files(requiredFiles.map { layout.projectDirectory.file(it) })
+    doLast {
+        val missing = requiredFiles.filterNot { layout.projectDirectory.file(it).asFile.isFile }
+        if (missing.isNotEmpty()) {
+            throw GradleException("Generator rule evidence missing: ${missing.joinToString(", ")}")
+        }
+    }
+}
+
+tasks.register("verifyMissionEventProgress") {
+    group = "verification"
+    description = "Verifies Paper mission event progress listeners and tests remain present."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val listener = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/IslandMissionProgressListener.java")
+    val test = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/mission/MissionProgressTriggersTest.java")
+    inputs.files(listener, test)
+    doLast {
+        val listenerSource = listener.asFile.readText()
+        val missingSignals = listOf("BlockBreakEvent", "BlockPlaceEvent", "EntityDeathEvent", "PlayerFishEvent", "CraftItemEvent", "Ageable")
+            .filterNot(listenerSource::contains)
+        if (missingSignals.isNotEmpty()) {
+            throw GradleException("Mission event progress listener missing triggers: ${missingSignals.joinToString(", ")}")
+        }
+        if (!test.asFile.isFile) {
+            throw GradleException("Mission progress trigger test is missing")
+        }
+    }
+}
+
+tasks.register("verifyEconomyTransactionSafety") {
+    group = "verification"
+    description = "Verifies Vault/Core bank transaction rollback and provider-state safety tests remain present."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val useCase = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/BankUseCase.java")
+    val test = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/BankUseCaseTest.java")
+    inputs.files(useCase, test)
+    doLast {
+        val source = useCase.asFile.readText()
+        val tests = test.asFile.readText()
+        val missingSignals = listOf("refundPlayer", "island.bank.withdraw.rollback", "ECONOMY_OPERATION_FAILED", "REFUND_FAILED_AFTER_CORE_REJECTION", "ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE")
+            .filterNot { source.contains(it) || tests.contains(it) }
+        if (missingSignals.isNotEmpty()) {
+            throw GradleException("Economy transaction safety evidence missing: ${missingSignals.joinToString(", ")}")
+        }
+    }
+}
+
+tasks.register("verifyGuiButtonCoverage") {
+    group = "verification"
+    description = "Verifies shared GUI button states and state-menu coverage remain present."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val buttonState = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiButtonState.java")
+    val policyTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/gui/GuiSystemPolicyTest.java")
+    inputs.files(buttonState, policyTest)
+    doLast {
+        val source = buttonState.asFile.readText()
+        val requiredStates = listOf("ENABLED", "DISABLED_NO_PERMISSION", "DISABLED_REQUIREMENT_NOT_MET", "LOADING_OR_ERROR")
+        val missing = requiredStates.filterNot(source::contains)
+        if (missing.isNotEmpty()) {
+            throw GradleException("GUI button states missing: ${missing.joinToString(", ")}")
+        }
+        if (!policyTest.asFile.readText().contains("guiButtonsUseSharedStateModel")) {
+            throw GradleException("GUI button state policy test is missing")
+        }
+    }
+}
+
+tasks.register("verifyCommandHelpCoverage") {
+    group = "verification"
+    description = "Verifies categorized player help and command suggestion coverage remain present."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val catalog = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandCatalog.java")
+    val router = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouter.java")
+    val completer = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java")
+    val test = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandCatalogTest.java")
+    inputs.files(catalog, router, completer, test)
+    doLast {
+        val catalogSource = catalog.asFile.readText()
+        val missingCategories = listOf("기본", "멤버", "방문", "성장", "설정", "관리자").filterNot(catalogSource::contains)
+        if (missingCategories.isNotEmpty()) {
+            throw GradleException("Command help categories missing: ${missingCategories.joinToString(", ")}")
+        }
+        if (!router.asFile.readText().contains("helpCategoryRequest(args)")) {
+            throw GradleException("IslandCommandRouter no longer routes categorized help")
+        }
+        if (!completer.asFile.readText().contains("helpRootSuggestions()")) {
+            throw GradleException("IslandCommandTabCompleter no longer suggests help categories")
+        }
+        if (!test.asFile.readText().contains("categorizedHelpOnlyReferencesAdvertisedCommands")) {
+            throw GradleException("Categorized help catalog test is missing")
+        }
+    }
+}
+
+tasks.register("verifyIntegrationRuntimeSmoke") {
+    group = "verification"
+    description = "Verifies integration runtime detection and operation-state smoke evidence remains present."
+    dependsOn(tasks.named("verifyIntegrationMatrix"))
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+}
+
+tasks.register("verifyFeatureParityMatrix") {
+    group = "verification"
+    description = "Compatibility alias for the feature parity evidence gate."
+    dependsOn(tasks.named("verifyFeatureParityEvidence"))
+}
+
 tasks.register("verifyMinecraftVersionMatrix") {
     group = "verification"
     description = "Validates the typed Minecraft version matrix and writes the external runtime matrix report."
@@ -1649,13 +1785,21 @@ tasks.register("verifyReleaseGateCoverage") {
 
 tasks.named("check") {
     dependsOn(tasks.named("verifyCommandCoverage"))
+    dependsOn(tasks.named("verifyCommandHelpCoverage"))
     dependsOn(tasks.named("verifyApiRouteCoverage"))
     dependsOn(tasks.named("verifyRouteDomainCoverage"))
     dependsOn(tasks.named("verifyEventCoverage"))
+    dependsOn(tasks.named("verifyMissionEventProgress"))
     dependsOn(tasks.named("verifyGuiActionCoverage"))
+    dependsOn(tasks.named("verifyGuiButtonCoverage"))
     dependsOn(tasks.named("verifyPermissionCoverage"))
     dependsOn(tasks.named("verifyConfigCoverage"))
     dependsOn(tasks.named("verifyMetricCoverage"))
+    dependsOn(tasks.named("verifyMigrationFixtures"))
+    dependsOn(tasks.named("verifyGeneratorRules"))
+    dependsOn(tasks.named("verifyEconomyTransactionSafety"))
+    dependsOn(tasks.named("verifyIntegrationRuntimeSmoke"))
+    dependsOn(tasks.named("verifyFeatureParityMatrix"))
     dependsOn(tasks.named("verifyReleaseGateCoverage"))
     dependsOn(tasks.named("verifyReleaseSecurityGate"))
 }
