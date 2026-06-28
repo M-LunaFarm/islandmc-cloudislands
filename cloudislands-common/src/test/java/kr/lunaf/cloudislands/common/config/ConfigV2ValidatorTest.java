@@ -101,6 +101,7 @@ class ConfigV2ValidatorTest {
 
         assertFalse(result.applied());
         assertEquals("profile: production", result.effectiveYaml());
+        assertEquals("profile: production", result.rollbackBackupYaml());
         assertTrue(result.validation().hasIssue("PLAINTEXT_SECRET"));
     }
 

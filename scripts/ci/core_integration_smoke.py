@@ -335,6 +335,53 @@ def operator_runbook_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     }, [file_artifact(path, root) for path in required_files]
 
 
+def config_migration_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
+    root = Path(__file__).resolve().parents[2]
+    report = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/config/ConfigMigrationReport.java"
+    loader = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/config/ConfigV2Loader.java"
+    validator = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/config/ConfigV2Validator.java"
+    reload_plan = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/config/ConfigReloadPlan.java"
+    loader_test = root / "cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/config/ConfigV2LoaderTest.java"
+    validator_test = root / "cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/config/ConfigV2ValidatorTest.java"
+    paper_config_admin = root / "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminConfigCommandHandler.java"
+    core_config = root / "cloudislands-core-service/src/main/resources/config-v2/application.yml"
+    paper_config = root / "cloudislands-paper/src/main/resources/config-v2/config.yml"
+    velocity_config = root / "cloudislands-velocity/src/main/resources/config-v2/config.yml"
+    required_files = [
+        report,
+        loader,
+        validator,
+        reload_plan,
+        loader_test,
+        validator_test,
+        paper_config_admin,
+        core_config,
+        paper_config,
+        velocity_config,
+    ]
+    missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
+    if missing:
+        raise RuntimeError(f"config migration evidence files are missing: {missing}")
+    report_text = report.read_text(encoding="utf-8")
+    loader_text = loader.read_text(encoding="utf-8")
+    validator_text = validator.read_text(encoding="utf-8")
+    reload_text = reload_plan.read_text(encoding="utf-8")
+    test_text = loader_test.read_text(encoding="utf-8") + "\n" + validator_test.read_text(encoding="utf-8")
+    admin_text = paper_config_admin.read_text(encoding="utf-8")
+    config_text = "\n".join(path.read_text(encoding="utf-8") for path in (core_config, paper_config, velocity_config))
+    required_signals = {
+        "migration-report": "record ConfigMigrationReport" in report_text and "migrationReportBlocksConflictingLegacyValues" in test_text,
+        "effective-config": "effective-config" in loader_text and "effective-config-redacted" in admin_text,
+        "strict-validation": "strict-validation: true" in config_text and "validateYaml" in validator_text and "bundledConfigV2YamlPassesDuplicateAndSecretValidation" in test_text,
+        "secret-redaction": "redactYaml" in validator_text and "redactsSecretsFromEffectiveConfigOutput" in test_text and "redactDiagnostic" in admin_text,
+        "rollback-backup": "rollbackBackupYaml" in reload_text and "reloadRollbackKeepsPreviousEffectiveConfigWhenCandidateInvalid" in test_text,
+    }
+    failures = [name for name, present in required_signals.items() if not present]
+    if failures:
+        raise RuntimeError(f"config migration evidence signals are missing: {failures}")
+    return {"config-migration": list(required_signals.keys())}, [file_artifact(path, root) for path in required_files]
+
+
 def support_bundle_evidence(support_bundle: dict | None) -> dict[str, list[str]]:
     if not support_bundle:
         return {}
@@ -370,6 +417,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     deployment_evidence, deployment_artifacts = deployment_template_artifacts()
+    config_evidence, config_artifacts = config_migration_artifacts()
     idempotency_evidence, idempotency_artifacts = idempotency_evidence_artifacts()
     runbook_evidence, runbook_artifacts = operator_runbook_artifacts()
     runtime_evidence = support_bundle_evidence(support_bundle)
@@ -395,6 +443,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
                 "route-recovery",
             ],
             **deployment_evidence,
+            **config_evidence,
             **runbook_evidence,
             **runtime_evidence,
         },
@@ -405,6 +454,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
             {"name": "shared-postgresql-authority", "result": "passed"},
             {"name": "shared-redis-job-and-event-mode", "result": "passed"},
             {"name": "shared-s3-storage-mode", "result": "passed"},
+            {"name": "config-migration-evidence-present", "result": "passed"},
             {"name": "cross-core-create-job-complete", "result": "passed"},
             {"name": "route-session-consume-round-trip", "result": "passed"},
             {"name": "fencing-token-positive", "result": "passed"},
@@ -415,7 +465,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
             {"name": "operator-runbook-covers-ga-actions", "result": "passed"},
             {"name": "support-bundle-redacted", "result": "passed" if runtime_evidence else "not-run"},
         ],
-        "artifacts": artifacts + deployment_artifacts + idempotency_artifacts + runbook_artifacts,
+        "artifacts": artifacts + deployment_artifacts + config_artifacts + idempotency_artifacts + runbook_artifacts,
         "uncertifiedComponents": ["velocity", "lobby-paper", "island-paper-1", "island-paper-2", "player-protocol-client"],
         "uncertifiedFailureInjections": [
             "paper-save-kill",
