@@ -208,6 +208,24 @@ class MigrationSafetyPolicyTest {
     }
 
     @Test
+    void rollbackTargetVerificationRequiresStorageDatabaseCompositeAndDryRunBinding() {
+        assertEquals(
+            List.of(
+                "storage-target-present",
+                "database-target-present",
+                "composite-target-present",
+                "dry-run-plan-bound"
+            ),
+            MigrationSafetyPolicy.ROLLBACK_TARGET_REQUIREMENTS
+        );
+        assertTrue(MigrationSafetyPolicy.rollbackTargetRequirement("database-target-present"));
+        assertTrue(MigrationSafetyPolicy.rollbackTargetVerified(true, true, true, true));
+        assertFalse(MigrationSafetyPolicy.rollbackTargetVerified(false, true, true, true));
+        assertFalse(MigrationSafetyPolicy.rollbackTargetVerified(true, false, true, true));
+        assertFalse(MigrationSafetyPolicy.rollbackTargetVerified(true, true, true, false));
+    }
+
+    @Test
     void boundaryMetadataPublishesRuntimeFence() {
         Map<String, String> metadata = MigrationSafetyPolicy.boundaryMetadata();
 
@@ -224,5 +242,6 @@ class MigrationSafetyPolicyTest {
         assertEquals("imported-manifest-available,bundle-checksum-verified,target-node-can-activate,route-ticket-ready,no-superiorskyblock2-runtime-provider", metadata.get("activationTestRequirements"));
         assertEquals("rollback-plan-records-imported-islands-and-removes-only-cloudislands-imported-state", metadata.get("rollbackPolicy"));
         assertEquals("rollback-plan-id-present,imported-island-id-list-present,remove-only-cloudislands-imported-state,preserve-source-superiorskyblock2-data,emit-audit-event", metadata.get("rollbackRequirements"));
+        assertEquals("storage-target-present,database-target-present,composite-target-present,dry-run-plan-bound", metadata.get("rollbackTargetRequirements"));
     }
 }

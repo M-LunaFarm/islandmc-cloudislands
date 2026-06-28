@@ -102,6 +102,31 @@ class SuperiorSkyblock2MigrationScannerTest {
     }
 
     @Test
+    void scannerReportsUnsupportedSuperiorSkyblockFieldsAsNonFatalWarnings() throws Exception {
+        Path islands = root.resolve("islands");
+        Files.createDirectories(islands);
+        Files.writeString(islands.resolve(ISLAND_ID + ".yml"), """
+            islandId: "%s"
+            ownerUuid: "%s"
+            homeName: main
+            homeWorld: islands
+            homeX: 0
+            homeY: 80
+            homeZ: 0
+            islandBorderColor: blue
+            """.formatted(ISLAND_ID, OWNER_ID), StandardCharsets.UTF_8);
+
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(root);
+        MigrationReport report = MigrationReportBuilder.build(result.manifests(), result.issues());
+
+        assertEquals(1, result.manifests().size());
+        assertEquals(1, report.warningIssues());
+        assertEquals(0, report.blockingIssues());
+        assertEquals(1, report.unsupportedFieldCount());
+        assertEquals("UNSUPPORTED_FIELD", result.issues().get(0).code());
+    }
+
+    @Test
     void scannerReadsYamlFixtureFromResources() throws Exception {
         SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("basic-yaml"));
 

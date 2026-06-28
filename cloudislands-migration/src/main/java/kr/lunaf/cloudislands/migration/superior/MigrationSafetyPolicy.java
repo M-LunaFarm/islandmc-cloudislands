@@ -72,6 +72,12 @@ public final class MigrationSafetyPolicy {
         "preserve-source-superiorskyblock2-data",
         "emit-audit-event"
     );
+    public static final List<String> ROLLBACK_TARGET_REQUIREMENTS = List.of(
+        "storage-target-present",
+        "database-target-present",
+        "composite-target-present",
+        "dry-run-plan-bound"
+    );
     public static final String IMPORT_PREFLIGHT_POLICY = "import-runs-only-after-clean-dryrun-admin-approval-and-unchanged-source-fingerprint";
     public static final List<String> IMPORT_PREFLIGHT_REQUIREMENTS = List.of(
         "dry-run-report-can-import",
@@ -118,6 +124,14 @@ public final class MigrationSafetyPolicy {
         return rollbackPlanPresent && importedIslandIdsPresent && onlyImportedStateRemoved && sourceDataPreserved && auditEventEmitted;
     }
 
+    public static boolean rollbackTargetRequirement(String requirement) {
+        return ROLLBACK_TARGET_REQUIREMENTS.contains(normalize(requirement));
+    }
+
+    public static boolean rollbackTargetVerified(boolean storageTargetPresent, boolean databaseTargetPresent, boolean compositeTargetPresent, boolean dryRunPlanBound) {
+        return storageTargetPresent && databaseTargetPresent && compositeTargetPresent && dryRunPlanBound;
+    }
+
     public static boolean requiredTargetField(String field) {
         return REQUIRED_TARGET_FIELDS.contains(normalize(field));
     }
@@ -159,6 +173,7 @@ public final class MigrationSafetyPolicy {
         fields.put("activationTestRequirements", String.join(",", ACTIVATION_TEST_REQUIREMENTS));
         fields.put("rollbackPolicy", ROLLBACK_POLICY);
         fields.put("rollbackRequirements", String.join(",", ROLLBACK_REQUIREMENTS));
+        fields.put("rollbackTargetRequirements", String.join(",", ROLLBACK_TARGET_REQUIREMENTS));
         return Map.copyOf(fields);
     }
 

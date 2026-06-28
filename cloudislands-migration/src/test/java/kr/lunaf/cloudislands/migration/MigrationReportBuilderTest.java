@@ -25,7 +25,8 @@ class MigrationReportBuilderTest {
                 new MigrationIssue("INVALID_BANK_BALANCE", "invalid bank", true),
                 new MigrationIssue("WORLD_CHECKSUM_FAILED", "world checksum failed", true),
                 new MigrationIssue("HOMES_MISMATCH", "homes differ after import", true),
-                new MigrationIssue("WARPS_MISMATCH", "warps differ after import", true)
+                new MigrationIssue("WARPS_MISMATCH", "warps differ after import", true),
+                new MigrationIssue("UNSUPPORTED_FIELD", "unsupported SuperiorSkyblock2 field islandBorderColor", false)
             )
         );
 
@@ -43,6 +44,7 @@ class MigrationReportBuilderTest {
         assertEquals(1, report.bankEconomyConversionFailureCount());
         assertEquals(1, report.worldBundleChecksumFailureCount());
         assertEquals(3, report.cloudIslandsPostImportDifferenceCount());
+        assertEquals(1, report.unsupportedFieldCount());
         assertTrue(report.rollbackPossible());
     }
 

@@ -47,6 +47,7 @@ public final class MigrationReportBuilder {
             issueCount(safeIssues, MigrationReportBuilder::bankEconomyConversionFailure),
             issueCount(safeIssues, MigrationReportBuilder::worldBundleChecksumFailure),
             issueCount(safeIssues, MigrationReportBuilder::cloudIslandsPostImportDifference),
+            issueCount(safeIssues, "UNSUPPORTED_FIELD"),
             rollbackPossible(safeManifests, safeIssues),
             safeIssues
         );

@@ -22,6 +22,55 @@ import kr.lunaf.cloudislands.migration.adapter.Ss2YamlIslandParser;
 
 public final class SuperiorSkyblock2MigrationScanner {
     private static final Pattern UUID_PATTERN = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+    private static final Set<String> SUPPORTED_FIELD_KEYS = Set.of(
+        "islandid", "islanduuid", "island_uuid", "uuid", "island.uuid", "island.id",
+        "owner", "owneruuid", "owner_uuid", "owneruniqueid", "owner.uuid", "owner.uniqueid", "owner.unique-id", "owner.id",
+        "size", "islandsize", "island_size", "island.size", "settings.size",
+        "level", "islandlevel", "island_level", "island.level", "stats.level",
+        "worth", "islandworth", "island_worth", "island.worth", "stats.worth",
+        "worldpath", "islandworldpath", "schematicpath", "world.path", "world.source", "schematic.path",
+        "worldname", "world", "world.name", "island.world",
+        "members", "islandmembers", "teammembers", "coopmembers", "coops", "coop",
+        "coowners", "coownermembers", "moderators", "mods", "modmembers", "trusted", "trustedmembers", "trustedplayers", "regularmembers", "normalmembers",
+        "bans", "bannedplayers", "bannedmembers", "bannedvisitors", "visitorbans", "banned_users", "banned-users",
+        "homename", "homeworld", "homex", "homey", "homez", "homeyaw", "homepitch",
+        "spawnname", "spawnworld", "spawnx", "spawny", "spawnz", "spawnyaw", "spawnpitch",
+        "warpname", "warpworld", "warpx", "warpy", "warpz", "warpyaw", "warppitch", "warppublic", "publicwarp",
+        "centerworld", "centerx", "centery", "centerz", "centeryaw", "centerpitch",
+        "islandworld", "islandx", "islandy", "islandz", "islandyaw", "islandpitch",
+        "completedmissions", "missionscompleted", "finishedmissions", "completedchallenges", "challengescompleted", "finishedchallenges",
+        "biome", "island.biome",
+        "bankbalance", "balance", "islandbank", "bank.balance", "bankbalance.amount", "economy.balance",
+        "public", "ispublic", "publicaccess", "settings.public", "visitors.public",
+        "locked", "islocked", "settings.locked",
+        "pvp", "mobspawn", "animalspawn", "monsterspawn", "firespread", "explosion", "creeperdamage", "tntdamage",
+        "witherdamage", "endermangrief", "waterflow", "lavaflow", "icemelt", "leafdecay", "visitorinteract",
+        "visitorcontainer", "visitorpickup", "visitordrop", "visitorpvp", "fly", "keepinventory", "publicwarps",
+        "sizeupgrade", "islandsizeupgrade", "membersupgrade", "memberupgrade", "warpsupgrade", "warpupgrade",
+        "hoppersupgrade", "hopperupgrade", "spawnersupgrade", "spawnerupgrade", "generatorupgrade", "oregeneratorlevel",
+        "mobupgrade", "moblimitupgrade", "cropupgrade", "cropgrowthupgrade", "flyupgrade", "flyaccess", "bankupgrade", "banklimitupgrade",
+        "hopperlimit", "maxhoppers", "hopperslimit", "spawnerlimit", "maxspawners", "spawnerslimit", "entitylimit",
+        "maxentities", "moblimit", "redstonelimit", "maxredstone", "memberlimit", "maxmembers", "warplimit", "maxwarps"
+    );
+    private static final List<String> SUPPORTED_FIELD_PREFIXES = List.of(
+        "homes.",
+        "home.",
+        "warps.",
+        "warp.",
+        "blockvalues.",
+        "block-values.",
+        "block_values.",
+        "worthvalues.",
+        "worth-values.",
+        "worth_values.",
+        "blockcounts.",
+        "block-counts.",
+        "block_counts.",
+        "blockamounts.",
+        "block-amounts.",
+        "block_amounts.",
+        "blocks."
+    );
     private final Ss2JsonIslandParser jsonParser = new Ss2JsonIslandParser();
     private final Ss2YamlIslandParser yamlParser = new Ss2YamlIslandParser();
     private final Map<String, ParsedIslandDocument> parsedValues = Collections.synchronizedMap(new IdentityHashMap<>());
@@ -98,6 +147,7 @@ public final class SuperiorSkyblock2MigrationScanner {
                 allMembers.add(memberRole.playerUuid());
             }
             manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, biomeKey, bankBalance, publicAccess, locked, size, level, worth, islandLocation, sourceWorldPath));
+            reportUnsupportedFields(file, content, issues);
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
         }
@@ -230,6 +280,26 @@ public final class SuperiorSkyblock2MigrationScanner {
             }
         }
         return fallback;
+    }
+
+    private void reportUnsupportedFields(Path file, String content, List<MigrationIssue> issues) {
+        for (String field : parsed(content).keys()) {
+            if (!supportedField(field)) {
+                issues.add(new MigrationIssue("UNSUPPORTED_FIELD", file + ": unsupported SuperiorSkyblock2 field " + field, false));
+            }
+        }
+    }
+
+    private boolean supportedField(String field) {
+        String normalized = normalizeField(field);
+        if (normalized.isBlank() || SUPPORTED_FIELD_KEYS.contains(normalized)) {
+            return true;
+        }
+        return SUPPORTED_FIELD_PREFIXES.stream().anyMatch(normalized::startsWith);
+    }
+
+    private String normalizeField(String field) {
+        return field == null ? "" : field.trim().toLowerCase();
     }
 
     private String parseString(String content, String key, String fallback) {

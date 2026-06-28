@@ -38,6 +38,7 @@ public record MigrationReport(
     int bankEconomyConversionFailureCount,
     int worldBundleChecksumFailureCount,
     int cloudIslandsPostImportDifferenceCount,
+    int unsupportedFieldCount,
     boolean rollbackPossible,
     List<MigrationIssue> issues
 ) {
