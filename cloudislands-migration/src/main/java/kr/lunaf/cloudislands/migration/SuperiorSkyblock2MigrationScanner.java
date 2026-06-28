@@ -4,10 +4,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Deque;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -18,11 +16,15 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import kr.lunaf.cloudislands.common.json.JsonCodec;
+import kr.lunaf.cloudislands.migration.adapter.ParsedIslandDocument;
+import kr.lunaf.cloudislands.migration.adapter.Ss2JsonIslandParser;
+import kr.lunaf.cloudislands.migration.adapter.Ss2YamlIslandParser;
 
 public final class SuperiorSkyblock2MigrationScanner {
     private static final Pattern UUID_PATTERN = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
-    private final Map<String, ParsedValues> parsedValues = Collections.synchronizedMap(new IdentityHashMap<>());
+    private final Ss2JsonIslandParser jsonParser = new Ss2JsonIslandParser();
+    private final Ss2YamlIslandParser yamlParser = new Ss2YamlIslandParser();
+    private final Map<String, ParsedIslandDocument> parsedValues = Collections.synchronizedMap(new IdentityHashMap<>());
 
     public ScanResult scan(Path superiorSkyblockDataPath) {
         parsedValues.clear();
@@ -701,10 +703,11 @@ public final class SuperiorSkyblock2MigrationScanner {
         if (cleaned.startsWith("{") && cleaned.endsWith("}")) {
             return cleaned;
         }
-        if ((cleaned.startsWith("\"") && cleaned.endsWith("\"")) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+        boolean quoted = (cleaned.startsWith("\"") && cleaned.endsWith("\"")) || (cleaned.startsWith("'") && cleaned.endsWith("'"));
+        if (quoted) {
             cleaned = cleaned.substring(1, cleaned.length() - 1);
         }
-        int comment = cleaned.indexOf(" #");
+        int comment = quoted ? -1 : cleaned.indexOf(" #");
         if (comment >= 0) {
             cleaned = cleaned.substring(0, comment).trim();
         }
@@ -904,150 +907,20 @@ public final class SuperiorSkyblock2MigrationScanner {
         }
     }
 
-    private ParsedValues parsed(String content) {
+    private ParsedIslandDocument parsed(String content) {
         return parsedValues.computeIfAbsent(content == null ? "" : content, this::parseValues);
     }
 
-    private ParsedValues parseValues(String content) {
+    private ParsedIslandDocument parseValues(String content) {
         String trimmed = content == null ? "" : content.trim();
         if (trimmed.startsWith("{")) {
             try {
-                LinkedHashMap<String, String> values = new LinkedHashMap<>();
-                LinkedHashMap<String, List<String>> lists = new LinkedHashMap<>();
-                flattenJson("", JsonCodec.readObject(content), values, lists);
-                return new ParsedValues(values, lists);
+                return jsonParser.parse(content);
             } catch (RuntimeException ignored) {
-                return parseYamlValues(content);
+                return yamlParser.parse(content);
             }
         }
-        return parseYamlValues(content);
-    }
-
-    private void flattenJson(String prefix, Object value, Map<String, String> values, Map<String, List<String>> lists) {
-        if (value instanceof Map<?, ?> map) {
-            for (Map.Entry<?, ?> entry : map.entrySet()) {
-                String key = entry.getKey() == null ? "" : entry.getKey().toString();
-                if (key.isBlank()) {
-                    continue;
-                }
-                flattenJson(prefix.isBlank() ? key : prefix + "." + key, entry.getValue(), values, lists);
-            }
-            return;
-        }
-        if (value instanceof List<?> list) {
-            ArrayList<String> scalars = new ArrayList<>();
-            for (Object item : list) {
-                if (item instanceof Map<?, ?> || item instanceof List<?>) {
-                    continue;
-                }
-                if (item != null) {
-                    scalars.add(item.toString());
-                }
-            }
-            if (!prefix.isBlank() && !scalars.isEmpty()) {
-                lists.put(prefix, List.copyOf(scalars));
-            }
-            return;
-        }
-        if (!prefix.isBlank() && value != null) {
-            values.put(prefix, value.toString());
-        }
-    }
-
-    private ParsedValues parseYamlValues(String content) {
-        LinkedHashMap<String, String> values = new LinkedHashMap<>();
-        LinkedHashMap<String, List<String>> lists = new LinkedHashMap<>();
-        Deque<YamlNode> stack = new ArrayDeque<>();
-        String[] lines = (content == null ? "" : content).split("\\R");
-        for (String rawLine : lines) {
-            String uncommented = stripYamlComment(rawLine);
-            String trimmed = uncommented.trim();
-            if (trimmed.isEmpty()) {
-                continue;
-            }
-            int indent = leadingSpaces(uncommented);
-            while (!stack.isEmpty() && stack.peek().indent() >= indent) {
-                stack.pop();
-            }
-            String parent = stack.isEmpty() ? "" : stack.peek().path();
-            if (trimmed.startsWith("-")) {
-                String item = cleanScalar(trimmed.substring(1).trim());
-                if (!parent.isBlank() && !item.isBlank()) {
-                    lists.computeIfAbsent(parent, ignored -> new ArrayList<>()).add(item);
-                }
-                continue;
-            }
-            String key = yamlKey(trimmed);
-            if (key.isBlank()) {
-                continue;
-            }
-            String path = parent.isBlank() ? key : parent + "." + key;
-            String value = yamlValue(trimmed);
-            if (value.isBlank()) {
-                stack.push(new YamlNode(indent, path));
-                continue;
-            }
-            if (value.startsWith("[") && value.endsWith("]")) {
-                LinkedHashSet<String> collected = new LinkedHashSet<>();
-                collectStringValues(value, collected);
-                if (!collected.isEmpty()) {
-                    lists.put(path, List.copyOf(collected));
-                }
-                continue;
-            }
-            values.put(path, value);
-        }
-        lists.replaceAll((key, value) -> List.copyOf(value));
-        return new ParsedValues(values, lists);
-    }
-
-    private String stripYamlComment(String line) {
-        if (line == null || line.isBlank()) {
-            return "";
-        }
-        boolean singleQuoted = false;
-        boolean doubleQuoted = false;
-        for (int index = 0; index < line.length(); index++) {
-            char current = line.charAt(index);
-            if (current == '\'' && !doubleQuoted) {
-                singleQuoted = !singleQuoted;
-            } else if (current == '"' && !singleQuoted) {
-                doubleQuoted = !doubleQuoted;
-            } else if (current == '#' && !singleQuoted && !doubleQuoted && (index == 0 || Character.isWhitespace(line.charAt(index - 1)))) {
-                return line.substring(0, index);
-            }
-        }
-        return line;
-    }
-
-    private int leadingSpaces(String line) {
-        int index = 0;
-        while (line != null && index < line.length() && line.charAt(index) == ' ') {
-            index++;
-        }
-        return index;
-    }
-
-    private record YamlNode(int indent, String path) {}
-
-    private record ParsedValues(Map<String, String> values, Map<String, List<String>> lists) {
-        String value(String key) {
-            return values.get(key);
-        }
-
-        boolean hasKey(String key) {
-            return values.containsKey(key) || lists.containsKey(key);
-        }
-
-        List<String> list(String key) {
-            return lists.getOrDefault(key, List.of());
-        }
-
-        Set<String> keys() {
-            LinkedHashSet<String> keys = new LinkedHashSet<>(values.keySet());
-            keys.addAll(lists.keySet());
-            return keys;
-        }
+        return yamlParser.parse(content);
     }
 
     public record ScanResult(List<MigrationManifest> manifests, List<MigrationIssue> issues) {}
