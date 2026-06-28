@@ -1,0 +1,28 @@
+{
+  "islandId": "00000000-0000-0000-0000-000000004001",
+  "ownerUuid": "00000000-0000-0000-0000-000000004002",
+  "members": [
+    "00000000-0000-0000-0000-000000004003"
+  ],
+  "homeName": "spawn",
+  "homeWorld": "json-islands",
+  "homeX": 1.5,
+  "homeY": 80.0,
+  "homeZ": -2.5,
+  "completedMissions": [
+    "miner_one"
+  ],
+  "blockValues": {
+    "minecraft:emerald_block": {
+      "worth": "900.25",
+      "levelPoints": 8,
+      "limit": 32
+    }
+  },
+  "blockCounts": {
+    "minecraft:emerald_block": 11
+  },
+  "biome": "desert",
+  "bankBalance": "88.00",
+  "publicAccess": true
+}
