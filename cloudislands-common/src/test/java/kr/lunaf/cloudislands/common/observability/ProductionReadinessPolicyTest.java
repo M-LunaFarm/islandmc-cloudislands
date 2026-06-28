@@ -165,6 +165,8 @@ class ProductionReadinessPolicyTest {
         assertTrue(compose.contains("island-paper-1:"));
         assertTrue(compose.contains("island-paper-2:"));
         assertTrue(compose.contains("_FILE"));
+        assertTrue(compose.contains("networks:"));
+        assertTrue(compose.contains("internal: true"));
 
         assertTrue(Files.exists(root.resolve("deploy/helm/cloudislands/Chart.yaml")));
         String values = Files.readString(root.resolve("deploy/helm/cloudislands/values.yaml"));

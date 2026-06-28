@@ -11,6 +11,8 @@ services:
       - cloudislands_database_password
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cloudislands -d cloudislands"]
       interval: 5s
@@ -24,6 +26,8 @@ services:
       - cloudislands_redis_password
     volumes:
       - redis-data:/data
+    networks:
+      - backend
     healthcheck:
       test: ["CMD-SHELL", "redis-cli -a \"$$(cat /run/secrets/cloudislands_redis_password)\" ping"]
       interval: 5s
@@ -41,6 +45,8 @@ services:
       - cloudislands_storage_secret_key
     volumes:
       - object-storage-data:/data
+    networks:
+      - backend
     healthcheck:
       test: ["CMD", "curl", "-f", "http://127.0.0.1:9000/minio/health/ready"]
       interval: 5s
@@ -85,6 +91,8 @@ services:
       - cloudislands_storage_secret_key
       - cloudislands_core_token
       - cloudislands_admin_token
+    networks:
+      - backend
     ports:
       - "8443:8443"
 
@@ -100,6 +108,9 @@ services:
     secrets:
       - cloudislands_core_token
       - cloudislands_forwarding_secret
+    networks:
+      - backend
+      - edge
     ports:
       - "25565:25565"
 
@@ -120,6 +131,8 @@ services:
     secrets:
       - cloudislands_core_token
       - cloudislands_forwarding_secret
+    networks:
+      - backend
 
   island-paper-1:
     image: ${CLOUDISLANDS_PAPER_IMAGE:?set CLOUDISLANDS_PAPER_IMAGE}
@@ -138,6 +151,8 @@ services:
     secrets:
       - cloudislands_core_token
       - cloudislands_forwarding_secret
+    networks:
+      - backend
 
   island-paper-2:
     image: ${CLOUDISLANDS_PAPER_IMAGE:?set CLOUDISLANDS_PAPER_IMAGE}
@@ -156,6 +171,8 @@ services:
     secrets:
       - cloudislands_core_token
       - cloudislands_forwarding_secret
+    networks:
+      - backend
 
 secrets:
   cloudislands_database_password:
@@ -177,3 +194,8 @@ volumes:
   postgres-data:
   redis-data:
   object-storage-data:
+
+networks:
+  backend:
+    internal: true
+  edge:

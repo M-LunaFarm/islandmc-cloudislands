@@ -216,10 +216,65 @@ def log_artifacts(processes: list[tuple[subprocess.Popen, object, Path]]) -> lis
     return artifacts
 
 
+def file_artifact(path: Path, root: Path) -> dict:
+    content = path.read_bytes()
+    line_count = len(content.decode("utf-8", errors="replace").splitlines())
+    return {
+        "path": str(path.relative_to(root)),
+        "sha256": hashlib.sha256(content).hexdigest(),
+        "lineStart": 1 if line_count else 0,
+        "lineEnd": line_count,
+    }
+
+
+def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
+    root = Path(__file__).resolve().parents[2]
+    compose = root / "deploy/compose/docker-compose.yml"
+    chart = root / "deploy/helm/cloudislands/Chart.yaml"
+    values = root / "deploy/helm/cloudislands/values.yaml"
+    workloads = root / "deploy/helm/cloudislands/templates/workloads.yaml"
+    services = root / "deploy/helm/cloudislands/templates/services.yaml"
+    required_files = [compose, chart, values, workloads, services]
+    missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
+    if missing:
+        raise RuntimeError(f"deployment evidence files are missing: {missing}")
+    compose_text = compose.read_text(encoding="utf-8")
+    values_text = values.read_text(encoding="utf-8")
+    workloads_text = workloads.read_text(encoding="utf-8")
+    services_text = services.read_text(encoding="utf-8")
+    required_signals = {
+        "compose-template": {
+            "compose-file": "core:" in compose_text and "velocity:" in compose_text and "island-paper-2:" in compose_text,
+            "secret-file-env": "_FILE" in compose_text and "secrets:" in compose_text,
+            "healthchecks": "healthcheck:" in compose_text,
+            "service-network-isolation": "networks:" in compose_text and "internal: true" in compose_text,
+        },
+        "helm-chart": {
+            "chart": "apiVersion: v2" in chart.read_text(encoding="utf-8"),
+            "values": "existingSecret" in values_text,
+            "secretKeyRef": "secretKeyRef" in workloads_text,
+            "service-definitions": "kind: Service" in services_text,
+            "stateful-storage": "volumeClaimTemplates" in workloads_text,
+        },
+    }
+    failures = [
+        f"{gate}:{evidence}"
+        for gate, checks in required_signals.items()
+        for evidence, present in checks.items()
+        if not present
+    ]
+    if failures:
+        raise RuntimeError(f"deployment evidence signals are missing: {failures}")
+    evidence = {gate: list(checks.keys()) for gate, checks in required_signals.items()}
+    artifacts = [file_artifact(path, root) for path in required_files]
+    return evidence, artifacts
+
+
 def write_cluster_evidence(path: Path | None, artifacts: list[dict]) -> None:
     if path is None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
+    deployment_evidence, deployment_artifacts = deployment_template_artifacts()
     evidence = {
         "certificationScope": "partial-core-integration-smoke",
         "components": [
@@ -240,6 +295,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict]) -> None:
                 "restore-activation",
                 "route-recovery",
             ],
+            **deployment_evidence,
         },
         "failureInjections": [],
         "assertions": [
@@ -256,7 +312,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict]) -> None:
             {"name": "node-down-recovery-restore", "result": "passed"},
             {"name": "post-recovery-route-targets-standby-node", "result": "passed"},
         ],
-        "artifacts": artifacts,
+        "artifacts": artifacts + deployment_artifacts,
         "uncertifiedComponents": ["velocity", "lobby-paper", "island-paper-1", "island-paper-2", "player-protocol-client"],
         "uncertifiedFailureInjections": [
             "paper-save-kill",
