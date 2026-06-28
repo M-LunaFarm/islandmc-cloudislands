@@ -124,6 +124,11 @@ class ProductionReadinessPolicyTest {
         assertTrue(runbook.get("multi-core-e2e").verificationCommand().contains("scripts/ci/core_integration_smoke.py"));
         assertTrue(runbook.get("multi-paper-failover").verificationCommand().contains("scripts/ci/papermc_smoke.py"));
         assertTrue(runbook.get("rolling-upgrade").actionCommand().contains("ciadmin node drain"));
+        assertTrue(runbook.get("operator-runbook").actionCommand().contains("deploy"));
+        assertTrue(runbook.get("operator-runbook").actionCommand().contains("drain"));
+        assertTrue(runbook.get("operator-runbook").actionCommand().contains("backup-restore"));
+        assertTrue(runbook.get("operator-runbook").verificationCommand().contains("cache clear"));
+        assertTrue(runbook.get("operator-runbook").rollbackCommand().contains("emergency-fallback"));
         assertTrue(runbook.get("operator-runbook").rollbackCommand().contains("block release"));
     }
 

@@ -55,14 +55,14 @@ public final class ProductionGaRunbook {
             "restore previous database backup and quarantine islands with checksum mismatch"
         )),
         Map.entry("support-bundle", new CommandSet(
-            "ciadmin diagnostics export",
+            "ciadmin diagnostics export or POST /v1/admin/support-bundle",
             "inspect exported version, node, route, cache, job, storage, config, and recent failure state",
             "redact or delete bundle, then rotate any credential that appeared in plain text"
         )),
         Map.entry("operator-runbook", new CommandSet(
-            "review this ProductionGaRunbook before release approval",
-            "verify every ProductionReadinessPolicy.requiredGates entry has an actionable runbook step",
-            "block release and return to the failed gate owner"
+            "review deploy, drain, rollback, backup-restore, cache-clear, support-bundle, and emergency-fallback steps before release approval",
+            "verify every ProductionReadinessPolicy.requiredGates entry has an actionable runbook step and run ciadmin cache clear plus emergency fallback dry-run checks",
+            "block release, rollback the failed deploy, clear unsafe cache state, enable emergency-fallback routing, and return to the failed gate owner"
         ))
     );
 

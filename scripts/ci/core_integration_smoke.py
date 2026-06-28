@@ -299,6 +299,42 @@ def idempotency_evidence_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     return {"multi-core-e2e": ["idempotency-key-check"]}, [file_artifact(path, root) for path in required_files]
 
 
+def operator_runbook_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
+    root = Path(__file__).resolve().parents[2]
+    runbook = root / "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/observability/ProductionGaRunbook.java"
+    runtime_routes = root / "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/AdminRuntimeRoutes.java"
+    support_routes = root / "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/AdminSupportBundleRoutes.java"
+    required_files = [runbook, runtime_routes, support_routes]
+    missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
+    if missing:
+        raise RuntimeError(f"operator runbook evidence files are missing: {missing}")
+    runbook_text = runbook.read_text(encoding="utf-8")
+    runtime_text = runtime_routes.read_text(encoding="utf-8")
+    support_text = support_routes.read_text(encoding="utf-8")
+    required_signals = {
+        "deploy": "deploy" in runbook_text and "helm upgrade" in runbook_text and "docker compose" in runbook_text,
+        "drain": "ciadmin node drain" in runbook_text,
+        "rollback": "rollback" in runbook_text and "block release" in runbook_text,
+        "backup-restore": "backup-restore" in runbook_text and "ciadmin island restore" in runbook_text,
+        "cache-clear": "cache clear" in runbook_text and '"/v1/admin/cache/clear"' in runtime_text,
+        "emergency-fallback": "emergency-fallback" in runbook_text,
+        "support-bundle": '"/v1/admin/support-bundle"' in support_text,
+    }
+    failures = [name for name, present in required_signals.items() if not present]
+    if failures:
+        raise RuntimeError(f"operator runbook evidence signals are missing: {failures}")
+    return {
+        "operator-runbook": [
+            "deploy",
+            "drain",
+            "rollback",
+            "backup-restore",
+            "cache-clear",
+            "emergency-fallback",
+        ]
+    }, [file_artifact(path, root) for path in required_files]
+
+
 def support_bundle_evidence(support_bundle: dict | None) -> dict[str, list[str]]:
     if not support_bundle:
         return {}
@@ -335,6 +371,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
     path.parent.mkdir(parents=True, exist_ok=True)
     deployment_evidence, deployment_artifacts = deployment_template_artifacts()
     idempotency_evidence, idempotency_artifacts = idempotency_evidence_artifacts()
+    runbook_evidence, runbook_artifacts = operator_runbook_artifacts()
     runtime_evidence = support_bundle_evidence(support_bundle)
     evidence = {
         "certificationScope": "partial-core-integration-smoke",
@@ -358,6 +395,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
                 "route-recovery",
             ],
             **deployment_evidence,
+            **runbook_evidence,
             **runtime_evidence,
         },
         "failureInjections": [],
@@ -374,9 +412,10 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict], support_bun
             {"name": "audit-entries-visible-on-secondary-core", "result": "passed"},
             {"name": "node-down-recovery-restore", "result": "passed"},
             {"name": "post-recovery-route-targets-standby-node", "result": "passed"},
+            {"name": "operator-runbook-covers-ga-actions", "result": "passed"},
             {"name": "support-bundle-redacted", "result": "passed" if runtime_evidence else "not-run"},
         ],
-        "artifacts": artifacts + deployment_artifacts + idempotency_artifacts,
+        "artifacts": artifacts + deployment_artifacts + idempotency_artifacts + runbook_artifacts,
         "uncertifiedComponents": ["velocity", "lobby-paper", "island-paper-1", "island-paper-2", "player-protocol-client"],
         "uncertifiedFailureInjections": [
             "paper-save-kill",
