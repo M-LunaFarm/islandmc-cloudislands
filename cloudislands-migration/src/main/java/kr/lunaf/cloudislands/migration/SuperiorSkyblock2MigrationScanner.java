@@ -64,15 +64,15 @@ public final class SuperiorSkyblock2MigrationScanner {
     private void scanFile(Path file, List<MigrationManifest> manifests, List<MigrationIssue> issues, List<MigrationBlockValue> globalBlockValues) {
         try {
             String content = Files.readString(file, StandardCharsets.UTF_8);
-            UUID islandId = parseUuid(content, "islandId", parseUuid(content, "islandUuid", parseUuid(content, "island_uuid", parseUuid(content, "uuid", uuidFromFilename(file)))));
-            UUID ownerUuid = parseUuid(content, "owner", parseUuid(content, "ownerUuid", parseUuid(content, "ownerUUID", parseUuid(content, "owner_uuid", parseUuid(content, "ownerUniqueId", parseUuid(content, "ownerUniqueID", new UUID(0L, 0L)))))));
+            UUID islandId = parseUuidAny(content, uuidFromFilename(file), "islandId", "islandUuid", "island_uuid", "uuid", "island.uuid", "island.id");
+            UUID ownerUuid = parseUuidAny(content, new UUID(0L, 0L), "owner", "ownerUuid", "ownerUUID", "owner_uuid", "ownerUniqueId", "ownerUniqueID", "owner.uuid", "owner.uniqueId", "owner.unique-id", "owner.id");
             if (ownerUuid.getMostSignificantBits() == 0L && ownerUuid.getLeastSignificantBits() == 0L) {
                 issues.add(new MigrationIssue("OWNER_NOT_FOUND", "missing owner uuid in " + file, true));
                 return;
             }
-            int size = parseInt(content, "size", parseInt(content, "islandSize", parseInt(content, "island_size", 300)));
-            long level = parseLong(content, "level", parseLong(content, "islandLevel", parseLong(content, "island_level", 0L)));
-            String worth = parseString(content, "worth", parseString(content, "islandWorth", parseString(content, "island_worth", "0.00")));
+            int size = parseIntAny(content, 300, "size", "islandSize", "island_size", "island.size", "settings.size");
+            long level = parseLongAny(content, 0L, "level", "islandLevel", "island_level", "island.level", "stats.level");
+            String worth = parseStringAny(content, "0.00", "worth", "islandWorth", "island_worth", "island.worth", "stats.worth");
             List<UUID> members = parseUuidList(content, "members", "islandMembers", "teamMembers", "coopMembers", "coops", "coop");
             List<MigrationMemberRole> memberRoles = parseMemberRoles(content, ownerUuid);
             List<UUID> bannedVisitors = parseUuidList(content, "bans", "bannedPlayers", "bannedMembers", "bannedVisitors", "visitorBans", "banned_users", "banned-users");
@@ -87,9 +87,9 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationBlockValue> blockValues = mergeBlockValues(globalBlockValues, parseBlockValues(content));
             List<MigrationBlockCount> blockCounts = parseBlockCounts(content);
             String biomeKey = parseBiomeKey(content);
-            String bankBalance = parseString(content, "bankBalance", parseString(content, "balance", parseString(content, "islandBank", "0.00")));
-            boolean publicAccess = parseBoolean(content, "public", parseBoolean(content, "isPublic", parseBoolean(content, "publicAccess", false)));
-            boolean locked = parseBoolean(content, "locked", parseBoolean(content, "isLocked", false));
+            String bankBalance = parseStringAny(content, "0.00", "bankBalance", "balance", "islandBank", "bank.balance", "bankBalance.amount", "economy.balance");
+            boolean publicAccess = parseBooleanAny(content, false, "public", "isPublic", "publicAccess", "settings.public", "visitors.public");
+            boolean locked = parseBooleanAny(content, false, "locked", "isLocked", "settings.locked");
             String sourceWorldPath = resolveSourceWorldPath(file, content, islandId);
             LinkedHashSet<UUID> allMembers = new LinkedHashSet<>();
             allMembers.add(ownerUuid);
@@ -173,7 +173,7 @@ public final class SuperiorSkyblock2MigrationScanner {
     }
 
     private String resolveSourceWorldPath(Path file, String content, UUID islandId) {
-        String configured = parseString(content, "worldPath", parseString(content, "islandWorldPath", parseString(content, "schematicPath", "")));
+        String configured = parseStringAny(content, "", "worldPath", "islandWorldPath", "schematicPath", "world.path", "world.source", "schematic.path");
         if (!configured.isBlank()) {
             Path configuredPath = Path.of(configured);
             if (configuredPath.isAbsolute()) {
@@ -181,7 +181,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             }
             return file.getParent().resolve(configuredPath).normalize().toString();
         }
-        String worldName = parseString(content, "worldName", parseString(content, "world", ""));
+        String worldName = parseStringAny(content, "", "worldName", "world", "world.name", "island.world");
         Path root = file.getParent() == null ? Path.of(".") : file.getParent();
         List<Path> candidates = new ArrayList<>();
         if (!worldName.isBlank()) {
@@ -218,6 +218,20 @@ public final class SuperiorSkyblock2MigrationScanner {
         }
     }
 
+    private UUID parseUuidAny(String content, UUID fallback, String... keys) {
+        for (String key : keys) {
+            String value = parseString(content, key, "");
+            if (value.isBlank()) {
+                continue;
+            }
+            try {
+                return UUID.fromString(value);
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
+        return fallback;
+    }
+
     private String parseString(String content, String key, String fallback) {
         String value = parsed(content).value(key);
         if (value != null && !value.isBlank()) {
@@ -234,12 +248,30 @@ public final class SuperiorSkyblock2MigrationScanner {
         }
     }
 
+    private int parseIntAny(String content, int fallback, String... keys) {
+        for (String key : keys) {
+            if (containsAnyKey(content, key)) {
+                return parseInt(content, key, fallback);
+            }
+        }
+        return fallback;
+    }
+
     private long parseLong(String content, String key, long fallback) {
         try {
             return Long.parseLong(parseString(content, key, Long.toString(fallback)));
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private long parseLongAny(String content, long fallback, String... keys) {
+        for (String key : keys) {
+            if (containsAnyKey(content, key)) {
+                return parseLong(content, key, fallback);
+            }
+        }
+        return fallback;
     }
 
     private boolean parseBoolean(String content, String key, boolean fallback) {
@@ -249,6 +281,15 @@ public final class SuperiorSkyblock2MigrationScanner {
             case "false", "no", "off", "0", "private", "closed" -> false;
             default -> fallback;
         };
+    }
+
+    private boolean parseBooleanAny(String content, boolean fallback, String... keys) {
+        for (String key : keys) {
+            if (containsAnyKey(content, key)) {
+                return parseBoolean(content, key, fallback);
+            }
+        }
+        return fallback;
     }
 
     private double parseDouble(String content, String key, double fallback) {
@@ -733,10 +774,10 @@ public final class SuperiorSkyblock2MigrationScanner {
     }
 
     private String parseBiomeKey(String content) {
-        if (!containsAnyKey(content, "biome", "biomeKey", "islandBiome")) {
+        if (!containsAnyKey(content, "biome", "biomeKey", "islandBiome", "settings.biome", "island.biome")) {
             return "";
         }
-        String biome = parseString(content, "biomeKey", parseString(content, "islandBiome", parseString(content, "biome", ""))).trim().toLowerCase();
+        String biome = parseStringAny(content, "", "biomeKey", "islandBiome", "biome", "settings.biome", "island.biome").trim().toLowerCase();
         if (biome.isBlank()) {
             return "";
         }
@@ -765,6 +806,16 @@ public final class SuperiorSkyblock2MigrationScanner {
             }
         }
         return false;
+    }
+
+    private String parseStringAny(String content, String fallback, String... keys) {
+        for (String key : keys) {
+            String value = parseString(content, key, "");
+            if (!value.isBlank()) {
+                return value;
+            }
+        }
+        return fallback;
     }
 
     private List<UUID> parseUuidList(String content, String... keys) {

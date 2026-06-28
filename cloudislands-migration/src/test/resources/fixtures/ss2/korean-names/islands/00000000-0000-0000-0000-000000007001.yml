@@ -1,0 +1,18 @@
+islandId: "00000000-0000-0000-0000-000000007001"
+ownerUuid: "00000000-0000-0000-0000-000000007002"
+members:
+  - "00000000-0000-0000-0000-000000007003"
+homes:
+  집:
+    world: korean
+    x: 1
+    y: 80
+    z: 3
+warps:
+  상점:
+    world: korean
+    x: 11
+    y: 82
+    z: 13
+biome: forest
+bankBalance: "10.00"

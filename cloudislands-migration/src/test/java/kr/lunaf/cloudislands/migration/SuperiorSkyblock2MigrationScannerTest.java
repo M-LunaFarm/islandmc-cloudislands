@@ -150,6 +150,47 @@ class SuperiorSkyblock2MigrationScannerTest {
         assertTrue(result.issues().get(0).blocking());
     }
 
+    @Test
+    void scannerReadsLegacyNestedOwnerAndBankFields() throws Exception {
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("legacy-format"));
+
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+        MigrationManifest manifest = result.manifests().get(0);
+        assertEquals(UUID.fromString("00000000-0000-0000-0000-000000006001"), manifest.islandId());
+        assertEquals(UUID.fromString("00000000-0000-0000-0000-000000006002"), manifest.ownerUuid());
+        assertEquals(512, manifest.size());
+        assertEquals(14L, manifest.level());
+        assertEquals("12345.67", manifest.worth());
+        assertEquals("321.09", manifest.bankBalance());
+        assertEquals("minecraft:savanna", manifest.biomeKey());
+        assertTrue(manifest.sourceWorldPath().endsWith("legacy-world"), manifest.sourceWorldPath());
+    }
+
+    @Test
+    void scannerPreservesKoreanHomeAndWarpNames() throws Exception {
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("korean-names"));
+
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+        MigrationManifest manifest = result.manifests().get(0);
+        assertEquals("집", manifest.homes().get(0).name());
+        assertEquals("상점", manifest.warps().get(0).name());
+        assertEquals("00000000-0000-0000-0000-000000007003", manifest.members().get(1).toString());
+    }
+
+    @Test
+    void scannerReportsLargeFixtureImportCountsAndGlobalBlockValues() throws Exception {
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(fixturePath("large-sample"));
+
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+        MigrationReport report = MigrationReportBuilder.build(result.manifests(), result.issues());
+        assertEquals(3, report.totalIslands());
+        assertEquals(3, report.importableIslandCount());
+        assertEquals(3, report.homes());
+        assertEquals(3, report.warps());
+        assertEquals(3, report.blockValues());
+        assertTrue(report.rollbackPossible());
+    }
+
     private Path fixturePath(String name) throws Exception {
         return Path.of(Objects.requireNonNull(getClass().getResource("/fixtures/ss2/" + name)).toURI());
     }
