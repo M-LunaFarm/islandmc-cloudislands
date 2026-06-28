@@ -772,15 +772,9 @@ public final class RoutingOrchestrator {
         return new RouteFailureException(code, detail);
     }
 
-    private enum RouteFailureCode {
-        VISITOR_SOFT_FULL,
-        ACTIVATION_LOCKED,
-        ACTIVE_NODE_UNAVAILABLE,
-        NO_READY_NODE,
-        PLACEMENT_MISSING
-    }
-
     private static final class RouteFailureException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         private final RouteFailureCode code;
         private final String detail;
 
