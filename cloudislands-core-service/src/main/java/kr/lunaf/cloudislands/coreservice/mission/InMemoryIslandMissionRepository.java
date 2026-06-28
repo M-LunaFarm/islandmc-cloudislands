@@ -32,6 +32,9 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind))) {
             return Optional.empty();
         }
+        if (current.completed() && !current.repeatable()) {
+            return Optional.empty();
+        }
         IslandMissionSnapshot completed = updated(current, current.goal(), true);
         islandMissions.put(current.missionKey(), completed);
         return Optional.of(completed);
@@ -43,6 +46,9 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         Map<String, IslandMissionSnapshot> islandMissions = missions.getOrDefault(islandId, Map.of());
         IslandMissionSnapshot current = islandMissions.get(missionKey.toLowerCase());
         if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind))) {
+            return Optional.empty();
+        }
+        if (current.completed() && !current.repeatable()) {
             return Optional.empty();
         }
         long nextProgress = Math.min(current.goal(), current.progress() + Math.max(0L, amount));

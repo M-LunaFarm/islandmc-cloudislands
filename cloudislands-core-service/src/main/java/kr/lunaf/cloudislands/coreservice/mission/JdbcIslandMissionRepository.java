@@ -45,7 +45,7 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
         String safeKey = missionKey.toLowerCase();
         String safeKind = MissionCatalog.normalizeKind(kind);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = goal, completed = true, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ?")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = goal, completed = true, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? AND (completed = false OR repeatable = true)")) {
             statement.setObject(1, actorUuid);
             statement.setObject(2, islandId);
             statement.setString(3, safeKey);
@@ -63,7 +63,7 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
         String safeKey = missionKey.toLowerCase();
         String safeKind = MissionCatalog.normalizeKind(kind);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = LEAST(goal, progress + ?), completed = completed OR LEAST(goal, progress + ?) >= goal, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ?")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = LEAST(goal, progress + ?), completed = completed OR LEAST(goal, progress + ?) >= goal, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? AND (completed = false OR repeatable = true)")) {
             statement.setLong(1, safeAmount);
             statement.setLong(2, safeAmount);
             statement.setObject(3, actorUuid);

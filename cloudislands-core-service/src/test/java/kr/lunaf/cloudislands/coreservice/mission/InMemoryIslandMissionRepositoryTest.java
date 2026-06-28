@@ -50,4 +50,20 @@ class InMemoryIslandMissionRepositoryTest {
         assertTrue(progressed.get().repeatable());
         assertTrue(progressed.get().dailyReset());
     }
+
+    @Test
+    void nonRepeatableMissionCannotBeCompletedOrProgressedTwice() {
+        InMemoryIslandMissionRepository repository = new InMemoryIslandMissionRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+
+        var first = repository.complete(islandId, actorUuid, "first_blocks", "MISSION");
+        var secondComplete = repository.complete(islandId, actorUuid, "first_blocks", "MISSION");
+        var secondProgress = repository.progress(islandId, actorUuid, "first_blocks", "MISSION", 1L);
+
+        assertTrue(first.isPresent());
+        assertTrue(first.get().completed());
+        assertTrue(secondComplete.isEmpty());
+        assertTrue(secondProgress.isEmpty());
+    }
 }
