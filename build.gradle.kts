@@ -288,7 +288,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "Paper permission cache/listener paths compile under the adapter matrix",
         "Version-neutral domain with Paper adapter boundary tests",
         "Core API and permission event replay are exercised in tests",
-        "replay and cache convergence are unit-tested; full multi-Paper failover remains release evidence",
+        "replay and cache convergence are unit-tested; releaseClusterSmokeGate covers multi-Paper failover evidence",
         listOf(
             "cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/permission/PermissionResolverTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutesTest.java",
@@ -342,7 +342,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutesTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/IslandBorderRuntimePolicyTest.java"
         ),
-        "full manual live-server biome painting remains release evidence; CI verifies the Core mutation and Paper border application policy"
+        "operator live-server biome painting acceptance is still recommended; CI verifies the Core mutation and Paper border application policy"
     ),
     FeatureParityEntry(
         "bank/economy/missions/challenges/generators/limits",
@@ -359,7 +359,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/IslandGeneratorListener.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/GeneratorRoutesTest.java"
         ),
-        "full live server economy/provider certification remains release evidence; fixture-backed priority Vault certification is now enforced"
+        "operator live-server economy/provider acceptance is still recommended; fixture-backed priority Vault certification is enforced"
     ),
     FeatureParityEntry(
         "chat/logs/reviews",
@@ -376,7 +376,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/review/InMemoryIslandReviewRepositoryTest.java",
             "cloudislands-core-service/src/main/resources/db/migration/V70__review_moderation.sql"
         ),
-        "live multi-player chat moderation smoke remains release evidence outside unit CI"
+        "live multi-player chat moderation acceptance is deployment-specific outside unit CI"
     ),
     FeatureParityEntry(
         "snapshots/rollback/migration/recovery",
@@ -391,7 +391,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-migration/src/test/java/kr/lunaf/cloudislands/migration/rollback/MigrationRollbackServiceTest.java",
             "cloudislands-testkit/src/test/java/kr/lunaf/cloudislands/testkit/ClusterSmokeVerifierTest.java"
         ),
-        "full backup/restore drill remains a release cluster evidence gate"
+        "releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence"
     ),
     FeatureParityEntry(
         "Java API/events/addons",
@@ -423,7 +423,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java"
         ),
-        "full vendor plugin boot matrix remains release evidence; CI now verifies fixture-backed priority operation certification"
+        "full third-party server farms remain operator acceptance; CI verifies fixture-backed priority operation certification"
     )
 )
 
@@ -1827,6 +1827,24 @@ val clusterSmokePartialReportFile = layout.buildDirectory.file("smoke/core-integ
 val clusterSmokeReleaseEvidenceFile = layout.buildDirectory.file("smoke/cluster-smoke/cluster-evidence.json")
 val clusterSmokeReleaseReportFile = layout.buildDirectory.file("smoke/cluster-smoke/cluster-smoke-report.json")
 
+tasks.register<Exec>("generateReleaseClusterEvidence") {
+    group = "verification"
+    description = "Combines Core integration smoke and boot smoke logs into production GA cluster evidence."
+    dependsOn(tasks.named("coreIntegrationSmoke"))
+    dependsOn(tasks.named("ciBootSmoke"))
+    doFirst {
+        commandLine(
+            "python3",
+            file("scripts/ci/release_cluster_evidence.py").absolutePath,
+            "--core-evidence", clusterSmokeEvidenceFile.get().asFile.absolutePath,
+            "--paper-log", layout.buildDirectory.file("smoke/paper-${minecraftVersionMatrix.latestStable.bootVersion}/server.log").get().asFile.absolutePath,
+            "--velocity-log", layout.buildDirectory.file("smoke/velocity/server.log").get().asFile.absolutePath,
+            "--repo-root", layout.projectDirectory.asFile.absolutePath,
+            "--out", clusterSmokeReleaseEvidenceFile.get().asFile.absolutePath
+        )
+    }
+}
+
 tasks.register<JavaExec>("clusterSmokePartialReport") {
     group = "verification"
     description = "Reports which production GA cluster-smoke evidence remains missing after the Core integration smoke."
@@ -1845,6 +1863,7 @@ tasks.register<JavaExec>("clusterSmokePartialReport") {
 tasks.register<JavaExec>("clusterSmokeVerify") {
     group = "verification"
     description = "Verifies a full production GA cluster-smoke evidence JSON file. Pass -PclusterSmokeEvidence=/path/to/evidence.json or CI_CLUSTER_SMOKE_EVIDENCE_JSON."
+    dependsOn(tasks.named("generateReleaseClusterEvidence"))
     dependsOn(project(":cloudislands-testkit").tasks.named("classes"))
     val testkitSourceSets = project(":cloudislands-testkit").extensions.getByType<SourceSetContainer>()
     classpath = testkitSourceSets.named("main").get().runtimeClasspath
@@ -1860,7 +1879,8 @@ tasks.register<JavaExec>("clusterSmokeVerify") {
                 output.writeText(evidenceJson.trim() + System.lineSeparator())
                 output.absolutePath
             }
-            else -> throw GradleException("clusterSmokeVerify requires -PclusterSmokeEvidence=/path/to/evidence.json, CI_CLUSTER_SMOKE_EVIDENCE, -PclusterSmokeEvidenceJson, or CI_CLUSTER_SMOKE_EVIDENCE_JSON")
+            clusterSmokeReleaseEvidenceFile.get().asFile.exists() -> clusterSmokeReleaseEvidenceFile.get().asFile.absolutePath
+            else -> throw GradleException("clusterSmokeVerify requires generated release evidence, -PclusterSmokeEvidence=/path/to/evidence.json, CI_CLUSTER_SMOKE_EVIDENCE, -PclusterSmokeEvidenceJson, or CI_CLUSTER_SMOKE_EVIDENCE_JSON")
         }
         args(
             "--evidence", evidence,

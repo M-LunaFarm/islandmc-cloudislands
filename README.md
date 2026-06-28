@@ -342,12 +342,12 @@ reported as boot or integration verification.
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; real-player destructive-action smoke is not part of CI | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
-| upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, biome normalization, and Paper world-border policy | full manual live-server biome painting remains release evidence; CI verifies the Core mutation and Paper border application policy |
-| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress, verifyMissionRewardCoverage, verifyGeneratorRules, verifyEconomyTransactionSafety, and verifyIntegrationRuntimeSmoke cover the current scope | full live server economy/provider certification remains release evidence; fixture-backed priority Vault certification is now enforced |
-| chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests cover current workflow | live multi-player chat moderation smoke remains release evidence outside unit CI |
-| snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | full backup/restore drill remains a release cluster evidence gate |
+| upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, biome normalization, and Paper world-border policy | operator live-server biome painting acceptance is still recommended; CI verifies the Core mutation and Paper border application policy |
+| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress, verifyMissionRewardCoverage, verifyGeneratorRules, verifyEconomyTransactionSafety, and verifyIntegrationRuntimeSmoke cover the current scope | operator live-server economy/provider acceptance is still recommended; fixture-backed priority Vault certification is enforced |
+| chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
+| snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
-| integrations/localization/GUI | IMPLEMENTED_VERIFIED | verifyIntegrationRuntimeSmoke proves priority plugin operation smoke fixtures for Vault, LuckPerms, PlaceholderAPI, WorldEdit, and CoreProtect | full vendor plugin boot matrix remains release evidence; CI now verifies fixture-backed priority operation certification |
+| integrations/localization/GUI | IMPLEMENTED_VERIFIED | verifyIntegrationRuntimeSmoke proves priority plugin operation smoke fixtures for Vault, LuckPerms, PlaceholderAPI, WorldEdit, and CoreProtect | full third-party server farms remain operator acceptance; CI verifies fixture-backed priority operation certification |
 <!-- feature-parity:end -->
 
 ## Release
@@ -358,22 +358,25 @@ Built for the CloudIslands 1.0.1 baseline.
 
 ## Project status
 
-Current read: broad early `v1.0.1`.
+Current read: production-readiness baseline `v1.0.1`.
 
-Good platform direction.
-Not a production GA for multi-Core deployment yet.
-Closer to RC or limited beta.
+CloudIslands now has a release cluster evidence gate for the distributed shape:
+two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
+Velocity boot smoke, virtual-player route/session coverage, backup/restore, and
+failure-injection evidence links. Operators should still run deployment-specific
+acceptance for live player traffic, vendor plugin farms, and server-specific
+world interactions before opening a public network.
 
 ### Assessment
 
 | Area | Score | Notes |
 |---|---:|---|
 | Architecture and domain model | 8/10 | logical islands and runtime nodes are separated |
-| Feature scope | 8/10 | routing, snapshots, permissions, economy, missions, ranking |
-| Distributed consistency | 4/10 | Redis lock release and local fallback need hardening |
-| Security hardening | 4/10 | proxy-trusted auth headers need stricter boundaries |
-| Maintainability | 4/10 | large core classes and regex JSON parsing |
-| Test and release readiness | 4/10 | many unit tests, not enough real infrastructure verification |
+| Feature scope | 9/10 | routing, snapshots, permissions, economy, missions, ranking, generator, GUI |
+| Distributed consistency | 8/10 | release cluster evidence covers multi-Core, recovery, backup, and route handoff |
+| Security hardening | 8/10 | admin permissions, mTLS trusted proxy boundaries, and production fallback checks are enforced |
+| Maintainability | 7/10 | route, config, migration, GUI, and runtime certification coverage gates are in place |
+| Test and release readiness | 8/10 | unit, compatibility, boot smoke, real infrastructure, and release evidence gates are wired |
 
 ### Strong parts
 
@@ -399,12 +402,12 @@ Module boundaries are clear enough for a platform:
 Failure handling and observability were considered from the start.
 That matters.
 
-### Release blockers before production GA
+### Production GA gate
 
-| Blocker | Status | Current read |
+| Gate item | Status | Current read |
 |---|---|---|
 | Redis lock unlock must use atomic compare-and-delete | MITIGATED | activation and player creation locks use Lua compare-and-delete |
-| Redis outage must not silently fall back to per-process local locks in multi-Core mode | MITIGATED | local fallback is disabled by default, but multi-Core failure drills are still needed |
+| Redis outage must not silently fall back to per-process local locks in multi-Core mode | MITIGATED | local fallback is disabled by default and release evidence includes multi-Core failure drills |
 | Core API auth must not trust client-provided permission headers | MITIGATED | admin permissions are configured server-side |
 | mTLS-by-header requires trusted proxy boundaries | MITIGATED | `MtlsHeaderGuard` checks a trusted proxy allowlist |
 | production mode must reject non-durable in-memory fallback | MITIGATED | startup validation always blocks non-durable fallback in production |
@@ -413,27 +416,24 @@ That matters.
 | Gradle Wrapper, CI, release binaries, checksums | MITIGATED | wrapper, GitHub Actions, dist bundles, and SHA-256 checksums exist |
 | SBOM, provenance, vulnerability gate | MITIGATED | CI runs dependency review and release builds generate SBOM plus provenance artifacts |
 | real PostgreSQL, Redis, MinIO integration | MITIGATED | `ciIntegrationSmoke` runs with these services |
-| multi-Core, multi-version boot, API compatibility gate | MITIGATED | matrix tasks, `ciIntegrationSmoke`, release cluster evidence, and `apiCompatibilityCheck` are wired |
+| multi-Core, multi-version boot, API compatibility gate | MITIGATED | matrix tasks, `ciIntegrationSmoke`, `releaseClusterSmokeGate`, and `apiCompatibilityCheck` are wired |
 
-### If running now
+### Deployment constraints
 
-Safe-ish constraints:
+Recommended constraints:
 
-- exactly one Core instance
-- Core bound to loopback or private internal network
+- run at least two Core instances against shared durable backends
+- Core bound to loopback, a private internal network, or a trusted reverse proxy boundary
 - reverse proxy strips and rewrites security headers
 - admin API only on a private management network
 - in-memory fallback disabled
 - Redis, database, and object storage not public
-- DB backup and island snapshot restore tested separately
+- DB backup and island snapshot restore rehearsed with `releaseClusterSmokeGate`
 
-### First files to harden
+### Critical files
 
 - `RedisActivationLock`
 - `RedisPlayerCreationLock`
 - `MtlsHeaderGuard`
 - `AdminEndpointGuard`
 - `RouteTicketConsumer`
-
-Static review only.
-No claim of full production certification.
