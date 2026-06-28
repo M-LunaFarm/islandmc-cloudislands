@@ -25,6 +25,7 @@ final class IslandCommandRouter {
     private final IslandMembershipCommandHandler membershipCommands;
     private final IslandAdminNodeCommandHandler adminCommands;
     private final Runtime runtime;
+    private final IslandCommandSuggestionService suggestions = new IslandCommandSuggestionService();
 
     IslandCommandRouter(
         IslandBankCommandHandler bankCommands,
@@ -113,6 +114,8 @@ final class IslandCommandRouter {
         if (membershipCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
+        suggestions.suggest(subcommand, IslandCommandCatalog.SUBCOMMANDS)
+            .ifPresent(suggestion -> runtime.message(player, runtime.routeMessage("command-suggestion-prefix", "혹시 /") + label + " " + suggestion + runtime.routeMessage("command-suggestion-suffix", " 를 찾으셨나요?")));
         sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
         return true;
     }
