@@ -15,6 +15,21 @@ import org.junit.jupiter.api.Test;
 
 class InMemoryIslandJobPublisherTest {
     @Test
+    void duplicateJobIdPublishIsIdempotent() {
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        IslandJob first = new IslandJob(jobId, IslandJobType.CREATE_ISLAND, islandId, "island-node-1", 0, Map.of("request", "first"), Instant.EPOCH);
+        IslandJob duplicate = new IslandJob(jobId, IslandJobType.CREATE_ISLAND, islandId, "island-node-1", 0, Map.of("request", "duplicate"), Instant.EPOCH.plusSeconds(1));
+
+        jobs.publish(first);
+        jobs.publish(duplicate);
+
+        assertEquals(1, jobs.snapshot().size());
+        assertEquals("first", jobs.snapshot().getFirst().payload().get("request"));
+    }
+
+    @Test
     void claimReturnsLeaseIdentityForWorkerCompletion() {
         InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
         UUID jobId = UUID.randomUUID();

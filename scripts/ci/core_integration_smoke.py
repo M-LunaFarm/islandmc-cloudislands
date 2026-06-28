@@ -270,11 +270,41 @@ def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     return evidence, artifacts
 
 
+def idempotency_evidence_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
+    root = Path(__file__).resolve().parents[2]
+    schema = root / "cloudislands-core-service/src/main/resources/db/migration/V1__cloudislands_schema.sql"
+    mysql_schema = root / "cloudislands-core-service/src/main/resources/db/mysql/V1__cloudislands_mysql_schema.sql"
+    jdbc_queue = root / "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/job/JdbcIslandJobQueue.java"
+    in_memory_queue = root / "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/job/InMemoryIslandJobPublisher.java"
+    in_memory_test = root / "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/job/InMemoryIslandJobPublisherTest.java"
+    required_files = [schema, mysql_schema, jdbc_queue, in_memory_queue, in_memory_test]
+    missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
+    if missing:
+        raise RuntimeError(f"idempotency evidence files are missing: {missing}")
+    schema_text = schema.read_text(encoding="utf-8")
+    mysql_schema_text = mysql_schema.read_text(encoding="utf-8")
+    jdbc_text = jdbc_queue.read_text(encoding="utf-8")
+    in_memory_text = in_memory_queue.read_text(encoding="utf-8")
+    test_text = in_memory_test.read_text(encoding="utf-8")
+    required_signals = {
+        "postgres-request-id-unique-index": "idx_island_jobs_request_id" in schema_text and "request_id" in schema_text,
+        "mysql-request-id-unique-index": "idx_island_jobs_request_id" in mysql_schema_text and "request_id" in mysql_schema_text,
+        "jdbc-conflict-noop": "ON CONFLICT (request_id) DO NOTHING" in jdbc_text and "ON DUPLICATE KEY UPDATE request_id = request_id" in jdbc_text,
+        "in-memory-duplicate-job-skip": "anyMatch(record -> record.job().jobId().equals(job.jobId()))" in in_memory_text,
+        "idempotent-publish-test": "duplicateJobIdPublishIsIdempotent" in test_text,
+    }
+    failures = [name for name, present in required_signals.items() if not present]
+    if failures:
+        raise RuntimeError(f"idempotency evidence signals are missing: {failures}")
+    return {"multi-core-e2e": ["idempotency-key-check"]}, [file_artifact(path, root) for path in required_files]
+
+
 def write_cluster_evidence(path: Path | None, artifacts: list[dict]) -> None:
     if path is None:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     deployment_evidence, deployment_artifacts = deployment_template_artifacts()
+    idempotency_evidence, idempotency_artifacts = idempotency_evidence_artifacts()
     evidence = {
         "certificationScope": "partial-core-integration-smoke",
         "components": [
@@ -290,6 +320,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict]) -> None:
                 "fencing-token-check",
                 "audit-log-check",
                 "event-replay-check",
+                *idempotency_evidence["multi-core-e2e"],
             ],
             "backup-restore-drill": [
                 "restore-activation",
@@ -312,7 +343,7 @@ def write_cluster_evidence(path: Path | None, artifacts: list[dict]) -> None:
             {"name": "node-down-recovery-restore", "result": "passed"},
             {"name": "post-recovery-route-targets-standby-node", "result": "passed"},
         ],
-        "artifacts": artifacts + deployment_artifacts,
+        "artifacts": artifacts + deployment_artifacts + idempotency_artifacts,
         "uncertifiedComponents": ["velocity", "lobby-paper", "island-paper-1", "island-paper-2", "player-protocol-client"],
         "uncertifiedFailureInjections": [
             "paper-save-kill",

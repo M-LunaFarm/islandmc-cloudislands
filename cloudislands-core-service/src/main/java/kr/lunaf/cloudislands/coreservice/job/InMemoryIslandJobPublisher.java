@@ -18,6 +18,9 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
 
     @Override
     public synchronized void publish(IslandJob job) {
+        if (jobs.stream().anyMatch(record -> record.job().jobId().equals(job.jobId()))) {
+            return;
+        }
         jobs.add(new JobRecord(job, JobState.PENDING, null, null, null, 0L, 0, null, Instant.now()));
     }
 
