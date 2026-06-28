@@ -1450,6 +1450,8 @@ tasks.register("verifyUpgradeEffectCoverage") {
             if (!tests.contains("borderHomeAndBiomeUpgradesUpdateAuthoritativeLimits")) add("UpgradeEffectApplierTest must cover border, home, and biome limit effects")
             if (!tests.contains("keepInventoryAndBorderColorUpgradesApplyFlags")) add("UpgradeEffectApplierTest must cover keep inventory and border color flag effects")
             if (!settingsTests.contains("setBiomeNormalizesSupportedKeysAndRejectsUnsupportedKeys")) add("IslandSettingsRoutesTest must cover biome normalization and rejection")
+            if (!settingsTests.contains("setBiomeSkipsDuplicateWritesLogsAndEvents")) add("IslandSettingsRoutesTest must cover duplicate biome no-op protection")
+            if (!environmentSource.contains("BIOME_UNCHANGED")) add("IslandEnvironmentCommandHandler must surface duplicate biome no-op results separately")
             if (!borderPolicySource.contains("BorderSettings") || !borderPolicySource.contains("region.originX()") || !borderPolicySource.contains("Math.max(1.0D, borderSize)")) add("IslandBorderRuntimePolicy must compute player world border center and size")
             if (!borderTests.contains("appliesWorldBorderFromIslandRegionAndCoreSize") || !borderTests.contains("hiddenPolicySuppressesPlayerWorldBorder")) add("IslandBorderRuntimePolicyTest must cover visible and hidden border behavior")
             if (!environmentSource.contains("IslandBorderRuntimePolicy.settings") || !environmentSource.contains("player.setWorldBorder(border)") || !environmentSource.contains("player.setWorldBorder(null)")) add("IslandEnvironmentCommandHandler must apply border runtime policy to the player world border")

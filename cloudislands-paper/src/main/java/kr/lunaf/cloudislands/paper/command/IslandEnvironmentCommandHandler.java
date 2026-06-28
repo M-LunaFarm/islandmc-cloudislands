@@ -192,7 +192,7 @@ final class IslandEnvironmentCommandHandler {
                 return;
             }
             environmentUseCase.setBiomeAction(islandId, player.getUniqueId(), biomeKey, runtime::mutate)
-                .thenAccept(result -> runtime.message(player, environmentActionMessage(result, "섬 바이옴 변경 완료: " + biomeKey, "섬 바이옴을 변경하지 못했습니다.")))
+                .thenAccept(result -> runtime.message(player, biomeActionMessage(result, biomeKey)))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 바이옴을 변경하지 못했습니다.");
                     return null;
@@ -376,6 +376,17 @@ final class IslandEnvironmentCommandHandler {
 
     private String environmentActionMessage(EnvironmentActionResult result, String successMessage, String failureMessage) {
         return result.accepted() ? successMessage : runtime.playerCodeMessage(result.code(), failureMessage);
+    }
+
+    private String biomeActionMessage(EnvironmentActionResult result, String requestedBiomeKey) {
+        if (!result.accepted()) {
+            return runtime.playerCodeMessage(result.code(), "섬 바이옴을 변경하지 못했습니다.");
+        }
+        String biomeKey = result.key().isBlank() ? requestedBiomeKey : result.key();
+        if (result.code().equals("BIOME_UNCHANGED")) {
+            return "이미 적용된 바이옴입니다: " + biomeKey;
+        }
+        return "섬 바이옴 변경 완료: " + biomeKey;
     }
 
     private static String borderSummary(IslandInfoView info, Map<IslandFlag, String> flags) {

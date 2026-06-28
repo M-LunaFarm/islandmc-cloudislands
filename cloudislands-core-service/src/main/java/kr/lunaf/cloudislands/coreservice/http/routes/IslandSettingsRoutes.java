@@ -127,11 +127,16 @@ public final class IslandSettingsRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.SET_BIOME)) {
             return;
         }
+        String currentBiomeKey = metadataRepository.biome(islandId).biomeKey();
+        if (currentBiomeKey.equals(biomeKey.get())) {
+            CoreHttpResponses.write(exchange, 202, biomeSetJson(islandId, actorUuid, biomeKey.get(), "BIOME_UNCHANGED"));
+            return;
+        }
         metadataRepository.setBiome(islandId, biomeKey.get(), actorUuid);
         audit.log(actorUuid, "PLAYER", "ISLAND_BIOME_SET", "ISLAND", islandId.toString(), Map.of("biomeKey", biomeKey.get()));
         islandLogs.append(islandId, actorUuid, "ISLAND_BIOME_SET", Map.of("biomeKey", biomeKey.get()));
         events.publish(CloudIslandEventType.ISLAND_BIOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "biomeKey", biomeKey.get()));
-        CoreHttpResponses.write(exchange, 202, biomeSetJson(islandId, actorUuid, biomeKey.get()));
+        CoreHttpResponses.write(exchange, 202, biomeSetJson(islandId, actorUuid, biomeKey.get(), "BIOME_SET"));
     }
 
     private void setFlag(HttpExchange exchange) throws IOException {
@@ -214,8 +219,13 @@ public final class IslandSettingsRoutes implements RouteGroup {
     }
 
     static String biomeSetJson(UUID islandId, UUID actorUuid, String biomeKey) {
+        return biomeSetJson(islandId, actorUuid, biomeKey, "BIOME_SET");
+    }
+
+    static String biomeSetJson(UUID islandId, UUID actorUuid, String biomeKey, String code) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("accepted", true);
+        values.put("code", code);
         values.put("islandId", islandId);
         values.put("biomeKey", biomeKey);
         values.put("updatedBy", actorUuid);

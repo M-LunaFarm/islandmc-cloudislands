@@ -136,6 +136,38 @@ class IslandSettingsRoutesTest {
         assertEquals("minecraft:desert", metadata.biome(islandId).biomeKey());
     }
 
+    @Test
+    void setBiomeSkipsDuplicateWritesLogsAndEvents() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000103");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000104");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Biome Duplicate Test");
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandSettingsRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandPermissionRuleRepository(),
+            logs,
+            audit,
+            events
+        ).register(handlers::put);
+
+        TestExchange unchanged = exchange("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + ownerUuid + "\",\"biomeKey\":\"plains\"}");
+        handlers.get("/v1/islands/biome/set").handle(unchanged);
+
+        assertEquals(202, unchanged.status());
+        assertTrue(unchanged.body().contains("\"code\":\"BIOME_UNCHANGED\""));
+        assertTrue(unchanged.body().contains("\"biomeKey\":\"minecraft:plains\""));
+        assertEquals("minecraft:plains", metadata.biome(islandId).biomeKey());
+        assertEquals(0L, events.countByType(CloudIslandEventType.ISLAND_BIOME_CHANGED.name()));
+        assertTrue(logs.list(islandId, 10).isEmpty());
+        assertTrue(!audit.toJson().contains("ISLAND_BIOME_SET"));
+    }
+
     private TestExchange exchange(String body) {
         return new TestExchange(body);
     }
