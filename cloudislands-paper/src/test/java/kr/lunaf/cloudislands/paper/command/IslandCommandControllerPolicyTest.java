@@ -60,6 +60,7 @@ class IslandCommandControllerPolicyTest {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String bankHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java"));
         String bankUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/BankUseCase.java"));
+        String vaultBridge = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/economy/VaultEconomyBridge.java"));
 
         assertTrue(backend.contains("private final IslandBankCommandHandler bankCommands;"));
         assertTrue(routerSource().contains("bankCommands.handleCommand(player, subcommand, args)"));
@@ -78,6 +79,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(bankUseCase.contains("bankCommands.withdraw"));
         assertFalse(bankUseCase.contains("coreApiClient.depositIslandBank"));
         assertFalse(bankUseCase.contains("coreApiClient.withdrawIslandBank"));
+        assertTrue(vaultBridge.contains("EconomyProviderState providerState()"));
+        assertTrue(vaultBridge.contains("EconomyProviderState.NOT_INSTALLED"));
+        assertTrue(vaultBridge.contains("EconomyProviderState.OPERATION_FAILED"));
     }
 
     @Test

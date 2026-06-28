@@ -5,15 +5,33 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
+import kr.lunaf.cloudislands.api.economy.EconomyProviderState;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
 public final class VaultEconomyBridge implements EconomyBridge {
     private final Server server;
+    private volatile boolean operationFailed;
 
     public VaultEconomyBridge(Server server) {
         this.server = server;
+    }
+
+    @Override
+    public EconomyProviderState providerState() {
+        Class<?> economyClass = economyClass();
+        if (economyClass == null) {
+            return EconomyProviderState.NOT_INSTALLED;
+        }
+        Object economy = economy(economyClass);
+        if (economy == null) {
+            return EconomyProviderState.DETECTED;
+        }
+        if (!apiCompatible(economy)) {
+            return EconomyProviderState.DETECTED;
+        }
+        return operationFailed ? EconomyProviderState.OPERATION_FAILED : EconomyProviderState.ACTIVE;
     }
 
     @Override
@@ -26,6 +44,7 @@ public final class VaultEconomyBridge implements EconomyBridge {
         if (callBoolean(playerUuid, amount, "depositPlayer")) {
             return CompletableFuture.completedFuture(null);
         }
+        operationFailed = true;
         return CompletableFuture.failedFuture(new IllegalStateException("economy deposit failed"));
     }
 
@@ -42,6 +61,7 @@ public final class VaultEconomyBridge implements EconomyBridge {
                 return CompletableFuture.completedFuture(BigDecimal.valueOf(number.doubleValue()));
             }
         } catch (ReflectiveOperationException ignored) {
+            operationFailed = true;
         }
         return CompletableFuture.completedFuture(BigDecimal.ZERO);
     }
@@ -56,6 +76,7 @@ public final class VaultEconomyBridge implements EconomyBridge {
             Object response = method.invoke(economy, server.getOfflinePlayer(playerUuid), amount.doubleValue());
             return transactionSuccess(response);
         } catch (ReflectiveOperationException exception) {
+            operationFailed = true;
             return false;
         }
     }
@@ -80,13 +101,36 @@ public final class VaultEconomyBridge implements EconomyBridge {
     }
 
     private Object economy() {
+        Class<?> economyClass = economyClass();
+        return economyClass == null ? null : economy(economyClass);
+    }
+
+    private Class<?> economyClass() {
         Class<?> economyClass;
         try {
             economyClass = Class.forName("net.milkbowl.vault.economy.Economy");
         } catch (ClassNotFoundException exception) {
             return null;
         }
+        return economyClass;
+    }
+
+    private Object economy(Class<?> economyClass) {
+        if (server == null || economyClass == null) {
+            return null;
+        }
         RegisteredServiceProvider<?> provider = server.getServicesManager().getRegistration(economyClass);
         return provider == null ? null : provider.getProvider();
+    }
+
+    private boolean apiCompatible(Object economy) {
+        try {
+            economy.getClass().getMethod("withdrawPlayer", OfflinePlayer.class, double.class);
+            economy.getClass().getMethod("depositPlayer", OfflinePlayer.class, double.class);
+            economy.getClass().getMethod("getBalance", OfflinePlayer.class);
+            return true;
+        } catch (ReflectiveOperationException exception) {
+            return false;
+        }
     }
 }
