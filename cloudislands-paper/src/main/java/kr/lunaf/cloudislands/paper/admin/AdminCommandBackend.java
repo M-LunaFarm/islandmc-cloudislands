@@ -144,6 +144,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             sender.sendMessage(adminText("admin-command-status-online-prefix", "CloudIslands onlinePlayers=") + agent.plugin().getServer().getOnlinePlayers().size() + " routeWaitSeconds=" + routeWaitSeconds);
             return true;
         }
+        if (args[0].equalsIgnoreCase("doctor")) {
+            return handleDoctor(sender);
+        }
         if (isHelpRequest(args)) {
             usage(sender, label, helpPage(args));
             return true;
@@ -549,6 +552,38 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return new DiagnosticSection(plugin.runtimeCompatibility().diagnosticsSection());
         }
         return new DiagnosticSection("## runtime-compatibility\npaperAdapterId=unavailable\n");
+    }
+
+    private boolean handleDoctor(CommandSender sender) {
+        CompletableFuture<CharSequence> metrics = doctorPart("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
+        CompletableFuture<CharSequence> storage = doctorPart("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
+        CompletableFuture<CharSequence> nodes = doctorPart("nodes", coreApiClient.adminNodes().listNodesSummary().thenApply(summary ->
+            adminNodeSummaryMessage("Nodes", summary) + " / " + heartbeatLagDiagnosticBody(summary).replace('\n', ' ').trim()));
+        CompletableFuture<CharSequence> jobs = doctorPart("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
+        CompletableFuture<CharSequence> routes = doctorPart("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
+        CompletableFuture<CharSequence> integrations = CompletableFuture.completedFuture("integrations=" + integrationStatusMessage());
+        run(sender, "Doctor", CompletableFuture.allOf(metrics, storage, nodes, jobs, routes, integrations)
+            .thenApply(_ignored -> doctorMessage(List.of(metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), integrations.join()))));
+        return true;
+    }
+
+    private CompletableFuture<CharSequence> doctorPart(String label, CompletableFuture<? extends CharSequence> future) {
+        return future.handle((body, error) -> {
+            if (error != null) {
+                return label + "=ERROR(" + error.getClass().getSimpleName() + ")";
+            }
+            String text = body == null ? "" : body.toString().replace('\n', ' ').trim();
+            return label + "=" + (text.isBlank() ? "empty" : text);
+        });
+    }
+
+    private CharSequence doctorMessage(List<CharSequence> parts) {
+        List<String> renderedParts = parts.stream().map(CharSequence::toString).toList();
+        return "Doctor: role=" + agent.role()
+            + " node=" + nodeId
+            + " online=" + agent.plugin().getServer().getOnlinePlayers().size()
+            + " routeWaitSeconds=" + routeWaitSeconds
+            + (renderedParts.isEmpty() ? "" : " | " + String.join(" | ", renderedParts));
     }
 
     private boolean handleNode(CommandSender sender, String[] args) {
@@ -2074,7 +2109,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "";
         }
         return switch (root) {
-            case "status", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "doctor", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }

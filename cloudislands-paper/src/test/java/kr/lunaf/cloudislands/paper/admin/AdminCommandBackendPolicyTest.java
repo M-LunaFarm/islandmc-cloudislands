@@ -73,6 +73,25 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void doctorIsAFirstClassAdminHealthCommand() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("\"doctor\""), "Doctor root command must be registered");
+        assertTrue(adminSurface.contains("ciadmin doctor"), "Doctor command must be listed in help");
+        assertTrue(source.contains("handleDoctor"), "Doctor command must have a handler");
+        assertTrue(source.contains("coreApiClient.adminMetrics().summary()"), "Doctor must include typed metrics");
+        assertTrue(source.contains("coreApiClient.adminStorage().status()"), "Doctor must include typed storage health");
+        assertTrue(source.contains("coreApiClient.adminNodes().listNodesSummary()"), "Doctor must include typed node and heartbeat context");
+        assertTrue(source.contains("coreApiClient.jobs().list()"), "Doctor must include typed job queue context");
+        assertTrue(source.contains("coreApiClient.adminRoutes().debug(new UUID(0L, 0L))"), "Doctor must include typed route ticket context");
+        assertTrue(source.contains("integrationStatusMessage()"), "Doctor must include integration state");
+        assertTrue(plugin.contains("cloudislands.admin.doctor"), "Doctor command must have a plugin permission");
+    }
+
+    @Test
     void configOperationsAreFirstClassAdminCommands() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String configHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminConfigCommandHandler.java"));
