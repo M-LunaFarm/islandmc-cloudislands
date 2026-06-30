@@ -49,11 +49,20 @@ class RoutingOrchestratorActivationTest {
     void routingTargetFailuresUseTypedCodesInsteadOfExceptionMessageParsing() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/RoutingOrchestrator.java"));
         String codeSource = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/RouteFailureCode.java"));
+        String applicationSource = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/CloudIslandsCoreApplication.java"));
 
         assertTrue(codeSource.contains("public enum RouteFailureCode"));
         assertTrue(codeSource.contains("ISLAND_NOT_FOUND"));
         assertTrue(codeSource.contains("RECOVERY_REQUIRED"));
         assertTrue(source.contains("catch (RouteFailureException exception)"));
+        assertTrue(source.contains("new RouteAccessPolicy"));
+        assertTrue(source.contains("new RouteTicketService"));
+        assertTrue(source.contains("new RoutingDiagnosticsService"));
+        assertTrue(source.contains("RouteFailureMapper.map"));
+        assertTrue(source.contains("RouteTargetResolver.ready"));
+        assertTrue(source.contains("IslandActivationCoordinator.placementMissing"));
+        assertTrue(applicationSource.contains("CoreRoutingComponents.routing"));
+        assertTrue(applicationSource.contains("CoreRouteModules.register"));
         assertTrue(!source.contains("\"VISITOR_SOFT_FULL\".equals(exception.getMessage())"));
         assertTrue(!source.contains("exception.getMessage().startsWith(\"ACTIVE_NODE_\")"));
         assertTrue(source.contains("toLowerCase(java.util.Locale.ROOT)"));

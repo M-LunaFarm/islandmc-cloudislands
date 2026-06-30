@@ -8,7 +8,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
@@ -20,7 +19,6 @@ import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
-import kr.lunaf.cloudislands.common.island.IslandPortabilityPolicy;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -50,6 +48,9 @@ public final class RoutingOrchestrator {
     private final Duration routeTicketTtl;
     private final Duration routePreparingTicketTtl;
     private final RedisActivationLock activationLock;
+    private final RouteAccessPolicy accessPolicy;
+    private final RouteTicketService routeTickets;
+    private final RoutingDiagnosticsService diagnostics;
 
     public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events) {
         this(nodes, allocator, tickets, islands, metadata, runtimes, templates, jobs, events, "island");
@@ -77,6 +78,9 @@ public final class RoutingOrchestrator {
         this.routeTicketTtl = routeTicketTtl == null || routeTicketTtl.isNegative() || routeTicketTtl.isZero() ? Duration.ofSeconds(30) : routeTicketTtl;
         this.routePreparingTicketTtl = routePreparingTicketTtl == null || routePreparingTicketTtl.isNegative() || routePreparingTicketTtl.isZero() ? Duration.ofSeconds(120) : routePreparingTicketTtl;
         this.activationLock = activationLock;
+        this.accessPolicy = new RouteAccessPolicy(metadata);
+        this.routeTickets = new RouteTicketService(nodes, this.routeTicketTtl, this.routePreparingTicketTtl);
+        this.diagnostics = new RoutingDiagnosticsService(nodes, allocator, this.islandPool);
     }
 
     public RoutePreparationResult prepareHomeRoute(UUID playerUuid) {
@@ -156,7 +160,7 @@ public final class RoutingOrchestrator {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("targetType", "MIGRATION_RETURN");
         payload.putAll(locationPayload == null ? Map.of() : locationPayload);
-        RouteTicket saved = tickets.save(ticket(playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, payload, new RouteTarget(node, IslandPlacement.worldName(islandId), RouteTicketState.PREPARING)));
+        RouteTicket saved = tickets.save(ticket(playerUuid, islandId, RouteAction.RETURN_AFTER_MIGRATION, payload, RouteTargetResolver.preparing(node, IslandPlacement.worldName(islandId))));
         events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of(
             "ticketId", saved.ticketId().toString(),
             "playerUuid", saved.playerUuid().toString(),
@@ -266,14 +270,9 @@ public final class RoutingOrchestrator {
     }
 
     private RoutePreparationResult visitAllowed(UUID playerUuid, IslandSnapshot island, RouteAction action, Map<String, String> extraPayload) {
-        if (metadata.isBanned(island.islandId(), playerUuid)) {
-            return rejectRoute(403, "VISITOR_BANNED", "Visitor is banned from this island", playerUuid, island.islandId(), action);
-        }
-        if (metadata.isLocked(island.islandId()) && !metadata.isMember(island.islandId(), playerUuid)) {
-            return rejectRoute(423, "ISLAND_LOCKED", "Island is locked", playerUuid, island.islandId(), action);
-        }
-        if (!metadata.isPublicAccess(island.islandId()) && !metadata.isMember(island.islandId(), playerUuid)) {
-            return rejectRoute(403, "ISLAND_PRIVATE", "Island is private", playerUuid, island.islandId(), action);
+        RouteAccessDecision decision = accessPolicy.visitAccess(playerUuid, island);
+        if (!decision.allowed()) {
+            return rejectRoute(decision.status(), decision.code(), decision.message(), playerUuid, island.islandId(), action);
         }
         return prepareTicket(playerUuid, island, action, extraPayload);
     }
@@ -283,26 +282,11 @@ public final class RoutingOrchestrator {
         if (warp == null) {
             return rejectRoute(404, "WARP_NOT_FOUND", "Island warp was not found", playerUuid, island.islandId(), RouteAction.WARP);
         }
-        if (metadata.isBanned(island.islandId(), playerUuid)) {
-            return rejectRoute(403, "VISITOR_BANNED", "Visitor is banned from this island", playerUuid, island.islandId(), RouteAction.WARP);
-        }
-        boolean member = metadata.isMember(island.islandId(), playerUuid);
-        if (metadata.isLocked(island.islandId()) && !member) {
-            return rejectRoute(423, "ISLAND_LOCKED", "Island is locked", playerUuid, island.islandId(), RouteAction.WARP);
-        }
-        if (!member && (!warp.publicAccess() || !islandFlagEnabled(island.islandId(), IslandFlag.PUBLIC_WARPS))) {
-            return rejectRoute(403, "WARP_PRIVATE", "Island warp is private", playerUuid, island.islandId(), RouteAction.WARP);
+        RouteAccessDecision decision = accessPolicy.warpAccess(playerUuid, island, warp.publicAccess());
+        if (!decision.allowed()) {
+            return rejectRoute(decision.status(), decision.code(), decision.message(), playerUuid, island.islandId(), RouteAction.WARP);
         }
         return prepareTicket(playerUuid, island, RouteAction.WARP, warpPayload(warp));
-    }
-
-    private boolean islandFlagEnabled(UUID islandId, IslandFlag flag) {
-        String value = metadata.flags(islandId).values().getOrDefault(flag, "false");
-        return value.equalsIgnoreCase("true")
-            || value.equalsIgnoreCase("allow")
-            || value.equalsIgnoreCase("allowed")
-            || value.equalsIgnoreCase("enabled")
-            || value.equalsIgnoreCase("on");
     }
 
     private RoutePreparationResult prepareTicket(UUID playerUuid, IslandSnapshot island, RouteAction action) {
@@ -334,52 +318,21 @@ public final class RoutingOrchestrator {
             ));
             return RoutePreparationResult.accepted(toJson(saved));
         } catch (RouteFailureException exception) {
-            if (exception.code() == RouteFailureCode.VISITOR_SOFT_FULL) {
-                return rejectRoute(429, "VISITOR_SOFT_FULL", "The island node is reserving slots for members", playerUuid, island.islandId(), action);
+            RouteFailureMapper.RouteFailureResponse response = RouteFailureMapper.map(exception.code(), exception.detail(), runtime == null ? "" : runtime.activeNode());
+            if (response.includeRoutingDetails()) {
+                if (response.targetNode().isBlank()) {
+                    return rejectRouteWithRoutingDetails(response.status(), response.publicReason(), response.message(), playerUuid, island.islandId(), action, response.debugReason());
+                }
+                return rejectRouteWithRoutingDetails(response.status(), response.publicReason(), response.message(), playerUuid, island.islandId(), action, response.targetNode(), response.debugReason());
             }
-            if (exception.code() == RouteFailureCode.ACTIVATION_LOCKED) {
-                return rejectRoute(409, "ACTIVATION_LOCKED", "Island activation is already in progress", playerUuid, island.islandId(), action);
-            }
-            if (exception.code() == RouteFailureCode.ACTIVE_NODE_UNAVAILABLE) {
-                return rejectRouteWithRoutingDetails(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action, runtime == null ? "" : runtime.activeNode(), exception.detail());
-            }
-            if (exception.code() == RouteFailureCode.NO_READY_NODE) {
-                return rejectRouteWithRoutingDetails(409, "NODE_UNAVAILABLE", "No ready island node is available", playerUuid, island.islandId(), action, exception.detail());
-            }
-            return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action);
+            return rejectRoute(response.status(), response.publicReason(), response.message(), playerUuid, island.islandId(), action);
         } catch (IllegalStateException exception) {
             return rejectRoute(409, "NODE_UNAVAILABLE", "No eligible island node is available", playerUuid, island.islandId(), action);
         }
     }
 
-    private RouteTicket ticket(UUID playerUuid, UUID islandId, RouteAction action, Map<String, String> extraPayload, RouteTarget target) {
-        java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
-        payload.put("targetServerName", targetServerName(target.node().nodeId()));
-        mergePayload(payload, extraPayload);
-        return new RouteTicket(
-            UUID.randomUUID(),
-            playerUuid,
-            action,
-            islandId,
-            target.node().nodeId(),
-            target.worldName(),
-            target.state(),
-            Instant.now().plus(target.state() == RouteTicketState.PREPARING ? routePreparingTicketTtl : routeTicketTtl),
-            UUID.randomUUID().toString(),
-            Map.copyOf(payload)
-        );
-    }
-
-    private void mergePayload(java.util.LinkedHashMap<String, String> payload, Map<String, String> extraPayload) {
-        if (extraPayload == null || extraPayload.isEmpty()) {
-            return;
-        }
-        for (Map.Entry<String, String> entry : extraPayload.entrySet()) {
-            if (entry.getKey() == null || entry.getKey().isBlank()) {
-                continue;
-            }
-            payload.put(entry.getKey(), entry.getValue() == null ? "" : entry.getValue());
-        }
+    private RouteTicket ticket(UUID playerUuid, UUID islandId, RouteAction action, Map<String, String> extraPayload, RouteTargetSelection target) {
+        return routeTickets.ticket(playerUuid, islandId, action, extraPayload, target);
     }
 
     private RoutePreparationResult unavailableRuntime(IslandRuntimeSnapshot runtime, UUID playerUuid, UUID islandId, RouteAction action) {
@@ -437,104 +390,7 @@ public final class RoutingOrchestrator {
     }
 
     private Map<String, String> routingFailureDetails(String debugReason) {
-        List<NodeLoad> snapshot = nodes.snapshot();
-        List<NodeLoad> poolSnapshot = snapshot.stream().filter(node -> node.inPool(islandPool)).toList();
-        long poolNodes = poolSnapshot.size();
-        long readyOrSoftFull = poolSnapshot.stream()
-            .filter(node -> node.state() == NodeState.READY || node.state() == NodeState.SOFT_FULL)
-            .count();
-        long storageReady = poolSnapshot.stream()
-            .filter(NodeLoad::storageAvailable)
-            .count();
-        long queueOpen = poolSnapshot.stream()
-            .filter(node -> node.maxActivationQueue() <= 0 || node.activationQueue() < node.maxActivationQueue())
-            .count();
-        long hardCapOpen = poolSnapshot.stream()
-            .filter(node -> node.hardPlayerCap() <= 0 || node.players() < node.hardPlayerCap())
-            .count();
-        long activeIslandOpen = poolSnapshot.stream()
-            .filter(node -> node.maxActiveIslands() <= 0 || node.activeIslands() < node.maxActiveIslands())
-            .count();
-        long primaryStorageHealthy = poolSnapshot.stream()
-            .filter(node -> !node.storagePrimaryDegraded())
-            .count();
-        long storageSaveRetryBacklogNodes = poolSnapshot.stream()
-            .filter(node -> node.storageSaveRetryQueueTotal() > 0)
-            .count();
-        long storageSaveRetryBacklogTotal = poolSnapshot.stream()
-            .mapToLong(NodeLoad::storageSaveRetryQueueTotal)
-            .sum();
-        long defaultIdentityRisk = poolSnapshot.stream()
-            .filter(NodeLoad::defaultNodeIdentityRisk)
-            .count();
-        long duplicateVelocityServerNames = duplicateVelocityServerNameCount(poolSnapshot);
-        long routeCandidateEstimate = allocator.readyNodeCandidateCount(snapshot, Instant.now(), "", "", islandPool);
-        long recommendedCandidates = routeCandidateRecommendedMinimum(poolNodes);
-        long candidateShortfall = Math.max(0L, recommendedCandidates - routeCandidateEstimate);
-        Map<String, String> details = new LinkedHashMap<>();
-        details.put("pool", islandPool);
-        details.put("nodeCount", Long.toString(poolNodes));
-        details.put("readyOrSoftFullNodeCount", Long.toString(readyOrSoftFull));
-        details.put("storageReadyNodeCount", Long.toString(storageReady));
-        details.put("primaryStorageHealthyNodeCount", Long.toString(primaryStorageHealthy));
-        details.put("storageSaveRetryBacklogNodeCount", Long.toString(storageSaveRetryBacklogNodes));
-        details.put("storageSaveRetryBacklogTotal", Long.toString(storageSaveRetryBacklogTotal));
-        details.put("hardCapOpenNodeCount", Long.toString(hardCapOpen));
-        details.put("activeIslandOpenNodeCount", Long.toString(activeIslandOpen));
-        details.put("queueOpenNodeCount", Long.toString(queueOpen));
-        details.put("defaultIdentityRiskNodeCount", Long.toString(defaultIdentityRisk));
-        details.put("duplicateVelocityServerNameNodeCount", Long.toString(duplicateVelocityServerNames));
-        details.put("routeCandidateEstimateNodeCount", Long.toString(routeCandidateEstimate));
-        details.put("routeCandidateRecommendedMinimum", Long.toString(recommendedCandidates));
-        details.put("routeCandidateShortfall", Long.toString(candidateShortfall));
-        details.put("routeCandidateEstimatePolicy", "allocator-ready-node-candidates-no-fixed-node-limit");
-        details.put("routeCandidateHardRulePolicy", NodeAllocator.ACTIVATION_HARD_RULE_POLICY);
-        details.put("routeCandidateScoreWeightPolicy", NodeAllocator.SCORE_WEIGHT_POLICY);
-        details.put("routeCandidateSoftFullPolicy", NodeAllocator.SOFT_FULL_NEW_ACTIVATION_POLICY);
-        details.put("elasticLimitPolicy", IslandPortabilityPolicy.NO_FIXED_NODE_COUNT_LIMIT_POLICY);
-        details.put("eightPlusNodePolicy", IslandPortabilityPolicy.EIGHT_PLUS_NODE_POLICY);
-        details.put("routeCandidateMinimumPolicy", IslandPortabilityPolicy.ROUTE_CANDIDATE_MINIMUM_POLICY);
-        details.put("routeCandidateCapLimitsNodeCount", Boolean.toString(IslandPortabilityPolicy.routeCandidateRecommendationCapsNodeCount()));
-        details.put("routeCandidateCapMeaning", IslandPortabilityPolicy.routeCandidateCapMeaning(poolNodes));
-        details.put("blockReason", publicBlockReason(debugReason));
-        details.put("physicalNodeNamesExposed", "false");
-        return Map.copyOf(details);
-    }
-
-    private long routeCandidateRecommendedMinimum(long poolNodes) {
-        return IslandPortabilityPolicy.recommendedRouteCandidateMinimum(poolNodes);
-    }
-
-    private long duplicateVelocityServerNameCount(List<NodeLoad> poolSnapshot) {
-        Map<String, Integer> names = new LinkedHashMap<>();
-        for (NodeLoad node : poolSnapshot) {
-            String serverName = node.velocityServerName() == null ? "" : node.velocityServerName().trim().toLowerCase();
-            if (serverName.isBlank()) {
-                continue;
-            }
-            names.put(serverName, names.getOrDefault(serverName, 0) + 1);
-        }
-        long count = 0L;
-        for (NodeLoad node : poolSnapshot) {
-            String serverName = node.velocityServerName() == null ? "" : node.velocityServerName().trim().toLowerCase();
-            if (!serverName.isBlank() && names.getOrDefault(serverName, 0) > 1) {
-                count++;
-            }
-        }
-        return count;
-    }
-
-    private String publicBlockReason(String reason) {
-        if (reason == null || reason.isBlank()) {
-            return "UNKNOWN";
-        }
-        if (reason.startsWith("NO_READY_NODE_")) {
-            return reason.substring("NO_READY_NODE_".length());
-        }
-        if (reason.startsWith("ACTIVE_NODE_")) {
-            return kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy.sanitize(reason.substring("ACTIVE_NODE_".length()));
-        }
-        return kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy.sanitize(reason);
+        return diagnostics.routingFailureDetails(debugReason);
     }
 
     private void publishTicketFailure(UUID playerUuid, UUID islandId, RouteAction action, String reason) {
@@ -553,13 +409,7 @@ public final class RoutingOrchestrator {
     }
 
     private String targetServerName(String targetNode) {
-        if (targetNode == null || targetNode.isBlank()) {
-            return "";
-        }
-        return nodes.find(targetNode)
-            .map(NodeLoad::velocityServerName)
-            .filter(value -> value != null && !value.isBlank())
-            .orElse(targetNode);
+        return routeTickets.targetServerName(targetNode);
     }
 
     private String targetNodeUnavailableCode(String reason) {
@@ -572,7 +422,7 @@ public final class RoutingOrchestrator {
         return "TARGET_NODE_" + reason;
     }
 
-    private RouteTarget routeTarget(IslandRuntimeSnapshot runtime, String templateId, String minNodeVersion, boolean visitorRoute) {
+    private RouteTargetSelection routeTarget(IslandRuntimeSnapshot runtime, String templateId, String minNodeVersion, boolean visitorRoute) {
         if (runtime.state() == IslandState.ACTIVE) {
             if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
                 markActiveRouteRecoveryRequired(runtime, "missing_active_node");
@@ -583,12 +433,12 @@ public final class RoutingOrchestrator {
                 markActiveRouteRecoveryRequired(runtime, "active_node_not_registered");
                 throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_NODE_NOT_REGISTERED");
             }
-            if (duplicateVelocityServerName(activeNode, nodes.snapshot())) {
+            if (IslandActivationCoordinator.duplicateVelocityServerName(activeNode, nodes.snapshot())) {
                 throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_NODE_DUPLICATE_VELOCITY_SERVER_NAME");
             }
             String blockReason = allocator.existingRouteBlockReason(activeNode, Instant.now(), templateId, minNodeVersion, islandPool);
             if (!blockReason.isBlank()) {
-                if (activeRouteRecoveryReason(blockReason)) {
+                if (IslandActivationCoordinator.activeRouteRecoveryReason(blockReason)) {
                     markActiveRouteRecoveryRequired(runtime, "active_node_" + blockReason.toLowerCase(java.util.Locale.ROOT));
                 }
                 throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_NODE_" + blockReason);
@@ -596,14 +446,14 @@ public final class RoutingOrchestrator {
             if (visitorRoute && activeNode.state() == NodeState.SOFT_FULL) {
                 throw routeFailure(RouteFailureCode.VISITOR_SOFT_FULL);
             }
-            if (!visitorRoute && activeNode.state() == NodeState.SOFT_FULL && memberReservedSlotsExhausted(activeNode)) {
+            if (!visitorRoute && activeNode.state() == NodeState.SOFT_FULL && IslandActivationCoordinator.memberReservedSlotsExhausted(activeNode)) {
                 throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_NODE_MEMBER_RESERVED_SLOTS_FULL");
             }
-            if (placementMissing(runtime)) {
+            if (IslandActivationCoordinator.placementMissing(runtime)) {
                 markActiveRouteRecoveryRequired(runtime, "missing_placement");
                 throw routeFailure(RouteFailureCode.ACTIVE_NODE_UNAVAILABLE, "ACTIVE_PLACEMENT_MISSING");
             }
-            return new RouteTarget(activeNode, runtime.activeWorld(), RouteTicketState.READY);
+            return RouteTargetResolver.ready(activeNode, runtime.activeWorld());
         }
         List<NodeLoad> nodeSnapshot = nodes.snapshot();
         Instant now = Instant.now();
@@ -624,7 +474,7 @@ public final class RoutingOrchestrator {
         IslandRuntimeSnapshot activating;
         try {
             activating = IslandPlacement.markActivating(runtime.islandId(), selected.nodeId(), runtimes);
-            if (placementMissing(activating)) {
+            if (IslandActivationCoordinator.placementMissing(activating)) {
                 throw routeFailure(RouteFailureCode.PLACEMENT_MISSING);
             }
             jobs.publish(new IslandJob(
@@ -656,56 +506,7 @@ public final class RoutingOrchestrator {
             event.put("lockFallback", activationLease.source());
         }
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), event);
-        return new RouteTarget(selected, activating.activeWorld(), RouteTicketState.PREPARING);
-    }
-
-    private static boolean placementMissing(IslandRuntimeSnapshot runtime) {
-        return runtime == null
-            || runtime.activeWorld() == null
-            || runtime.activeWorld().isBlank()
-            || runtime.cellX() == null
-            || runtime.cellZ() == null;
-    }
-
-    private boolean memberReservedSlotsExhausted(NodeLoad node) {
-        if (node == null || node.reservedSlots() <= 0 || node.softPlayerCap() <= 0) {
-            return false;
-        }
-        int reservedLimit = node.softPlayerCap() + node.reservedSlots();
-        if (node.hardPlayerCap() > 0) {
-            reservedLimit = Math.min(reservedLimit, node.hardPlayerCap());
-        }
-        return node.players() >= reservedLimit;
-    }
-
-    private boolean duplicateVelocityServerName(NodeLoad target, List<NodeLoad> snapshot) {
-        String targetKey = velocityServerKey(target);
-        if (targetKey.isBlank()) {
-            return false;
-        }
-        Map<String, Integer> counts = new LinkedHashMap<>();
-        for (NodeLoad node : snapshot) {
-            String key = velocityServerKey(node);
-            if (!key.isBlank()) {
-                counts.merge(key, 1, Integer::sum);
-            }
-        }
-        return counts.getOrDefault(targetKey, 0) > 1;
-    }
-
-    private String velocityServerKey(NodeLoad node) {
-        if (node == null || node.velocityServerName() == null || node.velocityServerName().isBlank()) {
-            return "";
-        }
-        String pool = node.pool() == null || node.pool().isBlank() ? "island" : node.pool().trim().toLowerCase(java.util.Locale.ROOT);
-        return pool + "\n" + node.velocityServerName().trim().toLowerCase(java.util.Locale.ROOT);
-    }
-
-    private boolean activeRouteRecoveryReason(String blockReason) {
-        return blockReason.equals("NODE_NOT_FOUND")
-            || blockReason.equals("HEARTBEAT_MISSING")
-            || blockReason.equals("HEARTBEAT_STALE")
-            || blockReason.equals("STATE_DOWN");
+        return RouteTargetResolver.preparing(selected, activating.activeWorld());
     }
 
     private void markActiveRouteRecoveryRequired(IslandRuntimeSnapshot runtime, String reason) {
@@ -792,8 +593,6 @@ public final class RoutingOrchestrator {
             return detail;
         }
     }
-
-    private record RouteTarget(NodeLoad node, String worldName, RouteTicketState state) {}
 
     public static String toJson(RouteTicket ticket) {
         return RouteTicketJson.routeResponse(ticket);

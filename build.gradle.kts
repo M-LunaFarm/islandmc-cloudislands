@@ -1664,6 +1664,67 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
     }
 }
 
+tasks.register("verifyRoutingRefactorCoverage") {
+    group = "verification"
+    description = "Verifies RoutingOrchestrator responsibility split, typed failure mapping, and CoreApplication routing factory coverage remain present."
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    val sourceRoot = "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice"
+    val testRoot = "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice"
+    val requiredFiles = listOf(
+        "$sourceRoot/RouteAccessPolicy.java",
+        "$sourceRoot/RouteTargetResolver.java",
+        "$sourceRoot/RouteTicketService.java",
+        "$sourceRoot/IslandActivationCoordinator.java",
+        "$sourceRoot/RouteFailureMapper.java",
+        "$sourceRoot/RoutingDiagnosticsService.java",
+        "$sourceRoot/CoreRoutingComponents.java",
+        "$sourceRoot/CoreRouteModules.java",
+        "$sourceRoot/RouteFailureCode.java",
+        "$testRoot/RouteFailureMapperTest.java",
+        "$testRoot/RoutingOrchestratorActivationTest.java"
+    )
+    inputs.files(requiredFiles.map { layout.projectDirectory.file(it) })
+    doLast {
+        val missing = requiredFiles.filterNot { layout.projectDirectory.file(it).asFile.isFile }
+        if (missing.isNotEmpty()) {
+            throw GradleException("Routing refactor evidence missing: ${missing.joinToString(", ")}")
+        }
+        val orchestrator = layout.projectDirectory.file("$sourceRoot/RoutingOrchestrator.java").asFile.readText()
+        val application = layout.projectDirectory.file("$sourceRoot/CloudIslandsCoreApplication.java").asFile.readText()
+        val routeModules = layout.projectDirectory.file("$sourceRoot/CoreRouteModules.java").asFile.readText()
+        val mapperTest = layout.projectDirectory.file("$testRoot/RouteFailureMapperTest.java").asFile.readText()
+        val activationTest = layout.projectDirectory.file("$testRoot/RoutingOrchestratorActivationTest.java").asFile.readText()
+        val failures = buildList {
+            listOf(
+                "new RouteAccessPolicy",
+                "new RouteTicketService",
+                "new RoutingDiagnosticsService",
+                "RouteFailureMapper.map",
+                "RouteTargetResolver.ready",
+                "RouteTargetResolver.preparing",
+                "IslandActivationCoordinator.placementMissing",
+                "IslandActivationCoordinator.memberReservedSlotsExhausted",
+                "IslandActivationCoordinator.duplicateVelocityServerName"
+            ).filterNot(orchestrator::contains).forEach { signal ->
+                add("RoutingOrchestrator missing responsibility split signal: $signal")
+            }
+            if (orchestrator.contains("\"VISITOR_SOFT_FULL\".equals(exception.getMessage())")) add("RoutingOrchestrator must not parse VISITOR_SOFT_FULL from exception messages")
+            if (orchestrator.contains("exception.getMessage().startsWith(\"ACTIVE_NODE_\")")) add("RoutingOrchestrator must not parse ACTIVE_NODE failures from exception messages")
+            if (!application.contains("CoreRoutingComponents.routing")) add("CloudIslandsCoreApplication must create routing through CoreRoutingComponents.routing")
+            if (!application.contains("CoreRouteModules.register")) add("CloudIslandsCoreApplication must delegate route registration to CoreRouteModules")
+            if (application.contains("new RoutePreparationRoutes(") || application.contains("new HealthRoutes(")) add("CloudIslandsCoreApplication must not directly register route modules")
+            if (!routeModules.contains("new RoutePreparationRoutes") || !routeModules.contains("new AdminIslandLifecycleRoutes")) add("CoreRouteModules must own player and admin route registration")
+            if (!mapperTest.contains("mapsActiveNodeFailuresToPublicNodeUnavailableWithDiagnostics")) add("RouteFailureMapperTest must cover active node failure mapping")
+            if (!mapperTest.contains("mapsNoReadyNodeFailuresToPublicNodeUnavailableWithDiagnostics")) add("RouteFailureMapperTest must cover no-ready-node failure mapping")
+            if (!activationTest.contains("CoreRoutingComponents.routing")) add("RoutingOrchestratorActivationTest must assert CoreApplication routing factory coverage")
+            if (!activationTest.contains("CoreRouteModules.register")) add("RoutingOrchestratorActivationTest must assert CoreApplication route module coverage")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register("verifyFeatureParityMatrix") {
     group = "verification"
     description = "Compatibility alias for the feature parity evidence gate."
@@ -1983,6 +2044,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyReviewModerationCoverage"))
     dependsOn(tasks.named("verifyEconomyTransactionSafety"))
     dependsOn(tasks.named("verifyIntegrationRuntimeSmoke"))
+    dependsOn(tasks.named("verifyRoutingRefactorCoverage"))
     dependsOn(tasks.named("verifyFeatureParityMatrix"))
     dependsOn(tasks.named("verifyReleaseGateCoverage"))
     dependsOn(tasks.named("verifyReleaseSecurityGate"))
