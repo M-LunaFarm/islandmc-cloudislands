@@ -79,6 +79,7 @@ class GuiActionParserTest {
         assertNoPayloadType("island.lock.toggle", GuiAction.NoPayloadType.LOCK_TOGGLE);
         assertNoPayloadType("island.flags.open", GuiAction.NoPayloadType.FLAGS_OPEN);
         assertNoPayloadType("island.flags.list", GuiAction.NoPayloadType.FLAGS_LIST);
+        assertNoPayloadType("island.help.open", GuiAction.NoPayloadType.HELP_OPEN);
     }
 
     @Test

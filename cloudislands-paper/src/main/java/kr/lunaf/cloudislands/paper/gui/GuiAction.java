@@ -300,7 +300,8 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         PUBLIC_TOGGLE("island.public.toggle"),
         LOCK_TOGGLE("island.lock.toggle"),
         FLAGS_OPEN("island.flags.open"),
-        FLAGS_LIST("island.flags.list");
+        FLAGS_LIST("island.flags.list"),
+        HELP_OPEN("island.help.open");
 
         private final String actionId;
 

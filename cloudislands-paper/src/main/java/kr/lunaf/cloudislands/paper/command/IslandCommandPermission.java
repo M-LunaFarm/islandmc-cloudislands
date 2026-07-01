@@ -175,6 +175,9 @@ public enum IslandCommandPermission {
         if (id.startsWith("island.biome") || id.startsWith("island.limit") || id.startsWith("island.limits") || id.startsWith("island.border")) {
             return ENVIRONMENT;
         }
+        if (id.startsWith("island.help")) {
+            return MENU;
+        }
         if (id.startsWith("island.info") || id.startsWith("island.list")) {
             return MENU;
         }

@@ -79,6 +79,22 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void helpGuiRouteAndMainMenuHelpItemUseExistingHelpRenderer() throws Exception {
+        String router = routerSource();
+        String parser = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionParser.java"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiAction.java"));
+        String menu = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/main.yml"));
+
+        assertTrue(router.contains("isGuiHelpRequest(args)"), "/섬 도움말 gui must route to the GUI entry point");
+        assertTrue(router.contains("noPayload.type() == GuiAction.NoPayloadType.HELP_OPEN"), "main menu help button must reuse the command help renderer");
+        assertTrue(router.contains("sendCommandList(player, \"섬\", \"섬 명령어 목록\", IslandCommandCatalog.HELP_COMMANDS, 1);"));
+        assertTrue(actions.contains("HELP_OPEN(\"island.help.open\")"));
+        assertTrue(parser.contains("case \"island.help.open\" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.HELP_OPEN));"));
+        assertTrue(menu.contains("action: island.help.open"));
+        assertTrue(menu.contains("fallback-name: 도움말"));
+    }
+
+    @Test
     void islandPlayerCommandsUseGranularPermissionPolicy() throws Exception {
         String permissions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandPermission.java"));
         String router = routerSource();

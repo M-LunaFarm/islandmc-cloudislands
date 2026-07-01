@@ -179,6 +179,8 @@ final class IslandCommandTabCompleter implements TabCompleter {
 
     private List<String> helpRootSuggestions() {
         List<String> values = new ArrayList<>(IslandCommandCatalog.helpCategoryNames());
+        values.add("gui");
+        values.add("메뉴");
         values.addAll(commandListPageSuggestions(IslandCommandBackend.HELP_COMMANDS.size()));
         return values;
     }

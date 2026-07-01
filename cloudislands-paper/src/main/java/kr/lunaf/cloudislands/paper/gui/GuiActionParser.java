@@ -48,6 +48,7 @@ public final class GuiActionParser {
         "island.flag.set",
         "island.flags.list",
         "island.flags.open",
+        "island.help.open",
         "island.home",
         "island.home.set",
         "island.homes.open",
@@ -258,6 +259,7 @@ public final class GuiActionParser {
                 case "island.lock.toggle" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.LOCK_TOGGLE));
                 case "island.flags.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.FLAGS_OPEN));
                 case "island.flags.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.FLAGS_LIST));
+                case "island.help.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.HELP_OPEN));
                 case "island.create" -> Optional.of(new GuiAction.IslandCreate(
                     safeData.getOrDefault("templateId", "default")
                 ));

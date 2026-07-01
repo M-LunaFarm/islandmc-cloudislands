@@ -69,6 +69,10 @@ final class IslandCommandRouter {
             return true;
         }
         String subcommand = args[0].toLowerCase(Locale.ROOT);
+        if (isGuiHelpRequest(args)) {
+            openMainMenuOrCommandList(player, label);
+            return true;
+        }
         HelpCategoryRequest helpCategoryRequest = helpCategoryRequest(args);
         if (helpCategoryRequest != null) {
             sendCommandList(player, label, helpCategoryRequest.category().title(), helpCategoryRequest.category().commands(), helpCategoryRequest.page());
@@ -145,6 +149,10 @@ final class IslandCommandRouter {
         }
         if (action instanceof GuiAction.MainOpen) {
             openMainMenuOrCommandList(player, "섬");
+            return;
+        }
+        if (action instanceof GuiAction.NoPayload noPayload && noPayload.type() == GuiAction.NoPayloadType.HELP_OPEN) {
+            sendCommandList(player, "섬", "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
             return;
         }
         if (bankCommands.handleGuiAction(player, action)) {
@@ -263,6 +271,12 @@ final class IslandCommandRouter {
 
     private boolean isHelpRoot(String first) {
         return first.equals("help") || first.equals("도움말") || first.equals("commands") || first.equals("command") || first.equals("command-list") || first.equals("명령어") || first.equals("명령어목록");
+    }
+
+    private boolean isGuiHelpRequest(String[] args) {
+        return args.length > 1
+            && isHelpRoot(args[0].toLowerCase(Locale.ROOT))
+            && (args[1].equalsIgnoreCase("gui") || args[1].equalsIgnoreCase("menu") || args[1].equals("메뉴"));
     }
 
     private int integer(String value, int fallback) {

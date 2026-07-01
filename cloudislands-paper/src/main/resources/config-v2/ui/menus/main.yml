@@ -7,7 +7,7 @@ layout:
   - ".Y.M.P.S."
   - ".Q.U.B.R."
   - ".I.L.T.N."
-  - ".E.....AD"
+  - ".E..K..AD"
 items:
   H:
     material: GRASS_BLOCK
@@ -168,6 +168,15 @@ items:
     fallback-lore:
       - "/섬 바이옴"
     action: island.biome.open
+  K:
+    material: PAPER
+    name-key: main-menu-help-name
+    fallback-name: 도움말
+    lore-keys:
+      - main-menu-help-command
+    fallback-lore:
+      - "/섬 도움말"
+    action: island.help.open
   A:
     material: COMMAND_BLOCK
     name-key: main-menu-admin-name
