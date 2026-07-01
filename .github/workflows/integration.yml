@@ -81,6 +81,9 @@ jobs:
           CI_STORAGE_SECRET_KEY: minioadmin
         run: ./gradlew ciIntegrationSmoke --no-daemon
 
+      - name: Paper and Velocity boot smoke
+        run: ./gradlew ciBootSmoke --no-daemon
+
       - name: Upload integration smoke evidence
         uses: actions/upload-artifact@v4
         with:
@@ -89,6 +92,8 @@ jobs:
             build/smoke/core-integration/cluster-evidence.json
             build/smoke/core-integration/cluster-smoke-report.json
             build/smoke/core-integration/core-*/core.log
+            build/smoke/paper-*/server.log
+            build/smoke/velocity/server.log
           if-no-files-found: error
 
       - name: Release cluster smoke gate

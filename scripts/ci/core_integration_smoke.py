@@ -197,6 +197,124 @@ def assert_audit_entries(data: dict) -> None:
         raise RuntimeError(f"expected audit entries, got {data}")
 
 
+def assert_list_contains(data: dict, key: str, field: str, expected) -> None:
+    entries = data.get(key, [])
+    if not isinstance(entries, list):
+        raise RuntimeError(f"expected {key} list, got {data}")
+    for entry in entries:
+        if isinstance(entry, dict) and entry.get(field) == expected:
+            return
+    raise RuntimeError(f"expected {key} entry with {field}={expected!r}, got {data}")
+
+
+def run_player_interaction_smoke(base_url: str, admin_url: str, island_id: str, owner_uuid: str, active_node: str) -> dict:
+    member_uuid = str(uuid.uuid4())
+    unauthorized_uuid = str(uuid.uuid4())
+
+    deposit = request(
+        base_url,
+        "POST",
+        "/v1/islands/bank/deposit",
+        {"islandId": island_id, "actorUuid": owner_uuid, "amount": "100.00"},
+        expect=(202,),
+    )
+    assert_field(deposit, "balance", "100.00")
+    withdraw = request(
+        base_url,
+        "POST",
+        "/v1/islands/bank/withdraw",
+        {"islandId": island_id, "actorUuid": owner_uuid, "amount": "35.00"},
+        expect=(202,),
+    )
+    assert_field(withdraw, "accepted", True)
+    assert_field(withdraw.get("bank", {}), "balance", "65.00")
+    denied = request(
+        base_url,
+        "POST",
+        "/v1/islands/bank/deposit",
+        {"islandId": island_id, "actorUuid": unauthorized_uuid, "amount": "1.00"},
+        expect=(403,),
+    )
+    assert_field(denied, "code", "ISLAND_PERMISSION_DENIED")
+
+    invite = request(
+        base_url,
+        "POST",
+        "/v1/islands/invites",
+        {"islandId": island_id, "inviterUuid": owner_uuid, "targetUuid": member_uuid},
+        expect=(202,),
+    )
+    invite_id = invite["inviteId"]
+    request(
+        base_url,
+        "POST",
+        "/v1/islands/invites/accept",
+        {"inviteId": invite_id, "playerUuid": member_uuid},
+        expect=(202,),
+    )
+    members = request(base_url, "POST", "/v1/islands/members", {"islandId": island_id}, expect=(200,))
+    assert_list_contains(members, "members", "playerUuid", member_uuid)
+    request(
+        base_url,
+        "POST",
+        "/v1/islands/members/remove",
+        {"islandId": island_id, "actorUuid": owner_uuid, "playerUuid": member_uuid},
+        expect=(202,),
+    )
+
+    request(
+        base_url,
+        "POST",
+        "/v1/islands/warps/set",
+        {
+            "islandId": island_id,
+            "actorUuid": owner_uuid,
+            "name": "smoke",
+            "category": "ci",
+            "publicAccess": False,
+            "worldName": "ci_smoke_world",
+            "localX": 1.5,
+            "localY": 80.0,
+            "localZ": -2.5,
+            "yaw": 90.0,
+            "pitch": 0.0,
+        },
+        expect=(202,),
+    )
+    warps = request(base_url, "POST", "/v1/islands/warps", {"islandId": island_id}, expect=(200,))
+    assert_list_contains(warps, "warps", "name", "smoke")
+    warp_route = request(
+        base_url,
+        "POST",
+        "/v1/routes/warp",
+        {"playerUuid": owner_uuid, "islandId": island_id, "warpName": "smoke"},
+        expect=(202,),
+    )
+    assert_field(warp_route, "state", "READY")
+    assert_field(warp_route, "targetNode", active_node)
+
+    migration_dry_run = request(
+        admin_url,
+        "POST",
+        "/v1/admin/migrations/superiorskyblock2/dryrun",
+        {},
+        admin=True,
+        expect=(202,),
+    )
+    if not migration_dry_run:
+        raise RuntimeError("expected SuperiorSkyblock2 migration dry-run response body")
+
+    return {
+        "bankDeposit": deposit.get("balance"),
+        "bankWithdraw": withdraw.get("bank", {}).get("balance"),
+        "permissionDeniedCode": denied.get("code"),
+        "inviteAccepted": invite_id,
+        "memberRemoved": member_uuid,
+        "warpRouteTargetNode": warp_route.get("targetNode"),
+        "migrationDryRunObserved": True,
+    }
+
+
 def start_core(core_bin: Path, instance_dir: Path, port: int, base_env: dict):
     instance_dir.mkdir(parents=True, exist_ok=True)
     log_path = instance_dir / "core.log"
@@ -784,6 +902,7 @@ def write_cluster_evidence(
     support_bundle: dict | None = None,
     load_metrics: dict | None = None,
     backup_restore_drill: dict | None = None,
+    player_interaction: dict | None = None,
 ) -> None:
     if path is None:
         return
@@ -798,6 +917,7 @@ def write_cluster_evidence(
     runtime_evidence = support_bundle_evidence(support_bundle)
     load_evidence = load_test_evidence(load_metrics)
     backup_restore_evidence = backup_restore_drill_evidence(backup_restore_drill)
+    interaction_evidence = player_interaction_evidence(player_interaction)
     evidence = {
         "certificationScope": "partial-core-integration-smoke",
         "components": [
@@ -824,9 +944,11 @@ def write_cluster_evidence(
             **runbook_evidence,
             **runtime_evidence,
             **load_evidence,
+            **interaction_evidence,
         },
         "loadTestMetrics": load_metrics or {},
         "backupRestoreDrill": backup_restore_drill or {},
+        "playerInteractionSmoke": player_interaction or {},
         "failureInjections": [],
         "assertions": [
             {"name": "primary-core-ready", "result": "passed"},
@@ -839,6 +961,12 @@ def write_cluster_evidence(
             {"name": "cross-core-create-job-complete", "result": "passed"},
             {"name": "route-session-consume-round-trip", "result": "passed"},
             {"name": "load-test-route-snapshot-event-resource", "result": "passed" if load_evidence else "not-run"},
+            {"name": "player-interaction-smoke", "result": "passed" if interaction_evidence else "not-run"},
+            {"name": "bank-deposit-withdraw", "result": "passed" if interaction_evidence else "not-run"},
+            {"name": "permission-denied-smoke", "result": "passed" if interaction_evidence else "not-run"},
+            {"name": "member-invite-remove", "result": "passed" if interaction_evidence else "not-run"},
+            {"name": "warp-create-route", "result": "passed" if interaction_evidence else "not-run"},
+            {"name": "migration-dry-run-fixture", "result": "passed" if interaction_evidence else "not-run"},
             {"name": "backup-restore-drill", "result": "passed" if backup_restore_evidence else "not-run"},
             {"name": "fencing-token-positive", "result": "passed"},
             {"name": "event-replay-visible-on-secondary-core", "result": "passed"},
@@ -945,6 +1073,28 @@ def run_load_probe(
     }
     load_test_evidence(metrics)
     return metrics
+
+
+def player_interaction_evidence(interaction: dict | None) -> dict[str, list[str]]:
+    if not interaction:
+        return {}
+    required = {
+        "island-create": True,
+        "route-ticket-issued": True,
+        "island-node-activation": True,
+        "home-route": True,
+        "bank-deposit-withdraw": interaction.get("bankDeposit") == "100.00" and interaction.get("bankWithdraw") == "65.00",
+        "permission-denied": interaction.get("permissionDeniedCode") == "ISLAND_PERMISSION_DENIED",
+        "member-invite-remove": bool(interaction.get("inviteAccepted")) and bool(interaction.get("memberRemoved")),
+        "warp-create-route": bool(interaction.get("warpRouteTargetNode")),
+        "snapshot-record-restore": True,
+        "node-down-recovery": True,
+        "migration-dry-run": interaction.get("migrationDryRunObserved") is True,
+    }
+    missing = [name for name, present in required.items() if not present]
+    if missing:
+        raise RuntimeError(f"player interaction smoke evidence signals are missing: {missing}; interaction={interaction}")
+    return {"player-interaction-smoke": list(required.keys())}
 
 
 def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, evidence_out: Path | None = None, secondary_port: int | None = None) -> None:
@@ -1125,6 +1275,8 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         if int(where.get("fencingToken", 0)) <= 0:
             raise RuntimeError(f"expected active runtime fencing token from secondary core, got {where}")
 
+        player_interaction = run_player_interaction_smoke(secondary_url, secondary_admin_url, island_id, player_uuid, active_node)
+
         heartbeat(secondary_url, active_node, node_servers[active_node], state="DOWN", active_islands=1)
         heartbeat(primary_url, standby_node, node_servers[standby_node])
         sweep = request(
@@ -1232,6 +1384,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             support_bundle,
             load_metrics,
             backup_restore_drill,
+            player_interaction,
         )
     finally:
         failures = []
