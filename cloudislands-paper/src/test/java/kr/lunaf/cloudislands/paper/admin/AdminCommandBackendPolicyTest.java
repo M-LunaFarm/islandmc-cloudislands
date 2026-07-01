@@ -230,6 +230,23 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminTemplateCommandsCoverImportPreviewAndValidationUx() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin template import <name>"), "Template import command must be listed for operators");
+        assertTrue(adminSurface.contains("ciadmin template preview <id>"), "Template preview command must be listed for operators");
+        assertTrue(adminSurface.contains("ciadmin template validate <id>"), "Template validate command must be listed for operators");
+        assertTrue(source.contains("coreApiClient.templateCommands().upsert(templateId, displayName, false, \"\")"), "Template import must register a disabled template through the typed command client");
+        assertTrue(source.contains("coreApiClient.templates().list().thenApply(templates -> templatePreviewMessage(args[2], templates))"), "Template preview must use the typed template query client");
+        assertTrue(source.contains("coreApiClient.templates().list().thenApply(templates -> templateValidateMessage(args[2], templates))"), "Template validate must use the typed template query client");
+        assertTrue(source.contains("templateValidationStatus(TemplateView template)"), "Template validation must expose operator-facing validation status");
+        assertTrue(source.contains("\"BLOCKED_MIGRATION_INPUT_ONLY\""), "Template validation must guard the SuperiorSkyblock2 migration-only template");
+        assertTrue(source.contains("\"not-certified\""), "Template preview/validate must disclose missing bundle checksum certification");
+    }
+
+    @Test
     void adminMaintenanceCommandsUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
 

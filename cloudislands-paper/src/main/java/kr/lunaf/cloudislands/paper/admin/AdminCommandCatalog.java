@@ -19,7 +19,7 @@ final class AdminCommandCatalog {
     static final List<String> RANKING_COMMANDS = List.of("level", "worth");
     static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
     static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
-    static final List<String> TEMPLATE_COMMANDS = List.of("list", "upsert", "enable", "disable");
+    static final List<String> TEMPLATE_COMMANDS = List.of("list", "import", "upsert", "enable", "disable", "preview", "validate");
     static final List<String> MIGRATION_COMMANDS = List.of("scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "verify-no-legacy-provider", "rollback");
     static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProviders();
     static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
@@ -95,13 +95,19 @@ final class AdminCommandCatalog {
         "ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",
         "ciadmin upgrade-rules",
         "ciadmin template list",
+        "ciadmin template import <name>",
         "ciadmin template upsert <id> <name> [enabled|disabled] [minNodeVersion]",
         "ciadmin template enable <id>",
         "ciadmin template disable <id>",
+        "ciadmin template preview <id>",
+        "ciadmin template validate <id>",
         "ciadmin templates list",
+        "ciadmin templates import <name>",
         "ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]",
         "ciadmin templates enable <id>",
         "ciadmin templates disable <id>",
+        "ciadmin templates preview <id>",
+        "ciadmin templates validate <id>",
         "ciadmin migrate-superiorskyblock2 scan [path]",
         "ciadmin migrate-superiorskyblock2 status",
         "ciadmin migrate-superiorskyblock2 dryrun [path]",

@@ -317,6 +317,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args.length == 2 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates"))) {
             return matches(TEMPLATE_COMMANDS, args[1]);
         }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && (args[1].equalsIgnoreCase("preview") || args[1].equalsIgnoreCase("validate") || args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable"))) {
+            return matches(List.of("default", "superiorskyblock2"), args[2]);
+        }
         if (args.length == 5 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             return matches(List.of("true", "false", "enabled", "disabled", "enable", "disable", "on", "off", "활성", "비활성"), args[4]);
         }
@@ -1048,6 +1051,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Template list", coreApiClient.templates().list().thenApply(this::templateListMessage));
             return true;
         }
+        if (args[1].equalsIgnoreCase("import")) {
+            if (args.length < 3) {
+                sendTemplateCommandUsage(sender);
+                return true;
+            }
+            String templateId = normalizeTemplateId(args[2]);
+            String displayName = args.length > 3 ? joined(args, 3) : args[2];
+            run(sender, "Template import", coreApiClient.templateCommands().upsert(templateId, displayName, false, "").thenApply(template -> templateActionMessage("Template import", templateId, template) + " / " + templateValidationStatus(template)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("upsert")) {
             if (args.length < 4) {
                 sendCommandUsage(sender, List.of(
@@ -1064,6 +1077,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             sender.sendMessage(adminText("admin-command-template-id-required", "템플릿 ID를 입력해주세요."));
             return true;
         }
+        if (args[1].equalsIgnoreCase("preview")) {
+            run(sender, "Template preview", coreApiClient.templates().list().thenApply(templates -> templatePreviewMessage(args[2], templates)));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("validate")) {
+            run(sender, "Template validate", coreApiClient.templates().list().thenApply(templates -> templateValidateMessage(args[2], templates)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("enable")) {
             run(sender, "Template enable", coreApiClient.templateCommands().enable(args[2]).thenApply(template -> templateActionMessage("Template enable", args[2], template)));
             return true;
@@ -1072,13 +1093,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Template disable", coreApiClient.templateCommands().disable(args[2]).thenApply(template -> templateActionMessage("Template disable", args[2], template)));
             return true;
         }
+        sendTemplateCommandUsage(sender);
+        return true;
+    }
+
+    private void sendTemplateCommandUsage(CommandSender sender) {
         sendCommandUsage(sender, List.of(
             "/ciadmin templates list",
+            "/ciadmin templates import <name>",
             "/ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]",
             "/ciadmin templates enable <id>",
-            "/ciadmin templates disable <id>"
+            "/ciadmin templates disable <id>",
+            "/ciadmin templates preview <id>",
+            "/ciadmin templates validate <id>"
         ));
-        return true;
     }
 
     private boolean superiorSkyblock2MigrationEnabled() {
@@ -1573,6 +1601,63 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private String templateActionMessage(String label, String targetId, TemplateView template) {
         String resolvedTarget = template.id().isBlank() ? targetId : template.id();
         return label + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=") + shortId(resolvedTarget);
+    }
+
+    private String templatePreviewMessage(String targetId, List<TemplateView> templates) {
+        TemplateView template = templateById(targetId, templates);
+        if (template == null) {
+            return adminText("admin-command-template-not-found", "Template: not found ") + compactTarget(targetId);
+        }
+        return adminText("admin-command-template-preview-prefix", "Template preview: ")
+            + "id=" + template.id()
+            + adminText("admin-command-template-name-prefix", " name=") + (template.displayName().isBlank() ? template.id() : template.displayName())
+            + adminText("admin-command-template-enabled-prefix", " enabled=") + template.enabled()
+            + (template.minNodeVersion().isBlank() ? "" : adminText("admin-command-template-min-prefix", " min=") + template.minNodeVersion())
+            + adminText("admin-command-template-node-pool-prefix", " nodePool=") + "current"
+            + adminText("admin-command-template-bundle-prefix", " bundle=") + "not-certified"
+            + adminText("admin-command-template-checksum-prefix", " checksum=") + "not-certified";
+    }
+
+    private String templateValidateMessage(String targetId, List<TemplateView> templates) {
+        TemplateView template = templateById(targetId, templates);
+        if (template == null) {
+            return adminText("admin-command-template-not-found", "Template: not found ") + compactTarget(targetId);
+        }
+        return adminText("admin-command-template-validate-prefix", "Template validate: ")
+            + "id=" + template.id()
+            + adminText("admin-command-template-validation-status-prefix", " status=") + templateValidationStatus(template)
+            + adminText("admin-command-template-enabled-prefix", " enabled=") + template.enabled()
+            + (template.minNodeVersion().isBlank() ? adminText("admin-command-template-min-missing", " min=missing") : adminText("admin-command-template-min-prefix", " min=") + template.minNodeVersion())
+            + adminText("admin-command-template-bundle-prefix", " bundle=") + "not-certified"
+            + adminText("admin-command-template-checksum-prefix", " checksum=") + "not-certified";
+    }
+
+    private String templateValidationStatus(TemplateView template) {
+        if (template.id().isBlank() || template.displayName().isBlank()) {
+            return "INVALID_METADATA";
+        }
+        if ("superiorskyblock2".equalsIgnoreCase(template.id()) && template.enabled()) {
+            return "BLOCKED_MIGRATION_INPUT_ONLY";
+        }
+        if (template.enabled() && template.minNodeVersion().isBlank()) {
+            return "WARN_MIN_NODE_VERSION_MISSING";
+        }
+        return "OK";
+    }
+
+    private TemplateView templateById(String targetId, List<TemplateView> templates) {
+        String normalized = normalizeTemplateId(targetId);
+        for (TemplateView template : templates) {
+            if (template.id().equalsIgnoreCase(normalized)) {
+                return template;
+            }
+        }
+        return null;
+    }
+
+    private String normalizeTemplateId(String value) {
+        String normalized = value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_.-]+", "-");
+        return normalized.isBlank() ? "default" : normalized;
     }
 
     private String upgradeRulesMessage(List<UpgradeRuleView> rules) {
