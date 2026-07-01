@@ -67,6 +67,9 @@ import kr.lunaf.cloudislands.api.event.RouteTicketClearedEvent;
 import kr.lunaf.cloudislands.api.event.RouteTicketConsumedGlobalEvent;
 import kr.lunaf.cloudislands.api.event.RouteTicketCreatedEvent;
 import kr.lunaf.cloudislands.api.event.RouteTicketFailedEvent;
+import kr.lunaf.cloudislands.api.model.AddonMenuButtonSnapshot;
+import kr.lunaf.cloudislands.api.model.AddonPlaceholderSnapshot;
+import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 
@@ -95,6 +98,18 @@ public interface CloudIslandsAddon {
     }
 
     default List<MissionProviderDefinitionSnapshot> addonMissions() {
+        return List.of();
+    }
+
+    default List<AddonPlaceholderSnapshot> addonPlaceholders() {
+        return List.of();
+    }
+
+    default List<AddonMenuButtonSnapshot> addonMenuButtons() {
+        return List.of();
+    }
+
+    default List<BlockValueSnapshot> addonBlockValues() {
         return List.of();
     }
 
@@ -222,6 +237,21 @@ public interface CloudIslandsAddon {
             metadata.put("addon-mission-provider", "true");
             metadata.put("addon-mission-keys", safeMissionKeys(missions));
         }
+        List<AddonPlaceholderSnapshot> placeholders = addonPlaceholders();
+        if (placeholders != null && !placeholders.isEmpty()) {
+            metadata.put("addon-placeholder-provider", "true");
+            metadata.put("addon-placeholder-keys", safePlaceholderKeys(placeholders));
+        }
+        List<AddonMenuButtonSnapshot> menuButtons = addonMenuButtons();
+        if (menuButtons != null && !menuButtons.isEmpty()) {
+            metadata.put("addon-menu-button-provider", "true");
+            metadata.put("addon-menu-button-actions", safeMenuButtonActions(menuButtons));
+        }
+        List<BlockValueSnapshot> blockValues = addonBlockValues();
+        if (blockValues != null && !blockValues.isEmpty()) {
+            metadata.put("addon-block-value-provider", "true");
+            metadata.put("addon-block-value-keys", safeBlockValueKeys(blockValues));
+        }
         String descriptor = addonDescriptorResource();
         if (descriptor != null && !descriptor.isBlank()) {
             metadata.put("addon-descriptor-resource", descriptor);
@@ -246,6 +276,30 @@ public interface CloudIslandsAddon {
     private static String safeMissionKeys(List<MissionProviderDefinitionSnapshot> missions) {
         return missions.stream()
             .map(MissionProviderDefinitionSnapshot::missionKey)
+            .filter(value -> value != null && !value.isBlank())
+            .reduce((left, right) -> left + "," + right)
+            .orElse("");
+    }
+
+    private static String safePlaceholderKeys(List<AddonPlaceholderSnapshot> placeholders) {
+        return placeholders.stream()
+            .map(AddonPlaceholderSnapshot::key)
+            .filter(value -> value != null && !value.isBlank())
+            .reduce((left, right) -> left + "," + right)
+            .orElse("");
+    }
+
+    private static String safeMenuButtonActions(List<AddonMenuButtonSnapshot> buttons) {
+        return buttons.stream()
+            .map(AddonMenuButtonSnapshot::actionId)
+            .filter(value -> value != null && !value.isBlank())
+            .reduce((left, right) -> left + "," + right)
+            .orElse("");
+    }
+
+    private static String safeBlockValueKeys(List<BlockValueSnapshot> blockValues) {
+        return blockValues.stream()
+            .map(BlockValueSnapshot::materialKey)
             .filter(value -> value != null && !value.isBlank())
             .reduce((left, right) -> left + "," + right)
             .orElse("");

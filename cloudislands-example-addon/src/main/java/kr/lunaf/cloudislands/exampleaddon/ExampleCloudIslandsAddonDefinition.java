@@ -1,8 +1,14 @@
 package kr.lunaf.cloudislands.exampleaddon;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
+import kr.lunaf.cloudislands.api.model.AddonMenuButtonSnapshot;
+import kr.lunaf.cloudislands.api.model.AddonPlaceholderSnapshot;
+import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
+import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 
 public final class ExampleCloudIslandsAddonDefinition implements CloudIslandsAddon {
     public static final String ADDON_ID = "cloudislands-example-addon";
@@ -39,7 +45,10 @@ public final class ExampleCloudIslandsAddonDefinition implements CloudIslandsAdd
             "lifecycle", true,
             "route-events", true,
             "addon-state", true,
-            "placeholders", false
+            "custom-missions", true,
+            "placeholders", true,
+            "custom-menu-buttons", true,
+            "custom-block-values", true
         );
     }
 
@@ -53,5 +62,54 @@ public final class ExampleCloudIslandsAddonDefinition implements CloudIslandsAdd
             "feature-dependencies", "route-events:addon-state",
             "feature-aliases", "events:lifecycle"
         );
+    }
+
+    @Override
+    public List<MissionProviderDefinitionSnapshot> addonMissions() {
+        return List.of(new MissionProviderDefinitionSnapshot(
+            ADDON_ID,
+            "example-harvest",
+            "MISSION",
+            "developer",
+            "Harvest Starter",
+            "Break 64 wheat crops on your island.",
+            "BLOCK_BREAK",
+            "minecraft:wheat",
+            64L,
+            "COMMAND",
+            "eco give %player% 100",
+            false,
+            false,
+            true,
+            Instant.EPOCH
+        ));
+    }
+
+    @Override
+    public List<AddonPlaceholderSnapshot> addonPlaceholders() {
+        return List.of(new AddonPlaceholderSnapshot(
+            "example_level_goal",
+            "Shows the next example mission target for a player island.",
+            "64 wheat",
+            true,
+            true
+        ));
+    }
+
+    @Override
+    public List<AddonMenuButtonSnapshot> addonMenuButtons() {
+        return List.of(new AddonMenuButtonSnapshot(
+            "island.main",
+            "example.open",
+            "WHEAT",
+            "Example Mission",
+            "/island mission example-harvest",
+            true
+        ));
+    }
+
+    @Override
+    public List<BlockValueSnapshot> addonBlockValues() {
+        return List.of(new BlockValueSnapshot("minecraft:wheat", "1.00", 1L, 4096L));
     }
 }

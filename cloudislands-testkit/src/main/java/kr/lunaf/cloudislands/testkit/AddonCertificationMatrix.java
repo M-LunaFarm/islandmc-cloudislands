@@ -44,6 +44,7 @@ public final class AddonCertificationMatrix {
         checks.add(booleanValue(certifiedMetadata, "addon-removal-safe", "lifecycle", true, true));
         checks.add(booleanValue(certifiedMetadata, "addon-runtime-owns-islands", "lifecycle", true, false));
         checks.add(booleanValue(certifiedMetadata, "addon-core-lifecycle-owner", "lifecycle", true, false));
+        checks.add(metadataEquals(certifiedMetadata, "addon-data-retention", "state", true, "preserve-addon-state-by-addon-id-and-island-uuid"));
         checks.add(metadataEquals(certifiedMetadata, "addon-removal-policy", "lifecycle", true, "missing-disabled-or-removed-addon-must-not-block-core-island-create-route-save-restore"));
         checks.add(metadataEquals(certifiedMetadata, "addon-reconnect-policy", "lifecycle", true, "reinstalled-addon-reconnects-preserved-addon-state-by-addon-id-and-island-uuid"));
         checks.add(metadataEquals(certifiedMetadata, "addon-event-source", "events", true, "cloudislands-global-event-stream"));
@@ -56,6 +57,10 @@ public final class AddonCertificationMatrix {
         checks.add(metadataPresent(certifiedMetadata, "cloudislands-api-compatibility-testkit-policy", "testkit", true));
         checks.add(metadataPresent(certifiedMetadata, "cloudislands-addon-certification-policy", "testkit", true));
         checks.add(metadataPresent(certifiedMetadata, "feature-dependencies", "features", false));
+        checks.add(providerKeysPresent(certifiedMetadata, "addon-mission-provider", "addon-mission-keys", "features"));
+        checks.add(providerKeysPresent(certifiedMetadata, "addon-placeholder-provider", "addon-placeholder-keys", "features"));
+        checks.add(providerKeysPresent(certifiedMetadata, "addon-menu-button-provider", "addon-menu-button-actions", "features"));
+        checks.add(providerKeysPresent(certifiedMetadata, "addon-block-value-provider", "addon-block-value-keys", "features"));
         return new AddonCertificationReport(addonId, CERTIFICATION_LEVEL, verification, checks);
     }
 
@@ -87,6 +92,12 @@ public final class AddonCertificationMatrix {
         String value = metadata.get(key);
         boolean contains = value != null && List.of(value.split(",")).stream().map(String::trim).anyMatch(expected::equals);
         return check(key, category, required, contains, "expected-token=" + expected + ",actual=" + (value == null ? "" : value));
+    }
+
+    private static AddonCertificationCheck providerKeysPresent(Map<String, String> metadata, String providerKey, String keysKey, String category) {
+        boolean providerEnabled = Boolean.parseBoolean(metadata.getOrDefault(providerKey, "false"));
+        String keys = metadata.get(keysKey);
+        return check(keysKey, category, providerEnabled, !providerEnabled || keys != null && !keys.isBlank(), "provider=" + providerKey + ",keys=missing-or-blank");
     }
 
     private static AddonCertificationCheck check(String id, String category, boolean required, boolean passed, String detail) {

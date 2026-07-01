@@ -20,6 +20,7 @@ class AddonCertificationMatrixTest {
         assertEquals(AddonCertificationMatrix.CERTIFICATION_LEVEL, report.certificationLevel());
         assertTrue(report.checks().stream().anyMatch(check -> check.id().equals("cloudislands-api-threading-policy")));
         assertTrue(report.checks().stream().anyMatch(check -> check.id().equals("addon-event-delivery")));
+        assertTrue(report.checks().stream().anyMatch(check -> check.id().equals("addon-data-retention")));
     }
 
     @Test
@@ -34,6 +35,30 @@ class AddonCertificationMatrixTest {
         assertTrue(report.requiredFailures().stream().anyMatch(check -> check.id().equals("addon-removal-safe")));
         assertTrue(report.requiredFailures().stream().anyMatch(check -> check.id().equals("addon-core-lifecycle-owner")));
         assertThrows(IllegalStateException.class, report::requireCertified);
+    }
+
+    @Test
+    void rejectsMissingEventIsolationAndStatePersistenceMetadata() {
+        Map<String, String> metadata = new HashMap<>(new MatrixAddon().addonStandardMetadata());
+        metadata.remove("addon-event-failure-policy");
+        metadata.remove("addon-data-retention");
+
+        AddonCertificationReport report = AddonCertificationMatrix.certify("missing-contract-addon", metadata, CloudIslandsApiContract.metadata());
+
+        assertFalse(report.certified());
+        assertTrue(report.requiredFailures().stream().anyMatch(check -> check.id().equals("addon-event-failure-policy")));
+        assertTrue(report.requiredFailures().stream().anyMatch(check -> check.id().equals("addon-data-retention")));
+    }
+
+    @Test
+    void rejectsFeatureProvidersWithoutPublishedKeys() {
+        Map<String, String> metadata = new HashMap<>(new MatrixAddon().addonStandardMetadata());
+        metadata.put("addon-placeholder-provider", "true");
+
+        AddonCertificationReport report = AddonCertificationMatrix.certify("missing-provider-keys-addon", metadata, CloudIslandsApiContract.metadata());
+
+        assertFalse(report.certified());
+        assertTrue(report.requiredFailures().stream().anyMatch(check -> check.id().equals("addon-placeholder-keys")));
     }
 
     private static final class MatrixAddon implements CloudIslandsAddon {

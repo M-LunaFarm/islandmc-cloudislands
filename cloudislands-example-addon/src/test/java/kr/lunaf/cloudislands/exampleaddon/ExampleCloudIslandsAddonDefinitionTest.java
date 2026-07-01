@@ -27,6 +27,18 @@ class ExampleCloudIslandsAddonDefinitionTest {
         assertTrue(verification.passed(), verification.failures().toString());
         assertEquals(ExampleCloudIslandsAddonDefinition.ADDON_ID, addon.addonId());
         assertTrue(addon.addonFeatures().get("route-events"));
+        assertTrue(addon.addonFeatures().get("custom-missions"));
+        assertTrue(addon.addonFeatures().get("placeholders"));
+        assertTrue(addon.addonFeatures().get("custom-menu-buttons"));
+        assertTrue(addon.addonFeatures().get("custom-block-values"));
+        assertEquals("example-harvest", addon.addonMissions().get(0).missionKey());
+        assertEquals("example_level_goal", addon.addonPlaceholders().get(0).key());
+        assertEquals("example.open", addon.addonMenuButtons().get(0).actionId());
+        assertEquals("minecraft:wheat", addon.addonBlockValues().get(0).materialKey());
+        assertEquals("example-harvest", certified.get("addon-mission-keys"));
+        assertEquals("example_level_goal", certified.get("addon-placeholder-keys"));
+        assertEquals("example.open", certified.get("addon-menu-button-actions"));
+        assertEquals("minecraft:wheat", certified.get("addon-block-value-keys"));
     }
 
     @Test

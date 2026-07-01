@@ -1664,6 +1664,60 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
     }
 }
 
+tasks.register("verifyAddonDeveloperKitCoverage") {
+    group = "verification"
+    description = "Verifies addon developer kit API examples, certification checks, and distribution hooks remain present."
+    dependsOn(tasks.named("distDeveloperKit"))
+    dependsOn(project(":cloudislands-example-addon").tasks.named("test"))
+    dependsOn(project(":cloudislands-testkit").tasks.named("test"))
+    val addonApi = layout.projectDirectory.file("cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/addon/CloudIslandsAddon.java")
+    val example = layout.projectDirectory.file("cloudislands-example-addon/src/main/java/kr/lunaf/cloudislands/exampleaddon/ExampleCloudIslandsAddonDefinition.java")
+    val exampleTest = layout.projectDirectory.file("cloudislands-example-addon/src/test/java/kr/lunaf/cloudislands/exampleaddon/ExampleCloudIslandsAddonDefinitionTest.java")
+    val certification = layout.projectDirectory.file("cloudislands-testkit/src/main/java/kr/lunaf/cloudislands/testkit/AddonCertificationMatrix.java")
+    val certificationTest = layout.projectDirectory.file("cloudislands-testkit/src/test/java/kr/lunaf/cloudislands/testkit/AddonCertificationMatrixTest.java")
+    val devkitDir = layout.buildDirectory.dir("dist/devkit")
+    inputs.files(addonApi, example, exampleTest, certification, certificationTest)
+    inputs.dir(devkitDir)
+    doLast {
+        val apiSource = addonApi.asFile.readText()
+        val exampleSource = example.asFile.readText()
+        val exampleTests = exampleTest.asFile.readText()
+        val certificationSource = certification.asFile.readText()
+        val certificationTests = certificationTest.asFile.readText()
+        val failures = buildList {
+            listOf("addonMissions", "addonPlaceholders", "addonMenuButtons", "addonBlockValues").filterNot(apiSource::contains).forEach {
+                add("CloudIslandsAddon missing developer kit SPI: $it")
+            }
+            listOf("new MissionProviderDefinitionSnapshot", "new AddonPlaceholderSnapshot", "new AddonMenuButtonSnapshot", "new BlockValueSnapshot").filterNot(exampleSource::contains).forEach {
+                add("Example addon missing reference implementation: $it")
+            }
+            listOf("custom-missions", "placeholders", "custom-menu-buttons", "custom-block-values").filterNot(exampleTests::contains).forEach {
+                add("Example addon certification test missing feature assertion: $it")
+            }
+            listOf("addon-data-retention", "addon-event-failure-policy", "providerKeysPresent").filterNot(certificationSource::contains).forEach {
+                add("Addon certification matrix missing check: $it")
+            }
+            listOf("rejectsMissingEventIsolationAndStatePersistenceMetadata", "rejectsFeatureProvidersWithoutPublishedKeys").filterNot(certificationTests::contains).forEach {
+                add("Addon certification regression test missing: $it")
+            }
+            val dist = devkitDir.get().asFile
+            if (!dist.resolve("examples/cloudislands-example-addon").isDirectory) {
+                add("distDeveloperKit missing example addon source")
+            }
+            if (!dist.resolve("maven").isDirectory || !dist.resolve("javadocs").isDirectory || !dist.resolve("sources").isDirectory) {
+                add("distDeveloperKit missing maven, javadocs, or sources output")
+            }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
+}
+
 tasks.register("verifyRoutingRefactorCoverage") {
     group = "verification"
     description = "Verifies RoutingOrchestrator responsibility split, typed failure mapping, and CoreApplication routing factory coverage remain present."

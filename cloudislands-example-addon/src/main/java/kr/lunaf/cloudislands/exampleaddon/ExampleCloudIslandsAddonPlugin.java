@@ -9,6 +9,9 @@ import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddonBootstrap;
 import kr.lunaf.cloudislands.api.event.CloudEvent;
 import kr.lunaf.cloudislands.api.event.RouteTicketCreatedEvent;
+import kr.lunaf.cloudislands.api.model.AddonMenuButtonSnapshot;
+import kr.lunaf.cloudislands.api.model.AddonPlaceholderSnapshot;
+import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -70,6 +73,21 @@ public final class ExampleCloudIslandsAddonPlugin extends JavaPlugin implements 
     @Override
     public List<MissionProviderDefinitionSnapshot> addonMissions() {
         return definition.addonMissions();
+    }
+
+    @Override
+    public List<AddonPlaceholderSnapshot> addonPlaceholders() {
+        return definition.addonPlaceholders();
+    }
+
+    @Override
+    public List<AddonMenuButtonSnapshot> addonMenuButtons() {
+        return definition.addonMenuButtons();
+    }
+
+    @Override
+    public List<BlockValueSnapshot> addonBlockValues() {
+        return definition.addonBlockValues();
     }
 
     @Override
