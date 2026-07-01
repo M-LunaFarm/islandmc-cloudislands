@@ -34,19 +34,31 @@ public final class OperationsDashboardPolicy {
         metrics.put("active-island-usage-cluster", "cloudislands_cluster_active_island_usage_ratio");
         metrics.put("average-island-activation-seconds", "cloudislands_cluster_avg_island_activation_seconds");
         metrics.put("island-activation-seconds-by-node", "cloudislands_island_activation_seconds");
+        metrics.put("island-save-duration", "cloudislands_island_save_seconds");
+        metrics.put("island-snapshot-duration", "cloudislands_island_snapshot_seconds");
         metrics.put("island-save-failures", "cloudislands_island_save_failures_total");
+        metrics.put("route-ticket-created", "cloudislands_route_ticket_created_total");
+        metrics.put("route-ticket-consumed", "cloudislands_route_ticket_consumed_total");
         metrics.put("route-failures", "cloudislands_route_ticket_failed_total");
+        metrics.put("job-queue-depth", "cloudislands_jobs_pending");
+        metrics.put("job-retry-count", "cloudislands_jobs_retry_total");
+        metrics.put("node-heartbeat-age", "cloudislands_node_heartbeat_age_seconds");
         metrics.put("ranking-cache-stale", "cloudislands_ranking_cache_stale");
         metrics.put("ranking-dirty-pending", "cloudislands_ranking_dirty_pending");
         metrics.put("ranking-dirty-drained", "cloudislands_ranking_dirty_drained_total");
         metrics.put("ranking-recalculation-failures", "cloudislands_ranking_recalculation_failures_total");
         metrics.put("ranking-recalculation-last-batch-size", "cloudislands_ranking_recalculation_last_batch_size");
         metrics.put("redis-latency", "cloudislands_redis_latency_seconds");
+        metrics.put("database-query-latency", "cloudislands_database_query_seconds");
         metrics.put("database-connection-pool-usage", "cloudislands_database_connection_pool_usage_ratio");
         metrics.put("database-connection-pool-available", "cloudislands_database_connections_available");
         metrics.put("database-connection-pool-saturated", "cloudislands_database_connection_pool_saturated");
+        metrics.put("storage-upload-duration", "cloudislands_storage_upload_seconds");
+        metrics.put("storage-download-duration", "cloudislands_storage_download_seconds");
         metrics.put("object-storage-failure-ratio", "cloudislands_cluster_storage_failure_ratio");
         metrics.put("object-storage-node-failure-ratio", "cloudislands_storage_failure_ratio");
+        metrics.put("permission-cache-hit-ratio", "cloudislands_permission_cache_hit_ratio");
+        metrics.put("core-api-error-rate", "cloudislands_core_security_rejects_total");
         return Collections.unmodifiableMap(metrics);
     }
 }

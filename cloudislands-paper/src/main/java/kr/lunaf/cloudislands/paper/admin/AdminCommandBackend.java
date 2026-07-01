@@ -1853,7 +1853,44 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return adminText("admin-command-metrics-empty", "Core metrics: empty");
         }
         return adminText("admin-command-metrics-samples-prefix", "Core metrics: samples=") + summary.samples()
+            + metricsFocusSuffix(summary)
             + (summary.names().isEmpty() ? "" : " / " + String.join(", ", summary.names()));
+    }
+
+    private String metricsFocusSuffix(AdminMetricsSummaryView summary) {
+        List<String> focus = new ArrayList<>();
+        appendMetricFocus(focus, summary, "activeIslands", "cloudislands_node_active_islands", false);
+        appendMetricFocus(focus, summary, "routeCreated", "cloudislands_route_ticket_created_total", false);
+        appendMetricFocus(focus, summary, "routeConsumed", "cloudislands_route_ticket_consumed_total", false);
+        appendMetricFocus(focus, summary, "routeFailed", "cloudislands_route_ticket_failed_total", false);
+        appendMetricFocus(focus, summary, "jobsPending", "cloudislands_jobs_pending", false);
+        appendMetricFocus(focus, summary, "jobRetries", "cloudislands_jobs_retry_total", false);
+        appendMetricFocus(focus, summary, "heartbeatAge", "cloudislands_node_heartbeat_age_seconds", true);
+        appendMetricFocus(focus, summary, "redisLatency", "cloudislands_redis_latency_seconds", true);
+        appendMetricFocus(focus, summary, "dbQuery", "cloudislands_database_query_seconds", true);
+        appendMetricFocus(focus, summary, "storageSave", "cloudislands_storage_upload_seconds", true);
+        appendMetricFocus(focus, summary, "storageRestore", "cloudislands_storage_download_seconds", true);
+        appendMetricFocus(focus, summary, "activation", "cloudislands_island_activation_seconds", true);
+        appendMetricFocus(focus, summary, "permissionHitRatio", "cloudislands_permission_cache_hit_ratio", false);
+        appendMetricFocus(focus, summary, "coreApiRejects", "cloudislands_core_security_rejects_total", false);
+        return focus.isEmpty()
+            ? ""
+            : adminText("admin-command-metrics-focus-prefix", " focus=") + String.join(",", focus);
+    }
+
+    private void appendMetricFocus(List<String> focus, AdminMetricsSummaryView summary, String label, String metricName, boolean seconds) {
+        if (!summary.hasValue(metricName)) {
+            return;
+        }
+        double value = summary.value(metricName);
+        focus.add(label + "=" + (seconds ? seconds(value) + "s" : metricValue(value)));
+    }
+
+    private String metricValue(double value) {
+        if (Math.rint(value) == value) {
+            return Long.toString((long) value);
+        }
+        return seconds(value);
     }
 
     private String coreConfigMessage(AdminCoreConfigView body) {

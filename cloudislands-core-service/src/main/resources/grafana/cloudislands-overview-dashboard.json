@@ -233,6 +233,336 @@
       ],
       "title": "Object Storage 실패율",
       "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 24
+      },
+      "id": 10,
+      "targets": [
+        {
+          "expr": "cloudislands_node_player_usage_ratio",
+          "legendFormat": "{{node}} player",
+          "refId": "A"
+        },
+        {
+          "expr": "cloudislands_cluster_player_usage_ratio",
+          "legendFormat": "cluster player",
+          "refId": "B"
+        },
+        {
+          "expr": "cloudislands_node_active_island_usage_ratio",
+          "legendFormat": "{{node}} island",
+          "refId": "C"
+        },
+        {
+          "expr": "cloudislands_cluster_active_island_usage_ratio",
+          "legendFormat": "cluster island",
+          "refId": "D"
+        }
+      ],
+      "title": "노드 사용률",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 24
+      },
+      "id": 11,
+      "targets": [
+        {
+          "expr": "cloudislands_node_mspt_over_budget",
+          "legendFormat": "{{node}} mspt budget",
+          "refId": "A"
+        },
+        {
+          "expr": "cloudislands_node_heartbeat_age_seconds",
+          "legendFormat": "{{node}} heartbeat age",
+          "refId": "B"
+        }
+      ],
+      "title": "노드 장애 신호",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 24
+      },
+      "id": 12,
+      "targets": [
+        {
+          "expr": "sum(rate(cloudislands_route_ticket_created_total[5m]))",
+          "legendFormat": "created/s",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(cloudislands_route_ticket_consumed_total[5m]))",
+          "legendFormat": "consumed/s",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(rate(cloudislands_route_ticket_failed_total[5m]))",
+          "legendFormat": "failed/s",
+          "refId": "C"
+        }
+      ],
+      "title": "Route ticket 흐름",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 32
+      },
+      "id": 13,
+      "targets": [
+        {
+          "expr": "cloudislands_jobs_pending",
+          "legendFormat": "pending",
+          "refId": "A"
+        },
+        {
+          "expr": "increase(cloudislands_jobs_retry_total[5m])",
+          "legendFormat": "retries/5m",
+          "refId": "B"
+        }
+      ],
+      "title": "Job queue",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 32
+      },
+      "id": 14,
+      "targets": [
+        {
+          "expr": "cloudislands_database_query_seconds",
+          "legendFormat": "db query",
+          "refId": "A"
+        },
+        {
+          "expr": "cloudislands_storage_upload_seconds",
+          "legendFormat": "{{node}} storage save",
+          "refId": "B"
+        },
+        {
+          "expr": "cloudislands_storage_download_seconds",
+          "legendFormat": "{{node}} storage restore",
+          "refId": "C"
+        }
+      ],
+      "title": "DB/Storage 지연",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 32
+      },
+      "id": 15,
+      "targets": [
+        {
+          "expr": "cloudislands_cluster_avg_island_activation_seconds",
+          "legendFormat": "cluster avg activation",
+          "refId": "A"
+        },
+        {
+          "expr": "cloudislands_island_activation_seconds",
+          "legendFormat": "{{node}} activation",
+          "refId": "B"
+        },
+        {
+          "expr": "cloudislands_island_save_seconds",
+          "legendFormat": "{{node}} save",
+          "refId": "C"
+        },
+        {
+          "expr": "cloudislands_island_snapshot_seconds",
+          "legendFormat": "{{node}} snapshot",
+          "refId": "D"
+        }
+      ],
+      "title": "섬 작업 지연",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 40
+      },
+      "id": 16,
+      "targets": [
+        {
+          "expr": "sum(rate(cloudislands_island_save_failures_total[5m]))",
+          "legendFormat": "save failures/s",
+          "refId": "A"
+        },
+        {
+          "expr": "cloudislands_storage_failure_ratio",
+          "legendFormat": "{{node}} storage failure",
+          "refId": "B"
+        },
+        {
+          "expr": "cloudislands_cluster_storage_failure_ratio",
+          "legendFormat": "cluster storage failure",
+          "refId": "C"
+        }
+      ],
+      "title": "Storage 장애 신호",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 40
+      },
+      "id": 17,
+      "targets": [
+        {
+          "expr": "cloudislands_ranking_cache_stale",
+          "legendFormat": "cache stale",
+          "refId": "A"
+        },
+        {
+          "expr": "cloudislands_ranking_dirty_pending",
+          "legendFormat": "dirty pending",
+          "refId": "B"
+        },
+        {
+          "expr": "increase(cloudislands_ranking_dirty_drained_total[5m])",
+          "legendFormat": "dirty drained/5m",
+          "refId": "C"
+        },
+        {
+          "expr": "increase(cloudislands_ranking_recalculation_failures_total[5m])",
+          "legendFormat": "failures/5m",
+          "refId": "D"
+        },
+        {
+          "expr": "cloudislands_ranking_recalculation_last_batch_size",
+          "legendFormat": "last batch",
+          "refId": "E"
+        }
+      ],
+      "title": "Ranking recalculation",
+      "type": "timeseries"
+    },
+    {
+      "datasource": "${DS_PROMETHEUS}",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 40
+      },
+      "id": 18,
+      "targets": [
+        {
+          "expr": "cloudislands_permission_cache_hit_ratio",
+          "legendFormat": "{{node}} permission hit",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(cloudislands_core_security_rejects_total[5m]))",
+          "legendFormat": "core rejects/s",
+          "refId": "B"
+        },
+        {
+          "expr": "cloudislands_database_connections_available",
+          "legendFormat": "db connections available",
+          "refId": "C"
+        },
+        {
+          "expr": "cloudislands_database_connection_pool_saturated",
+          "legendFormat": "db pool saturated",
+          "refId": "D"
+        }
+      ],
+      "title": "Core API/권한/DB",
+      "type": "timeseries"
     }
   ],
   "refresh": "10s",
@@ -268,6 +598,6 @@
   "timezone": "browser",
   "title": "CloudIslands Overview",
   "uid": "cloudislands-overview",
-  "version": 1,
+  "version": 2,
   "weekStart": ""
 }

@@ -121,6 +121,16 @@ class PrometheusMetricsRendererTest {
         assertTrue(uncovered.isEmpty(), "Metrics without update-source coverage: " + uncovered);
     }
 
+    @Test
+    void grafanaDashboardContainsEveryRequiredOperationsMetric() throws Exception {
+        Path root = workspaceRoot();
+        String dashboard = read(root, "cloudislands-core-service/src/main/resources/grafana/cloudislands-overview-dashboard.json");
+
+        for (String dashboardMetric : OperationsDashboardPolicy.requiredDashboardMetrics().values()) {
+            assertTrue(dashboard.contains(dashboardMetric), () -> "Grafana dashboard must include " + dashboardMetric);
+        }
+    }
+
     private void assertMetric(String metrics, String name) {
         assertTrue(metrics.contains("# HELP " + name + " "), () -> "missing HELP for " + name);
         assertTrue(metrics.contains("# TYPE " + name + " "), () -> "missing TYPE for " + name);

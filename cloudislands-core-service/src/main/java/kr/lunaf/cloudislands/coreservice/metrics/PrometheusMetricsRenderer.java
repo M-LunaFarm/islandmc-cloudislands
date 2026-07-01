@@ -120,6 +120,8 @@ public final class PrometheusMetricsRenderer {
         StringBuilder out = new StringBuilder();
         help(out, "cloudislands_nodes_online", "CloudIslands nodes with fresh heartbeat");
         type(out, "cloudislands_nodes_online", "gauge");
+        help(out, "cloudislands_node_heartbeat_age_seconds", "Seconds since the last heartbeat received from a node");
+        type(out, "cloudislands_node_heartbeat_age_seconds", "gauge");
         help(out, "cloudislands_node_players", "Players currently reported by a node");
         type(out, "cloudislands_node_players", "gauge");
         help(out, "cloudislands_node_soft_player_cap", "Soft player capacity before visitor routing is avoided");

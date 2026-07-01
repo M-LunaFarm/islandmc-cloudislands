@@ -1106,10 +1106,16 @@ class CoreTypedClientsTest {
             cloudislands_jobs_total{state="done"} 3
             cloudislands_jobs_total{state="failed"} 1
             cloudislands_nodes 2
+            cloudislands_route_ticket_created_total 5
+            cloudislands_route_ticket_created_total{action="HOME"} 5
             """);
 
-        assertEquals(3L, summary.samples());
-        assertEquals(List.of("cloudislands_jobs_total", "cloudislands_nodes"), summary.names());
+        assertEquals(5L, summary.samples());
+        assertEquals(List.of("cloudislands_jobs_total", "cloudislands_nodes", "cloudislands_route_ticket_created_total"), summary.names());
+        assertEquals(4.0D, summary.value("cloudislands_jobs_total"));
+        assertEquals(2.0D, summary.value("cloudislands_nodes"));
+        assertEquals(5.0D, summary.value("cloudislands_route_ticket_created_total"));
+        assertTrue(summary.hasValue("cloudislands_route_ticket_created_total"));
     }
 
     @Test

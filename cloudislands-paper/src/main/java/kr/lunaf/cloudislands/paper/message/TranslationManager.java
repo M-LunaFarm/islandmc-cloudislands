@@ -414,6 +414,7 @@ public final class TranslationManager {
         values.put("admin-command-maintenance-tickets-prefix", " tickets=");
         values.put("admin-command-metrics-empty", "Core metrics: empty");
         values.put("admin-command-metrics-samples-prefix", "Core metrics: samples=");
+        values.put("admin-command-metrics-focus-prefix", " focus=");
         values.put("admin-command-core-config-failed-prefix", "Core config: failed code=");
         values.put("admin-command-core-config-repo-prefix", "Core config: repo=");
         values.put("admin-command-core-config-jobs-prefix", " jobs=");
