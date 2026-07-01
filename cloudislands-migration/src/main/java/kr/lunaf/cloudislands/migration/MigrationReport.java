@@ -23,6 +23,7 @@ public record MigrationReport(
     int completedMissions,
     int blockValues,
     int blockCounts,
+    int warehouseItems,
     int blockingIssues,
     int warningIssues,
     int importableIslandCount,

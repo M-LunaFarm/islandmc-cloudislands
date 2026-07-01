@@ -35,6 +35,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy;
+import kr.lunaf.cloudislands.coreservice.warehouse.IslandWarehouseRepository;
 import kr.lunaf.cloudislands.coreservice.workflow.IslandLifecycleWorkflow;
 import kr.lunaf.cloudislands.migration.MigrationIssue;
 import kr.lunaf.cloudislands.migration.MigrationManifest;
@@ -66,6 +67,7 @@ final class MigrationAdminBackend {
     private final IslandLimitRepository limits;
     private final IslandMissionRepository missions;
     private final IslandLevelRepository levels;
+    private final IslandWarehouseRepository warehouse;
     private final IslandSnapshotRepository snapshots;
     private final RollbackTarget hardRollbackTarget;
     private final IslandRuntimeRepository runtimes;
@@ -86,18 +88,22 @@ final class MigrationAdminBackend {
     private String lastDryRunFingerprint = "";
 
     MigrationAdminBackend(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget) {
-        this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, snapshots, hardRollbackTarget, Path.of("cloudislands-storage"));
+        this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, null, snapshots, hardRollbackTarget, null, Path.of("cloudislands-storage"), null);
     }
 
     MigrationAdminBackend(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget, Path migrationBundleRoot) {
-        this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, snapshots, hardRollbackTarget, migrationBundleRoot, null);
+        this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, null, snapshots, hardRollbackTarget, null, migrationBundleRoot, null);
     }
 
     MigrationAdminBackend(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget, Path migrationBundleRoot, IslandLifecycleWorkflow activationTester) {
-        this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, snapshots, hardRollbackTarget, null, migrationBundleRoot, activationTester);
+        this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, null, snapshots, hardRollbackTarget, null, migrationBundleRoot, activationTester);
     }
 
     MigrationAdminBackend(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget, IslandRuntimeRepository runtimes, Path migrationBundleRoot, IslandLifecycleWorkflow activationTester) {
+        this(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, null, snapshots, hardRollbackTarget, runtimes, migrationBundleRoot, activationTester);
+    }
+
+    MigrationAdminBackend(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandWarehouseRepository warehouse, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget, IslandRuntimeRepository runtimes, Path migrationBundleRoot, IslandLifecycleWorkflow activationTester) {
         this.islands = islands;
         this.metadata = metadata;
         this.playerProfiles = playerProfiles;
@@ -107,6 +113,7 @@ final class MigrationAdminBackend {
         this.limits = limits;
         this.missions = missions;
         this.levels = levels;
+        this.warehouse = warehouse;
         this.snapshots = snapshots;
         this.hardRollbackTarget = hardRollbackTarget;
         this.runtimes = runtimes;
@@ -413,6 +420,11 @@ final class MigrationAdminBackend {
             for (kr.lunaf.cloudislands.migration.MigrationBlockCount count : manifest.blockCounts()) {
                 levels.addBlockDelta(manifest.islandId(), count.materialKey(), count.count());
             }
+            if (warehouse != null) {
+                for (kr.lunaf.cloudislands.migration.MigrationWarehouseItem item : manifest.warehouseItems()) {
+                    warehouse.deposit(manifest.islandId(), item.materialKey(), item.amount());
+                }
+            }
             if (!manifest.biomeKey().isBlank()) {
                 metadata.setBiome(manifest.islandId(), manifest.biomeKey(), manifest.ownerUuid());
             }
@@ -528,6 +540,7 @@ final class MigrationAdminBackend {
             matched &= expect(issues, missionsMatch(manifest), "MISSION_MISMATCH", "mission mismatch " + manifest.islandId());
             matched &= expect(issues, blockValuesMatch(manifest), "BLOCK_VALUE_MISMATCH", "block value mismatch " + manifest.islandId());
             matched &= expect(issues, blockCountsMatch(manifest), "BLOCK_COUNT_MISMATCH", "block count mismatch " + manifest.islandId());
+            matched &= expect(issues, warehouseItemsMatch(manifest), "WAREHOUSE_MISMATCH", "warehouse mismatch " + manifest.islandId());
             matched &= expect(issues, manifest.biomeKey().isBlank() || metadata.biome(manifest.islandId()).biomeKey().equals(manifest.biomeKey()), "BIOME_MISMATCH", "biome mismatch " + manifest.islandId());
             matched &= expect(issues, decimal(bank.balance(manifest.islandId()).balance()).compareTo(decimal(manifest.bankBalance())) == 0, "BANK_MISMATCH", "bank mismatch " + manifest.islandId());
             matched &= expect(issues, metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess(), "PUBLIC_ACCESS_MISMATCH", "public access mismatch " + manifest.islandId());
@@ -677,6 +690,7 @@ final class MigrationAdminBackend {
             + ",\"completedMissions\":" + report.completedMissions()
             + ",\"blockValues\":" + report.blockValues()
             + ",\"blockCounts\":" + report.blockCounts()
+            + ",\"warehouseItems\":" + report.warehouseItems()
             + ",\"manifestGenerated\":" + report.manifestGenerated()
             + ",\"manifestStatus\":\"" + escape(report.manifestStatus()) + "\""
             + ",\"conflictIssues\":" + report.conflictIssues()
@@ -773,6 +787,17 @@ final class MigrationAdminBackend {
         return manifest.blockCounts().stream().allMatch(count -> Long.valueOf(count.count()).equals(current.get(count.materialKey())));
     }
 
+    private boolean warehouseItemsMatch(MigrationManifest manifest) {
+        if (warehouse == null) {
+            return manifest.warehouseItems().isEmpty();
+        }
+        Map<String, Long> current = new HashMap<>();
+        for (kr.lunaf.cloudislands.api.model.IslandWarehouseItemSnapshot item : warehouse.list(manifest.islandId(), 100)) {
+            current.put(item.materialKey(), item.amount());
+        }
+        return manifest.warehouseItems().stream().allMatch(item -> Long.valueOf(item.amount()).equals(current.get(item.materialKey())));
+    }
+
     private boolean expect(List<MigrationIssue> issues, boolean passed, String code, String message) {
         if (!passed) {
             issues.add(new MigrationIssue(code, message, true));
@@ -853,6 +878,7 @@ final class MigrationAdminBackend {
             + "\"completedMissions\":" + report.completedMissions() + ','
             + "\"blockValues\":" + report.blockValues() + ','
             + "\"blockCounts\":" + report.blockCounts() + ','
+            + "\"warehouseItems\":" + report.warehouseItems() + ','
             + "\"manifestGenerated\":" + report.manifestGenerated() + ','
             + "\"manifestStatus\":\"" + escape(report.manifestStatus()) + "\","
             + "\"conflictIssues\":" + report.conflictIssues() + ','
@@ -910,6 +936,7 @@ final class MigrationAdminBackend {
             .append("\"completedMissions\":").append(missionsJson(manifest)).append(',')
             .append("\"blockValues\":").append(blockValuesJson(manifest)).append(',')
             .append("\"blockCounts\":").append(blockCountsJson(manifest)).append(',')
+            .append("\"warehouseItems\":").append(warehouseItemsJson(manifest)).append(',')
             .append("\"biomeKey\":\"").append(escape(manifest.biomeKey())).append("\",")
             .append("\"bankBalance\":\"").append(escape(manifest.bankBalance())).append("\",")
             .append("\"publicAccess\":").append(manifest.publicAccess()).append(',')
@@ -1075,6 +1102,19 @@ final class MigrationAdminBackend {
             }
             first = false;
             builder.append("{\"materialKey\":\"").append(escape(count.materialKey())).append("\",\"count\":").append(count.count()).append('}');
+        }
+        return builder.append(']').toString();
+    }
+
+    private String warehouseItemsJson(MigrationManifest manifest) {
+        StringBuilder builder = new StringBuilder("[");
+        boolean first = true;
+        for (kr.lunaf.cloudislands.migration.MigrationWarehouseItem item : manifest.warehouseItems()) {
+            if (!first) {
+                builder.append(',');
+            }
+            first = false;
+            builder.append("{\"materialKey\":\"").append(escape(item.materialKey())).append("\",\"amount\":").append(item.amount()).append('}');
         }
         return builder.append(']').toString();
     }

@@ -183,6 +183,7 @@ public final class CloudIslandsCoreApplication {
             limitRepository,
             missionRepository,
             levelRepository,
+            warehouseRepository,
             snapshotRepository,
             migrationRollbackTarget(config, dataSource),
             runtimeRepository,

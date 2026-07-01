@@ -32,6 +32,7 @@ public final class MigrationReportBuilder {
             sum(safeManifests, CountTarget.COMPLETED_MISSIONS),
             sum(safeManifests, CountTarget.BLOCK_VALUES),
             sum(safeManifests, CountTarget.BLOCK_COUNTS),
+            sum(safeManifests, CountTarget.WAREHOUSE_ITEMS),
             blocking,
             warnings,
             importableIslandCount(safeManifests, blocking),
@@ -76,6 +77,7 @@ public final class MigrationReportBuilder {
                 case COMPLETED_MISSIONS -> manifest.completedMissions().size();
                 case BLOCK_VALUES -> manifest.blockValues().size();
                 case BLOCK_COUNTS -> manifest.blockCounts().size();
+                case WAREHOUSE_ITEMS -> manifest.warehouseItems().size();
             };
         }
         return total;
@@ -195,7 +197,8 @@ public final class MigrationReportBuilder {
         LIMITS,
         COMPLETED_MISSIONS,
         BLOCK_VALUES,
-        BLOCK_COUNTS
+        BLOCK_COUNTS,
+        WAREHOUSE_ITEMS
     }
 
     private enum MissingTarget {

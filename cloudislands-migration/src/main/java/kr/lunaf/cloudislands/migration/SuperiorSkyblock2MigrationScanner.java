@@ -41,6 +41,7 @@ public final class SuperiorSkyblock2MigrationScanner {
         "completedmissions", "missionscompleted", "finishedmissions", "completedchallenges", "challengescompleted", "finishedchallenges",
         "biome", "island.biome",
         "bankbalance", "balance", "islandbank", "bank.balance", "bankbalance.amount", "economy.balance",
+        "islandchest", "islandstorage", "warehouse", "storage", "chest",
         "public", "ispublic", "publicaccess", "settings.public", "visitors.public",
         "locked", "islocked", "settings.locked",
         "pvp", "mobspawn", "animalspawn", "monsterspawn", "firespread", "explosion", "creeperdamage", "tntdamage",
@@ -69,7 +70,12 @@ public final class SuperiorSkyblock2MigrationScanner {
         "blockamounts.",
         "block-amounts.",
         "block_amounts.",
-        "blocks."
+        "blocks.",
+        "islandchest.",
+        "islandstorage.",
+        "warehouse.",
+        "storage.",
+        "chest."
     );
     private final Ss2JsonIslandParser jsonParser = new Ss2JsonIslandParser();
     private final Ss2YamlIslandParser yamlParser = new Ss2YamlIslandParser();
@@ -135,6 +141,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             List<MigrationMission> completedMissions = parseCompletedMissions(content);
             List<MigrationBlockValue> blockValues = mergeBlockValues(globalBlockValues, parseBlockValues(content));
             List<MigrationBlockCount> blockCounts = parseBlockCounts(content);
+            List<MigrationWarehouseItem> warehouseItems = parseWarehouseItems(content);
             String biomeKey = parseBiomeKey(content);
             String bankBalance = parseStringAny(content, "0.00", "bankBalance", "balance", "islandBank", "bank.balance", "bankBalance.amount", "economy.balance");
             boolean publicAccess = parseBooleanAny(content, false, "public", "isPublic", "publicAccess", "settings.public", "visitors.public");
@@ -146,7 +153,7 @@ public final class SuperiorSkyblock2MigrationScanner {
             for (MigrationMemberRole memberRole : memberRoles) {
                 allMembers.add(memberRole.playerUuid());
             }
-            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, biomeKey, bankBalance, publicAccess, locked, size, level, worth, islandLocation, sourceWorldPath));
+            manifests.add(new MigrationManifest(islandId, ownerUuid, List.copyOf(allMembers), memberRoles, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, warehouseItems, biomeKey, bankBalance, publicAccess, locked, size, level, worth, islandLocation, sourceWorldPath));
             reportUnsupportedFields(file, content, issues);
         } catch (RuntimeException | IOException exception) {
             issues.add(new MigrationIssue("ISLAND_FILE_PARSE_FAILED", file + ": " + exception.getMessage(), true));
@@ -645,6 +652,33 @@ public final class SuperiorSkyblock2MigrationScanner {
         return List.copyOf(counts.values());
     }
 
+    private List<MigrationWarehouseItem> parseWarehouseItems(String content) {
+        LinkedHashMap<String, MigrationWarehouseItem> items = new LinkedHashMap<>();
+        for (String field : parsed(content).keys()) {
+            String[] parts = field.split("\\.");
+            if (parts.length != 2 || !matchesAny(parts[0], "islandChest", "islandStorage", "warehouse", "storage", "chest")) {
+                continue;
+            }
+            String materialKey = safeMaterialKey(parts[1]);
+            long amount = Math.max(0L, parseLong(content, field, 0L));
+            if (!materialKey.isBlank() && amount > 0L) {
+                items.putIfAbsent(materialKey, new MigrationWarehouseItem(materialKey, amount));
+            }
+        }
+        Matcher matcher = Pattern.compile("(islandChest|islandStorage|warehouse|storage|chest)\\.([A-Za-z0-9:_/-]+)").matcher(content);
+        while (matcher.find()) {
+            String root = matcher.group(1);
+            String rawMaterialKey = matcher.group(2);
+            String materialKey = safeMaterialKey(rawMaterialKey);
+            long amount = Math.max(0L, parseLong(content, root + "." + rawMaterialKey, 0L));
+            if (!materialKey.isBlank() && amount > 0L) {
+                items.putIfAbsent(materialKey, new MigrationWarehouseItem(materialKey, amount));
+            }
+        }
+        addYamlWarehouseItems(items, content, "islandChest", "islandStorage", "warehouse", "storage", "chest");
+        return List.copyOf(items.values());
+    }
+
     private void addYamlBlockValues(LinkedHashMap<String, MigrationBlockValue> values, String content, String... roots) {
         String[] lines = content.split("\\R");
         for (String root : roots) {
@@ -730,6 +764,37 @@ public final class SuperiorSkyblock2MigrationScanner {
                     String value = yamlValue(childTrimmed);
                     if (!materialKey.isBlank() && !value.isBlank()) {
                         counts.putIfAbsent(materialKey, new MigrationBlockCount(materialKey, Math.max(0L, parseLongLiteral(value, 0L))));
+                    }
+                }
+            }
+        }
+    }
+
+    private void addYamlWarehouseItems(LinkedHashMap<String, MigrationWarehouseItem> items, String content, String... roots) {
+        String[] lines = content.split("\\R");
+        for (String root : roots) {
+            for (int index = 0; index < lines.length; index++) {
+                String line = lines[index];
+                String trimmed = line.trim();
+                if (trimmed.isEmpty() || trimmed.startsWith("#") || !root.equals(yamlKey(trimmed))) {
+                    continue;
+                }
+                int parentIndent = line.indexOf(trimmed);
+                for (int child = index + 1; child < lines.length; child++) {
+                    String childLine = lines[child];
+                    String childTrimmed = childLine.trim();
+                    if (childTrimmed.isEmpty() || childTrimmed.startsWith("#")) {
+                        continue;
+                    }
+                    int childIndent = childLine.indexOf(childTrimmed);
+                    if (childIndent <= parentIndent) {
+                        break;
+                    }
+                    String materialKey = safeMaterialKey(yamlKey(childTrimmed));
+                    String value = yamlValue(childTrimmed);
+                    long amount = Math.max(0L, parseLongLiteral(value, 0L));
+                    if (!materialKey.isBlank() && amount > 0L) {
+                        items.putIfAbsent(materialKey, new MigrationWarehouseItem(materialKey, amount));
                     }
                 }
             }

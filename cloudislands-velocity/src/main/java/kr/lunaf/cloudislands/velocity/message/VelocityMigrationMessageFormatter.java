@@ -64,7 +64,8 @@ public final class VelocityMigrationMessageFormatter {
             .append(" limits=").append(snapshot.limits())
             .append(" missions=").append(snapshot.completedMissions())
             .append(" blockValues=").append(snapshot.blockValues())
-            .append(" blockCounts=").append(snapshot.blockCounts());
+            .append(" blockCounts=").append(snapshot.blockCounts())
+            .append(" warehouseItems=").append(snapshot.warehouseItems());
     }
 
     private boolean hasImportedEntityFields(MigrationRunSnapshot snapshot) {
@@ -78,7 +79,8 @@ public final class VelocityMigrationMessageFormatter {
             || snapshot.limits() > 0
             || snapshot.completedMissions() > 0
             || snapshot.blockValues() > 0
-            || snapshot.blockCounts() > 0;
+            || snapshot.blockCounts() > 0
+            || snapshot.warehouseItems() > 0;
     }
 
     private String issuesSuffix(List<MigrationIssueSnapshot> issues) {

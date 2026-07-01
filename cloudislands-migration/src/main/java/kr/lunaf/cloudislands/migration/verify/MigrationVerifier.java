@@ -64,6 +64,7 @@ public final class MigrationVerifier {
         expectEquals(issues, expected.completedMissions(), actual.completedMissions(), "MISSIONS_MISMATCH", "completed missions mismatch " + islandId);
         expectEquals(issues, expected.blockValues(), actual.blockValues(), "BLOCK_VALUES_MISMATCH", "block values mismatch " + islandId);
         expectEquals(issues, expected.blockCounts(), actual.blockCounts(), "BLOCK_COUNTS_MISMATCH", "block counts mismatch " + islandId);
+        expectEquals(issues, expected.warehouseItems(), actual.warehouseItems(), "WAREHOUSE_MISMATCH", "warehouse mismatch " + islandId);
         expectEquals(issues, expected.biomeKey(), actual.biomeKey(), "BIOME_MISMATCH", "biome mismatch " + islandId);
         expectEquals(issues, expected.bankBalance(), actual.bankBalance(), "BANK_BALANCE_MISMATCH", "bank balance mismatch " + islandId);
         expectEquals(issues, expected.publicAccess(), actual.publicAccess(), "PUBLIC_ACCESS_MISMATCH", "public access mismatch " + islandId);

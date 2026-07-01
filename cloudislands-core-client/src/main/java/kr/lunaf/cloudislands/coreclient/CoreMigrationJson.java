@@ -54,6 +54,7 @@ final class CoreMigrationJson {
             (int) CoreJson.number(root, "completedMissions"),
             (int) CoreJson.number(root, "blockValues"),
             (int) CoreJson.number(root, "blockCounts"),
+            (int) CoreJson.number(root, "warehouseItems"),
             (int) CoreJson.number(root, "blockingIssues"),
             (int) CoreJson.number(root, "warningIssues"),
             issues(root)
@@ -97,6 +98,7 @@ final class CoreMigrationJson {
         root.put("completedMissions", snapshot.completedMissions());
         root.put("blockValues", snapshot.blockValues());
         root.put("blockCounts", snapshot.blockCounts());
+        root.put("warehouseItems", snapshot.warehouseItems());
         root.put("blockingIssues", snapshot.blockingIssues());
         root.put("warningIssues", snapshot.warningIssues());
         root.put("issues", (snapshot.issues() == null ? List.<MigrationIssueSnapshot>of() : snapshot.issues()).stream()

@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
+import kr.lunaf.cloudislands.coreservice.warehouse.IslandWarehouseRepository;
 import kr.lunaf.cloudislands.coreservice.workflow.IslandLifecycleWorkflow;
 import kr.lunaf.cloudislands.migration.rollback.MigrationRollbackService.RollbackTarget;
 
@@ -37,6 +38,10 @@ public final class MigrationAdminService {
 
     public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget, IslandRuntimeRepository runtimes, Path migrationBundleRoot, IslandLifecycleWorkflow activationTester) {
         this.backend = new MigrationAdminBackend(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, snapshots, hardRollbackTarget, runtimes, migrationBundleRoot, activationTester);
+    }
+
+    public MigrationAdminService(IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandPermissionRuleRepository permissionRules, IslandUpgradeRepository upgrades, IslandBankRepository bank, IslandLimitRepository limits, IslandMissionRepository missions, IslandLevelRepository levels, IslandWarehouseRepository warehouse, IslandSnapshotRepository snapshots, RollbackTarget hardRollbackTarget, IslandRuntimeRepository runtimes, Path migrationBundleRoot, IslandLifecycleWorkflow activationTester) {
+        this.backend = new MigrationAdminBackend(islands, metadata, playerProfiles, permissionRules, upgrades, bank, limits, missions, levels, warehouse, snapshots, hardRollbackTarget, runtimes, migrationBundleRoot, activationTester);
     }
 
     public synchronized String scan(String path) {

@@ -44,6 +44,8 @@ permissions:
     default: true
   cloudislands.island.warehouse:
     default: true
+  cloudislands.island.warehouse.view:
+    default: true
   cloudislands.island.warehouse.deposit:
     default: true
   cloudislands.island.warehouse.withdraw:

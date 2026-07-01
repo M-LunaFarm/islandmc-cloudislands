@@ -19,7 +19,7 @@ public enum IslandCommandPermission {
     BANK("cloudislands.island.bank", "bank", "bank-balance", "은행", "은행잔액"),
     BANK_DEPOSIT("cloudislands.island.bank.deposit", "deposit", "bank-deposit", "입금"),
     BANK_WITHDRAW("cloudislands.island.bank.withdraw", "withdraw", "bank-withdraw", "출금"),
-    WAREHOUSE("cloudislands.island.warehouse", "warehouse", "warehouse-list", "storage-box", "창고", "창고목록"),
+    WAREHOUSE("cloudislands.island.warehouse.view", Set.of("cloudislands.island.warehouse"), "warehouse", "warehouse-list", "storage-box", "chest", "island-chest", "islandchest", "창고", "창고목록"),
     WAREHOUSE_DEPOSIT("cloudislands.island.warehouse.deposit", "warehouse-deposit", "창고입금"),
     WAREHOUSE_WITHDRAW("cloudislands.island.warehouse.withdraw", "warehouse-withdraw", "창고출금"),
     MEMBERS("cloudislands.island.members", "members", "member-menu", "member-list", "roles", "role-menu", "role-list", "invites", "invite-menu", "invite-list", "bans", "ban-menu", "ban-list", "banlist", "멤버", "멤버관리", "멤버목록", "역할", "역할목록", "초대목록", "밴목록"),
@@ -42,10 +42,16 @@ public enum IslandCommandPermission {
 
     private static final String ADMIN_BYPASS = "cloudislands.admin.bypass";
     private final String node;
+    private final Set<String> legacyNodes;
     private final Set<String> aliases;
 
     IslandCommandPermission(String node, String... aliases) {
+        this(node, Set.of(), aliases);
+    }
+
+    IslandCommandPermission(String node, Set<String> legacyNodes, String... aliases) {
         this.node = node;
+        this.legacyNodes = Set.copyOf(legacyNodes);
         this.aliases = Arrays.stream(aliases)
             .map(IslandCommandPermission::normalize)
             .collect(Collectors.toUnmodifiableSet());
@@ -59,7 +65,7 @@ public enum IslandCommandPermission {
         if (!(sender instanceof Player player)) {
             return true;
         }
-        return player.hasPermission(ADMIN_BYPASS) || player.hasPermission(node);
+        return player.hasPermission(ADMIN_BYPASS) || player.hasPermission(node) || legacyNodes.stream().anyMatch(player::hasPermission);
     }
 
     static boolean hasAccess(CommandSender sender, String subcommand) {

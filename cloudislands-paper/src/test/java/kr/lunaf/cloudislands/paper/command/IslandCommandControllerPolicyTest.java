@@ -110,6 +110,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(permissions.contains("SNAPSHOT(\"cloudislands.island.snapshot\""));
         assertTrue(permissions.contains("RESTORE(\"cloudislands.island.restore\""));
         assertTrue(permissions.contains("player.hasPermission(ADMIN_BYPASS) || player.hasPermission(node)"), "cloudislands.admin.bypass must bypass player sub-permissions");
+        assertTrue(permissions.contains("legacyNodes.stream().anyMatch(player::hasPermission)"), "legacy player permissions must remain compatible");
         assertTrue(router.contains("IslandCommandPermission.fromSubcommand(subcommand)"), "subcommands must be permission-gated before handlers run");
         assertTrue(router.contains("IslandCommandPermission.fromGuiActionId(action.actionId())"), "GUI actions must use the same command permission policy");
         assertTrue(router.contains("island-command-no-permission"), "permission failures must use a localizable message key");
@@ -119,6 +120,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(mainMenu.contains("IslandCommandPermission.fromGuiActionId(actionId)"), "main menu locks must share GUI action permission mapping");
         assertTrue(plugin.contains("cloudislands.island.bank.deposit:"));
         assertTrue(plugin.contains("cloudislands.island.bank.withdraw:"));
+        assertTrue(plugin.contains("cloudislands.island.warehouse.view:"));
         assertTrue(plugin.contains("cloudislands.island.permissions:"));
         assertTrue(plugin.contains("cloudislands.island.restore:"));
     }
@@ -196,6 +198,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(warehouseHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
         assertTrue(warehouseHandler.contains("IslandWarehouseMenu.open"));
+        assertTrue(warehouseHandler.contains("isWarehouseViewCommand(subcommand)"));
+        assertTrue(warehouseHandler.contains("subcommand.equals(\"chest\")"));
         assertTrue(warehouseHandler.contains("IslandWarehouseUseCase"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.listItems"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.deposit"));
@@ -217,6 +221,25 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseUseCase.contains("warehouseCommands.withdraw"));
         assertFalse(warehouseUseCase.contains("coreApiClient.depositIslandWarehouse"));
         assertFalse(warehouseUseCase.contains("coreApiClient.withdrawIslandWarehouse"));
+    }
+
+    @Test
+    void warehouseChestAliasesUseViewPermissionAndCatalogCoverage() throws Exception {
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandCatalog.java"));
+        String permissions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandPermission.java"));
+        String completer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+
+        assertTrue(catalog.contains("\"chest\""));
+        assertTrue(catalog.contains("\"island-chest\""));
+        assertTrue(catalog.contains("\"섬 chest\""));
+        assertTrue(permissions.contains("WAREHOUSE(\"cloudislands.island.warehouse.view\""));
+        assertTrue(permissions.contains("Set.of(\"cloudislands.island.warehouse\")"));
+        assertTrue(permissions.contains("\"chest\""));
+        assertTrue(completer.contains("first.equals(\"chest\")"));
+        assertTrue(plugin.contains("cloudislands.island.warehouse.view:"));
+        assertTrue(plugin.contains("cloudislands.island.warehouse.deposit:"));
+        assertTrue(plugin.contains("cloudislands.island.warehouse.withdraw:"));
     }
 
     @Test

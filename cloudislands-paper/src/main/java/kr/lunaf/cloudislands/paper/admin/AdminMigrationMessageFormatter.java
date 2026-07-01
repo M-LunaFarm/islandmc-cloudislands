@@ -87,7 +87,8 @@ final class AdminMigrationMessageFormatter {
             .append(text.get("admin-command-migration-limits-prefix", " limits=")).append(snapshot.limits())
             .append(text.get("admin-command-migration-missions-prefix", " missions=")).append(snapshot.completedMissions())
             .append(text.get("admin-command-migration-block-values-prefix", " blockValues=")).append(snapshot.blockValues())
-            .append(text.get("admin-command-migration-block-counts-prefix", " blockCounts=")).append(snapshot.blockCounts());
+            .append(text.get("admin-command-migration-block-counts-prefix", " blockCounts=")).append(snapshot.blockCounts())
+            .append(text.get("admin-command-migration-warehouse-items-prefix", " warehouseItems=")).append(snapshot.warehouseItems());
     }
 
     private boolean hasInventoryCounts(MigrationRunSnapshot snapshot) {
@@ -101,7 +102,8 @@ final class AdminMigrationMessageFormatter {
             || snapshot.limits() > 0
             || snapshot.completedMissions() > 0
             || snapshot.blockValues() > 0
-            || snapshot.blockCounts() > 0;
+            || snapshot.blockCounts() > 0
+            || snapshot.warehouseItems() > 0;
     }
 
     private String issuesSuffix(List<MigrationIssueSnapshot> issues) {

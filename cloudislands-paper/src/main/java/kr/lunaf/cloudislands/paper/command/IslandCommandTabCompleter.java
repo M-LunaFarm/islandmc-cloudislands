@@ -77,7 +77,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
             if (first.equals("hoppers") || first.equals("호퍼") || first.equals("spawners") || first.equals("스포너") || first.equals("entities") || first.equals("엔티티") || first.equals("redstone") || first.equals("레드스톤")) {
                 return literalMatches(List.of("25", "50", "100", "250"), args[1]);
             }
-            if (first.equals("warehouse") || first.equals("warehouse-list") || first.equals("창고") || first.equals("창고목록")) {
+            if (first.equals("warehouse") || first.equals("warehouse-list") || first.equals("storage-box") || first.equals("chest") || first.equals("island-chest") || first.equals("islandchest") || first.equals("창고") || first.equals("창고목록")) {
                 return literalMatches(List.of("10", "27", "54", "100"), args[1]);
             }
             if (first.equals("public-warps") || first.equals("publicwarplist") || first.equals("공개워프목록")) {

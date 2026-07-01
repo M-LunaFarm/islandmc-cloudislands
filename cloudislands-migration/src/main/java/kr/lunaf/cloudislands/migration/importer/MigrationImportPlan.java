@@ -83,6 +83,7 @@ public record MigrationImportPlan(List<MigrationManifest> manifests, List<Migrat
         put(digest, manifest.completedMissions());
         put(digest, manifest.blockValues());
         put(digest, manifest.blockCounts());
+        put(digest, manifest.warehouseItems());
         put(digest, manifest.biomeKey());
         put(digest, manifest.bankBalance());
         put(digest, manifest.publicAccess());

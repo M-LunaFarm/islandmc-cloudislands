@@ -102,6 +102,29 @@ class SuperiorSkyblock2MigrationScannerTest {
     }
 
     @Test
+    void scannerMapsSuperiorIslandChestToWarehouseItems() throws Exception {
+        Path islands = root.resolve("islands");
+        Files.createDirectories(islands);
+        Files.writeString(islands.resolve(ISLAND_ID + ".yml"), """
+            islandId: "%s"
+            ownerUuid: "%s"
+            islandChest:
+              "minecraft:cobblestone": 128
+              diamond_block: 3
+            """.formatted(ISLAND_ID, OWNER_ID), StandardCharsets.UTF_8);
+
+        SuperiorSkyblock2MigrationScanner.ScanResult result = new SuperiorSkyblock2MigrationScanner().scan(root);
+
+        assertTrue(result.issues().isEmpty(), result.issues().toString());
+        MigrationManifest manifest = result.manifests().get(0);
+        assertEquals("minecraft:cobblestone", manifest.warehouseItems().get(0).materialKey());
+        assertEquals(128L, manifest.warehouseItems().get(0).amount());
+        assertEquals("diamond_block", manifest.warehouseItems().get(1).materialKey());
+        assertEquals(3L, manifest.warehouseItems().get(1).amount());
+        assertEquals(2, MigrationReportBuilder.build(result.manifests(), result.issues()).warehouseItems());
+    }
+
+    @Test
     void scannerReportsUnsupportedSuperiorSkyblockFieldsAsNonFatalWarnings() throws Exception {
         Path islands = root.resolve("islands");
         Files.createDirectories(islands);

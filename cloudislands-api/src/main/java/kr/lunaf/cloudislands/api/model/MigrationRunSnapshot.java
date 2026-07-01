@@ -35,6 +35,7 @@ public record MigrationRunSnapshot(
     int completedMissions,
     int blockValues,
     int blockCounts,
+    int warehouseItems,
     int blockingIssues,
     int warningIssues,
     List<MigrationIssueSnapshot> issues
@@ -52,7 +53,37 @@ public record MigrationRunSnapshot(
         int removedIslands,
         List<MigrationIssueSnapshot> issues
     ) {
-        this(state, path, "", "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, false, false, 0, 0L, 0L, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, issues);
+        this(state, path, "", "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, false, false, 0, 0L, 0L, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, issues);
+    }
+
+    public MigrationRunSnapshot(
+        String state,
+        String path,
+        int manifests,
+        boolean canImport,
+        boolean imported,
+        int importedIslands,
+        boolean passed,
+        int expected,
+        boolean rolledBack,
+        int removedIslands,
+        int members,
+        int bannedVisitors,
+        int homes,
+        int warps,
+        int flags,
+        int permissions,
+        int upgrades,
+        int limits,
+        int completedMissions,
+        int blockValues,
+        int blockCounts,
+        int warehouseItems,
+        int blockingIssues,
+        int warningIssues,
+        List<MigrationIssueSnapshot> issues
+    ) {
+        this(state, path, "", "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, false, false, 0, 0L, 0L, 0, 0, members, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, warehouseItems, blockingIssues, warningIssues, issues);
     }
 
     public MigrationRunSnapshot(
@@ -81,7 +112,47 @@ public record MigrationRunSnapshot(
         int warningIssues,
         List<MigrationIssueSnapshot> issues
     ) {
-        this(state, path, "", "", "", "", manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, false, false, 0, 0L, 0L, 0, 0, members, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, blockingIssues, warningIssues, issues);
+        this(state, path, manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, members, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, 0, blockingIssues, warningIssues, issues);
+    }
+
+    public MigrationRunSnapshot(
+        String state,
+        String path,
+        String manifestPath,
+        String reportPath,
+        String approvalToken,
+        String sourceFingerprint,
+        int manifests,
+        boolean canImport,
+        boolean imported,
+        int importedIslands,
+        boolean passed,
+        int expected,
+        boolean rolledBack,
+        int removedIslands,
+        boolean rollbackPlanAvailable,
+        boolean rollbackPlanConsumed,
+        int extractedBundles,
+        long extractedFiles,
+        long extractedBytes,
+        int activationTested,
+        int activationTestPassed,
+        int members,
+        int bannedVisitors,
+        int homes,
+        int warps,
+        int flags,
+        int permissions,
+        int upgrades,
+        int limits,
+        int completedMissions,
+        int blockValues,
+        int blockCounts,
+        int blockingIssues,
+        int warningIssues,
+        List<MigrationIssueSnapshot> issues
+    ) {
+        this(state, path, manifestPath, reportPath, approvalToken, sourceFingerprint, manifests, canImport, imported, importedIslands, passed, expected, rolledBack, removedIslands, rollbackPlanAvailable, rollbackPlanConsumed, extractedBundles, extractedFiles, extractedBytes, activationTested, activationTestPassed, members, bannedVisitors, homes, warps, flags, permissions, upgrades, limits, completedMissions, blockValues, blockCounts, 0, blockingIssues, warningIssues, issues);
     }
 
     public boolean hasBlockingIssues() {

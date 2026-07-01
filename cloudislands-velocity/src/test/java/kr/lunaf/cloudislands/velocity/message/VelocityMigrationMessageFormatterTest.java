@@ -68,6 +68,7 @@ class VelocityMigrationMessageFormatterTest {
             0,
             0,
             0,
+            0,
             1,
             1,
             List.of(new MigrationIssueSnapshot("MISSING_HOME", "", true), new MigrationIssueSnapshot("BAD_WARP", "", false))
