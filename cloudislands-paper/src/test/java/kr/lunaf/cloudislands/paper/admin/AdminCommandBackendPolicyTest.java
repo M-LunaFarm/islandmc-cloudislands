@@ -94,6 +94,26 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void dashboardIsAFirstClassAdminOverviewCommand() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("\"dashboard\""), "Dashboard root command must be registered");
+        assertTrue(adminSurface.contains("ciadmin dashboard"), "Dashboard command must be listed in help");
+        assertTrue(source.contains("handleDashboard"), "Dashboard command must have a handler");
+        assertTrue(source.contains("dashboardMessage(List<CharSequence> parts)"), "Dashboard must render a focused overview message");
+        assertTrue(source.contains("coreApiClient.adminMetrics().summary()"), "Dashboard must include typed metrics");
+        assertTrue(source.contains("coreApiClient.adminNodes().listNodesSummary()"), "Dashboard must include typed node state");
+        assertTrue(source.contains("coreApiClient.jobs().list()"), "Dashboard must include typed job queue state");
+        assertTrue(source.contains("coreApiClient.adminRoutes().debug(new UUID(0L, 0L))"), "Dashboard must include typed route state");
+        assertTrue(source.contains("coreApiClient.adminStorage().status()"), "Dashboard must include typed storage health");
+        assertTrue(source.contains("integrationStatusMessage()"), "Dashboard must include integration state");
+        assertTrue(plugin.contains("cloudislands.admin.dashboard"), "Dashboard command must have a plugin permission");
+    }
+
+    @Test
     void configOperationsAreFirstClassAdminCommands() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String configHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminConfigCommandHandler.java"));

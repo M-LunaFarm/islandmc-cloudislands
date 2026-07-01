@@ -145,6 +145,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             sender.sendMessage(adminText("admin-command-status-online-prefix", "CloudIslands onlinePlayers=") + agent.plugin().getServer().getOnlinePlayers().size() + " routeWaitSeconds=" + routeWaitSeconds);
             return true;
         }
+        if (args[0].equalsIgnoreCase("dashboard")) {
+            return handleDashboard(sender);
+        }
         if (args[0].equalsIgnoreCase("doctor")) {
             return handleDoctor(sender);
         }
@@ -570,6 +573,18 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleDashboard(CommandSender sender) {
+        CompletableFuture<CharSequence> metrics = doctorPart("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
+        CompletableFuture<CharSequence> nodes = doctorPart("nodes", coreApiClient.adminNodes().listNodesSummary().thenApply(summary -> adminNodeSummaryMessage("Nodes", summary)));
+        CompletableFuture<CharSequence> jobs = doctorPart("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
+        CompletableFuture<CharSequence> routes = doctorPart("routes", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
+        CompletableFuture<CharSequence> storage = doctorPart("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
+        CompletableFuture<CharSequence> integrations = CompletableFuture.completedFuture("integrations=" + integrationStatusMessage());
+        run(sender, "Dashboard", CompletableFuture.allOf(metrics, nodes, jobs, routes, storage, integrations)
+            .thenApply(_ignored -> dashboardMessage(List.of(metrics.join(), nodes.join(), jobs.join(), routes.join(), storage.join(), integrations.join()))));
+        return true;
+    }
+
     private CompletableFuture<CharSequence> doctorPart(String label, CompletableFuture<? extends CharSequence> future) {
         return future.handle((body, error) -> {
             if (error != null) {
@@ -586,6 +601,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + " node=" + nodeId
             + " online=" + agent.plugin().getServer().getOnlinePlayers().size()
             + " routeWaitSeconds=" + routeWaitSeconds
+            + (renderedParts.isEmpty() ? "" : " | " + String.join(" | ", renderedParts));
+    }
+
+    private CharSequence dashboardMessage(List<CharSequence> parts) {
+        List<String> renderedParts = parts.stream().map(CharSequence::toString).toList();
+        return adminText("admin-command-dashboard-prefix", "Dashboard: ")
+            + "role=" + agent.role()
+            + " node=" + nodeId
+            + " online=" + agent.plugin().getServer().getOnlinePlayers().size()
             + (renderedParts.isEmpty() ? "" : " | " + String.join(" | ", renderedParts));
     }
 
@@ -2222,7 +2246,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "";
         }
         return switch (root) {
-            case "status", "doctor", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }
