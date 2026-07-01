@@ -68,13 +68,13 @@ public interface IslandQueryService {
     CompletableFuture<List<IslandRankSnapshot>> getTopByWorth(int limit);
     CompletableFuture<List<IslandReviewRankSnapshot>> getTopByReviews(int limit);
     default CompletableFuture<List<IslandReviewSnapshot>> getReviews(UUID islandId, int limit) {
-        return CompletableFuture.failedFuture(new UnsupportedOperationException("Island review queries require CloudIslands API 1.1.0 or newer"));
+        return CompletableFuture.completedFuture(List.of());
     }
     default CompletableFuture<IslandVisitorStatsSnapshot> getVisitorStats(UUID islandId, int limit) {
-        return CompletableFuture.failedFuture(new UnsupportedOperationException("Island visitor stats queries require CloudIslands API 1.1.0 or newer"));
+        return CompletableFuture.completedFuture(new IslandVisitorStatsSnapshot(islandId, 0L, 0L, List.of()));
     }
     default CompletableFuture<List<IslandWarehouseItemSnapshot>> getWarehouse(UUID islandId, int limit) {
-        return CompletableFuture.failedFuture(new UnsupportedOperationException("Island warehouse queries require CloudIslands API 1.1.0 or newer"));
+        return CompletableFuture.completedFuture(List.of());
     }
     CompletableFuture<List<IslandSnapshot>> getPublicIslands(int limit);
     CompletableFuture<IslandRuntimeSnapshot> getRuntime(UUID islandId);

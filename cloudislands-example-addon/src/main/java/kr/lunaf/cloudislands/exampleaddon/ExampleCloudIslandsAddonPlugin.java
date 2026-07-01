@@ -2,6 +2,8 @@ package kr.lunaf.cloudislands.exampleaddon;
 
 import java.util.List;
 import java.util.Map;
+import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddonBootstrap;
@@ -17,8 +19,22 @@ public final class ExampleCloudIslandsAddonPlugin extends JavaPlugin implements 
     @Override
     public void onEnable() {
         CloudIslandsAddonBootstrap.registerIfAvailable(this).thenAccept(snapshot ->
-            snapshot.ifPresent(addon -> getLogger().info("Registered " + addon.id() + " with CloudIslands API " + CloudIslandsProvider.get().map(api -> api.apiRuntimeVersion()).orElse("unavailable")))
+            snapshot.ifPresent(addon -> getLogger().info("Registered " + addon.id() + " with CloudIslands API " + apiSummary()))
         );
+    }
+
+    private String apiSummary() {
+        return CloudIslandsProvider.get()
+            .map(this::apiSummary)
+            .orElse("unavailable");
+    }
+
+    private String apiSummary(CloudIslandsApi api) {
+        return api.apiRuntimeVersion()
+            + " capabilities="
+            + String.join(",", api.capabilities())
+            + " warehouseQuery="
+            + api.hasCapability(CloudIslandsApiContract.WAREHOUSE_QUERY_CAPABILITY);
     }
 
     @Override

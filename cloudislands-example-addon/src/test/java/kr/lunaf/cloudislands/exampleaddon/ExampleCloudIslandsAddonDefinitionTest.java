@@ -39,8 +39,11 @@ class ExampleCloudIslandsAddonDefinitionTest {
     @Test
     void pluginDescriptorHardDependsOnCloudIslands() throws Exception {
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/exampleaddon/ExampleCloudIslandsAddonPlugin.java"));
 
         assertTrue(plugin.contains("depend: [CloudIslands]"));
         assertTrue(plugin.contains("main: kr.lunaf.cloudislands.exampleaddon.ExampleCloudIslandsAddonPlugin"));
+        assertTrue(source.contains("api.capabilities()"));
+        assertTrue(source.contains("CloudIslandsApiContract.WAREHOUSE_QUERY_CAPABILITY"));
     }
 }

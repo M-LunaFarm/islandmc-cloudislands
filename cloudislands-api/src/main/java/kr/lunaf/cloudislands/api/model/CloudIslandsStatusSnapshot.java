@@ -180,6 +180,7 @@ public record CloudIslandsStatusSnapshot(
         metadata.put("compatibility-status", "compatible");
         metadata.put("required-metadata-keys", CloudIslandsApiContract.requiredMetadataKeysCsv());
         metadata.put("runtime-api-version", CloudIslandsApiContract.RUNTIME_API_VERSION);
+        metadata.put("capabilities", CloudIslandsApiContract.capabilitiesCsv());
         metadata.put("read-policy", safe(readPolicy));
         metadata.put("write-authority", safe(writeAuthority));
         metadata.put("sync-event-policy", safe(syncEventPolicy));

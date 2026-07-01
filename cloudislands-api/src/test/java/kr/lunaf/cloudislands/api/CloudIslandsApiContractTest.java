@@ -18,6 +18,7 @@ class CloudIslandsApiContractTest {
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("addon-removal-policy"));
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("addon-reconnect-policy"));
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("runtime-api-version"));
+        assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("capabilities"));
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("semantic-version-policy"));
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("deprecation-policy"));
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("compatibility-levels"));
@@ -30,6 +31,7 @@ class CloudIslandsApiContractTest {
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("integration-port-policy"));
 
         assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", CloudIslandsApiContract.ADDON_SUPPORTED_PACKAGING);
+        assertEquals("island-query.reviews,island-query.visitor-stats,island-query.warehouse", CloudIslandsApiContract.capabilitiesCsv());
         assertEquals("addons-may-run-as-external-plugins-or-built-in-feature-packs-through-the-same-spi", CloudIslandsApiContract.ADDON_PACKAGING_POLICY);
         assertEquals("addon-descriptor-may-be-embedded-in-jar-or-distributed-as-sidecar-cloudislands-addon-yml", CloudIslandsApiContract.ADDON_DESCRIPTOR_POLICY);
         assertEquals("distAddons-and-distAddonBundle-package-addon-jars-and-descriptor-sidecars-separately-from-required-core", CloudIslandsApiContract.ADDON_DISTRIBUTION_POLICY);
@@ -57,6 +59,7 @@ class CloudIslandsApiContractTest {
         assertEquals(CloudIslandsApiContract.ADDON_REMOVAL_POLICY, CloudIslandsApiContract.metadata().get("addon-removal-policy"));
         assertEquals(CloudIslandsApiContract.ADDON_RECONNECT_POLICY, CloudIslandsApiContract.metadata().get("addon-reconnect-policy"));
         assertEquals(CloudIslandsApiContract.RUNTIME_API_VERSION, CloudIslandsApiContract.metadata().get("runtime-api-version"));
+        assertEquals(CloudIslandsApiContract.capabilitiesCsv(), CloudIslandsApiContract.metadata().get("capabilities"));
         assertEquals(CloudIslandsApiContract.SEMANTIC_VERSION_POLICY, CloudIslandsApiContract.metadata().get("semantic-version-policy"));
         assertEquals(CloudIslandsApiContract.DEPRECATION_POLICY, CloudIslandsApiContract.metadata().get("deprecation-policy"));
         assertEquals(CloudIslandsApiContract.COMPATIBILITY_LEVELS, CloudIslandsApiContract.metadata().get("compatibility-levels"));

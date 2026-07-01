@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.api;
 
 import java.util.Map;
+import java.util.Set;
 import kr.lunaf.cloudislands.api.compat.ApiCompatibilityPolicy;
 import kr.lunaf.cloudislands.api.service.IslandAdminService;
 import kr.lunaf.cloudislands.api.service.IslandAddonService;
@@ -36,6 +37,14 @@ public interface CloudIslandsApi {
 
     default String apiRuntimeVersion() {
         return CloudIslandsApiContract.RUNTIME_API_VERSION;
+    }
+
+    default Set<String> capabilities() {
+        return Set.copyOf(CloudIslandsApiContract.capabilities());
+    }
+
+    default boolean hasCapability(String capability) {
+        return capability != null && capabilities().contains(capability);
     }
 
     default String apiCompatibilityStatus(String requestedApiVersion) {

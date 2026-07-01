@@ -36,8 +36,23 @@ public final class CloudIslandsApiContract {
     public static final String SECURITY_POSTURE_SUMMARY = "token-or-mtls-core-api,separate-admin-token,per-command-permission,ip-allowlist-for-public-bind";
     public static final String TOPOLOGY_PRIVACY_POLICY = "player-facing-messages-hide-physical-island-node-and-server-names";
     public static final String CONSISTENCY_AUTHORITY_POLICY = "database-transactions-and-fencing-tokens-are-authoritative-redis-locks-are-advisory";
+    public static final String REVIEW_QUERY_CAPABILITY = "island-query.reviews";
+    public static final String VISITOR_STATS_QUERY_CAPABILITY = "island-query.visitor-stats";
+    public static final String WAREHOUSE_QUERY_CAPABILITY = "island-query.warehouse";
 
     private CloudIslandsApiContract() {
+    }
+
+    public static List<String> capabilities() {
+        return List.of(
+            REVIEW_QUERY_CAPABILITY,
+            VISITOR_STATS_QUERY_CAPABILITY,
+            WAREHOUSE_QUERY_CAPABILITY
+        );
+    }
+
+    public static String capabilitiesCsv() {
+        return String.join(",", capabilities());
     }
 
     public static List<String> requiredMetadataKeys() {
@@ -46,6 +61,7 @@ public final class CloudIslandsApiContract {
             "compatibility-status",
             "required-metadata-keys",
             "runtime-api-version",
+            "capabilities",
             "read-policy",
             "write-authority",
             "sync-event-policy",
@@ -125,6 +141,7 @@ public final class CloudIslandsApiContract {
             Map.entry("compatibility-status", "compatible"),
             Map.entry("required-metadata-keys", requiredMetadataKeysCsv()),
             Map.entry("runtime-api-version", RUNTIME_API_VERSION),
+            Map.entry("capabilities", capabilitiesCsv()),
             Map.entry("read-policy", READ_POLICY),
             Map.entry("write-authority", WRITE_AUTHORITY),
             Map.entry("sync-event-policy", SYNC_EVENT_POLICY),

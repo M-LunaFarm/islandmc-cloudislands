@@ -2,12 +2,10 @@ package kr.lunaf.cloudislands.api.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletionException;
 import kr.lunaf.cloudislands.api.model.IslandVisitorStatsSnapshot;
 import org.junit.jupiter.api.Test;
 
@@ -20,16 +18,17 @@ class IslandQueryServiceSurfaceTest {
     }
 
     @Test
-    void newQueryMethodsAreBinaryCompatibleDefaults() {
+    void newQueryMethodsAreSafeBinaryCompatibleDefaults() {
         IslandQueryService service = new MinimalQueryService();
+        UUID islandId = UUID.randomUUID();
 
-        CompletionException error = org.junit.jupiter.api.Assertions.assertThrows(
-            CompletionException.class,
-            () -> service.getReviews(UUID.randomUUID(), 10).join()
-        );
-
-        assertTrue(error.getCause() instanceof UnsupportedOperationException);
-        assertTrue(error.getCause().getMessage().contains("1.1.0"));
+        assertEquals(List.of(), service.getReviews(islandId, 10).join());
+        assertEquals(List.of(), service.getWarehouse(islandId, 10).join());
+        IslandVisitorStatsSnapshot stats = service.getVisitorStats(islandId, 10).join();
+        assertEquals(islandId, stats.islandId());
+        assertEquals(0L, stats.totalVisits());
+        assertEquals(0L, stats.uniqueVisitors());
+        assertEquals(List.of(), stats.recentVisitors());
     }
 
     @Test
