@@ -52,6 +52,17 @@ public final class JdbcRankingRepository implements RankingRepository {
     }
 
     @Override
+    public long dirtyCount() {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT COUNT(DISTINCT island_id) FROM island_block_counts WHERE dirty = true");
+             ResultSet rs = statement.executeQuery()) {
+            return rs.next() ? rs.getLong(1) : 0L;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to count dirty island rankings", exception);
+        }
+    }
+
+    @Override
     public void save(IslandRankSnapshot snapshot) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(saveSql(connection))) {

@@ -35,6 +35,11 @@ public final class CachingRankingRepository implements RankingRepository {
     }
 
     @Override
+    public long dirtyCount() {
+        return delegate.dirtyCount();
+    }
+
+    @Override
     public void save(IslandRankSnapshot snapshot) {
         delegate.save(snapshot);
         bumpVersion();

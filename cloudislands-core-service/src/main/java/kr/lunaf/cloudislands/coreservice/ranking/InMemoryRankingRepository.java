@@ -27,6 +27,11 @@ public final class InMemoryRankingRepository implements RankingRepository {
     }
 
     @Override
+    public long dirtyCount() {
+        return dirty.size();
+    }
+
+    @Override
     public void save(IslandRankSnapshot snapshot) {
         snapshots.put(snapshot.islandId(), snapshot);
         dirty.remove(snapshot.islandId());

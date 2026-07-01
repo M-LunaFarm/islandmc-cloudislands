@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.command;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
@@ -216,7 +217,8 @@ final class IslandProgressionCommandHandler {
     private void showLevel(Player player) {
         runtime.currentIsland(player, "섬 안에서만 레벨을 확인할 수 있습니다.").ifPresent(islandId -> {
             progressionUseCase.islandLevel(islandId)
-                .thenAccept(level -> runtime.message(player, "섬 레벨: " + level.level()))
+                .thenCombine(progressionUseCase.topLevelViews(100), (level, rankings) -> "섬 레벨: " + level.level() + growthTargetSuffix(islandId, level.level(), level.worth(), rankings, "level"))
+                .thenAccept(message -> runtime.message(player, message))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 레벨을 불러오지 못했습니다.");
                     return null;
@@ -227,7 +229,8 @@ final class IslandProgressionCommandHandler {
     private void showWorth(Player player) {
         runtime.currentIsland(player, "섬 안에서만 가치를 확인할 수 있습니다.").ifPresent(islandId -> {
             progressionUseCase.islandLevel(islandId)
-                .thenAccept(level -> runtime.message(player, "섬 가치: " + level.worth()))
+                .thenCombine(progressionUseCase.topWorthViews(100), (level, rankings) -> "섬 가치: " + level.worth() + growthTargetSuffix(islandId, level.level(), level.worth(), rankings, "worth"))
+                .thenAccept(message -> runtime.message(player, message))
                 .exceptionally(error -> {
                     runtime.message(player, "섬 가치를 불러오지 못했습니다.");
                     return null;
@@ -407,6 +410,37 @@ final class IslandProgressionCommandHandler {
         return entries.isEmpty() ? label + ": 기록이 없습니다." : label + ": " + String.join(" | ", entries);
     }
 
+    private static String growthTargetSuffix(UUID islandId, long currentLevel, String currentWorth, List<RankingEntryView> rankings, String valueKey) {
+        RankingEntryView target = nextGrowthTarget(islandId, currentLevel, currentWorth, rankings, valueKey);
+        if (target == null) {
+            return " / 다음 목표: TOP100 기준 상위 목표 없음";
+        }
+        if ("worth".equals(valueKey)) {
+            BigDecimal remaining = decimal(target.worth()).subtract(decimal(currentWorth)).max(BigDecimal.ZERO);
+            return " / 다음 목표: 가치 +" + remaining.stripTrailingZeros().toPlainString() + " (" + target.name() + ")";
+        }
+        long remaining = Math.max(0L, target.level() - currentLevel);
+        return " / 다음 목표: 레벨 +" + remaining + " (" + target.name() + ")";
+    }
+
+    private static RankingEntryView nextGrowthTarget(UUID islandId, long currentLevel, String currentWorth, List<RankingEntryView> rankings, String valueKey) {
+        String ownIslandId = islandId == null ? "" : islandId.toString();
+        BigDecimal worth = decimal(currentWorth);
+        for (RankingEntryView ranking : rankings == null ? List.<RankingEntryView>of() : rankings) {
+            if (ranking.islandId().equalsIgnoreCase(ownIslandId)) {
+                continue;
+            }
+            if ("worth".equals(valueKey)) {
+                if (decimal(ranking.worth()).compareTo(worth) > 0) {
+                    return ranking;
+                }
+            } else if (ranking.level() > currentLevel) {
+                return ranking;
+            }
+        }
+        return null;
+    }
+
     private static String reviewRankingMessage(List<ReviewRankingEntryView> rankings) {
         List<String> entries = new java.util.ArrayList<>();
         for (ReviewRankingEntryView ranking : rankings == null ? List.<ReviewRankingEntryView>of() : rankings) {
@@ -488,6 +522,14 @@ final class IslandProgressionCommandHandler {
             return Long.parseLong(value);
         } catch (RuntimeException ignored) {
             return fallback;
+        }
+    }
+
+    private static BigDecimal decimal(String value) {
+        try {
+            return new BigDecimal(value == null || value.isBlank() ? "0" : value.trim());
+        } catch (RuntimeException ignored) {
+            return BigDecimal.ZERO;
         }
     }
 

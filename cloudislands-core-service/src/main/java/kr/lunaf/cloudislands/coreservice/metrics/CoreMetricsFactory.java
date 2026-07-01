@@ -129,6 +129,7 @@ public final class CoreMetricsFactory {
             () -> "S3".equalsIgnoreCase(config.storageType()) && config.storageEndpoint() != null && "http".equalsIgnoreCase(config.storageEndpoint().getScheme()) && !internalHost(config.storageEndpoint().getHost()),
             () -> config.rateLimitRequests(),
             () -> config.rateLimitWindow().toSeconds(),
+            rankingRepository::dirtyCount,
             rankingRecalculationTask::drainedTotal,
             rankingRecalculationTask::recalculatedTotal,
             rankingRecalculationTask::failuresTotal,

@@ -179,6 +179,9 @@ class GuiSystemPolicyTest {
         assertTrue(config.contains("material: PLAYER_HEAD"), "info menu owner panel material must live in config-v2");
         assertTrue(menu.contains("MENU.itemAt(slot)"), "info menu dynamic panels must render the configured menu item");
         assertTrue(menu.contains("GuiMenuRenderer.item(MENU, item, messages"), "info menu panels must use the shared config-backed renderer");
+        assertTrue(menu.contains("PaperGuiViews.rankings(client, 100)"), "info menu must read rankings for growth target guidance");
+        assertTrue(menu.contains("levelTargetLine(view, rankings.levels(), messages)"), "info menu level panel must show the next level target");
+        assertTrue(menu.contains("worthTargetLine(view, rankings.worths(), messages)"), "info menu level panel must show the next worth target");
         assertFalse(menu.contains("Material.GRASS_BLOCK"), "info menu must not hard-code the basic panel material");
         assertFalse(menu.contains("Material.EXPERIENCE_BOTTLE"), "info menu must not hard-code the level panel material");
         assertFalse(menu.contains("Material.PLAYER_HEAD"), "info menu must not hard-code the owner panel material");

@@ -288,6 +288,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(progressionHandler.contains("progressionUseCase.islandLevel"));
         assertTrue(progressionHandler.contains("progressionUseCase.blockDetailsView"));
         assertTrue(progressionHandler.contains("progressionUseCase.topWorthViews"));
+        assertTrue(progressionHandler.contains("progressionUseCase.topLevelViews(100)"), "level command must calculate the next ranking target");
+        assertTrue(progressionHandler.contains("progressionUseCase.topWorthViews(100)"), "worth command must calculate the next ranking target");
+        assertTrue(progressionHandler.contains("growthTargetSuffix"), "progression messages must show the remaining growth target");
         assertTrue(progressionHandler.contains("progressionUseCase.recalculateLevelView"));
         assertTrue(progressionHandler.contains("progressionUseCase.upgradeViews"));
         assertTrue(progressionHandler.contains("progressionUseCase.purchaseUpgradeResult"));

@@ -17,7 +17,7 @@ final class AdminCommandCatalog {
     static final List<String> STORAGE_COMMANDS = List.of("status", "verify");
     static final List<String> DIAGNOSTICS_COMMANDS = List.of("export");
     static final List<String> RANKING_COMMANDS = List.of("level", "worth");
-    static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "set");
+    static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "search", "set");
     static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     static final List<String> TEMPLATE_COMMANDS = List.of("list", "import", "upsert", "enable", "disable", "preview", "validate");
     static final List<String> MIGRATION_COMMANDS = List.of("scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "verify-no-legacy-provider", "rollback");
@@ -92,6 +92,7 @@ final class AdminCommandCatalog {
         "ciadmin storage verify <island>",
         "ciadmin diagnostics export",
         "ciadmin block-values list",
+        "ciadmin block-values search <query> [limit]",
         "ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",
         "ciadmin upgrade-rules",
         "ciadmin template list",

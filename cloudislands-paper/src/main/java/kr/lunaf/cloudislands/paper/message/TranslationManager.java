@@ -395,6 +395,9 @@ public final class TranslationManager {
         values.put("admin-command-block-values-level-prefix", " level=");
         values.put("admin-command-block-values-limit-prefix", " limit=");
         values.put("admin-command-block-values-total-prefix", "Block values: total=");
+        values.put("admin-command-block-values-search-empty-prefix", "Block values search: no matches for ");
+        values.put("admin-command-block-values-search-prefix", "Block values search: query=");
+        values.put("admin-command-block-values-search-total-prefix", " matches=");
         values.put("admin-command-templates-empty", "Templates: empty");
         values.put("admin-command-template-enabled", "enabled");
         values.put("admin-command-template-disabled", "disabled");
@@ -733,6 +736,10 @@ public final class TranslationManager {
         values.put("info-menu-level-title", "레벨");
         values.put("info-menu-level", "레벨: ");
         values.put("info-menu-worth", "가치: ");
+        values.put("info-menu-next-level-target-none", "다음 레벨 목표: TOP100 기준 상위 목표 없음");
+        values.put("info-menu-next-level-target-prefix", "다음 레벨 목표: +");
+        values.put("info-menu-next-worth-target-none", "다음 가치 목표: TOP100 기준 상위 목표 없음");
+        values.put("info-menu-next-worth-target-prefix", "다음 가치 목표: +");
         values.put("info-menu-access-title", "공개 상태");
         values.put("info-menu-public-access", "공개 여부: ");
         values.put("info-menu-locked", "잠금 여부: ");

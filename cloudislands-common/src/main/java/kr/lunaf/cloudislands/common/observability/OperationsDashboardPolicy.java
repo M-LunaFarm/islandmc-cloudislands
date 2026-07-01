@@ -36,6 +36,11 @@ public final class OperationsDashboardPolicy {
         metrics.put("island-activation-seconds-by-node", "cloudislands_island_activation_seconds");
         metrics.put("island-save-failures", "cloudislands_island_save_failures_total");
         metrics.put("route-failures", "cloudislands_route_ticket_failed_total");
+        metrics.put("ranking-cache-stale", "cloudislands_ranking_cache_stale");
+        metrics.put("ranking-dirty-pending", "cloudislands_ranking_dirty_pending");
+        metrics.put("ranking-dirty-drained", "cloudislands_ranking_dirty_drained_total");
+        metrics.put("ranking-recalculation-failures", "cloudislands_ranking_recalculation_failures_total");
+        metrics.put("ranking-recalculation-last-batch-size", "cloudislands_ranking_recalculation_last_batch_size");
         metrics.put("redis-latency", "cloudislands_redis_latency_seconds");
         metrics.put("database-connection-pool-usage", "cloudislands_database_connection_pool_usage_ratio");
         metrics.put("database-connection-pool-available", "cloudislands_database_connections_available");

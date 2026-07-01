@@ -305,6 +305,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args.length == 3 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
             return matches(BLOCK_VALUE_MATERIALS, args[2]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("search")) {
+            return matches(BLOCK_VALUE_MATERIALS, args[2]);
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("search")) {
+            return matches(List.of("5", "10", "25", "50"), args[3]);
+        }
         if (args.length == 4 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
             return matches(List.of("1.0", "10.0", "100.0"), args[3]);
         }
@@ -1030,6 +1036,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Block values", coreApiClient.blockValues().list().thenApply(this::blockValueListMessage));
             return true;
         }
+        if (args[1].equalsIgnoreCase("search")) {
+            if (args.length < 3) {
+                sender.sendMessage(adminText("admin-command-block-values-search-usage", "사용법: /ciadmin block-values search <query> [limit]"));
+                return true;
+            }
+            String query = args[2];
+            int limit = args.length > 3 ? (int) number(args[3], 10L) : 10;
+            run(sender, "Block value search", coreApiClient.blockValues().list().thenApply(values -> blockValueSearchMessage(query, values, limit)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("set")) {
             if (args.length < 6) {
                 sender.sendMessage(adminText("admin-command-block-values-set-usage", "사용법: /ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>"));
@@ -1041,6 +1057,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         sendCommandUsage(sender, List.of(
             "/ciadmin block-values list",
+            "/ciadmin block-values search <query> [limit]",
             "/ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>"
         ));
         return true;
@@ -1566,6 +1583,22 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
         }
         return adminText("admin-command-block-values-total-prefix", "Block values: total=") + values.size() + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String blockValueSearchMessage(String query, List<BlockValueView> values, int limit) {
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        int cappedLimit = Math.max(1, Math.min(limit, 50));
+        List<BlockValueView> safeValues = values == null ? List.of() : values;
+        List<BlockValueView> matches = safeValues.stream()
+            .filter(value -> value != null && value.materialKey().toLowerCase(Locale.ROOT).contains(normalizedQuery))
+            .limit(cappedLimit)
+            .toList();
+        if (matches.isEmpty()) {
+            return adminText("admin-command-block-values-search-empty-prefix", "Block values search: no matches for ") + normalizedQuery;
+        }
+        return adminText("admin-command-block-values-search-prefix", "Block values search: query=") + normalizedQuery
+            + adminText("admin-command-block-values-search-total-prefix", " matches=") + matches.size()
+            + " / " + blockValueListMessage(matches);
     }
 
     private String blockValueActionMessage(String label, String targetId, BlockValueActionView result) {

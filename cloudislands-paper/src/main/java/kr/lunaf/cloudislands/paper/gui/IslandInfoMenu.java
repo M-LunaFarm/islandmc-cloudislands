@@ -1,10 +1,13 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.IslandInfoView;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.RankingData;
+import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.RankingView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -52,7 +55,8 @@ public final class IslandInfoMenu implements Listener {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandInfo(client, islandId)
-            .thenAccept(view -> openSync(plugin, player, session, view, messages))
+            .thenCombine(PaperGuiViews.rankings(client, 100), InfoGrowthView::new)
+            .thenAccept(view -> openSync(plugin, player, session, view.info(), view.rankings(), messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "info-menu-load-failed", "섬 정보를 불러오지 못했습니다."), "island.info.open", "island.main.open");
                 return null;
@@ -80,6 +84,10 @@ public final class IslandInfoMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, IslandInfoView view, MessageRenderer messages) {
+        openSync(plugin, player, session, view, new RankingData(List.of(), List.of(), List.of()), messages);
+    }
+
+    private static void openSync(Plugin plugin, Player player, GuiSession session, IslandInfoView view, RankingData rankings, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             setInfoItem(inventory, "A", messages,
@@ -88,7 +96,9 @@ public final class IslandInfoMenu implements Listener {
                 message(messages, "info-menu-island-id", "섬 ID: ") + shortId(view.islandId(), messages));
             setInfoItem(inventory, "B", messages,
                 message(messages, "info-menu-level", "레벨: ") + view.level(),
-                message(messages, "info-menu-worth", "가치: ") + fallback(view.worth(), "0"));
+                message(messages, "info-menu-worth", "가치: ") + fallback(view.worth(), "0"),
+                levelTargetLine(view, rankings.levels(), messages),
+                worthTargetLine(view, rankings.worths(), messages));
             setInfoItem(inventory, "C", messages,
                 message(messages, "info-menu-public-access", "공개 여부: ") + yesNo(view.publicAccess(), messages),
                 message(messages, "info-menu-locked", "잠금 여부: ") + yesNo(view.locked(), messages));
@@ -123,5 +133,53 @@ public final class IslandInfoMenu implements Listener {
             return message(messages, "info-menu-unknown", "알 수 없음");
         }
         return value.length() <= 8 ? value : value.substring(0, 8);
+    }
+
+    private static String levelTargetLine(IslandInfoView view, List<RankingView> rankings, MessageRenderer messages) {
+        RankingView target = nextLevelTarget(view, rankings);
+        if (target == null) {
+            return message(messages, "info-menu-next-level-target-none", "다음 레벨 목표: TOP100 기준 상위 목표 없음");
+        }
+        long remaining = Math.max(0L, target.level() - view.level());
+        return message(messages, "info-menu-next-level-target-prefix", "다음 레벨 목표: +") + remaining + " (#" + target.rank() + ")";
+    }
+
+    private static String worthTargetLine(IslandInfoView view, List<RankingView> rankings, MessageRenderer messages) {
+        RankingView target = nextWorthTarget(view, rankings);
+        if (target == null) {
+            return message(messages, "info-menu-next-worth-target-none", "다음 가치 목표: TOP100 기준 상위 목표 없음");
+        }
+        BigDecimal remaining = decimal(target.worth()).subtract(decimal(view.worth())).max(BigDecimal.ZERO);
+        return message(messages, "info-menu-next-worth-target-prefix", "다음 가치 목표: +") + remaining.stripTrailingZeros().toPlainString() + " (#" + target.rank() + ")";
+    }
+
+    private static RankingView nextLevelTarget(IslandInfoView view, List<RankingView> rankings) {
+        for (RankingView ranking : rankings == null ? List.<RankingView>of() : rankings) {
+            if (!ranking.islandId().equalsIgnoreCase(view.islandId()) && ranking.level() > view.level()) {
+                return ranking;
+            }
+        }
+        return null;
+    }
+
+    private static RankingView nextWorthTarget(IslandInfoView view, List<RankingView> rankings) {
+        BigDecimal currentWorth = decimal(view.worth());
+        for (RankingView ranking : rankings == null ? List.<RankingView>of() : rankings) {
+            if (!ranking.islandId().equalsIgnoreCase(view.islandId()) && decimal(ranking.worth()).compareTo(currentWorth) > 0) {
+                return ranking;
+            }
+        }
+        return null;
+    }
+
+    private static BigDecimal decimal(String value) {
+        try {
+            return new BigDecimal(value == null || value.isBlank() ? "0" : value.trim());
+        } catch (RuntimeException ignored) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private record InfoGrowthView(IslandInfoView info, RankingData rankings) {
     }
 }
