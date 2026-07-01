@@ -97,6 +97,11 @@ final class IslandCommandRouterFactory {
                         return false;
                     }
                 }
+
+                @Override
+                public boolean hasCommandPermission(Player player, IslandCommandPermission permission) {
+                    return permission == null || permission.allows(player);
+                }
             }
         );
     }

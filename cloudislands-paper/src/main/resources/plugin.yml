@@ -20,6 +20,68 @@ commands:
 permissions:
   cloudislands.player:
     default: true
+  cloudislands.island.menu:
+    default: true
+  cloudislands.island.create:
+    default: true
+  cloudislands.island.delete:
+    default: true
+  cloudislands.island.reset:
+    default: true
+  cloudislands.island.home:
+    default: true
+  cloudislands.island.sethome:
+    default: true
+  cloudislands.island.warp:
+    default: true
+  cloudislands.island.setwarp:
+    default: true
+  cloudislands.island.bank:
+    default: true
+  cloudislands.island.bank.deposit:
+    default: true
+  cloudislands.island.bank.withdraw:
+    default: true
+  cloudislands.island.warehouse:
+    default: true
+  cloudislands.island.warehouse.deposit:
+    default: true
+  cloudislands.island.warehouse.withdraw:
+    default: true
+  cloudislands.island.members:
+    default: true
+  cloudislands.island.invite:
+    default: true
+  cloudislands.island.invite.respond:
+    default: true
+  cloudislands.island.kick:
+    default: true
+  cloudislands.island.trust:
+    default: true
+  cloudislands.island.promote:
+    default: true
+  cloudislands.island.demote:
+    default: true
+  cloudislands.island.transfer:
+    default: true
+  cloudislands.island.settings:
+    default: true
+  cloudislands.island.permissions:
+    default: true
+  cloudislands.island.snapshot:
+    default: true
+  cloudislands.island.restore:
+    default: true
+  cloudislands.island.review:
+    default: true
+  cloudislands.island.visitor-stats:
+    default: true
+  cloudislands.island.progression:
+    default: true
+  cloudislands.island.chat:
+    default: true
+  cloudislands.island.environment:
+    default: true
   cloudislands.admin:
     default: op
   cloudislands.admin.bypass:

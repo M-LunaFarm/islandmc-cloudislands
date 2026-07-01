@@ -19,6 +19,7 @@ class AdminCommandBackendPolicyTest {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String boundaryListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandBoundaryListener.java"));
         String mainMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMainMenu.java"));
+        String islandCommandPermissions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandPermission.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
         String runtimeSources = backend + "\n" + boundaryListener + "\n" + mainMenu;
 
@@ -27,6 +28,7 @@ class AdminCommandBackendPolicyTest {
         backedPermissions.addAll(commandPermissionNodes(plugin));
         backedPermissions.addAll(explicitHasPermissionNodes(runtimeSources));
         backedPermissions.addAll(mappedAdminPermissionNodes(backend));
+        backedPermissions.addAll(mappedIslandPermissionNodes(islandCommandPermissions));
 
         assertTrue(backend.contains("if (!hasAdminAccess(sender, args))"), "Admin commands must pass through the runtime permission gate");
         assertTrue(backend.contains("return !permission.isBlank() && sender.hasPermission(permission);"), "Admin sub-permissions must be checked before routing");
@@ -305,5 +307,14 @@ class AdminCommandBackendPolicyTest {
             .map(root -> root.replace("\"", ""))
             .map(root -> "cloudislands.admin." + root)
             .collect(Collectors.toCollection(TreeSet::new));
+    }
+
+    private static Set<String> mappedIslandPermissionNodes(String source) {
+        Matcher matcher = Pattern.compile("\"(cloudislands\\.island\\.[^\"]+)\"").matcher(source);
+        Set<String> permissions = new TreeSet<>();
+        while (matcher.find()) {
+            permissions.add(matcher.group(1));
+        }
+        return permissions;
     }
 }

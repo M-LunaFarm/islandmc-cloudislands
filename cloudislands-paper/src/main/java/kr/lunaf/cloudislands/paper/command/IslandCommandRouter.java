@@ -79,6 +79,11 @@ final class IslandCommandRouter {
             sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, commandListPage);
             return true;
         }
+        IslandCommandPermission permission = IslandCommandPermission.fromSubcommand(subcommand);
+        if (permission != null && !runtime.hasCommandPermission(player, permission)) {
+            runtime.message(player, runtime.routeMessage("island-command-no-permission", "이 섬 명령을 사용할 권한이 없습니다."));
+            return true;
+        }
         if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
             openMainMenuOrCommandList(player, label);
             return true;
@@ -131,6 +136,11 @@ final class IslandCommandRouter {
         }
         if (action instanceof GuiAction.Close) {
             player.closeInventory();
+            return;
+        }
+        IslandCommandPermission permission = IslandCommandPermission.fromGuiActionId(action.actionId());
+        if (permission != null && !runtime.hasCommandPermission(player, permission)) {
+            runtime.message(player, runtime.routeMessage("island-command-no-permission", "이 섬 명령을 사용할 권한이 없습니다."));
             return;
         }
         if (action instanceof GuiAction.MainOpen) {
@@ -269,6 +279,8 @@ final class IslandCommandRouter {
         String routeMessage(String key, String fallback);
 
         boolean openMainMenu(Player player);
+
+        boolean hasCommandPermission(Player player, IslandCommandPermission permission);
     }
 
     private record HelpCategoryRequest(IslandCommandCatalog.HelpCategory category, int page) {

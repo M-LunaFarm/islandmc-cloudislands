@@ -30,6 +30,9 @@ final class IslandCommandTabCompleter implements TabCompleter {
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (args.length > 1 && !IslandCommandPermission.hasAccess(sender, args[0])) {
+            return List.of();
+        }
         if (args.length == 2 && args[0].equalsIgnoreCase("command")) {
             return literalMatches(List.of("list", "목록"), args[1]);
         }
@@ -156,7 +159,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
         String typed = args[0].toLowerCase(Locale.ROOT);
         List<String> matches = new ArrayList<>();
         for (String subcommand : IslandCommandBackend.SUBCOMMANDS) {
-            if (typed.isBlank() || subcommand.toLowerCase(Locale.ROOT).startsWith(typed)) {
+            if ((typed.isBlank() || subcommand.toLowerCase(Locale.ROOT).startsWith(typed)) && IslandCommandPermission.hasAccess(sender, subcommand)) {
                 matches.add(subcommand);
             }
         }

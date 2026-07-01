@@ -79,6 +79,35 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void islandPlayerCommandsUseGranularPermissionPolicy() throws Exception {
+        String permissions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandPermission.java"));
+        String router = routerSource();
+        String completer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
+        String mainMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMainMenu.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+
+        assertTrue(permissions.contains("MENU(\"cloudislands.island.menu\""));
+        assertTrue(permissions.contains("CREATE(\"cloudislands.island.create\""));
+        assertTrue(permissions.contains("BANK_DEPOSIT(\"cloudislands.island.bank.deposit\""));
+        assertTrue(permissions.contains("BANK_WITHDRAW(\"cloudislands.island.bank.withdraw\""));
+        assertTrue(permissions.contains("INVITE(\"cloudislands.island.invite\""));
+        assertTrue(permissions.contains("SNAPSHOT(\"cloudislands.island.snapshot\""));
+        assertTrue(permissions.contains("RESTORE(\"cloudislands.island.restore\""));
+        assertTrue(permissions.contains("player.hasPermission(ADMIN_BYPASS) || player.hasPermission(node)"), "cloudislands.admin.bypass must bypass player sub-permissions");
+        assertTrue(router.contains("IslandCommandPermission.fromSubcommand(subcommand)"), "subcommands must be permission-gated before handlers run");
+        assertTrue(router.contains("IslandCommandPermission.fromGuiActionId(action.actionId())"), "GUI actions must use the same command permission policy");
+        assertTrue(router.contains("island-command-no-permission"), "permission failures must use a localizable message key");
+        assertTrue(completer.contains("!IslandCommandPermission.hasAccess(sender, args[0])"), "tab-complete must hide arguments for denied commands");
+        assertTrue(completer.contains("IslandCommandPermission.hasAccess(sender, subcommand)"), "top-level tab-complete must hide denied subcommands");
+        assertTrue(mainMenu.contains("Material.BARRIER"), "main menu must show locked entries for denied features");
+        assertTrue(mainMenu.contains("IslandCommandPermission.fromGuiActionId(actionId)"), "main menu locks must share GUI action permission mapping");
+        assertTrue(plugin.contains("cloudislands.island.bank.deposit:"));
+        assertTrue(plugin.contains("cloudislands.island.bank.withdraw:"));
+        assertTrue(plugin.contains("cloudislands.island.permissions:"));
+        assertTrue(plugin.contains("cloudislands.island.restore:"));
+    }
+
+    @Test
     void bankCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String bankHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java"));
