@@ -88,6 +88,10 @@ final class IslandCommandBackend {
     }
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players, PaperWorldGateway worlds, String configuredNodeId, String defaultGeneratorKey) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, players, worlds, configuredNodeId, defaultGeneratorKey, true);
+    }
+
+    IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players, PaperWorldGateway worlds, String configuredNodeId, String defaultGeneratorKey, boolean guiMenusEnabled) {
         this.commandMessages = new IslandCommandMessenger(plugin, messages, locales);
         this.islandContext = new IslandCommandIslandContext(protection);
         this.memberManagement = new MemberManagementUseCase(coreApiClient);
@@ -129,7 +133,8 @@ final class IslandCommandBackend {
             overviewCommands,
             membershipCommands,
             adminCommands,
-            commandMessages
+            commandMessages,
+            guiMenusEnabled
         );
     }
 

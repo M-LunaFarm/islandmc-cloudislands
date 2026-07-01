@@ -65,7 +65,7 @@ final class IslandCommandRouter {
             return true;
         }
         if (args.length == 0) {
-            sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
+            openMainMenuOrCommandList(player, label);
             return true;
         }
         String subcommand = args[0].toLowerCase(Locale.ROOT);
@@ -80,7 +80,7 @@ final class IslandCommandRouter {
             return true;
         }
         if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
-            sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
+            openMainMenuOrCommandList(player, label);
             return true;
         }
         if (overviewCommands.handleCommand(player, subcommand)) {
@@ -134,7 +134,7 @@ final class IslandCommandRouter {
             return;
         }
         if (action instanceof GuiAction.MainOpen) {
-            sendCommandList(player, "섬", "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
+            openMainMenuOrCommandList(player, "섬");
             return;
         }
         if (bankCommands.handleGuiAction(player, action)) {
@@ -195,6 +195,12 @@ final class IslandCommandRouter {
         }
         if (commandPage.nextCommand() != null) {
             player.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand());
+        }
+    }
+
+    private void openMainMenuOrCommandList(Player player, String label) {
+        if (!runtime.openMainMenu(player)) {
+            sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
         }
     }
 
@@ -261,6 +267,8 @@ final class IslandCommandRouter {
         void message(Player player, String message);
 
         String routeMessage(String key, String fallback);
+
+        boolean openMainMenu(Player player);
     }
 
     private record HelpCategoryRequest(IslandCommandCatalog.HelpCategory category, int page) {
