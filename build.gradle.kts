@@ -997,117 +997,7 @@ tasks.register("verifyRoutingRefactorCoverage") {
 
 apply(from = "gradle/report-gates.gradle.kts")
 
-tasks.register("verifyMinecraftVersionMatrix") {
-    group = "verification"
-    description = "Validates the typed Minecraft version matrix and writes the external runtime matrix report."
-    inputs.file(minecraftVersionMatrixFile)
-    inputs.file(layout.projectDirectory.file(".github/workflows/build.yml"))
-    outputs.file(rootProject.layout.projectDirectory.dir("../codex-output").file("runtime-matrix.md"))
-    doLast {
-        minecraftVersionMatrix.validate(rootProject.projectDir, minecraftBaselineVersion)
-        verifyMinecraftCiCoverage(layout.projectDirectory.file(".github/workflows/build.yml").asFile.readText())
-        val output = rootProject.layout.projectDirectory.dir("../codex-output").file("runtime-matrix.md").asFile
-        output.parentFile.mkdirs()
-        output.writeText(minecraftVersionMatrix.detailedReport())
-        logger.lifecycle("Latest stable Minecraft matrix entry: ${minecraftVersionMatrix.latestStable.id}")
-    }
-}
-
-fun verifyMinecraftCiCoverage(workflow: String) {
-    val missingCompileTasks = minecraftVersionMatrix.compileEntries
-        .map { it.compileTaskName }
-        .filterNot(workflow::contains)
-    val missingBootTasks = minecraftVersionMatrix.stableBootEntries
-        .map { it.bootSmokeTaskName }
-        .filterNot(workflow::contains)
-    val missingAggregateTasks = listOf(
-        "verifyMinecraftVersionMatrix",
-        "compileAllMinecraftVersions",
-        "verifyAdapterPackaging",
-        "bootSmokeAllStableMinecraftVersions",
-        "apiCompatibilityCheck",
-        "protocolCompatibilityCheck",
-        "distChecksums",
-        "distSbom",
-        "distProvenance",
-        "verifyReleaseSecurityGate"
-    ).filterNot(workflow::contains)
-    val failures = buildList {
-        if (missingCompileTasks.isNotEmpty()) {
-            add("Build workflow does not compile matrix tasks: ${missingCompileTasks.joinToString(", ")}")
-        }
-        if (missingBootTasks.isNotEmpty()) {
-            add("Build workflow does not boot-smoke stable matrix tasks: ${missingBootTasks.joinToString(", ")}")
-        }
-        if (missingAggregateTasks.isNotEmpty()) {
-            add("Build workflow is missing aggregate release gates: ${missingAggregateTasks.joinToString(", ")}")
-        }
-    }
-    if (failures.isNotEmpty()) {
-        throw GradleException(failures.joinToString("\n"))
-    }
-}
-
-tasks.register("verifyReadmeVersionTable") {
-    group = "verification"
-    description = "Verifies the README compact support table matches the Minecraft version matrix."
-    inputs.file(minecraftVersionMatrixFile)
-    inputs.file(layout.projectDirectory.file("README.md"))
-    doLast {
-        val readme = layout.projectDirectory.file("README.md").asFile.readText()
-        val expected = minecraftVersionMatrix.readmeBlock()
-        val start = "<!-- minecraft-version-matrix:start -->"
-        val end = "<!-- minecraft-version-matrix:end -->"
-        val block = Regex("(?s)${Regex.escape(start)}.*?${Regex.escape(end)}")
-            .find(readme)
-            ?.value
-            ?: throw GradleException("README compact support table markers are missing")
-        if (block.trim() != expected.trim()) {
-            throw GradleException("README compact support table has drifted from gradle/minecraft-versions.toml")
-        }
-    }
-}
-
-val verifyAdapterPackaging = tasks.register("verifyAdapterPackaging") {
-    group = "verification"
-    description = "Verifies the final Paper artifact contains all matrix adapters without duplicate entries."
-    val paperJar = project(":cloudislands-paper").tasks.named<Jar>("shadowJar")
-    dependsOn(paperJar)
-    inputs.file(paperJar.flatMap { it.archiveFile })
-    inputs.file(minecraftVersionMatrixFile)
-    doLast {
-        minecraftVersionMatrix.validate(rootProject.projectDir, minecraftBaselineVersion)
-        val requiredEntries = listOf(
-            "kr/lunaf/cloudislands/paper/platform/compatibility/PaperRuntimeCompatibility.class",
-            "kr/lunaf/cloudislands/paper/platform/compatibility/PaperRuntimeCompatibility\$RuntimeSelection.class",
-            "kr/lunaf/cloudislands/paper/platform/compatibility/PaperAdapterSelfTest.class",
-            "kr/lunaf/cloudislands/paper/platform/compatibility/PaperVersionAdapter.class",
-            "kr/lunaf/cloudislands/paper/platform/compatibility/PaperVersionAdapterRegistry.class",
-            "kr/lunaf/cloudislands/paper/platform/compatibility/AbstractPaper26Adapter.class",
-            "kr/lunaf/cloudislands/paper/platform/compatibility/DefaultPaperVersionAdapter.class",
-            "kr/lunaf/cloudislands/paper/platform/compatibility/RuntimeCapabilities.class",
-            "kr/lunaf/cloudislands/paper/platform/compatibility/ServerVersion.class",
-            "kr/lunaf/cloudislands/paper/platform/compatibility/VersionRange.class"
-        ) + minecraftVersionMatrix.entries.map { it.adapterJarEntry }
-        ZipFile(paperJar.get().archiveFile.get().asFile).use { zip ->
-            val entries = zip.entries().asSequence().map { it.name }.toList()
-            val missing = requiredEntries.filterNot(entries::contains)
-            if (missing.isNotEmpty()) {
-                throw GradleException("Paper matrix adapter classes missing from final artifact: ${missing.joinToString(", ")}")
-            }
-            val duplicates = entries.groupingBy { it }.eachCount().filterValues { it > 1 }.keys.sorted()
-            if (duplicates.isNotEmpty()) {
-                throw GradleException("Duplicate class/resource entries in final Paper artifact: ${duplicates.joinToString(", ")}")
-            }
-        }
-    }
-}
-
-tasks.register("verifyVersionPackaging") {
-    group = "verification"
-    description = "Compatibility alias for verifyAdapterPackaging."
-    dependsOn(verifyAdapterPackaging)
-}
+apply(from = "gradle/version-matrix-gates.gradle.kts")
 
 tasks.named("check") {
     dependsOn(tasks.named("verifyMinecraftVersionMatrix"))
@@ -1115,11 +1005,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyFeatureParityEvidence"))
     dependsOn(tasks.named("apiCompatibilityCheck"))
     dependsOn(tasks.named("protocolCompatibilityCheck"))
-    dependsOn(verifyAdapterPackaging)
-}
-
-tasks.named("distBundle") {
-    dependsOn(verifyAdapterPackaging)
+    dependsOn(tasks.named("verifyAdapterPackaging"))
 }
 
 apply(from = "gradle/integration-gates.gradle.kts")
