@@ -1,0 +1,39 @@
+id: admin.jobs
+rows: 3
+title-key: admin-job-menu-title
+layout:
+  - "........."
+  - ".L.R.C..."
+  - "........X"
+items:
+  L:
+    material: WRITABLE_BOOK
+    name-key: admin-job-menu-list-name
+    fallback-name: 작업 목록
+    fallback-lore:
+      - "/ciadmin jobs list"
+    action: list
+  R:
+    material: EMERALD
+    name-key: admin-job-menu-retry-name
+    fallback-name: 작업 재시도
+    fallback-lore:
+      - "/ciadmin jobs retry <jobId>"
+    action: retry
+  C:
+    material: BARRIER
+    name-key: admin-job-menu-cancel-name
+    fallback-name: 작업 취소
+    fallback-lore:
+      - "/ciadmin jobs cancel <jobId>"
+    action: cancel
+  X:
+    material: OAK_DOOR
+    name-key: admin-menu-close-name
+    fallback-name: 닫기
+    action: close
+actions:
+  list: admin.jobs.list
+  retry: admin.jobs.retry.prompt
+  cancel: admin.jobs.cancel.prompt
+  close: gui.close

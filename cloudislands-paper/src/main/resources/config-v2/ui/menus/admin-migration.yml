@@ -1,0 +1,55 @@
+id: admin.migration
+rows: 3
+title-key: admin-migration-menu-title
+layout:
+  - "........."
+  - ".S.D.I.V."
+  - ".R......X"
+items:
+  S:
+    material: MAP
+    name-key: admin-migration-menu-scan-name
+    fallback-name: 스캔
+    fallback-lore:
+      - "/ciadmin migrate-superiorskyblock2 scan"
+    action: scan
+  D:
+    material: PAPER
+    name-key: admin-migration-menu-dryrun-name
+    fallback-name: Dry-run
+    fallback-lore:
+      - "/ciadmin migrate-superiorskyblock2 dryrun"
+    action: dryrun
+  I:
+    material: MINECART
+    name-key: admin-migration-menu-import-name
+    fallback-name: 승인 토큰으로 가져오기
+    fallback-lore:
+      - "/ciadmin migrate-superiorskyblock2 import <approvalToken>"
+    action: import
+  V:
+    material: EMERALD
+    name-key: admin-migration-menu-verify-name
+    fallback-name: 검증
+    fallback-lore:
+      - "/ciadmin migrate-superiorskyblock2 verify"
+    action: verify
+  R:
+    material: REDSTONE_BLOCK
+    name-key: admin-migration-menu-rollback-name
+    fallback-name: 롤백
+    fallback-lore:
+      - "/ciadmin migrate-superiorskyblock2 rollback"
+    action: rollback
+  X:
+    material: OAK_DOOR
+    name-key: admin-menu-close-name
+    fallback-name: 닫기
+    action: close
+actions:
+  scan: admin.migration.scan
+  dryrun: admin.migration.dryrun
+  import: admin.migration.import.prompt
+  verify: admin.migration.verify
+  rollback: admin.migration.rollback.prompt
+  close: gui.close

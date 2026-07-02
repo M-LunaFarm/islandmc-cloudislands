@@ -1,14 +1,19 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeActionResult;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeSummary;
-import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminStorageMenu;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Material;
@@ -17,12 +22,14 @@ import org.bukkit.plugin.Plugin;
 
 final class IslandAdminNodeCommandHandler {
     private final Plugin plugin;
+    private final CoreApiClient coreApiClient;
     private final IslandAdminNodeUseCase adminNodeUseCase;
     private final Runtime runtime;
     private final String configuredNodeId;
 
     IslandAdminNodeCommandHandler(Plugin plugin, CoreApiClient coreApiClient, String configuredNodeId, Runtime runtime) {
         this.plugin = plugin;
+        this.coreApiClient = coreApiClient;
         this.adminNodeUseCase = new IslandAdminNodeUseCase(coreApiClient);
         this.configuredNodeId = configuredNodeId == null || configuredNodeId.isBlank() ? "island-1" : configuredNodeId;
         this.runtime = runtime;
@@ -36,7 +43,99 @@ final class IslandAdminNodeCommandHandler {
             runtime.message(player, runtime.routeMessage("admin-node-direct-required", "섬 UUID와 대상 노드 입력이 필요한 관리 작업입니다. 관리자 명령 도움말을 확인해주세요."));
             return true;
         }
+        if (action instanceof GuiAction.AdminMenuAction adminMenu) {
+            return handleAdminMenuAction(player, adminMenu);
+        }
         return false;
+    }
+
+    private boolean handleAdminMenuAction(Player player, GuiAction.AdminMenuAction action) {
+        return switch (action.type()) {
+            case JOBS_OPEN -> {
+                AdminJobMenu.open(player, runtime.messagesFor(player));
+                yield true;
+            }
+            case JOBS_LIST -> {
+                coreApiClient.jobs().list()
+                    .thenAccept(jobs -> runtime.message(player, "Jobs: count=" + jobs.size() + jobs.stream().findFirst().map(job -> " first=" + job.id() + "/" + job.state()).orElse("")))
+                    .exceptionally(error -> adminNodeFailure(player, "admin-jobs-list-failed", "작업 목록을 불러오지 못했습니다.", error));
+                yield true;
+            }
+            case JOBS_RETRY_PROMPT -> {
+                prompt(player, "/ciadmin jobs retry <jobId>");
+                yield true;
+            }
+            case JOBS_CANCEL_PROMPT -> {
+                prompt(player, "/ciadmin jobs cancel <jobId>");
+                yield true;
+            }
+            case ROUTE_OPEN -> {
+                AdminRouteMenu.open(player, runtime.messagesFor(player));
+                yield true;
+            }
+            case ROUTE_DEBUG -> {
+                coreApiClient.adminRoutes().debug(new UUID(0L, 0L))
+                    .thenAccept(debug -> runtime.message(player, "Route debug: sessions=" + debug.sessions().size() + " tickets=" + debug.tickets().size()))
+                    .exceptionally(error -> adminNodeFailure(player, "admin-route-debug-failed", "라우트 상태를 불러오지 못했습니다.", error));
+                yield true;
+            }
+            case ROUTE_CLEAR_PROMPT -> {
+                prompt(player, "/ciadmin route clear <playerUuid|playerName> [ticketUuid]");
+                yield true;
+            }
+            case STORAGE_OPEN -> {
+                AdminStorageMenu.open(player, runtime.messagesFor(player));
+                yield true;
+            }
+            case STORAGE_STATUS -> {
+                coreApiClient.adminStorage().status()
+                    .thenAccept(status -> runtime.message(player, "Storage: nodes=" + status.nodes().size() + " unavailable=" + status.unavailableCount()))
+                    .exceptionally(error -> adminNodeFailure(player, "admin-storage-status-failed", "스토리지 상태를 불러오지 못했습니다.", error));
+                yield true;
+            }
+            case STORAGE_VERIFY_PROMPT -> {
+                prompt(player, "/ciadmin storage verify <islandUuid|islandName>");
+                yield true;
+            }
+            case MIGRATION_OPEN, MIGRATION_WIZARD -> {
+                AdminMigrationMenu.open(player, runtime.messagesFor(player));
+                yield true;
+            }
+            case MIGRATION_SCAN -> {
+                runtime.mutateIdempotent("admin.migration.superiorskyblock2.scan", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("scan", ""))
+                    .thenAccept(snapshot -> runtime.message(player, migrationSummary("Migration scan", snapshot.state(), snapshot.manifests(), snapshot.blockingIssues(), snapshot.warningIssues())))
+                    .exceptionally(error -> adminNodeFailure(player, "admin-migration-scan-failed", "마이그레이션 스캔을 실행하지 못했습니다.", error));
+                yield true;
+            }
+            case MIGRATION_DRYRUN -> {
+                runtime.mutateIdempotent("admin.migration.superiorskyblock2.dryrun", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("dryrun", ""))
+                    .thenAccept(snapshot -> runtime.message(player, migrationSummary("Migration dry-run", snapshot.state(), snapshot.manifests(), snapshot.blockingIssues(), snapshot.warningIssues())))
+                    .exceptionally(error -> adminNodeFailure(player, "admin-migration-dryrun-failed", "마이그레이션 dry-run을 실행하지 못했습니다.", error));
+                yield true;
+            }
+            case MIGRATION_VERIFY -> {
+                runtime.mutateIdempotent("admin.migration.superiorskyblock2.verify", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("verify", ""))
+                    .thenAccept(snapshot -> runtime.message(player, "Migration verify: state=" + snapshot.state() + " passed=" + snapshot.passed() + " expected=" + snapshot.expected()))
+                    .exceptionally(error -> adminNodeFailure(player, "admin-migration-verify-failed", "마이그레이션 검증을 실행하지 못했습니다.", error));
+                yield true;
+            }
+            case MIGRATION_IMPORT_PROMPT -> {
+                prompt(player, "/ciadmin migrate-superiorskyblock2 import <approvalToken>");
+                yield true;
+            }
+            case MIGRATION_ROLLBACK_PROMPT -> {
+                prompt(player, "/ciadmin migrate-superiorskyblock2 rollback");
+                yield true;
+            }
+        };
+    }
+
+    private void prompt(Player player, String command) {
+        runtime.message(player, runtime.routeMessage("admin-menu-command-required", "관리 명령 입력 필요: ") + command);
+    }
+
+    private static String migrationSummary(String label, String state, int manifests, int blockingIssues, int warningIssues) {
+        return label + ": state=" + state + " manifests=" + manifests + " blockingIssues=" + blockingIssues + " warningIssues=" + warningIssues;
     }
 
     private boolean handleAdminNodeAction(Player player, GuiAction.AdminNodeAction action, GuiClick click) {

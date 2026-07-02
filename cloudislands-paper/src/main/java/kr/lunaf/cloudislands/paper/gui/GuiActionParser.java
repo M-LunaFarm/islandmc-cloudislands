@@ -13,6 +13,17 @@ public final class GuiActionParser {
     private static final Set<String> REGISTERED_ACTIONS = Set.of(
         "admin.island.migrate.prompt",
         "admin.island.where.prompt",
+        "admin.jobs.cancel.prompt",
+        "admin.jobs.list",
+        "admin.jobs.open",
+        "admin.jobs.retry.prompt",
+        "admin.migration.dryrun",
+        "admin.migration.import.prompt",
+        "admin.migration.open",
+        "admin.migration.rollback.prompt",
+        "admin.migration.scan",
+        "admin.migration.verify",
+        "admin.migration.wizard",
         "admin.node.drain",
         "admin.node.info",
         "admin.node.islands",
@@ -24,6 +35,12 @@ public final class GuiActionParser {
         "admin.node.shutdown-safe.prepare",
         "admin.node.sweep",
         "admin.node.undrain",
+        "admin.route.clear.prompt",
+        "admin.route.debug",
+        "admin.route.open",
+        "admin.storage.open",
+        "admin.storage.status",
+        "admin.storage.verify.prompt",
         "gui.close",
         "island.ban.pardon.confirm",
         "island.ban.pardon.prepare",
@@ -207,6 +224,23 @@ public final class GuiActionParser {
                     GuiAction.AdminIslandPromptType.MIGRATE,
                     safeData.getOrDefault("nodeId", "")
                 ));
+                case "admin.jobs.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_OPEN));
+                case "admin.jobs.list" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_LIST));
+                case "admin.jobs.retry.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_RETRY_PROMPT));
+                case "admin.jobs.cancel.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_CANCEL_PROMPT));
+                case "admin.route.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.ROUTE_OPEN));
+                case "admin.route.debug" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.ROUTE_DEBUG));
+                case "admin.route.clear.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.ROUTE_CLEAR_PROMPT));
+                case "admin.storage.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.STORAGE_OPEN));
+                case "admin.storage.status" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.STORAGE_STATUS));
+                case "admin.storage.verify.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.STORAGE_VERIFY_PROMPT));
+                case "admin.migration.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_OPEN));
+                case "admin.migration.wizard" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_WIZARD));
+                case "admin.migration.scan" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_SCAN));
+                case "admin.migration.dryrun" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_DRYRUN));
+                case "admin.migration.import.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_IMPORT_PROMPT));
+                case "admin.migration.verify" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_VERIFY));
+                case "admin.migration.rollback.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_ROLLBACK_PROMPT));
                 case "island.bank.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BANK_OPEN));
                 case "island.snapshots.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SNAPSHOTS_OPEN));
                 case "island.snapshots.list" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SNAPSHOTS_LIST));

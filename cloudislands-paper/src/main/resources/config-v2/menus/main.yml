@@ -1,0 +1,4 @@
+id: island.main
+source: config-v2/ui/menus/main.yml
+compatibility-note: edit-md-checklist-path-for-main-menu
+required-buttons: my-islands,create,home,warp,member,bank,upgrade,ranking,mission,settings,snapshot,visit,help

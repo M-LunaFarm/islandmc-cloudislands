@@ -56,6 +56,75 @@ Typical layout:
 Island nodes can scale out.
 Five or six nodes are fine. More nodes use the same heartbeat and allocator path.
 
+## Documentation map
+
+This repository keeps operator documentation in this README because the result
+publication policy excludes committed markdown documents other than the root
+README.
+
+Quickstart, single node:
+
+- run one Core API, one Redis, one SQL database, one object storage endpoint,
+  one Velocity proxy, one lobby Paper server, and one island Paper node
+- set each Paper `node.id` uniquely
+- set `velocity-server-name` to the exact Velocity backend name for each node
+- keep the Velocity forwarding secret identical between Velocity and Paper
+- configure the Core API token or mTLS credentials before enabling production
+  mode
+- verify the island storage path points at durable object storage or a deliberate
+  local test path
+
+Quickstart, docker compose:
+
+- start Redis, SQL, object storage, and Core API first
+- start Velocity only after Core health is ready
+- start Paper nodes after Velocity backend names and forwarding secrets match
+- run `./gradlew ciIntegrationSmoke` before exposing the proxy
+
+Production topology:
+
+- Core API should run as at least two instances behind a trusted internal load
+  balancer
+- Redis, SQL, and object storage must be shared by all Core, Velocity, and Paper
+  nodes
+- Paper island nodes are cattle; island ownership lives in Core and object
+  storage
+- Velocity is the only public Minecraft entrypoint
+
+Production security:
+
+- never expose Core API, Redis, SQL, object storage, or Paper backends publicly
+- require Core API token or mTLS for every Paper, Velocity, and admin client
+- strip spoofable forwarding headers at the trusted proxy boundary
+- keep `cloudislands.admin.*` permissions scoped to operators
+
+Backup and restore:
+
+- back up SQL before releases and before SuperiorSkyblock2 imports
+- back up object storage manifests and bundles together
+- rehearse restore with `releaseClusterSmokeGate`
+- verify snapshot manifest checksum and route handoff after restore
+
+Failure runbook:
+
+- Core API failure: leave already loaded islands running, stop control-plane
+  writes, and recover once Core health is restored
+- Redis failure: expect degraded cache and stream behavior, then reconcile from
+  SQL after Redis returns
+- object storage failure: keep active islands local, queue failed saves, and
+  block new activation or snapshot work until storage is healthy
+- Paper node failure: drain or mark down the node, recover islands from latest
+  verified bundles on another node
+
+Migration from SuperiorSkyblock2:
+
+- run scan, dry-run, backup, import approval, verify, and rollback planning in
+  that order
+- dry-run reports include JSON data and generated markdown text as runtime
+  artifacts, not committed documentation
+- incompatible owners, missing worlds, and unsupported legacy data block import
+- rollback verifies both Core state and storage state
+
 ## Island lifecycle
 
 Create:
@@ -355,6 +424,19 @@ reported as boot or integration verification.
 Current release: `v1.0.1`
 
 Built for the CloudIslands 1.0.1 baseline.
+
+Release notes for `v1.0.1`:
+
+- migration compatibility: SuperiorSkyblock2 is supported as migration input
+  through scan, dry-run, backup-gated import, verify, and rollback workflows
+- supported Paper version: Paper `1.21.x` is release-supported; Paper `26.1.x`
+  and `26.2.x` are compile-only experimental targets until official bootable
+  Paper builds are available
+- breaking changes: no public API breaking change from the 1.0.x compatibility
+  baseline; addon compatibility is checked by `apiCompatibilityCheck`
+- release checklist: `./gradlew build distBundle distChecksums distSbom
+  distProvenance` plus `verifyReleaseSecurityGate`, release cluster evidence,
+  and README version-table verification
 
 ## Project status
 

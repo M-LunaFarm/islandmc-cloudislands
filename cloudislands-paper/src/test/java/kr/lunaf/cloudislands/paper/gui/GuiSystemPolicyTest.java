@@ -546,6 +546,33 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void expandedAdminMenusAreBackedByConfigV2DefinitionsAndRegisteredActions() throws Exception {
+        for (String[] menuCase : List.of(
+                new String[] {"AdminJobMenu", "admin-jobs.yml", "admin.jobs.list", "admin.jobs.retry.prompt", "admin.jobs.cancel.prompt"},
+                new String[] {"AdminRouteMenu", "admin-route.yml", "admin.route.debug", "admin.route.clear.prompt", "admin.route.open"},
+                new String[] {"AdminStorageMenu", "admin-storage.yml", "admin.storage.status", "admin.storage.verify.prompt", "admin.storage.open"},
+                new String[] {"AdminMigrationMenu", "admin-migration.yml", "admin.migration.scan", "admin.migration.dryrun", "admin.migration.rollback.prompt"}
+        )) {
+            String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuCase[0] + ".java"));
+            String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + menuCase[1]));
+            String parser = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionParser.java"));
+
+            assertTrue(menu.contains("GuiMenuDefinition.bundled"), menuCase[0] + " must load a config-v2 menu definition");
+            assertTrue(menu.contains("actions.execute"), menuCase[0] + " clicks must be routed through the GUI action registry");
+            assertTrue(definition.contains("actions:"), menuCase[1] + " must expose action mappings");
+            assertTrue(parser.contains("\"" + menuCase[2] + "\""), menuCase[2] + " must be a registered GUI action");
+            assertTrue(parser.contains("\"" + menuCase[3] + "\""), menuCase[3] + " must be a registered GUI action");
+            assertTrue(parser.contains("\"" + menuCase[4] + "\""), menuCase[4] + " must be a registered GUI action");
+        }
+        String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandGuiMenuRegistrar.java"));
+        assertTrue(registrar.contains("new AdminJobMenu(messages, registry)"), "admin job menu must be registered");
+        assertTrue(registrar.contains("new AdminRouteMenu(messages, registry)"), "admin route menu must be registered");
+        assertTrue(registrar.contains("new AdminStorageMenu(messages, registry)"), "admin storage menu must be registered");
+        assertTrue(registrar.contains("new AdminMigrationMenu(messages, registry)"), "admin migration menu must be registered");
+        assertTrue(Files.exists(Path.of("src/main/resources/config-v2/menus/main.yml")), "edit.md checklist path for the main menu must exist");
+    }
+
+    @Test
     void remainingDynamicItemMaterialsRenderFromMenuDefinitions() throws Exception {
         for (String[] menuCase : List.of(
                 new String[] {"IslandPermissionMenu", "permissions.yml", "ALLOW", "LIME_DYE"},

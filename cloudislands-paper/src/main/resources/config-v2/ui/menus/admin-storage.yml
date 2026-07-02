@@ -1,0 +1,31 @@
+id: admin.storage
+rows: 3
+title-key: admin-storage-menu-title
+layout:
+  - "........."
+  - ".S.V....."
+  - "........X"
+items:
+  S:
+    material: CHEST
+    name-key: admin-storage-menu-status-name
+    fallback-name: 스토리지 상태
+    fallback-lore:
+      - "/ciadmin storage status"
+    action: status
+  V:
+    material: ENDER_EYE
+    name-key: admin-storage-menu-verify-name
+    fallback-name: 섬 스토리지 검증
+    fallback-lore:
+      - "/ciadmin storage verify <island>"
+    action: verify
+  X:
+    material: OAK_DOOR
+    name-key: admin-menu-close-name
+    fallback-name: 닫기
+    action: close
+actions:
+  status: admin.storage.status
+  verify: admin.storage.verify.prompt
+  close: gui.close

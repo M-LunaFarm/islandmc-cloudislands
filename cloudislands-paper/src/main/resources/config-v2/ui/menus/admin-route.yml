@@ -1,0 +1,31 @@
+id: admin.route
+rows: 3
+title-key: admin-route-menu-title
+layout:
+  - "........."
+  - ".D.C....."
+  - "........X"
+items:
+  D:
+    material: COMPASS
+    name-key: admin-route-menu-debug-name
+    fallback-name: 라우트 진단
+    fallback-lore:
+      - "/ciadmin route debug all"
+    action: debug
+  C:
+    material: REDSTONE_TORCH
+    name-key: admin-route-menu-clear-name
+    fallback-name: 라우트 정리
+    fallback-lore:
+      - "/ciadmin route clear <player> [ticket]"
+    action: clear
+  X:
+    material: OAK_DOOR
+    name-key: admin-menu-close-name
+    fallback-name: 닫기
+    action: close
+actions:
+  debug: admin.route.debug
+  clear: admin.route.clear.prompt
+  close: gui.close

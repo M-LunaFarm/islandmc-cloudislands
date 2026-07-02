@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.ReviewSet, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.PublicWarpCategory, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RankingList, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.ReviewSet, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.PublicWarpCategory, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RankingList, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -156,6 +156,54 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         private final String actionId;
 
         AdminIslandPromptType(String actionId) {
+            this.actionId = actionId;
+        }
+
+        public String actionId() {
+            return actionId;
+        }
+    }
+
+    record AdminMenuAction(AdminMenuActionType type) implements GuiAction {
+        public AdminMenuAction {
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
+            }
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of();
+        }
+    }
+
+    enum AdminMenuActionType {
+        JOBS_OPEN("admin.jobs.open"),
+        JOBS_LIST("admin.jobs.list"),
+        JOBS_RETRY_PROMPT("admin.jobs.retry.prompt"),
+        JOBS_CANCEL_PROMPT("admin.jobs.cancel.prompt"),
+        ROUTE_OPEN("admin.route.open"),
+        ROUTE_DEBUG("admin.route.debug"),
+        ROUTE_CLEAR_PROMPT("admin.route.clear.prompt"),
+        STORAGE_OPEN("admin.storage.open"),
+        STORAGE_STATUS("admin.storage.status"),
+        STORAGE_VERIFY_PROMPT("admin.storage.verify.prompt"),
+        MIGRATION_OPEN("admin.migration.open"),
+        MIGRATION_WIZARD("admin.migration.wizard"),
+        MIGRATION_SCAN("admin.migration.scan"),
+        MIGRATION_DRYRUN("admin.migration.dryrun"),
+        MIGRATION_IMPORT_PROMPT("admin.migration.import.prompt"),
+        MIGRATION_VERIFY("admin.migration.verify"),
+        MIGRATION_ROLLBACK_PROMPT("admin.migration.rollback.prompt");
+
+        private final String actionId;
+
+        AdminMenuActionType(String actionId) {
             this.actionId = actionId;
         }
 
