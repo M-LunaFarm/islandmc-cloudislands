@@ -10,25 +10,27 @@ class PaperVersionPackagingPolicyTest {
     @Test
     void gradleVerifiesAdapterClassesInFinalPaperArtifact() throws Exception {
         String build = Files.readString(Path.of("../build.gradle.kts"));
+        String versionMatrixGates = Files.readString(Path.of("../gradle/version-matrix-gates.gradle.kts"));
+        String buildSurface = build + "\n" + versionMatrixGates;
         String matrix = Files.readString(Path.of("../gradle/minecraft-versions.toml"));
 
-        assertTrue(build.contains("verifyAdapterPackaging"));
-        assertTrue(build.contains("verifyVersionPackaging"));
-        assertTrue(build.contains("ZipFile(paperJar.get().archiveFile.get().asFile)"));
-        assertTrue(build.contains("minecraftVersionMatrix.entries.map { it.adapterJarEntry }"));
-        assertTrue(build.contains("PaperRuntimeCompatibility.class"));
-        assertTrue(build.contains("PaperRuntimeCompatibility\\$RuntimeSelection.class"));
-        assertTrue(build.contains("PaperAdapterSelfTest.class"));
-        assertTrue(build.contains("PaperVersionAdapterRegistry.class"));
-        assertTrue(build.contains("AbstractPaper26Adapter.class"));
-        assertTrue(build.contains("DefaultPaperVersionAdapter.class"));
-        assertTrue(build.contains("RuntimeCapabilities.class"));
-        assertTrue(build.contains("ServerVersion.class"));
-        assertTrue(build.contains("VersionRange.class"));
-        assertTrue(build.contains("Duplicate class/resource entries in final Paper artifact"));
-        assertTrue(build.contains("tasks.named(\"check\")"));
-        assertTrue(build.contains("dependsOn(verifyAdapterPackaging)"));
-        assertTrue(build.contains("tasks.named(\"distBundle\")"));
+        assertTrue(buildSurface.contains("verifyAdapterPackaging"));
+        assertTrue(buildSurface.contains("verifyVersionPackaging"));
+        assertTrue(buildSurface.contains("ZipFile(paperJar.get().archiveFile.get().asFile)"));
+        assertTrue(buildSurface.contains("minecraftVersionMatrix.entries.map { it.adapterJarEntry }"));
+        assertTrue(buildSurface.contains("PaperRuntimeCompatibility.class"));
+        assertTrue(buildSurface.contains("PaperRuntimeCompatibility\\$RuntimeSelection.class"));
+        assertTrue(buildSurface.contains("PaperAdapterSelfTest.class"));
+        assertTrue(buildSurface.contains("PaperVersionAdapterRegistry.class"));
+        assertTrue(buildSurface.contains("AbstractPaper26Adapter.class"));
+        assertTrue(buildSurface.contains("DefaultPaperVersionAdapter.class"));
+        assertTrue(buildSurface.contains("RuntimeCapabilities.class"));
+        assertTrue(buildSurface.contains("ServerVersion.class"));
+        assertTrue(buildSurface.contains("VersionRange.class"));
+        assertTrue(buildSurface.contains("Duplicate class/resource entries in final Paper artifact"));
+        assertTrue(buildSurface.contains("tasks.named(\"check\")"));
+        assertTrue(buildSurface.contains("dependsOn(tasks.named(\"verifyAdapterPackaging\"))"));
+        assertTrue(buildSurface.contains("tasks.named(\"distBundle\")"));
         assertTrue(matrix.contains("adapterClass = \"kr.lunaf.cloudislands.paper.platform.compatibility.Paper121FamilyAdapter\""));
         assertTrue(matrix.contains("adapterClass = \"kr.lunaf.cloudislands.paper.platform.compatibility.Paper261Adapter\""));
         assertTrue(matrix.contains("adapterClass = \"kr.lunaf.cloudislands.paper.platform.compatibility.Paper262Adapter\""));

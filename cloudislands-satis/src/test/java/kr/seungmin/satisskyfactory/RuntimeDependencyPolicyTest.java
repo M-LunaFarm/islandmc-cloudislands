@@ -271,25 +271,27 @@ class RuntimeDependencyPolicyTest {
     @Test
     void addonDescriptorShipsAsSeparateSidecarArtifact() throws IOException {
         Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
-        String rootBuild = Files.readString(repoRoot.resolve("build.gradle.kts"));
+        String distributionBuild = Files.readString(repoRoot.resolve("gradle/distribution.gradle.kts"));
 
-        assertTrue(rootBuild.contains("tasks.register<Copy>(\"distAddonDescriptors\")"));
-        assertTrue(rootBuild.contains("Collects optional CloudIslands addon descriptors separately from addon jars."));
-        assertTrue(rootBuild.contains("src/main/resources/cloudislands-addon.yml"));
-        assertTrue(rootBuild.contains("rename { \"$projectName.yml\" }"));
-        assertTrue(rootBuild.contains("dist/addon-descriptors"));
-        assertTrue(rootBuild.contains("into(\"addon-descriptors\")"));
-        assertTrue(rootBuild.contains("dependsOn(tasks.named(\"distAddonDescriptors\"))"));
+        assertTrue(distributionBuild.contains("tasks.register<Copy>(\"distAddonDescriptors\")"));
+        assertTrue(distributionBuild.contains("Collects optional CloudIslands addon descriptors separately from addon jars."));
+        assertTrue(distributionBuild.contains("src/main/resources/cloudislands-addon.yml"));
+        assertTrue(distributionBuild.contains("rename { \"$projectName.yml\" }"));
+        assertTrue(distributionBuild.contains("dist/addon-descriptors"));
+        assertTrue(distributionBuild.contains("into(\"addon-descriptors\")"));
+        assertTrue(distributionBuild.contains("dependsOn(tasks.named(\"distAddonDescriptors\"))"));
     }
 
     @Test
     void rootBuildCheckExcludesMarkdownDocumentsFromArtifacts() throws IOException {
         Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
         String rootBuild = Files.readString(repoRoot.resolve("build.gradle.kts"));
+        String distributionBuild = Files.readString(repoRoot.resolve("gradle/distribution.gradle.kts"));
 
         assertTrue(rootBuild.contains("tasks.register(\"verifyMarkdownDocsExcludedFromArtifacts\")"));
         assertTrue(rootBuild.contains("markdown documents are allowed in source but excluded from packaged artifacts"));
         assertTrue(rootBuild.contains("tasks.named(\"build\") {\n    dependsOn(tasks.named(\"verifyMarkdownDocsExcludedFromArtifacts\"))\n}"));
         assertTrue(rootBuild.contains("tasks.named(\"check\") {\n    dependsOn(tasks.named(\"verifyMarkdownDocsExcludedFromArtifacts\"))\n}"));
+        assertTrue(distributionBuild.contains("dependsOn(tasks.named(\"verifyMarkdownDocsExcludedFromArtifacts\"))"));
     }
 }

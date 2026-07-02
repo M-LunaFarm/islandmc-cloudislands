@@ -549,6 +549,20 @@ tasks.register("verifyCommandCoverage") {
     dependsOn(verifyVelocityCommandCoverage)
 }
 
+tasks.register<Exec>("verifyProtectionSmoke") {
+    group = "verification"
+    description = "Verifies Paper protection live-interaction smoke scenarios and role matrix coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("testClasses"))
+    commandLine(
+        "python3",
+        file("scripts/ci/paper_protection_smoke.py").absolutePath
+    )
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("verifyProtectionSmoke"))
+}
+
 tasks.register<JavaExec>("apiCompatibilityCheck") {
     group = "verification"
     description = "Verifies the CloudIslands API compatibility contract before release."

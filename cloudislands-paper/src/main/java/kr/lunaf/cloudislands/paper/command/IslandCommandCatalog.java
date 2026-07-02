@@ -3,7 +3,7 @@ package kr.lunaf.cloudislands.paper.command;
 import java.util.List;
 
 final class IslandCommandCatalog {
-    static final List<String> SUBCOMMANDS = List.of(
+    private static final List<String> COMMAND_ALIASES = List.of(
         "help", "도움말", "commands", "command", "command-list", "명령어", "명령어목록", "menu", "메뉴",
         "create-menu", "templates", "생성메뉴", "템플릿",
         "info", "정보", "list", "my", "my-islands", "목록", "내섬", "create", "생성", "delete", "삭제", "reset", "리셋", "danger", "위험작업",
@@ -37,7 +37,7 @@ final class IslandCommandCatalog {
         "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "permission-exception", "permission-exception-list", "권한", "권한설정", "권한목록", "권한예외", "권한예외목록"
     );
 
-    static final List<String> HELP_COMMANDS = List.of(
+    private static final List<String> COMMAND_HELP = List.of(
         "섬 help [page]",
         "섬 도움말 [category] [page]",
         "섬 command list [page]",
@@ -271,6 +271,32 @@ final class IslandCommandCatalog {
         ))
     );
 
+    static final List<IslandCommandDescriptor> DESCRIPTORS = List.of(
+        new IslandCommandDescriptor(
+            "island.command.registry",
+            COMMAND_ALIASES,
+            "기본",
+            "IslandCommandPermission.fromSubcommand",
+            "섬",
+            COMMAND_HELP,
+            "island-command-registry-description",
+            "IslandCommandPermission.fromGuiActionId",
+            RequiredIslandState.ANY,
+            "IslandCommandRouter",
+            "IslandCommandTabCompleter"
+        )
+    );
+
+    static final List<String> SUBCOMMANDS = DESCRIPTORS.stream()
+        .flatMap(descriptor -> descriptor.aliases().stream())
+        .distinct()
+        .toList();
+
+    static final List<String> HELP_COMMANDS = DESCRIPTORS.stream()
+        .flatMap(descriptor -> descriptor.helpCommands().stream())
+        .distinct()
+        .toList();
+
     static List<String> helpCategoryNames() {
         return HELP_CATEGORIES.stream()
             .map(HelpCategory::name)
@@ -297,6 +323,50 @@ final class IslandCommandCatalog {
     private IslandCommandCatalog() {
     }
 
+    record IslandCommandDescriptor(
+        String id,
+        List<String> aliases,
+        String category,
+        String permission,
+        String usage,
+        List<String> examples,
+        String descriptionKey,
+        String guiActionId,
+        RequiredIslandState requiredIslandState,
+        String handler,
+        String suggestionProvider
+    ) {
+        IslandCommandDescriptor {
+            id = blankDefault(id, "island.command");
+            aliases = aliases == null ? List.of() : List.copyOf(aliases);
+            category = blankDefault(category, "기본");
+            permission = blankDefault(permission, "IslandCommandPermission.fromSubcommand");
+            usage = blankDefault(usage, "섬");
+            examples = examples == null ? List.of() : List.copyOf(examples);
+            descriptionKey = blankDefault(descriptionKey, "island-command-description");
+            guiActionId = blankDefault(guiActionId, "IslandCommandPermission.fromGuiActionId");
+            requiredIslandState = requiredIslandState == null ? RequiredIslandState.ANY : requiredIslandState;
+            handler = blankDefault(handler, "IslandCommandRouter");
+            suggestionProvider = blankDefault(suggestionProvider, "IslandCommandTabCompleter");
+        }
+
+        List<String> helpCommands() {
+            return examples.isEmpty() ? List.of(usage) : examples;
+        }
+    }
+
+    enum RequiredIslandState {
+        ANY,
+        NO_ISLAND,
+        OWNS_ISLAND,
+        VISITING_ISLAND,
+        ADMIN
+    }
+
     record HelpCategory(String name, List<String> aliases, String title, List<String> commands) {
+    }
+
+    private static String blankDefault(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

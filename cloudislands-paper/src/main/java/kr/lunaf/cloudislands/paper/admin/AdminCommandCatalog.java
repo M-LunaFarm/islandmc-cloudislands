@@ -4,7 +4,7 @@ import java.util.List;
 import kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy;
 
 final class AdminCommandCatalog {
-    static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
     static final List<String> CONFIG_COMMANDS = List.of("show", "validate", "diff", "reload", "effective", "sources");
     static final List<String> CACHE_COMMANDS = List.of("clear");
     static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary", "endpoints");
@@ -16,6 +16,7 @@ final class AdminCommandCatalog {
     static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "tickets", "clear");
     static final List<String> STORAGE_COMMANDS = List.of("status", "verify");
     static final List<String> DIAGNOSTICS_COMMANDS = List.of("export");
+    static final List<String> SUPPORT_BUNDLE_COMMANDS = List.of("create");
     static final List<String> RANKING_COMMANDS = List.of("level", "worth");
     static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "search", "set");
     static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
@@ -91,6 +92,7 @@ final class AdminCommandCatalog {
         "ciadmin storage",
         "ciadmin storage verify <island>",
         "ciadmin diagnostics export",
+        "ciadmin support-bundle create",
         "ciadmin block-values list",
         "ciadmin block-values search <query> [limit]",
         "ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",

@@ -325,6 +325,13 @@ public interface CoreApiClient {
         throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin storage queries");
     }
 
+    default AdminSupportBundleClient adminSupportBundle() {
+        if (this instanceof AdminSupportBundleClient client) {
+            return client;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed admin support bundle operations");
+    }
+
     default AdminMaintenanceCommandClient adminMaintenance() {
         if (this instanceof AdminMaintenanceCommandClient commands) {
             return commands;

@@ -73,6 +73,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> ROUTE_COMMANDS = AdminCommandCatalog.ROUTE_COMMANDS;
     private static final List<String> STORAGE_COMMANDS = AdminCommandCatalog.STORAGE_COMMANDS;
     private static final List<String> DIAGNOSTICS_COMMANDS = AdminCommandCatalog.DIAGNOSTICS_COMMANDS;
+    private static final List<String> SUPPORT_BUNDLE_COMMANDS = AdminCommandCatalog.SUPPORT_BUNDLE_COMMANDS;
     private static final List<String> RANKING_COMMANDS = AdminCommandCatalog.RANKING_COMMANDS;
     private static final List<String> BLOCK_VALUE_COMMANDS = AdminCommandCatalog.BLOCK_VALUE_COMMANDS;
     private static final List<String> BLOCK_VALUE_MATERIALS = AdminCommandCatalog.BLOCK_VALUE_MATERIALS;
@@ -214,6 +215,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[0].equalsIgnoreCase("diagnostics")) {
             return handleDiagnostics(sender, args);
         }
+        if (args[0].equalsIgnoreCase("support-bundle")) {
+            return handleSupportBundle(sender, args);
+        }
         if (args[0].equalsIgnoreCase("block-values")) {
             return handleBlockValues(sender, args);
         }
@@ -292,6 +296,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("diagnostics")) {
             return matches(DIAGNOSTICS_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("support-bundle")) {
+            return matches(SUPPORT_BUNDLE_COMMANDS, args[1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("rankings")) {
             return matches(RANKING_COMMANDS, args[1]);
@@ -491,6 +498,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleSupportBundle(CommandSender sender, String[] args) {
+        if (args.length < 2 || !args[1].equalsIgnoreCase("create")) {
+            sender.sendMessage(adminText("admin-command-support-bundle-usage", "사용법: /ciadmin support-bundle create"));
+            return true;
+        }
+        run(sender, "Support bundle", coreApiClient.adminSupportBundle().create().thenApply(this::writeSupportBundle));
+        return true;
+    }
+
     private CompletableFuture<DiagnosticSection> diagnosticSection(String name, CompletableFuture<? extends CharSequence> future) {
         return future.handle((body, error) -> {
             StringBuilder builder = new StringBuilder();
@@ -524,6 +540,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return adminText("admin-command-diagnostics-exported-prefix", "Diagnostics exported: ") + report;
         } catch (IOException exception) {
             return adminText("admin-command-diagnostics-export-failed", "Diagnostics export failed: ") + exception.getMessage();
+        }
+    }
+
+    private String writeSupportBundle(String coreBundleJson) {
+        try {
+            Path directory = agent.plugin().getDataFolder().toPath().resolve("support-bundles");
+            Files.createDirectories(directory);
+            String timestamp = Instant.now().toString().replace(':', '-');
+            Path report = directory.resolve("cloudislands-support-bundle-" + timestamp + ".json");
+            String redacted = redactDiagnostic(coreBundleJson == null ? "{}" : coreBundleJson);
+            Files.writeString(report, redacted);
+            return adminText("admin-command-support-bundle-created-prefix", "Support bundle created: ") + report;
+        } catch (IOException exception) {
+            return adminText("admin-command-support-bundle-failed", "Support bundle failed: ") + exception.getMessage();
         }
     }
 
@@ -2401,7 +2431,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "";
         }
         return switch (root) {
-            case "status", "dashboard", "doctor", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }

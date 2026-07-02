@@ -62,6 +62,32 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void descriptorsOwnAliasesHelpAndRoutingPolicyFields() {
+        assertTrue(!IslandCommandCatalog.DESCRIPTORS.isEmpty(), "Command descriptors must be the command catalog source of truth");
+
+        List<String> descriptorAliases = IslandCommandCatalog.DESCRIPTORS.stream()
+            .flatMap(descriptor -> descriptor.aliases().stream())
+            .distinct()
+            .toList();
+        List<String> descriptorHelp = IslandCommandCatalog.DESCRIPTORS.stream()
+            .flatMap(descriptor -> descriptor.helpCommands().stream())
+            .distinct()
+            .toList();
+
+        assertEquals(descriptorAliases, IslandCommandCatalog.SUBCOMMANDS, "Subcommand aliases must be generated from descriptors");
+        assertEquals(descriptorHelp, IslandCommandCatalog.HELP_COMMANDS, "Help output must be generated from descriptors");
+        for (IslandCommandCatalog.IslandCommandDescriptor descriptor : IslandCommandCatalog.DESCRIPTORS) {
+            assertTrue(!descriptor.id().isBlank(), "descriptor id is required");
+            assertTrue(!descriptor.permission().isBlank(), "descriptor permission policy is required");
+            assertTrue(!descriptor.descriptionKey().isBlank(), "descriptor description key is required");
+            assertTrue(!descriptor.guiActionId().isBlank(), "descriptor GUI action policy is required");
+            assertTrue(descriptor.requiredIslandState() != null, "descriptor island-state requirement is required");
+            assertTrue(!descriptor.handler().isBlank(), "descriptor handler is required");
+            assertTrue(!descriptor.suggestionProvider().isBlank(), "descriptor suggestion provider is required");
+        }
+    }
+
+    @Test
     void upgradeKeySuggestionsCoverConfiguredUpgradeEffects() {
         assertEquals(List.of(
             "size",

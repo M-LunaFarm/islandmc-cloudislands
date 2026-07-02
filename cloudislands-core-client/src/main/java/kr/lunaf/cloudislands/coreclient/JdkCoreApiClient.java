@@ -45,6 +45,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
     private final AdminMetricsQueryClient adminMetricsClient;
     private final AdminCoreConfigQueryClient adminCoreConfigClient;
     private final AdminStorageQueryClient adminStorageClient;
+    private final AdminSupportBundleClient adminSupportBundleClient;
     private final AdminEventQueryClient adminEventClient;
     private final AdminAuditQueryClient adminAuditClient;
     private final AdminRouteClient adminRouteClient;
@@ -105,6 +106,7 @@ public final class JdkCoreApiClient implements CoreApiClient {
         this.adminMetricsClient = new JdkAdminMetricsClient(this);
         this.adminCoreConfigClient = new JdkAdminCoreConfigClient(this);
         this.adminStorageClient = new JdkAdminStorageClient(this);
+        this.adminSupportBundleClient = new JdkAdminSupportBundleClient(this);
         this.adminEventClient = new JdkAdminEventClient(this);
         this.adminAuditClient = new JdkAdminAuditClient(this);
         this.adminRouteClient = new JdkAdminRouteClient(this);
@@ -320,6 +322,11 @@ public final class JdkCoreApiClient implements CoreApiClient {
     @Override
     public AdminStorageQueryClient adminStorage() {
         return adminStorageClient;
+    }
+
+    @Override
+    public AdminSupportBundleClient adminSupportBundle() {
+        return adminSupportBundleClient;
     }
 
     @Override

@@ -75,6 +75,26 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void supportBundleCreateIsAFirstClassAdminCommand() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String coreClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/CoreApiClient.java"));
+        String jdkClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminSupportBundleClient.java"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("\"support-bundle\""), "Support bundle root command must be registered");
+        assertTrue(adminSurface.contains("ciadmin support-bundle create"), "Support bundle create must be listed in help");
+        assertTrue(source.contains("handleSupportBundle"), "Support bundle command must have a handler");
+        assertTrue(source.contains("coreApiClient.adminSupportBundle().create()"), "Support bundle command must use the typed Core support bundle client");
+        assertTrue(source.contains("writeSupportBundle"), "Support bundle command must write a local support bundle file");
+        assertTrue(source.contains("redactDiagnostic(coreBundleJson"), "Support bundle output must pass through redaction");
+        assertTrue(coreClient.contains("AdminSupportBundleClient adminSupportBundle()"), "Core client must expose a typed support bundle client");
+        assertTrue(jdkClient.contains("postResultBody(\"/v1/admin/support-bundle\", \"{}\")"), "Support bundle client must call the Core support-bundle endpoint");
+        assertTrue(plugin.contains("cloudislands.admin.support-bundle"), "Support bundle command must have a plugin permission");
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
