@@ -177,6 +177,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(snapshotHandler.contains("snapshotUseCase.snapshotViews("));
         assertTrue(snapshotHandler.contains("snapshotUseCase.requestSnapshotAction("));
         assertTrue(snapshotHandler.contains("snapshotUseCase.restoreSnapshotAction("));
+        assertTrue(snapshotHandler.contains("openRestoreConfirmation(player, SnapshotUseCase.positiveSnapshotNo(args[1]))"), "typed restore command must open confirmation before mutation");
+        assertTrue(snapshotHandler.contains("private void openRestoreConfirmation(Player player, long snapshotNo)"), "snapshot restore confirmation must be shared by command and GUI flows");
+        assertTrue(snapshotHandler.contains("\"island.snapshot.restore.confirm\""), "snapshot restore must use the token-protected confirm action");
+        assertFalse(snapshotHandler.contains("restoreSnapshot(player, SnapshotUseCase.positiveSnapshotNo(args[1]))"), "typed restore command must not directly mutate Core");
         assertFalse(snapshotUseCase.contains("public CompletableFuture<String> listSnapshots("), "snapshot list usecase must expose typed views instead of raw JSON");
         assertFalse(snapshotUseCase.contains("public CompletableFuture<String> requestSnapshot("), "snapshot create usecase must expose typed actions instead of raw JSON");
         assertFalse(snapshotUseCase.contains("public CompletableFuture<String> restoreSnapshot("), "snapshot restore usecase must expose typed actions instead of raw JSON");

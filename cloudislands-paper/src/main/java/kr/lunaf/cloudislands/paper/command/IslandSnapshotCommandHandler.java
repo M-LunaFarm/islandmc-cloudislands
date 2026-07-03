@@ -57,7 +57,7 @@ final class IslandSnapshotCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-snapshot-number-required", "복원할 스냅샷 번호를 입력해주세요."));
                 return true;
             }
-            restoreSnapshot(player, SnapshotUseCase.positiveSnapshotNo(args[1]));
+            openRestoreConfirmation(player, SnapshotUseCase.positiveSnapshotNo(args[1]));
             return true;
         }
         return false;
@@ -74,17 +74,7 @@ final class IslandSnapshotCommandHandler {
                     restoreSnapshot(player, snapshotRestore.snapshotNo());
                 }
             } else {
-                runtime.openConfirmation(
-                    player,
-                    runtime.routeMessage("snapshot-restore-confirm-title", "스냅샷 복원 확인"),
-                    runtime.routeMessage("snapshot-restore-confirm-description", "현재 월드 상태를 선택한 스냅샷으로 복원합니다."),
-                    IslandSnapshotMenu.restoreConfirmationMaterial(),
-                    runtime.routeMessage("snapshot-restore-confirm-name", "스냅샷 복원"),
-                    "island.snapshot.restore.confirm",
-                    Map.of("snapshotNo", Long.toString(snapshotRestore.snapshotNo())),
-                    runtime.routeMessage("snapshot-restore-confirm-lore", "클릭하면 Core에 스냅샷 복원을 요청합니다."),
-                    "island.snapshots.open"
-                );
+                openRestoreConfirmation(player, snapshotRestore.snapshotNo());
             }
             return true;
         }
@@ -151,6 +141,24 @@ final class IslandSnapshotCommandHandler {
                     return null;
                 });
         });
+    }
+
+    private void openRestoreConfirmation(Player player, long snapshotNo) {
+        if (snapshotNo <= 0L) {
+            runtime.message(player, runtime.routeMessage("input-snapshot-number-invalid", "올바른 스냅샷 번호를 입력해주세요."));
+            return;
+        }
+        runtime.openConfirmation(
+            player,
+            runtime.routeMessage("snapshot-restore-confirm-title", "스냅샷 복원 확인"),
+            runtime.routeMessage("snapshot-restore-confirm-description", "현재 월드 상태를 선택한 스냅샷으로 복원합니다."),
+            IslandSnapshotMenu.restoreConfirmationMaterial(),
+            runtime.routeMessage("snapshot-restore-confirm-name", "스냅샷 복원"),
+            "island.snapshot.restore.confirm",
+            Map.of("snapshotNo", Long.toString(snapshotNo)),
+            runtime.routeMessage("snapshot-restore-confirm-lore", "클릭하면 Core에 스냅샷 복원을 요청합니다."),
+            "island.snapshots.open"
+        );
     }
 
     private String snapshotActionMessage(String label, UUID islandId, SnapshotActionResult result) {
