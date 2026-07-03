@@ -9,6 +9,8 @@ import kr.lunaf.cloudislands.common.protection.RegionIndex;
 import kr.lunaf.cloudislands.paper.cache.LocalIslandPermissionCache;
 import org.junit.jupiter.api.Test;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -86,6 +88,15 @@ class ProtectionControllerTest {
         assertFalse(protection.checkBlock(VISITOR, "ci_shard_001", 0, 100, 0, IslandPermission.BREAK).allowed(), "visitor block break must be denied");
         assertFalse(protection.checkBlock(BANNED, "ci_shard_001", 0, 100, 0, IslandPermission.OPEN_CONTAINER).allowed(), "banned player container access must be denied");
         assertTrue(protection.checkBlock(VISITOR, "ci_shard_001", 0, 100, 0, IslandPermission.BREAK, true).allowed(), "admin bypass must allow protected actions");
+    }
+
+    @Test
+    void cropTramplingUsesBuildPermissionNotVisitorInteractFlag() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("event.getAction() == Action.PHYSICAL"), "crop trampling must be classified from the physical interact event");
+        assertTrue(listener.contains("event.getClickedBlock().getType() == Material.FARMLAND"), "farmland trampling must be explicitly protected");
+        assertTrue(listener.contains("return IslandPermission.BUILD;"), "farmland trampling must require build permission, not visitor interact");
     }
 
     @Test

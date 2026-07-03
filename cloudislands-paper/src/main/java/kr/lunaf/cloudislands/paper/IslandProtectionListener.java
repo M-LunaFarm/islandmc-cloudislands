@@ -19,6 +19,7 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
@@ -113,7 +114,7 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getClickedBlock() != null) {
-            event.setCancelled(denied(event.getPlayer(), event.getClickedBlock(), interactionPermission(event.getClickedBlock().getType())));
+            event.setCancelled(denied(event.getPlayer(), event.getClickedBlock(), interactionPermission(event)));
         }
     }
 
@@ -468,6 +469,13 @@ public final class IslandProtectionListener implements Listener {
             return player;
         }
         return null;
+    }
+
+    private IslandPermission interactionPermission(PlayerInteractEvent event) {
+        if (event.getAction() == Action.PHYSICAL && event.getClickedBlock() != null && event.getClickedBlock().getType() == Material.FARMLAND) {
+            return IslandPermission.BUILD;
+        }
+        return interactionPermission(event.getClickedBlock().getType());
     }
 
     private IslandPermission interactionPermission(Material type) {
