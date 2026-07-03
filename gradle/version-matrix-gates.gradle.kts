@@ -1,4 +1,5 @@
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.tasks.Exec
 import org.gradle.jvm.tasks.Jar
 import java.util.zip.ZipFile
 
@@ -238,6 +239,8 @@ private val gateMinecraftBaselineVersion = gateVersionCatalog.findVersion("minec
 private val minecraftVersionMatrixFile = layout.projectDirectory.file("gradle/minecraft-versions.toml").asFile
 private val minecraftVersionMatrix = MinecraftVersionMatrix.parse(minecraftVersionMatrixFile)
 
+extra["cloudislandsLatestStableBootVersion"] = minecraftVersionMatrix.latestStable.bootVersion
+
 tasks.register("verifyMinecraftVersionMatrix") {
     group = "verification"
     description = "Validates the typed Minecraft version matrix and writes the external runtime matrix report."
@@ -348,6 +351,101 @@ tasks.register("verifyVersionPackaging") {
     group = "verification"
     description = "Compatibility alias for verifyAdapterPackaging."
     dependsOn(tasks.named("verifyAdapterPackaging"))
+}
+
+private val paperVersionCompileTasks = minecraftVersionMatrix.compileEntries.associateWith { entry ->
+    tasks.register(entry.compileTaskName) {
+        group = "verification"
+        description = "Compiles the CloudIslands Paper plugin for ${entry.normalizedRange} from the Minecraft version matrix."
+        dependsOn(project(":${entry.adapterProject}").tasks.named("compileJava"))
+        dependsOn(project(":${entry.adapterProject}").tasks.named("processResources"))
+    }
+}
+
+minecraftVersionMatrix.entries.forEach { entry ->
+    tasks.register<Exec>(entry.bootSmokeTaskName) {
+        group = "verification"
+        description = "Boots Paper ${entry.bootVersion} for ${entry.normalizedRange} when the matrix marks it available."
+        val paperJar = project(":cloudislands-paper").tasks.named<Jar>("shadowJar")
+        paperVersionCompileTasks[entry]?.let { dependsOn(it) }
+        dependsOn(paperJar)
+        onlyIf {
+            if (!entry.bootSmokeEnabled) {
+                logger.lifecycle("${entry.bootSmokeTaskName} skipped: ${entry.notes}")
+                false
+            } else {
+                true
+            }
+        }
+        doFirst {
+            commandLine(
+                "python3",
+                file("scripts/ci/papermc_smoke.py").absolutePath,
+                "--project", "paper",
+                "--version", entry.bootVersion,
+                "--plugin", paperJar.get().archiveFile.get().asFile.absolutePath,
+                "--work-dir", layout.buildDirectory.dir("smoke/paper-${entry.bootVersion}").get().asFile.absolutePath,
+                "--cache-dir", layout.buildDirectory.dir("smoke/cache").get().asFile.absolutePath,
+                "--timeout", "240"
+            )
+        }
+    }
+}
+
+tasks.register("paperBootSmoke") {
+    group = "verification"
+    description = "Boots the latest release-supported Paper version from the Minecraft version matrix."
+    dependsOn(tasks.named(minecraftVersionMatrix.latestStable.bootSmokeTaskName))
+}
+
+tasks.register("compileAllMinecraftVersions") {
+    group = "verification"
+    description = "Runs all compile checks generated from the Minecraft version matrix."
+    dependsOn(paperVersionCompileTasks.values)
+}
+
+tasks.register("bootSmokeAllStableMinecraftVersions") {
+    group = "verification"
+    description = "Runs boot smoke checks for non-experimental release-supported matrix entries."
+    dependsOn(minecraftVersionMatrix.stableBootEntries.map { entry -> tasks.named(entry.bootSmokeTaskName) })
+}
+
+tasks.register<Exec>("velocityBootSmoke") {
+    group = "verification"
+    description = "Boots a supported Velocity proxy and verifies the CloudIslands Velocity plugin loads."
+    val velocityJar = project(":cloudislands-velocity").tasks.named<Jar>("shadowJar")
+    dependsOn(velocityJar)
+    doFirst {
+        commandLine(
+            "python3",
+            file("scripts/ci/papermc_smoke.py").absolutePath,
+            "--project", "velocity",
+            "--version", gateVersionCatalog.findVersion("velocity-api").orElseThrow().requiredVersion,
+            "--plugin", velocityJar.get().archiveFile.get().asFile.absolutePath,
+            "--work-dir", layout.buildDirectory.dir("smoke/velocity").get().asFile.absolutePath,
+            "--cache-dir", layout.buildDirectory.dir("smoke/cache").get().asFile.absolutePath,
+            "--timeout", "180"
+        )
+    }
+}
+
+tasks.register("ciBootSmoke") {
+    group = "verification"
+    description = "Runs supported Paper and Velocity boot smoke tests."
+    dependsOn(tasks.named("paperBootSmoke"))
+    dependsOn(tasks.named("velocityBootSmoke"))
+}
+
+tasks.register("verifyVersionAdapters") {
+    group = "verification"
+    description = "Verifies Paper version parsing, adapter registry selection, and fail-fast adapter errors."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+}
+
+tasks.register("verifyVersionIsolation") {
+    group = "verification"
+    description = "Verifies Minecraft/Paper runtime access remains isolated behind Paper platform adapters."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
 }
 
 

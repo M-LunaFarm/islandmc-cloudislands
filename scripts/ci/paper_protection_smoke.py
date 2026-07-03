@@ -44,7 +44,12 @@ def main() -> int:
     root = Path(__file__).resolve().parents[2]
     listener = (root / "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java").read_text(encoding="utf-8")
     test = (root / "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/ProtectionControllerTest.java").read_text(encoding="utf-8")
-    build = (root / "build.gradle.kts").read_text(encoding="utf-8")
+    build = "\n".join(
+        [
+            (root / "build.gradle.kts").read_text(encoding="utf-8"),
+            (root / "gradle/version-matrix-gates.gradle.kts").read_text(encoding="utf-8"),
+        ]
+    )
 
     failures = []
     passed = {}

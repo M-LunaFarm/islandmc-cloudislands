@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 class Paper121BuildWiringPolicyTest {
     @Test
     void gradleExposesPaperOneTwentyOneCompileAndBootSmokeTasks() throws Exception {
-        String build = Files.readString(Path.of("../build.gradle.kts"));
+        String build = Files.readString(Path.of("../gradle/version-matrix-gates.gradle.kts"));
         String matrix = Files.readString(Path.of("../gradle/minecraft-versions.toml"));
 
         assertTrue(build.contains("val paperVersionCompileTasks = minecraftVersionMatrix.compileEntries.associateWith"));

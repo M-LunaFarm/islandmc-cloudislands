@@ -66,6 +66,17 @@ class ConfigV2ValidatorTest {
     }
 
     @Test
+    void handlesSingleQuoteCharacterScalarWithoutThrowing() {
+        ConfigValidationResult result = ConfigV2Validator.validateYaml("quote.yml", """
+            messages:
+              literal-quote: '"'
+              literal-apostrophe: "'"
+            """);
+
+        assertTrue(result.valid(), result.summary());
+    }
+
+    @Test
     void resolvesEnvironmentAndSecretFileReferences() throws Exception {
         Path secretFile = tempDir.resolve("token.txt");
         Files.writeString(secretFile, "file-secret\n");

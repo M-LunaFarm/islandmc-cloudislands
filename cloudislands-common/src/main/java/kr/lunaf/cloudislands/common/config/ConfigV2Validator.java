@@ -172,7 +172,7 @@ public final class ConfigV2Validator {
 
     static String cleanScalar(String value) {
         String cleaned = value == null ? "" : value.trim();
-        if ((cleaned.startsWith("\"") && cleaned.endsWith("\"")) || (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+        if (cleaned.length() >= 2 && ((cleaned.startsWith("\"") && cleaned.endsWith("\"")) || (cleaned.startsWith("'") && cleaned.endsWith("'")))) {
             return cleaned.substring(1, cleaned.length() - 1);
         }
         return cleaned;

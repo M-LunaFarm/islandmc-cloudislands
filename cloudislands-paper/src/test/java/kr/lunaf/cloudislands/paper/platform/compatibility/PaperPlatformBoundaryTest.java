@@ -1440,7 +1440,7 @@ class PaperPlatformBoundaryTest {
             var result = ConfigV2Validator.validateYaml(root.relativize(path).toString(), Files.readString(path));
             return result.valid() ? "" : root.relativize(path) + ": " + result.summary();
         } catch (Exception exception) {
-            throw new IllegalStateException(exception);
+            throw new IllegalStateException("Failed to validate config-v2 file " + root.relativize(path), exception);
         }
     }
 

@@ -37,8 +37,8 @@ class MinecraftVersionMatrixPolicyTest {
         assertEquals("paper-1.21", matrix.latestStable().id());
         assertFalse(matrix.entries().stream().anyMatch(entry -> entry.experimental() && entry.releaseSupported()));
         assertTrue(buildSurface.contains("verifyMinecraftVersionMatrix"));
-        assertTrue(build.contains("compileAllMinecraftVersions"));
-        assertTrue(build.contains("bootSmokeAllStableMinecraftVersions"));
+        assertTrue(buildSurface.contains("compileAllMinecraftVersions"));
+        assertTrue(buildSurface.contains("bootSmokeAllStableMinecraftVersions"));
         assertTrue(buildSurface.contains("verifyAdapterPackaging"));
         assertTrue(buildSurface.contains("verifyReadmeVersionTable"));
         assertTrue(buildSurface.contains("releaseClusterSmokeGate"));
