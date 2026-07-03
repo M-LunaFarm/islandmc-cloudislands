@@ -169,8 +169,14 @@ class AdminCommandBackendPolicyTest {
 
         assertTrue(adminSurface.contains("\"integrations\""), "Integrations root command must be registered");
         assertTrue(adminSurface.contains("ciadmin integrations"), "Integrations command must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin integrations report"), "Integrations report command must be listed in help");
         assertTrue(source.contains("integrationStatusMessage"), "Integrations command must have a status handler");
         assertTrue(source.contains("integrationRegistry().statusLine()"), "Integrations command must use the runtime integration registry");
+        assertTrue(source.contains("certificationReport()"), "Integrations command must run the runtime certification report");
+        assertTrue(source.contains("cloudislands-integrations-"), "Integrations command must generate report artifacts");
+        assertTrue(source.contains(".json"), "Integrations command must generate JSON report artifacts");
+        assertTrue(source.contains(".md"), "Integrations command must generate Markdown report artifacts");
+        assertTrue(source.contains("failedIntegrationRemediation"), "Integrations command must expose OPERATION_FAILED remediation guidance");
         assertTrue(source.contains("integrationsDiagnosticSection"), "Diagnostics export must include integration policy state");
         assertTrue(source.contains("CloudIntegrationPolicy.knownPlugins()"), "Integrations command must use the shared integration policy");
         assertTrue(policy.contains("LuckPerms"), "LuckPerms must be covered by integration status");

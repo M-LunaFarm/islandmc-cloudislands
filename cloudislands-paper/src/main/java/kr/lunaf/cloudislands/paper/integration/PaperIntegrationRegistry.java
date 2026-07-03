@@ -126,6 +126,18 @@ public final class PaperIntegrationRegistry {
         return builder.toString();
     }
 
+    public IntegrationRuntimeCertification.CertificationReport certificationReport() {
+        LinkedHashMap<String, String> pluginVersions = new LinkedHashMap<>();
+        for (String pluginName : CloudIntegrationPolicy.knownPlugins()) {
+            pluginVersions.put(pluginName, pluginVersion(plugin(pluginName)));
+        }
+        return IntegrationRuntimeCertification.report(
+            snapshot(),
+            IntegrationRuntimeCertification.certifyPriorityPlugins(bukkitExternalRuntime(server)),
+            Map.copyOf(pluginVersions)
+        );
+    }
+
     private static List<CloudIntegration> defaultIntegrations(IntegrationExternalRuntime externalRuntime) {
         List<CloudIntegration> integrations = new ArrayList<>();
         for (String pluginName : CloudIntegrationPolicy.knownPlugins()) {

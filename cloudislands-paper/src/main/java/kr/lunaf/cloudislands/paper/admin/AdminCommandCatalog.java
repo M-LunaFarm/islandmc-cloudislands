@@ -48,6 +48,7 @@ final class AdminCommandCatalog {
         "ciadmin addons state-summary",
         "ciadmin addons endpoints",
         "ciadmin integrations",
+        "ciadmin integrations report",
         "ciadmin node menu",
         "ciadmin node list",
         "ciadmin node info <node>",

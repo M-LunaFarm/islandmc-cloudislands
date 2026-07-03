@@ -51,6 +51,7 @@ import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
+import kr.lunaf.cloudislands.paper.integration.IntegrationRuntimeCertification;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import org.bukkit.command.Command;
@@ -170,8 +171,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return handleAddons(sender, args);
         }
         if (args[0].equalsIgnoreCase("integrations")) {
-            sender.sendMessage(integrationStatusMessage());
-            return true;
+            return handleIntegrations(sender, args);
         }
         if (args[0].equalsIgnoreCase("reload")) {
             run(sender, "Core reload", coreApiClient.adminMaintenance().reload().thenApply(result -> maintenanceMessage("Core reload", result)));
@@ -255,6 +255,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("addons")) {
             return matches(ADDON_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("integrations")) {
+            return matches(List.of("report", "export", "status"), args[1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("config")) {
             return matches(CONFIG_COMMANDS, args[1]);
@@ -578,6 +581,54 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return value
             .replaceAll("(?i)(token|secret|password|authorization|accessKey|secretKey)\\\"?\\s*[:=]\\s*\\\"?[^,\\n\\r\\\"]+", "$1=***")
             .replaceAll("ghp_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+", "***");
+    }
+
+    private boolean handleIntegrations(CommandSender sender, String[] args) {
+        if (args.length > 1 && args[1].equalsIgnoreCase("status")) {
+            sender.sendMessage(integrationStatusMessage());
+            return true;
+        }
+        sender.sendMessage(integrationCertificationMessage());
+        return true;
+    }
+
+    private String integrationCertificationMessage() {
+        if (!(agent.plugin() instanceof CloudIslandsPaperPlugin plugin)) {
+            return integrationStatusMessage();
+        }
+        try {
+            IntegrationRuntimeCertification.CertificationReport report = plugin.integrationRegistry().certificationReport();
+            IntegrationReportFiles files = writeIntegrationCertificationReport(report);
+            String remediation = failedIntegrationRemediation(report);
+            return adminText("admin-command-integrations-prefix", "Integrations: ")
+                + report.summaryLine()
+                + " status=" + plugin.integrationRegistry().statusLine()
+                + " json=" + files.json()
+                + " markdown=" + files.markdown()
+                + (remediation.isBlank() ? "" : " remediation=" + remediation);
+        } catch (IOException | RuntimeException exception) {
+            return adminText("admin-command-integrations-report-failed", "Integration certification report failed: ") + exception.getMessage()
+                + " / " + integrationStatusMessage();
+        }
+    }
+
+    private IntegrationReportFiles writeIntegrationCertificationReport(IntegrationRuntimeCertification.CertificationReport report) throws IOException {
+        Path directory = agent.plugin().getDataFolder().toPath().resolve("integration-reports");
+        Files.createDirectories(directory);
+        String timestamp = Instant.now().toString().replace(':', '-');
+        Path json = directory.resolve("cloudislands-integrations-" + timestamp + ".json");
+        Path markdown = directory.resolve("cloudislands-integrations-" + timestamp + ".md");
+        Files.writeString(json, report.toJson());
+        Files.writeString(markdown, report.toMarkdown());
+        return new IntegrationReportFiles(json, markdown);
+    }
+
+    private String failedIntegrationRemediation(IntegrationRuntimeCertification.CertificationReport report) {
+        List<String> entries = report.failedOperations().stream()
+            .limit(3)
+            .map(entry -> entry.pluginName() + "=" + entry.remediation())
+            .toList();
+        return String.join("; ", entries);
     }
 
     private String integrationStatusMessage() {
@@ -1384,6 +1435,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         private DiagnosticSection {
             content = content == null ? "" : content;
         }
+    }
+
+    private record IntegrationReportFiles(Path json, Path markdown) {
     }
 
     private record BulkRestoreEntry(String requested, UUID islandId, boolean accepted, String code) {

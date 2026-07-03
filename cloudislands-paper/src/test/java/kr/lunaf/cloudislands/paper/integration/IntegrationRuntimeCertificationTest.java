@@ -62,4 +62,28 @@ class IntegrationRuntimeCertificationTest {
         assertFalse(results.stream().anyMatch(IntegrationRuntimeCertification.CertificationResult::certified));
         assertTrue(results.stream().allMatch(result -> "state-artifact-or-round-trip".equals(result.details().get("external.evidenceRequired"))));
     }
+
+    @Test
+    void certificationReportExportsJsonMarkdownAndActionableFailureGuidance() {
+        List<IntegrationRuntimeCertification.CertificationResult> results = IntegrationRuntimeCertification.certifyPriorityPlugins(
+            (pluginName, category, operation, context, plan) ->
+                IntegrationResult.failed("fixture failed", Map.of("external.message", "missing operation executor"))
+        );
+
+        IntegrationRuntimeCertification.CertificationReport report = IntegrationRuntimeCertification.report(
+            List.of(),
+            results,
+            Map.of("Vault", "1.7.3")
+        );
+
+        assertTrue(report.summaryLine().contains("failed=5"));
+        assertTrue(report.toJson().contains("\"pluginName\":\"Vault\""));
+        assertTrue(report.toJson().contains("\"pluginVersion\":\"1.7.3\""));
+        assertTrue(report.toJson().contains("\"operationState\":\"OPERATION_FAILED\""));
+        assertTrue(report.toJson().contains("\"remediation\""));
+        assertTrue(report.toMarkdown().contains("| Vault |"));
+        assertTrue(report.toMarkdown().contains("OPERATION_FAILED"));
+        assertTrue(report.toMarkdown().contains("Remediation"));
+        assertTrue(report.failedOperations().stream().allMatch(result -> !result.remediation().isBlank()));
+    }
 }
