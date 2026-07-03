@@ -231,6 +231,7 @@ CREATE TABLE island_rank_snapshots (
     level BIGINT NOT NULL,
     worth NUMERIC(20, 2) NOT NULL,
     member_count INTEGER NOT NULL,
+    ignored BOOLEAN NOT NULL DEFAULT false,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

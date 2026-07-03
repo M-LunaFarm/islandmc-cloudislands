@@ -78,6 +78,30 @@ class DirtyRankingRecalculationTaskTest {
     }
 
     @Test
+    void tenThousandDirtyIslandsStayDebouncedAndProcessOnlyBatchLimitPerRun() {
+        InMemoryRankingRepository rankings = new InMemoryRankingRepository();
+        InMemoryIslandLevelRepository levels = new InMemoryIslandLevelRepository();
+        DirtyRankingRecalculationTask task = task(rankings, levels, new InMemoryIslandMetadataRepository(), new InMemoryGlobalEventPublisher());
+
+        for (int index = 0; index < 10_000; index++) {
+            UUID islandId = new UUID(20L, index);
+            levels.replaceBlockCounts(islandId, Map.of("minecraft:diamond_block", 1L));
+            rankings.markDirty(islandId);
+            rankings.markDirty(islandId);
+        }
+
+        assertEquals(10_000L, rankings.dirtyCount());
+
+        task.runOnce();
+
+        assertEquals(DirtyRankingRecalculationTask.BATCH_LIMIT, task.lastBatchSize());
+        assertEquals(DirtyRankingRecalculationTask.BATCH_LIMIT, task.drainedTotal());
+        assertEquals(DirtyRankingRecalculationTask.BATCH_LIMIT, task.recalculatedTotal());
+        assertEquals(9_900L, rankings.dirtyCount());
+        assertEquals(DirtyRankingRecalculationTask.BATCH_LIMIT, rankings.topByWorth(200).size());
+    }
+
+    @Test
     void failedRecalculationReturnsIslandToDirtyQueue() {
         InMemoryRankingRepository rankings = new InMemoryRankingRepository();
         ToggleFailingLevels levels = new ToggleFailingLevels();

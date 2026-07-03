@@ -73,4 +73,32 @@ class RankingRecalculationServiceTest {
         assertEquals(0L, value.levelPoints());
         assertEquals(0L, value.limit());
     }
+
+    @Test
+    void tenThousandIslandWorthRecalculationRanksAndExcludesIgnoredIslands() {
+        InMemoryRankingRepository rankings = new InMemoryRankingRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        RankingRecalculationService service = new RankingRecalculationService(rankings, events, "floor(total_level_points / 100)", "SUM_BLOCK_VALUES");
+        Map<String, RankingRecalculationService.BlockValue> values = Map.of(
+            "minecraft:diamond_block",
+            new RankingRecalculationService.BlockValue(new BigDecimal("2.00"), 1L, 0L)
+        );
+
+        UUID topIsland = new UUID(10L, 10_000L);
+        for (int index = 1; index <= 10_000; index++) {
+            service.recalculate(new UUID(10L, index), Map.of("minecraft:diamond_block", (long) index), values, 1);
+        }
+
+        assertEquals(10_000, rankings.topByWorth(10_000).size());
+        assertEquals(topIsland, rankings.topByWorth(1).getFirst().islandId());
+        assertEquals(new BigDecimal("20000.00"), rankings.topByWorth(1).getFirst().worth());
+        assertTrue(events.toJson().contains("\"latestSeq\":20000"));
+        assertEquals(4_096L, events.countByType(CloudIslandEventType.ISLAND_LEVEL_UPDATED.name()) + events.countByType(CloudIslandEventType.ISLAND_WORTH_CHANGED.name()));
+
+        rankings.setIgnored(topIsland, true);
+
+        assertTrue(rankings.isIgnored(topIsland));
+        assertEquals(new UUID(10L, 9_999L), rankings.topByWorth(1).getFirst().islandId());
+        assertTrue(rankings.topByWorth(100).stream().noneMatch(snapshot -> topIsland.equals(snapshot.islandId())));
+    }
 }

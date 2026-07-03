@@ -4,6 +4,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -63,6 +65,39 @@ public final class JdbcRankingRepository implements RankingRepository {
     }
 
     @Override
+    public void setIgnored(UUID islandId, boolean ignored) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(setIgnoredSql(connection))) {
+            statement.setObject(1, islandId);
+            statement.setBoolean(2, ignored);
+            statement.setObject(3, Timestamp.from(Instant.now()));
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to update island ranking ignored state", exception);
+        }
+    }
+
+    private String setIgnoredSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_rank_snapshots(island_id, ignored, updated_at, level, worth, member_count) VALUES (?, ?, ?, 0, 0, 0) ON DUPLICATE KEY UPDATE ignored = VALUES(ignored), updated_at = VALUES(updated_at)";
+        }
+        return "INSERT INTO island_rank_snapshots(island_id, ignored, updated_at, level, worth, member_count) VALUES (?, ?, ?, 0, 0, 0) ON CONFLICT (island_id) DO UPDATE SET ignored = EXCLUDED.ignored, updated_at = EXCLUDED.updated_at";
+    }
+
+    @Override
+    public boolean isIgnored(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT ignored FROM island_rank_snapshots WHERE island_id = ?")) {
+            statement.setObject(1, islandId);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() && rs.getBoolean("ignored");
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island ranking ignored state", exception);
+        }
+    }
+
+    @Override
     public void save(IslandRankSnapshot snapshot) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(saveSql(connection))) {
@@ -102,7 +137,7 @@ public final class JdbcRankingRepository implements RankingRepository {
 
     private List<IslandRankSnapshot> top(String order, int limit) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT island_id, level, worth, member_count, updated_at FROM island_rank_snapshots ORDER BY " + order + " LIMIT ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, level, worth, member_count, updated_at FROM island_rank_snapshots WHERE ignored = false ORDER BY " + order + " LIMIT ?")) {
             statement.setInt(1, limit);
             try (ResultSet rs = statement.executeQuery()) {
                 List<IslandRankSnapshot> result = new ArrayList<>();

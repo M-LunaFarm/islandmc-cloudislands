@@ -842,6 +842,42 @@ tasks.register("verifyEconomyTransactionSafety") {
     }
 }
 
+tasks.register("verifyRankingWorthCertification") {
+    group = "verification"
+    description = "Verifies ranking/worth certification covers 10k island recalculation, dirty debounce, ignored islands, and event publication."
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    val recalculation = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/ranking/RankingRecalculationService.java")
+    val rankingRepository = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/ranking/RankingRepository.java")
+    val jdbcRankingRepository = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/ranking/JdbcRankingRepository.java")
+    val dirtyTask = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTask.java")
+    val recalculationTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/RankingRecalculationServiceTest.java")
+    val dirtyTaskTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java")
+    inputs.files(recalculation, rankingRepository, jdbcRankingRepository, dirtyTask, recalculationTest, dirtyTaskTest)
+    doLast {
+        val serviceSource = recalculation.asFile.readText()
+        val repositorySource = rankingRepository.asFile.readText()
+        val jdbcSource = jdbcRankingRepository.asFile.readText()
+        val dirtySource = dirtyTask.asFile.readText()
+        val recalculationTests = recalculationTest.asFile.readText()
+        val dirtyTests = dirtyTaskTest.asFile.readText()
+        val failures = buildList {
+            listOf("ISLAND_LEVEL_UPDATED", "ISLAND_WORTH_CHANGED").filterNot(serviceSource::contains).forEach {
+                add("Ranking recalculation must publish event signal: $it")
+            }
+            listOf("setIgnored", "isIgnored").filterNot(repositorySource::contains).forEach {
+                add("RankingRepository missing ignored-island API: $it")
+            }
+            if (!jdbcSource.contains("WHERE ignored = false")) add("JdbcRankingRepository must exclude ignored islands from top rankings")
+            if (!dirtySource.contains("BATCH_LIMIT = 100")) add("DirtyRankingRecalculationTask must keep bounded batches")
+            if (!recalculationTests.contains("tenThousandIslandWorthRecalculationRanksAndExcludesIgnoredIslands")) add("Ranking 10k worth certification test is missing")
+            if (!dirtyTests.contains("tenThousandDirtyIslandsStayDebouncedAndProcessOnlyBatchLimitPerRun")) add("Dirty ranking 10k debounce certification test is missing")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register("verifyGuiButtonCoverage") {
     group = "verification"
     description = "Verifies shared GUI button states and state-menu coverage remain present."
@@ -988,6 +1024,7 @@ tasks.register("verifyAddonDeveloperKitCoverage") {
 
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
+    dependsOn(tasks.named("verifyRankingWorthCertification"))
 }
 
 tasks.register("verifyRoutingRefactorCoverage") {

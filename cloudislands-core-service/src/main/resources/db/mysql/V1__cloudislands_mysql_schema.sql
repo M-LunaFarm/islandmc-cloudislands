@@ -547,6 +547,7 @@ CREATE TABLE IF NOT EXISTS island_rank_snapshots (
     level BIGINT NOT NULL,
     worth DECIMAL(20, 2) NOT NULL,
     member_count INTEGER NOT NULL,
+    ignored BOOLEAN NOT NULL DEFAULT false,
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT fk_island_rank_snapshots_island FOREIGN KEY (island_id) REFERENCES islands(id),
     CONSTRAINT chk_island_rank_snapshots_level_non_negative CHECK (level >= 0),

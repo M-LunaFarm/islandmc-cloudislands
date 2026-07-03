@@ -13,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class InMemoryRankingRepository implements RankingRepository {
     private final Map<UUID, IslandRankSnapshot> snapshots = new ConcurrentHashMap<>();
     private final Set<UUID> dirty = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> ignored = ConcurrentHashMap.newKeySet();
 
     @Override
     public void markDirty(UUID islandId) {
@@ -32,6 +33,23 @@ public final class InMemoryRankingRepository implements RankingRepository {
     }
 
     @Override
+    public void setIgnored(UUID islandId, boolean ignored) {
+        if (islandId == null) {
+            return;
+        }
+        if (ignored) {
+            this.ignored.add(islandId);
+        } else {
+            this.ignored.remove(islandId);
+        }
+    }
+
+    @Override
+    public boolean isIgnored(UUID islandId) {
+        return islandId != null && ignored.contains(islandId);
+    }
+
+    @Override
     public void save(IslandRankSnapshot snapshot) {
         snapshots.put(snapshot.islandId(), snapshot);
         dirty.remove(snapshot.islandId());
@@ -40,6 +58,7 @@ public final class InMemoryRankingRepository implements RankingRepository {
     @Override
     public List<IslandRankSnapshot> topByLevel(int limit) {
         return snapshots.values().stream()
+            .filter(snapshot -> !isIgnored(snapshot.islandId()))
             .sorted(Comparator.comparingLong(IslandRankSnapshot::level).thenComparing(IslandRankSnapshot::worth).reversed())
             .limit(limit)
             .toList();
@@ -48,6 +67,7 @@ public final class InMemoryRankingRepository implements RankingRepository {
     @Override
     public List<IslandRankSnapshot> topByWorth(int limit) {
         return snapshots.values().stream()
+            .filter(snapshot -> !isIgnored(snapshot.islandId()))
             .sorted(Comparator.comparing(IslandRankSnapshot::worth).thenComparingLong(IslandRankSnapshot::level).reversed())
             .limit(limit)
             .toList();
