@@ -10,3 +10,8 @@ author: LeeSeungmin
 permissions:
   cloudislands.example:
     default: true
+commands:
+  exampleisland:
+    description: CloudIslands developer kit example command
+    usage: /exampleisland [mission]
+    permission: cloudislands.example

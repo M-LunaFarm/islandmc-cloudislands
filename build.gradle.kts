@@ -657,18 +657,26 @@ tasks.register("verifyAddonDeveloperKitCoverage") {
     dependsOn(project(":cloudislands-testkit").tasks.named("test"))
     val addonApi = layout.projectDirectory.file("cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/addon/CloudIslandsAddon.java")
     val example = layout.projectDirectory.file("cloudislands-example-addon/src/main/java/kr/lunaf/cloudislands/exampleaddon/ExampleCloudIslandsAddonDefinition.java")
+    val examplePlugin = layout.projectDirectory.file("cloudislands-example-addon/src/main/java/kr/lunaf/cloudislands/exampleaddon/ExampleCloudIslandsAddonPlugin.java")
+    val exampleEventListener = layout.projectDirectory.file("cloudislands-example-addon/src/main/java/kr/lunaf/cloudislands/exampleaddon/ExampleCloudIslandsEventListener.java")
+    val exampleCommand = layout.projectDirectory.file("cloudislands-example-addon/src/main/java/kr/lunaf/cloudislands/exampleaddon/ExampleIslandCommand.java")
+    val exampleMenuAction = layout.projectDirectory.file("cloudislands-example-addon/src/main/java/kr/lunaf/cloudislands/exampleaddon/ExampleIslandMenuAction.java")
     val exampleTest = layout.projectDirectory.file("cloudislands-example-addon/src/test/java/kr/lunaf/cloudislands/exampleaddon/ExampleCloudIslandsAddonDefinitionTest.java")
     val certification = layout.projectDirectory.file("cloudislands-testkit/src/main/java/kr/lunaf/cloudislands/testkit/AddonCertificationMatrix.java")
     val certificationTest = layout.projectDirectory.file("cloudislands-testkit/src/test/java/kr/lunaf/cloudislands/testkit/AddonCertificationMatrixTest.java")
     val devkitDir = layout.buildDirectory.dir("dist/devkit")
     val certificationJsonReport = layout.buildDirectory.file("reports/cloudislands/addon-certification.json")
     val certificationMarkdownReport = layout.buildDirectory.file("reports/cloudislands/addon-certification.md")
-    inputs.files(addonApi, example, exampleTest, certification, certificationTest)
+    inputs.files(addonApi, example, examplePlugin, exampleEventListener, exampleCommand, exampleMenuAction, exampleTest, certification, certificationTest)
     inputs.dir(devkitDir)
     inputs.files(certificationJsonReport, certificationMarkdownReport)
     doLast {
         val apiSource = addonApi.asFile.readText()
         val exampleSource = example.asFile.readText()
+        val examplePluginSource = examplePlugin.asFile.readText()
+        val eventListenerSource = exampleEventListener.asFile.readText()
+        val commandSource = exampleCommand.asFile.readText()
+        val menuActionSource = exampleMenuAction.asFile.readText()
         val exampleTests = exampleTest.asFile.readText()
         val certificationSource = certification.asFile.readText()
         val certificationTests = certificationTest.asFile.readText()
@@ -679,7 +687,19 @@ tasks.register("verifyAddonDeveloperKitCoverage") {
             listOf("new MissionProviderDefinitionSnapshot", "new AddonPlaceholderSnapshot", "new AddonMenuButtonSnapshot", "new BlockValueSnapshot").filterNot(exampleSource::contains).forEach {
                 add("Example addon missing reference implementation: $it")
             }
-            listOf("custom-missions", "placeholders", "custom-menu-buttons", "custom-block-values").filterNot(exampleTests::contains).forEach {
+            listOf("ExampleCloudIslandsEventListener", "ExampleIslandCommand", "ExampleIslandMenuAction").filterNot(exampleSource::contains).forEach {
+                add("Example addon metadata missing executable example pointer: $it")
+            }
+            if (!eventListenerSource.contains("RouteTicketCreatedEvent") || !eventListenerSource.contains("IslandMissionProgressEvent")) {
+                add("Example addon missing typed CloudIslands event listener example")
+            }
+            if (!commandSource.contains("implements CommandExecutor") || !examplePluginSource.contains("new ExampleIslandCommand")) {
+                add("Example addon missing Bukkit command registration example")
+            }
+            if (!menuActionSource.contains("AddonMenuButtonSnapshot") || !menuActionSource.contains("commandFor")) {
+                add("Example addon missing menu action resolution example")
+            }
+            listOf("custom-missions", "placeholders", "custom-menu-buttons", "custom-block-values", "exampleEventListenerCommandAndMenuActionAreExecutableReferences").filterNot(exampleTests::contains).forEach {
                 add("Example addon certification test missing feature assertion: $it")
             }
             listOf("addon-data-retention", "addon-event-failure-policy", "providerKeysPresent").filterNot(certificationSource::contains).forEach {

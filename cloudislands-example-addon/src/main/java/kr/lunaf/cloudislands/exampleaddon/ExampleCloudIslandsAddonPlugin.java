@@ -14,16 +14,27 @@ import kr.lunaf.cloudislands.api.model.AddonPlaceholderSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class ExampleCloudIslandsAddonPlugin extends JavaPlugin implements CloudIslandsAddon {
     private final ExampleCloudIslandsAddonDefinition definition = new ExampleCloudIslandsAddonDefinition(getPluginVersion());
+    private final ExampleCloudIslandsEventListener cloudEventListener = new ExampleCloudIslandsEventListener();
+    private final ExampleIslandMenuAction menuAction = new ExampleIslandMenuAction(definition.addonMenuButtons());
 
     @Override
     public void onEnable() {
+        registerCommand();
         CloudIslandsAddonBootstrap.registerIfAvailable(this).thenAccept(snapshot ->
             snapshot.ifPresent(addon -> getLogger().info("Registered " + addon.id() + " with CloudIslands API " + apiSummary()))
         );
+    }
+
+    private void registerCommand() {
+        PluginCommand command = getCommand("exampleisland");
+        if (command != null) {
+            command.setExecutor(new ExampleIslandCommand(cloudEventListener, menuAction));
+        }
     }
 
     private String apiSummary() {
@@ -97,6 +108,7 @@ public final class ExampleCloudIslandsAddonPlugin extends JavaPlugin implements 
 
     @Override
     public void onCloudEvent(CloudEvent event) {
+        cloudEventListener.onCloudEvent(event);
         if (event instanceof RouteTicketCreatedEvent routeTicket) {
             getLogger().fine("Observed CloudIslands route ticket " + routeTicket.ticketId());
         }

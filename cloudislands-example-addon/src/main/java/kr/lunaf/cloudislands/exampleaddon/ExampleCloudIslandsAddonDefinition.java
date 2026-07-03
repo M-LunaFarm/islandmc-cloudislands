@@ -45,6 +45,8 @@ public final class ExampleCloudIslandsAddonDefinition implements CloudIslandsAdd
             "lifecycle", true,
             "route-events", true,
             "addon-state", true,
+            "commands", true,
+            "gui", true,
             "custom-missions", true,
             "placeholders", true,
             "custom-menu-buttons", true,
@@ -59,8 +61,11 @@ public final class ExampleCloudIslandsAddonDefinition implements CloudIslandsAdd
             "example-addon-role", "developer-kit-reference-implementation",
             "example-addon-boundary", "uses-cloudislands-api-and-addon-spi-without-core-internals",
             "example-addon-certification", "run-ApiContractVerifier-in-addon-ci",
-            "feature-dependencies", "route-events:addon-state",
-            "feature-aliases", "events:lifecycle"
+            "feature-dependencies", "route-events:addon-state,commands:gui",
+            "feature-aliases", "events:lifecycle,menu:commands",
+            "example-event-listener", "ExampleCloudIslandsEventListener",
+            "example-command", "ExampleIslandCommand",
+            "example-menu-action", "ExampleIslandMenuAction"
         );
     }
 
@@ -103,7 +108,7 @@ public final class ExampleCloudIslandsAddonDefinition implements CloudIslandsAdd
             "example.open",
             "WHEAT",
             "Example Mission",
-            "/island mission example-harvest",
+            "/exampleisland mission example-harvest",
             true
         ));
     }
