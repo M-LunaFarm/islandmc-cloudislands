@@ -166,16 +166,22 @@ final class JobCompletionBackend {
             recordPreMutationSnapshot(job);
             restoreDeletedIslandRecord(job);
             setIslandState(job.islandId(), IslandState.ACTIVE);
-            publishEvent(CloudIslandEventType.ISLAND_RESTORED.name(), Map.of(
-                "islandId", job.islandId().toString(),
-                "state", "RESTORED",
-                "snapshotNo", job.payload().getOrDefault("snapshotNo", ""),
-                "targetNode", job.targetNode() == null ? "" : job.targetNode(),
-                "worldName", placement.worldName(),
-                "cellX", Integer.toString(placement.cellX()),
-                "cellZ", Integer.toString(placement.cellZ()),
-                "fencingToken", job.payload().getOrDefault("fencingToken", "0"),
-                "placementSource", job.payload().getOrDefault("placementSource", "")
+            int readyTickets = tickets.markReadyForIsland(job.islandId(), job.targetNode(), placement.worldName(), Instant.now().plus(routeTicketTtl), Map.of(
+                "placementSource", job.payload().getOrDefault("placementSource", ""),
+                "restoreRouteTest", "READY"
+            ));
+            publishEvent(CloudIslandEventType.ISLAND_RESTORED.name(), Map.ofEntries(
+                Map.entry("islandId", job.islandId().toString()),
+                Map.entry("state", "RESTORED"),
+                Map.entry("snapshotNo", job.payload().getOrDefault("snapshotNo", "")),
+                Map.entry("targetNode", job.targetNode() == null ? "" : job.targetNode()),
+                Map.entry("worldName", placement.worldName()),
+                Map.entry("cellX", Integer.toString(placement.cellX())),
+                Map.entry("cellZ", Integer.toString(placement.cellZ())),
+                Map.entry("fencingToken", job.payload().getOrDefault("fencingToken", "0")),
+                Map.entry("placementSource", job.payload().getOrDefault("placementSource", "")),
+                Map.entry("routeTest", "READY_TICKETS_PUBLISHED"),
+                Map.entry("readyTickets", Integer.toString(readyTickets))
             ));
             releaseRestoreLock(job);
             return;

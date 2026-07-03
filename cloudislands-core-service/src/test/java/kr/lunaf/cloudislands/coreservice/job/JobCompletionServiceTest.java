@@ -1,6 +1,9 @@
 package kr.lunaf.cloudislands.coreservice.job;
 
 import kr.lunaf.cloudislands.api.model.IslandState;
+import kr.lunaf.cloudislands.api.model.RouteAction;
+import kr.lunaf.cloudislands.api.model.RouteTicket;
+import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.RedisActivationLock;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -182,11 +185,26 @@ class JobCompletionServiceTest {
         InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
         InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
         RedisActivationLock activationLock = new RedisActivationLock(URI.create("redis://127.0.0.1:1"), Duration.ofSeconds(30), true);
-        JobCompletionService service = service(runtimes, islands, events, snapshots, activationLock);
+        InMemoryRouteTicketStore routeTickets = new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC));
+        JobCompletionService service = new JobCompletionService(
+            runtimes,
+            events,
+            snapshots,
+            routeTickets,
+            null,
+            islands,
+            null,
+            Duration.ofSeconds(30),
+            SnapshotRetentionPolicy.defaultPolicy(),
+            activationLock
+        );
+        UUID ticketId = UUID.fromString("00000000-0000-0000-0000-000000000303");
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000304");
         islands.createOwnedIsland(ISLAND, OWNER, "default", "restore target");
         runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 7, 8, 42L);
         runtimes.setState(ISLAND, IslandState.RESTORING);
         RedisActivationLock.Lease lease = activationLock.acquire(ISLAND, "restore").orElseThrow();
+        routeTickets.save(new RouteTicket(ticketId, playerUuid, RouteAction.HOME, ISLAND, "island-2", "", RouteTicketState.PREPARING, NOW.plusSeconds(60), "nonce", Map.of()));
 
         service.completed(job(IslandJobType.RESTORE_ISLAND, "island-2", Map.ofEntries(
             Map.entry("fencingToken", "42"),
@@ -209,6 +227,12 @@ class JobCompletionServiceTest {
         assertEquals("BEFORE_RESTORE", snapshots.find(ISLAND, 10L).orElseThrow().reason());
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RESTORED.name()));
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name()));
+        RouteTicket readyTicket = routeTickets.find(ticketId).orElseThrow();
+        assertEquals(RouteTicketState.READY, readyTicket.state());
+        assertEquals("ci_shard_002", readyTicket.targetWorld());
+        assertEquals("READY", readyTicket.payload().get("restoreRouteTest"));
+        assertTrue(events.toJson().contains("\"routeTest\":\"READY_TICKETS_PUBLISHED\""));
+        assertTrue(events.toJson().contains("\"readyTickets\":\"1\""));
         assertTrue(activationLock.acquire(ISLAND, "restore").isPresent());
     }
 
