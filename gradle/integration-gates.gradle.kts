@@ -7,8 +7,11 @@ tasks.register("verifyIntegrationMatrix") {
     val stateFile = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/spi/IntegrationSupportState.java")
     val configFile = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/integrations.yml")
     val pluginFile = layout.projectDirectory.file("cloudislands-paper/src/main/resources/plugin.yml")
+    val integrationJsonReport = layout.buildDirectory.file("reports/cloudislands/integrations.json")
+    val integrationMarkdownReport = layout.buildDirectory.file("reports/cloudislands/integrations.md")
     inputs.files(policyFile, registryFile, stateFile, configFile, pluginFile)
     outputs.file(rootProject.layout.projectDirectory.dir("../codex-output").file("plugin-integration-matrix.md"))
+    outputs.files(integrationJsonReport, integrationMarkdownReport)
     doLast {
         val requiredPlugins = listOf(
             "Vault",
@@ -88,6 +91,89 @@ tasks.register("verifyIntegrationMatrix") {
                 appendLine()
                 appendLine("Reported states: ${requiredStates.joinToString(", ")}.")
                 appendLine("Specific adapters: ${unsupportedSpecificAdapters.ifEmpty { listOf("all required adapter classes present") }.joinToString(", ")}.")
+            }
+        )
+        val reportsDir = integrationJsonReport.get().asFile.parentFile
+        reportsDir.mkdirs()
+        val priorityOperationPlugins = setOf("Vault", "LuckPerms", "PlaceholderAPI", "WorldEdit", "CoreProtect")
+        fun jsonEscape(value: String): String = buildString {
+            value.forEach { character ->
+                when (character) {
+                    '"' -> append("\\\"")
+                    '\\' -> append("\\\\")
+                    '\n' -> append("\\n")
+                    '\r' -> append("\\r")
+                    '\t' -> append("\\t")
+                    else -> append(character)
+                }
+            }
+        }
+        fun jsonField(key: String, value: String): String = "\"${jsonEscape(key)}\":\"${jsonEscape(value)}\""
+        val generatedAt = java.time.Instant.now().toString()
+        integrationJsonReport.get().asFile.writeText(
+            buildString {
+                append("{")
+                append(jsonField("generatedAt", generatedAt))
+                append(",")
+                append(jsonField("scope", "build-gate-integration-acceptance"))
+                append(",")
+                append("\"entries\":[")
+                requiredPlugins.forEachIndexed { index, pluginName ->
+                    if (index > 0) append(",")
+                    val priority = pluginName in priorityOperationPlugins
+                    val operation = if (priority) "runtime-operation-smoke" else "static-policy-matrix"
+                    val operationState = if (priority) "RUNTIME_NODE_REQUIRED" else "STATIC_POLICY_VERIFIED"
+                    val remediation = if (priority) {
+                        "Run /ciadmin integrations report on a live Paper node with $pluginName installed; OPERATION_FAILED must include runtime evidence and a fix."
+                    } else {
+                        "Install the plugin only when this hook is needed; static policy, config, softdepend, and registry coverage passed."
+                    }
+                    append("{")
+                    append(jsonField("pluginName", pluginName))
+                    append(",")
+                    append(jsonField("state", "STATIC_POLICY_VERIFIED"))
+                    append(",")
+                    append(jsonField("version", "runtime"))
+                    append(",")
+                    append(jsonField("operation", operation))
+                    append(",")
+                    append(jsonField("operationState", operationState))
+                    append(",")
+                    append(jsonField("remediation", remediation))
+                    append("}")
+                }
+                append("],")
+                append("\"reportedStates\":[")
+                requiredStates.forEachIndexed { index, state ->
+                    if (index > 0) append(",")
+                    append("\"${jsonEscape(state)}\"")
+                }
+                append("]}")
+            }
+        )
+        integrationMarkdownReport.get().asFile.writeText(
+            buildString {
+                appendLine("# CloudIslands integration acceptance")
+                appendLine()
+                appendLine("- Generated: $generatedAt")
+                appendLine("- Scope: build gate static policy plus runtime-operation report handoff")
+                appendLine("- Runtime operation command: `/ciadmin integrations report`")
+                appendLine()
+                appendLine("| Plugin | State | Version | Operation | Operation state | Remediation |")
+                appendLine("| --- | --- | --- | --- | --- | --- |")
+                requiredPlugins.forEach { pluginName ->
+                    val priority = pluginName in priorityOperationPlugins
+                    val operation = if (priority) "runtime-operation-smoke" else "static-policy-matrix"
+                    val operationState = if (priority) "RUNTIME_NODE_REQUIRED" else "STATIC_POLICY_VERIFIED"
+                    val remediation = if (priority) {
+                        "Run `/ciadmin integrations report` on a live Paper node with $pluginName installed; OPERATION_FAILED must include runtime evidence and a fix."
+                    } else {
+                        "Static policy, config, softdepend, and registry coverage passed."
+                    }
+                    appendLine("| `$pluginName` | STATIC_POLICY_VERIFIED | runtime | $operation | $operationState | $remediation |")
+                }
+                appendLine()
+                appendLine("Reported states: ${requiredStates.joinToString(", ")}.")
             }
         )
     }
