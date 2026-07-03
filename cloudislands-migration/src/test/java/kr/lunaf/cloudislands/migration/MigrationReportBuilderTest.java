@@ -46,6 +46,13 @@ class MigrationReportBuilderTest {
         assertEquals(3, report.cloudIslandsPostImportDifferenceCount());
         assertEquals(1, report.unsupportedFieldCount());
         assertTrue(report.rollbackPossible());
+        assertTrue(report.toJson().contains("\"totalIslands\":1"));
+        assertTrue(report.toJson().contains("\"ownerMissing\":1"));
+        assertTrue(report.toJson().contains("\"rollbackPossible\":true"));
+        assertTrue(report.toJson().contains("\"unsupportedFields\":1"));
+        assertTrue(report.toMarkdown().contains("| Total islands | 1 |"));
+        assertTrue(report.toMarkdown().contains("| Owner missing | 1 |"));
+        assertTrue(report.toMarkdown().contains("UNSUPPORTED_FIELD"));
     }
 
     @Test
