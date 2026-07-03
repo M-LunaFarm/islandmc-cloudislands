@@ -10,6 +10,9 @@ import java.util.ArrayDeque;
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -61,6 +64,10 @@ class PaperConfigSurfaceTest {
         assertTrue(english.values().stream().noneMatch(String::isBlank), "en_us locale values must not be blank");
         assertTrue(korean.containsKey("errors.PERMISSION_VERSION_CONFLICT"), "permission conflict message must be localized");
         assertTrue(english.containsKey("errors.PERMISSION_VERSION_CONFLICT"), "permission conflict message must be localized");
+        Set<String> routeMessageKeys = routeMessageKeys();
+        assertFalse(routeMessageKeys.isEmpty(), "routeMessage keys must be discovered from Paper command sources");
+        assertTrue(korean.keySet().containsAll(routeMessageKeys), () -> "ko_kr missing route keys: " + missing(routeMessageKeys, korean));
+        assertTrue(english.keySet().containsAll(routeMessageKeys), () -> "en_us missing route keys: " + missing(routeMessageKeys, english));
     }
 
     @Test
@@ -270,6 +277,26 @@ class PaperConfigSurfaceTest {
     private boolean containsPath(String config, String path) {
         String[] parts = path.split("\\.");
         return config.contains(parts[parts.length - 1] + ":");
+    }
+
+    private Set<String> routeMessageKeys() throws Exception {
+        Pattern pattern = Pattern.compile("routeMessage\\(\\s*(?:player\\s*,\\s*)?\\\"([^\\\"]+)\\\"\\s*,");
+        Set<String> keys = new TreeSet<>();
+        try (var paths = Files.walk(Path.of("src/main/java/kr/lunaf/cloudislands/paper"))) {
+            for (Path path : paths.filter(path -> path.toString().endsWith(".java")).toList()) {
+                var matcher = pattern.matcher(Files.readString(path, StandardCharsets.UTF_8));
+                while (matcher.find()) {
+                    keys.add(matcher.group(1));
+                }
+            }
+        }
+        return keys;
+    }
+
+    private Set<String> missing(Set<String> expected, Map<String, String> actual) {
+        Set<String> missing = new TreeSet<>(expected);
+        missing.removeAll(actual.keySet());
+        return missing;
     }
 
     private record ConfigPathCoverage(String loaderSignal, List<String> consumerSignals) {

@@ -8,3 +8,149 @@ errors:
   ROLE_CHANGE_NOT_ALLOWED: "해당 플레이어의 역할을 변경할 수 없습니다."
   PERMISSION_VERSION_CONFLICT: "다른 관리자가 권한을 변경했습니다."
   CORE_API_TIMEOUT: "섬 서비스에 일시적으로 연결할 수 없습니다."
+
+access-change-denied: "ì¬ ê³µê° ìíë¥¼ ë³ê²½í  ê¶íì´ ììµëë¤."
+admin-menu-command-required: "ê´ë¦¬ ëªë ¹ ìë ¥ íì: "
+admin-node-direct-required: "ì¬ UUIDì ëì ë¸ë ìë ¥ì´ íìí ê´ë¦¬ ìììëë¤. ê´ë¦¬ì ëªë ¹ ëìë§ì íì¸í´ì£¼ì¸ì."
+admin-node-empty-response: "ìëµ ìì"
+admin-node-islands-result-prefix: "ë¸ë ì¬ íí©: "
+admin-node-kickall-confirm-description: "íì¬ ë¸ëì ì ììë¥¼ ë¡ë¹ë¡ ì´ëí©ëë¤."
+admin-node-kickall-confirm-lore: "í´ë¦­íë©´ Coreì ë¸ë íë ì´ì´ ì´ëì ìì²­í©ëë¤."
+admin-node-kickall-confirm-name: "ë¡ë¹ ì´ë ì¤í"
+admin-node-kickall-confirm-title: "ë¸ë íë ì´ì´ ì´ë íì¸"
+admin-node-list-result-prefix: "ë¸ë ëª©ë¡: "
+admin-node-shutdown-confirm-description: "Drain í ì ììë¥¼ ë¡ë¹ë¡ ì´ëíê³  ìì  ì¢ë£ë¥¼ ìì²­í©ëë¤."
+admin-node-shutdown-confirm-lore: "í´ë¦­íë©´ Coreì ë¸ë ìì  ì¢ë£ë¥¼ ìì²­í©ëë¤."
+admin-node-shutdown-confirm-name: "ìì  ì¢ë£ ì¤í"
+admin-node-shutdown-confirm-title: "ë¸ë ìì  ì¢ë£ íì¸"
+ban-pardon-confirm-description: "ì íí ë°©ë¬¸ìì ë°´ì í´ì í©ëë¤."
+ban-pardon-confirm-lore: "í´ë¦­íë©´ Coreì ë°´ í´ì ë¥¼ ìì²­í©ëë¤."
+ban-pardon-confirm-name: "ë°´ í´ì "
+ban-pardon-confirm-title: "ë°´ í´ì  íì¸"
+bank-deposit-denied: "ì¬ ìíì ìê¸í  ê¶íì´ ììµëë¤."
+bank-withdraw-denied: "ì¬ ìíìì ì¶ê¸í  ê¶íì´ ììµëë¤."
+biome-set-denied: "ì¬ ë°ì´ì´ì ë³ê²½í  ê¶íì´ ììµëë¤."
+command-list-suffix: "명령어를 선택하거나 다음 페이지를 확인하세요."
+command-list-title: "섬 명령어 목록 "
+command-suggestion-prefix: "í¹ì /"
+command-suggestion-suffix: " ë¥¼ ì°¾ì¼ì¨ëì?"
+confirmation-token-invalid: "íì¸ í í°ì´ ì¬ë°ë¥´ì§ ììµëë¤. íì¸ íë©´ì ë¤ì ì´ì´ì£¼ì¸ì."
+core-service-home-fallback: "Core API에 연결할 수 없어 마지막 위치 또는 로비로 이동합니다."
+core-service-maintenance: "섬 서비스 점검 중입니다. 잠시 후 다시 시도해주세요."
+danger-confirm-token-invalid: "ìí ìì íì¸ í í°ì´ ì¬ë°ë¥´ì§ ììµëë¤. íì¸ íë©´ì ë¤ì ì´ì´ì£¼ì¸ì."
+economy-unavailable: "ê²½ì  íë¬ê·¸ì¸ì ì°¾ì ì ììµëë¤."
+flag-set-denied: "ì¬ íëê·¸ë¥¼ ë³ê²½í  ê¶íì´ ììµëë¤."
+gui-action-unknown: "ì ì ìë GUI ìììëë¤: "
+home-set-denied: "ì¬ íì ì¤ì í  ê¶íì´ ììµëë¤."
+home-teleport-denied: "ì¬ íì¼ë¡ ì´ëí  ê¶íì´ ììµëë¤."
+input-amount-invalid: "ì¬ë°ë¥¸ ê¸ì¡ì ìë ¥í´ì£¼ì¸ì."
+input-ban-player-required: "ë°´í  íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-demote-player-required: "ê°ë±í  íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-deposit-amount-required: "ìê¸í  ê¸ì¡ì ìë ¥í´ì£¼ì¸ì."
+input-flag-invalid: "ì¬ë°ë¥¸ ì¬ íëê·¸ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-flag-value-required: "íëê·¸ì ê°ì ìë ¥í´ì£¼ì¸ì."
+input-invite-accept-target-required: "ìë½í  ì´ë ID, ì¬ ID/ì´ë¦, ëë ì´ëí íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-invite-decline-target-required: "ê±°ì í  ì´ë ID, ì¬ ID/ì´ë¦, ëë ì´ëí íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-invite-id-invalid: "ì¬ë°ë¥¸ ì´ë IDë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-invite-player-required: "ì´ëí  íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-island-name-required: "ì ì¬ ì´ë¦ì ìë ¥í´ì£¼ì¸ì."
+input-island-uuid-invalid: "ì¬ UUIDê° ì¬ë°ë¥´ì§ ììµëë¤."
+input-kick-visitor-required: "ì¶ë°©í  ë°©ë¬¸ìë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-limit-key-value-required: "ì í í¤ì ê°ì ìë ¥í´ì£¼ì¸ì."
+input-limit-value-required: "ì í ê°ì ìë ¥í´ì£¼ì¸ì."
+input-locale-required: "ì¸ì´ ì½ëë¥¼ ìë ¥í´ì£¼ì¸ì. ì: /ì¬ ì¸ì´ ko_kr"
+input-material-invalid: "ì¬ë°ë¥¸ ì¬ë£ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-member-role-invalid: "ì¬ë°ë¥¸ ë©¤ë² ì­í ì ìë ¥í´ì£¼ì¸ì. ì: MEMBER, MODERATOR, BUILDER"
+input-member-role-required: "ì­í ì ë°ê¿ íë ì´ì´ì ì­í ì ìë ¥í´ì£¼ì¸ì."
+input-pardon-player-required: "ë°´ í´ì í  íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-permission-set-invalid: "ì¬ë°ë¥¸ ì­í ê³¼ ê¶íì ìë ¥í´ì£¼ì¸ì."
+input-permission-set-required: "ì­í , ê¶í, íì© ì¬ë¶ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-promote-player-required: "ì¹ê¸í  íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-remove-player-required: "ì¶ë°©í  íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-review-rating-invalid: "íì ì 1~5 ì¬ì´ì¬ì¼ í©ëë¤."
+input-review-required: "íê°í  ì¬ê³¼ 1~5ì  íì ì ìë ¥í´ì£¼ì¸ì."
+input-role-edit-invalid: "í¸ì§ ê°ë¥í ë©¤ë² ì­í ì ìë ¥í´ì£¼ì¸ì. ì: BUILDER"
+input-role-edit-required: "ì­í , ê°ì¤ì¹, íì ì´ë¦ì ìë ¥í´ì£¼ì¸ì."
+input-role-invalid: "ì¬ë°ë¥¸ ì­í ì ìë ¥í´ì£¼ì¸ì."
+input-role-reset-invalid: "ì´ê¸°í ê°ë¥í ë©¤ë² ì­í ì ìë ¥í´ì£¼ì¸ì. ì: BUILDER"
+input-role-reset-required: "ì´ê¸°íí  ì­í ì ìë ¥í´ì£¼ì¸ì."
+input-snapshot-number-invalid: "ì¬ë°ë¥¸ ì¤ëì· ë²í¸ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-snapshot-number-required: "ë³µìí  ì¤ëì· ë²í¸ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-transfer-player-required: "ìëí  íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-trust-player-required: "ì ë¢°í  íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-untrust-player-required: "ì ë¢° í´ì í  íë ì´ì´ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-upgrade-key-required: "êµ¬ë§¤í  ìê·¸ë ì´ë í¤ë¥¼ ìë ¥í´ì£¼ì¸ì."
+input-warehouse-deposit-required: "ì°½ê³ ì ë£ì ì¬ë£ì ìëì ìë ¥í´ì£¼ì¸ì."
+input-warehouse-withdraw-required: "ì°½ê³ ìì ëº ì¬ë£ì ìëì ìë ¥í´ì£¼ì¸ì."
+input-warp-name-required: "ìí ì´ë¦ì ìë ¥í´ì£¼ì¸ì."
+input-withdraw-amount-required: "ì¶ê¸í  ê¸ì¡ì ìë ¥í´ì£¼ì¸ì."
+island-command-no-permission: "ì´ ì¬ ëªë ¹ì ì¬ì©í  ê¶íì´ ììµëë¤."
+level-recalculate-denied: "ì¬ ë ë²¨ì ê³ì°í  ê¶íì´ ììµëë¤."
+level-recalculate-started: "ì¬ ë¸ë¡ì ë¤ì íì¸íë ì¤ìëë¤."
+limit-set-denied: "ì¬ ì íì ë³ê²½í  ê¶íì´ ììµëë¤."
+lock-change-denied: "ì¬ ì ê¸ ìíë¥¼ ë³ê²½í  ê¶íì´ ììµëë¤."
+log-menu-action: "ìì: "
+log-menu-actor: "ì²ë¦¬ì: "
+log-menu-detail-title: "ì¬ ë¡ê·¸ ìì¸"
+log-menu-payload: "payload: "
+log-menu-payload-empty: "ìì"
+log-menu-time: "ìê°: "
+main-menu-open-failed: "ë©ì¸ ë©ë´ë¥¼ ì´ ì ììµëë¤. ëªë ¹ì´ ëìë§ì íìí©ëë¤."
+member-detail-last-seen: "ë§ì§ë§ íë: "
+member-detail-last-seen-empty: "ê¸°ë¡ ìì"
+member-detail-permission-build-example: "ê±´ì¶ íì© ì: "
+member-detail-permission-container-example: "ìì ê±°ë¶ ì: "
+member-detail-permission-exception: "ê¶í ìì¸: "
+member-detail-player: "íë ì´ì´: "
+member-detail-presence: "ë¤í¸ìí¬ ìí: "
+member-detail-role: "ì­í : "
+member-detail-title: "ë©¤ë² ìì¸"
+member-invite-denied: "ì¬ ë©¤ë²ë¥¼ ì´ëí  ê¶íì´ ììµëë¤."
+member-invite-help: "ë©¤ë² ì´ëë /ì¬ ì´ë <íë ì´ì´> ë¡ ìì²­í©ëë¤. ìì ì ë¢°ë /ì¬ íë <íë ì´ì´> <30m|2h|1d> ë¡ ì¤ì í©ëë¤."
+member-remove-confirm-description: "ì íí íë ì´ì´ë¥¼ ì¬ ë©¤ë²ìì ì ê±°í©ëë¤."
+member-remove-confirm-lore: "í´ë¦­íë©´ Coreì ë©¤ë² ì¶ë°©ì ìì²­í©ëë¤."
+member-remove-confirm-name: "ë©¤ë² ì¶ë°©"
+member-remove-confirm-title: "ë©¤ë² ì¶ë°© íì¸"
+member-remove-denied: "ì¬ ë©¤ë²ë¥¼ ì¶ë°©í  ê¶íì´ ììµëë¤."
+member-role-denied: "ì¬ ë©¤ë² ì­í ì ë³ê²½í  ê¶íì´ ììµëë¤."
+name-change-denied: "ì¬ ì´ë¦ì ë³ê²½í  ê¶íì´ ììµëë¤."
+permission-save-failed: "ê¶í ë³ê²½ì ì ì¥íì§ ëª»íìµëë¤."
+permission-save-success: "ê¶í ë³ê²½ì ì ì¥íìµëë¤."
+permission-save-title: "ê¶í ì ì¥"
+permission-set-denied: "ì¬ ê¶íì ë³ê²½í  ê¶íì´ ììµëë¤."
+permission-stage-empty: "ì ì¥í  ê¶í ë³ê²½ì´ ììµëë¤."
+permission-stage-reset: "ìì ê¶í ë³ê²½ì ì·¨ìíìµëë¤."
+permission-stage-success-prefix: "ê¶í ë³ê²½ì ìì ì ì¥íìµëë¤. ì ì¥ ë²í¼ì ëë¬ ë°ìíì¸ì: "
+player-locale-updated: "ì¸ì´ ì¤ì ì ë³ê²½íìµëë¤."
+player-only-command: "íë ì´ì´ë§ ì¬ì©í  ì ììµëë¤."
+role-edit-denied: "ì¬ ì­í ì í¸ì§í  ê¶íì´ ììµëë¤."
+role-reset-denied: "ì¬ ì­í ì ì´ê¸°íí  ê¶íì´ ììµëë¤."
+route-command-failed: "ì¬ì¼ë¡ ì´ëíì§ ëª»íìµëë¤."
+route-command-publish-failed: "ì¬ ì´ë ê²½ë¡ë¥¼ ì¤ë¹íì§ ëª»íìµëë¤."
+route-command-started: "ì¬ì¼ë¡ ì´ëí©ëë¤."
+route-loading-complete: "Route loading complete."
+route-loading-progress: "Route loading progress."
+route-target-world-missing: "ëì ìëë¥¼ ì°¾ì ì ììµëë¤."
+snapshot-create-denied: "ì¬ ì¤ëì·ì ìì±í  ê´ë¦¬ì ê¶íì´ ììµëë¤."
+snapshot-restore-confirm-description: "íì¬ ìë ìíë¥¼ ì íí ì¤ëì·ì¼ë¡ ë³µìí©ëë¤."
+snapshot-restore-confirm-lore: "í´ë¦­íë©´ Coreì ì¤ëì· ë³µìì ìì²­í©ëë¤."
+snapshot-restore-confirm-name: "ì¤ëì· ë³µì"
+snapshot-restore-confirm-title: "ì¤ëì· ë³µì íì¸"
+snapshot-restore-denied: "ì¬ ì¤ëì·ì ë³µìí  ê´ë¦¬ì ê¶íì´ ììµëë¤."
+upgrade-purchase-denied: "ì¬ ìê·¸ë ì´ëë¥¼ êµ¬ë§¤í  ê¶íì´ ììµëë¤."
+visitor-ban-denied: "ì¬ ë°©ë¬¸ìë¥¼ ë°´í  ê¶íì´ ììµëë¤."
+visitor-kick-denied: "ì¬ ë°©ë¬¸ìë¥¼ ì¶ë°©í  ê¶íì´ ììµëë¤."
+visitor-kick-target-not-on-island: "ë°©ë¬¸ì ì¶ë°©ì ê¸°ë¡íìµëë¤. ëì íë ì´ì´ë íì¬ ì´ ì¬ì ììµëë¤."
+visitor-kick-target-offline: "ë°©ë¬¸ì ì¶ë°©ì ê¸°ë¡íìµëë¤. ëì íë ì´ì´ë íì¬ ì¨ë¼ì¸ì´ ìëëë¤."
+visitor-pardon-denied: "ì¬ ë°©ë¬¸ì ë°´ì í´ì í  ê¶íì´ ììµëë¤."
+warehouse-deposit-denied: "ì¬ ì°½ê³ ì ë£ì ê¶íì´ ììµëë¤."
+warehouse-deposit-help: "ì¬ì©ë²: /ì¬ ì°½ê³ ìê¸ <ì¬ë£> <ìë>"
+warehouse-withdraw-denied: "ì¬ ì°½ê³ ìì ëº ê¶íì´ ììµëë¤."
+warp-access-denied: "ì¬ ìí ê³µê° ìíë¥¼ ë³ê²½í  ê¶íì´ ììµëë¤."
+warp-delete-confirm-description: "ìíë¥¼ ì­ì íë©´ í´ë¹ ì´ë¦ì¼ë¡ ì´ëí  ì ììµëë¤."
+warp-delete-confirm-lore: "í´ë¦­íë©´ Coreì ìí ì­ì ë¥¼ ìì²­í©ëë¤."
+warp-delete-confirm-name: "ìí ì­ì "
+warp-delete-confirm-title: "ìí ì­ì  íì¸"
+warp-delete-denied: "ì¬ ìíë¥¼ ì­ì í  ê¶íì´ ììµëë¤."
+warp-set-denied: "ì¬ ìíë¥¼ ì¤ì í  ê¶íì´ ììµëë¤."
+warp-teleport-denied: "ì¬ ìíë¡ ì´ëí  ê¶íì´ ììµëë¤."
