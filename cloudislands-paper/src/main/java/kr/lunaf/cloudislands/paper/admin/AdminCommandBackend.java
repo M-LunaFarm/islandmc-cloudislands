@@ -674,15 +674,19 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleDoctor(CommandSender sender) {
+        CompletableFuture<AdminCoreConfigView> coreConfig = coreApiClient.adminCoreConfig().config();
+        CompletableFuture<CharSequence> config = doctorPart("core-config", coreConfig.thenApply(this::coreConfigMessage));
+        CompletableFuture<CharSequence> snapshotPolicy = doctorPart("snapshot-policy", coreConfig.thenApply(this::snapshotPolicyDiagnosticBody));
         CompletableFuture<CharSequence> metrics = doctorPart("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
         CompletableFuture<CharSequence> storage = doctorPart("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
         CompletableFuture<CharSequence> nodes = doctorPart("nodes", coreApiClient.adminNodes().listNodesSummary().thenApply(summary ->
             adminNodeSummaryMessage("Nodes", summary) + " / " + heartbeatLagDiagnosticBody(summary).replace('\n', ' ').trim()));
         CompletableFuture<CharSequence> jobs = doctorPart("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
         CompletableFuture<CharSequence> routes = doctorPart("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
+        CompletableFuture<CharSequence> audit = doctorPart("audit", coreApiClient.adminAudit().list(5).thenApply(this::auditListMessage));
         CompletableFuture<CharSequence> integrations = CompletableFuture.completedFuture("integrations=" + integrationStatusMessage());
-        run(sender, "Doctor", CompletableFuture.allOf(metrics, storage, nodes, jobs, routes, integrations)
-            .thenApply(_ignored -> doctorMessage(List.of(metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), integrations.join()))));
+        run(sender, "Doctor", CompletableFuture.allOf(config, snapshotPolicy, metrics, storage, nodes, jobs, routes, audit, integrations)
+            .thenApply(_ignored -> doctorMessage(List.of(config.join(), snapshotPolicy.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), integrations.join()))));
         return true;
     }
 
@@ -715,6 +719,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + " online=" + agent.plugin().getServer().getOnlinePlayers().size()
             + " routeWaitSeconds=" + routeWaitSeconds
             + (renderedParts.isEmpty() ? "" : " | " + String.join(" | ", renderedParts));
+    }
+
+    private String snapshotPolicyDiagnosticBody(AdminCoreConfigView body) {
+        return "snapshotLatest=" + longValue(body, "snapshotKeepLatest")
+            + " snapshotRetention=" + longValue(body, "snapshotKeepHourly") + "/" + longValue(body, "snapshotKeepDaily") + "/" + longValue(body, "snapshotKeepWeekly") + "/" + longValue(body, "snapshotKeepManual")
+            + " snapshotCompress=" + boolValue(body, "snapshotCompress")
+            + " snapshotChecksum=" + textValue(body, "snapshotChecksumAlgorithm")
+            + " snapshotTriggers=" + textValue(body, "snapshotRequiredTriggerReasons")
+            + " snapshotRestore=" + textValue(body, "snapshotRestorePipeline");
     }
 
     private CharSequence dashboardMessage(List<CharSequence> parts) {
