@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -64,6 +65,11 @@ class IslandCommandCatalogTest {
     @Test
     void descriptorsOwnAliasesHelpAndRoutingPolicyFields() {
         assertTrue(!IslandCommandCatalog.DESCRIPTORS.isEmpty(), "Command descriptors must be the command catalog source of truth");
+        assertTrue(IslandCommandCatalog.DESCRIPTORS.size() > 8, "Command descriptors must be feature-scoped, not one catch-all registry descriptor");
+        assertTrue(
+            IslandCommandCatalog.DESCRIPTORS.stream().map(IslandCommandCatalog.IslandCommandDescriptor::handler).distinct().count() > 8,
+            "Command descriptors must preserve handler ownership boundaries"
+        );
 
         List<String> descriptorAliases = IslandCommandCatalog.DESCRIPTORS.stream()
             .flatMap(descriptor -> descriptor.aliases().stream())
@@ -77,6 +83,8 @@ class IslandCommandCatalogTest {
         assertEquals(descriptorAliases, IslandCommandCatalog.SUBCOMMANDS, "Subcommand aliases must be generated from descriptors");
         assertEquals(descriptorHelp, IslandCommandCatalog.HELP_COMMANDS, "Help output must be generated from descriptors");
         for (IslandCommandCatalog.IslandCommandDescriptor descriptor : IslandCommandCatalog.DESCRIPTORS) {
+            assertFalse(descriptor.id().equals("island.command.registry"), "Descriptor registry must not collapse every command into one catch-all descriptor");
+            assertTrue(descriptor.aliases().size() < IslandCommandCatalog.SUBCOMMANDS.size(), "No descriptor may own the full command alias list");
             assertTrue(!descriptor.id().isBlank(), "descriptor id is required");
             assertTrue(!descriptor.permission().isBlank(), "descriptor permission policy is required");
             assertTrue(!descriptor.descriptionKey().isBlank(), "descriptor description key is required");
@@ -85,6 +93,19 @@ class IslandCommandCatalogTest {
             assertTrue(!descriptor.handler().isBlank(), "descriptor handler is required");
             assertTrue(!descriptor.suggestionProvider().isBlank(), "descriptor suggestion provider is required");
         }
+    }
+
+    @Test
+    void descriptorAliasesArePermissionMappedAndNoLegacyCatchAllListsRemain() throws Exception {
+        String catalogSource = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandCatalog.java"));
+        assertFalse(catalogSource.contains("COMMAND_ALIASES"), "Aliases must live on feature descriptors, not a legacy catch-all list");
+        assertFalse(catalogSource.contains("COMMAND_HELP"), "Help entries must live on feature descriptors, not a legacy catch-all list");
+
+        List<String> missingPermission = IslandCommandCatalog.SUBCOMMANDS.stream()
+            .filter(alias -> IslandCommandPermission.fromSubcommand(alias) == null)
+            .toList();
+
+        assertEquals(List.of(), missingPermission, "Every descriptor alias must map to the shared command permission policy");
     }
 
     @Test

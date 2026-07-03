@@ -333,6 +333,7 @@ class AdminCommandBackendPolicyTest {
     @Test
     void adminMigrationCommandIsSplitFromBackendAndUsesTypedClient() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
         String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminMigrationCommandHandler.java"));
         String formatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminMigrationMessageFormatter.java"));
 
@@ -342,6 +343,11 @@ class AdminCommandBackendPolicyTest {
         assertTrue(handler.contains("coreApiClient.migrations().migrateSuperiorSkyblock2"), "Migration handler must use the typed migration client");
         assertTrue(formatter.contains("String format(MigrationRunSnapshot snapshot)"), "Migration formatter must accept typed migration snapshots");
         assertTrue(!formatter.contains("String format(String body)"), "Migration formatter must not reparse Core JSON after the typed client boundary");
+        assertTrue(catalog.contains("\"wizard\", \"scan\""), "Migration wizard must be a first-class migration subcommand");
+        assertTrue(catalog.contains("ciadmin migrate-superiorskyblock2 wizard"), "Migration wizard must be listed in admin help");
+        assertTrue(handler.contains("AdminMigrationMenu.open(player, messageProvider.messagesFor(player))"), "Migration wizard must open the existing GUI for player operators");
+        assertTrue(handler.contains("AdminCommandCatalog.MIGRATION_HELP_COMMANDS"), "Migration wizard console fallback must reuse the migration command catalog");
+        assertTrue(backend.contains("this::messagesFor"), "Admin backend must pass localized messages into the migration wizard handler");
     }
 
     private static Set<String> declaredPermissionNodes(String plugin) {

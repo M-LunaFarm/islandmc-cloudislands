@@ -21,7 +21,7 @@ final class AdminCommandCatalog {
     static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "search", "set");
     static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     static final List<String> TEMPLATE_COMMANDS = List.of("list", "import", "upsert", "enable", "disable", "preview", "validate");
-    static final List<String> MIGRATION_COMMANDS = List.of("scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "verify-no-legacy-provider", "rollback");
+    static final List<String> MIGRATION_COMMANDS = List.of("wizard", "scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "verify-no-legacy-provider", "rollback");
     static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProviders();
     static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     static final List<String> HELP_COMMANDS = List.of(
@@ -111,18 +111,10 @@ final class AdminCommandCatalog {
         "ciadmin templates disable <id>",
         "ciadmin templates preview <id>",
         "ciadmin templates validate <id>",
-        "ciadmin migrate-superiorskyblock2 scan [path]",
-        "ciadmin migrate-superiorskyblock2 status",
-        "ciadmin migrate-superiorskyblock2 dryrun [path]",
-        "ciadmin migrate-superiorskyblock2 dry-run [path]",
-        "ciadmin migrate-superiorskyblock2 extract [outputPath]",
-        "ciadmin migrate-superiorskyblock2 import <approvalToken>",
-        "ciadmin migrate-superiorskyblock2 verify [path]",
-        "ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
-        "ciadmin migrate-superiorskyblock2 rollback",
         "ciadmin reload"
     );
     static final List<String> MIGRATION_HELP_COMMANDS = List.of(
+        "ciadmin migrate-superiorskyblock2 wizard",
         "ciadmin migrate-superiorskyblock2 scan [path]",
         "ciadmin migrate-superiorskyblock2 status",
         "ciadmin migrate-superiorskyblock2 dryrun [path]",

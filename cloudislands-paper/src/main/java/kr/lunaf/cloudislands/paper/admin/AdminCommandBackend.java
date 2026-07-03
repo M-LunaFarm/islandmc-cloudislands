@@ -49,8 +49,8 @@ import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
-import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
+import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import org.bukkit.command.Command;
@@ -122,7 +122,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             superiorSkyblock2MigrationEnabled,
             this::adminText,
             this::run,
-            this::sendCommandUsage
+            this::sendCommandUsage,
+            this::messagesFor
         );
         this.configHandler = new AdminConfigCommandHandler(
             agent,
@@ -1220,12 +1221,19 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private List<String> helpCommands() {
+        List<String> baseCommands = HELP_COMMANDS.stream()
+            .filter(command -> !isMigrationCommandHelp(command))
+            .toList();
         if (!superiorSkyblock2MigrationEnabled()) {
-            return HELP_COMMANDS;
+            return baseCommands;
         }
-        List<String> commands = new ArrayList<>(HELP_COMMANDS);
+        List<String> commands = new ArrayList<>(baseCommands);
         commands.addAll(MIGRATION_HELP_COMMANDS);
         return commands;
+    }
+
+    private static boolean isMigrationCommandHelp(String command) {
+        return command != null && command.startsWith("ciadmin migrate-superiorskyblock2");
     }
 
     private void routeAdminTeleport(Player player, UUID islandId) {

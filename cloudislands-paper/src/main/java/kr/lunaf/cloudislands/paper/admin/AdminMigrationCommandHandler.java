@@ -5,7 +5,10 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
+import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 final class AdminMigrationCommandHandler {
     private final CloudIslandsPaperAgent agent;
@@ -15,6 +18,7 @@ final class AdminMigrationCommandHandler {
     private final AdminMigrationMessageFormatter.AdminText text;
     private final CommandRunner runner;
     private final UsageSender usageSender;
+    private final MessageProvider messageProvider;
 
     AdminMigrationCommandHandler(
         CloudIslandsPaperAgent agent,
@@ -22,7 +26,8 @@ final class AdminMigrationCommandHandler {
         boolean enabled,
         AdminMigrationMessageFormatter.AdminText text,
         CommandRunner runner,
-        UsageSender usageSender
+        UsageSender usageSender,
+        MessageProvider messageProvider
     ) {
         this.agent = agent;
         this.coreApiClient = coreApiClient;
@@ -31,6 +36,7 @@ final class AdminMigrationCommandHandler {
         this.formatter = new AdminMigrationMessageFormatter(this.text);
         this.runner = runner;
         this.usageSender = usageSender;
+        this.messageProvider = messageProvider == null ? _player -> null : messageProvider;
     }
 
     boolean enabled() {
@@ -45,15 +51,21 @@ final class AdminMigrationCommandHandler {
         String action = args.length > 1 ? args[1] : "scan";
         if (!AdminCommandCatalog.MIGRATION_COMMANDS.contains(action.toLowerCase(Locale.ROOT))) {
             usageSender.send(sender, List.of(
+                "/ciadmin migrate-superiorskyblock2 wizard",
                 "/ciadmin migrate-superiorskyblock2 scan [path]",
                 "/ciadmin migrate-superiorskyblock2 status",
                 "/ciadmin migrate-superiorskyblock2 dryrun [path]",
+                "/ciadmin migrate-superiorskyblock2 dry-run [path]",
                 "/ciadmin migrate-superiorskyblock2 extract [path]",
                 "/ciadmin migrate-superiorskyblock2 import <approvalToken>",
                 "/ciadmin migrate-superiorskyblock2 verify [path]",
                 "/ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
                 "/ciadmin migrate-superiorskyblock2 rollback"
             ));
+            return true;
+        }
+        if (action.equalsIgnoreCase("wizard")) {
+            openWizard(sender);
             return true;
         }
         if (action.equalsIgnoreCase("verify-no-legacy-provider")) {
@@ -67,6 +79,18 @@ final class AdminMigrationCommandHandler {
         String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
         runner.run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrations().migrateSuperiorSkyblock2(action, path).thenApply(formatter::format));
         return true;
+    }
+
+    private void openWizard(CommandSender sender) {
+        if (sender instanceof Player player) {
+            AdminMigrationMenu.open(player, messageProvider.messagesFor(player));
+            player.sendMessage(text.get("admin-command-migration-wizard-opened", "SuperiorSkyblock2 migration wizard opened."));
+            return;
+        }
+        sender.sendMessage(text.get("admin-command-migration-wizard-console-title", "SuperiorSkyblock2 migration wizard: console checklist"));
+        for (String command : AdminCommandCatalog.MIGRATION_HELP_COMMANDS) {
+            sender.sendMessage("/" + command);
+        }
     }
 
     private String legacyProviderRuntimeMessage() {
@@ -108,5 +132,10 @@ final class AdminMigrationCommandHandler {
     @FunctionalInterface
     interface UsageSender {
         void send(CommandSender sender, List<String> commands);
+    }
+
+    @FunctionalInterface
+    interface MessageProvider {
+        MessageRenderer messagesFor(Player player);
     }
 }

@@ -314,6 +314,8 @@ public final class TranslationManager {
         values.put("admin-command-migration-usage", "사용법: /ciadmin command list");
         values.put("admin-command-migration-import-usage", "사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>");
         values.put("admin-command-migration-disabled", "SuperiorSkyblock2 migration is disabled by config.");
+        values.put("admin-command-migration-wizard-opened", "SuperiorSkyblock2 migration wizard opened.");
+        values.put("admin-command-migration-wizard-console-title", "SuperiorSkyblock2 migration wizard: console checklist");
         values.put("admin-command-status-agent-prefix", "CloudIslands agent role=");
         values.put("admin-command-status-online-prefix", "CloudIslands onlinePlayers=");
         values.put("admin-command-route-failed", "관리자 섬 이동에 실패했습니다.");
