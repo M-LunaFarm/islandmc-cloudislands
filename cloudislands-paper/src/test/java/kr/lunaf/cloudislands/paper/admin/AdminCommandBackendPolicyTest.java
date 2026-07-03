@@ -209,6 +209,19 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void islandBulkRestoreIsAFirstClassOperatorTool() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("\"bulk-restore\""), "Bulk restore must be registered as an island admin subcommand");
+        assertTrue(adminSurface.contains("ciadmin island bulk-restore <snapshot"), "Bulk restore must be listed in admin help");
+        assertTrue(source.contains("handleBulkRestore"), "Bulk restore must have a dedicated handler before island uuid resolution");
+        assertTrue(source.contains("coreApiClient.lifecycle().restoreIslandSnapshot(islandId, snapshotNo)"), "Bulk restore must use the typed lifecycle restore API");
+        assertTrue(source.contains("bulkRestoreMessage"), "Bulk restore must summarize accepted and rejected restores for operators");
+    }
+
+    @Test
     void adminStorageCommandUsesTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

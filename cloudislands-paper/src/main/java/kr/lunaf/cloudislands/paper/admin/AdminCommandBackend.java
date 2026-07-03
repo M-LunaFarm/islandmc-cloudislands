@@ -301,6 +301,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args.length == 2 && args[0].equalsIgnoreCase("support-bundle")) {
             return matches(SUPPORT_BUNDLE_COMMANDS, args[1]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("bulk-restore")) {
+            return matches(List.of("1", "10", "100"), args[2]);
+        }
+        if (args.length >= 4 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("bulk-restore")) {
+            return matches(onlinePlayerNames(), args[args.length - 1]);
+        }
         if (args.length == 2 && args[0].equalsIgnoreCase("rankings")) {
             return matches(RANKING_COMMANDS, args[1]);
         }
@@ -805,6 +811,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Island where", islandWhereMessage(args[2]));
             return true;
         }
+        if (args[1].equalsIgnoreCase("bulk-restore")) {
+            return handleBulkRestore(sender, args);
+        }
         UUID islandId = uuidOrNull(args[2]);
         if (islandId == null) {
             resolveIslandUuid(sender, args[2]).thenAccept(resolvedIslandId -> {
@@ -894,6 +903,37 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         sendIslandCommandUsage(sender);
+        return true;
+    }
+
+    private boolean handleBulkRestore(CommandSender sender, String[] args) {
+        if (args.length < 4) {
+            sender.sendMessage(adminText("admin-command-bulk-restore-usage", "사용법: /ciadmin island bulk-restore <snapshotNo> <islandUuid|islandName>..."));
+            return true;
+        }
+        long snapshotNo = number(args[2], 0L);
+        if (snapshotNo <= 0L) {
+            sender.sendMessage(adminText("admin-command-snapshot-invalid", "스냅샷 번호가 올바르지 않습니다: ") + args[2]);
+            return true;
+        }
+        List<CompletableFuture<BulkRestoreEntry>> restores = new ArrayList<>();
+        for (int index = 3; index < args.length; index++) {
+            String target = args[index];
+            restores.add(resolveIslandUuid(sender, target).thenCompose(islandId -> {
+                if (islandId == null) {
+                    return CompletableFuture.completedFuture(new BulkRestoreEntry(target, null, false, "NOT_FOUND"));
+                }
+                return coreApiClient.lifecycle().restoreIslandSnapshot(islandId, snapshotNo)
+                    .handle((action, error) -> {
+                        if (error != null) {
+                            return new BulkRestoreEntry(target, islandId, false, error.getClass().getSimpleName());
+                        }
+                        return new BulkRestoreEntry(target, islandId, action.accepted(), action.code());
+                    });
+            }));
+        }
+        run(sender, "Island bulk restore", CompletableFuture.allOf(restores.toArray(CompletableFuture[]::new))
+            .thenApply(_ignored -> bulkRestoreMessage(snapshotNo, restores.stream().map(CompletableFuture::join).toList())));
         return true;
     }
 
@@ -1175,6 +1215,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island snapshots <islandUuid|islandName> [limit]",
             "/ciadmin island restore <islandUuid|islandName> <snapshotNo>",
             "/ciadmin island rollback <islandUuid|islandName> <snapshotNo>",
+            "/ciadmin island bulk-restore <snapshotNo> <islandUuid|islandName>...",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
             "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
@@ -1345,6 +1386,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
     }
 
+    private record BulkRestoreEntry(String requested, UUID islandId, boolean accepted, String code) {
+        private BulkRestoreEntry {
+            requested = requested == null ? "" : requested;
+            code = code == null ? "" : code;
+        }
+    }
+
     private String storageStatusMessage(AdminStorageStatusView status) {
         if (status.nodes().isEmpty()) {
             return adminText("admin-command-storage-no-node", "Storage status: registered node 없음");
@@ -1500,6 +1548,24 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             builder.append(adminText("admin-command-action-result-storage-path-prefix", " storagePath=")).append(action.storagePath());
         }
         return builder.toString();
+    }
+
+    private String bulkRestoreMessage(long snapshotNo, List<BulkRestoreEntry> entries) {
+        long accepted = entries.stream().filter(BulkRestoreEntry::accepted).count();
+        String joinedEntries = entries.stream()
+            .map(entry -> {
+                String target = entry.islandId() == null ? entry.requested() : compactTarget(entry.islandId().toString());
+                String code = entry.code().isBlank() ? (entry.accepted() ? "RESTORE_REQUESTED" : "REJECTED") : entry.code();
+                return target + "=" + (entry.accepted() ? "accepted" : "rejected") + "(" + code + ")";
+            })
+            .toList()
+            .stream()
+            .collect(java.util.stream.Collectors.joining(", "));
+        return adminText("admin-command-bulk-restore-prefix", "Bulk restore")
+            + adminText("admin-command-action-result-snapshot-prefix", " snapshot=") + snapshotNo
+            + adminText("admin-command-bulk-restore-accepted-prefix", " accepted=") + accepted
+            + "/" + entries.size()
+            + (joinedEntries.isBlank() ? "" : " " + joinedEntries);
     }
 
     private String visitorStatsMessage(IslandVisitorStatsView stats) {
