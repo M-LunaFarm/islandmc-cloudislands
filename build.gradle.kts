@@ -728,9 +728,26 @@ tasks.register("verifyAddonDeveloperKitCoverage") {
     }
 }
 
+tasks.register<Test>("verifySnapshotRestoreCoverage") {
+    group = "verification"
+    description = "Verifies snapshot restore GUI confirmation, Core restore route, route-safe restore payloads, and failed active restore runtime preservation."
+    val coreServiceSourceSets = project(":cloudislands-core-service").extensions.getByType<SourceSetContainer>()
+    val coreServiceTest = coreServiceSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-core-service").tasks.named("testClasses"))
+    testClassesDirs = coreServiceTest.output.classesDirs
+    classpath = coreServiceTest.runtimeClasspath
+    workingDir = project(":cloudislands-core-service").projectDir
+    useJUnitPlatform()
+    include(
+        "kr/lunaf/cloudislands/coreservice/http/routes/AdminIslandLifecycleRoutesTest.class",
+        "kr/lunaf/cloudislands/coreservice/workflow/IslandLifecycleWorkflowRestoreTest.class"
+    )
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
+    dependsOn(tasks.named("verifySnapshotRestoreCoverage"))
 }
 
 tasks.register("verifyRoutingRefactorCoverage") {

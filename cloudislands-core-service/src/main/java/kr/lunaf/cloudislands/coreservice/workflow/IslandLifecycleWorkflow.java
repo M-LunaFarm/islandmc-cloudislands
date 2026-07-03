@@ -424,7 +424,10 @@ public final class IslandLifecycleWorkflow {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, current.activeNode(), 30, restoreJobPayload(snapshotNo, storagePath, current.fencingToken(), false, worldName, cellX, cellZ, "active-snapshot-restore", true, lockToken(lease)), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
-            return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
+            IslandRuntimeSnapshot preserved = runtimes.markActive(islandId, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.fencingToken());
+            islands.setState(islandId, IslandState.ACTIVE);
+            events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", preserved.state().name(), "reason", "RESTORE_QUEUE_UNAVAILABLE_PRESERVED_ACTIVE_RUNTIME"));
+            return new Result(false, "JOB_QUEUE_UNAVAILABLE", preserved);
         }
         events.publish(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name(), restoreRequestedEventPayload(islandId, "RESTORING_ACTIVE", snapshotNo, storagePath, current.activeNode(), current.fencingToken(), worldName, cellX, cellZ, "active-snapshot-restore", true));
         return new Result(true, "RESTORE_QUEUED", runtime);
