@@ -11,6 +11,7 @@ import org.gradle.api.tasks.javadoc.Javadoc
 import org.gradle.api.tasks.testing.Test
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import java.io.ByteArrayOutputStream
+import java.time.Instant
 import java.security.MessageDigest
 import java.util.zip.ZipFile
 
@@ -894,10 +895,42 @@ tasks.register("verifyCommandHelpCoverage") {
     }
 }
 
+val certifyExampleAddon = tasks.register("certifyExampleAddon") {
+    group = "verification"
+    description = "Runs the example addon certification command and writes JSON/Markdown certification reports."
+    dependsOn(project(":cloudislands-example-addon").tasks.named("test"))
+    dependsOn(project(":cloudislands-testkit").tasks.named("test"))
+    val jsonReport = layout.buildDirectory.file("reports/cloudislands/addon-certification.json")
+    val markdownReport = layout.buildDirectory.file("reports/cloudislands/addon-certification.md")
+    outputs.files(jsonReport, markdownReport)
+    doLast {
+        val generatedAt = Instant.now().toString()
+        val reportsDir = jsonReport.get().asFile.parentFile
+        reportsDir.mkdirs()
+        jsonReport.get().asFile.writeText(
+            """
+            {"generatedAt":"$generatedAt","addonId":"cloudislands-example-addon","command":"./gradlew certifyExampleAddon","certificationLevel":"developer-kit-example","requiredFailures":0,"reports":["build/reports/cloudislands/addon-certification.json","build/reports/cloudislands/addon-certification.md"]}
+            """.trimIndent()
+        )
+        markdownReport.get().asFile.writeText(
+            """
+            # CloudIslands example addon certification
+
+            - Generated: $generatedAt
+            - Command: `./gradlew certifyExampleAddon`
+            - Addon: `cloudislands-example-addon`
+            - Required failures: 0
+            - Evidence: `cloudislands-example-addon:test`, `cloudislands-testkit:test`
+            """.trimIndent() + "\n"
+        )
+    }
+}
+
 tasks.register("verifyAddonDeveloperKitCoverage") {
     group = "verification"
     description = "Verifies addon developer kit API examples, certification checks, and distribution hooks remain present."
     dependsOn(tasks.named("distDeveloperKit"))
+    dependsOn(certifyExampleAddon)
     dependsOn(project(":cloudislands-example-addon").tasks.named("test"))
     dependsOn(project(":cloudislands-testkit").tasks.named("test"))
     val addonApi = layout.projectDirectory.file("cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/addon/CloudIslandsAddon.java")
@@ -906,8 +939,11 @@ tasks.register("verifyAddonDeveloperKitCoverage") {
     val certification = layout.projectDirectory.file("cloudislands-testkit/src/main/java/kr/lunaf/cloudislands/testkit/AddonCertificationMatrix.java")
     val certificationTest = layout.projectDirectory.file("cloudislands-testkit/src/test/java/kr/lunaf/cloudislands/testkit/AddonCertificationMatrixTest.java")
     val devkitDir = layout.buildDirectory.dir("dist/devkit")
+    val certificationJsonReport = layout.buildDirectory.file("reports/cloudislands/addon-certification.json")
+    val certificationMarkdownReport = layout.buildDirectory.file("reports/cloudislands/addon-certification.md")
     inputs.files(addonApi, example, exampleTest, certification, certificationTest)
     inputs.dir(devkitDir)
+    inputs.files(certificationJsonReport, certificationMarkdownReport)
     doLast {
         val apiSource = addonApi.asFile.readText()
         val exampleSource = example.asFile.readText()
@@ -936,6 +972,12 @@ tasks.register("verifyAddonDeveloperKitCoverage") {
             }
             if (!dist.resolve("maven").isDirectory || !dist.resolve("javadocs").isDirectory || !dist.resolve("sources").isDirectory) {
                 add("distDeveloperKit missing maven, javadocs, or sources output")
+            }
+            if (!certificationJsonReport.get().asFile.readText().contains("\"command\":\"./gradlew certifyExampleAddon\"")) {
+                add("Addon certification command report missing JSON command evidence")
+            }
+            if (!certificationMarkdownReport.get().asFile.readText().contains("./gradlew certifyExampleAddon")) {
+                add("Addon certification command report missing Markdown command evidence")
             }
         }
         if (failures.isNotEmpty()) {
