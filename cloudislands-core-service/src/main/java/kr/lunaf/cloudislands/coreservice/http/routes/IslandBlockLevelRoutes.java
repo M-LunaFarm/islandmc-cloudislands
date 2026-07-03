@@ -123,6 +123,11 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
             return;
         }
         var snapshot = levelRecalculation.recalculate(islandId, levelRepository.blockCounts(islandId), levelRepository.blockValues(), metadataRepository.members(islandId).size());
+        audit.log(actorUuid, actorUuid.equals(EMPTY_UUID) ? "ADMIN" : "PLAYER", "ISLAND_LEVEL_RECALCULATE", "ISLAND", islandId.toString(), Map.of(
+            "level", Long.toString(snapshot.level()),
+            "worth", snapshot.worth().toPlainString(),
+            "memberCount", Integer.toString(snapshot.memberCount())
+        ));
         CoreHttpResponses.write(exchange, 202, levelJson(snapshot));
     }
 

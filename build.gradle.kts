@@ -850,16 +850,26 @@ tasks.register("verifyRankingWorthCertification") {
     val rankingRepository = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/ranking/RankingRepository.java")
     val jdbcRankingRepository = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/ranking/JdbcRankingRepository.java")
     val dirtyTask = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTask.java")
+    val blockLevelRoutes = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandBlockLevelRoutes.java")
+    val placeholderExpansion = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/placeholder/CloudIslandsPlaceholderExpansion.java")
+    val placeholderRanks = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/placeholder/CloudIslandsPlaceholderRanks.java")
     val recalculationTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/RankingRecalculationServiceTest.java")
     val dirtyTaskTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java")
-    inputs.files(recalculation, rankingRepository, jdbcRankingRepository, dirtyTask, recalculationTest, dirtyTaskTest)
+    val blockLevelRoutesTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandBlockLevelRoutesTest.java")
+    val placeholderRanksTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/placeholder/CloudIslandsPlaceholderRanksTest.java")
+    inputs.files(recalculation, rankingRepository, jdbcRankingRepository, dirtyTask, blockLevelRoutes, placeholderExpansion, placeholderRanks, recalculationTest, dirtyTaskTest, blockLevelRoutesTest, placeholderRanksTest)
     doLast {
         val serviceSource = recalculation.asFile.readText()
         val repositorySource = rankingRepository.asFile.readText()
         val jdbcSource = jdbcRankingRepository.asFile.readText()
         val dirtySource = dirtyTask.asFile.readText()
+        val blockLevelSource = blockLevelRoutes.asFile.readText()
+        val placeholderSource = placeholderExpansion.asFile.readText()
+        val placeholderRankSource = placeholderRanks.asFile.readText()
         val recalculationTests = recalculationTest.asFile.readText()
         val dirtyTests = dirtyTaskTest.asFile.readText()
+        val blockLevelTests = blockLevelRoutesTest.asFile.readText()
+        val placeholderTests = placeholderRanksTest.asFile.readText()
         val failures = buildList {
             listOf("ISLAND_LEVEL_UPDATED", "ISLAND_WORTH_CHANGED").filterNot(serviceSource::contains).forEach {
                 add("Ranking recalculation must publish event signal: $it")
@@ -869,8 +879,12 @@ tasks.register("verifyRankingWorthCertification") {
             }
             if (!jdbcSource.contains("WHERE ignored = false")) add("JdbcRankingRepository must exclude ignored islands from top rankings")
             if (!dirtySource.contains("BATCH_LIMIT = 100")) add("DirtyRankingRecalculationTask must keep bounded batches")
+            if (!blockLevelSource.contains("ISLAND_LEVEL_RECALCULATE")) add("Manual/admin ranking recalculation must write an audit action")
+            if (!placeholderSource.contains("\"rank\"") || !placeholderSource.contains("rankings(100)") || !placeholderRankSource.contains("worthRank")) add("PlaceholderAPI expansion must expose ranking placeholders from typed rankings")
             if (!recalculationTests.contains("tenThousandIslandWorthRecalculationRanksAndExcludesIgnoredIslands")) add("Ranking 10k worth certification test is missing")
             if (!dirtyTests.contains("tenThousandDirtyIslandsStayDebouncedAndProcessOnlyBatchLimitPerRun")) add("Dirty ranking 10k debounce certification test is missing")
+            if (!blockLevelTests.contains("levelRecalculationWritesAuditAndEventSignals")) add("Admin/manual recalculation audit test is missing")
+            if (!placeholderTests.contains("rendersWorthAndLevelRankPlaceholdersFromProgressionRankings")) add("Placeholder rank certification test is missing")
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))

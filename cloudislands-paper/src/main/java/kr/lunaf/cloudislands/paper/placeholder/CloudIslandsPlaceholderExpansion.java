@@ -82,10 +82,12 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         }
         UUID parsedIslandId = uuid(islandId);
         if (parsedIslandId == null) {
-            return CompletableFuture.completedFuture(new Snapshot(island, null, expiresAt));
+            return CompletableFuture.completedFuture(new Snapshot(island, null, 0, 0, expiresAt));
         }
         return client.bank().islandBank(parsedIslandId)
-            .handle((bank, error) -> new Snapshot(island, error == null ? bank : null, expiresAt));
+            .handle((bank, error) -> error == null ? bank : null)
+            .thenCombine(client.progression().rankings(100).handle((rankings, error) -> error == null ? rankings : null), (bank, rankings) ->
+                new Snapshot(island, bank, CloudIslandsPlaceholderRanks.worthRank(rankings, islandId), CloudIslandsPlaceholderRanks.levelRank(rankings, islandId), expiresAt));
     }
 
     private String value(Snapshot snapshot, String params) {
@@ -102,6 +104,8 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
             case "border", "island_border" -> island == null ? "" : Long.toString(island.border());
             case "level", "island_level" -> island == null ? "" : Long.toString(island.level());
             case "worth", "value", "island_worth" -> island == null ? "" : island.worth();
+            case "rank", "worth_rank", "island_rank", "island_worth_rank" -> snapshot.worthRank() <= 0 ? "" : Integer.toString(snapshot.worthRank());
+            case "level_rank", "island_level_rank" -> snapshot.levelRank() <= 0 ? "" : Integer.toString(snapshot.levelRank());
             case "public", "public_access", "is_public" -> island == null ? "" : Boolean.toString(island.publicAccess());
             case "bank", "bank_balance", "balance" -> bank == null ? "" : bank.balance();
             default -> "";
@@ -116,9 +120,9 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         }
     }
 
-    private record Snapshot(CoreGuiViews.IslandInfoView island, CoreGuiViews.BankView bank, long expiresAtMillis) {
+    private record Snapshot(CoreGuiViews.IslandInfoView island, CoreGuiViews.BankView bank, int worthRank, int levelRank, long expiresAtMillis) {
         private static Snapshot empty(long expiresAtMillis) {
-            return new Snapshot(null, null, expiresAtMillis);
+            return new Snapshot(null, null, 0, 0, expiresAtMillis);
         }
     }
 }
