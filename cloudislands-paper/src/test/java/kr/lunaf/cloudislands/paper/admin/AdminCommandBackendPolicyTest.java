@@ -88,10 +88,25 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("handleSupportBundle"), "Support bundle command must have a handler");
         assertTrue(source.contains("coreApiClient.adminSupportBundle().create()"), "Support bundle command must use the typed Core support bundle client");
         assertTrue(source.contains("writeSupportBundle"), "Support bundle command must write a local support bundle file");
+        assertTrue(source.contains("cloudislands-support-bundle-") && source.contains(".zip"), "Support bundle must be packaged as a zip bundle");
+        assertTrue(source.contains("core-support-bundle.json"), "Support bundle zip must include the redacted Core bundle");
+        assertTrue(source.contains("paper-runtime.txt"), "Support bundle zip must include local Paper runtime context");
         assertTrue(source.contains("redactDiagnostic(coreBundleJson"), "Support bundle output must pass through redaction");
         assertTrue(coreClient.contains("AdminSupportBundleClient adminSupportBundle()"), "Core client must expose a typed support bundle client");
         assertTrue(jdkClient.contains("postResultBody(\"/v1/admin/support-bundle\", \"{}\")"), "Support bundle client must call the Core support-bundle endpoint");
         assertTrue(plugin.contains("cloudislands.admin.support-bundle"), "Support bundle command must have a plugin permission");
+    }
+
+    @Test
+    void supportBundleRedactionRemovesSecretsAndTokens() throws Exception {
+        String redacted = AdminDiagnosticRedactor.redact("{\"token\":\"ghp_example123456789\",\"password\":\"plain\",\"authorization\":\"Bearer secret\"}");
+
+        assertTrue(redacted.contains("token=***"), "Token field must be redacted");
+        assertTrue(redacted.contains("password=***"), "Password field must be redacted");
+        assertTrue(redacted.contains("authorization=***"), "Authorization field must be redacted");
+        assertTrue(!redacted.contains("ghp_example123456789"), "GitHub token material must not remain");
+        assertTrue(!redacted.contains("plain"), "Password value must not remain");
+        assertTrue(!redacted.contains("Bearer secret"), "Authorization value must not remain");
     }
 
     @Test

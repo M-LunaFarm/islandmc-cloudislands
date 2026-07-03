@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.admin;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -14,6 +15,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
@@ -558,13 +561,31 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             Path directory = agent.plugin().getDataFolder().toPath().resolve("support-bundles");
             Files.createDirectories(directory);
             String timestamp = Instant.now().toString().replace(':', '-');
-            Path report = directory.resolve("cloudislands-support-bundle-" + timestamp + ".json");
+            Path report = directory.resolve("cloudislands-support-bundle-" + timestamp + ".zip");
             String redacted = redactDiagnostic(coreBundleJson == null ? "{}" : coreBundleJson);
-            Files.writeString(report, redacted);
+            try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(report))) {
+                writeZipEntry(zip, "core-support-bundle.json", redacted);
+                writeZipEntry(zip, "paper-runtime.txt", supportBundleRuntimeManifest());
+            }
             return adminText("admin-command-support-bundle-created-prefix", "Support bundle created: ") + report;
         } catch (IOException exception) {
             return adminText("admin-command-support-bundle-failed", "Support bundle failed: ") + exception.getMessage();
         }
+    }
+
+    private String supportBundleRuntimeManifest() {
+        return "generatedAt=" + Instant.now() + '\n'
+            + "nodeId=" + nodeId + '\n'
+            + "agentRole=" + agent.role() + '\n'
+            + "pluginVersion=" + agent.plugin().getPluginMeta().getVersion() + '\n'
+            + "onlinePlayers=" + agent.plugin().getServer().getOnlinePlayers().size() + '\n'
+            + "routeWaitSeconds=" + routeWaitSeconds + '\n';
+    }
+
+    private static void writeZipEntry(ZipOutputStream zip, String name, String content) throws IOException {
+        zip.putNextEntry(new ZipEntry(name));
+        zip.write((content == null ? "" : content).getBytes(StandardCharsets.UTF_8));
+        zip.closeEntry();
     }
 
     private String heartbeatLagDiagnosticBody(AdminNodeSummaryView nodes) {
@@ -575,12 +596,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private static String redactDiagnostic(String value) {
-        if (value == null || value.isBlank()) {
-            return "";
-        }
-        return value
-            .replaceAll("(?i)(token|secret|password|authorization|accessKey|secretKey)\\\"?\\s*[:=]\\s*\\\"?[^,\\n\\r\\\"]+", "$1=***")
-            .replaceAll("ghp_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+", "***");
+        return AdminDiagnosticRedactor.redact(value);
     }
 
     private boolean handleIntegrations(CommandSender sender, String[] args) {
