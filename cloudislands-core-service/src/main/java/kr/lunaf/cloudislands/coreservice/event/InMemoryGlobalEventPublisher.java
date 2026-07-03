@@ -95,6 +95,9 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
             if (!event.fields().getOrDefault("islandId", "").equals(targetIslandId)) {
                 continue;
             }
+            if (!visibleVisit(event.fields())) {
+                continue;
+            }
             totalVisits++;
             String visitorUuid = event.fields().getOrDefault("visitorUuid", "");
             if (!visitorUuid.isBlank()) {
@@ -129,6 +132,20 @@ public final class InMemoryGlobalEventPublisher implements GlobalEventPublisher 
                 .append("\"}");
         }
         return builder.append("]}").toString();
+    }
+
+    private boolean visibleVisit(Map<String, String> fields) {
+        if (fields == null) {
+            return true;
+        }
+        if (Boolean.parseBoolean(fields.getOrDefault("vanished", "false"))) {
+            return false;
+        }
+        if (Boolean.parseBoolean(fields.getOrDefault("hidden", "false"))) {
+            return false;
+        }
+        String visitorVisible = fields.getOrDefault("visitorVisible", fields.getOrDefault("countVisitor", "true"));
+        return !visitorVisible.equalsIgnoreCase("false");
     }
 
     private String fieldsJson(Map<String, String> fields) {

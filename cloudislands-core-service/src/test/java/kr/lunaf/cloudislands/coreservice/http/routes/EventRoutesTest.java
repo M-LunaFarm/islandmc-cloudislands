@@ -56,6 +56,25 @@ class EventRoutesTest {
         assertTrue(json.contains("\"visitorUuid\":\"b\""));
     }
 
+    @Test
+    void visitorStatsExcludeVanishedOrHiddenVisitors() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        events.publish(CloudIslandEventType.ISLAND_VISITED.name(), Map.of("islandId", islandId.toString(), "visitorUuid", "visible"));
+        events.publish(CloudIslandEventType.ISLAND_VISITED.name(), Map.of("islandId", islandId.toString(), "visitorUuid", "vanished", "vanished", "true"));
+        events.publish(CloudIslandEventType.ISLAND_VISITED.name(), Map.of("islandId", islandId.toString(), "visitorUuid", "hidden", "hidden", "true"));
+        events.publish(CloudIslandEventType.ISLAND_VISITED.name(), Map.of("islandId", islandId.toString(), "visitorUuid", "silent", "visitorVisible", "false"));
+
+        String json = events.visitorStatsJson(islandId, 10);
+
+        assertTrue(json.contains("\"totalVisits\":1"));
+        assertTrue(json.contains("\"uniqueVisitors\":1"));
+        assertTrue(json.contains("\"visitorUuid\":\"visible\""));
+        assertTrue(!json.contains("vanished"));
+        assertTrue(!json.contains("hidden"));
+        assertTrue(!json.contains("silent"));
+    }
+
     private static final class RecordingRegistry implements CoreRouteRegistry {
         private final Map<String, Set<String>> methods = new HashMap<>();
 
