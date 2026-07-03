@@ -174,6 +174,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(snapshotHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(snapshotHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(snapshotHandler.contains("private final SnapshotUseCase snapshotUseCase;"));
+        assertTrue(snapshotHandler.contains("private final SnapshotRetentionPolicy retentionPolicy;"), "snapshot command handler must retain Paper snapshot retention policy for UX");
         assertTrue(snapshotHandler.contains("snapshotUseCase.snapshotViews("));
         assertTrue(snapshotHandler.contains("snapshotUseCase.requestSnapshotAction("));
         assertTrue(snapshotHandler.contains("snapshotUseCase.restoreSnapshotAction("));
@@ -181,6 +182,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(snapshotHandler.contains("private void openRestoreConfirmation(Player player, long snapshotNo)"), "snapshot restore confirmation must be shared by command and GUI flows");
         assertTrue(snapshotHandler.contains("\"island.snapshot.restore.confirm\""), "snapshot restore must use the token-protected confirm action");
         assertFalse(snapshotHandler.contains("restoreSnapshot(player, SnapshotUseCase.positiveSnapshotNo(args[1]))"), "typed restore command must not directly mutate Core");
+        assertTrue(snapshotHandler.contains("IslandSnapshotMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player), retentionPolicy)"), "snapshot menu must receive runtime retention policy");
         assertFalse(snapshotUseCase.contains("public CompletableFuture<String> listSnapshots("), "snapshot list usecase must expose typed views instead of raw JSON");
         assertFalse(snapshotUseCase.contains("public CompletableFuture<String> requestSnapshot("), "snapshot create usecase must expose typed actions instead of raw JSON");
         assertFalse(snapshotUseCase.contains("public CompletableFuture<String> restoreSnapshot("), "snapshot restore usecase must expose typed actions instead of raw JSON");

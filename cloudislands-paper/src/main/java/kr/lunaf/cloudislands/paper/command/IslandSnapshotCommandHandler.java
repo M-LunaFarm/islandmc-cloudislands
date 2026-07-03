@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -23,12 +24,18 @@ final class IslandSnapshotCommandHandler {
     private final CoreApiClient coreApiClient;
     private final SnapshotUseCase snapshotUseCase;
     private final Runtime runtime;
+    private final SnapshotRetentionPolicy retentionPolicy;
 
     IslandSnapshotCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
+        this(plugin, coreApiClient, runtime, SnapshotRetentionPolicy.defaultPolicy());
+    }
+
+    IslandSnapshotCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime, SnapshotRetentionPolicy retentionPolicy) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.snapshotUseCase = new SnapshotUseCase(coreApiClient);
         this.runtime = runtime;
+        this.retentionPolicy = (retentionPolicy == null ? SnapshotRetentionPolicy.defaultPolicy() : retentionPolicy).normalized();
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
@@ -106,7 +113,7 @@ final class IslandSnapshotCommandHandler {
     }
 
     private void openSnapshotMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 스냅샷 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSnapshotMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, "섬 안에서만 스냅샷 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSnapshotMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player), retentionPolicy));
     }
 
     private void requestSnapshot(Player player, String reason) {

@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -92,6 +93,10 @@ final class IslandCommandBackend {
     }
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players, PaperWorldGateway worlds, String configuredNodeId, String defaultGeneratorKey, boolean guiMenusEnabled) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, players, worlds, configuredNodeId, defaultGeneratorKey, guiMenusEnabled, SnapshotRetentionPolicy.defaultPolicy());
+    }
+
+    IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players, PaperWorldGateway worlds, String configuredNodeId, String defaultGeneratorKey, boolean guiMenusEnabled, SnapshotRetentionPolicy snapshotRetentionPolicy) {
         this.commandMessages = new IslandCommandMessenger(plugin, messages, locales);
         this.islandContext = new IslandCommandIslandContext(protection);
         this.memberManagement = new MemberManagementUseCase(coreApiClient);
@@ -102,7 +107,7 @@ final class IslandCommandBackend {
         this.routingCommands = new IslandRoutingCommandHandler(plugin, coreApiClient, routeWaitSeconds, fallbackServerName, runtimeServices);
         this.memberPresentation = new IslandCommandMemberPresentation(plugin, coreApiClient, protection, commandMessages, islandContext, routingCommands);
         this.bankCommands = new IslandBankCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices);
-        this.snapshotCommands = new IslandSnapshotCommandHandler(plugin, coreApiClient, runtimeServices);
+        this.snapshotCommands = new IslandSnapshotCommandHandler(plugin, coreApiClient, runtimeServices, snapshotRetentionPolicy);
         this.warehouseCommands = new IslandWarehouseCommandHandler(plugin, coreApiClient, runtimeServices);
         this.chatLogCommands = new IslandChatLogCommandHandler(plugin, coreApiClient, runtimeServices);
         this.progressionCommands = new IslandProgressionCommandHandler(plugin, coreApiClient, levelScanService, runtimeServices, defaultGeneratorKey);

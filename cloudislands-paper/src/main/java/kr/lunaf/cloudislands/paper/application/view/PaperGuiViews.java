@@ -187,7 +187,7 @@ public final class PaperGuiViews {
     }
 
     private static SnapshotView snapshot(CoreGuiViews.SnapshotView view) {
-        return new SnapshotView(view.snapshotNo(), view.reason(), view.sizeBytes(), view.createdAt());
+        return new SnapshotView(view.snapshotNo(), view.reason(), view.sizeBytes(), view.createdAt(), view.checksum());
     }
 
     private static LogEntryView logEntry(CoreGuiViews.LogEntryView view) {
@@ -278,7 +278,12 @@ public final class PaperGuiViews {
     public record LimitView(String key, long value, String updatedAt) {
     }
 
-    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt) {
+    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum) {
+        public SnapshotView {
+            reason = reason == null ? "" : reason;
+            createdAt = createdAt == null ? "" : createdAt;
+            checksum = checksum == null ? "" : checksum;
+        }
     }
 
     public record LogEntryView(String actorUuid, String action, Map<String, String> payload, String createdAt) {

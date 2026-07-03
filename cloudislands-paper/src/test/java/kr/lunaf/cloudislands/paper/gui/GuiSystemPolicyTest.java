@@ -609,6 +609,7 @@ class GuiSystemPolicyTest {
         String adminHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
         String membershipHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
         String snapshotHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSnapshotCommandHandler.java"));
+        String snapshotViews = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/view/PaperGuiViews.java"));
         String homeWarpHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
         String adminMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminNodeMenu.java"));
         String memberMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMemberMenu.java"));
@@ -627,6 +628,9 @@ class GuiSystemPolicyTest {
         assertTrue(membershipHandler.contains("IslandMemberMenu.removeConfirmationMaterial()"), "member removal confirmation material must come from members.yml");
         assertTrue(membershipHandler.contains("IslandBanMenu.pardonConfirmationMaterial()"), "ban pardon confirmation material must come from bans.yml");
         assertTrue(snapshotHandler.contains("IslandSnapshotMenu.restoreConfirmationMaterial()"), "snapshot restore confirmation material must come from snapshots.yml");
+        assertTrue(snapshotMenu.contains("setRetentionItem(inventory, messages, retentionPolicy)"), "snapshot menu must display the runtime retention policy");
+        assertTrue(snapshotMenu.contains("snapshot.checksum()"), "snapshot menu must show snapshot checksums from Core");
+        assertTrue(snapshotViews.contains("view.checksum()"), "Paper snapshot GUI view must preserve Core snapshot checksums");
         assertTrue(homeWarpHandler.contains("IslandWarpMenu.deleteConfirmationMaterial()"), "warp delete confirmation material must come from warps.yml");
         assertTrue(adminMenu.contains("GuiMenuRenderer.material(MENU, \"K\""), "admin-node menu must expose configured kickall material");
         assertTrue(memberMenu.contains("GuiMenuRenderer.material(MENU, \"MEMBER\""), "member menu must expose configured member material");

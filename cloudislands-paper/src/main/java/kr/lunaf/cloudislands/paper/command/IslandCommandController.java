@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -62,7 +63,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, String nodeId, String defaultGeneratorKey, boolean guiMenusEnabled) {
-        this.backend = new IslandCommandBackend(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, new kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway(), new kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway(plugin), nodeId, defaultGeneratorKey, guiMenusEnabled);
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, nodeId, defaultGeneratorKey, guiMenusEnabled, SnapshotRetentionPolicy.defaultPolicy());
+    }
+
+    public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, String nodeId, String defaultGeneratorKey, boolean guiMenusEnabled, SnapshotRetentionPolicy snapshotRetentionPolicy) {
+        this.backend = new IslandCommandBackend(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, new kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway(), new kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway(plugin), nodeId, defaultGeneratorKey, guiMenusEnabled, snapshotRetentionPolicy);
         this.tabCompleter = new IslandCommandTabCompleter(plugin, protection);
     }
 

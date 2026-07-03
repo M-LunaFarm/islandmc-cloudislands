@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.SnapshotView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -56,10 +57,15 @@ public final class IslandSnapshotMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, SnapshotRetentionPolicy.defaultPolicy());
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, SnapshotRetentionPolicy retentionPolicy) {
+        SnapshotRetentionPolicy effectivePolicy = (retentionPolicy == null ? SnapshotRetentionPolicy.defaultPolicy() : retentionPolicy).normalized();
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandSnapshots(client, islandId, 20)
-            .thenAccept(snapshots -> openSync(plugin, player, session, snapshots, messages))
+            .thenAccept(snapshots -> openSync(plugin, player, session, snapshots, messages, effectivePolicy))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다."), "island.snapshots.open", "island.settings.open");
                 return null;
@@ -96,6 +102,7 @@ public final class IslandSnapshotMenu implements Listener {
             player.sendMessage("- " + message(messages, "snapshot-menu-reason", "사유: ") + fallback(data.get("reason"), message(messages, "snapshot-menu-none", "없음")));
             player.sendMessage("- " + message(messages, "snapshot-menu-size", "크기: ") + fallback(data.get("sizeBytes"), "0") + message(messages, "snapshot-menu-size-unit", " bytes"));
             player.sendMessage("- " + message(messages, "snapshot-menu-created-at", "생성 시각: ") + fallback(data.get("createdAt"), message(messages, "snapshot-menu-no-created-info", "생성 정보 없음")));
+            player.sendMessage("- " + message(messages, "snapshot-menu-checksum", "checksum: ") + fallback(data.get("checksum"), message(messages, "snapshot-menu-none", "없음")));
             return;
         }
         String actionId = GuiItems.actionId(event.getCurrentItem());
@@ -109,9 +116,10 @@ public final class IslandSnapshotMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<SnapshotView> snapshots, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<SnapshotView> snapshots, MessageRenderer messages, SnapshotRetentionPolicy retentionPolicy) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
+            setRetentionItem(inventory, messages, retentionPolicy);
             if (snapshots.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
@@ -131,13 +139,25 @@ public final class IslandSnapshotMenu implements Listener {
                 "snapshotNo", String.valueOf(snapshot.snapshotNo()),
                 "reason", snapshot.reason(),
                 "sizeBytes", String.valueOf(snapshot.sizeBytes()),
-                "createdAt", snapshot.createdAt()
+                "createdAt", snapshot.createdAt(),
+                "checksum", snapshot.checksum()
             ),
             message(messages, "snapshot-menu-reason", "사유: ") + (snapshot.reason().isBlank() ? message(messages, "snapshot-menu-none", "없음") : snapshot.reason()),
             message(messages, "snapshot-menu-size", "크기: ") + snapshot.sizeBytes() + message(messages, "snapshot-menu-size-unit", " bytes"),
             snapshot.createdAt().isBlank() ? message(messages, "snapshot-menu-no-created-info", "생성 정보 없음") : message(messages, "snapshot-menu-created-at", "생성 시각: ") + snapshot.createdAt(),
+            snapshot.checksum().isBlank() ? message(messages, "snapshot-menu-checksum-missing", "checksum: 없음") : message(messages, "snapshot-menu-checksum", "checksum: ") + shortChecksum(snapshot.checksum()),
             message(messages, "snapshot-menu-left-click", "좌클릭: 상세 보기"),
             message(messages, "snapshot-menu-shift-right-click", "Shift+우클릭: 이 스냅샷 복원 요청"));
+    }
+
+    private static void setRetentionItem(Inventory inventory, MessageRenderer messages, SnapshotRetentionPolicy retentionPolicy) {
+        SnapshotRetentionPolicy policy = (retentionPolicy == null ? SnapshotRetentionPolicy.defaultPolicy() : retentionPolicy).normalized();
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, "S", messages, Map.of(), List.of(
+            message(messages, "snapshot-menu-retention-summary", "보존 정책: ") + "hourly=" + policy.keepHourly() + ", daily=" + policy.keepDaily() + ", weekly=" + policy.keepWeekly() + ", manual=" + policy.keepManual(),
+            message(messages, "snapshot-menu-retention-total", "최대 보존 수: ") + policy.retainedSnapshotCount(),
+            message(messages, "snapshot-menu-retention-checksum", "checksum: ") + policy.checksumAlgorithm(),
+            message(messages, "snapshot-menu-retention-compress", "압축: ") + policy.compress()
+        ));
     }
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
@@ -146,6 +166,13 @@ public final class IslandSnapshotMenu implements Listener {
 
     private static String fallback(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private static String shortChecksum(String checksum) {
+        if (checksum == null || checksum.isBlank()) {
+            return "";
+        }
+        return checksum.length() > 12 ? checksum.substring(0, 12) : checksum;
     }
 
 }
