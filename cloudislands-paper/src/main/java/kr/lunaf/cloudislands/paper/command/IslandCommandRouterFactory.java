@@ -1,7 +1,10 @@
 package kr.lunaf.cloudislands.paper.command;
 
+import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandOnboardingMenu;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
 final class IslandCommandRouterFactory {
     private IslandCommandRouterFactory() {
@@ -21,6 +24,8 @@ final class IslandCommandRouterFactory {
         IslandOverviewCommandHandler overviewCommands,
         IslandMembershipCommandHandler membershipCommands,
         IslandAdminNodeCommandHandler adminCommands,
+        Plugin plugin,
+        CoreApiClient coreApiClient,
         IslandCommandMessenger messages
     ) {
         return create(
@@ -37,6 +42,8 @@ final class IslandCommandRouterFactory {
             overviewCommands,
             membershipCommands,
             adminCommands,
+            plugin,
+            coreApiClient,
             messages,
             true
         );
@@ -56,6 +63,8 @@ final class IslandCommandRouterFactory {
         IslandOverviewCommandHandler overviewCommands,
         IslandMembershipCommandHandler membershipCommands,
         IslandAdminNodeCommandHandler adminCommands,
+        Plugin plugin,
+        CoreApiClient coreApiClient,
         IslandCommandMessenger messages,
         boolean guiMenusEnabled
     ) {
@@ -90,7 +99,7 @@ final class IslandCommandRouterFactory {
                         return false;
                     }
                     try {
-                        IslandMainMenu.open(player, messages.messagesFor(player));
+                        IslandOnboardingMenu.open(plugin, coreApiClient, player, messages.messagesFor(player), () -> IslandMainMenu.open(player, messages.messagesFor(player)));
                         return true;
                     } catch (RuntimeException exception) {
                         messages.message(player, messages.routeMessage("main-menu-open-failed", "메인 메뉴를 열 수 없습니다. 명령어 도움말을 표시합니다."));

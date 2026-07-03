@@ -133,6 +133,8 @@ final class IslandCommandBackend {
             overviewCommands,
             membershipCommands,
             adminCommands,
+            plugin,
+            coreApiClient,
             commandMessages,
             guiMenusEnabled
         );

@@ -65,6 +65,7 @@ class IslandCommandControllerPolicyTest {
     void rootIslandCommandsOpenMainMenuBeforeCommandListFallback() throws Exception {
         String router = routerSource();
         String factory = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouterFactory.java"));
+        String onboarding = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandOnboardingMenu.java"));
         String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/PaperCommandRegistrar.java"));
 
         assertTrue(router.contains("if (args.length == 0) {\n            openMainMenuOrCommandList(player, label);"), "bare /island and /섬 must open the GUI first");
@@ -73,7 +74,11 @@ class IslandCommandControllerPolicyTest {
         assertTrue(router.contains("private void openMainMenuOrCommandList(Player player, String label)"));
         assertTrue(router.contains("if (!runtime.openMainMenu(player)) {\n            sendCommandList(player, label, \"섬 명령어 목록\", IslandCommandCatalog.HELP_COMMANDS, 1);"), "command list must remain only as the no-GUI/error fallback");
         assertFalse(router.contains("if (action instanceof GuiAction.MainOpen) {\n            sendCommandList"), "main-open GUI action must not show the command list directly");
-        assertTrue(factory.contains("IslandMainMenu.open(player, messages.messagesFor(player));"), "router runtime must open IslandMainMenu");
+        assertTrue(factory.contains("IslandOnboardingMenu.open(plugin, coreApiClient, player"), "router runtime must route bare /섬 through state-based onboarding");
+        assertTrue(factory.contains("() -> IslandMainMenu.open(player, messages.messagesFor(player))"), "router runtime must keep IslandMainMenu as onboarding fallback");
+        assertTrue(onboarding.contains("client.navigation().playerIslands(player.getUniqueId())"), "onboarding must inspect the player's real island state");
+        assertTrue(onboarding.contains("if (islands.isEmpty()) {\n                IslandCreateMenu.open(plugin, client, player, messages);"), "players without islands must land on template comparison/create UX");
+        assertTrue(onboarding.contains("IslandMyIslandsMenu.open(plugin, client, player, messages);"), "players with islands must land on their island list instead of generic help");
         assertTrue(factory.contains("if (!guiMenusEnabled) {\n                        return false;"), "disabled GUI config must keep command-list fallback");
         assertTrue(registrar.contains("plugin.runtimeConfig().guiEnabledForRole(agent.role())"), "command routing must use the same role-based GUI enablement as listener registration");
     }
