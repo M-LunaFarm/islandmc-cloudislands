@@ -180,6 +180,10 @@ public final class GuiActionParser {
                 return Optional.of(new GuiAction.SnapshotRestore(
                     safeAction.equals("island.snapshot.restore.prepare") ? GuiAction.SnapshotRestoreType.PREPARE : GuiAction.SnapshotRestoreType.CONFIRM,
                     positiveLong(required(safeData, "snapshotNo")),
+                    safeData.getOrDefault("reason", ""),
+                    safeData.containsKey("sizeBytes") ? nonNegativeLong(safeData.get("sizeBytes")) : 0L,
+                    safeData.getOrDefault("createdAt", ""),
+                    safeData.getOrDefault("checksum", ""),
                     safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }

@@ -435,7 +435,11 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
     }
 
-    record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String confirmationToken) implements GuiAction {
+    record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum, String confirmationToken) implements GuiAction {
+        public SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String confirmationToken) {
+            this(type, snapshotNo, "", 0L, "", "", confirmationToken);
+        }
+
         public SnapshotRestore {
             if (type == null) {
                 throw new IllegalArgumentException("type is required");
@@ -443,6 +447,10 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
             if (snapshotNo <= 0L) {
                 throw new IllegalArgumentException("positive snapshotNo is required");
             }
+            reason = reason == null ? "" : reason.trim();
+            sizeBytes = Math.max(0L, sizeBytes);
+            createdAt = createdAt == null ? "" : createdAt.trim();
+            checksum = checksum == null ? "" : checksum.trim();
             confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
         }
 
@@ -453,13 +461,24 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
 
         @Override
         public Map<String, String> data() {
-            if (type.confirmation()) {
-                return Map.of(
-                    "snapshotNo", Long.toString(snapshotNo),
-                    ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken
-                );
+            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+            values.put("snapshotNo", Long.toString(snapshotNo));
+            if (!reason.isBlank()) {
+                values.put("reason", reason);
             }
-            return Map.of("snapshotNo", Long.toString(snapshotNo));
+            if (sizeBytes > 0L) {
+                values.put("sizeBytes", Long.toString(sizeBytes));
+            }
+            if (!createdAt.isBlank()) {
+                values.put("createdAt", createdAt);
+            }
+            if (!checksum.isBlank()) {
+                values.put("checksum", checksum);
+            }
+            if (type.confirmation()) {
+                values.put(ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken);
+            }
+            return Map.copyOf(values);
         }
 
         public boolean confirmation() {

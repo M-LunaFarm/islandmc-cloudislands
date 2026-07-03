@@ -81,7 +81,7 @@ final class IslandSnapshotCommandHandler {
                     restoreSnapshot(player, snapshotRestore.snapshotNo());
                 }
             } else {
-                openRestoreConfirmation(player, snapshotRestore.snapshotNo());
+                openRestoreConfirmation(player, snapshotRestore);
             }
             return true;
         }
@@ -151,6 +151,11 @@ final class IslandSnapshotCommandHandler {
     }
 
     private void openRestoreConfirmation(Player player, long snapshotNo) {
+        openRestoreConfirmation(player, new GuiAction.SnapshotRestore(GuiAction.SnapshotRestoreType.PREPARE, snapshotNo, ""));
+    }
+
+    private void openRestoreConfirmation(Player player, GuiAction.SnapshotRestore snapshotRestore) {
+        long snapshotNo = snapshotRestore.snapshotNo();
         if (snapshotNo <= 0L) {
             runtime.message(player, runtime.routeMessage("input-snapshot-number-invalid", "올바른 스냅샷 번호를 입력해주세요."));
             return;
@@ -163,9 +168,28 @@ final class IslandSnapshotCommandHandler {
             runtime.routeMessage("snapshot-restore-confirm-name", "스냅샷 복원"),
             "island.snapshot.restore.confirm",
             Map.of("snapshotNo", Long.toString(snapshotNo)),
-            runtime.routeMessage("snapshot-restore-confirm-lore", "클릭하면 Core에 스냅샷 복원을 요청합니다."),
+            restorePreviewLore(snapshotRestore),
             "island.snapshots.open"
         );
+    }
+
+    private String restorePreviewLore(GuiAction.SnapshotRestore snapshotRestore) {
+        StringBuilder builder = new StringBuilder(runtime.routeMessage("snapshot-restore-confirm-lore", "클릭하면 Core에 스냅샷 복원을 요청합니다."))
+            .append(" preview=#")
+            .append(snapshotRestore.snapshotNo());
+        if (!snapshotRestore.reason().isBlank()) {
+            builder.append(" reason=").append(snapshotRestore.reason());
+        }
+        if (snapshotRestore.sizeBytes() > 0L) {
+            builder.append(" size=").append(snapshotRestore.sizeBytes());
+        }
+        if (!snapshotRestore.createdAt().isBlank()) {
+            builder.append(" date=").append(snapshotRestore.createdAt());
+        }
+        if (!snapshotRestore.checksum().isBlank()) {
+            builder.append(" checksum=").append(shortChecksum(snapshotRestore.checksum()));
+        }
+        return builder.toString();
     }
 
     private String snapshotActionMessage(String label, UUID islandId, SnapshotActionResult result) {

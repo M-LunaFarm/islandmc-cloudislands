@@ -192,6 +192,13 @@ class GuiActionParserTest {
     void parsesSnapshotActionsIntoTypedActions() {
         GuiAction create = GuiActionParser.parse("island.snapshot.create", Map.of("reason", " manual save ")).orElseThrow();
         GuiAction restore = GuiActionParser.parse("island.snapshot.restore.prepare", Map.of("snapshotNo", "7")).orElseThrow();
+        GuiAction previewRestore = GuiActionParser.parse("island.snapshot.restore.prepare", Map.of(
+            "snapshotNo", "8",
+            "reason", "manual",
+            "sizeBytes", "4096",
+            "createdAt", "2026-01-02T03:04:05Z",
+            "checksum", "abcdef1234567890"
+        )).orElseThrow();
 
         assertTrue(create instanceof GuiAction.SnapshotCreate);
         assertEquals("island.snapshot.create", create.actionId());
@@ -199,6 +206,8 @@ class GuiActionParserTest {
         assertTrue(restore instanceof GuiAction.SnapshotRestore);
         assertEquals("island.snapshot.restore.prepare", restore.actionId());
         assertEquals(Map.of("snapshotNo", "7"), restore.data());
+        assertEquals("abcdef1234567890", ((GuiAction.SnapshotRestore) previewRestore).checksum());
+        assertEquals("2026-01-02T03:04:05Z", ((GuiAction.SnapshotRestore) previewRestore).createdAt());
     }
 
     @Test

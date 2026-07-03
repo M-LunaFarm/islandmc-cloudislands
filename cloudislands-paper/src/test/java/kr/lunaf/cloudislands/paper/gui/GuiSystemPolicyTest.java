@@ -146,7 +146,7 @@ class GuiSystemPolicyTest {
         assertFalse(actions.contains("record InviteAction(String actionId, UUID inviteId)"), "invite GUI actions must not carry raw action ids internally");
         assertTrue(actions.contains("record InviteAction(InviteActionType type, UUID inviteId)"), "invite GUI actions must use typed accept/decline state");
         assertFalse(actions.contains("record SnapshotRestore(String actionId, long snapshotNo, Map<String, String> data)"), "snapshot restore GUI actions must not carry raw action id and payload maps internally");
-        assertTrue(actions.contains("record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String confirmationToken)"), "snapshot restore GUI actions must use typed state plus an explicit confirmation token");
+        assertTrue(actions.contains("record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum, String confirmationToken)"), "snapshot restore GUI actions must use typed state, preview fields, and an explicit confirmation token");
         assertTrue(actions.contains("recordComponentFingerprint(builder)"), "GUI action dedupe fingerprints must use typed record fields");
         assertFalse(actions.contains("data().entrySet()"), "GUI action fingerprints must not inspect raw action maps");
         assertFalse(actions.contains("record WarpDelete(String actionId, String warpName, Map<String, String> data)"), "warp delete GUI actions must not carry raw action id and payload maps internally");

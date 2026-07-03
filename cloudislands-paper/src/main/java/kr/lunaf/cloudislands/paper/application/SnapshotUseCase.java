@@ -46,7 +46,7 @@ public final class SnapshotUseCase {
         requireIsland(islandId);
         return snapshotQueries.listSnapshots(islandId, boundedLimit(limit))
             .thenApply(snapshots -> snapshots.stream()
-                .map(snapshot -> new SnapshotView(snapshot.snapshotNo(), snapshot.reason(), snapshot.sizeBytes(), snapshot.checksum()))
+                .map(snapshot -> new SnapshotView(snapshot.snapshotNo(), snapshot.reason(), snapshot.sizeBytes(), snapshot.createdAt(), snapshot.checksum()))
                 .toList());
     }
 
@@ -135,9 +135,10 @@ public final class SnapshotUseCase {
         <T> CompletableFuture<T> mutateIdempotent(String auditAction, Supplier<CompletableFuture<T>> operation);
     }
 
-    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String checksum) {
+    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum) {
         public SnapshotView {
             reason = reason == null ? "" : reason;
+            createdAt = createdAt == null ? "" : createdAt;
             checksum = checksum == null ? "" : checksum;
         }
     }
