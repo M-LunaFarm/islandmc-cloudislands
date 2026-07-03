@@ -26,7 +26,7 @@ final class CoreSnapshotJson {
 
     static CoreGuiViews.SnapshotView view(IslandSnapshotRecord snapshot) {
         if (snapshot == null) {
-            return new CoreGuiViews.SnapshotView(0L, "", 0L, "", "", "");
+            return new CoreGuiViews.SnapshotView(0L, "", 0L, "", "", "", "");
         }
         return new CoreGuiViews.SnapshotView(
             snapshot.snapshotNo(),
@@ -34,6 +34,7 @@ final class CoreSnapshotJson {
             snapshot.sizeBytes(),
             snapshot.createdAt() == null || snapshot.createdAt().equals(Instant.EPOCH) ? "" : snapshot.createdAt().toString(),
             snapshot.checksum(),
+            snapshot.nodeId(),
             snapshot.storagePath()
         );
     }
@@ -48,7 +49,8 @@ final class CoreSnapshotJson {
             uuid(CoreJson.text(values, "createdBy")),
             CoreJson.text(values, "checksum"),
             CoreJson.number(values, "sizeBytes"),
-            instant(CoreJson.text(values, "createdAt"))
+            instant(CoreJson.text(values, "createdAt")),
+            CoreJson.text(values, "nodeId")
         );
     }
 

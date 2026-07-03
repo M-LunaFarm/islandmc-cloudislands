@@ -326,19 +326,24 @@ public final class CoreGuiViews {
     public record LimitView(String key, long value, String updatedAt) {
     }
 
-    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum, String storagePath) {
+    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum, String nodeId, String storagePath) {
         public SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt) {
-            this(snapshotNo, reason, sizeBytes, createdAt, "", "");
+            this(snapshotNo, reason, sizeBytes, createdAt, "", "", "");
         }
 
         public SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum) {
-            this(snapshotNo, reason, sizeBytes, createdAt, checksum, "");
+            this(snapshotNo, reason, sizeBytes, createdAt, checksum, "", "");
+        }
+
+        public SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum, String storagePath) {
+            this(snapshotNo, reason, sizeBytes, createdAt, checksum, "", storagePath);
         }
 
         public SnapshotView {
             reason = reason == null ? "" : reason;
             createdAt = createdAt == null ? "" : createdAt;
             checksum = checksum == null ? "" : checksum;
+            nodeId = nodeId == null ? "" : nodeId;
             storagePath = storagePath == null ? "" : storagePath;
         }
     }

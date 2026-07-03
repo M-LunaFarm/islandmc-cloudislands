@@ -21,6 +21,11 @@ public final class JdbcIslandSnapshotRepository implements IslandSnapshotReposit
 
     @Override
     public IslandSnapshotRecord record(UUID islandId, long snapshotNo, String storagePath, String reason, UUID createdBy, String checksum, long sizeBytes) {
+        return record(islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes, "");
+    }
+
+    @Override
+    public IslandSnapshotRecord record(UUID islandId, long snapshotNo, String storagePath, String reason, UUID createdBy, String checksum, long sizeBytes, String nodeId) {
         UUID id = UUID.randomUUID();
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(upsertSnapshotSql(connection))) {
@@ -32,8 +37,9 @@ public final class JdbcIslandSnapshotRepository implements IslandSnapshotReposit
             statement.setObject(6, createdBy);
             statement.setString(7, checksum);
             statement.setLong(8, sizeBytes);
+            statement.setString(9, nodeId == null || nodeId.isBlank() ? null : nodeId.trim());
             statement.executeUpdate();
-            return find(islandId, snapshotNo).orElse(new IslandSnapshotRecord(id, islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes, java.time.Instant.now()));
+            return find(islandId, snapshotNo).orElse(new IslandSnapshotRecord(id, islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes, java.time.Instant.now(), nodeId));
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to record island snapshot", exception);
         }
@@ -42,7 +48,7 @@ public final class JdbcIslandSnapshotRepository implements IslandSnapshotReposit
     @Override
     public List<IslandSnapshotRecord> list(UUID islandId, int limit) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes, created_at FROM island_snapshots WHERE island_id = ? ORDER BY snapshot_no DESC LIMIT ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes, created_at, node_id FROM island_snapshots WHERE island_id = ? ORDER BY snapshot_no DESC LIMIT ?")) {
             statement.setObject(1, islandId);
             statement.setInt(2, limit);
             try (ResultSet rs = statement.executeQuery()) {
@@ -60,7 +66,7 @@ public final class JdbcIslandSnapshotRepository implements IslandSnapshotReposit
     @Override
     public Optional<IslandSnapshotRecord> find(UUID islandId, long snapshotNo) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes, created_at FROM island_snapshots WHERE island_id = ? AND snapshot_no = ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes, created_at, node_id FROM island_snapshots WHERE island_id = ? AND snapshot_no = ?")) {
             statement.setObject(1, islandId);
             statement.setLong(2, snapshotNo);
             try (ResultSet rs = statement.executeQuery()) {
@@ -122,15 +128,16 @@ public final class JdbcIslandSnapshotRepository implements IslandSnapshotReposit
             (UUID) rs.getObject("created_by"),
             rs.getString("checksum"),
             rs.getLong("size_bytes"),
-            rs.getTimestamp("created_at").toInstant()
+            rs.getTimestamp("created_at").toInstant(),
+            rs.getString("node_id")
         );
     }
 
     private String upsertSnapshotSql(Connection connection) throws SQLException {
         if (mysqlLike(connection)) {
-            return "INSERT INTO island_snapshots(id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE storage_path = VALUES(storage_path), reason = VALUES(reason), checksum = VALUES(checksum), size_bytes = VALUES(size_bytes)";
+            return "INSERT INTO island_snapshots(id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes, node_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE storage_path = VALUES(storage_path), reason = VALUES(reason), checksum = VALUES(checksum), size_bytes = VALUES(size_bytes), node_id = VALUES(node_id)";
         }
-        return "INSERT INTO island_snapshots(id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, snapshot_no) DO UPDATE SET storage_path = EXCLUDED.storage_path, reason = EXCLUDED.reason, checksum = EXCLUDED.checksum, size_bytes = EXCLUDED.size_bytes";
+        return "INSERT INTO island_snapshots(id, island_id, snapshot_no, storage_path, reason, created_by, checksum, size_bytes, node_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, snapshot_no) DO UPDATE SET storage_path = EXCLUDED.storage_path, reason = EXCLUDED.reason, checksum = EXCLUDED.checksum, size_bytes = EXCLUDED.size_bytes, node_id = EXCLUDED.node_id";
     }
 
     private boolean mysqlLike(Connection connection) throws SQLException {

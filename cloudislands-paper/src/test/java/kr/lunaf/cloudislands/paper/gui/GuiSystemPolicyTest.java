@@ -146,7 +146,7 @@ class GuiSystemPolicyTest {
         assertFalse(actions.contains("record InviteAction(String actionId, UUID inviteId)"), "invite GUI actions must not carry raw action ids internally");
         assertTrue(actions.contains("record InviteAction(InviteActionType type, UUID inviteId)"), "invite GUI actions must use typed accept/decline state");
         assertFalse(actions.contains("record SnapshotRestore(String actionId, long snapshotNo, Map<String, String> data)"), "snapshot restore GUI actions must not carry raw action id and payload maps internally");
-        assertTrue(actions.contains("record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum, String confirmationToken)"), "snapshot restore GUI actions must use typed state, preview fields, and an explicit confirmation token");
+        assertTrue(actions.contains("record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String reason, long sizeBytes, String createdAt, String nodeId, String checksum, String confirmationToken)"), "snapshot restore GUI actions must use typed state, preview fields, and an explicit confirmation token");
         assertTrue(actions.contains("recordComponentFingerprint(builder)"), "GUI action dedupe fingerprints must use typed record fields");
         assertFalse(actions.contains("data().entrySet()"), "GUI action fingerprints must not inspect raw action maps");
         assertFalse(actions.contains("record WarpDelete(String actionId, String warpName, Map<String, String> data)"), "warp delete GUI actions must not carry raw action id and payload maps internally");
@@ -630,7 +630,9 @@ class GuiSystemPolicyTest {
         assertTrue(snapshotHandler.contains("IslandSnapshotMenu.restoreConfirmationMaterial()"), "snapshot restore confirmation material must come from snapshots.yml");
         assertTrue(snapshotMenu.contains("setRetentionItem(inventory, messages, retentionPolicy)"), "snapshot menu must display the runtime retention policy");
         assertTrue(snapshotMenu.contains("snapshot.checksum()"), "snapshot menu must show snapshot checksums from Core");
+        assertTrue(snapshotMenu.contains("snapshot.nodeId()"), "snapshot menu must show the node that produced each snapshot");
         assertTrue(snapshotViews.contains("view.checksum()"), "Paper snapshot GUI view must preserve Core snapshot checksums");
+        assertTrue(snapshotViews.contains("view.nodeId()"), "Paper snapshot GUI view must preserve Core snapshot node ids");
         assertTrue(homeWarpHandler.contains("IslandWarpMenu.deleteConfirmationMaterial()"), "warp delete confirmation material must come from warps.yml");
         assertTrue(adminMenu.contains("GuiMenuRenderer.material(MENU, \"K\""), "admin-node menu must expose configured kickall material");
         assertTrue(memberMenu.contains("GuiMenuRenderer.material(MENU, \"MEMBER\""), "member menu must expose configured member material");

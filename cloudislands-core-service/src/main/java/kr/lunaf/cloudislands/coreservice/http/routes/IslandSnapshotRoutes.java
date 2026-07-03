@@ -74,7 +74,7 @@ public final class IslandSnapshotRoutes implements RouteGroup {
     }
 
     private int recordSnapshotAndPublish(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId, long fencingToken) {
-        snapshots.record(islandId, snapshotNo, storagePath, reason, null, checksum, sizeBytes);
+        snapshots.record(islandId, snapshotNo, storagePath, reason, null, checksum, sizeBytes, nodeId);
         int pruned = snapshots.prune(islandId, retentionPolicy);
         events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), snapshotEventFields(islandId, snapshotNo, storagePath, reason, checksum, sizeBytes, nodeId, fencingToken, pruned));
         return pruned;
@@ -124,6 +124,7 @@ public final class IslandSnapshotRoutes implements RouteGroup {
         values.put("createdBy", snapshot.createdBy() == null ? "null" : snapshot.createdBy());
         values.put("checksum", snapshot.checksum());
         values.put("sizeBytes", snapshot.sizeBytes());
+        values.put("nodeId", snapshot.nodeId());
         values.put("createdAt", snapshot.createdAt());
         return values;
     }

@@ -27,7 +27,8 @@ class SnapshotUseCaseTest {
         assertEquals(7L, useCase.snapshotViews(islandId, 999).join().get(0).snapshotNo());
         assertEquals("abcdef1234567890", useCase.snapshotViews(islandId, 999).join().get(0).checksum());
         assertEquals("2026-01-02T03:04:05Z", useCase.snapshotViews(islandId, 999).join().get(0).createdAt());
-        assertEquals(List.of("list:20", "list:20", "list:20"), core.calls);
+        assertEquals("island-1", useCase.snapshotViews(islandId, 999).join().get(0).nodeId());
+        assertEquals(List.of("list:20", "list:20", "list:20", "list:20"), core.calls);
         assertEquals(1, SnapshotUseCase.boundedLimit(-5));
         assertEquals(12, SnapshotUseCase.boundedLimit(12));
     }
@@ -117,7 +118,7 @@ class SnapshotUseCaseTest {
 
         CompletableFuture<List<kr.lunaf.cloudislands.coreclient.CoreGuiViews.SnapshotView>> views(int limit) {
             calls.add("list:" + limit);
-            return CompletableFuture.completedFuture(List.of(new kr.lunaf.cloudislands.coreclient.CoreGuiViews.SnapshotView(7L, "manual", 4096L, "2026-01-02T03:04:05Z", "abcdef1234567890", "")));
+            return CompletableFuture.completedFuture(List.of(new kr.lunaf.cloudislands.coreclient.CoreGuiViews.SnapshotView(7L, "manual", 4096L, "2026-01-02T03:04:05Z", "abcdef1234567890", "island-1", "")));
         }
 
         CompletableFuture<SnapshotActionView> request(String reason) {

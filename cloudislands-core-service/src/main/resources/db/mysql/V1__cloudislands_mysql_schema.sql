@@ -331,6 +331,7 @@ CREATE TABLE IF NOT EXISTS island_snapshots (
     created_by CHAR(36),
     checksum VARCHAR(128),
     size_bytes BIGINT,
+    node_id VARCHAR(64),
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     UNIQUE (island_id, snapshot_no),
     CONSTRAINT fk_island_snapshots_island FOREIGN KEY (island_id) REFERENCES islands(id),
@@ -341,7 +342,9 @@ CREATE TABLE IF NOT EXISTS island_snapshots (
     CONSTRAINT chk_island_snapshots_reason_trimmed CHECK (reason = trim(reason)),
     CONSTRAINT chk_island_snapshots_checksum_trimmed CHECK (checksum IS NULL OR checksum = trim(checksum)),
     CONSTRAINT chk_island_snapshots_checksum_not_blank CHECK (checksum IS NULL OR trim(checksum) <> ''),
-    CONSTRAINT chk_island_snapshots_size_non_negative CHECK (size_bytes IS NULL OR size_bytes >= 0)
+    CONSTRAINT chk_island_snapshots_size_non_negative CHECK (size_bytes IS NULL OR size_bytes >= 0),
+    CONSTRAINT chk_island_snapshots_node_id_trimmed CHECK (node_id IS NULL OR node_id = trim(node_id)),
+    CONSTRAINT chk_island_snapshots_node_id_not_blank CHECK (node_id IS NULL OR trim(node_id) <> '')
 );
 
 CREATE INDEX idx_island_snapshots_latest ON island_snapshots(island_id, snapshot_no DESC, created_at DESC);

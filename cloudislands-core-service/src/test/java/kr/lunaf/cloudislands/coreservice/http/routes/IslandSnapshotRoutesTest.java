@@ -49,7 +49,7 @@ class IslandSnapshotRoutesTest {
         assertEquals("islands/00000000-0000-0000-0000-000000000001/snapshots/000007/bundle.tar.zst", IslandSnapshotRoutes.defaultStoragePath(islandId, 7L));
         assertEquals("3", IslandSnapshotRoutes.snapshotEventFields(islandId, 7L, "path", "AUTO", "abc", 12L, "node-1", 9L, 3).get("pruned"));
         Map<?, ?> root = SimpleJson.object(SimpleJson.parse(
-            IslandSnapshotRoutes.snapshotsJson(List.of(new IslandSnapshotRecord(snapshotId, islandId, 7L, "path", "AUTO", null, "abc", 12L, Instant.parse("2026-01-02T03:04:05Z"))))
+            IslandSnapshotRoutes.snapshotsJson(List.of(new IslandSnapshotRecord(snapshotId, islandId, 7L, "path", "AUTO", null, "abc", 12L, Instant.parse("2026-01-02T03:04:05Z"), "node-1")))
         ));
         Map<?, ?> snapshot = SimpleJson.object(SimpleJson.list(root.get("snapshots")).get(0));
         Map<?, ?> accepted = SimpleJson.object(SimpleJson.parse(
@@ -64,6 +64,7 @@ class IslandSnapshotRoutesTest {
         assertEquals("null", SimpleJson.text(snapshot.get("createdBy")));
         assertEquals("abc", SimpleJson.text(snapshot.get("checksum")));
         assertEquals(12L, ((Number) snapshot.get("sizeBytes")).longValue());
+        assertEquals("node-1", SimpleJson.text(snapshot.get("nodeId")));
         assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(snapshot.get("createdAt")));
         assertEquals(true, accepted.get("accepted"));
         assertEquals(7L, ((Number) accepted.get("snapshotNo")).longValue());

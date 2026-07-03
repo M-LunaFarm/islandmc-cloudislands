@@ -435,9 +435,9 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
     }
 
-    record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum, String confirmationToken) implements GuiAction {
+    record SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String reason, long sizeBytes, String createdAt, String nodeId, String checksum, String confirmationToken) implements GuiAction {
         public SnapshotRestore(SnapshotRestoreType type, long snapshotNo, String confirmationToken) {
-            this(type, snapshotNo, "", 0L, "", "", confirmationToken);
+            this(type, snapshotNo, "", 0L, "", "", "", confirmationToken);
         }
 
         public SnapshotRestore {
@@ -450,6 +450,7 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
             reason = reason == null ? "" : reason.trim();
             sizeBytes = Math.max(0L, sizeBytes);
             createdAt = createdAt == null ? "" : createdAt.trim();
+            nodeId = nodeId == null ? "" : nodeId.trim();
             checksum = checksum == null ? "" : checksum.trim();
             confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
         }
@@ -471,6 +472,9 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
             }
             if (!createdAt.isBlank()) {
                 values.put("createdAt", createdAt);
+            }
+            if (!nodeId.isBlank()) {
+                values.put("nodeId", nodeId);
             }
             if (!checksum.isBlank()) {
                 values.put("checksum", checksum);

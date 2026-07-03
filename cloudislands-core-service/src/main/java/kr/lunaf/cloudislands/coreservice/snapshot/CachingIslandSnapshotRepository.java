@@ -31,7 +31,12 @@ public final class CachingIslandSnapshotRepository implements IslandSnapshotRepo
 
     @Override
     public IslandSnapshotRecord record(UUID islandId, long snapshotNo, String storagePath, String reason, UUID createdBy, String checksum, long sizeBytes) {
-        IslandSnapshotRecord record = delegate.record(islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes);
+        return record(islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes, "");
+    }
+
+    @Override
+    public IslandSnapshotRecord record(UUID islandId, long snapshotNo, String storagePath, String reason, UUID createdBy, String checksum, long sizeBytes, String nodeId) {
+        IslandSnapshotRecord record = delegate.record(islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes, nodeId);
         refresh(islandId);
         return record;
     }
@@ -129,7 +134,8 @@ public final class CachingIslandSnapshotRepository implements IslandSnapshotRepo
                 .append(snapshot.createdBy() == null ? "" : snapshot.createdBy()).append('|')
                 .append(encodeText(snapshot.checksum())).append('|')
                 .append(snapshot.sizeBytes()).append('|')
-                .append(snapshot.createdAt())
+                .append(snapshot.createdAt()).append('|')
+                .append(encodeText(snapshot.nodeId()))
                 .append('\n');
         }
         return out.toString();
@@ -142,7 +148,7 @@ public final class CachingIslandSnapshotRepository implements IslandSnapshotRepo
                 continue;
             }
             String[] parts = line.split("\\|", -1);
-            if (parts.length != 9) {
+            if (parts.length != 9 && parts.length != 10) {
                 continue;
             }
             try {
@@ -155,7 +161,8 @@ public final class CachingIslandSnapshotRepository implements IslandSnapshotRepo
                     parts[5].isBlank() ? null : UUID.fromString(parts[5]),
                     decodeText(parts[6]),
                     Long.parseLong(parts[7]),
-                    instant(parts[8])
+                    instant(parts[8]),
+                    parts.length > 9 ? decodeText(parts[9]) : ""
                 ));
             } catch (RuntimeException ignored) {
                 // Skip a corrupt Redis cache row instead of discarding the whole cached snapshot list.

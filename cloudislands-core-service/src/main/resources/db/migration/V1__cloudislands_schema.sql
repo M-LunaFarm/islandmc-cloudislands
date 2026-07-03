@@ -154,6 +154,7 @@ CREATE TABLE island_snapshots (
     created_by UUID,
     checksum VARCHAR(128),
     size_bytes BIGINT,
+    node_id VARCHAR(64),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     UNIQUE (island_id, snapshot_no)
 );

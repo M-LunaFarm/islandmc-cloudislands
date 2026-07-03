@@ -16,7 +16,12 @@ public final class InMemoryIslandSnapshotRepository implements IslandSnapshotRep
 
     @Override
     public IslandSnapshotRecord record(UUID islandId, long snapshotNo, String storagePath, String reason, UUID createdBy, String checksum, long sizeBytes) {
-        IslandSnapshotRecord record = new IslandSnapshotRecord(UUID.randomUUID(), islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes, Instant.now());
+        return record(islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes, "");
+    }
+
+    @Override
+    public IslandSnapshotRecord record(UUID islandId, long snapshotNo, String storagePath, String reason, UUID createdBy, String checksum, long sizeBytes, String nodeId) {
+        IslandSnapshotRecord record = new IslandSnapshotRecord(UUID.randomUUID(), islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes, Instant.now(), nodeId);
         snapshots.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(snapshotNo, record);
         return record;
     }

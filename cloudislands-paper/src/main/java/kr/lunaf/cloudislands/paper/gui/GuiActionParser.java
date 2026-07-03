@@ -183,6 +183,7 @@ public final class GuiActionParser {
                     safeData.getOrDefault("reason", ""),
                     safeData.containsKey("sizeBytes") ? nonNegativeLong(safeData.get("sizeBytes")) : 0L,
                     safeData.getOrDefault("createdAt", ""),
+                    safeData.getOrDefault("nodeId", ""),
                     safeData.getOrDefault("checksum", ""),
                     safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));

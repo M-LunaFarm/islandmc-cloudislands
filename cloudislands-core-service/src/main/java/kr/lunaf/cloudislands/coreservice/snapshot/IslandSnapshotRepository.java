@@ -15,6 +15,9 @@ import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public interface IslandSnapshotRepository {
     IslandSnapshotRecord record(UUID islandId, long snapshotNo, String storagePath, String reason, UUID createdBy, String checksum, long sizeBytes);
+    default IslandSnapshotRecord record(UUID islandId, long snapshotNo, String storagePath, String reason, UUID createdBy, String checksum, long sizeBytes, String nodeId) {
+        return record(islandId, snapshotNo, storagePath, reason, createdBy, checksum, sizeBytes);
+    }
     List<IslandSnapshotRecord> list(UUID islandId, int limit);
     Optional<IslandSnapshotRecord> find(UUID islandId, long snapshotNo);
     int prune(UUID islandId, int keepLatest);

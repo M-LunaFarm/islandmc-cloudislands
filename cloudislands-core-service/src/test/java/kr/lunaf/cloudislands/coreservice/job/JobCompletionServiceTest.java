@@ -225,6 +225,7 @@ class JobCompletionServiceTest {
         assertEquals(IslandState.ACTIVE, islands.findById(ISLAND).orElseThrow().state());
         assertEquals(1, snapshots.list(ISLAND, 10).size());
         assertEquals("BEFORE_RESTORE", snapshots.find(ISLAND, 10L).orElseThrow().reason());
+        assertEquals("island-2", snapshots.find(ISLAND, 10L).orElseThrow().nodeId());
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RESTORED.name()));
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name()));
         RouteTicket readyTicket = routeTickets.find(ticketId).orElseThrow();

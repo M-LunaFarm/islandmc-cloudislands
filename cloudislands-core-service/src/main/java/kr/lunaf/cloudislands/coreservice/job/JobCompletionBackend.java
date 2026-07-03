@@ -141,9 +141,9 @@ final class JobCompletionBackend {
                 String reason = job.payload().getOrDefault("reason", "DELETE_ISLAND");
                 String checksum = job.payload().getOrDefault("checksum", "");
                 long sizeBytes = longValue(job.payload().get("sizeBytes"));
-                snapshots.record(job.islandId(), snapshotNo, storagePath, reason, null, checksum, sizeBytes);
+                snapshots.record(job.islandId(), snapshotNo, storagePath, reason, null, checksum, sizeBytes, job.targetNode());
                 snapshots.prune(job.islandId(), snapshotRetentionPolicy);
-                publishSnapshotCreated(job.islandId(), snapshotNo, storagePath, reason, checksum, sizeBytes);
+                publishSnapshotCreated(job.islandId(), snapshotNo, storagePath, reason, checksum, sizeBytes, job.targetNode());
             }
             runtimes.setState(job.islandId(), IslandState.DELETING);
             setIslandState(job.islandId(), IslandState.DELETING);
@@ -649,9 +649,9 @@ final class JobCompletionBackend {
         String reason = job.payload().getOrDefault("preMutationReason", "BEFORE_MUTATION");
         String checksum = job.payload().getOrDefault("preMutationChecksum", "");
         long sizeBytes = longValue(job.payload().get("preMutationSizeBytes"));
-        snapshots.record(job.islandId(), snapshotNo, storagePath, reason, null, checksum, sizeBytes);
+        snapshots.record(job.islandId(), snapshotNo, storagePath, reason, null, checksum, sizeBytes, job.targetNode());
         snapshots.prune(job.islandId(), snapshotRetentionPolicy);
-        publishSnapshotCreated(job.islandId(), snapshotNo, storagePath, reason, checksum, sizeBytes);
+        publishSnapshotCreated(job.islandId(), snapshotNo, storagePath, reason, checksum, sizeBytes, job.targetNode());
     }
 
     private long recordCompletedSnapshot(IslandJob job, String fallbackReason, boolean prune) {
@@ -663,11 +663,11 @@ final class JobCompletionBackend {
         String reason = job.payload().getOrDefault("reason", fallbackReason);
         String checksum = job.payload().getOrDefault("checksum", "");
         long sizeBytes = longValue(job.payload().get("sizeBytes"));
-        snapshots.record(job.islandId(), snapshotNo, storagePath, reason, null, checksum, sizeBytes);
+        snapshots.record(job.islandId(), snapshotNo, storagePath, reason, null, checksum, sizeBytes, job.targetNode());
         if (prune) {
             snapshots.prune(job.islandId(), snapshotRetentionPolicy);
         }
-        publishSnapshotCreated(job.islandId(), snapshotNo, storagePath, reason, checksum, sizeBytes);
+        publishSnapshotCreated(job.islandId(), snapshotNo, storagePath, reason, checksum, sizeBytes, job.targetNode());
         return snapshotNo;
     }
 
@@ -675,14 +675,15 @@ final class JobCompletionBackend {
         return "islands/" + islandId + "/snapshots/" + String.format("%06d", snapshotNo) + "/bundle.tar.zst";
     }
 
-    private void publishSnapshotCreated(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes) {
-        publishEvent(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.of(
-            "islandId", islandId.toString(),
-            "snapshotNo", Long.toString(snapshotNo),
-            "storagePath", storagePath == null ? "" : storagePath,
-            "reason", reason == null ? "" : reason,
-            "checksum", checksum == null ? "" : checksum,
-            "sizeBytes", Long.toString(sizeBytes)
+    private void publishSnapshotCreated(UUID islandId, long snapshotNo, String storagePath, String reason, String checksum, long sizeBytes, String nodeId) {
+        publishEvent(CloudIslandEventType.ISLAND_SNAPSHOT_CREATED.name(), Map.ofEntries(
+            Map.entry("islandId", islandId.toString()),
+            Map.entry("snapshotNo", Long.toString(snapshotNo)),
+            Map.entry("storagePath", storagePath == null ? "" : storagePath),
+            Map.entry("reason", reason == null ? "" : reason),
+            Map.entry("checksum", checksum == null ? "" : checksum),
+            Map.entry("sizeBytes", Long.toString(sizeBytes)),
+            Map.entry("nodeId", nodeId == null ? "" : nodeId)
         ));
     }
 

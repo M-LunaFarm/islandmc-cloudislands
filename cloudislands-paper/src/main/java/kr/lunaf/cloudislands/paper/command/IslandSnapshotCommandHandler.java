@@ -186,6 +186,9 @@ final class IslandSnapshotCommandHandler {
         if (!snapshotRestore.createdAt().isBlank()) {
             builder.append(" date=").append(snapshotRestore.createdAt());
         }
+        if (!snapshotRestore.nodeId().isBlank()) {
+            builder.append(" node=").append(snapshotRestore.nodeId());
+        }
         if (!snapshotRestore.checksum().isBlank()) {
             builder.append(" checksum=").append(shortChecksum(snapshotRestore.checksum()));
         }
@@ -209,6 +212,7 @@ final class IslandSnapshotCommandHandler {
             .map(snapshot -> "#" + snapshot.snapshotNo()
                 + (snapshot.reason().isBlank() ? "" : " 사유=" + snapshot.reason())
                 + (snapshot.sizeBytes() <= 0L ? "" : " 크기=" + snapshot.sizeBytes())
+                + (snapshot.nodeId().isBlank() ? "" : " node=" + snapshot.nodeId())
                 + (snapshot.checksum().isBlank() ? "" : " checksum=" + shortChecksum(snapshot.checksum())))
             .toList();
         return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(", ", entries);

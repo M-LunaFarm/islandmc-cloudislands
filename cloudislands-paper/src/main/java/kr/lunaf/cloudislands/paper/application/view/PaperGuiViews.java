@@ -187,7 +187,7 @@ public final class PaperGuiViews {
     }
 
     private static SnapshotView snapshot(CoreGuiViews.SnapshotView view) {
-        return new SnapshotView(view.snapshotNo(), view.reason(), view.sizeBytes(), view.createdAt(), view.checksum());
+        return new SnapshotView(view.snapshotNo(), view.reason(), view.sizeBytes(), view.createdAt(), view.checksum(), view.nodeId());
     }
 
     private static LogEntryView logEntry(CoreGuiViews.LogEntryView view) {
@@ -278,11 +278,12 @@ public final class PaperGuiViews {
     public record LimitView(String key, long value, String updatedAt) {
     }
 
-    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum) {
+    public record SnapshotView(long snapshotNo, String reason, long sizeBytes, String createdAt, String checksum, String nodeId) {
         public SnapshotView {
             reason = reason == null ? "" : reason;
             createdAt = createdAt == null ? "" : createdAt;
             checksum = checksum == null ? "" : checksum;
+            nodeId = nodeId == null ? "" : nodeId;
         }
     }
 

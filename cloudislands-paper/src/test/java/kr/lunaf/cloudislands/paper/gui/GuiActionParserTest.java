@@ -197,6 +197,7 @@ class GuiActionParserTest {
             "reason", "manual",
             "sizeBytes", "4096",
             "createdAt", "2026-01-02T03:04:05Z",
+            "nodeId", "island-1",
             "checksum", "abcdef1234567890"
         )).orElseThrow();
 
@@ -208,6 +209,7 @@ class GuiActionParserTest {
         assertEquals(Map.of("snapshotNo", "7"), restore.data());
         assertEquals("abcdef1234567890", ((GuiAction.SnapshotRestore) previewRestore).checksum());
         assertEquals("2026-01-02T03:04:05Z", ((GuiAction.SnapshotRestore) previewRestore).createdAt());
+        assertEquals("island-1", ((GuiAction.SnapshotRestore) previewRestore).nodeId());
     }
 
     @Test

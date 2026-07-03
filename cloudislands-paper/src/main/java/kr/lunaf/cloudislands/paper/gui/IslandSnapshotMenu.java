@@ -90,7 +90,7 @@ public final class IslandSnapshotMenu implements Listener {
         if (!snapshotNo.isBlank()) {
             player.closeInventory();
             if (event.isShiftClick() && event.isRightClick()) {
-                actions.execute(player, new GuiAction.SnapshotRestore(GuiAction.SnapshotRestoreType.PREPARE, Long.parseLong(snapshotNo), ""), GuiClick.from(event));
+                actions.execute(player, GuiActions.from("island.snapshot.restore.prepare", data).orElse(null), GuiClick.from(event));
                 return;
             }
             if (event.isRightClick()) {
@@ -102,6 +102,7 @@ public final class IslandSnapshotMenu implements Listener {
             player.sendMessage("- " + message(messages, "snapshot-menu-reason", "사유: ") + fallback(data.get("reason"), message(messages, "snapshot-menu-none", "없음")));
             player.sendMessage("- " + message(messages, "snapshot-menu-size", "크기: ") + fallback(data.get("sizeBytes"), "0") + message(messages, "snapshot-menu-size-unit", " bytes"));
             player.sendMessage("- " + message(messages, "snapshot-menu-created-at", "생성 시각: ") + fallback(data.get("createdAt"), message(messages, "snapshot-menu-no-created-info", "생성 정보 없음")));
+            player.sendMessage("- " + message(messages, "snapshot-menu-node", "node: ") + fallback(data.get("nodeId"), message(messages, "snapshot-menu-none", "없음")));
             player.sendMessage("- " + message(messages, "snapshot-menu-checksum", "checksum: ") + fallback(data.get("checksum"), message(messages, "snapshot-menu-none", "없음")));
             return;
         }
@@ -140,11 +141,13 @@ public final class IslandSnapshotMenu implements Listener {
                 "reason", snapshot.reason(),
                 "sizeBytes", String.valueOf(snapshot.sizeBytes()),
                 "createdAt", snapshot.createdAt(),
+                "nodeId", snapshot.nodeId(),
                 "checksum", snapshot.checksum()
             ),
             message(messages, "snapshot-menu-reason", "사유: ") + (snapshot.reason().isBlank() ? message(messages, "snapshot-menu-none", "없음") : snapshot.reason()),
             message(messages, "snapshot-menu-size", "크기: ") + snapshot.sizeBytes() + message(messages, "snapshot-menu-size-unit", " bytes"),
             snapshot.createdAt().isBlank() ? message(messages, "snapshot-menu-no-created-info", "생성 정보 없음") : message(messages, "snapshot-menu-created-at", "생성 시각: ") + snapshot.createdAt(),
+            snapshot.nodeId().isBlank() ? message(messages, "snapshot-menu-node-missing", "node: 없음") : message(messages, "snapshot-menu-node", "node: ") + snapshot.nodeId(),
             snapshot.checksum().isBlank() ? message(messages, "snapshot-menu-checksum-missing", "checksum: 없음") : message(messages, "snapshot-menu-checksum", "checksum: ") + shortChecksum(snapshot.checksum()),
             message(messages, "snapshot-menu-left-click", "좌클릭: 상세 보기"),
             message(messages, "snapshot-menu-shift-right-click", "Shift+우클릭: 이 스냅샷 복원 요청"));
