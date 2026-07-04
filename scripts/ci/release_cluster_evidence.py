@@ -256,7 +256,7 @@ def main() -> int:
     injection_evidence, injection_artifacts = failure_injection_evidence(repo_root)
 
     components = set(core.get("components", []))
-    components.update(["velocity", "lobby-paper", "island-paper-1", "island-paper-2", "virtual-player"])
+    components.update(["velocity", "lobby-paper", "island-paper-a", "island-paper-b", "virtual-player"])
 
     assertions = list(core.get("assertions", []))
     assertions.append({"name": "paper-1.21.11-boot-smoke", "result": "passed"})

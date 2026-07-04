@@ -163,15 +163,26 @@ class ProductionReadinessPolicyTest {
         String compose = Files.readString(root.resolve("deploy/compose/docker-compose.yml"));
         assertTrue(compose.contains("postgres:"));
         assertTrue(compose.contains("redis:"));
-        assertTrue(compose.contains("object-storage:"));
-        assertTrue(compose.contains("core:"));
+        assertTrue(compose.contains("minio:"));
+        assertTrue(compose.contains("core-1:"));
+        assertTrue(compose.contains("core-2:"));
         assertTrue(compose.contains("velocity:"));
         assertTrue(compose.contains("lobby-paper:"));
-        assertTrue(compose.contains("island-paper-1:"));
-        assertTrue(compose.contains("island-paper-2:"));
+        assertTrue(compose.contains("island-paper-a:"));
+        assertTrue(compose.contains("island-paper-b:"));
         assertTrue(compose.contains("_FILE"));
         assertTrue(compose.contains("networks:"));
         assertTrue(compose.contains("internal: true"));
+
+        for (String profile : List.of("single-node", "two-island-nodes", "production-ha", "migration-lab")) {
+            Path pack = root.resolve("deploy/examples").resolve(profile).resolve("config-pack.yml");
+            assertTrue(Files.exists(pack), profile + " sample config pack must be shipped");
+            String content = Files.readString(pack);
+            assertTrue(content.contains("/ciadmin setup verify"), profile + " sample config pack must end in setup verification");
+            assertTrue(content.contains("core-api-base-url"), profile + " sample config pack must identify Core API routing");
+            assertTrue(content.contains("storage-endpoint"), profile + " sample config pack must identify object storage");
+            assertTrue(content.contains("-file:"), profile + " sample config pack must use file-backed secrets");
+        }
 
         assertTrue(Files.exists(root.resolve("deploy/helm/cloudislands/Chart.yaml")));
         String values = Files.readString(root.resolve("deploy/helm/cloudislands/values.yaml"));

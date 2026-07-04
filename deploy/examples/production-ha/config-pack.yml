@@ -1,0 +1,62 @@
+profile: production-ha
+purpose: production-readiness-template
+topology:
+  core:
+    instances:
+      - core-1
+      - core-2
+  data:
+    postgres: postgres
+    redis: redis
+    object-storage: minio
+  proxy:
+    velocity: velocity
+  paper:
+    lobby:
+      node-id: lobby-01
+      velocity-server-name: lobby
+    island-nodes:
+      - node-id: island-a
+        velocity-server-name: island-a
+        pool: island
+      - node-id: island-b
+        velocity-server-name: island-b
+        pool: island
+runtime:
+  core-api-base-url: ${CLOUDISLANDS_CORE_API_BASE_URL}
+  database-jdbc-url: jdbc:postgresql://postgres:5432/cloudislands
+  redis-uri: redis://redis:6379
+  storage-endpoint: http://minio:9000
+  storage-bucket: cloudislands
+security:
+  public-admin-api-enabled: false
+  allow-insecure-public-http: false
+  mtls-trusted-proxy-required: true
+  topology-names-hidden-from-players: true
+secrets:
+  database-password-file: /run/secrets/cloudislands_database_password
+  redis-password-file: /run/secrets/cloudislands_redis_password
+  storage-access-key-file: /run/secrets/cloudislands_storage_access_key
+  storage-secret-key-file: /run/secrets/cloudislands_storage_secret_key
+  core-token-file: /run/secrets/cloudislands_core_token
+  admin-token-file: /run/secrets/cloudislands_admin_token
+  forwarding-secret-file: /run/secrets/cloudislands_forwarding_secret
+production-doctor:
+  fail:
+    - token-empty
+    - mtls-header-trusted-proxy-missing
+    - sql-in-memory-production-risk
+    - object-storage-unavailable
+    - default-node-id
+    - duplicate-node-id
+    - velocity-server-name-mismatch
+    - fallback-server-missing
+  warn-or-fail:
+    - redis-public-bind-risk
+    - unsupported-paper-version
+acceptance:
+  - /ciadmin setup verify
+  - /ciadmin doctor
+  - /ciadmin support-bundle create
+  - backup-restore-rehearsal
+  - rolling-upgrade-rehearsal

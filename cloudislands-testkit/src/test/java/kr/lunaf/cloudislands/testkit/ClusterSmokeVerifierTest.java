@@ -104,6 +104,19 @@ class ClusterSmokeVerifierTest {
     }
 
     @Test
+    void acceptsP8ComposeServiceNamesAsClusterComponentAliases() {
+        ClusterSmokeEvidence evidence = ClusterSmokeEvidence.builder()
+            .component("island-paper-a")
+            .component("island-paper-b")
+            .component("minio")
+            .build();
+
+        assertTrue(evidence.hasComponent("island-paper-1"));
+        assertTrue(evidence.hasComponent("island-paper-2"));
+        assertTrue(evidence.hasComponent("object-storage"));
+    }
+
+    @Test
     void incompleteEvidenceKeepsGateUncertifiedUntilEveryRequiredItemIsObserved() {
         ClusterSmokeEvidence evidence = ClusterSmokeEvidence.builder()
             .components(ClusterSmokeEvidence.REQUIRED_COMPONENTS)

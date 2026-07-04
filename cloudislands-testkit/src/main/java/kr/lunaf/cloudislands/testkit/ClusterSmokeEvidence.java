@@ -28,7 +28,10 @@ public record ClusterSmokeEvidence(
         "player-protocol-client"
     );
     private static final Map<String, Set<String>> COMPONENT_ALIASES = Map.of(
-        "player-protocol-client", Set.of("protocol-client", "virtual-player", "virtual-player-client", "simulated-player", "bot-client")
+        "player-protocol-client", Set.of("protocol-client", "virtual-player", "virtual-player-client", "simulated-player", "bot-client"),
+        "island-paper-1", Set.of("island-paper-a"),
+        "island-paper-2", Set.of("island-paper-b"),
+        "object-storage", Set.of("minio")
     );
 
     public ClusterSmokeEvidence {

@@ -624,7 +624,7 @@ def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     services_text = services.read_text(encoding="utf-8")
     required_signals = {
         "compose-template": {
-            "compose-file": "core:" in compose_text and "velocity:" in compose_text and "island-paper-2:" in compose_text,
+            "compose-file": "core-1:" in compose_text and "core-2:" in compose_text and "velocity:" in compose_text and "island-paper-b:" in compose_text,
             "secret-file-env": "_FILE" in compose_text and "secrets:" in compose_text,
             "healthchecks": "healthcheck:" in compose_text,
             "service-network-isolation": "networks:" in compose_text and "internal: true" in compose_text,
@@ -831,7 +831,7 @@ def multi_paper_failover_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     route_test_text = route_ticket_test.read_text(encoding="utf-8")
     paper_api_text = paper_api.read_text(encoding="utf-8")
     required_signals = {
-        "two-island-paper-nodes": "island-paper-1:" in compose_text and "island-paper-2:" in compose_text and "prepare_paper" in smoke_text,
+        "two-island-paper-nodes": "island-paper-a:" in compose_text and "island-paper-b:" in compose_text and "prepare_paper" in smoke_text,
         "save-interruption": "staleSaveCompletionDoesNotRecordSnapshot" in job_test_text
         and "snapshotCompletionKeepsCommittedSnapshotWhenEventPublishFails" in job_test_text,
         "node-drain": '"/v1/admin/nodes/drain"' in admin_text and "NODE_DRAIN" in admin_text and "drainNode" in velocity_admin_text,
@@ -1065,7 +1065,7 @@ def write_cluster_evidence(
             + idempotency_artifacts
             + runbook_artifacts
         ),
-        "uncertifiedComponents": ["velocity", "lobby-paper", "island-paper-1", "island-paper-2", "player-protocol-client"],
+        "uncertifiedComponents": ["velocity", "lobby-paper", "island-paper-a", "island-paper-b", "player-protocol-client"],
         "uncertifiedFailureInjections": [
             "paper-save-kill",
             "snapshot-restore-node-failure",
