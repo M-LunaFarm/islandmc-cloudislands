@@ -20,13 +20,15 @@ class AdminCommandBackendPolicyTest {
         String boundaryListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandBoundaryListener.java"));
         String mainMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMainMenu.java"));
         String islandCommandPermissions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandPermission.java"));
+        String velocityActionSupport = Files.readString(Path.of("../cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/VelocityActionSupport.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
-        String runtimeSources = backend + "\n" + boundaryListener + "\n" + mainMenu;
+        String runtimeSources = backend + "\n" + boundaryListener + "\n" + mainMenu + "\n" + velocityActionSupport;
 
         Set<String> declaredPermissions = declaredPermissionNodes(plugin);
         Set<String> backedPermissions = new TreeSet<>();
         backedPermissions.addAll(commandPermissionNodes(plugin));
         backedPermissions.addAll(explicitHasPermissionNodes(runtimeSources));
+        backedPermissions.addAll(explicitPermissionStringNodes(velocityActionSupport));
         backedPermissions.addAll(mappedAdminPermissionNodes(backend));
         backedPermissions.addAll(mappedIslandPermissionNodes(islandCommandPermissions));
 
@@ -414,6 +416,15 @@ class AdminCommandBackendPolicyTest {
 
     private static Set<String> explicitHasPermissionNodes(String source) {
         Matcher matcher = Pattern.compile("hasPermission\\(\"([^\"]+)\"\\)").matcher(source);
+        Set<String> permissions = new TreeSet<>();
+        while (matcher.find()) {
+            permissions.add(matcher.group(1));
+        }
+        return permissions;
+    }
+
+    private static Set<String> explicitPermissionStringNodes(String source) {
+        Matcher matcher = Pattern.compile("\"(cloudislands\\.(?:bypass|island)\\.[^\"]+)\"").matcher(source);
         Set<String> permissions = new TreeSet<>();
         while (matcher.find()) {
             permissions.add(matcher.group(1));

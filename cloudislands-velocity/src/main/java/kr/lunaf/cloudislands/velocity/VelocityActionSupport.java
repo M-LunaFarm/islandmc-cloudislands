@@ -31,6 +31,16 @@ import kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver;
 import net.kyori.adventure.text.Component;
 
 abstract class VelocityActionSupport {
+    protected static final String BYPASS_COOLDOWN = "cloudislands.bypass.cooldown";
+    protected static final String BYPASS_WARMUP = "cloudislands.bypass.warmup";
+    protected static final String CREATE_COOLDOWN = "cloudislands.island.create.cooldown";
+    protected static final String HOME_COOLDOWN = "cloudislands.island.home.cooldown";
+    protected static final String VISIT_COOLDOWN = "cloudislands.island.visit.cooldown";
+    protected static final String DELETE_COOLDOWN = "cloudislands.island.delete.cooldown";
+    protected static final String RESET_COOLDOWN = "cloudislands.island.reset.cooldown";
+    protected static final String SNAPSHOT_COOLDOWN = "cloudislands.island.snapshot.cooldown";
+    protected static final String RESTORE_COOLDOWN = "cloudislands.island.restore.cooldown";
+
     protected final CoreApiClient coreApiClient;
     protected final boolean hideNodeNames;
     protected final VelocityMessages messages;
@@ -133,11 +143,23 @@ abstract class VelocityActionSupport {
     }
 
     protected boolean allowRouteRequest(Player player) {
-        if (routeRequestGuard.allow(player.getUniqueId())) {
+        return allowPlayerAction(player, "route", "섬 이동 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.");
+    }
+
+    protected boolean allowPlayerAction(Player player, String action, String cooldownMessage) {
+        boolean bypassCooldown = player.hasPermission(BYPASS_COOLDOWN);
+        if (routeRequestGuard.allow(player.getUniqueId(), action, bypassCooldown)) {
+            presentWarmup(player, action);
             return true;
         }
-        player.sendMessage(Component.text("섬 이동 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요."));
+        player.sendMessage(Component.text(cooldownMessage));
         return false;
+    }
+
+    protected void presentWarmup(Player player, String action) {
+        if (!player.hasPermission(BYPASS_WARMUP)) {
+            progressPresenter.actionBar(player, "섬 작업을 준비하고 있습니다: " + action);
+        }
     }
 
     protected Component playerComponent(String message) {

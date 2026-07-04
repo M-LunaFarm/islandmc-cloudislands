@@ -166,11 +166,17 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
     }
 
     public void snapshot(Player player, UUID islandId, String reason) {
+        if (!allowPlayerAction(player, SNAPSHOT_COOLDOWN, "섬 스냅샷 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
+            return;
+        }
         withResolvedIsland(player, islandId, "스냅샷을 만들 섬을 찾지 못했습니다.", "섬 스냅샷을 요청하지 못했습니다.",
             resolved -> sendTextResult(player, coreApiClient.snapshotCommands().requestSnapshot(resolved, reason).thenApply(result -> snapshotMessages.snapshotAction("섬 스냅샷 요청", result)), "섬 스냅샷을 요청하지 못했습니다."));
     }
 
     public void restore(Player player, UUID islandId, long snapshotNo) {
+        if (!allowPlayerAction(player, RESTORE_COOLDOWN, "섬 복원 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
+            return;
+        }
         withResolvedIsland(player, islandId, "복원할 섬을 찾지 못했습니다.", "섬 복원을 요청하지 못했습니다.",
             resolved -> sendTextResult(player, coreApiClient.snapshotCommands().restoreSnapshot(resolved, snapshotNo).thenApply(result -> snapshotMessages.snapshotAction("섬 복원", result)), "섬 복원을 요청하지 못했습니다."));
     }

@@ -6,7 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class RouteRequestGuard {
-    private final Map<UUID, Long> recentRequests = new ConcurrentHashMap<>();
+    private final Map<RequestKey, Long> recentRequests = new ConcurrentHashMap<>();
     private final long cooldownMillis;
     private final Clock clock;
 
@@ -20,18 +20,36 @@ public final class RouteRequestGuard {
     }
 
     public boolean allow(UUID playerUuid) {
+        return allow(playerUuid, "route", false);
+    }
+
+    public boolean allow(UUID playerUuid, String action) {
+        return allow(playerUuid, action, false);
+    }
+
+    public boolean allow(UUID playerUuid, String action, boolean bypass) {
+        if (bypass) {
+            return true;
+        }
+        RequestKey key = new RequestKey(playerUuid, action);
         long now = clock.millis();
-        Long previous = recentRequests.put(playerUuid, now);
+        Long previous = recentRequests.put(key, now);
         if (previous == null || now - previous >= cooldownMillis) {
             return true;
         }
-        recentRequests.put(playerUuid, previous);
+        recentRequests.put(key, previous);
         return false;
     }
 
     public void clear(UUID playerUuid) {
         if (playerUuid != null) {
-            recentRequests.remove(playerUuid);
+            recentRequests.keySet().removeIf(key -> key.playerUuid().equals(playerUuid));
+        }
+    }
+
+    private record RequestKey(UUID playerUuid, String action) {
+        RequestKey {
+            action = action == null || action.isBlank() ? "route" : action.toLowerCase(java.util.Locale.ROOT);
         }
     }
 }

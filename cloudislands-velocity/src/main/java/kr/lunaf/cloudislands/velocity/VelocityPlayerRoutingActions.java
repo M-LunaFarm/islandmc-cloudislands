@@ -15,7 +15,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void createIsland(Player player, String templateId) {
-        if (!allowRouteRequest(player)) {
+        if (!allowPlayerAction(player, CREATE_COOLDOWN, "섬 생성 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
         coreApiClient.lifecycle().createIsland(player.getUniqueId(), templateId).thenAccept(result -> {
@@ -35,6 +35,9 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void deleteIsland(Player player, UUID islandId) {
+        if (!allowPlayerAction(player, DELETE_COOLDOWN, "섬 삭제 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
+            return;
+        }
         coreApiClient.lifecycle().deleteIsland(player.getUniqueId(), islandId).thenAccept(result -> {
             if (result != null && result.accepted()) {
                 player.sendMessage(Component.text("섬을 삭제했습니다."));
@@ -48,6 +51,9 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void resetIsland(Player player, UUID islandId, String reason) {
+        if (!allowPlayerAction(player, RESET_COOLDOWN, "섬 리셋 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
+            return;
+        }
         sendTextResult(player, coreApiClient.lifecycle().resetIsland(islandId, player.getUniqueId(), reason).thenApply(result -> islandMessages.actionResult("Island reset", islandId.toString(), result)), "섬 리셋을 요청하지 못했습니다.");
     }
 
@@ -84,14 +90,14 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void routeHome(Player player, String homeName) {
-        if (!allowRouteRequest(player)) {
+        if (!allowPlayerAction(player, HOME_COOLDOWN, "섬 홈 이동 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
         routeFuture(player, coreApiClient.navigationCommands().createHomeTicket(player.getUniqueId(), homeName), "현재 섬 서비스 일부 기능이 점검 중입니다.");
     }
 
     public void routeVisit(Player player, UUID targetIslandId) {
-        if (!allowRouteRequest(player)) {
+        if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 방문 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
         routeFuture(player, coreApiClient.navigationCommands().createVisitTicket(player.getUniqueId(), targetIslandId), "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.");
@@ -102,7 +108,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
             player.sendMessage(Component.text("방문할 플레이어를 찾을 수 없습니다."));
             return;
         }
-        if (!allowRouteRequest(player)) {
+        if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 방문 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
         routeFuture(player, coreApiClient.navigationCommands().createVisitTicketForOwner(player.getUniqueId(), ownerUuid), "해당 섬에 방문할 수 없습니다.");
@@ -113,7 +119,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
             player.sendMessage(Component.text("방문할 섬 이름을 입력해주세요."));
             return;
         }
-        if (!allowRouteRequest(player)) {
+        if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 방문 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
         routeFuture(player, coreApiClient.navigationCommands().createVisitTicket(player.getUniqueId(), islandName), "해당 섬에 방문할 수 없습니다.");
@@ -176,7 +182,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void routeRandomVisit(Player player) {
-        if (!allowRouteRequest(player)) {
+        if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 방문 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
         routeFuture(player, coreApiClient.navigationCommands().createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
@@ -187,7 +193,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void routeWarp(Player player, UUID targetIslandId, String warpName) {
-        if (!allowRouteRequest(player)) {
+        if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 워프 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
         routeFuture(player, coreApiClient.routingCommands().createWarpTicket(player.getUniqueId(), targetIslandId, warpName), "해당 워프로 이동할 수 없습니다.");
