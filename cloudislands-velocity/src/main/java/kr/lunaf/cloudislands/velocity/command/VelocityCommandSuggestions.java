@@ -102,6 +102,18 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
         if (args.length == 6 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             addLiteralSuggestions(matches, args[5], List.of("1.0.0", "1.21.0", "1.21.4"));
         }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("seticon")) {
+            addLiteralSuggestions(matches, args[3], List.of("GRASS_BLOCK", "DIRT", "OAK_SAPLING", "DIAMOND_BLOCK"));
+        }
+        if (args.length == 5 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("seticon")) {
+            addLiteralSuggestions(matches, args[4], List.of("0", "1", "1000"));
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("setcost")) {
+            addLiteralSuggestions(matches, args[3], List.of("0", "100", "1000", "10000"));
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("setpermission")) {
+            addLiteralSuggestions(matches, args[3], List.of("none", "cloudislands.template.vip", "cloudislands.template.premium"));
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
             addLiteralSuggestions(matches, args[2], List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner"));
         }

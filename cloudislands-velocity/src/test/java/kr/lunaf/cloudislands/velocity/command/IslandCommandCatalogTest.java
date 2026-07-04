@@ -115,12 +115,31 @@ class IslandCommandCatalogTest {
                 "ciadmin jobs list",
                 "ciadmin jobs retry <jobId>",
                 "ciadmin jobs cancel <jobId>",
+                "ciadmin template seticon <name> <material>",
+                "ciadmin template setcost <name> <amount>",
+                "ciadmin template setpermission <name> <permission>",
                 "ciadmin cache clear",
                 "ciadmin reload",
                 "ciadmin migrate-superiorskyblock2 scan [path]"
         )) {
             assertTrue(commands.contains(command), command);
         }
+    }
+
+    @Test
+    void adminTemplateMutationCommandsUseTypedClients() throws Exception {
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityAdminActions.java"));
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityAdminCommandDispatcher.java"));
+        String formatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityIslandMessageFormatter.java"));
+
+        assertTrue(dispatcher.contains("args[1].equalsIgnoreCase(\"seticon\")"), "Velocity template icon command must route explicitly");
+        assertTrue(dispatcher.contains("args[1].equalsIgnoreCase(\"setcost\")"), "Velocity template cost command must route explicitly");
+        assertTrue(dispatcher.contains("args[1].equalsIgnoreCase(\"setpermission\")"), "Velocity template permission command must route explicitly");
+        assertTrue(actions.contains("coreApiClient.templates().get(templateId).thenCompose(template ->"), "Velocity template mutations must fetch and preserve the existing typed template");
+        assertTrue(actions.contains("templateWithCatalogFields(TemplateView template"), "Velocity template mutations must preserve non-catalog template fields");
+        assertTrue(formatter.contains("view.requiredPermission()"), "Velocity template action output must include template permission state");
+        assertTrue(formatter.contains("view.iconMaterial()"), "Velocity template action output must include template icon state");
+        assertTrue(formatter.contains("view.creationCost()"), "Velocity template action output must include template cost state");
     }
 
     @Test

@@ -20,7 +20,7 @@ final class AdminCommandCatalog {
     static final List<String> RANKING_COMMANDS = List.of("level", "worth");
     static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "search", "set");
     static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
-    static final List<String> TEMPLATE_COMMANDS = List.of("list", "import", "upsert", "enable", "disable", "preview", "validate");
+    static final List<String> TEMPLATE_COMMANDS = List.of("list", "import", "import-bundle", "upsert", "seticon", "setcost", "setpermission", "enable", "disable", "preview", "validate", "verify-bundle", "verify", "delete", "reorder");
     static final List<String> MIGRATION_COMMANDS = List.of("wizard", "scan", "status", "dryrun", "dry-run", "extract", "extract-worlds", "world-extract", "import", "verify", "verify-no-legacy-provider", "rollback");
     static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProviders();
     static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
@@ -103,6 +103,9 @@ final class AdminCommandCatalog {
         "ciadmin template import <name>",
         "ciadmin template import-bundle <id> <bundlePath> <checksum> [sizeBytes] [displayName]",
         "ciadmin template upsert <id> <name> [enabled|disabled] [minNodeVersion]",
+        "ciadmin template seticon <name> <material>",
+        "ciadmin template setcost <name> <amount>",
+        "ciadmin template setpermission <name> <permission>",
         "ciadmin template enable <id>",
         "ciadmin template disable <id>",
         "ciadmin template preview <id>",
@@ -114,6 +117,9 @@ final class AdminCommandCatalog {
         "ciadmin templates import <name>",
         "ciadmin templates import-bundle <id> <bundlePath> <checksum> [sizeBytes] [displayName]",
         "ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]",
+        "ciadmin templates seticon <name> <material>",
+        "ciadmin templates setcost <name> <amount>",
+        "ciadmin templates setpermission <name> <permission>",
         "ciadmin templates enable <id>",
         "ciadmin templates disable <id>",
         "ciadmin templates preview <id>",

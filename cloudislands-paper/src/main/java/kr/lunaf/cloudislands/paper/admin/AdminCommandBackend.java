@@ -344,8 +344,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args.length == 2 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates"))) {
             return matches(TEMPLATE_COMMANDS, args[1]);
         }
-        if (args.length == 3 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && (args[1].equalsIgnoreCase("preview") || args[1].equalsIgnoreCase("validate") || args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable"))) {
+        if (args.length == 3 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && (args[1].equalsIgnoreCase("preview") || args[1].equalsIgnoreCase("validate") || args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable") || args[1].equalsIgnoreCase("seticon") || args[1].equalsIgnoreCase("setcost") || args[1].equalsIgnoreCase("setpermission"))) {
             return matches(List.of("default", "superiorskyblock2"), args[2]);
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("seticon")) {
+            return matches(List.of("GRASS_BLOCK", "DIRT", "OAK_SAPLING", "DIAMOND_BLOCK"), args[3]);
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("setcost")) {
+            return matches(List.of("0", "100", "1000", "10000"), args[3]);
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("setpermission")) {
+            return matches(List.of("none", "cloudislands.template.vip", "cloudislands.template.premium"), args[3]);
+        }
+        if (args.length == 5 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("seticon")) {
+            return matches(List.of("0", "1", "1000"), args[4]);
         }
         if (args.length == 5 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             return matches(List.of("true", "false", "enabled", "disabled", "enable", "disable", "on", "off", "활성", "비활성"), args[4]);
@@ -1274,6 +1286,43 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Template verify bundle", coreApiClient.templateCommands().verifyBundle(args[2]).thenApply(this::templateBundleVerificationMessage));
             return true;
         }
+        if (args[1].equalsIgnoreCase("seticon")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin templates seticon <name> <material> [customModelData]"
+                ));
+                return true;
+            }
+            run(sender, "Template set icon", coreApiClient.templates().get(args[2]).thenCompose(template -> {
+                int customModelData = args.length > 4 ? (int) number(args[4], 0L) : template.iconCustomModelData();
+                return coreApiClient.templateCommands().upsert(templateWithCatalogFields(template, template.requiredPermission(), args[3], customModelData, template.creationCost()));
+            }).thenApply(template -> templateActionMessage("Template set icon", args[2], template)
+                + adminText("admin-command-template-icon-prefix", " icon=") + template.iconMaterial()
+                + (template.iconCustomModelData() <= 0 ? "" : adminText("admin-command-template-model-data-prefix", " modelData=") + template.iconCustomModelData())));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("setcost")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin templates setcost <name> <amount>"
+                ));
+                return true;
+            }
+            run(sender, "Template set cost", coreApiClient.templates().get(args[2]).thenCompose(template -> coreApiClient.templateCommands().upsert(templateWithCatalogFields(template, template.requiredPermission(), template.iconMaterial(), template.iconCustomModelData(), args[3]))).thenApply(template -> templateActionMessage("Template set cost", args[2], template)
+                + adminText("admin-command-template-cost-prefix", " cost=") + template.creationCost()));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("setpermission")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin templates setpermission <name> <permission>"
+                ));
+                return true;
+            }
+            run(sender, "Template set permission", coreApiClient.templates().get(args[2]).thenCompose(template -> coreApiClient.templateCommands().upsert(templateWithCatalogFields(template, templatePermissionArgument(args[3]), template.iconMaterial(), template.iconCustomModelData(), template.creationCost()))).thenApply(template -> templateActionMessage("Template set permission", args[2], template)
+                + adminText("admin-command-template-permission-prefix", " permission=") + (template.requiredPermission().isBlank() ? "none" : template.requiredPermission())));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("enable")) {
             run(sender, "Template enable", coreApiClient.templateCommands().enable(args[2]).thenApply(template -> templateActionMessage("Template enable", args[2], template)));
             return true;
@@ -1314,6 +1363,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin templates import <name>",
             "/ciadmin templates import-bundle <id> <bundlePath> <checksum> [sizeBytes] [displayName]",
             "/ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]",
+            "/ciadmin templates seticon <name> <material>",
+            "/ciadmin templates setcost <name> <amount>",
+            "/ciadmin templates setpermission <name> <permission>",
             "/ciadmin templates enable <id>",
             "/ciadmin templates disable <id>",
             "/ciadmin templates preview <id>",
@@ -1871,6 +1923,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         String resolvedTarget = template.id().isBlank() ? targetId : template.id();
         return label + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=") + shortId(resolvedTarget)
             + adminText("admin-command-template-enabled-prefix", " enabled=") + template.enabled()
+            + (template.requiredPermission().isBlank() ? "" : adminText("admin-command-template-permission-prefix", " permission=") + template.requiredPermission())
+            + adminText("admin-command-template-icon-prefix", " icon=") + template.iconMaterial()
+            + (template.creationCost().isBlank() || "0".equals(template.creationCost()) ? "" : adminText("admin-command-template-cost-prefix", " cost=") + template.creationCost())
             + (template.bundleStoragePath().isBlank() ? "" : adminText("admin-command-template-bundle-prefix", " bundle=") + shortId(template.bundleStoragePath()));
     }
 
@@ -1970,6 +2025,46 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             0,
             List.of()
         );
+    }
+
+    private static TemplateView templateWithCatalogFields(TemplateView template, String requiredPermission, String iconMaterial, int iconCustomModelData, String creationCost) {
+        return new TemplateView(
+            template.id(),
+            template.displayName(),
+            template.description(),
+            template.category(),
+            template.enabled(),
+            template.minNodeVersion(),
+            requiredPermission,
+            iconMaterial,
+            iconCustomModelData,
+            template.previewImageKey(),
+            template.bundleStoragePath(),
+            template.bundleChecksum(),
+            template.bundleSizeBytes(),
+            template.schemaVersion(),
+            template.defaultIslandSize(),
+            template.spawnWorldOffsetX(),
+            template.spawnWorldOffsetY(),
+            template.spawnWorldOffsetZ(),
+            template.spawnYaw(),
+            template.spawnPitch(),
+            template.homeName(),
+            template.environmentPreset(),
+            template.biomeKey(),
+            template.borderColor(),
+            template.bankInitialBalance(),
+            creationCost,
+            template.sortOrder(),
+            template.tags()
+        );
+    }
+
+    private static String templatePermissionArgument(String value) {
+        if (value.equalsIgnoreCase("none") || value.equalsIgnoreCase("clear") || value.equals("-")) {
+            return "";
+        }
+        return value;
     }
 
     private TemplateView templateById(String targetId, List<TemplateView> templates) {

@@ -309,9 +309,17 @@ class AdminCommandBackendPolicyTest {
         assertTrue(adminSurface.contains("ciadmin template import <name>"), "Template import command must be listed for operators");
         assertTrue(adminSurface.contains("ciadmin template preview <id>"), "Template preview command must be listed for operators");
         assertTrue(adminSurface.contains("ciadmin template validate <id>"), "Template validate command must be listed for operators");
+        assertTrue(adminSurface.contains("ciadmin template seticon <name> <material>"), "Template icon command must be listed for operators");
+        assertTrue(adminSurface.contains("ciadmin template setcost <name> <amount>"), "Template cost command must be listed for operators");
+        assertTrue(adminSurface.contains("ciadmin template setpermission <name> <permission>"), "Template permission command must be listed for operators");
         assertTrue(source.contains("coreApiClient.templateCommands().upsert(templateId, displayName, false, \"\")"), "Template import must register a disabled template through the typed command client");
         assertTrue(source.contains("coreApiClient.templates().list().thenApply(templates -> templatePreviewMessage(args[2], templates))"), "Template preview must use the typed template query client");
         assertTrue(source.contains("coreApiClient.templates().list().thenApply(templates -> templateValidateMessage(args[2], templates))"), "Template validate must use the typed template query client");
+        assertTrue(source.contains("args[1].equalsIgnoreCase(\"seticon\")"), "Template icon command must route explicitly");
+        assertTrue(source.contains("args[1].equalsIgnoreCase(\"setcost\")"), "Template cost command must route explicitly");
+        assertTrue(source.contains("args[1].equalsIgnoreCase(\"setpermission\")"), "Template permission command must route explicitly");
+        assertTrue(source.contains("coreApiClient.templates().get(args[2]).thenCompose(template ->"), "Template mutation commands must fetch and preserve the existing typed template");
+        assertTrue(source.contains("templateWithCatalogFields(TemplateView template"), "Template mutation commands must preserve non-catalog template fields");
         assertTrue(source.contains("templateValidationStatus(TemplateView template)"), "Template validation must expose operator-facing validation status");
         assertTrue(source.contains("\"BLOCKED_MIGRATION_INPUT_ONLY\""), "Template validation must guard the SuperiorSkyblock2 migration-only template");
         assertTrue(source.contains("\"not-certified\""), "Template preview/validate must disclose missing bundle checksum certification");

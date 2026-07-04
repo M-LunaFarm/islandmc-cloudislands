@@ -7,6 +7,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.coreclient.TemplateView;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityAdminActions extends VelocityActionSupport {
@@ -361,6 +362,21 @@ public final class VelocityAdminActions extends VelocityActionSupport {
         sendTextResult(player, coreApiClient.templateCommands().verifyBundle(templateId).thenApply(islandMessages::templateBundleVerification), "섬 템플릿 번들을 검증하지 못했습니다.");
     }
 
+    public void setTemplateIcon(Player player, String templateId, String iconMaterial, Integer customModelData) {
+        sendTextResult(player, coreApiClient.templates().get(templateId).thenCompose(template -> {
+            int resolvedCustomModelData = customModelData == null ? template.iconCustomModelData() : customModelData;
+            return coreApiClient.templateCommands().upsert(templateWithCatalogFields(template, template.requiredPermission(), iconMaterial, resolvedCustomModelData, template.creationCost()));
+        }).thenApply(result -> islandMessages.templateAction("Template set icon", templateId, result)), "섬 템플릿 아이콘을 변경하지 못했습니다.");
+    }
+
+    public void setTemplateCost(Player player, String templateId, String creationCost) {
+        sendTextResult(player, coreApiClient.templates().get(templateId).thenCompose(template -> coreApiClient.templateCommands().upsert(templateWithCatalogFields(template, template.requiredPermission(), template.iconMaterial(), template.iconCustomModelData(), creationCost))).thenApply(result -> islandMessages.templateAction("Template set cost", templateId, result)), "섬 템플릿 비용을 변경하지 못했습니다.");
+    }
+
+    public void setTemplatePermission(Player player, String templateId, String requiredPermission) {
+        sendTextResult(player, coreApiClient.templates().get(templateId).thenCompose(template -> coreApiClient.templateCommands().upsert(templateWithCatalogFields(template, templatePermissionArgument(requiredPermission), template.iconMaterial(), template.iconCustomModelData(), template.creationCost()))).thenApply(result -> islandMessages.templateAction("Template set permission", templateId, result)), "섬 템플릿 권한을 변경하지 못했습니다.");
+    }
+
     public void deleteTemplate(Player player, String templateId, boolean confirm) {
         if (!confirm) {
             player.sendMessage(Component.text("사용법: /ciadmin templates delete <id> --confirm"));
@@ -371,5 +387,45 @@ public final class VelocityAdminActions extends VelocityActionSupport {
 
     public void reorderTemplate(Player player, String templateId, int sortOrder) {
         sendTextResult(player, coreApiClient.templateCommands().reorder(templateId, sortOrder).thenApply(result -> islandMessages.templateAction("Template reorder", templateId, result)), "섬 템플릿 순서를 변경하지 못했습니다.");
+    }
+
+    private static TemplateView templateWithCatalogFields(TemplateView template, String requiredPermission, String iconMaterial, int iconCustomModelData, String creationCost) {
+        return new TemplateView(
+            template.id(),
+            template.displayName(),
+            template.description(),
+            template.category(),
+            template.enabled(),
+            template.minNodeVersion(),
+            requiredPermission,
+            iconMaterial,
+            iconCustomModelData,
+            template.previewImageKey(),
+            template.bundleStoragePath(),
+            template.bundleChecksum(),
+            template.bundleSizeBytes(),
+            template.schemaVersion(),
+            template.defaultIslandSize(),
+            template.spawnWorldOffsetX(),
+            template.spawnWorldOffsetY(),
+            template.spawnWorldOffsetZ(),
+            template.spawnYaw(),
+            template.spawnPitch(),
+            template.homeName(),
+            template.environmentPreset(),
+            template.biomeKey(),
+            template.borderColor(),
+            template.bankInitialBalance(),
+            creationCost,
+            template.sortOrder(),
+            template.tags()
+        );
+    }
+
+    private static String templatePermissionArgument(String value) {
+        if (value.equalsIgnoreCase("none") || value.equalsIgnoreCase("clear") || value.equals("-")) {
+            return "";
+        }
+        return value;
     }
 }

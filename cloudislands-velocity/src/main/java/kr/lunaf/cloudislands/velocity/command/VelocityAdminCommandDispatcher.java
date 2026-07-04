@@ -203,6 +203,19 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             adminActions.verifyTemplateBundle(player, args[2]);
             return;
         }
+        if (args.length >= 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("seticon")) {
+            Integer customModelData = args.length > 4 ? Integer.valueOf((int) parseLongOrZero(args[4])) : null;
+            adminActions.setTemplateIcon(player, args[2], args[3], customModelData);
+            return;
+        }
+        if (args.length >= 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("setcost")) {
+            adminActions.setTemplateCost(player, args[2], args[3]);
+            return;
+        }
+        if (args.length >= 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("setpermission")) {
+            adminActions.setTemplatePermission(player, args[2], args[3]);
+            return;
+        }
         if (args.length >= 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("delete")) {
             adminActions.deleteTemplate(player, args[2], args[3].equalsIgnoreCase("--confirm") || args[3].equalsIgnoreCase("confirm") || parseToggle(args, 3, false));
             return;

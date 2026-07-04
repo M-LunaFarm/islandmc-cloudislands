@@ -145,6 +145,10 @@ public final class VelocityIslandMessageFormatter {
         return label + ": accepted target=" + compactTarget(view.id().isBlank() ? templateId : view.id())
             + " 상태=" + (view.enabled() ? "사용 가능" : "비활성")
             + (view.minNodeVersion().isBlank() ? "" : " 최소버전=" + view.minNodeVersion())
+            + (view.requiredPermission().isBlank() ? "" : " 권한=" + view.requiredPermission())
+            + " 아이콘=" + view.iconMaterial()
+            + (view.iconCustomModelData() <= 0 ? "" : " 모델데이터=" + view.iconCustomModelData())
+            + (view.creationCost().isBlank() || "0".equals(view.creationCost()) ? "" : " 비용=" + view.creationCost())
             + (view.bundleStoragePath().isBlank() ? "" : " 번들=" + shortId(view.bundleStoragePath()))
             + " 순서=" + view.sortOrder();
     }
