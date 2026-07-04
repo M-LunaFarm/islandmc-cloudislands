@@ -107,6 +107,7 @@ public final class DatabaseService {
     private final Settings settings;
     private final FactoryIslandRepository factoryIslandRepository;
     private final VirtualInventoryRepository virtualInventoryRepository;
+    private final ResourceNodeRepository resourceNodeRepository;
     private HikariDataSource dataSource;
     private StorageBackend activeBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
@@ -164,6 +165,7 @@ public final class DatabaseService {
         this.settings = settings == null ? Settings.sqlite("data.db") : settings;
         this.factoryIslandRepository = new FactoryIslandRepository(this);
         this.virtualInventoryRepository = new VirtualInventoryRepository(this);
+        this.resourceNodeRepository = new ResourceNodeRepository(this);
     }
 
     public void open() {
@@ -1126,80 +1128,11 @@ public final class DatabaseService {
     }
 
     public List<ResourceNode> loadNodes(UUID islandUuid) {
-        List<ResourceNode> nodes = new ArrayList<>();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT * FROM resource_nodes WHERE island_uuid = ?")) {
-            statement.setString(1, islandUuid.toString());
-            try (ResultSet rs = statement.executeQuery()) {
-                while (rs.next()) {
-                    nodes.add(new ResourceNode(
-                            UUID.fromString(rs.getString("node_id")),
-                            islandUuid,
-                            rs.getString("node_type"),
-                            rs.getString("resource_id"),
-                            rs.getDouble("purity"),
-                            rs.getLong("remaining"),
-                            rs.getLong("max_remaining"),
-                            rs.getLong("regen_per_hour"),
-                            rs.getInt("required_machine_tier"),
-                            new BlockKey(rs.getString("world"), rs.getInt("x"), rs.getInt("y"), rs.getInt("z")),
-                            rs.getLong("created_at"),
-                            rs.getLong("updated_at")
-                    ));
-                }
-            }
-            return nodes;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to load resource nodes", exception);
-        }
+        return resourceNodeRepository.load(islandUuid);
     }
 
     public void saveNode(ResourceNode node) {
-        long now = Instant.now().toEpochMilli();
-        if (node.createdAt() <= 0) {
-            node.createdAt(now);
-        }
-        node.updatedAt(now);
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement(saveNodeSql())) {
-            statement.setString(1, node.nodeId().toString());
-            statement.setString(2, node.islandUuid().toString());
-            statement.setString(3, node.nodeType());
-            statement.setString(4, node.resourceId());
-            statement.setDouble(5, node.purity());
-            statement.setLong(6, node.remaining());
-            statement.setLong(7, node.maxRemaining());
-            statement.setLong(8, node.regenPerHour());
-            statement.setInt(9, node.requiredMachineTier());
-            statement.setString(10, node.location().world());
-            statement.setInt(11, node.location().x());
-            statement.setInt(12, node.location().y());
-            statement.setInt(13, node.location().z());
-            statement.setLong(14, node.createdAt());
-            statement.setLong(15, node.updatedAt());
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to save resource node", exception);
-        }
-    }
-
-    private String saveNodeSql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                     INSERT INTO resource_nodes(node_id, island_uuid, node_type, resource_id, purity, remaining, max_remaining,
-                       regen_per_hour, required_machine_tier, world, x, y, z, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE remaining=VALUES(remaining), world=VALUES(world),
-                       x=VALUES(x), y=VALUES(y), z=VALUES(z), updated_at=VALUES(updated_at)
-                    """;
-        }
-        return """
-                     INSERT INTO resource_nodes(node_id, island_uuid, node_type, resource_id, purity, remaining, max_remaining,
-                       regen_per_hour, required_machine_tier, world, x, y, z, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT(node_id) DO UPDATE SET remaining=excluded.remaining, world=excluded.world,
-                       x=excluded.x, y=excluded.y, z=excluded.z, updated_at=excluded.updated_at
-                    """;
+        resourceNodeRepository.save(node);
     }
 
     public void addLedger(UUID islandUuid, String type, long amount, String reason) {

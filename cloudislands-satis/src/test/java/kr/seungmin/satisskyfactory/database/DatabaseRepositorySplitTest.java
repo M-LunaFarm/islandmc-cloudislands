@@ -45,4 +45,19 @@ class DatabaseRepositorySplitTest {
         assertTrue(repository.contains("INSERT INTO virtual_inventory_items"));
         assertTrue(repository.contains("SELECT item_id, amount FROM virtual_inventory_items WHERE inventory_id = ?"));
     }
+
+    @Test
+    void resourceNodeSqlLivesInResourceNodeRepository() throws Exception {
+        String databaseService = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/DatabaseService.java"));
+        String repository = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/ResourceNodeRepository.java"));
+
+        assertTrue(databaseService.contains("private final ResourceNodeRepository resourceNodeRepository"));
+        assertTrue(databaseService.contains("return resourceNodeRepository.load(islandUuid);"));
+        assertTrue(databaseService.contains("resourceNodeRepository.save(node);"));
+        assertFalse(databaseService.contains("INSERT INTO resource_nodes"));
+        assertFalse(databaseService.contains("SELECT * FROM resource_nodes WHERE island_uuid = ?"));
+
+        assertTrue(repository.contains("INSERT INTO resource_nodes"));
+        assertTrue(repository.contains("SELECT * FROM resource_nodes WHERE island_uuid = ?"));
+    }
 }
