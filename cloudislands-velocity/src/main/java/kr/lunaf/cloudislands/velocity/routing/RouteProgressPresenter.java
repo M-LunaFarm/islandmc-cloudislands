@@ -1,10 +1,12 @@
 package kr.lunaf.cloudislands.velocity.routing;
 
 import com.velocitypowered.api.proxy.Player;
+import java.time.Duration;
 import java.util.function.Function;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
 
 public final class RouteProgressPresenter {
     private final boolean useActionBar;
@@ -21,6 +23,19 @@ public final class RouteProgressPresenter {
         if (useActionBar) {
             player.sendActionBar(playerMessage.apply(message));
         }
+    }
+
+    public void status(Player player, String title, String subtitle) {
+        Component safeTitle = playerMessage.apply(title);
+        Component safeSubtitle = playerMessage.apply(subtitle);
+        if (useActionBar) {
+            player.sendActionBar(safeSubtitle);
+        }
+        player.showTitle(Title.title(
+            safeTitle,
+            safeSubtitle,
+            Title.Times.times(Duration.ofMillis(250L), Duration.ofSeconds(2L), Duration.ofMillis(500L))
+        ));
     }
 
     public BossBar loadingBossBar(String title) {

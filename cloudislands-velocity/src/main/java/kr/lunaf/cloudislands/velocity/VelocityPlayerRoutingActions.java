@@ -18,13 +18,14 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowPlayerAction(player, CREATE_COOLDOWN, "섬 생성 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
+        progressPresenter.status(player, messages.text("island-create-node-search"), messages.text("island-create-starting"));
         coreApiClient.lifecycle().createIsland(player.getUniqueId(), templateId).thenAccept(result -> {
             if (result == null || !result.accepted()) {
                 String code = result == null ? "FAILED" : result.code();
                 player.sendMessage(Component.text(messageForCreateFailure(code)));
                 return;
             }
-            progressPresenter.actionBar(player, messages.text("island-create-starting"));
+            progressPresenter.status(player, messages.text("island-create-restoring"), messages.text("island-route-moving"));
             if (result.ticket() != null) {
                 route(player, result.ticket(), "섬으로 이동하지 못했습니다.");
             }
@@ -93,6 +94,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowPlayerAction(player, HOME_COOLDOWN, "섬 홈 이동 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
+        progressPresenter.status(player, messages.text("island-home-preparing"), messages.text("island-route-moving"));
         routeFuture(player, coreApiClient.navigationCommands().createHomeTicket(player.getUniqueId(), homeName), "현재 섬 서비스 일부 기능이 점검 중입니다.");
     }
 
@@ -100,6 +102,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 방문 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
+        progressPresenter.status(player, messages.text("island-visit-preparing"), messages.text("island-route-moving"));
         routeFuture(player, coreApiClient.navigationCommands().createVisitTicket(player.getUniqueId(), targetIslandId), "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.");
     }
 
@@ -111,6 +114,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 방문 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
+        progressPresenter.status(player, messages.text("island-visit-preparing"), messages.text("island-route-moving"));
         routeFuture(player, coreApiClient.navigationCommands().createVisitTicketForOwner(player.getUniqueId(), ownerUuid), "해당 섬에 방문할 수 없습니다.");
     }
 
@@ -122,6 +126,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 방문 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
+        progressPresenter.status(player, messages.text("island-visit-preparing"), messages.text("island-route-moving"));
         routeFuture(player, coreApiClient.navigationCommands().createVisitTicket(player.getUniqueId(), islandName), "해당 섬에 방문할 수 없습니다.");
     }
 
@@ -185,6 +190,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 방문 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
+        progressPresenter.status(player, messages.text("island-visit-preparing"), messages.text("island-route-moving"));
         routeFuture(player, coreApiClient.navigationCommands().createRandomVisitTicket(player.getUniqueId()), "방문 가능한 공개 섬을 찾지 못했습니다.");
     }
 
@@ -196,6 +202,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 워프 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
+        progressPresenter.status(player, messages.text("island-visit-preparing"), messages.text("island-route-moving"));
         routeFuture(player, coreApiClient.routingCommands().createWarpTicket(player.getUniqueId(), targetIslandId, warpName), "해당 워프로 이동할 수 없습니다.");
     }
 

@@ -24,12 +24,17 @@ public final class VelocityMessages {
         values.put("no-player-permission", "섬 명령을 사용할 권한이 없습니다.");
         values.put("no-admin-permission", "섬 관리 명령을 사용할 권한이 없습니다.");
         values.put("island-create-starting", "섬을 생성하고 있습니다.");
+        values.put("island-create-node-search", "섬 노드를 찾는 중입니다.");
+        values.put("island-create-restoring", "섬 월드를 복원하고 있습니다.");
         values.put("island-service-maintenance", "현재 섬 서비스 일부 기능이 점검 중입니다.");
         values.put("island-create-already-has-island", "이미 섬을 보유하고 있습니다.");
         values.put("island-create-template-unavailable", "사용할 수 없는 섬 템플릿입니다.");
         values.put("island-create-locked", "섬 생성을 처리하는 중입니다. 잠시 후 다시 시도해주세요.");
         values.put("island-create-node-unavailable", "현재 섬 서비스가 혼잡합니다. 잠시 후 다시 시도해주세요.");
         values.put("island-create-failed", "섬 생성에 실패했습니다.");
+        values.put("island-home-preparing", "섬을 준비하고 있습니다.");
+        values.put("island-visit-preparing", "방문할 섬을 준비하고 있습니다.");
+        values.put("island-route-moving", "섬으로 이동 중입니다.");
         values.put("route-preparing", "{target}을 준비하는 중입니다.");
         values.put("route-loading-title", "{target} 로딩 중");
         values.put("route-loading-progress", "{target} 로딩 중 {progress}%");
