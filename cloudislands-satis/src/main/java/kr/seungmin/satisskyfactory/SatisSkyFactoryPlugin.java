@@ -69,7 +69,6 @@ import kr.seungmin.satisskyfactory.config.SatisConfigValidator;
 import kr.seungmin.satisskyfactory.config.SatisFeatureGateResolver;
 import kr.seungmin.satisskyfactory.contract.ContractService;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
-import kr.seungmin.satisskyfactory.economy.EconomyModeFactory;
 import kr.seungmin.satisskyfactory.economy.EconomyService;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiHolder;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
@@ -106,6 +105,8 @@ import kr.seungmin.satisskyfactory.runtime.SatisPlaceholderRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisRouteEventBridge;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeBootstrap;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
+import kr.seungmin.satisskyfactory.runtime.SatisRuntimeLifecycle;
+import kr.seungmin.satisskyfactory.runtime.SatisServiceContainer;
 import kr.seungmin.satisskyfactory.runtime.SatisStatePublisher;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
 import kr.seungmin.satisskyfactory.storage.SatisRuntimeAuthority;
@@ -166,6 +167,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private CoreApiSatisStateService coreApiState;
     private MachineTickService ticker;
     private MaintenanceTickService maintenanceTicker;
+    private SatisServiceContainer services;
     private PlaceholderHook placeholderHook;
     private CloudIslandsApi cloudIslandsApi;
     private SatisRuntimeAuthority runtimeAuthority;
@@ -180,6 +182,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private final SatisListenerRuntime listenerRuntime = new SatisListenerRuntime(this);
     private final SatisPlaceholderRuntime placeholderRuntime = new SatisPlaceholderRuntime(this);
     private final SatisRuntimeBootstrap runtimeBootstrap = new SatisRuntimeBootstrap();
+    private final SatisRuntimeLifecycle runtimeLifecycle = new SatisRuntimeLifecycle();
     private final SatisStatePublisher statePublisher = new SatisStatePublisher(getLogger());
     private final SatisConfigValidator configValidator = new SatisConfigValidator();
     private SatisConfigValidator.ValidationReport configValidationReport = SatisConfigValidator.ValidationReport.empty();
@@ -256,32 +259,18 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         warnIfUnsafeDatabaseFallbackChain();
         getLogger().info("Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
 
-        economy = EconomyModeFactory.create(this, configs.main());
-        itemRegistry = new ItemRegistry();
-        machineDefinitions = new MachineDefinitionService();
-        itemFactory = new CustomItemFactory(this, machineDefinitions);
-        recipes = new RecipeService();
-        storage = new StorageService(database, configInt("storage.default-capacity", "limits.default-storage-capacity", 10000));
-        islands = new FactoryIslandService(skyblock, database);
-        machines = new MachineService(database, machineDefinitions, storage);
-        boosts = new IslandBoostService(skyblock);
-        boosts.configure(configs.main());
-        nodes = new ResourceNodeService(database);
-        dirtySaves = new DirtySaveService(this, database);
+        applyServices(SatisServiceContainer.create(
+                this,
+                configs,
+                messages,
+                database,
+                skyblock,
+                configInt("storage.default-capacity", "limits.default-storage-capacity", 10000),
+                this::operationalFeatureEnabled
+        ));
         configureDirtySaveWriteGates();
         configureCoreApiStateWriters();
         configureRuntimeWriteGates();
-        storage.dirtySaves(dirtySaves);
-        islands.dirtySaves(dirtySaves);
-        machines.dirtySaves(dirtySaves);
-        nodes.dirtySaves(dirtySaves);
-        itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
-        power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
-        market = new MarketService(storage, economy, database, itemRegistry, () -> operationalFeatureEnabled("maintenance"), islands::save);
-        contracts = new ContractService(storage, economy, database, boosts, () -> operationalFeatureEnabled("maintenance"), islands::save);
-        maintenance = new MaintenanceService(machines, economy, database);
-        research = new ResearchService(database, economy, () -> operationalFeatureEnabled("maintenance"), islands::save);
-        gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::operationalFeatureEnabled);
 
         loadDefinitions();
         refreshIslandCache();
@@ -303,17 +292,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onDisable() {
         flushPendingSatisStateBeforeDisable("plugin-disable", effectiveFeatures);
-        if (ticker != null) {
-            ticker.stop();
-            ticker = null;
-        }
-        if (maintenanceTicker != null) {
-            maintenanceTicker.stop();
-            maintenanceTicker = null;
-        }
-        if (dirtySaves != null) {
-            dirtySaves.stop();
-        }
+        stopRuntimeTasks(SatisRuntimeLifecycle.StopMode.STOP_ONLY);
         unregisterPlaceholders();
         unregisterCloudIslandsAddon();
         stopRuntimeActivity();
@@ -362,17 +341,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void restartRuntimeTasks() {
-        if (ticker != null) {
-            ticker.stop();
-            ticker = null;
-        }
-        if (maintenanceTicker != null) {
-            maintenanceTicker.stop();
-            maintenanceTicker = null;
-        }
-        if (dirtySaves != null) {
-            dirtySaves.stop();
-        }
+        stopRuntimeTasks(SatisRuntimeLifecycle.StopMode.STOP_ONLY);
         if (operationalFeatureEnabled("machines")) {
             ticker = new MachineTickService(
                     this,
@@ -412,9 +381,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             maintenanceTicker.start(configLong("settings.maintenance-check-period-ticks", "settings.maintenance-check-interval", 1200));
         }
         ensureDirtySaveService();
-        if (dataWritesEnabled()) {
-            dirtySaves.start(dirtySavePeriodTicks(configs.main()));
-        }
+        runtimeLifecycle.startDirtySaves(dirtySaves, dataWritesEnabled(), dirtySavePeriodTicks(configs.main()));
     }
 
     private boolean dataWritesEnabled() {
@@ -1287,6 +1254,38 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return configured > 0 ? configured : CommandListPolicy.DEFAULT_PAGE_SIZE;
     }
 
+    private void applyServices(SatisServiceContainer container) {
+        services = container;
+        economy = container.economy();
+        itemRegistry = container.itemRegistry();
+        itemFactory = container.itemFactory();
+        machineDefinitions = container.machineDefinitions();
+        recipes = container.recipes();
+        storage = container.storage();
+        islands = container.islands();
+        machines = container.machines();
+        boosts = container.boosts();
+        nodes = container.nodes();
+        dirtySaves = container.dirtySaves();
+        itemNetworks = container.itemNetworks();
+        power = container.power();
+        market = container.market();
+        contracts = container.contracts();
+        maintenance = container.maintenance();
+        research = container.research();
+        gui = container.gui();
+    }
+
+    private void stopRuntimeTasks(SatisRuntimeLifecycle.StopMode mode) {
+        SatisRuntimeLifecycle.RuntimeTasks tasks = runtimeLifecycle.stop(
+                new SatisRuntimeLifecycle.RuntimeTasks(ticker, maintenanceTicker, dirtySaves),
+                mode
+        );
+        ticker = tasks.machineTicker();
+        maintenanceTicker = tasks.maintenanceTicker();
+        dirtySaves = tasks.dirtySaves();
+    }
+
     private void registerListeners() {
         if (!operationalFeatureEnabled("machines")) {
             machineListenerRegistered = listenerRuntime.unregisterListener(machineListener, machineListenerRegistered);
@@ -1416,18 +1415,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             configureCoreApiStateWriters();
             return;
         }
-        if (ticker != null) {
-            ticker.stop();
-            ticker = null;
-        }
-        if (maintenanceTicker != null) {
-            maintenanceTicker.stop();
-            maintenanceTicker = null;
-        }
-        if (dirtySaves != null) {
-            dirtySaves.stop();
-            dirtySaves.discard();
-        }
+        stopRuntimeTasks(SatisRuntimeLifecycle.StopMode.STOP_AND_DISCARD);
         closeOpenFactoryGuis();
         machineListenerRegistered = listenerRuntime.unregisterListener(machineListener, machineListenerRegistered);
         machineListener = null;
@@ -1457,25 +1445,29 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         warnIfSetupDatabaseWarning();
         warnIfUnsafeDatabaseFallbackChain();
         getLogger().info("Reloaded Satis database backend: " + database.activeBackend() + " (" + database.databaseDescription() + ")");
-        storage = new StorageService(database, configInt("storage.default-capacity", "limits.default-storage-capacity", 10000));
-        islands = new FactoryIslandService(skyblock, database);
-        machines = new MachineService(database, machineDefinitions, storage);
-        nodes = new ResourceNodeService(database);
-        dirtySaves = new DirtySaveService(this, database);
+        SatisServiceContainer nextServices = services == null
+                ? SatisServiceContainer.create(
+                        this,
+                        configs,
+                        messages,
+                        database,
+                        skyblock,
+                        configInt("storage.default-capacity", "limits.default-storage-capacity", 10000),
+                        this::operationalFeatureEnabled
+                )
+                : services.rebindDatabase(
+                        this,
+                        configs,
+                        messages,
+                        database,
+                        skyblock,
+                        configInt("storage.default-capacity", "limits.default-storage-capacity", 10000),
+                        this::operationalFeatureEnabled
+                );
+        applyServices(nextServices);
         configureDirtySaveWriteGates();
         configureCoreApiStateWriters();
         configureRuntimeWriteGates();
-        storage.dirtySaves(dirtySaves);
-        islands.dirtySaves(dirtySaves);
-        machines.dirtySaves(dirtySaves);
-        nodes.dirtySaves(dirtySaves);
-        itemNetworks = new ItemNetworkService(database, machines, machineDefinitions);
-        power = new PowerNetworkService(database, machines, machineDefinitions, recipes, storage);
-        market = new MarketService(storage, economy, database, itemRegistry, () -> operationalFeatureEnabled("maintenance"), islands::save);
-        contracts = new ContractService(storage, economy, database, boosts, () -> operationalFeatureEnabled("maintenance"), islands::save);
-        maintenance = new MaintenanceService(machines, economy, database);
-        research = new ResearchService(database, economy, () -> operationalFeatureEnabled("maintenance"), islands::save);
-        gui = new FactoryGuiService(storage, itemRegistry, machineDefinitions, recipes, islands, research, economy, messages, this::operationalFeatureEnabled);
         coreHydratedIslandActivations.clear();
     }
 
@@ -3954,20 +3946,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void stopRuntimeActivity() {
         unregisterAddonCommands();
-        if (ticker != null) {
-            ticker.stop();
-            ticker = null;
-        }
-        if (maintenanceTicker != null) {
-            maintenanceTicker.stop();
-            maintenanceTicker = null;
-        }
-        if (dirtySaves != null) {
-            dirtySaves.stop();
-            dirtySaves.discard();
-            dirtySaves.coreStatePublisher(null);
-            dirtySaves.coreStateDeletePublisher(null);
-        }
+        stopRuntimeTasks(SatisRuntimeLifecycle.StopMode.STOP_DISCARD_DETACH_AND_CLEAR);
         if (storage != null) {
             storage.dirtySaves(null);
         }
@@ -3980,7 +3959,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (nodes != null) {
             nodes.dirtySaves(null);
         }
-        dirtySaves = null;
         if (database != null) {
             database.coreStateWriter(null);
             database.coreTableWriter(null);

@@ -180,6 +180,10 @@ class SatisSkyFactoryPluginTest {
         assertTrue(source.contains("configValidationReport.hasErrors()"));
         assertTrue(source.contains("errors-block-satis-runtime-start-warnings-visible-in-doctor"));
         assertTrue(source.contains("CloudIslands Satis runtime blocked by activation policy"));
+        assertTrue(source.contains("SatisServiceContainer.create("));
+        assertTrue(source.contains("services.rebindDatabase("));
+        assertTrue(source.contains("SatisRuntimeLifecycle.StopMode.STOP_DISCARD_DETACH_AND_CLEAR"));
+        assertTrue(source.contains("runtimeLifecycle.startDirtySaves("));
         assertTrue(adminSource.contains("runtime-feature-pack-activation-policy"));
         assertTrue(adminSource.contains("runtime-feature-pack-activation-mode"));
         assertTrue(adminSource.contains("runtime-feature-pack-runtime-enabled"));
@@ -218,5 +222,19 @@ class SatisSkyFactoryPluginTest {
         assertTrue(source.contains("private boolean placeholderRuntimeEnabled()"));
         assertTrue(source.contains("return placeholderRuntime.runtimeEnabled(operationalFeatureEnabled(\"placeholders\"), operationalFeatureEnabled(\"machines\"));"));
         assertTrue(source.contains("runtime-placeholder-policy\", \"disabled-feature-or-missing-placeholderapi-registers-no-expansion"));
+    }
+
+    @Test
+    void mainPluginSplitIsBackedByRuntimeContainerClasses() throws Exception {
+        String serviceContainer = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisServiceContainer.java"));
+        String runtimeLifecycle = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeLifecycle.java"));
+
+        assertTrue(serviceContainer.contains("public record SatisServiceContainer"));
+        assertTrue(serviceContainer.contains("public static SatisServiceContainer create("));
+        assertTrue(serviceContainer.contains("public SatisServiceContainer rebindDatabase("));
+        assertTrue(serviceContainer.contains("new FactoryGuiService("));
+        assertTrue(runtimeLifecycle.contains("public final class SatisRuntimeLifecycle"));
+        assertTrue(runtimeLifecycle.contains("public RuntimeTasks stop("));
+        assertTrue(runtimeLifecycle.contains("STOP_DISCARD_DETACH_AND_CLEAR"));
     }
 }

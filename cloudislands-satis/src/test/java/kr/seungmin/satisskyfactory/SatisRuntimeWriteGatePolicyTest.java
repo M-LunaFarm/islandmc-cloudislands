@@ -11,8 +11,10 @@ class SatisRuntimeWriteGatePolicyTest {
     @Test
     void dirtySaveTaskOnlyStartsWhenRuntimeDataWritesAreAllowed() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+        String lifecycleSource = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeLifecycle.java"));
 
-        assertTrue(source.contains("if (dataWritesEnabled()) {\n            dirtySaves.start(dirtySavePeriodTicks(configs.main()));\n        }"));
+        assertTrue(source.contains("runtimeLifecycle.startDirtySaves(dirtySaves, dataWritesEnabled(), dirtySavePeriodTicks(configs.main()));"));
+        assertTrue(lifecycleSource.contains("if (dirtySaves != null && writesEnabled) {\n            dirtySaves.start(periodTicks);\n        }"));
         assertTrue(source.contains("return SatisRuntimeTickAuthorityPolicy.writeReady(database.activeBackend(), storageWriteAuthorityReady())\n                && globalRuntimeOwnerFenceReady()\n                && runtimeWriteFeatureEnabled();"));
         assertTrue(source.contains("dirtySaves.writeGates("));
         assertTrue(source.contains("this::dataWritesEnabled"));

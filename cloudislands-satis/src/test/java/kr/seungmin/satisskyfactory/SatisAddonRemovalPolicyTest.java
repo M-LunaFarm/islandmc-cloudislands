@@ -11,17 +11,19 @@ class SatisAddonRemovalPolicyTest {
     @Test
     void unregisterStopsSatisRuntimeWithoutDeletingAddonOrCoreState() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+        String lifecycleSource = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeLifecycle.java"));
 
         assertTrue(source.contains("private void stopRuntimeActivity()"));
         assertTrue(source.contains("private void ensureDirtySaveService()"));
         assertTrue(source.contains("ensureDirtySaveService();"));
-        assertTrue(source.contains("if (dataWritesEnabled())"));
+        assertTrue(source.contains("runtimeLifecycle.startDirtySaves(dirtySaves, dataWritesEnabled(), dirtySavePeriodTicks(configs.main()));"));
         assertTrue(source.contains(".thenAccept(snapshot -> applySatisRuntimeFallback(reason, \"refresh-success\"))"));
         assertTrue(source.contains("if (database == null) {\n            startRuntime();\n            return;\n        }"));
         assertTrue(source.contains("unregisterAddonCommands();"));
-        assertTrue(source.contains("dirtySaves.stop();"));
-        assertTrue(source.contains("dirtySaves.coreStatePublisher(null);"));
-        assertTrue(source.contains("dirtySaves.coreStateDeletePublisher(null);"));
+        assertTrue(source.contains("stopRuntimeTasks(SatisRuntimeLifecycle.StopMode.STOP_DISCARD_DETACH_AND_CLEAR);"));
+        assertTrue(lifecycleSource.contains("dirtySaves.stop();"));
+        assertTrue(lifecycleSource.contains("dirtySaves.coreStatePublisher(null);"));
+        assertTrue(lifecycleSource.contains("dirtySaves.coreStateDeletePublisher(null);"));
         assertTrue(source.contains("if (storage != null)"));
         assertTrue(source.contains("storage.dirtySaves(null);"));
         assertTrue(source.contains("if (islands != null)"));
@@ -30,7 +32,8 @@ class SatisAddonRemovalPolicyTest {
         assertTrue(source.contains("machines.dirtySaves(null);"));
         assertTrue(source.contains("if (nodes != null)"));
         assertTrue(source.contains("nodes.dirtySaves(null);"));
-        assertTrue(source.contains("dirtySaves = null;"));
+        assertTrue(source.contains("dirtySaves = tasks.dirtySaves();"));
+        assertTrue(lifecycleSource.contains("STOP_DISCARD_DETACH_AND_CLEAR(true, true, true)"));
         assertTrue(source.contains("if (database != null) {\n            database.purgeIsland(islandId);\n        }"));
         assertTrue(source.contains("database.coreStateWriter(null);"));
         assertTrue(source.contains("database.coreTableWriter(null);"));
