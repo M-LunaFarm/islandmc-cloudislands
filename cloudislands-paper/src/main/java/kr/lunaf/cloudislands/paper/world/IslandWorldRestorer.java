@@ -74,12 +74,13 @@ public final class IslandWorldRestorer {
         try (InputStream input = storage.openBundle(storagePath)) {
             Files.copy(input, bundle, StandardCopyOption.REPLACE_EXISTING);
         }
-        verifyExpectedChecksum(islandId, bundle, expectedChecksum);
         Optional<IslandBundleManifest> manifest = storage.readBundleManifest(storagePath);
         if (manifest.isEmpty()) {
             throw new IOException("missing template bundle manifest: " + storagePath);
         }
-        validateRestoreManifest(islandId, manifest.get());
+        IslandBundleManifest bundleManifest = manifest.get();
+        validateRestoreManifest(islandId, bundleManifest);
+        verifyExpectedChecksum(islandId, bundle, templateChecksum(islandId, expectedChecksum, bundleManifest));
         RestorePlan restorePlan = new RestorePlan(islandId, worldName, originX, originZ, bundle);
         BundleRestorePlan plan = restorePlanner.plan(restorePlan);
         IslandBundleManifest embeddedManifest = validateExtractedTemplateManifest(islandId, plan.extractedRoot().resolve("manifest.json"));
@@ -111,7 +112,7 @@ public final class IslandWorldRestorer {
 
     private void verifyExpectedChecksum(UUID islandId, Path bundle, String expectedChecksum) throws IOException {
         if (expectedChecksum == null || expectedChecksum.isBlank()) {
-            return;
+            throw new IOException("missing template bundle checksum: " + islandId);
         }
         String actualChecksum;
         try (InputStream input = Files.newInputStream(bundle)) {
@@ -120,6 +121,16 @@ public final class IslandWorldRestorer {
         if (!expectedChecksum.equalsIgnoreCase(actualChecksum)) {
             throw new IOException("template bundle checksum mismatch: " + islandId);
         }
+    }
+
+    private String templateChecksum(UUID islandId, String expectedChecksum, IslandBundleManifest manifest) throws IOException {
+        if (expectedChecksum != null && !expectedChecksum.isBlank()) {
+            return expectedChecksum;
+        }
+        if (manifest.checksum() != null && !manifest.checksum().isBlank()) {
+            return manifest.checksum();
+        }
+        throw new IOException("missing template bundle checksum: " + islandId);
     }
 
     private IslandBundleManifest validateExtractedManifest(UUID islandId, Path manifestPath) throws IOException {

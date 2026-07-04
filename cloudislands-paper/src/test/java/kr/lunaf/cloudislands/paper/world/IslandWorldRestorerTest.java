@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
 import kr.lunaf.cloudislands.storage.BundleRestorePolicy;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
+import kr.lunaf.cloudislands.storage.checksum.Sha256Checksums;
 import kr.lunaf.cloudislands.storage.manifest.IslandManifestJson;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.junit.jupiter.api.Test;
@@ -79,6 +80,66 @@ class IslandWorldRestorerTest {
         String summary = Files.readString(restoreSummary, StandardCharsets.UTF_8);
         assertTrue(summary.contains("\"integrationStateRoot\""));
         assertTrue(summary.contains("snapshot-state-artifact"));
+    }
+
+    @Test
+    void stageTemplateBundleUsesStoredManifestChecksumWhenPayloadChecksumIsBlank() throws IOException {
+        byte[] bundlePayload = "portable-template-bundle".getBytes(StandardCharsets.UTF_8);
+        String checksum = Sha256Checksums.of(new ByteArrayInputStream(bundlePayload));
+        IslandBundleManifest manifest = compatibleManifest()
+            .withStoredBundle(checksum, BundleRestorePolicy.CHECKSUM_ALGORITHM, BundleRestorePolicy.COMPRESSION, "templates/default.tar.zst", bundlePayload.length);
+        IslandWorldRestorer restorer = new IslandWorldRestorer(
+            new FixedManifestStorage(manifest, bundlePayload),
+            stagingRoot,
+            new BundleRestorePlanner((bundleFile, targetDirectory) -> {
+                Files.createDirectories(targetDirectory.resolve("chunks"));
+                Path manifestPath = targetDirectory.resolve("manifest.json");
+                Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
+                return new BundleExtractor.ExtractedBundle(targetDirectory, manifestPath, targetDirectory.resolve("chunks"));
+            })
+        );
+
+        restorer.stageTemplateBundle(ISLAND_ID, "ci_shard_001", 0, 0, 0, 0, 9L, "templates/default.tar.zst", "");
+
+        assertTrue(Files.isRegularFile(stagingRoot.resolve(ISLAND_ID.toString()).resolve("extracted/manifest.json")));
+    }
+
+    @Test
+    void stageTemplateBundleRejectsChecksumlessTemplatesBeforeExtraction() {
+        AtomicBoolean extractorInvoked = new AtomicBoolean(false);
+        IslandWorldRestorer restorer = new IslandWorldRestorer(
+            new FixedManifestStorage(compatibleManifest().withStoredBundle("", BundleRestorePolicy.CHECKSUM_ALGORITHM, BundleRestorePolicy.COMPRESSION, "templates/default.tar.zst", 24L)),
+            stagingRoot,
+            new BundleRestorePlanner((bundleFile, targetDirectory) -> {
+                extractorInvoked.set(true);
+                throw new IOException("extractor should not run");
+            })
+        );
+
+        IOException exception = assertThrows(IOException.class, () -> restorer.stageTemplateBundle(ISLAND_ID, "ci_shard_001", 0, 0, 0, 0, 9L, "templates/default.tar.zst", ""));
+
+        assertTrue(exception.getMessage().contains("missing template bundle checksum"));
+        assertFalse(extractorInvoked.get());
+    }
+
+    @Test
+    void stageTemplateBundleRejectsChecksumMismatchBeforeExtraction() {
+        AtomicBoolean extractorInvoked = new AtomicBoolean(false);
+        IslandBundleManifest manifest = compatibleManifest()
+            .withStoredBundle("expected-checksum", BundleRestorePolicy.CHECKSUM_ALGORITHM, BundleRestorePolicy.COMPRESSION, "templates/default.tar.zst", 24L);
+        IslandWorldRestorer restorer = new IslandWorldRestorer(
+            new FixedManifestStorage(manifest),
+            stagingRoot,
+            new BundleRestorePlanner((bundleFile, targetDirectory) -> {
+                extractorInvoked.set(true);
+                throw new IOException("extractor should not run");
+            })
+        );
+
+        IOException exception = assertThrows(IOException.class, () -> restorer.stageTemplateBundle(ISLAND_ID, "ci_shard_001", 0, 0, 0, 0, 9L, "templates/default.tar.zst", ""));
+
+        assertTrue(exception.getMessage().contains("template bundle checksum mismatch"));
+        assertFalse(extractorInvoked.get());
     }
 
     private static IslandBundleManifest compatibleManifest() {
@@ -143,9 +204,15 @@ class IslandWorldRestorerTest {
 
     private static final class FixedManifestStorage implements IslandStorage {
         private final IslandBundleManifest manifest;
+        private final byte[] bundlePayload;
 
         private FixedManifestStorage(IslandBundleManifest manifest) {
+            this(manifest, "not-a-real-bundle".getBytes(StandardCharsets.UTF_8));
+        }
+
+        private FixedManifestStorage(IslandBundleManifest manifest, byte[] bundlePayload) {
             this.manifest = manifest;
+            this.bundlePayload = bundlePayload;
         }
 
         @Override
@@ -170,7 +237,7 @@ class IslandWorldRestorerTest {
 
         @Override
         public InputStream openLatestBundle(UUID islandId) {
-            return new ByteArrayInputStream("not-a-real-bundle".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return new ByteArrayInputStream(bundlePayload);
         }
 
         @Override
