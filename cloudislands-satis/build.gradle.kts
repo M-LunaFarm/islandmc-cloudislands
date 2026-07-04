@@ -193,6 +193,46 @@ tasks.register("verifyPackagingCoverage") {
     }
 }
 
+tasks.register("verifyRuntimeComponentCoverage") {
+    group = "verification"
+    description = "Verifies Satis feature/runtime component planning is separated from the plugin and unit tested."
+    dependsOn(tasks.named("test"))
+    val pluginSource = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java")
+    val featureRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisFeatureRuntime.java")
+    val componentPlan = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeComponentPlan.java")
+    val featureRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisFeatureRuntimeTest.java")
+    val componentPlanTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeComponentPlanTest.java")
+    inputs.files(pluginSource, featureRuntime, componentPlan, featureRuntimeTest, componentPlanTest)
+    doLast {
+        val plugin = pluginSource.asFile.readText()
+        val runtime = featureRuntime.asFile.readText()
+        val tests = featureRuntimeTest.asFile.readText() + "\n" + componentPlanTest.asFile.readText()
+        val missingRuntime = listOf(
+            "public final class SatisFeatureRuntime",
+            "public SatisRuntimeComponentPlan plan(ComponentSnapshot snapshot)",
+            "public record ComponentSnapshot"
+        ).filterNot(runtime::contains)
+        val missingPluginWiring = listOf(
+            "private final SatisFeatureRuntime featureRuntime",
+            "featureRuntime.plan(new SatisFeatureRuntime.ComponentSnapshot"
+        ).filterNot(plugin::contains)
+        val missingTests = listOf(
+            "buildsComponentPlanForFeatureGateRuntime",
+            "cloudIslandsApiMissingBlocksStandaloneRuntime",
+            "addonDisabledSkipsEveryActiveRuntimeComponent"
+        ).filterNot(tests::contains)
+        val failures = buildList {
+            if (missingRuntime.isNotEmpty()) add("Satis feature runtime component missing: ${missingRuntime.joinToString(", ")}")
+            if (missingPluginWiring.isNotEmpty()) add("Satis plugin must delegate runtime component planning: ${missingPluginWiring.joinToString(", ")}")
+            if (missingTests.isNotEmpty()) add("Satis runtime component tests missing: ${missingTests.joinToString(", ")}")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyPackagingCoverage"))
+    dependsOn(tasks.named("verifyRuntimeComponentCoverage"))
 }

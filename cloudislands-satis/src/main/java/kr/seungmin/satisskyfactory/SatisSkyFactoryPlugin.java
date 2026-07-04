@@ -95,6 +95,7 @@ import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
+import kr.seungmin.satisskyfactory.runtime.SatisFeatureRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
 import kr.seungmin.satisskyfactory.storage.SatisRuntimeAuthority;
@@ -165,6 +166,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean addonRuntimeEnabled;
     private boolean cloudIslandsApiMissing;
     private boolean commandsRegistered;
+    private final SatisFeatureRuntime featureRuntime = new SatisFeatureRuntime();
     private boolean machineListenerRegistered;
     private boolean guiListenerRegistered;
     private boolean lifecycleListenerRegistered;
@@ -912,7 +914,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private SatisRuntimeComponentPlan runtimeComponentPlan() {
-        return new SatisRuntimeComponentPlan(
+        return featureRuntime.plan(new SatisFeatureRuntime.ComponentSnapshot(
                 addonRuntimeEnabled,
                 commandsRegistered,
                 machineListenerRegistered,
@@ -938,7 +940,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 dataWritesEnabled(),
                 operationalFeatureEnabled("addon-state"),
                 cloudIslandsApi != null
-        );
+        ));
     }
 
     private String placeholderBlockReason() {
