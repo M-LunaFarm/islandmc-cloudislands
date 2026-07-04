@@ -140,4 +140,40 @@ class DatabaseRepositorySplitTest {
         assertTrue(repository.contains("SELECT status FROM satis_economy_ledger WHERE idempotency_key = ?"));
         assertTrue(repository.contains("UPDATE satis_economy_ledger"));
     }
+
+    @Test
+    void marketSqlLivesInMarketRepository() throws Exception {
+        String databaseService = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/DatabaseService.java"));
+        String repository = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/MarketRepository.java"));
+
+        assertTrue(databaseService.contains("private final MarketRepository marketRepository"));
+        assertTrue(databaseService.contains("marketRepository.personalRows(islandUuid)"));
+        assertTrue(databaseService.contains("marketRepository.dailyRows()"));
+        assertTrue(databaseService.contains("return marketRepository.dailySold(itemId, dateKey);"));
+        assertTrue(databaseService.contains("return marketRepository.personalSold(islandUuid, itemId, dateKey);"));
+        assertTrue(databaseService.contains("marketRepository.recordSale(islandUuid, itemId, dateKey, amount, demandFactor);"));
+        assertTrue(databaseService.contains("marketRepository.saveDailySnapshot(itemId, dateKey, soldAmount, demandFactor);"));
+        assertTrue(databaseService.contains("marketRepository.savePersonalSnapshot(islandUuid, itemId, dateKey, soldAmount);"));
+        assertFalse(databaseService.contains("SELECT item_id, date_key, sold_amount FROM market_personal_daily WHERE island_uuid = ?"));
+        assertFalse(databaseService.contains("SELECT item_id, date_key, sold_amount, demand_factor FROM market_daily"));
+        assertFalse(databaseService.contains("SELECT sold_amount FROM market_daily WHERE item_id = ? AND date_key = ?"));
+        assertFalse(databaseService.contains("SELECT sold_amount FROM market_personal_daily"));
+        assertFalse(databaseService.contains("INSERT INTO market_daily"));
+        assertFalse(databaseService.contains("INSERT INTO market_personal_daily"));
+        assertFalse(databaseService.contains("recordMarketDailySql"));
+        assertFalse(databaseService.contains("recordMarketPersonalSql"));
+        assertFalse(databaseService.contains("saveMarketDailySnapshotSql"));
+        assertFalse(databaseService.contains("saveMarketPersonalSnapshotSql"));
+
+        assertTrue(repository.contains("SELECT item_id, date_key, sold_amount FROM market_personal_daily WHERE island_uuid = ?"));
+        assertTrue(repository.contains("SELECT item_id, date_key, sold_amount, demand_factor FROM market_daily"));
+        assertTrue(repository.contains("SELECT sold_amount FROM market_daily WHERE item_id = ? AND date_key = ?"));
+        assertTrue(repository.contains("SELECT sold_amount FROM market_personal_daily"));
+        assertTrue(repository.contains("INSERT INTO market_daily"));
+        assertTrue(repository.contains("INSERT INTO market_personal_daily"));
+        assertTrue(repository.contains("recordMarketDailySql"));
+        assertTrue(repository.contains("recordMarketPersonalSql"));
+        assertTrue(repository.contains("saveMarketDailySnapshotSql"));
+        assertTrue(repository.contains("saveMarketPersonalSnapshotSql"));
+    }
 }

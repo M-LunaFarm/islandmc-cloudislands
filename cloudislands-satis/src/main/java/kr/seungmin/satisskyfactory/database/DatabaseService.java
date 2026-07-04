@@ -110,6 +110,7 @@ public final class DatabaseService {
     private final ResearchRepository researchRepository;
     private final ContractRepository contractRepository;
     private final LedgerRepository ledgerRepository;
+    private final MarketRepository marketRepository;
     private HikariDataSource dataSource;
     private StorageBackend activeBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
@@ -171,6 +172,7 @@ public final class DatabaseService {
         this.researchRepository = new ResearchRepository(this);
         this.contractRepository = new ContractRepository(this);
         this.ledgerRepository = new LedgerRepository(this);
+        this.marketRepository = new MarketRepository(this);
     }
 
     public void open() {
@@ -581,20 +583,10 @@ public final class DatabaseService {
 
     private java.util.Map<String, String> marketPersonalRows(UUID islandUuid) {
         java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT item_id, date_key, sold_amount FROM market_personal_daily WHERE island_uuid = ?")) {
-            statement.setString(1, islandUuid.toString());
-            try (ResultSet rs = statement.executeQuery()) {
-                while (rs.next()) {
-                    String itemId = rs.getString("item_id");
-                    String dateKey = rs.getString("date_key");
-                    rows.put(itemId + "/" + dateKey, marketPersonalJson(islandUuid, itemId, dateKey, rs.getLong("sold_amount")));
-                }
-            }
-            return rows;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to publish personal market core state", exception);
+        for (MarketRepository.PersonalMarketRow row : marketRepository.personalRows(islandUuid)) {
+            rows.put(row.itemId() + "/" + row.dateKey(), marketPersonalJson(row.islandUuid(), row.itemId(), row.dateKey(), row.soldAmount()));
         }
+        return rows;
     }
 
     private java.util.Map<String, String> ledgerRows(UUID islandUuid) {
@@ -607,18 +599,10 @@ public final class DatabaseService {
 
     private java.util.Map<String, String> marketDailyRows() {
         java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT item_id, date_key, sold_amount, demand_factor FROM market_daily");
-             ResultSet rs = statement.executeQuery()) {
-            while (rs.next()) {
-                String itemId = rs.getString("item_id");
-                String dateKey = rs.getString("date_key");
-                rows.put(itemId + "/" + dateKey, marketDailyJson(itemId, dateKey, rs.getLong("sold_amount"), rs.getDouble("demand_factor")));
-            }
-            return rows;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to publish daily market core state", exception);
+        for (MarketRepository.DailyMarketRow row : marketRepository.dailyRows()) {
+            rows.put(row.itemId() + "/" + row.dateKey(), marketDailyJson(row.itemId(), row.dateKey(), row.soldAmount(), row.demandFactor()));
         }
+        return rows;
     }
 
 
@@ -1145,190 +1129,31 @@ public final class DatabaseService {
     }
 
     public long marketDailySold(String itemId, String dateKey) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT sold_amount FROM market_daily WHERE item_id = ? AND date_key = ?")) {
-            statement.setString(1, itemId);
-            statement.setString(2, dateKey);
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? rs.getLong("sold_amount") : 0L;
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to read market daily sold amount", exception);
-        }
+        return marketRepository.dailySold(itemId, dateKey);
     }
 
     public long marketPersonalSold(UUID islandUuid, String itemId, String dateKey) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     SELECT sold_amount FROM market_personal_daily
-                     WHERE island_uuid = ? AND item_id = ? AND date_key = ?
-                     """)) {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, itemId);
-            statement.setString(3, dateKey);
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? rs.getLong("sold_amount") : 0L;
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to read personal market sold amount", exception);
-        }
+        return marketRepository.personalSold(islandUuid, itemId, dateKey);
     }
 
     public void recordMarketSale(UUID islandUuid, String itemId, String dateKey, long amount, double demandFactor) {
-        long dailySold = 0L;
-        long personalSold = 0L;
-        try (Connection connection = connection()) {
-            connection.setAutoCommit(false);
-            try (PreparedStatement daily = connection.prepareStatement(recordMarketDailySql())) {
-                daily.setString(1, itemId);
-                daily.setString(2, dateKey);
-                daily.setLong(3, amount);
-                daily.setDouble(4, demandFactor);
-                daily.executeUpdate();
-            }
-            try (PreparedStatement personal = connection.prepareStatement(recordMarketPersonalSql())) {
-                personal.setString(1, islandUuid.toString());
-                personal.setString(2, itemId);
-                personal.setString(3, dateKey);
-                personal.setLong(4, amount);
-                personal.executeUpdate();
-            }
-            dailySold = marketDailySold(connection, itemId, dateKey);
-            personalSold = marketPersonalSold(connection, islandUuid, itemId, dateKey);
-            connection.commit();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to record market sale", exception);
-        }
+        MarketRepository.MarketSaleTotals totals = marketRepository.recordSale(islandUuid, itemId, dateKey, amount, demandFactor);
         publishCoreGlobalRow(IslandAddonService.tableStateKey("market_daily", itemId + "/" + dateKey),
-                marketDailyJson(itemId, dateKey, dailySold, demandFactor));
+                marketDailyJson(itemId, dateKey, totals.dailySold(), demandFactor));
         publishCoreRow(islandUuid, IslandAddonService.tableStateKey("market_personal_daily", itemId + "/" + dateKey),
-                marketPersonalJson(islandUuid, itemId, dateKey, personalSold));
-    }
-
-    private long marketDailySold(Connection connection, String itemId, String dateKey) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT sold_amount FROM market_daily WHERE item_id = ? AND date_key = ?")) {
-            statement.setString(1, itemId);
-            statement.setString(2, dateKey);
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? rs.getLong("sold_amount") : 0L;
-            }
-        }
-    }
-
-    private long marketPersonalSold(Connection connection, UUID islandUuid, String itemId, String dateKey) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("""
-                SELECT sold_amount FROM market_personal_daily
-                WHERE island_uuid = ? AND item_id = ? AND date_key = ?
-                """)) {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, itemId);
-            statement.setString(3, dateKey);
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? rs.getLong("sold_amount") : 0L;
-            }
-        }
+                marketPersonalJson(islandUuid, itemId, dateKey, totals.personalSold()));
     }
 
     public void saveMarketDailySnapshot(String itemId, String dateKey, long soldAmount, double demandFactor) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement(saveMarketDailySnapshotSql())) {
-            statement.setString(1, itemId);
-            statement.setString(2, dateKey);
-            statement.setLong(3, soldAmount);
-            statement.setDouble(4, demandFactor);
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to save market daily snapshot", exception);
-        }
-    }
-
-    private String saveMarketDailySnapshotSql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                    INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
-                    VALUES(?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE
-                      sold_amount = VALUES(sold_amount),
-                      demand_factor = VALUES(demand_factor)
-                    """;
-        }
-        return """
-                    INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
-                    VALUES(?, ?, ?, ?)
-                    ON CONFLICT(item_id, date_key) DO UPDATE SET
-                      sold_amount = excluded.sold_amount,
-                      demand_factor = excluded.demand_factor
-                    """;
+        marketRepository.saveDailySnapshot(itemId, dateKey, soldAmount, demandFactor);
     }
 
     public void saveMarketPersonalSnapshot(UUID islandUuid, String itemId, String dateKey, long soldAmount) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement(saveMarketPersonalSnapshotSql())) {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, itemId);
-            statement.setString(3, dateKey);
-            statement.setLong(4, soldAmount);
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to save market personal snapshot", exception);
-        }
-    }
-
-    private String saveMarketPersonalSnapshotSql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                    INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
-                    VALUES(?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE
-                      sold_amount = VALUES(sold_amount)
-                    """;
-        }
-        return """
-                    INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
-                    VALUES(?, ?, ?, ?)
-                    ON CONFLICT(island_uuid, item_id, date_key) DO UPDATE SET
-                      sold_amount = excluded.sold_amount
-                    """;
+        marketRepository.savePersonalSnapshot(islandUuid, itemId, dateKey, soldAmount);
     }
 
     public void saveLedgerSnapshot(UUID ledgerId, UUID islandUuid, String type, long amount, String reason, long createdAt) {
         ledgerRepository.saveSnapshot(ledgerId, islandUuid, type, amount, reason, createdAt);
-    }
-
-    private String recordMarketDailySql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                    INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
-                    VALUES(?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE
-                      sold_amount = sold_amount + VALUES(sold_amount),
-                      demand_factor = VALUES(demand_factor)
-                    """;
-        }
-        return """
-                    INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
-                    VALUES(?, ?, ?, ?)
-                    ON CONFLICT(item_id, date_key) DO UPDATE SET
-                      sold_amount = sold_amount + excluded.sold_amount,
-                      demand_factor = excluded.demand_factor
-                    """;
-    }
-
-    private String recordMarketPersonalSql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                    INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
-                    VALUES(?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE
-                      sold_amount = sold_amount + VALUES(sold_amount)
-                    """;
-        }
-        return """
-                    INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
-                    VALUES(?, ?, ?, ?)
-                    ON CONFLICT(island_uuid, item_id, date_key) DO UPDATE SET
-                      sold_amount = sold_amount + excluded.sold_amount
-                    """;
     }
 
     public List<StoredContract> loadContracts(UUID islandUuid, String status) {
