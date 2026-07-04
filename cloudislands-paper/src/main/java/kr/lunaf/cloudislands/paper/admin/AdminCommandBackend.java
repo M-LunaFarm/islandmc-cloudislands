@@ -2616,6 +2616,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + " observabilityMetrics=" + textValue(body, "observabilityRequiredMetrics")
             + " observabilityDashboard=" + textValue(body, "observabilityRequiredDashboardPanels")
             + " observabilityPolicy=" + textValue(body, "observabilityDashboardPolicy")
+            + " configDoctorChecks=" + textValue(body, "configDoctorChecks")
             + " lockPolicy=" + textValue(body, "distributedLockPolicy")
             + " fencing=" + textValue(body, "fencingTokenPolicy")
             + " staleWrite=" + textValue(body, "staleWritePolicy")

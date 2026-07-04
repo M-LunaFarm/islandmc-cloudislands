@@ -134,6 +134,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.templates().list().thenApply(this::templateDoctorDiagnosticBody)"), "Doctor must include template bundle validation context");
         assertTrue(source.contains("doctorSeverity(String body)"), "Doctor output must classify sections with PASS/WARN/FAIL");
         assertTrue(source.contains("\"PASS\"") && source.contains("\"WARN\"") && source.contains("\"FAIL\""), "Doctor severity labels must be operator-visible");
+        assertTrue(source.contains("configDoctorChecks"), "Doctor must render the P8 config-doctor risk checklist from Core config");
         assertTrue(source.contains("WARN_TEMPLATE_CATALOG_EMPTY"), "Doctor must warn when no templates are visible");
         assertTrue(source.contains("WARN_BUNDLE_MISSING"), "Doctor template diagnostics must warn when enabled templates have no bundle");
         assertTrue(source.contains("integrationStatusMessage()"), "Doctor must include integration state");

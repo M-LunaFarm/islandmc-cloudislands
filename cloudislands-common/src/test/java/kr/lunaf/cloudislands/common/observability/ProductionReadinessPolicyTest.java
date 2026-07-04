@@ -89,6 +89,30 @@ class ProductionReadinessPolicyTest {
     }
 
     @Test
+    void configDoctorPinsP8ProductionRiskChecklist() {
+        assertEquals(
+            List.of(
+                "token-empty",
+                "mtls-header-trusted-proxy-missing",
+                "redis-public-bind-risk",
+                "sql-in-memory-production-risk",
+                "object-storage-unavailable",
+                "default-node-id",
+                "duplicate-node-id",
+                "velocity-server-name-mismatch",
+                "fallback-server-missing",
+                "unsupported-paper-version"
+            ),
+            ProductionConfigDoctorPolicy.CHECKS
+        );
+        assertTrue(ProductionConfigDoctorPolicy.CONTRACT.contains("startup"));
+        assertTrue(ProductionConfigDoctorPolicy.CONTRACT.contains("ciadmin-doctor"));
+        assertTrue(ProductionConfigDoctorPolicy.requiredCheck("duplicate-node-id"));
+        assertTrue(ProductionConfigDoctorPolicy.requiredCheck("unsupported-paper-version"));
+        assertFalse(ProductionConfigDoctorPolicy.requiredCheck("optional-single-node-warning"));
+    }
+
+    @Test
     void productionGaDrillMatrixRequiresEvidenceBeforeCompletion() {
         Map<String, List<String>> evidence = new HashMap<>();
         for (ProductionGaDrill drill : ProductionGaDrillMatrix.drills()) {

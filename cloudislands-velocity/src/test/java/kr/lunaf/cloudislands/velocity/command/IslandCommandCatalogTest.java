@@ -169,6 +169,7 @@ class IslandCommandCatalogTest {
         String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityAdminActions.java"));
         String actionContext = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityActionContext.java"));
         String runtimeFactory = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/bootstrap/VelocityRuntimeFactory.java"));
+        String coreConfigFormatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityCoreConfigMessageFormatter.java"));
         String coreClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/AdminNodeQueryClient.java"));
         String jdkClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminNodeQueryClient.java"));
 
@@ -198,6 +199,8 @@ class IslandCommandCatalogTest {
         assertTrue(actionContext.contains("Path dataDirectory"), "Velocity admin actions must receive the plugin data directory");
         assertTrue(runtimeFactory.contains("dataDirectory"), "Velocity runtime factory must pass the real plugin data directory into actions");
         assertTrue(actions.contains("doctorSeverity(String body)") && actions.contains("\"PASS\"") && actions.contains("\"WARN\"") && actions.contains("\"FAIL\""), "Doctor must classify sections with PASS/WARN/FAIL");
+        assertTrue(actions.contains("coreConfigMessages::format"), "Velocity doctor must render Core config-doctor details");
+        assertTrue(coreConfigFormatter.contains("configDoctorChecks"), "Velocity Core config output must include the P8 config-doctor risk checklist");
 
         assertTrue(coreClient.contains("integrationSummary()"), "Core node client must expose typed integration metadata");
         assertTrue(jdkClient.contains("AdminNodeIntegrationSummaryView integrationSummary(String body)"), "JDK node client must parse integration metadata from Core node JSON");

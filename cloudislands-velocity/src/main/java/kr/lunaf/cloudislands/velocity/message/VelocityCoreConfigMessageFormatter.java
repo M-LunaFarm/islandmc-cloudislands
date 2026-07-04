@@ -55,6 +55,7 @@ public final class VelocityCoreConfigMessageFormatter {
             + " leaseDuration=" + view.number("leaseDurationSeconds") + "s"
             + " redisTtl=" + view.text("redisCacheTtlPolicy")
             + " redisKeys=" + view.text("redisKeyPolicy")
+            + " configDoctorChecks=" + view.text("configDoctorChecks")
             + " lockPolicy=" + view.text("distributedLockPolicy")
             + " fencing=" + view.text("fencingTokenPolicy")
             + " staleWrite=" + view.text("staleWritePolicy")

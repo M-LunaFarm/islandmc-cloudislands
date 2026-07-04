@@ -20,6 +20,10 @@ class CoreConfigRoutesProductionReadinessTest {
         assertEquals(kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.CONTRACT, SimpleJson.text(summary.get("productionGaDrillContract")));
         assertEquals(kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.evidenceSummary(), SimpleJson.text(summary.get("productionGaDrillEvidence")));
         assertEquals(kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.failureInjectionSummary(), SimpleJson.text(summary.get("productionGaFailureInjectionScenarios")));
+        assertEquals(kr.lunaf.cloudislands.common.observability.ProductionConfigDoctorPolicy.CONTRACT, SimpleJson.text(summary.get("configDoctorContract")));
+        assertEquals(kr.lunaf.cloudislands.common.observability.ProductionConfigDoctorPolicy.checkSummary(), SimpleJson.text(summary.get("configDoctorChecks")));
+        assertTrue(SimpleJson.text(summary.get("configDoctorStartupBoundary")).contains("validateStartupSecurity"));
+        assertTrue(SimpleJson.text(summary.get("configDoctorCommandBoundary")).contains("/ciadmin doctor"));
         assertEquals(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.matrixSummary(), SimpleJson.text(summary.get("versionCompatibilityMatrix")));
         assertEquals(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.rollingUpgradeOrderSummary(), SimpleJson.text(summary.get("versionRollingUpgradeOrder")));
         assertEquals(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_PAPER_VERSION, SimpleJson.text(summary.get("versionSupportedPaper")));

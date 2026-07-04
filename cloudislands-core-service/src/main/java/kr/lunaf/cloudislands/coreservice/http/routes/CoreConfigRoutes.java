@@ -258,6 +258,10 @@ public final class CoreConfigRoutes implements RouteGroup {
         summary.put("productionGaDrillContract", kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.CONTRACT);
         summary.put("productionGaDrillEvidence", kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.evidenceSummary());
         summary.put("productionGaFailureInjectionScenarios", kr.lunaf.cloudislands.common.observability.ProductionGaDrillMatrix.failureInjectionSummary());
+        summary.put("configDoctorContract", kr.lunaf.cloudislands.common.observability.ProductionConfigDoctorPolicy.CONTRACT);
+        summary.put("configDoctorChecks", kr.lunaf.cloudislands.common.observability.ProductionConfigDoctorPolicy.checkSummary());
+        summary.put("configDoctorStartupBoundary", "CoreBootstrap.validateStartupSecurity>CoreServiceConfig.validateStartupAuthentication+validateStartupStorage+validateStartupNetworkExposure+validateStartupMtlsTrustBoundary");
+        summary.put("configDoctorCommandBoundary", "/ciadmin doctor,/ciadmin setup verify,/ciadmin config validate");
         summary.put("versionCompatibilityMatrix", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.matrixSummary());
         summary.put("versionRollingUpgradeOrder", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.rollingUpgradeOrderSummary());
         summary.put("versionSupportedPaper", kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_PAPER_VERSION);
