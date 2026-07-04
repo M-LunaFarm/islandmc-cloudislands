@@ -109,19 +109,13 @@ public final class DatabaseService {
     private final MarketRepository marketRepository;
     private final NetworkRepository networkRepository;
     private final MachineRepository machineRepository;
+    private final CoreAddonStatePublisher coreStatePublisher;
     private HikariDataSource dataSource;
     private StorageBackend activeBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
     private String activeDescription = "";
     private String fallbackReason = "none";
     private List<StorageBackend> attemptedBackends = List.of();
-    private Consumer<CoreRowWrite> coreStateWriter;
-    private Consumer<CoreTableWrite> coreTableWriter;
-    private Consumer<CoreBulkWrite> coreBulkWriter;
-    private Consumer<CoreGlobalRowWrite> coreGlobalStateWriter;
-    private Consumer<CoreGlobalTableWrite> coreGlobalTableWriter;
-    private Consumer<CoreGlobalBulkWrite> coreGlobalBulkWriter;
-    private boolean coreStatePublishingSuspended;
 
     public record CoreRowWrite(UUID islandUuid, String key, String value) {
     }
@@ -173,6 +167,7 @@ public final class DatabaseService {
         this.marketRepository = new MarketRepository(this);
         this.networkRepository = new NetworkRepository(this);
         this.machineRepository = new MachineRepository(this);
+        this.coreStatePublisher = new CoreAddonStatePublisher();
     }
 
     public void open() {
@@ -384,7 +379,7 @@ public final class DatabaseService {
             return "not-core-api:" + activeBackend.name();
         }
         if (coreStateWritersAvailable()) {
-            return coreStatePublishingSuspended ? "ready-publishing-suspended" : "ready";
+            return coreStatePublisher.publishingSuspended() ? "ready-publishing-suspended" : "ready";
         }
         return "unavailable-local-cache-only";
     }
@@ -430,40 +425,31 @@ public final class DatabaseService {
     }
 
     public void coreStateWriter(Consumer<CoreRowWrite> coreStateWriter) {
-        this.coreStateWriter = coreStateWriter;
+        coreStatePublisher.coreStateWriter(coreStateWriter);
     }
 
     public void coreTableWriter(Consumer<CoreTableWrite> coreTableWriter) {
-        this.coreTableWriter = coreTableWriter;
+        coreStatePublisher.coreTableWriter(coreTableWriter);
     }
 
     public void coreBulkWriter(Consumer<CoreBulkWrite> coreBulkWriter) {
-        this.coreBulkWriter = coreBulkWriter;
+        coreStatePublisher.coreBulkWriter(coreBulkWriter);
     }
 
     public void coreGlobalStateWriter(Consumer<CoreGlobalRowWrite> coreGlobalStateWriter) {
-        this.coreGlobalStateWriter = coreGlobalStateWriter;
+        coreStatePublisher.coreGlobalStateWriter(coreGlobalStateWriter);
     }
 
     public void coreGlobalTableWriter(Consumer<CoreGlobalTableWrite> coreGlobalTableWriter) {
-        this.coreGlobalTableWriter = coreGlobalTableWriter;
+        coreStatePublisher.coreGlobalTableWriter(coreGlobalTableWriter);
     }
 
     public void coreGlobalBulkWriter(Consumer<CoreGlobalBulkWrite> coreGlobalBulkWriter) {
-        this.coreGlobalBulkWriter = coreGlobalBulkWriter;
+        coreStatePublisher.coreGlobalBulkWriter(coreGlobalBulkWriter);
     }
 
     public void withCoreStatePublishingSuspended(Runnable action) {
-        if (action == null) {
-            return;
-        }
-        boolean previous = coreStatePublishingSuspended;
-        coreStatePublishingSuspended = true;
-        try {
-            action.run();
-        } finally {
-            coreStatePublishingSuspended = previous;
-        }
+        coreStatePublisher.withPublishingSuspended(action);
     }
 
     public void purgeIsland(UUID islandUuid) {
@@ -505,34 +491,29 @@ public final class DatabaseService {
     }
 
     private boolean coreStateWritersAvailable() {
-        return coreStateWriter != null
-                && coreTableWriter != null
-                && coreBulkWriter != null
-                && coreGlobalStateWriter != null
-                && coreGlobalTableWriter != null
-                && coreGlobalBulkWriter != null;
+        return coreStatePublisher.writersAvailable();
     }
 
     public void publishAllCoreState() {
-        if (coreStatePublishingSuspended || (coreStateWriter == null && coreTableWriter == null && coreGlobalStateWriter == null && coreGlobalTableWriter == null)) {
+        if (coreStatePublisher.publishingSuspended() || !coreStatePublisher.hasPrimaryWriter()) {
             return;
         }
         for (FactoryIsland island : loadIslands()) {
             UUID islandUuid = island.islandUuid();
             java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
             rows.put(islandUuid.toString(), factoryIslandJson(island));
-            publishCoreTable(islandUuid, "factory_islands", rows);
-            publishCoreTable(islandUuid, "machines", machineRows(islandUuid));
-            publishCoreTable(islandUuid, "virtual_inventories", inventoryRows(islandUuid));
-            publishCoreTable(islandUuid, "resource_nodes", nodeRows(islandUuid));
+            coreStatePublisher.publishTable(islandUuid, "factory_islands", rows);
+            coreStatePublisher.publishTable(islandUuid, "machines", machineRows(islandUuid));
+            coreStatePublisher.publishTable(islandUuid, "virtual_inventories", inventoryRows(islandUuid));
+            coreStatePublisher.publishTable(islandUuid, "resource_nodes", nodeRows(islandUuid));
             publishItemNetworks(islandUuid, loadItemNetworks(islandUuid));
             publishPowerNetworks(islandUuid, loadPowerNetworks(islandUuid));
-            publishCoreTable(islandUuid, "contracts", contractRows(islandUuid));
-            publishCoreTable(islandUuid, "island_unlocks", unlockRows(islandUuid));
-            publishCoreTable(islandUuid, "market_personal_daily", marketPersonalRows(islandUuid));
-            publishCoreTable(islandUuid, "ledger", ledgerRows(islandUuid));
+            coreStatePublisher.publishTable(islandUuid, "contracts", contractRows(islandUuid));
+            coreStatePublisher.publishTable(islandUuid, "island_unlocks", unlockRows(islandUuid));
+            coreStatePublisher.publishTable(islandUuid, "market_personal_daily", marketPersonalRows(islandUuid));
+            coreStatePublisher.publishTable(islandUuid, "ledger", ledgerRows(islandUuid));
         }
-        publishCoreGlobalTable("market_daily", marketDailyRows());
+        coreStatePublisher.publishGlobalTable("market_daily", marketDailyRows());
     }
 
     private java.util.Map<String, String> machineRows(UUID islandUuid) {
@@ -616,7 +597,7 @@ public final class DatabaseService {
 
     public void saveIsland(FactoryIsland island) {
         factoryIslandRepository.save(island);
-        publishCoreRow(island.islandUuid(), IslandAddonService.tableStateKey("factory_islands", island.islandUuid().toString()), factoryIslandJson(island));
+        coreStatePublisher.publishRow(island.islandUuid(), IslandAddonService.tableStateKey("factory_islands", island.islandUuid().toString()), factoryIslandJson(island));
     }
 
     boolean usesMysqlDialect() {
@@ -759,7 +740,7 @@ public final class DatabaseService {
 
     public void addLedger(UUID islandUuid, String type, long amount, String reason) {
         LedgerRepository.LedgerEntry entry = ledgerRepository.add(islandUuid, type, amount, reason);
-        publishCoreRow(islandUuid, IslandAddonService.tableStateKey("ledger", entry.ledgerId().toString()),
+        coreStatePublisher.publishRow(islandUuid, IslandAddonService.tableStateKey("ledger", entry.ledgerId().toString()),
                 ledgerJson(entry.ledgerId(), entry.islandUuid(), entry.type(), entry.amount(), entry.reason(), entry.createdAt()));
     }
 
@@ -794,9 +775,9 @@ public final class DatabaseService {
 
     public void recordMarketSale(UUID islandUuid, String itemId, String dateKey, long amount, double demandFactor) {
         MarketRepository.MarketSaleTotals totals = marketRepository.recordSale(islandUuid, itemId, dateKey, amount, demandFactor);
-        publishCoreGlobalRow(IslandAddonService.tableStateKey("market_daily", itemId + "/" + dateKey),
+        coreStatePublisher.publishGlobalRow(IslandAddonService.tableStateKey("market_daily", itemId + "/" + dateKey),
                 marketDailyJson(itemId, dateKey, totals.dailySold(), demandFactor));
-        publishCoreRow(islandUuid, IslandAddonService.tableStateKey("market_personal_daily", itemId + "/" + dateKey),
+        coreStatePublisher.publishRow(islandUuid, IslandAddonService.tableStateKey("market_personal_daily", itemId + "/" + dateKey),
                 marketPersonalJson(islandUuid, itemId, dateKey, totals.personalSold()));
     }
 
@@ -826,13 +807,13 @@ public final class DatabaseService {
 
     public void saveContract(StoredContract contract) {
         contractRepository.save(contract);
-        publishCoreRow(contract.islandUuid(), IslandAddonService.tableStateKey("contracts", contract.contractId().toString()), contractJson(contract));
+        coreStatePublisher.publishRow(contract.islandUuid(), IslandAddonService.tableStateKey("contracts", contract.contractId().toString()), contractJson(contract));
     }
 
     public void updateContractStatus(UUID contractId, String status, String progressJson) {
         StoredContract updated = contractRepository.updateStatus(contractId, status, progressJson).orElse(null);
         if (updated != null) {
-            publishCoreRow(updated.islandUuid(), IslandAddonService.tableStateKey("contracts", updated.contractId().toString()), contractJson(updated));
+            coreStatePublisher.publishRow(updated.islandUuid(), IslandAddonService.tableStateKey("contracts", updated.contractId().toString()), contractJson(updated));
         }
     }
 
@@ -842,14 +823,7 @@ public final class DatabaseService {
 
     public void saveUnlock(UUID islandUuid, String unlockId) {
         long unlockedAt = researchRepository.saveUnlock(islandUuid, unlockId);
-        publishCoreRow(islandUuid, IslandAddonService.tableStateKey("island_unlocks", unlockId), unlockJson(islandUuid, unlockId, unlockedAt));
-    }
-
-    private void publishCoreRow(UUID islandUuid, String key, String value) {
-        if (coreStatePublishingSuspended || coreStateWriter == null || islandUuid == null || key == null || key.isBlank() || value == null) {
-            return;
-        }
-        coreStateWriter.accept(new CoreRowWrite(islandUuid, key, value));
+        coreStatePublisher.publishRow(islandUuid, IslandAddonService.tableStateKey("island_unlocks", unlockId), unlockJson(islandUuid, unlockId, unlockedAt));
     }
 
     private void publishItemNetworks(UUID islandUuid, List<ItemNetwork> networks) {
@@ -861,7 +835,7 @@ public final class DatabaseService {
         for (ItemNetwork network : networks) {
             values.put(network.networkId().toString(), itemNetworkJson(network));
         }
-        publishCoreTable(islandUuid, "item_networks", values);
+        coreStatePublisher.publishTable(islandUuid, "item_networks", values);
     }
 
     private void publishPowerNetworks(UUID islandUuid, List<PowerNetwork> networks) {
@@ -873,26 +847,7 @@ public final class DatabaseService {
         for (PowerNetwork network : networks) {
             values.put(network.networkId().toString(), powerNetworkJson(network));
         }
-        publishCoreTable(islandUuid, "power_networks", values);
-    }
-
-    private void publishCoreTable(UUID islandUuid, String table, java.util.Map<String, String> values) {
-        if (coreStatePublishingSuspended || islandUuid == null || table == null || table.isBlank() || values == null) {
-            return;
-        }
-        if (coreBulkWriter != null && !values.isEmpty()) {
-            coreBulkWriter.accept(new CoreBulkWrite(islandUuid, java.util.Map.of(), java.util.Map.of(table, java.util.Map.copyOf(values))));
-            return;
-        }
-        if (coreTableWriter != null) {
-            coreTableWriter.accept(new CoreTableWrite(islandUuid, table, java.util.Map.copyOf(values)));
-            return;
-        }
-        if (values.isEmpty()) {
-            return;
-        }
-        String safeTable = table.startsWith(IslandAddonService.TABLE_STATE_KEY_PREFIX) ? table.substring(IslandAddonService.TABLE_STATE_KEY_PREFIX.length()) : table;
-        values.forEach((key, value) -> publishCoreRow(islandUuid, IslandAddonService.tableStateKey(safeTable, key), value));
+        coreStatePublisher.publishTable(islandUuid, "power_networks", values);
     }
 
     private String itemNetworkJson(ItemNetwork network) {
@@ -958,31 +913,6 @@ public final class DatabaseService {
                 .map(route -> route.fromMachineId() + "->" + route.toMachineId())
                 .reduce((left, right) -> left + "," + right)
                 .orElse("");
-    }
-
-    private void publishCoreGlobalRow(String key, String value) {
-        if (coreStatePublishingSuspended || coreGlobalStateWriter == null || key == null || key.isBlank() || value == null) {
-            return;
-        }
-        coreGlobalStateWriter.accept(new CoreGlobalRowWrite(key, value));
-    }
-
-    private void publishCoreGlobalTable(String table, java.util.Map<String, String> values) {
-        if (coreStatePublishingSuspended || table == null || table.isBlank() || values == null) {
-            return;
-        }
-        if (coreGlobalBulkWriter != null && !values.isEmpty()) {
-            coreGlobalBulkWriter.accept(new CoreGlobalBulkWrite(java.util.Map.of(), java.util.Map.of(table, java.util.Map.copyOf(values))));
-            return;
-        }
-        if (coreGlobalTableWriter != null) {
-            coreGlobalTableWriter.accept(new CoreGlobalTableWrite(table, java.util.Map.copyOf(values)));
-            return;
-        }
-        if (values.isEmpty()) {
-            return;
-        }
-        values.forEach((key, value) -> publishCoreGlobalRow(IslandAddonService.TABLE_STATE_KEY_PREFIX + table + "/" + key, value));
     }
 
     private String marketDailyJson(String itemId, String dateKey, long soldAmount, double demandFactor) {

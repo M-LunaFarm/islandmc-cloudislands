@@ -229,4 +229,33 @@ class DatabaseRepositorySplitTest {
         assertTrue(repository.contains("private String saveMachineSql"));
         assertTrue(repository.contains("private String selectedRecipeId("));
     }
+
+    @Test
+    void coreAddonStatePublishingLivesInCoreAddonStatePublisher() throws Exception {
+        String databaseService = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/DatabaseService.java"));
+        String publisher = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/CoreAddonStatePublisher.java"));
+
+        assertTrue(databaseService.contains("private final CoreAddonStatePublisher coreStatePublisher"));
+        assertTrue(databaseService.contains("coreStatePublisher.coreStateWriter(coreStateWriter);"));
+        assertTrue(databaseService.contains("coreStatePublisher.publishRow("));
+        assertTrue(databaseService.contains("coreStatePublisher.publishTable("));
+        assertTrue(databaseService.contains("coreStatePublisher.publishGlobalRow("));
+        assertTrue(databaseService.contains("coreStatePublisher.publishGlobalTable("));
+        assertFalse(databaseService.contains("private Consumer<CoreRowWrite> coreStateWriter"));
+        assertFalse(databaseService.contains("private Consumer<CoreTableWrite> coreTableWriter"));
+        assertFalse(databaseService.contains("private Consumer<CoreBulkWrite> coreBulkWriter"));
+        assertFalse(databaseService.contains("private Consumer<CoreGlobalRowWrite> coreGlobalStateWriter"));
+        assertFalse(databaseService.contains("private boolean coreStatePublishingSuspended"));
+        assertFalse(databaseService.contains("private void publishCoreRow"));
+        assertFalse(databaseService.contains("private void publishCoreTable"));
+        assertFalse(databaseService.contains("private void publishCoreGlobalRow"));
+        assertFalse(databaseService.contains("private void publishCoreGlobalTable"));
+
+        assertTrue(publisher.contains("private Consumer<DatabaseService.CoreRowWrite> coreStateWriter"));
+        assertTrue(publisher.contains("void publishRow(UUID islandUuid, String key, String value)"));
+        assertTrue(publisher.contains("void publishTable(UUID islandUuid, String table, Map<String, String> values)"));
+        assertTrue(publisher.contains("void publishGlobalRow(String key, String value)"));
+        assertTrue(publisher.contains("void publishGlobalTable(String table, Map<String, String> values)"));
+        assertTrue(publisher.contains("void withPublishingSuspended(Runnable action)"));
+    }
 }
