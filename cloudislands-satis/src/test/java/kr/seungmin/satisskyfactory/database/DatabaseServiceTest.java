@@ -108,6 +108,40 @@ class DatabaseServiceTest {
     }
 
     @Test
+    void coreApiBackendReportsLocalSqliteCacheSeparately() {
+        File dataFolder = tempDir.resolve("core-api-cache-db").toFile();
+        DatabaseService.Settings settings = new DatabaseService.Settings(
+                DatabaseService.StorageBackend.CORE_API,
+                "cache.sqlite",
+                "",
+                "",
+                "",
+                "",
+                "",
+                "",
+                4,
+                5000L,
+                DatabaseService.BackendSettings.empty(),
+                DatabaseService.BackendSettings.empty(),
+                DatabaseService.BackendSettings.empty(),
+                false,
+                java.util.List.of()
+        );
+        DatabaseService database = new DatabaseService(dataFolder, settings);
+
+        try {
+            database.open();
+
+            assertEquals(DatabaseService.StorageBackend.CORE_API, database.activeBackend());
+            assertEquals("SQLITE", database.cacheBackend());
+            assertTrue(database.cacheDescription().endsWith("cache.sqlite"));
+            assertTrue(database.databaseDescription().contains("cloudislands-addon-state-with-local-sqlite-cache"));
+        } finally {
+            database.close();
+        }
+    }
+
+    @Test
     void nestedSqlitePathCreatesParentDirectory() {
         File dataFolder = tempDir.resolve("shared-parent-db").toFile();
 

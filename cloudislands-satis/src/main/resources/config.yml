@@ -13,7 +13,7 @@ satis:
       flattened-fallback:
         enabled: true
     fallback:
-      enabled: true
+      enabled: false
       order:
         - POSTGRESQL
         - MYSQL
@@ -179,7 +179,7 @@ addons:
         max-pool-size: 0
         connection-timeout-ms: 0
       fallback:
-        enabled: true
+        enabled: false
         order:
           - POSTGRESQL
           - MYSQL
@@ -290,7 +290,7 @@ setup:
         # If table/key-value bulk save is not available on the Core API, retry as flattened addon-state keys.
         enabled: true
     fallback:
-      enabled: true
+      enabled: false
       # Shared backends are attempted before SQLITE so Island-1/Island-2 do not split Satis state.
       order:
         - POSTGRESQL
@@ -419,7 +419,7 @@ database:
     flattened-fallback:
       enabled: true
   fallback:
-    enabled: true
+    enabled: false
     # Production-safe order keeps a shared backend before local SQLITE.
     # If the active node falls back straight to SQLITE, A/B island servers can split Satis state.
     # Shared targets must be explicitly configured; sample host/database defaults do not trigger

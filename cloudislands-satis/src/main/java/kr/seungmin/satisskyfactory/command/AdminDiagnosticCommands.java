@@ -62,6 +62,10 @@ final class AdminDiagnosticCommands {
                 "database-fallback-ready-chain-risk",
                 "database-fallback-ready-chain-production-safe",
                 "database-fallback-operator-remediation",
+                "database-cache-backend",
+                "local.database-cache-backend",
+                "database-cache-description",
+                "local.database-cache-description",
                 "database-core-api-authority-ready",
                 "database-core-api-local-cache-writes-enabled",
                 "database-core-api-fallback-active",
@@ -161,11 +165,13 @@ final class AdminDiagnosticCommands {
         }
         if (database != null) {
             visible.put("local.database-active-backend", database.activeBackend().name());
+            visible.put("local.database-cache-backend", database.cacheBackend());
             visible.put("local.database-attempted-backends", database.attemptedBackends().stream()
                     .map(DatabaseService.StorageBackend::name)
                     .reduce((left, right) -> left + "," + right)
                     .orElse("none"));
             visible.put("local.database-fallback-reason", database.fallbackReason());
+            visible.put("local.database-cache-description", database.cacheDescription());
             visible.put("local.database-description", database.databaseDescription());
         }
         return visible;
@@ -193,7 +199,10 @@ final class AdminDiagnosticCommands {
 
     private String databaseStatus(Map<String, String> state) {
         String risk = firstNonBlank(state.get("database-fallback-risk"), "");
-        if (!risk.isBlank() && !"none".equalsIgnoreCase(risk) && !"safe".equalsIgnoreCase(risk)) {
+        if (!risk.isBlank()
+                && !"none".equalsIgnoreCase(risk)
+                && !"safe".equalsIgnoreCase(risk)
+                && !"fallback-disabled".equalsIgnoreCase(risk)) {
             return "WARN:" + risk;
         }
         if ("true".equalsIgnoreCase(firstNonBlank(state.get("database-fallback-active"), "false"))) {

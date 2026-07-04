@@ -112,6 +112,7 @@ public final class DatabaseService {
     private final CoreAddonStatePublisher coreStatePublisher;
     private HikariDataSource dataSource;
     private StorageBackend activeBackend = StorageBackend.SQLITE;
+    private StorageBackend cacheBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
     private String activeDescription = "";
     private String fallbackReason = "none";
@@ -233,6 +234,7 @@ public final class DatabaseService {
         if (backend == StorageBackend.CORE_API) {
             openSqlite();
             activeBackend = StorageBackend.CORE_API;
+            cacheBackend = StorageBackend.SQLITE;
             sqlDialect = SqlDialect.SQLITE;
             activeDescription = "cloudislands-addon-state-with-local-sqlite-cache:" + databaseFile().getAbsolutePath();
             return;
@@ -240,12 +242,14 @@ public final class DatabaseService {
         if (backend == StorageBackend.SQLITE) {
             openSqlite();
             activeBackend = StorageBackend.SQLITE;
+            cacheBackend = StorageBackend.SQLITE;
             sqlDialect = SqlDialect.SQLITE;
             activeDescription = databaseFile().getAbsolutePath();
             return;
         }
         openJdbc(backend);
         activeBackend = backend;
+        cacheBackend = null;
         sqlDialect = backend == StorageBackend.POSTGRESQL ? SqlDialect.POSTGRESQL : SqlDialect.MYSQL;
         activeDescription = safeJdbcDescription(jdbcUrl(backend));
     }
@@ -360,6 +364,14 @@ public final class DatabaseService {
 
     public StorageBackend activeBackend() {
         return activeBackend;
+    }
+
+    public String cacheBackend() {
+        return cacheBackend == null ? "none" : cacheBackend.name();
+    }
+
+    public String cacheDescription() {
+        return cacheBackend == null ? "none" : databaseFile().getAbsolutePath();
     }
 
     public String databaseDescription() {

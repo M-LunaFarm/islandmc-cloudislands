@@ -834,6 +834,8 @@ public final class AdminFactoryCommand {
                         "database-jdbc-inferred",
                         "database-jdbc-inferred-backend",
                         "database-active-backend",
+                        "database-cache-backend",
+                        "database-cache-description",
                         "database-active-shared",
                         "database-active-authority",
                         "database-core-api-authority-status",
@@ -1435,11 +1437,13 @@ public final class AdminFactoryCommand {
         }
         if (database != null) {
             visible.put("local.database-active-backend", database.activeBackend().name());
+            visible.put("local.database-cache-backend", database.cacheBackend());
             visible.put("local.database-attempted-backends", database.attemptedBackends().stream()
                     .map(DatabaseService.StorageBackend::name)
                     .reduce((left, right) -> left + "," + right)
                     .orElse("none"));
             visible.put("local.database-fallback-reason", database.fallbackReason());
+            visible.put("local.database-cache-description", database.cacheDescription());
             visible.put("local.database-description", database.databaseDescription());
         }
         if (sender instanceof Player player && addonIslandState != null) {

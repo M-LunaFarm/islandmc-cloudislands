@@ -118,6 +118,7 @@ database:
   fallback:
     enabled-path: setup.database.fallback.enabled
     order-path: setup.database.fallback.order
+    default-enabled: false
     safety-state-keys:
       - database-fallback-risk
       - database-fallback-production-safe

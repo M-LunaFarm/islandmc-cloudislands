@@ -1794,6 +1794,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         metadata.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         metadata.put("database-active-backend", databaseActiveBackendName());
+        metadata.put("database-cache-backend", databaseCacheBackendName());
+        metadata.put("database-cache-description", databaseCacheDescription());
         metadata.put("database-active-shared", Boolean.toString(databaseActiveBackendShared()));
         metadata.put("database-active-authority", databaseActiveAuthorityMetadata());
         metadata.put("database-core-api-authority-status", databaseCoreApiAuthorityStatus());
@@ -2033,8 +2035,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("database-setup-sqlite-readiness-fields", String.join(",", SetupBackendFallbackPolicy.backendReadinessFields("SQLITE"))),
                 Map.entry("database-setup-jdbc-readiness-policy", SetupBackendFallbackPolicy.JDBC_READY_POLICY),
                 Map.entry("database-setup-core-api-local-cache-write-policy", SetupBackendFallbackPolicy.LOCAL_CACHE_WRITE_POLICY),
+                Map.entry("database-fallback-default-enabled", "false"),
                 Map.entry("database-fallback-operator-remediation", "put-shared-backend-before-sqlite-or-disable-distributed-runtime-writes"),
                 Map.entry("fallback-remediation-state-keys", "database-fallback-readiness-summary,database-fallback-ready-chain-risk,database-fallback-ready-chain-production-safe,database-fallback-operator-remediation"),
+                Map.entry("database-cache-state-keys", "database-active-backend,database-cache-backend,database-cache-description,database-node-local-cache-active"),
                 Map.entry("dirty-save-state-keys", "runtime-dirty-save-running,runtime-dirty-save-pending-writes,runtime-dirty-save-pending-machines,runtime-dirty-save-pending-inventories,runtime-dirty-save-pending-nodes,runtime-dirty-save-pending-islands,addon-removal-dirty-save-detach-policy,addon-removal-dirty-save-reattach-policy,addon-reload-runtime-restart-policy,addon-core-refresh-reapply-policy,runtime-core-refresh-reapply-policy"),
                 Map.entry("extension-model", "superiorskyblock-style-addon"),
                 Map.entry("removable-addon", "true"),
@@ -2340,6 +2344,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         state.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         state.put("database-active-backend", databaseActiveBackendName());
+        state.put("database-cache-backend", databaseCacheBackendName());
+        state.put("database-cache-description", databaseCacheDescription());
         state.put("database-active-shared", Boolean.toString(databaseActiveBackendShared()));
         state.put("database-active-authority", databaseActiveAuthorityMetadata());
         state.put("database-configured-backend-active", Boolean.toString(databaseConfiguredBackendActive()));
@@ -2544,6 +2550,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("database-jdbc-inferred", Boolean.toString(databaseJdbcInferred()));
         state.put("database-jdbc-inferred-backend", databaseJdbcInferredBackendMetadata());
         state.put("database-active-backend", databaseActiveBackendName());
+        state.put("database-cache-backend", databaseCacheBackendName());
+        state.put("database-cache-description", databaseCacheDescription());
         state.put("database-configured-backend-active", Boolean.toString(databaseConfiguredBackendActive()));
         state.put("database-effective-backend-status", databaseEffectiveBackendStatus());
         state.put("database-attempted-backends", databaseAttemptedBackendsMetadata());
@@ -4432,7 +4440,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                         "setup.database.fallback.enabled",
                         "addons.cloudislands-satis.database.fallback.enabled",
                         "database.fallback.enabled",
-                        true));
+                        false));
         List<DatabaseService.StorageBackend> fallbackOrder = databaseFallbackOrder(true);
         DatabaseService.Settings settings = new DatabaseService.Settings(
                 backend,
@@ -5139,6 +5147,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return database == null ? "NOT_OPEN" : database.activeBackend().name();
     }
 
+    private String databaseCacheBackendName() {
+        return database == null ? "NOT_OPEN" : database.cacheBackend();
+    }
+
+    private String databaseCacheDescription() {
+        return database == null ? "not-open" : database.cacheDescription();
+    }
+
     private boolean databaseConfiguredBackendActive() {
         return configuredDatabaseBackendName().equals(databaseActiveBackendName());
     }
@@ -5311,7 +5327,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean databaseFallbackProductionSafe() {
         String risk = databaseFallbackRisk();
-        return risk.equals("shared-before-local-sqlite") || risk.equals("shared-only");
+        return risk.equals("fallback-disabled") || risk.equals("shared-before-local-sqlite") || risk.equals("shared-only");
     }
 
     private String databaseFallbackWarningMetadata() {

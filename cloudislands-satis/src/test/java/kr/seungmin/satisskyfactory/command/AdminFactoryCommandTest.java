@@ -80,6 +80,10 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"database-recommended-fallback-order\""));
         assertTrue(source.contains("\"database-multi-node-warning\""));
         assertTrue(source.contains("\"database-node-local-cache-active\""));
+        assertTrue(source.contains("\"database-cache-backend\""));
+        assertTrue(source.contains("\"database-cache-description\""));
+        assertTrue(source.contains("\"local.database-cache-backend\""));
+        assertTrue(source.contains("\"local.database-cache-description\""));
         assertTrue(source.contains("\"runtime-standalone-island-runtime-policy\""));
         assertTrue(source.contains("\"runtime-island-runtime-authority\""));
         assertTrue(source.contains("\"runtime-tick-authority-policy\""));

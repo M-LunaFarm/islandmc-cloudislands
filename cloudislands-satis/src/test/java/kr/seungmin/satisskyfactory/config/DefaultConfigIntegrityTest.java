@@ -117,8 +117,10 @@ class DefaultConfigIntegrityTest {
         assertEquals("../CloudIslands/satis-state", config.getString("addons.cloudislands-satis.database.shared-directory"));
         assertEquals("data.db", config.getString("addons.cloudislands-satis.database.sqlite-file"));
         assertTrue(config.isConfigurationSection("addons.cloudislands-satis.database.jdbc"));
-        assertTrue(config.getBoolean("database.fallback.enabled"));
-        assertTrue(config.getBoolean("setup.database.fallback.enabled"));
+        assertFalse(config.getBoolean("satis.database.fallback.enabled"));
+        assertFalse(config.getBoolean("database.fallback.enabled"));
+        assertFalse(config.getBoolean("setup.database.fallback.enabled"));
+        assertFalse(config.getBoolean("addons.cloudislands-satis.database.fallback.enabled"));
         assertTrue(config.getBoolean("setup.database.core-api.enabled"));
         assertTrue(SatisDatabaseConfigPolicy.typePriority().indexOf("satis.database.type")
                 < SatisDatabaseConfigPolicy.typePriority().indexOf("setup.database.type"));
@@ -151,6 +153,7 @@ class DefaultConfigIntegrityTest {
                 addon.getStringList("database.supported"));
         assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
                 addon.getStringList("database.fallback.recommended-order"));
+        assertFalse(addon.getBoolean("database.fallback.default-enabled"));
         assertEquals("keep-a-shared-backend-before-sqlite-for-multi-island-node-pools",
                 addon.getString("database.fallback.split-brain-warning"));
         List<String> coreApiBulkEndpoints = addon.getStringList("database.core-api.bulk-endpoints");
