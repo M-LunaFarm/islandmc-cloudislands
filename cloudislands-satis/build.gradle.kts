@@ -199,7 +199,10 @@ tasks.register("verifyRuntimeComponentCoverage") {
     dependsOn(tasks.named("test"))
     val pluginSource = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java")
     val addonRegistration = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisAddonRegistration.java")
+    val runtimeBootstrap = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeBootstrap.java")
+    val databaseRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisDatabaseRuntime.java")
     val featureRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisFeatureRuntime.java")
+    val lifecycleBridge = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisLifecycleBridge.java")
     val commandRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisCommandRuntime.java")
     val listenerRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisListenerRuntime.java")
     val placeholderRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisPlaceholderRuntime.java")
@@ -207,29 +210,54 @@ tasks.register("verifyRuntimeComponentCoverage") {
     val statePublisher = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisStatePublisher.java")
     val componentPlan = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeComponentPlan.java")
     val addonRegistrationTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisAddonRegistrationTest.java")
+    val runtimeBootstrapTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeBootstrapTest.java")
+    val databaseRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisDatabaseRuntimeTest.java")
     val featureRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisFeatureRuntimeTest.java")
+    val lifecycleBridgeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisLifecycleBridgeTest.java")
     val commandRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisCommandRuntimeTest.java")
     val listenerRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisListenerRuntimeTest.java")
     val placeholderRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisPlaceholderRuntimeTest.java")
     val routeEventBridgeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisRouteEventBridgeTest.java")
     val statePublisherTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisStatePublisherTest.java")
     val componentPlanTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeComponentPlanTest.java")
-    inputs.files(pluginSource, addonRegistration, featureRuntime, commandRuntime, listenerRuntime, placeholderRuntime, routeEventBridge, statePublisher, componentPlan, addonRegistrationTest, featureRuntimeTest, commandRuntimeTest, listenerRuntimeTest, placeholderRuntimeTest, routeEventBridgeTest, statePublisherTest, componentPlanTest)
+    inputs.files(pluginSource, addonRegistration, runtimeBootstrap, databaseRuntime, featureRuntime, lifecycleBridge, commandRuntime, listenerRuntime, placeholderRuntime, routeEventBridge, statePublisher, componentPlan, addonRegistrationTest, runtimeBootstrapTest, databaseRuntimeTest, featureRuntimeTest, lifecycleBridgeTest, commandRuntimeTest, listenerRuntimeTest, placeholderRuntimeTest, routeEventBridgeTest, statePublisherTest, componentPlanTest)
     doLast {
         val plugin = pluginSource.asFile.readText()
         val addonRegistrationSource = addonRegistration.asFile.readText()
+        val runtimeBootstrapSource = runtimeBootstrap.asFile.readText()
+        val databaseRuntimeSource = databaseRuntime.asFile.readText()
         val runtime = featureRuntime.asFile.readText()
+        val lifecycleBridgeSource = lifecycleBridge.asFile.readText()
         val commandRuntimeSource = commandRuntime.asFile.readText()
         val listenerRuntimeSource = listenerRuntime.asFile.readText()
         val placeholderRuntimeSource = placeholderRuntime.asFile.readText()
         val routeEventBridgeSource = routeEventBridge.asFile.readText()
         val statePublisherSource = statePublisher.asFile.readText()
-        val tests = addonRegistrationTest.asFile.readText() + "\n" + featureRuntimeTest.asFile.readText() + "\n" + commandRuntimeTest.asFile.readText() + "\n" + listenerRuntimeTest.asFile.readText() + "\n" + placeholderRuntimeTest.asFile.readText() + "\n" + routeEventBridgeTest.asFile.readText() + "\n" + statePublisherTest.asFile.readText() + "\n" + componentPlanTest.asFile.readText()
+        val tests = addonRegistrationTest.asFile.readText() + "\n" + runtimeBootstrapTest.asFile.readText() + "\n" + databaseRuntimeTest.asFile.readText() + "\n" + featureRuntimeTest.asFile.readText() + "\n" + lifecycleBridgeTest.asFile.readText() + "\n" + commandRuntimeTest.asFile.readText() + "\n" + listenerRuntimeTest.asFile.readText() + "\n" + placeholderRuntimeTest.asFile.readText() + "\n" + routeEventBridgeTest.asFile.readText() + "\n" + statePublisherTest.asFile.readText() + "\n" + componentPlanTest.asFile.readText()
+        val missingRuntimeBootstrap = listOf(
+            "public final class SatisRuntimeBootstrap",
+            "public RuntimeBootstrapDecision decide",
+            "public record RuntimeBootstrapSnapshot",
+            "public record RuntimeBootstrapDecision"
+        ).filterNot(runtimeBootstrapSource::contains)
+        val missingDatabaseRuntime = listOf(
+            "public final class SatisDatabaseRuntime",
+            "public String settingsFingerprint",
+            "public String appendFallbackReason"
+        ).filterNot(databaseRuntimeSource::contains)
         val missingRuntime = listOf(
             "public final class SatisFeatureRuntime",
             "public SatisRuntimeComponentPlan plan(ComponentSnapshot snapshot)",
             "public record ComponentSnapshot"
         ).filterNot(runtime::contains)
+        val missingLifecycleBridge = listOf(
+            "public final class SatisLifecycleBridge",
+            "public Map<String, String> lifecycleState",
+            "public Map<String, String> suspendedLifecycleState",
+            "public OperationSnapshot operationSnapshot",
+            "public record LifecycleStateSnapshot",
+            "public record SuspendedLifecycleSnapshot"
+        ).filterNot(lifecycleBridgeSource::contains)
         val missingAddonRegistration = listOf(
             "public final class SatisAddonRegistration",
             "public CloudIslandsApi resolveApi()",
@@ -273,10 +301,19 @@ tasks.register("verifyRuntimeComponentCoverage") {
             "cloudIslandsApi = addonRegistration.resolveApi()",
             "SatisAddonRegistration.registeredState",
             "applyAddonRegistrationState(SatisAddonRegistration.unregisteredState())",
+            "private final SatisRuntimeBootstrap runtimeBootstrap",
+            "runtimeBootstrap.decide(",
+            "private final SatisDatabaseRuntime databaseRuntime",
+            "databaseRuntime.settingsFingerprint(settings)",
+            "databaseRuntime.appendFallbackReason(databaseFallbackReason, reason)",
             "private final SatisCommandRuntime commandRuntime",
             "commandRuntime.bindPluginCommand(\"factory\"",
             "commandRuntime.unregisterPluginCommand(\"factory\")",
             "private final SatisFeatureRuntime featureRuntime",
+            "private final SatisLifecycleBridge lifecycleBridge",
+            "lifecycleBridge.lifecycleState",
+            "lifecycleBridge.suspendedLifecycleState",
+            "lifecycleBridge.operationSnapshot",
             "private final SatisListenerRuntime listenerRuntime",
             "listenerRuntime.registerListener(machineListener",
             "listenerRuntime.unregisterListener(machineListener",
@@ -301,7 +338,11 @@ tasks.register("verifyRuntimeComponentCoverage") {
         val missingTests = listOf(
             "buildsComponentPlanForFeatureGateRuntime",
             "registeredStateCarriesFeatureSnapshotWhenActivationAllowsRuntime",
+            "bootstrapBlocksStartupWhenApiMissingAndAddonRegistrationFails",
+            "databaseRuntimeFingerprintsBackendSettingsAndMasksPasswords",
             "cloudIslandsApiMissingBlocksStandaloneRuntime",
+            "lifecycleBridgeParsesMigrationOperationPlacement",
+            "lifecycleBridgeBuildsSuccessStateWithHydrationAndRemapAudit",
             "commandRegistrationResultReportsMissingCommandsAsInactive",
             "listenerStateSeparatesMissingUnregisteredAndRegisteredComponents",
             "placeholderRuntimeGateRequiresFeatureMachinesAndPlaceholderApi",
@@ -311,7 +352,10 @@ tasks.register("verifyRuntimeComponentCoverage") {
             "addonDisabledSkipsEveryActiveRuntimeComponent"
         ).filterNot(tests::contains)
         val failures = buildList {
+            if (missingRuntimeBootstrap.isNotEmpty()) add("Satis runtime bootstrap component missing: ${missingRuntimeBootstrap.joinToString(", ")}")
+            if (missingDatabaseRuntime.isNotEmpty()) add("Satis database runtime component missing: ${missingDatabaseRuntime.joinToString(", ")}")
             if (missingRuntime.isNotEmpty()) add("Satis feature runtime component missing: ${missingRuntime.joinToString(", ")}")
+            if (missingLifecycleBridge.isNotEmpty()) add("Satis lifecycle bridge runtime component missing: ${missingLifecycleBridge.joinToString(", ")}")
             if (missingAddonRegistration.isNotEmpty()) add("Satis addon registration runtime component missing: ${missingAddonRegistration.joinToString(", ")}")
             if (missingCommandRuntime.isNotEmpty()) add("Satis command runtime component missing: ${missingCommandRuntime.joinToString(", ")}")
             if (missingListenerRuntime.isNotEmpty()) add("Satis listener runtime component missing: ${missingListenerRuntime.joinToString(", ")}")

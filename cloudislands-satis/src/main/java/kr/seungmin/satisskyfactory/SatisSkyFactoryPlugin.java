@@ -97,10 +97,13 @@ import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.runtime.SatisAddonRegistration;
 import kr.seungmin.satisskyfactory.runtime.SatisCommandRuntime;
+import kr.seungmin.satisskyfactory.runtime.SatisDatabaseRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisFeatureRuntime;
+import kr.seungmin.satisskyfactory.runtime.SatisLifecycleBridge;
 import kr.seungmin.satisskyfactory.runtime.SatisListenerRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisPlaceholderRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisRouteEventBridge;
+import kr.seungmin.satisskyfactory.runtime.SatisRuntimeBootstrap;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.runtime.SatisStatePublisher;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
@@ -172,9 +175,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean commandsRegistered;
     private final SatisAddonRegistration addonRegistration = new SatisAddonRegistration(this);
     private final SatisCommandRuntime commandRuntime = new SatisCommandRuntime(this);
+    private final SatisDatabaseRuntime databaseRuntime = new SatisDatabaseRuntime();
     private final SatisFeatureRuntime featureRuntime = new SatisFeatureRuntime();
+    private final SatisLifecycleBridge lifecycleBridge = new SatisLifecycleBridge();
     private final SatisListenerRuntime listenerRuntime = new SatisListenerRuntime(this);
     private final SatisPlaceholderRuntime placeholderRuntime = new SatisPlaceholderRuntime(this);
+    private final SatisRuntimeBootstrap runtimeBootstrap = new SatisRuntimeBootstrap();
     private final SatisStatePublisher statePublisher = new SatisStatePublisher(getLogger());
     private boolean machineListenerRegistered;
     private boolean guiListenerRegistered;
@@ -198,9 +204,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         runtimeAuthority = new SatisRuntimeAuthority(localRuntimeNodeId());
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
-        if (!registerCloudIslandsAddon()) {
+        SatisRuntimeBootstrap.RuntimeBootstrapDecision bootstrapDecision = runtimeBootstrap.decide(
+                new SatisRuntimeBootstrap.RuntimeBootstrapSnapshot(registerCloudIslandsAddon(), cloudIslandsApiMissing));
+        if (!bootstrapDecision.startRuntime()) {
             unregisterAddonCommands();
-            if (cloudIslandsApiMissing) {
+            if (bootstrapDecision.disablePlugin()) {
                 getServer().getScheduler().runTask(this, () -> getServer().getPluginManager().disablePlugin(this));
             }
             return;
@@ -2708,62 +2716,30 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         String safeOperation = operation == null || operation.isBlank() ? "unknown" : operation;
-        String eventNode = lifecycleEventNode(safeOperation);
-        String activeNode = lifecycleActiveNode(safeOperation);
-        String sourceNode = lifecycleSourceNode(safeOperation);
-        String targetNode = lifecycleTargetNode(safeOperation);
-        String eventWorld = lifecycleEventWorld(safeOperation);
-        String eventCell = lifecycleEventCell(safeOperation);
-        String placementSource = lifecycleEventPlacementSource(safeOperation);
         String hydrationKey = coreHydrationKey(safeOperation);
-        Map<String, String> state = new LinkedHashMap<>();
-        state.put("last-lifecycle-island", islandId.toString());
-        state.put("last-lifecycle-operation", safeOperation);
-        state.put("last-lifecycle-database-open", Boolean.toString(database != null));
-        state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
-        state.put("last-lifecycle-schema", "3");
-        state.put("last-lifecycle-at", Instant.now().toString());
-        state.put("last-lifecycle-status", "success");
-        state.put("last-lifecycle-error", "");
-        if (!eventNode.isBlank()) {
-            state.put("last-lifecycle-node", eventNode);
-        }
-        if (!activeNode.isBlank()) {
-            state.put("last-lifecycle-active-node", activeNode);
-        }
-        if (!sourceNode.isBlank()) {
-            state.put("last-lifecycle-source-node", sourceNode);
-        }
-        if (!targetNode.isBlank()) {
-            state.put("last-lifecycle-target-node", targetNode);
-        }
-        if (!sourceNode.isBlank() && !targetNode.isBlank() && !sourceNode.equals(targetNode)) {
-            state.put("last-lifecycle-node-move", sourceNode + "->" + targetNode);
-        }
-        state.put("last-lifecycle-node-move-policy", "preflush-source-remap-target-by-island-uuid");
-        if (!eventWorld.isBlank()) {
-            state.put("last-lifecycle-active-world", eventWorld);
-        }
-        if (!eventCell.isBlank()) {
-            state.put("last-lifecycle-active-cell", eventCell);
-        }
-        if (!placementSource.isBlank()) {
-            state.put("last-lifecycle-placement-source", placementSource);
-        }
+        String activeWorld = "";
+        String activeCenter = "";
         if (island != null && island.hasActiveCenter()) {
-            state.put("last-lifecycle-active-world", island.activeWorld());
-            state.put("last-lifecycle-active-center", island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ());
+            activeWorld = island.activeWorld();
+            activeCenter = island.activeCenterX() + "," + island.activeCenterY() + "," + island.activeCenterZ();
         }
-        state.put("last-lifecycle-remap-delta", remapDelta == null || remapDelta.isBlank() ? "0,0,0" : remapDelta);
-        state.put("last-lifecycle-machines-remapped", Boolean.toString(machinesRemapped));
-        state.put("last-lifecycle-resource-nodes-remapped", Boolean.toString(resourceNodesRemapped));
-        state.put("last-lifecycle-machine-remap-deferred", Boolean.toString(machineRemapDeferred));
-        state.put("last-lifecycle-resource-node-remap-deferred", Boolean.toString(resourceNodeRemapDeferred));
-        state.put("last-lifecycle-deferred-remap-policy", SatisStatePortabilityPolicy.DEFERRED_REMAP_POLICY);
-        state.put("last-lifecycle-remap-source", remapSource == null || remapSource.isBlank() ? "active-world-center" : remapSource);
-        state.put("last-lifecycle-core-hydrate-key", hydrationKey);
-        state.put("last-lifecycle-core-hydrate-tracked", Boolean.toString(hydrationKey.equals(coreHydratedIslandActivations.get(islandId))));
-        state.put("core-hydrated-activation-count", Integer.toString(coreHydratedIslandActivations.size()));
+        Map<String, String> state = lifecycleBridge.lifecycleState(new SatisLifecycleBridge.LifecycleStateSnapshot(
+                islandId,
+                safeOperation,
+                database != null,
+                databaseShared(),
+                activeWorld,
+                activeCenter,
+                remapDelta,
+                machinesRemapped,
+                resourceNodesRemapped,
+                remapSource,
+                machineRemapDeferred,
+                resourceNodeRemapDeferred,
+                hydrationKey,
+                hydrationKey.equals(coreHydratedIslandActivations.get(islandId)),
+                coreHydratedIslandActivations.size()
+        ));
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis lifecycle state: " + error.getMessage());
             return Map.of();
@@ -3541,178 +3517,59 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String lifecycleNode(String nodeId) {
-        return nodeId == null || nodeId.isBlank() ? "unknown" : nodeId;
+        return lifecycleBridge.node(nodeId);
     }
 
     private String lifecycleWorld(String worldName) {
-        return worldName == null || worldName.isBlank() ? "" : worldName;
+        return lifecycleBridge.world(worldName);
     }
 
     private String lifecycleWorldToken(String worldName) {
-        String safeWorld = lifecycleWorld(worldName);
-        return safeWorld.isBlank() ? "" : "@" + safeWorld;
+        return lifecycleBridge.worldToken(worldName);
     }
 
     private String lifecycleCellToken(int cellX, int cellZ) {
-        return "#" + cellX + "," + cellZ;
+        return lifecycleBridge.cellToken(cellX, cellZ);
     }
 
     private String lifecyclePlacementToken(String placementSource) {
-        return placementSource == null || placementSource.isBlank() ? "" : ":placement-" + placementSource;
+        return lifecycleBridge.placementToken(placementSource);
     }
 
     private String lifecycleNodePart(String nodeId) {
-        if (nodeId == null || nodeId.isBlank()) {
-            return "";
-        }
-        int worldSeparator = nodeId.indexOf('@');
-        int cellSeparator = nodeId.indexOf('#');
-        int end = worldSeparator < 0 ? cellSeparator : (cellSeparator < 0 ? worldSeparator : Math.min(worldSeparator, cellSeparator));
-        return lifecycleNode(end < 0 ? nodeId : nodeId.substring(0, end));
+        return lifecycleBridge.operationSnapshot("activated:" + (nodeId == null ? "" : nodeId)).activeNode();
     }
 
     private String lifecycleActiveNode(String operation) {
-        if (operation == null) {
-            return "";
-        }
-        if (operation.startsWith("pre-activate:")) {
-            return lifecycleNodePart(operation.substring("pre-activate:".length()));
-        }
-        if (operation.startsWith("activated:")) {
-            return lifecycleNodePart(operation.substring("activated:".length()));
-        }
-        if (operation.startsWith("restore-requested:")) {
-            return lifecycleNodePart(operation.substring("restore-requested:".length()));
-        }
-        if (operation.startsWith("restored:")) {
-            return lifecycleNodePart(operation.substring("restored:".length()));
-        }
-        if (operation.startsWith("migrated:")) {
-            int arrow = operation.indexOf("->");
-            if (arrow < 0 || arrow + 2 >= operation.length()) {
-                return "";
-            }
-            return lifecycleNodePart(operation.substring(arrow + 2));
-        }
-        if (operation.startsWith("migration-requested:")) {
-            int arrow = operation.indexOf("->");
-            if (arrow < 0 || arrow + 2 >= operation.length()) {
-                return "";
-            }
-            return lifecycleNodePart(operation.substring(arrow + 2));
-        }
-        if (operation.startsWith("runtime:")) {
-            int nodeSeparator = operation.lastIndexOf(':');
-            if (nodeSeparator > "runtime:".length() && nodeSeparator + 1 < operation.length()) {
-                return lifecycleNodePart(operation.substring(nodeSeparator + 1));
-            }
-        }
-        return "";
+        return lifecycleBridge.operationSnapshot(operation).activeNode();
     }
 
     private String lifecycleSourceNode(String operation) {
-        if (operation == null) {
-            return "";
-        }
-        if (operation.startsWith("migration-requested:")) {
-            int arrow = operation.indexOf("->");
-            if (arrow > "migration-requested:".length()) {
-                return lifecycleNodePart(operation.substring("migration-requested:".length(), arrow));
-            }
-        }
-        if (operation.startsWith("migrated:")) {
-            int arrow = operation.indexOf("->");
-            if (arrow > "migrated:".length()) {
-                return lifecycleNodePart(operation.substring("migrated:".length(), arrow));
-            }
-        }
-        if (operation.startsWith("deactivated:")) {
-            return lifecycleNodePart(operation.substring("deactivated:".length()));
-        }
-        return "";
+        return lifecycleBridge.operationSnapshot(operation).sourceNode();
     }
 
     private String lifecycleTargetNode(String operation) {
-        String activeNode = lifecycleActiveNode(operation);
-        if (!activeNode.isBlank()) {
-            return activeNode;
-        }
-        String eventNode = lifecycleEventNode(operation);
-        return eventNode == null ? "" : eventNode;
+        return lifecycleBridge.operationSnapshot(operation).targetNode();
     }
 
     private String lifecycleEventNode(String operation) {
-        if (operation != null && operation.startsWith("migration-requested:")) {
-            int arrow = operation.indexOf("->");
-            if (arrow > "migration-requested:".length()) {
-                return lifecycleNodePart(operation.substring("migration-requested:".length(), arrow));
-            }
-        }
-        String activeNode = lifecycleActiveNode(operation);
-        if (!activeNode.isBlank()) {
-            return activeNode;
-        }
-        if (operation != null && operation.startsWith("deactivated:")) {
-            return lifecycleNodePart(operation.substring("deactivated:".length()));
-        }
-        if (operation != null && operation.startsWith("runtime:")) {
-            int nodeSeparator = operation.lastIndexOf(':');
-            if (nodeSeparator > "runtime:".length() && nodeSeparator + 1 < operation.length()) {
-                return lifecycleNodePart(operation.substring(nodeSeparator + 1));
-            }
-        }
-        return "";
+        return lifecycleBridge.operationSnapshot(operation).eventNode();
     }
 
     private String runtimeOperation(String state, String targetNode) {
-        String safeState = state == null || state.isBlank() ? "UNKNOWN" : state;
-        return "runtime:" + safeState + ":" + lifecycleNode(targetNode);
+        return lifecycleBridge.runtimeOperation(state, targetNode);
     }
 
     private String lifecycleEventWorld(String operation) {
-        if (operation == null) {
-            return "";
-        }
-        int worldSeparator = operation.indexOf('@');
-        if (worldSeparator < 0 || worldSeparator + 1 >= operation.length()) {
-            return "";
-        }
-        String world = operation.substring(worldSeparator + 1);
-        int cellSeparator = world.indexOf('#');
-        return lifecycleWorld(cellSeparator < 0 ? world : world.substring(0, cellSeparator));
+        return lifecycleBridge.operationSnapshot(operation).eventWorld();
     }
 
     private String lifecycleEventCell(String operation) {
-        if (operation == null) {
-            return "";
-        }
-        int cellSeparator = operation.indexOf('#');
-        if (cellSeparator < 0 || cellSeparator + 1 >= operation.length()) {
-            return "";
-        }
-        String cell = operation.substring(cellSeparator + 1);
-        int separator = cell.indexOf(' ');
-        if (separator >= 0) {
-            cell = cell.substring(0, separator);
-        }
-        int placementSeparator = cell.indexOf(":placement-");
-        if (placementSeparator >= 0) {
-            cell = cell.substring(0, placementSeparator);
-        }
-        return cell;
+        return lifecycleBridge.operationSnapshot(operation).eventCell();
     }
 
     private String lifecycleEventPlacementSource(String operation) {
-        if (operation == null) {
-            return "";
-        }
-        int placementSeparator = operation.indexOf(":placement-");
-        if (placementSeparator < 0) {
-            return "";
-        }
-        String value = operation.substring(placementSeparator + ":placement-".length());
-        int separator = value.indexOf(' ');
-        return separator < 0 ? value : value.substring(0, separator);
+        return lifecycleBridge.operationSnapshot(operation).placementSource();
     }
 
     private void synchronizeSatisIsland(UUID islandId) {
@@ -4109,43 +3966,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         String safeOperation = operation == null || operation.isBlank() ? "recovery-required" : operation;
-        String eventNode = lifecycleEventNode(safeOperation);
-        String activeNode = lifecycleActiveNode(safeOperation);
-        String eventWorld = lifecycleEventWorld(safeOperation);
-        String eventCell = lifecycleEventCell(safeOperation);
-        String placementSource = lifecycleEventPlacementSource(safeOperation);
-        Map<String, String> state = new LinkedHashMap<>();
-        state.put("last-lifecycle-island", islandId.toString());
-        state.put("last-lifecycle-operation", safeOperation);
-        state.put("last-lifecycle-database-open", Boolean.toString(database != null));
-        state.put("last-lifecycle-shared-database", Boolean.toString(databaseShared()));
-        state.put("last-lifecycle-schema", "3");
-        state.put("last-lifecycle-at", Instant.now().toString());
-        state.put("last-lifecycle-status", "suspended");
-        state.put("last-lifecycle-error", "recovery-required-local-cache-evicted");
-        state.put("last-lifecycle-suspend-mode", "drop-local-dirty-state");
-        state.put("last-lifecycle-resume-source", "core-api-confirmed-state");
-        state.put("last-lifecycle-state-authority", "last-core-confirmed-state-only");
-        state.put("last-lifecycle-stale-write-policy", "discard-local-dirty-state");
-        state.put("last-lifecycle-heartbeat-expiry-policy", SatisStatePortabilityPolicy.HEARTBEAT_EXPIRY_POLICY);
-        state.put("last-lifecycle-fencing-token-policy", SatisStatePortabilityPolicy.FENCING_TOKEN_POLICY);
-        state.put("last-lifecycle-error-policy", SatisStatePortabilityPolicy.LIFECYCLE_ERROR_POLICY);
-        state.put("last-lifecycle-recovery-policy", SatisStatePortabilityPolicy.LIFECYCLE_RECOVERY_POLICY);
-        if (!eventNode.isBlank()) {
-            state.put("last-lifecycle-node", eventNode);
-        }
-        if (!activeNode.isBlank()) {
-            state.put("last-lifecycle-active-node", activeNode);
-        }
-        if (!eventWorld.isBlank()) {
-            state.put("last-lifecycle-active-world", eventWorld);
-        }
-        if (!eventCell.isBlank()) {
-            state.put("last-lifecycle-active-cell", eventCell);
-        }
-        if (!placementSource.isBlank()) {
-            state.put("last-lifecycle-placement-source", placementSource);
-        }
+        Map<String, String> state = lifecycleBridge.suspendedLifecycleState(new SatisLifecycleBridge.SuspendedLifecycleSnapshot(
+                islandId,
+                safeOperation,
+                database != null,
+                databaseShared()
+        ));
         cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
             getLogger().warning("Failed to publish CloudIslands Satis suspended lifecycle state: " + error.getMessage());
             return Map.of();
@@ -4741,44 +4567,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private String databaseSettingsFingerprint(DatabaseService.Settings settings) {
-        if (settings == null) {
-            return "";
-        }
-        String fallbackOrder = settings.fallbackOrder() == null
-                ? ""
-                : settings.fallbackOrder().stream()
-                .map(backend -> backend == null ? "" : backend.name())
-                .reduce((left, right) -> left + "," + right)
-                .orElse("");
-        return String.join("|",
-                settings.backend() == null ? "" : settings.backend().name(),
-                safe(settings.sqliteFileName()),
-                safe(settings.jdbcUrl()),
-                safe(settings.postgresqlJdbcUrl()),
-                safe(settings.mysqlJdbcUrl()),
-                safe(settings.mariadbJdbcUrl()),
-                safe(settings.username()),
-                Integer.toHexString(safe(settings.password()).hashCode()),
-                Integer.toString(settings.maxPoolSize()),
-                Long.toString(settings.connectionTimeoutMillis()),
-                backendSettingsFingerprint(settings.postgresqlSettings()),
-                backendSettingsFingerprint(settings.mysqlSettings()),
-                backendSettingsFingerprint(settings.mariadbSettings()),
-                Boolean.toString(settings.fallbackEnabled()),
-                fallbackOrder
-        );
-    }
-
-    private String backendSettingsFingerprint(DatabaseService.BackendSettings settings) {
-        if (settings == null) {
-            return "";
-        }
-        return String.join(":",
-                safe(settings.username()),
-                Integer.toHexString(safe(settings.password()).hashCode()),
-                Integer.toString(settings.maxPoolSize()),
-                Long.toString(settings.connectionTimeoutMillis())
-        );
+        return databaseRuntime.settingsFingerprint(settings);
     }
 
     private List<DatabaseService.StorageBackend> databaseFallbackOrder() {
@@ -4888,16 +4677,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void appendDatabaseFallbackReason(String reason) {
-        if (reason == null || reason.isBlank() || "none".equalsIgnoreCase(reason)) {
-            return;
-        }
-        if (databaseFallbackReason == null || databaseFallbackReason.isBlank() || "none".equalsIgnoreCase(databaseFallbackReason)) {
-            databaseFallbackReason = reason;
-            return;
-        }
-        if (!databaseFallbackReason.contains(reason)) {
-            databaseFallbackReason = databaseFallbackReason + ";" + reason;
-        }
+        databaseFallbackReason = databaseRuntime.appendFallbackReason(databaseFallbackReason, reason);
     }
 
     private void appendPendingDatabaseConfigFallbackReason(String reason) {
