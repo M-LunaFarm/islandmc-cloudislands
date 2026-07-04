@@ -141,6 +141,7 @@ class AdminFactoryCommandTest {
     @Test
     void exposesOperationalDoctorDatabaseRuntimeRoutesAndSupportCommands() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminFactoryCommand.java"));
+        String diagnostics = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminDiagnosticCommands.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
         String messages = Files.readString(Path.of("src/main/resources/messages.yml"));
 
@@ -149,15 +150,15 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"factory admin runtime\""));
         assertTrue(source.contains("\"factory admin routes\""));
         assertTrue(source.contains("\"factory admin support\""));
-        assertTrue(source.contains("case \"doctor\" -> showDoctor(sender);"));
-        assertTrue(source.contains("case \"database\" -> showDatabase(sender);"));
-        assertTrue(source.contains("case \"runtime\" -> showRuntime(sender);"));
-        assertTrue(source.contains("case \"routes\" -> showRoutes(sender);"));
-        assertTrue(source.contains("case \"support\" -> showSupport(sender);"));
-        assertTrue(source.contains("doctorAction(state)"));
-        assertTrue(source.contains("\"runtime-owner-fence-ready\""));
-        assertTrue(source.contains("\"database-fallback-operator-remediation\""));
-        assertTrue(source.contains("\"runtime-route-events-publish-failures\""));
+        assertTrue(source.contains("case \"doctor\" -> diagnostics.showDoctor(sender);"));
+        assertTrue(source.contains("case \"database\" -> diagnostics.showDatabase(sender);"));
+        assertTrue(source.contains("case \"runtime\" -> diagnostics.showRuntime(sender);"));
+        assertTrue(source.contains("case \"routes\" -> diagnostics.showRoutes(sender);"));
+        assertTrue(source.contains("case \"support\" -> diagnostics.showSupport(sender);"));
+        assertTrue(diagnostics.contains("doctorAction(state)"));
+        assertTrue(diagnostics.contains("\"runtime-owner-fence-ready\""));
+        assertTrue(diagnostics.contains("\"database-fallback-operator-remediation\""));
+        assertTrue(diagnostics.contains("\"runtime-route-events-publish-failures\""));
         assertTrue(source.contains("visibleHelpCommands(label, sender)"));
         assertTrue(plugin.contains("satisskyfactory.admin.doctor"));
         assertTrue(plugin.contains("satisskyfactory.admin.database"));

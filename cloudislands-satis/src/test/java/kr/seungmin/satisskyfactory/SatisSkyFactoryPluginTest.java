@@ -170,6 +170,8 @@ class SatisSkyFactoryPluginTest {
     void runtimePlanUsesCloudIslandsApiPresenceForStandaloneGuard() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
         String adminSource = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminFactoryCommand.java"));
+        String diagnosticSource = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminDiagnosticCommands.java"));
+        String adminDiagnosticSources = adminSource + diagnosticSource;
 
         assertTrue(source.contains("operationalFeatureEnabled(\"addon-state\"),\n                cloudIslandsApi != null"));
         assertTrue(source.contains("SatisAddonIntegrationPolicy.activationDecision("));
@@ -184,22 +186,22 @@ class SatisSkyFactoryPluginTest {
         assertTrue(source.contains("services.rebindDatabase("));
         assertTrue(source.contains("SatisRuntimeLifecycle.StopMode.STOP_DISCARD_DETACH_AND_CLEAR"));
         assertTrue(source.contains("runtimeLifecycle.startDirtySaves("));
-        assertTrue(adminSource.contains("runtime-feature-pack-activation-policy"));
-        assertTrue(adminSource.contains("runtime-feature-pack-activation-mode"));
-        assertTrue(adminSource.contains("runtime-feature-pack-runtime-enabled"));
-        assertTrue(adminSource.contains("runtime-feature-pack-runtime-shape"));
-        assertTrue(adminSource.contains("runtime-feature-pack-block-reason"));
-        assertTrue(adminSource.contains("runtime-disable-activation-block-reason"));
-        assertTrue(adminSource.contains("last-preflush-activation-block-reason"));
-        assertTrue(adminSource.contains("preflush-activation-block-reason"));
-        assertTrue(adminSource.contains("config-validation-status"));
-        assertTrue(adminSource.contains("fix-satis-config-validation-errors-before-starting-runtime"));
-        assertTrue(adminSource.contains("database-setup-core-api-readiness-fields"));
-        assertTrue(adminSource.contains("database-setup-postgresql-readiness-fields"));
-        assertTrue(adminSource.contains("database-setup-mysql-readiness-fields"));
-        assertTrue(adminSource.contains("database-setup-mariadb-readiness-fields"));
-        assertTrue(adminSource.contains("database-setup-sqlite-readiness-fields"));
-        assertTrue(adminSource.contains("database-setup-core-api-local-cache-write-policy"));
+        assertTrue(adminDiagnosticSources.contains("runtime-feature-pack-activation-policy"));
+        assertTrue(adminDiagnosticSources.contains("runtime-feature-pack-activation-mode"));
+        assertTrue(adminDiagnosticSources.contains("runtime-feature-pack-runtime-enabled"));
+        assertTrue(adminDiagnosticSources.contains("runtime-feature-pack-runtime-shape"));
+        assertTrue(adminDiagnosticSources.contains("runtime-feature-pack-block-reason"));
+        assertTrue(adminDiagnosticSources.contains("runtime-disable-activation-block-reason"));
+        assertTrue(adminDiagnosticSources.contains("last-preflush-activation-block-reason"));
+        assertTrue(adminDiagnosticSources.contains("preflush-activation-block-reason"));
+        assertTrue(adminDiagnosticSources.contains("config-validation-status"));
+        assertTrue(adminDiagnosticSources.contains("fix-satis-config-validation-errors-before-starting-runtime"));
+        assertTrue(adminDiagnosticSources.contains("database-setup-core-api-readiness-fields"));
+        assertTrue(adminDiagnosticSources.contains("database-setup-postgresql-readiness-fields"));
+        assertTrue(adminDiagnosticSources.contains("database-setup-mysql-readiness-fields"));
+        assertTrue(adminDiagnosticSources.contains("database-setup-mariadb-readiness-fields"));
+        assertTrue(adminDiagnosticSources.contains("database-setup-sqlite-readiness-fields"));
+        assertTrue(adminDiagnosticSources.contains("database-setup-core-api-local-cache-write-policy"));
     }
 
     @Test
@@ -236,5 +238,26 @@ class SatisSkyFactoryPluginTest {
         assertTrue(runtimeLifecycle.contains("public final class SatisRuntimeLifecycle"));
         assertTrue(runtimeLifecycle.contains("public RuntimeTasks stop("));
         assertTrue(runtimeLifecycle.contains("STOP_DISCARD_DETACH_AND_CLEAR"));
+    }
+
+    @Test
+    void adminCommandSplitUsesDiagnosticSubcommandClass() throws Exception {
+        String adminSource = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminFactoryCommand.java"));
+        String diagnosticSource = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminDiagnosticCommands.java"));
+
+        assertTrue(adminSource.contains("private final AdminDiagnosticCommands diagnostics;"));
+        assertTrue(adminSource.contains("new AdminDiagnosticCommands(messages, database, integrationMetadata, addonState);"));
+        assertTrue(adminSource.contains("case \"doctor\" -> diagnostics.showDoctor(sender);"));
+        assertTrue(adminSource.contains("case \"database\" -> diagnostics.showDatabase(sender);"));
+        assertTrue(adminSource.contains("case \"runtime\" -> diagnostics.showRuntime(sender);"));
+        assertTrue(adminSource.contains("case \"routes\" -> diagnostics.showRoutes(sender);"));
+        assertTrue(adminSource.contains("case \"support\" -> diagnostics.showSupport(sender);"));
+        assertTrue(!adminSource.contains("private void showDoctor(CommandSender sender)"));
+        assertTrue(diagnosticSource.contains("final class AdminDiagnosticCommands"));
+        assertTrue(diagnosticSource.contains("void showDoctor(CommandSender sender)"));
+        assertTrue(diagnosticSource.contains("void showDatabase(CommandSender sender)"));
+        assertTrue(diagnosticSource.contains("void showRuntime(CommandSender sender)"));
+        assertTrue(diagnosticSource.contains("void showRoutes(CommandSender sender)"));
+        assertTrue(diagnosticSource.contains("void showSupport(CommandSender sender)"));
     }
 }
