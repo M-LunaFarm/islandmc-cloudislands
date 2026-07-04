@@ -177,14 +177,13 @@ public final class MarketService {
             inventory.add(itemId, amount);
             return Optional.empty();
         }
-        Optional<SellResult> result = payout(island, owner, itemId, amount);
+        Optional<SellResult> result = payout(island, owner, "MARKET_SELL", itemId, amount);
         if (result.isEmpty()) {
             if (!restoreSoldInventory(inventory, itemId, amount)) {
                 inventory.remove(itemId, amount);
             }
             return Optional.empty();
         }
-        database.addLedger(island.islandUuid(), "MARKET_SELL", result.get().gross(), itemId + " x" + amount);
         return result;
     }
 
@@ -203,9 +202,7 @@ public final class MarketService {
         if (amount <= 0 || !prices.containsKey(itemId) || marketBlocked(island)) {
             return Optional.empty();
         }
-        Optional<SellResult> result = payout(island, owner, itemId, amount);
-        result.ifPresent(sale -> database.addLedger(island.islandUuid(), "MARKET_SELL_HAND", sale.gross(), itemId + " x" + amount));
-        return result;
+        return payout(island, owner, "MARKET_SELL_HAND", itemId, amount);
     }
 
     public Map<String, Long> prices() {
@@ -242,10 +239,12 @@ public final class MarketService {
         }
     }
 
-    private Optional<SellResult> payout(FactoryIsland island, OfflinePlayer owner, String itemId, long amount) {
+    private Optional<SellResult> payout(FactoryIsland island, OfflinePlayer owner, String operation, String itemId, long amount) {
         String dateKey = dateKey();
-        long serverSold = database.marketDailySold(itemId, dateKey) + amount;
-        long personalSold = database.marketPersonalSold(island.islandUuid(), itemId, dateKey) + amount;
+        long previousServerSold = database.marketDailySold(itemId, dateKey);
+        long previousPersonalSold = database.marketPersonalSold(island.islandUuid(), itemId, dateKey);
+        long serverSold = previousServerSold + amount;
+        long personalSold = previousPersonalSold + amount;
         PriceCalculator.Factors factors = calculator().factors(itemId, amount, serverSold, personalSold);
         long gross = calculator().finalPrice(itemId, amount, serverSold, personalSold);
         long debtRepaid = 0;
@@ -254,11 +253,20 @@ public final class MarketService {
             debtRepaid = Math.min(island.maintenanceDebt(), Math.round(gross * clamp(repayRate, 0.0, 1.0)));
         }
         long paid = Math.max(0, gross - debtRepaid);
+        String reason = itemId + " x" + amount;
+        String idempotencyKey = marketIdempotencyKey(operation, island, owner, itemId, amount, dateKey,
+                previousServerSold, previousPersonalSold);
+        DatabaseService.EconomyLedgerClaim claim = database.beginEconomyLedger(
+                island.islandUuid(), playerUuid(owner), operation, gross, reason, idempotencyKey);
+        if (claim != DatabaseService.EconomyLedgerClaim.STARTED) {
+            return Optional.empty();
+        }
         if (debtRepaid > 0) {
             long previousDebt = island.maintenanceDebt();
             island.maintenanceDebt(island.maintenanceDebt() - debtRepaid);
             if (!islandSaver.test(island)) {
                 island.maintenanceDebt(previousDebt);
+                database.failEconomyLedger(idempotencyKey);
                 return Optional.empty();
             }
         }
@@ -267,13 +275,39 @@ public final class MarketService {
                 island.maintenanceDebt(island.maintenanceDebt() + debtRepaid);
                 islandSaver.test(island);
             }
+            database.failEconomyLedger(idempotencyKey);
             return Optional.empty();
         }
-        database.recordMarketSale(island.islandUuid(), itemId, dateKey, amount, factors.serverDemandFactor());
-        if (debtRepaid > 0) {
-            database.addLedger(island.islandUuid(), "MARKET_DEBT_REPAY", debtRepaid, itemId + " x" + amount);
+        try {
+            database.recordMarketSale(island.islandUuid(), itemId, dateKey, amount, factors.serverDemandFactor());
+            database.addLedger(island.islandUuid(), operation, gross, reason);
+            if (debtRepaid > 0) {
+                database.addLedger(island.islandUuid(), "MARKET_DEBT_REPAY", debtRepaid, reason);
+            }
+            database.completeEconomyLedger(idempotencyKey);
+        } catch (RuntimeException exception) {
+            database.compensateEconomyLedger(idempotencyKey);
+            throw exception;
         }
         return Optional.of(new SellResult(gross, paid, debtRepaid, factors.serverDemandFactor(), factors.personalFactor(), factors.qualityFactor()));
+    }
+
+    private String marketIdempotencyKey(String operation, FactoryIsland island, OfflinePlayer owner, String itemId, long amount,
+                                        String dateKey, long previousServerSold, long previousPersonalSold) {
+        return String.join(":",
+                operation,
+                island.islandUuid().toString(),
+                playerUuid(owner) == null ? "system" : playerUuid(owner).toString(),
+                itemId,
+                Long.toString(amount),
+                dateKey,
+                Long.toString(previousServerSold),
+                Long.toString(previousPersonalSold),
+                Long.toString(island.maintenanceDebt()));
+    }
+
+    private UUID playerUuid(OfflinePlayer owner) {
+        return owner == null ? null : owner.getUniqueId();
     }
 
     private void loadPersonalTiers(FileConfiguration config) {

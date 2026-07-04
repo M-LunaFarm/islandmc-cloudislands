@@ -514,6 +514,49 @@ tasks.register("verifyEconomyTransactionSafety") {
     }
 }
 
+tasks.register("verifySatisEconomyLedgerCoverage") {
+    group = "verification"
+    description = "Verifies Satis economy idempotency ledger schema, service usage, and retry tests remain present."
+    dependsOn(project(":cloudislands-satis").tasks.named("test"))
+    val database = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/database/DatabaseService.java")
+    val migration = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/storage/MigrationService.java")
+    val market = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/market/MarketService.java")
+    val contracts = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/contract/ContractService.java")
+    val research = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/research/ResearchService.java")
+    val maintenance = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/machine/MaintenanceService.java")
+    val databaseTest = layout.projectDirectory.file("cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/database/DatabaseServiceTest.java")
+    val economyTest = layout.projectDirectory.file("cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/database/EconomyFlowServiceTest.java")
+    val contractTest = layout.projectDirectory.file("cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/database/ContractFlowServiceTest.java")
+    inputs.files(database, migration, market, contracts, research, maintenance, databaseTest, economyTest, contractTest)
+    doLast {
+        val schema = migration.asFile.readText()
+        val databaseSource = database.asFile.readText()
+        val serviceSources = listOf(market, contracts, research, maintenance).joinToString("\n") { it.asFile.readText() }
+        val tests = listOf(databaseTest, economyTest, contractTest).joinToString("\n") { it.asFile.readText() }
+        val missingSchema = listOf("satis_economy_ledger", "satis_reward_ledger", "satis_command_idempotency", "idempotency_key")
+            .filterNot(schema::contains)
+        val missingDatabase = listOf("beginEconomyLedger", "completeEconomyLedger", "compensateEconomyLedger", "EconomyLedgerClaim")
+            .filterNot(databaseSource::contains)
+        val missingServices = listOf("MARKET_SELL", "CONTRACT_REWARD", "RESEARCH_UNLOCK", "ADMIN_MAINTENANCE_CHARGE")
+            .filterNot(serviceSources::contains)
+        val missingTests = listOf(
+            "economyLedgerIdempotencyKeyPreventsDuplicateBeginsAndTracksCompletion",
+            "failedMarketPayoutLeavesRetryLedgerAndDoesNotRecordSale",
+            "duplicateForcedMaintenanceChargeDoesNotWithdrawTwice",
+            "completedRewardLedgerLetsContractRetryWithoutDuplicateMoneyReward"
+        ).filterNot(tests::contains)
+        val failures = buildList {
+            if (missingSchema.isNotEmpty()) add("Satis economy ledger schema missing: ${missingSchema.joinToString(", ")}")
+            if (missingDatabase.isNotEmpty()) add("Satis economy ledger database API missing: ${missingDatabase.joinToString(", ")}")
+            if (missingServices.isNotEmpty()) add("Satis economy ledger service usage missing: ${missingServices.joinToString(", ")}")
+            if (missingTests.isNotEmpty()) add("Satis economy ledger tests missing: ${missingTests.joinToString(", ")}")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register("verifyRankingWorthCertification") {
     group = "verification"
     description = "Verifies ranking/worth certification covers 10k island recalculation, dirty debounce, ignored islands, and event publication."
@@ -748,6 +791,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
     dependsOn(tasks.named("verifySnapshotRestoreCoverage"))
+    dependsOn(tasks.named("verifySatisEconomyLedgerCoverage"))
 }
 
 tasks.register("verifyRoutingRefactorCoverage") {

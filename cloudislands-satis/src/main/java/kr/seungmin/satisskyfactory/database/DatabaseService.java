@@ -37,6 +37,14 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 public final class DatabaseService {
+    public enum EconomyLedgerClaim {
+        STARTED,
+        PENDING,
+        COMPLETED,
+        FAILED,
+        NEEDS_COMPENSATION
+    }
+
     public enum StorageBackend {
         SQLITE,
         POSTGRESQL,
@@ -792,7 +800,10 @@ public final class DatabaseService {
                 "market_personal_daily",
                 "contracts",
                 "island_unlocks",
-                "ledger"
+                "ledger",
+                "satis_economy_ledger",
+                "satis_reward_ledger",
+                "satis_command_idempotency"
         );
     }
 
@@ -900,6 +911,7 @@ public final class DatabaseService {
             case "contracts" -> Set.of("contract_id", "island_uuid", "template_id", "contract_type");
             case "island_unlocks" -> Set.of("island_uuid", "unlock_id");
             case "ledger" -> Set.of("ledger_id", "island_uuid");
+            case "satis_economy_ledger", "satis_reward_ledger", "satis_command_idempotency" -> Set.of("idempotency_key", "island_uuid");
             default -> Set.of();
         };
     }
@@ -1978,6 +1990,117 @@ public final class DatabaseService {
             throw new IllegalStateException("Failed to write ledger", exception);
         }
         publishCoreRow(islandUuid, IslandAddonService.tableStateKey("ledger", ledgerId.toString()), ledgerJson(ledgerId, islandUuid, type, amount, reason, now));
+    }
+
+    public EconomyLedgerClaim beginEconomyLedger(UUID islandUuid, UUID playerUuid, String operation, long amount,
+                                                 String reason, String idempotencyKey) {
+        if (islandUuid == null || idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new IllegalArgumentException("Economy ledger requires island UUID and idempotency key");
+        }
+        long now = Instant.now().toEpochMilli();
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement(insertEconomyLedgerSql())) {
+            statement.setString(1, idempotencyKey);
+            statement.setString(2, islandUuid.toString());
+            statement.setString(3, playerUuid == null ? "" : playerUuid.toString());
+            statement.setString(4, operation == null ? "" : operation);
+            statement.setLong(5, amount);
+            statement.setString(6, "PENDING");
+            statement.setString(7, reason == null ? "" : reason);
+            statement.setLong(8, now);
+            statement.setLong(9, 0L);
+            if (statement.executeUpdate() > 0) {
+                return EconomyLedgerClaim.STARTED;
+            }
+            EconomyLedgerClaim claim = economyLedgerClaim(connection, idempotencyKey);
+            if (claim == EconomyLedgerClaim.FAILED && retryFailedEconomyLedger(connection, idempotencyKey)) {
+                return EconomyLedgerClaim.STARTED;
+            }
+            return claim;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to begin economy ledger", exception);
+        }
+    }
+
+    private String insertEconomyLedgerSql() {
+        if (sqlDialect == SqlDialect.MYSQL) {
+            return """
+                    INSERT IGNORE INTO satis_economy_ledger(idempotency_key, island_uuid, player_uuid, operation, amount, status, reason, created_at, completed_at)
+                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """;
+        }
+        return """
+                INSERT INTO satis_economy_ledger(idempotency_key, island_uuid, player_uuid, operation, amount, status, reason, created_at, completed_at)
+                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(idempotency_key) DO NOTHING
+                """;
+    }
+
+    public EconomyLedgerClaim economyLedgerClaim(String idempotencyKey) {
+        try (Connection connection = connection()) {
+            return economyLedgerClaim(connection, idempotencyKey);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to read economy ledger", exception);
+        }
+    }
+
+    private EconomyLedgerClaim economyLedgerClaim(Connection connection, String idempotencyKey) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT status FROM satis_economy_ledger WHERE idempotency_key = ?")) {
+            statement.setString(1, idempotencyKey);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return EconomyLedgerClaim.FAILED;
+                }
+                return switch (rs.getString("status")) {
+                    case "COMPLETED" -> EconomyLedgerClaim.COMPLETED;
+                    case "FAILED" -> EconomyLedgerClaim.FAILED;
+                    case "NEEDS_COMPENSATION" -> EconomyLedgerClaim.NEEDS_COMPENSATION;
+                    default -> EconomyLedgerClaim.PENDING;
+                };
+            }
+        }
+    }
+
+    private boolean retryFailedEconomyLedger(Connection connection, String idempotencyKey) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("""
+                UPDATE satis_economy_ledger
+                SET status = 'PENDING', completed_at = 0
+                WHERE idempotency_key = ? AND status = 'FAILED'
+                """)) {
+            statement.setString(1, idempotencyKey);
+            return statement.executeUpdate() > 0;
+        }
+    }
+
+    public void completeEconomyLedger(String idempotencyKey) {
+        updateEconomyLedgerStatus(idempotencyKey, "COMPLETED", Instant.now().toEpochMilli());
+    }
+
+    public void failEconomyLedger(String idempotencyKey) {
+        updateEconomyLedgerStatus(idempotencyKey, "FAILED", 0L);
+    }
+
+    public void compensateEconomyLedger(String idempotencyKey) {
+        updateEconomyLedgerStatus(idempotencyKey, "NEEDS_COMPENSATION", 0L);
+    }
+
+    private void updateEconomyLedgerStatus(String idempotencyKey, String status, long completedAt) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            return;
+        }
+        try (Connection connection = connection();
+             PreparedStatement statement = connection.prepareStatement("""
+                     UPDATE satis_economy_ledger
+                     SET status = ?, completed_at = ?
+                     WHERE idempotency_key = ? AND status <> 'COMPLETED'
+                     """)) {
+            statement.setString(1, status);
+            statement.setLong(2, completedAt);
+            statement.setString(3, idempotencyKey);
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to update economy ledger", exception);
+        }
     }
 
     public long marketDailySold(String itemId, String dateKey) {

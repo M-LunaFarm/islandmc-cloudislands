@@ -12,6 +12,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.BooleanSupplier;
 
 public final class MaintenanceService {
@@ -141,6 +142,13 @@ public final class MaintenanceService {
             return 0;
         }
         long due = maintenanceFee(island);
+        String idempotencyKey = maintenanceIdempotencyKey(island, owner, due, force);
+        DatabaseService.EconomyLedgerClaim claim = database.beginEconomyLedger(
+                island.islandUuid(), playerUuid(owner), force ? "ADMIN_MAINTENANCE_CHARGE" : "MAINTENANCE",
+                -due, "daily maintenance via " + economy.name(), idempotencyKey);
+        if (claim != DatabaseService.EconomyLedgerClaim.STARTED) {
+            return 0;
+        }
         double paid = economy.withdrawMaintenance(owner, rawIsland, due);
         long shortage = Math.max(0, due - Math.round(paid));
         if (shortage > 0) {
@@ -149,11 +157,33 @@ public final class MaintenanceService {
             island.maintenanceDebt(Math.max(0, island.maintenanceDebt() - Math.round(paid - due)));
         }
         if (paid > 0) {
-            database.addLedger(island.islandUuid(), "MAINTENANCE", -Math.round(paid), "daily maintenance via " + economy.name());
+            try {
+                database.addLedger(island.islandUuid(), force ? "ADMIN_MAINTENANCE_CHARGE" : "MAINTENANCE",
+                        -Math.round(paid), "daily maintenance via " + economy.name());
+                database.completeEconomyLedger(idempotencyKey);
+            } catch (RuntimeException exception) {
+                database.compensateEconomyLedger(idempotencyKey);
+                throw exception;
+            }
+        } else {
+            database.failEconomyLedger(idempotencyKey);
         }
         island.lastMaintenanceAt(now);
         updateStatus(island);
         return due;
+    }
+
+    private String maintenanceIdempotencyKey(FactoryIsland island, OfflinePlayer owner, long due, boolean force) {
+        return String.join(":",
+                force ? "ADMIN_MAINTENANCE_CHARGE" : "MAINTENANCE",
+                island.islandUuid().toString(),
+                playerUuid(owner) == null ? "system" : playerUuid(owner).toString(),
+                Long.toString(island.lastMaintenanceAt()),
+                Long.toString(due));
+    }
+
+    private UUID playerUuid(OfflinePlayer owner) {
+        return owner == null ? null : owner.getUniqueId();
     }
 
     public boolean setDebt(FactoryIsland island, long debt) {

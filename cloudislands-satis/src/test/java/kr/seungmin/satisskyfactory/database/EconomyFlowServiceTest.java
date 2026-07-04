@@ -63,6 +63,37 @@ class EconomyFlowServiceTest {
             assertEquals(10, storage.islandStorage(islandUuid).amount("flour"));
             assertEquals(10, database.marketDailySold("flour", LocalDate.now(ZoneId.systemDefault()).toString()));
             assertEquals(10, database.marketPersonalSold(islandUuid, "flour", LocalDate.now(ZoneId.systemDefault()).toString()));
+            assertEquals(DatabaseService.EconomyLedgerClaim.COMPLETED,
+                    database.economyLedgerClaim("MARKET_SELL:" + islandUuid + ":system:flour:10:"
+                            + LocalDate.now(ZoneId.systemDefault()) + ":0:0:100"));
+        }
+    }
+
+    @Test
+    void failedMarketPayoutLeavesRetryLedgerAndDoesNotRecordSale() {
+        try (DatabaseHandle handle = openDatabase("market-ledger-failure")) {
+            DatabaseService database = handle.database();
+            StorageService storage = new StorageService(database, 1000);
+            ItemRegistry items = new ItemRegistry();
+            items.load(load("items.yml"));
+            TrackingEconomy economy = new TrackingEconomy(false);
+            MarketService market = new MarketService(storage, economy, database, items);
+            market.load(load("market.yml"));
+
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000001011");
+            FactoryIsland island = new FactoryIsland(islandUuid, UUID.fromString("00000000-0000-0000-0000-000000001012"));
+            VirtualInventory inventory = storage.islandStorage(islandUuid);
+            assertTrue(inventory.add("flour", 10));
+            storage.save(inventory);
+
+            assertTrue(market.sell(island, null, "flour", 10).isEmpty());
+
+            String dateKey = LocalDate.now(ZoneId.systemDefault()).toString();
+            assertEquals(DatabaseService.EconomyLedgerClaim.FAILED,
+                    database.economyLedgerClaim("MARKET_SELL:" + islandUuid + ":system:flour:10:" + dateKey + ":0:0:0"));
+            assertEquals(0, database.marketDailySold("flour", dateKey));
+            assertEquals(10, storage.islandStorage(islandUuid).amount("flour"));
+            assertEquals(0.0, economy.deposited());
         }
     }
 
@@ -253,6 +284,35 @@ class EconomyFlowServiceTest {
     }
 
     @Test
+    void duplicateForcedMaintenanceChargeDoesNotWithdrawTwice() {
+        try (DatabaseHandle handle = openDatabase("maintenance-idempotency")) {
+            DatabaseService database = handle.database();
+            MachineDefinitionService definitions = new MachineDefinitionService();
+            MachineService machines = new MachineService(database, definitions, new StorageService(database, 1000));
+            TrackingEconomy economy = new TrackingEconomy();
+            economy.maintenancePaid(100000);
+            MaintenanceService maintenance = new MaintenanceService(machines, economy, database);
+            maintenance.load(load("maintenance.yml"));
+
+            FactoryIsland island = new FactoryIsland(
+                    UUID.fromString("00000000-0000-0000-0000-000000001211"),
+                    UUID.fromString("00000000-0000-0000-0000-000000001212")
+            );
+            long previousLastMaintenanceAt = island.lastMaintenanceAt();
+
+            long due = maintenance.chargeNow(island, null, null);
+            assertTrue(due > 0);
+            assertEquals(due, Math.round(economy.maintenanceWithdrawn()));
+
+            island.lastMaintenanceAt(previousLastMaintenanceAt);
+            long duplicate = maintenance.chargeNow(island, null, null);
+
+            assertEquals(0, duplicate);
+            assertEquals(due, Math.round(economy.maintenanceWithdrawn()));
+        }
+    }
+
+    @Test
     void disabledMaintenanceDoesNotChargeOrApplyPenaltyStatus() {
         try (DatabaseHandle handle = openDatabase("maintenance-disabled")) {
             DatabaseService database = handle.database();
@@ -382,9 +442,22 @@ class EconomyFlowServiceTest {
 
     private static final class TrackingEconomy implements EconomyService {
         private double deposited;
+        private boolean depositSucceeds = true;
+        private double maintenancePaid;
+        private double maintenanceWithdrawn;
+
+        private TrackingEconomy() {
+        }
+
+        private TrackingEconomy(boolean depositSucceeds) {
+            this.depositSucceeds = depositSucceeds;
+        }
 
         @Override
         public boolean deposit(OfflinePlayer player, double amount) {
+            if (!depositSucceeds) {
+                return false;
+            }
             deposited += amount;
             return true;
         }
@@ -401,7 +474,10 @@ class EconomyFlowServiceTest {
 
         @Override
         public double withdrawMaintenance(OfflinePlayer owner, Object island, double amount) {
-            return 0;
+            double paid = Math.min(amount, maintenancePaid);
+            maintenanceWithdrawn += paid;
+            maintenancePaid -= paid;
+            return paid;
         }
 
         @Override
@@ -411,6 +487,14 @@ class EconomyFlowServiceTest {
 
         double deposited() {
             return deposited;
+        }
+
+        void maintenancePaid(double maintenancePaid) {
+            this.maintenancePaid = maintenancePaid;
+        }
+
+        double maintenanceWithdrawn() {
+            return maintenanceWithdrawn;
         }
     }
 }

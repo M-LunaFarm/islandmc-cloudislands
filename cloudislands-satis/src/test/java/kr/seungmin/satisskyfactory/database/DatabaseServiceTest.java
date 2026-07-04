@@ -54,6 +54,9 @@ class DatabaseServiceTest {
                         "item_networks",
                         "machine_network_links",
                         "ledger",
+                        "satis_economy_ledger",
+                        "satis_reward_ledger",
+                        "satis_command_idempotency",
                         "schema_version"
                 )));
             }
@@ -63,6 +66,35 @@ class DatabaseServiceTest {
                 assertTrue(version.next());
                 assertEquals(3, version.getInt("version"));
             }
+        }
+    }
+
+    @Test
+    void economyLedgerIdempotencyKeyPreventsDuplicateBeginsAndTracksCompletion() {
+        try (DatabaseHandle handle = openDatabase(tempDir.resolve("economy-ledger-db").toFile())) {
+            DatabaseService database = handle.database();
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000009001");
+            UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000009002");
+            String key = "MARKET_SELL:" + islandUuid + ":flour:10";
+
+            assertEquals(DatabaseService.EconomyLedgerClaim.STARTED,
+                    database.beginEconomyLedger(islandUuid, playerUuid, "MARKET_SELL", 810, "flour x10", key));
+            assertEquals(DatabaseService.EconomyLedgerClaim.PENDING,
+                    database.beginEconomyLedger(islandUuid, playerUuid, "MARKET_SELL", 810, "flour x10", key));
+
+            database.completeEconomyLedger(key);
+
+            assertEquals(DatabaseService.EconomyLedgerClaim.COMPLETED,
+                    database.beginEconomyLedger(islandUuid, playerUuid, "MARKET_SELL", 810, "flour x10", key));
+            database.failEconomyLedger(key);
+            assertEquals(DatabaseService.EconomyLedgerClaim.COMPLETED, database.economyLedgerClaim(key));
+
+            String failedKey = key + ":failed";
+            assertEquals(DatabaseService.EconomyLedgerClaim.STARTED,
+                    database.beginEconomyLedger(islandUuid, playerUuid, "MARKET_SELL", 810, "flour x10", failedKey));
+            database.failEconomyLedger(failedKey);
+            assertEquals(DatabaseService.EconomyLedgerClaim.STARTED,
+                    database.beginEconomyLedger(islandUuid, playerUuid, "MARKET_SELL", 810, "flour x10", failedKey));
         }
     }
 

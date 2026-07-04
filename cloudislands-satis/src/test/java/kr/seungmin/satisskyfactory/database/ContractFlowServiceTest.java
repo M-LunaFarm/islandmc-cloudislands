@@ -60,6 +60,39 @@ class ContractFlowServiceTest {
     }
 
     @Test
+    void completedRewardLedgerLetsContractRetryWithoutDuplicateMoneyReward() {
+        try (DatabaseHandle handle = openDatabase("contract-ledger-retry")) {
+            DatabaseService database = handle.database();
+            StorageService storage = new StorageService(database, 1000);
+            TrackingEconomy economy = new TrackingEconomy();
+            ContractService contracts = new ContractService(storage, economy, database, new IslandBoostService(null));
+            contracts.load(load("contracts.yml"));
+
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000002011");
+            FactoryIsland island = new FactoryIsland(islandUuid, UUID.fromString("00000000-0000-0000-0000-000000002012"));
+            VirtualInventory inventory = storage.islandStorage(islandUuid);
+            assertTrue(inventory.add("bread_box", 32));
+            storage.save(inventory);
+
+            ContractService.ActiveContract breadSupply = contracts.activeContracts(island).stream()
+                    .filter(contract -> contract.template().id().equals("bread_supply"))
+                    .findFirst()
+                    .orElseThrow();
+            String key = "CONTRACT_REWARD:" + islandUuid + ":system:" + breadSupply.contractId()
+                    + ":bread_supply:" + breadSupply.template().money();
+            assertEquals(DatabaseService.EconomyLedgerClaim.STARTED,
+                    database.beginEconomyLedger(islandUuid, null, "CONTRACT_REWARD", breadSupply.template().money(), "bread_supply", key));
+            database.completeEconomyLedger(key);
+
+            assertTrue(contracts.completeContract(island, null, breadSupply.contractId()).isPresent());
+
+            assertEquals(0.0, economy.deposited());
+            assertFalse(database.loadContracts(islandUuid, "COMPLETED").isEmpty());
+            assertEquals(DatabaseService.EconomyLedgerClaim.COMPLETED, database.economyLedgerClaim(key));
+        }
+    }
+
+    @Test
     void emergencyContractRepaysDebtAndTracksDailyUse() {
         try (DatabaseHandle handle = openDatabase("emergency-contract")) {
             DatabaseService database = handle.database();

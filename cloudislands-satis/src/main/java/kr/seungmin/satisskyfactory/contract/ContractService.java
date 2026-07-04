@@ -345,12 +345,52 @@ public final class ContractService {
             }
             return false;
         }
+        String rewardKey = contractRewardIdempotencyKey(island, owner, active.contractId(), template);
         if (template.money() > 0) {
-            economy.deposit(owner, template.money());
-            database.addLedger(island.islandUuid(), "CONTRACT_REWARD", template.money(), template.id());
+            DatabaseService.EconomyLedgerClaim claim = database.beginEconomyLedger(
+                    island.islandUuid(), playerUuid(owner), "CONTRACT_REWARD", template.money(), template.id(), rewardKey);
+            if (claim == DatabaseService.EconomyLedgerClaim.STARTED) {
+                if (!economy.deposit(owner, template.money())) {
+                    database.failEconomyLedger(rewardKey);
+                    island.researchPoints(previousResearch);
+                    island.reputation(previousReputation);
+                    island.maintenanceDebt(previousDebt);
+                    islandSaver.test(island);
+                    restoreCompletionInventory(inventory, template);
+                    return false;
+                }
+                try {
+                    database.addLedger(island.islandUuid(), "CONTRACT_REWARD", template.money(), template.id());
+                    database.completeEconomyLedger(rewardKey);
+                } catch (RuntimeException exception) {
+                    database.compensateEconomyLedger(rewardKey);
+                    throw exception;
+                }
+            } else if (claim != DatabaseService.EconomyLedgerClaim.COMPLETED) {
+                island.researchPoints(previousResearch);
+                island.reputation(previousReputation);
+                island.maintenanceDebt(previousDebt);
+                islandSaver.test(island);
+                restoreCompletionInventory(inventory, template);
+                return false;
+            }
         }
         database.saveContract(storedContract(active.contract().completed(template.required())));
         return true;
+    }
+
+    private String contractRewardIdempotencyKey(FactoryIsland island, OfflinePlayer owner, UUID contractId, ContractTemplate template) {
+        return String.join(":",
+                "CONTRACT_REWARD",
+                island.islandUuid().toString(),
+                playerUuid(owner) == null ? "system" : playerUuid(owner).toString(),
+                contractId.toString(),
+                template.id(),
+                Long.toString(template.money()));
+    }
+
+    private UUID playerUuid(OfflinePlayer owner) {
+        return owner == null ? null : owner.getUniqueId();
     }
 
     private boolean restoreCompletionInventory(VirtualInventory inventory, ContractTemplate template) {

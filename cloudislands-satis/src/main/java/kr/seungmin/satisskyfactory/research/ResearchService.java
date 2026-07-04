@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
@@ -144,8 +145,22 @@ public final class ResearchService {
                 && unlock.factoryTier() > island.tier()) {
             return UnlockResult.MAINTENANCE_LIMITED;
         }
-        if (unlock.moneyCost() > 0 && (owner == null || !economy.withdraw(owner, unlock.moneyCost()))) {
-            return UnlockResult.NOT_ENOUGH_MONEY;
+        String idempotencyKey = researchIdempotencyKey(island, owner, unlockId, unlock);
+        DatabaseService.EconomyLedgerClaim moneyClaim = DatabaseService.EconomyLedgerClaim.COMPLETED;
+        if (unlock.moneyCost() > 0) {
+            if (owner == null) {
+                return UnlockResult.NOT_ENOUGH_MONEY;
+            }
+            moneyClaim = database.beginEconomyLedger(
+                    island.islandUuid(), playerUuid(owner), "RESEARCH_UNLOCK", -unlock.moneyCost(), unlockId, idempotencyKey);
+            if (moneyClaim == DatabaseService.EconomyLedgerClaim.STARTED) {
+                if (!economy.withdraw(owner, unlock.moneyCost())) {
+                    database.failEconomyLedger(idempotencyKey);
+                    return UnlockResult.NOT_ENOUGH_MONEY;
+                }
+            } else if (moneyClaim != DatabaseService.EconomyLedgerClaim.COMPLETED) {
+                return UnlockResult.UNKNOWN;
+            }
         }
         long previousResearch = island.researchPoints();
         int previousTier = island.tier();
@@ -156,11 +171,38 @@ public final class ResearchService {
         if (!islandSaver.test(island)) {
             island.researchPoints(previousResearch);
             island.tier(previousTier);
+            if (unlock.moneyCost() > 0 && moneyClaim == DatabaseService.EconomyLedgerClaim.STARTED) {
+                database.compensateEconomyLedger(idempotencyKey);
+            }
             return UnlockResult.UNKNOWN;
         }
-        database.saveUnlock(island.islandUuid(), unlockId);
-        unlock.grants().forEach(grant -> database.saveUnlock(island.islandUuid(), grant));
+        try {
+            database.saveUnlock(island.islandUuid(), unlockId);
+            unlock.grants().forEach(grant -> database.saveUnlock(island.islandUuid(), grant));
+            if (unlock.moneyCost() > 0 && moneyClaim == DatabaseService.EconomyLedgerClaim.STARTED) {
+                database.completeEconomyLedger(idempotencyKey);
+            }
+        } catch (RuntimeException exception) {
+            if (unlock.moneyCost() > 0 && moneyClaim == DatabaseService.EconomyLedgerClaim.STARTED) {
+                database.compensateEconomyLedger(idempotencyKey);
+            }
+            throw exception;
+        }
         return UnlockResult.UNLOCKED;
+    }
+
+    private String researchIdempotencyKey(FactoryIsland island, OfflinePlayer owner, String unlockId, UnlockDefinition unlock) {
+        return String.join(":",
+                "RESEARCH_UNLOCK",
+                island.islandUuid().toString(),
+                playerUuid(owner) == null ? "system" : playerUuid(owner).toString(),
+                unlockId,
+                Integer.toString(island.tier()),
+                Long.toString(unlock.moneyCost()));
+    }
+
+    private UUID playerUuid(OfflinePlayer owner) {
+        return owner == null ? null : owner.getUniqueId();
     }
 
     public Set<String> unlocked(FactoryIsland island) {

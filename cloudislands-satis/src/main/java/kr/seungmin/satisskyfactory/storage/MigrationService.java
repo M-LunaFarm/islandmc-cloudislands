@@ -205,6 +205,40 @@ public final class MigrationService {
                       created_at INTEGER NOT NULL
                     )
                     """, dialect));
+            statement.executeUpdate(ddl("""
+                    CREATE TABLE IF NOT EXISTS satis_economy_ledger (
+                      idempotency_key TEXT PRIMARY KEY,
+                      island_uuid TEXT NOT NULL,
+                      player_uuid TEXT NOT NULL DEFAULT '',
+                      operation TEXT NOT NULL,
+                      amount INTEGER NOT NULL,
+                      status TEXT NOT NULL,
+                      reason TEXT NOT NULL,
+                      created_at INTEGER NOT NULL,
+                      completed_at INTEGER NOT NULL DEFAULT 0
+                    )
+                    """, dialect));
+            statement.executeUpdate(ddl("""
+                    CREATE TABLE IF NOT EXISTS satis_reward_ledger (
+                      idempotency_key TEXT PRIMARY KEY,
+                      island_uuid TEXT NOT NULL,
+                      reward_type TEXT NOT NULL,
+                      reward_source TEXT NOT NULL,
+                      status TEXT NOT NULL,
+                      created_at INTEGER NOT NULL,
+                      completed_at INTEGER NOT NULL DEFAULT 0
+                    )
+                    """, dialect));
+            statement.executeUpdate(ddl("""
+                    CREATE TABLE IF NOT EXISTS satis_command_idempotency (
+                      idempotency_key TEXT PRIMARY KEY,
+                      island_uuid TEXT NOT NULL,
+                      command_name TEXT NOT NULL,
+                      status TEXT NOT NULL,
+                      created_at INTEGER NOT NULL,
+                      completed_at INTEGER NOT NULL DEFAULT 0
+                    )
+                    """, dialect));
             applyIncrementalMigrations(connection, statement, dialect);
         }
     }
@@ -280,6 +314,12 @@ public final class MigrationService {
                 .replace("network_id TEXT", "network_id VARCHAR(36)")
                 .replace("contract_id TEXT", "contract_id VARCHAR(36)")
                 .replace("ledger_id TEXT", "ledger_id VARCHAR(36)")
+                .replace("idempotency_key TEXT", "idempotency_key VARCHAR(255)")
+                .replace("player_uuid TEXT", "player_uuid VARCHAR(36)")
+                .replace("operation TEXT", "operation VARCHAR(64)")
+                .replace("reward_type TEXT", "reward_type VARCHAR(64)")
+                .replace("reward_source TEXT", "reward_source VARCHAR(255)")
+                .replace("command_name TEXT", "command_name VARCHAR(128)")
                 .replace("input_inventory_id TEXT", "input_inventory_id VARCHAR(36)")
                 .replace("output_inventory_id TEXT", "output_inventory_id VARCHAR(36)")
                 .replace("power_network_id TEXT", "power_network_id VARCHAR(36)")
