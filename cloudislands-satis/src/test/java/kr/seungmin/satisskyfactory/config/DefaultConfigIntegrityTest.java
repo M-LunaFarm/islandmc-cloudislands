@@ -306,6 +306,7 @@ class DefaultConfigIntegrityTest {
         YamlConfiguration contractsConfig = load("contracts.yml");
         YamlConfiguration researchConfig = load("research.yml");
         YamlConfiguration messagesConfig = load("messages.yml");
+        YamlConfiguration maintenanceConfig = load("maintenance.yml");
 
         Set<String> items = keys(itemsConfig, "items");
         Set<String> machines = keys(machinesConfig, "machines");
@@ -475,6 +476,17 @@ class DefaultConfigIntegrityTest {
                 if (!items.contains(itemId)) {
                     issues.add("contract " + contractId + " unknown reward item " + itemId);
                 }
+            }
+        }
+
+        for (String itemId : keys(maintenanceConfig, "maintenance.repair-cost")) {
+            if (!items.contains(itemId)) {
+                issues.add("maintenance repair-cost unknown item " + itemId);
+            }
+        }
+        for (String itemId : keys(maintenanceConfig, "maintenance.broken-repair-cost")) {
+            if (!items.contains(itemId)) {
+                issues.add("maintenance broken-repair-cost unknown item " + itemId);
             }
         }
 
