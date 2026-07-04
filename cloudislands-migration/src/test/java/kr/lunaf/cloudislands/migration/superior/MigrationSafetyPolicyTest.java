@@ -50,13 +50,26 @@ class MigrationSafetyPolicyTest {
                 "banned-visitors",
                 "level",
                 "worth",
+                "bank-balance",
                 "upgrades",
+                "missions",
+                "ratings",
+                "generators",
+                "limits",
+                "schematics",
+                "templates",
+                "stacked-blocks",
+                "custom-data",
+                "unsupported-data",
                 "flags",
-                "block-value-settings"
+                "block-value-settings",
+                "rollback-plan",
+                "downtime-estimate"
             ),
             MigrationSafetyPolicy.REQUIRED_TARGET_FIELDS
         );
         assertTrue(MigrationSafetyPolicy.requiredTargetField("owner-uuid"));
+        assertTrue(MigrationSafetyPolicy.requiredTargetField(" stacked-blocks "));
         assertTrue(MigrationSafetyPolicy.requiredTargetField(" block-value-settings "));
         assertFalse(MigrationSafetyPolicy.requiredTargetField("runtime-hook"));
     }
@@ -90,13 +103,16 @@ class MigrationSafetyPolicyTest {
             List.of(
                 "/ciadmin migrate-superiorskyblock2 scan",
                 "/ciadmin migrate-superiorskyblock2 dryrun",
+                "/ciadmin migrate-superiorskyblock2 report",
                 "/ciadmin migrate-superiorskyblock2 import",
                 "/ciadmin migrate-superiorskyblock2 verify",
+                "/ciadmin migrate-superiorskyblock2 compare",
                 "/ciadmin migrate-superiorskyblock2 rollback"
             ),
             MigrationSafetyPolicy.REQUIRED_ADMIN_COMMANDS
         );
         assertTrue(MigrationSafetyPolicy.requiredAdminCommand("/ciadmin migrate-superiorskyblock2 scan"));
+        assertTrue(MigrationSafetyPolicy.requiredAdminCommand("/ciadmin migrate-superiorskyblock2 report"));
         assertTrue(MigrationSafetyPolicy.requiredAdminCommand(" /ciadmin migrate-superiorskyblock2 verify "));
         assertFalse(MigrationSafetyPolicy.requiredAdminCommand("/ciadmin migrate-superiorskyblock2 mutate-live"));
     }

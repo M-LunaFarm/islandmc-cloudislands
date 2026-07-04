@@ -29,9 +29,21 @@ public final class MigrationSafetyPolicy {
         "banned-visitors",
         "level",
         "worth",
+        "bank-balance",
         "upgrades",
+        "missions",
+        "ratings",
+        "generators",
+        "limits",
+        "schematics",
+        "templates",
+        "stacked-blocks",
+        "custom-data",
+        "unsupported-data",
         "flags",
-        "block-value-settings"
+        "block-value-settings",
+        "rollback-plan",
+        "downtime-estimate"
     );
     public static final List<String> REQUIRED_PIPELINE_STEPS = List.of(
         "read-only-scan",
@@ -48,8 +60,10 @@ public final class MigrationSafetyPolicy {
     public static final List<String> REQUIRED_ADMIN_COMMANDS = List.of(
         "/ciadmin migrate-superiorskyblock2 scan",
         "/ciadmin migrate-superiorskyblock2 dryrun",
+        "/ciadmin migrate-superiorskyblock2 report",
         "/ciadmin migrate-superiorskyblock2 import",
         "/ciadmin migrate-superiorskyblock2 verify",
+        "/ciadmin migrate-superiorskyblock2 compare",
         "/ciadmin migrate-superiorskyblock2 rollback"
     );
     public static final String CHECKSUM_POLICY = "sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot";

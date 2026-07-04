@@ -37,6 +37,10 @@ class MigrationAdminServiceTest {
         String client = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkMigrationCommandClient.java"));
 
         assertTrue(backend.contains("scan,dryrun,report,import,verify,compare,rollback"));
+        assertTrue(backend.contains("bank-balance,upgrades,missions,ratings,generators,limits,schematics,templates,stacked-blocks,custom-data,unsupported-data"), "migration target field contract must cover the full edit.md report surface");
+        assertTrue(backend.contains("unsupportedFieldCount"), "migration JSON reports must expose unsupported field count");
+        assertTrue(backend.contains("migrationDowntimeEstimatePolicy"), "migration reports must expose downtime planning evidence");
+        assertTrue(backend.contains("migrationStackedCustomDataPolicy"), "migration reports must name stacked/custom/template/schematic coverage policy");
         assertTrue(backend.contains("public synchronized String report()"));
         assertTrue(backend.contains("public synchronized String compare(String islandKey)"));
         assertTrue(backend.contains("compareImportedManifest(MigrationManifest manifest)"));

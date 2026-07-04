@@ -33,6 +33,10 @@ tasks.register("verifyMigrationFixtures") {
         if (!safetyText.contains("rollbackTargetVerified")) {
             throw GradleException("SS2 migration safety policy must verify rollback targets")
         }
+        listOf("ratings", "generators", "schematics", "templates", "stacked-blocks", "custom-data", "unsupported-data", "downtime-estimate")
+            .filterNot(safetyText::contains)
+            .takeIf { it.isNotEmpty() }
+            ?.let { missingTargets -> throw GradleException("SS2 migration target field coverage missing: ${missingTargets.joinToString(", ")}") }
         migrationJsonReport.get().asFile.parentFile.mkdirs()
         val generatedAt = java.time.Instant.now().toString()
         fun jsonEscape(value: String): String = buildString {
@@ -76,11 +80,20 @@ tasks.register("verifyMigrationFixtures") {
                     "unsupportedPermissions",
                     "unsupportedMissions",
                     "unsupportedUpgrades",
+                    "unsupportedFields",
                     "bankBalanceMappings",
+                    "ratings",
+                    "generators",
+                    "limits",
+                    "schematics",
+                    "templates",
+                    "stackedBlocks",
+                    "customData",
                     "blockWorthMappings",
                     "warpMappings",
                     "roleMappings",
-                    "rollbackPossible"
+                    "rollbackPossible",
+                    "downtimeEstimatePolicy"
                 ).forEachIndexed { index, field ->
                     if (index > 0) append(",")
                     append("\"${jsonEscape(field)}\"")

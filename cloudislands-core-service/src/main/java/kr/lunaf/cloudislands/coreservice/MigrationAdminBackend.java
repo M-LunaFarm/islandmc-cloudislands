@@ -55,7 +55,7 @@ import kr.lunaf.cloudislands.migration.world.MigrationWorldExtractor;
 
 final class MigrationAdminBackend {
     static final String MIGRATION_SNAPSHOT_REASON = "BEFORE_MIGRATION:SUPERIORSKYBLOCK2_IMPORT";
-    static final String MIGRATION_TARGET_FIELDS = "island-id,owner-uuid,members,roles,permissions,island-location,island-size,homes,warps,banned-visitors,level,worth,upgrades,flags,block-values";
+    static final String MIGRATION_TARGET_FIELDS = "island-id,owner-uuid,members,roles,permissions,island-location,island-size,homes,warps,banned-visitors,level,worth,bank-balance,upgrades,missions,ratings,generators,limits,schematics,templates,stacked-blocks,custom-data,unsupported-data,flags,block-values,rollback-plan,downtime-estimate";
     static final String MIGRATION_PIPELINE_STEPS = "read-only-scan,manifest-generate,dry-run,conflict-report,admin-approval,db-import,world-cell-extract,island-bundle-create,checksum-verify,cloudislands-activation-test";
     static final String MIGRATION_COMMAND_SET = "scan,dryrun,report,import,verify,compare,rollback";
     private final IslandRepository islands;
@@ -782,6 +782,10 @@ final class MigrationAdminBackend {
             + ",\"unknownFlagCount\":" + report.unknownFlagCount()
             + ",\"blockValueConversionFailureCount\":" + report.blockValueConversionFailureCount()
             + ",\"bankEconomyConversionFailureCount\":" + report.bankEconomyConversionFailureCount()
+            + ",\"unsupportedFieldCount\":" + report.unsupportedFieldCount()
+            + ",\"migrationUnsupportedDataPolicy\":\"unsupported-source-fields-are-reported-with-blocking-or-warning-issues-before-import\""
+            + ",\"migrationStackedCustomDataPolicy\":\"stacked-blocks-custom-data-ratings-generators-schematics-and-templates-are-explicit-target-fields-or-unsupported-data\""
+            + ",\"migrationDowntimeEstimatePolicy\":\"report-scan-dryrun-import-verify-rollback-paths-and-world-bundle-counts-for-operator-downtime-planning\""
             + ",\"worldBundleChecksumFailureCount\":" + report.worldBundleChecksumFailureCount()
             + ",\"cloudIslandsPostImportDifferenceCount\":" + report.cloudIslandsPostImportDifferenceCount()
             + ",\"rollbackPossible\":" + report.rollbackPossible();
