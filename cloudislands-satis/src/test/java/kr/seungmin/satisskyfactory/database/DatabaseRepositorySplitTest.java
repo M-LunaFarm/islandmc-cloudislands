@@ -60,4 +60,26 @@ class DatabaseRepositorySplitTest {
         assertTrue(repository.contains("INSERT INTO resource_nodes"));
         assertTrue(repository.contains("SELECT * FROM resource_nodes WHERE island_uuid = ?"));
     }
+
+    @Test
+    void researchUnlockSqlLivesInResearchRepository() throws Exception {
+        String databaseService = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/DatabaseService.java"));
+        String repository = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/ResearchRepository.java"));
+
+        assertTrue(databaseService.contains("private final ResearchRepository researchRepository"));
+        assertTrue(databaseService.contains("return researchRepository.loadUnlocks(islandUuid);"));
+        assertTrue(databaseService.contains("researchRepository.saveUnlock(islandUuid, unlockId);"));
+        assertTrue(databaseService.contains("researchRepository.unlockEntries(islandUuid)"));
+        assertFalse(databaseService.contains("INSERT INTO island_unlocks"));
+        assertFalse(databaseService.contains("INSERT IGNORE INTO island_unlocks"));
+        assertFalse(databaseService.contains("INSERT OR IGNORE INTO island_unlocks"));
+        assertFalse(databaseService.contains("SELECT unlock_id FROM island_unlocks WHERE island_uuid = ?"));
+        assertFalse(databaseService.contains("SELECT unlock_id, unlocked_at FROM island_unlocks WHERE island_uuid = ?"));
+
+        assertTrue(repository.contains("INSERT INTO island_unlocks"));
+        assertTrue(repository.contains("INSERT IGNORE INTO island_unlocks"));
+        assertTrue(repository.contains("INSERT OR IGNORE INTO island_unlocks"));
+        assertTrue(repository.contains("SELECT unlock_id FROM island_unlocks WHERE island_uuid = ?"));
+        assertTrue(repository.contains("SELECT unlock_id, unlocked_at FROM island_unlocks WHERE island_uuid = ?"));
+    }
 }

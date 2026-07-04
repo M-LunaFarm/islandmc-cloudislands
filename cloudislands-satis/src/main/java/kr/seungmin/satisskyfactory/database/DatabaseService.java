@@ -24,7 +24,6 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -108,6 +107,7 @@ public final class DatabaseService {
     private final FactoryIslandRepository factoryIslandRepository;
     private final VirtualInventoryRepository virtualInventoryRepository;
     private final ResourceNodeRepository resourceNodeRepository;
+    private final ResearchRepository researchRepository;
     private HikariDataSource dataSource;
     private StorageBackend activeBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
@@ -166,6 +166,7 @@ public final class DatabaseService {
         this.factoryIslandRepository = new FactoryIslandRepository(this);
         this.virtualInventoryRepository = new VirtualInventoryRepository(this);
         this.resourceNodeRepository = new ResourceNodeRepository(this);
+        this.researchRepository = new ResearchRepository(this);
     }
 
     public void open() {
@@ -577,19 +578,10 @@ public final class DatabaseService {
 
     private java.util.Map<String, String> unlockRows(UUID islandUuid) {
         java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT unlock_id, unlocked_at FROM island_unlocks WHERE island_uuid = ?")) {
-            statement.setString(1, islandUuid.toString());
-            try (ResultSet rs = statement.executeQuery()) {
-                while (rs.next()) {
-                    String unlockId = rs.getString("unlock_id");
-                    rows.put(unlockId, unlockJson(islandUuid, unlockId, rs.getLong("unlocked_at")));
-                }
-            }
-            return rows;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to publish unlock core state", exception);
+        for (ResearchRepository.UnlockEntry entry : researchRepository.unlockEntries(islandUuid)) {
+            rows.put(entry.unlockId(), unlockJson(islandUuid, entry.unlockId(), entry.unlockedAt()));
         }
+        return rows;
     }
 
     private java.util.Map<String, String> marketPersonalRows(UUID islandUuid) {
@@ -659,6 +651,10 @@ public final class DatabaseService {
 
     boolean usesMysqlDialect() {
         return sqlDialect == SqlDialect.MYSQL;
+    }
+
+    boolean usesPostgresqlDialect() {
+        return sqlDialect == SqlDialect.POSTGRESQL;
     }
 
     public List<MachineInstance> loadMachines() {
@@ -1627,32 +1623,12 @@ public final class DatabaseService {
     }
 
     public Set<String> loadUnlocks(UUID islandUuid) {
-        Set<String> unlocks = new HashSet<>();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT unlock_id FROM island_unlocks WHERE island_uuid = ?")) {
-            statement.setString(1, islandUuid.toString());
-            try (ResultSet rs = statement.executeQuery()) {
-                while (rs.next()) {
-                    unlocks.add(rs.getString("unlock_id"));
-                }
-            }
-            return unlocks;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to load unlocks", exception);
-        }
+        return researchRepository.loadUnlocks(islandUuid);
     }
 
     public void saveUnlock(UUID islandUuid, String unlockId) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement(saveUnlockSql())) {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, unlockId);
-            statement.setLong(3, Instant.now().toEpochMilli());
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to save unlock", exception);
-        }
-        publishCoreRow(islandUuid, IslandAddonService.tableStateKey("island_unlocks", unlockId), unlockJson(islandUuid, unlockId));
+        long unlockedAt = researchRepository.saveUnlock(islandUuid, unlockId);
+        publishCoreRow(islandUuid, IslandAddonService.tableStateKey("island_unlocks", unlockId), unlockJson(islandUuid, unlockId, unlockedAt));
     }
 
     private void publishCoreRow(UUID islandUuid, String key, String value) {
@@ -1982,26 +1958,6 @@ public final class DatabaseService {
 
     private String escape(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
-    private String saveUnlockSql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                     INSERT IGNORE INTO island_unlocks(island_uuid, unlock_id, unlocked_at)
-                     VALUES(?, ?, ?)
-                    """;
-        }
-        if (sqlDialect == SqlDialect.POSTGRESQL) {
-            return """
-                     INSERT INTO island_unlocks(island_uuid, unlock_id, unlocked_at)
-                     VALUES(?, ?, ?)
-                     ON CONFLICT(island_uuid, unlock_id) DO NOTHING
-                    """;
-        }
-        return """
-                     INSERT OR IGNORE INTO island_unlocks(island_uuid, unlock_id, unlocked_at)
-                     VALUES(?, ?, ?)
-                    """;
     }
 
     private UUID uuidOrNull(String value) {
