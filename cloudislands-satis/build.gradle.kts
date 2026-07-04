@@ -199,31 +199,50 @@ tasks.register("verifyRuntimeComponentCoverage") {
     dependsOn(tasks.named("test"))
     val pluginSource = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java")
     val featureRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisFeatureRuntime.java")
+    val commandRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisCommandRuntime.java")
     val componentPlan = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeComponentPlan.java")
     val featureRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisFeatureRuntimeTest.java")
+    val commandRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisCommandRuntimeTest.java")
     val componentPlanTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeComponentPlanTest.java")
-    inputs.files(pluginSource, featureRuntime, componentPlan, featureRuntimeTest, componentPlanTest)
+    inputs.files(pluginSource, featureRuntime, commandRuntime, componentPlan, featureRuntimeTest, commandRuntimeTest, componentPlanTest)
     doLast {
         val plugin = pluginSource.asFile.readText()
         val runtime = featureRuntime.asFile.readText()
-        val tests = featureRuntimeTest.asFile.readText() + "\n" + componentPlanTest.asFile.readText()
+        val commandRuntimeSource = commandRuntime.asFile.readText()
+        val tests = featureRuntimeTest.asFile.readText() + "\n" + commandRuntimeTest.asFile.readText() + "\n" + componentPlanTest.asFile.readText()
         val missingRuntime = listOf(
             "public final class SatisFeatureRuntime",
             "public SatisRuntimeComponentPlan plan(ComponentSnapshot snapshot)",
             "public record ComponentSnapshot"
         ).filterNot(runtime::contains)
+        val missingCommandRuntime = listOf(
+            "public final class SatisCommandRuntime",
+            "public CommandRegistrationResult bindPluginCommand",
+            "public void unregisterPluginCommand(String commandName)",
+            "private Optional<CommandMap> commandMap()"
+        ).filterNot(commandRuntimeSource::contains)
         val missingPluginWiring = listOf(
+            "private final SatisCommandRuntime commandRuntime",
+            "commandRuntime.bindPluginCommand(\"factory\"",
+            "commandRuntime.unregisterPluginCommand(\"factory\")",
             "private final SatisFeatureRuntime featureRuntime",
             "featureRuntime.plan(new SatisFeatureRuntime.ComponentSnapshot"
         ).filterNot(plugin::contains)
+        val forbiddenPluginCommandMap = listOf(
+            "getMethod(\"getCommandMap\")",
+            "private java.util.Optional<org.bukkit.command.CommandMap> commandMap()"
+        ).filter(plugin::contains)
         val missingTests = listOf(
             "buildsComponentPlanForFeatureGateRuntime",
             "cloudIslandsApiMissingBlocksStandaloneRuntime",
+            "commandRegistrationResultReportsMissingCommandsAsInactive",
             "addonDisabledSkipsEveryActiveRuntimeComponent"
         ).filterNot(tests::contains)
         val failures = buildList {
             if (missingRuntime.isNotEmpty()) add("Satis feature runtime component missing: ${missingRuntime.joinToString(", ")}")
+            if (missingCommandRuntime.isNotEmpty()) add("Satis command runtime component missing: ${missingCommandRuntime.joinToString(", ")}")
             if (missingPluginWiring.isNotEmpty()) add("Satis plugin must delegate runtime component planning: ${missingPluginWiring.joinToString(", ")}")
+            if (forbiddenPluginCommandMap.isNotEmpty()) add("Satis plugin still owns Bukkit command map access: ${forbiddenPluginCommandMap.joinToString(", ")}")
             if (missingTests.isNotEmpty()) add("Satis runtime component tests missing: ${missingTests.joinToString(", ")}")
         }
         if (failures.isNotEmpty()) {

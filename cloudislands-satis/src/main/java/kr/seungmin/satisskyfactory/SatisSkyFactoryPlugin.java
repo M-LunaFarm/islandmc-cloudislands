@@ -95,6 +95,7 @@ import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
+import kr.seungmin.satisskyfactory.runtime.SatisCommandRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisFeatureRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
@@ -107,7 +108,6 @@ import kr.seungmin.satisskyfactory.storage.VirtualInventory;
 import kr.seungmin.satisskyfactory.task.DirtySaveService;
 import kr.seungmin.satisskyfactory.task.MachineTickService;
 import kr.seungmin.satisskyfactory.task.MaintenanceTickService;
-import org.bukkit.command.PluginCommand;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -166,6 +166,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean addonRuntimeEnabled;
     private boolean cloudIslandsApiMissing;
     private boolean commandsRegistered;
+    private final SatisCommandRuntime commandRuntime = new SatisCommandRuntime(this);
     private final SatisFeatureRuntime featureRuntime = new SatisFeatureRuntime();
     private boolean machineListenerRegistered;
     private boolean guiListenerRegistered;
@@ -1265,34 +1266,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 commandListPageSize(),
                 this::reloadPluginConfig
         );
-        boolean registered = false;
-        PluginCommand factory = getCommand("factory");
-        if (factory != null) {
-            ensureCommandRegistered(factory);
-            factory.setExecutor(command);
-            factory.setTabCompleter(command);
-            registered = factory.isRegistered();
-        }
-        PluginCommand sfactory = getCommand("sfactory");
-        if (sfactory != null) {
-            ensureCommandRegistered(sfactory);
-            sfactory.setExecutor(command);
-            sfactory.setTabCompleter(command);
-            registered = registered || sfactory.isRegistered();
-        }
+        boolean registered = commandRuntime.bindPluginCommand("factory", command, command).registered();
+        registered = registered || commandRuntime.bindPluginCommand("sfactory", command, command).registered();
         commandsRegistered = registered;
     }
 
-    private void ensureCommandRegistered(PluginCommand command) {
-        if (command == null || command.isRegistered()) {
-            return;
-        }
-        commandMap().ifPresent(map -> map.register(getDescription().getName().toLowerCase(Locale.ROOT), command));
-    }
-
     private void unregisterAddonCommands() {
-        unregisterPluginCommand(getCommand("factory"));
-        unregisterPluginCommand(getCommand("sfactory"));
+        commandRuntime.unregisterPluginCommand("factory");
+        commandRuntime.unregisterPluginCommand("sfactory");
         commandsRegistered = false;
     }
 
@@ -1308,29 +1289,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             configured = configs.main().getInt("commands.list-page-size", 0);
         }
         return configured > 0 ? configured : CommandListPolicy.DEFAULT_PAGE_SIZE;
-    }
-
-    private void unregisterPluginCommand(PluginCommand command) {
-        if (command == null) {
-            return;
-        }
-        command.setExecutor((_sender, _command, _label, _args) -> true);
-        command.setTabCompleter((_sender, _command, _alias, _args) -> java.util.List.of());
-        if (command.isRegistered()) {
-            commandMap().ifPresent(command::unregister);
-        }
-    }
-
-    private java.util.Optional<org.bukkit.command.CommandMap> commandMap() {
-        try {
-            Object value = getServer().getClass().getMethod("getCommandMap").invoke(getServer());
-            if (value instanceof org.bukkit.command.CommandMap map) {
-                return java.util.Optional.of(map);
-            }
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            getLogger().warning("Failed to access Bukkit command map for Satis command exposure: " + exception.getMessage());
-        }
-        return java.util.Optional.empty();
     }
 
     private void registerListeners() {
