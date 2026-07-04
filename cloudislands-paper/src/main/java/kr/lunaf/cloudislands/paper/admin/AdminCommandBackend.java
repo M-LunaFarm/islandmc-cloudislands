@@ -41,6 +41,7 @@ import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
 import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
@@ -234,6 +235,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Upgrade rules", coreApiClient.progression().upgradeRules().thenApply(this::upgradeRulesMessage));
             return true;
         }
+        if (gameplayModifierCommand(args[0])) {
+            return handleGameplayModifier(sender, args);
+        }
         if (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) {
             return handleTemplate(sender, args);
         }
@@ -347,6 +351,21 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 6 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
             return matches(List.of("0", "64", "256"), args[5]);
+        }
+        if (args.length == 2 && gameplayModifierCommand(args[0])) {
+            return matches(onlinePlayerNames(), args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("seteffect")) {
+            return matches(List.of("SPEED", "HASTE", "JUMP_BOOST", "NIGHT_VISION", "REGENERATION"), args[2]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("setblockamount")) {
+            return matches(BLOCK_VALUE_MATERIALS, args[2]);
+        }
+        if (args.length == 3 && rateModifierCommand(args[0])) {
+            return matches(List.of("50", "100", "150", "200"), args[2]);
+        }
+        if (args.length == 4 && (args[0].equalsIgnoreCase("seteffect") || args[0].equalsIgnoreCase("setblockamount"))) {
+            return matches(List.of("0", "1", "2", "3", "100"), args[3]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates"))) {
             return matches(TEMPLATE_COMMANDS, args[1]);
@@ -1311,6 +1330,56 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleGameplayModifier(CommandSender sender, String[] args) {
+        if (args[0].equalsIgnoreCase("setblockamount")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of("/ciadmin setblockamount <island> <materialKey> <amount>"));
+                return true;
+            }
+            resolveIslandUuid(sender, args[1]).thenAccept(islandId -> {
+                if (islandId == null) {
+                    return;
+                }
+                UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
+                run(sender, "Set block amount", coreApiClient.environmentCommands().setLimit(islandId, actorUuid, "BLOCK_AMOUNT:" + normalizeGameplayKey(args[2]), number(args[3], 0L)).thenApply(result -> gameplayModifierMessage("Set block amount", result)));
+            });
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("seteffect")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of("/ciadmin seteffect <island> <effectKey> <amplifier>"));
+                return true;
+            }
+            resolveIslandUuid(sender, args[1]).thenAccept(islandId -> {
+                if (islandId == null) {
+                    return;
+                }
+                UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
+                run(sender, "Set island effect", coreApiClient.environmentCommands().setLimit(islandId, actorUuid, "EFFECT:" + normalizeGameplayKey(args[2]), number(args[3], 0L)).thenApply(result -> gameplayModifierMessage("Set island effect", result)));
+            });
+            return true;
+        }
+        if (rateModifierCommand(args[0])) {
+            if (args.length < 3) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin setcropgrowth <island> <percent>",
+                    "/ciadmin setmobdrops <island> <percent>",
+                    "/ciadmin setspawnerrates <island> <percent>"
+                ));
+                return true;
+            }
+            resolveIslandUuid(sender, args[1]).thenAccept(islandId -> {
+                if (islandId == null) {
+                    return;
+                }
+                UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
+                run(sender, gameplayModifierLabel(args[0]), coreApiClient.environmentCommands().setLimit(islandId, actorUuid, gameplayModifierLimitKey(args[0]), number(args[2], 100L)).thenApply(result -> gameplayModifierMessage(gameplayModifierLabel(args[0]), result)));
+            });
+            return true;
+        }
+        return false;
+    }
+
     private boolean handleTemplate(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
             run(sender, "Template list", coreApiClient.templates().list().thenApply(this::templateListMessage));
@@ -1979,6 +2048,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         String resolvedTarget = result.materialKey().isBlank() ? targetId : result.materialKey();
         return label + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=") + shortId(resolvedTarget);
+    }
+
+    private String gameplayModifierMessage(String label, EnvironmentActionView result) {
+        return label
+            + " accepted=" + result.accepted()
+            + " code=" + result.code()
+            + " key=" + result.key()
+            + " value=" + result.value()
+            + " island=" + shortId(result.islandId());
     }
 
     private String templateListMessage(List<TemplateView> templates) {
@@ -2908,7 +2986,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "";
         }
         return switch (root) {
-            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }
@@ -2940,6 +3018,49 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             || value.equalsIgnoreCase("command-list")
             || value.equals("명령어")
             || value.equals("명령어목록");
+    }
+
+    private boolean gameplayModifierCommand(String value) {
+        return value.equalsIgnoreCase("setblockamount")
+            || value.equalsIgnoreCase("seteffect")
+            || rateModifierCommand(value);
+    }
+
+    private boolean rateModifierCommand(String value) {
+        return value.equalsIgnoreCase("setcropgrowth")
+            || value.equalsIgnoreCase("setmobdrops")
+            || value.equalsIgnoreCase("setspawnerrates");
+    }
+
+    private String gameplayModifierLimitKey(String command) {
+        if (command.equalsIgnoreCase("setcropgrowth")) {
+            return "RATE:CROP_GROWTH";
+        }
+        if (command.equalsIgnoreCase("setmobdrops")) {
+            return "RATE:MOB_DROPS";
+        }
+        if (command.equalsIgnoreCase("setspawnerrates")) {
+            return "RATE:SPAWNER_RATES";
+        }
+        return "RATE:UNKNOWN";
+    }
+
+    private String gameplayModifierLabel(String command) {
+        if (command.equalsIgnoreCase("setcropgrowth")) {
+            return "Set crop growth";
+        }
+        if (command.equalsIgnoreCase("setmobdrops")) {
+            return "Set mob drops";
+        }
+        if (command.equalsIgnoreCase("setspawnerrates")) {
+            return "Set spawner rates";
+        }
+        return "Set gameplay modifier";
+    }
+
+    private String normalizeGameplayKey(String value) {
+        String normalized = value == null ? "" : value.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9_.:-]+", "_");
+        return normalized.isBlank() ? "UNKNOWN" : normalized;
     }
 
     private UUID uuid(CommandSender sender, String value) {

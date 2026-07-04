@@ -189,6 +189,26 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             playerProgression.listUpgradeRules(player);
             return;
         }
+        if (args.length >= 4 && args[0].equalsIgnoreCase("setblockamount")) {
+            adminActions.setGameplayBlockAmount(player, args[1], args[2], parseLongOrZero(args[3]));
+            return;
+        }
+        if (args.length >= 4 && args[0].equalsIgnoreCase("seteffect")) {
+            adminActions.setGameplayEffect(player, args[1], args[2], parseLongOrZero(args[3]));
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("setcropgrowth")) {
+            adminActions.setGameplayRate(player, args[1], "RATE:CROP_GROWTH", parseLongOrZero(args[2]));
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("setmobdrops")) {
+            adminActions.setGameplayRate(player, args[1], "RATE:MOB_DROPS", parseLongOrZero(args[2]));
+            return;
+        }
+        if (args.length >= 3 && args[0].equalsIgnoreCase("setspawnerrates")) {
+            adminActions.setGameplayRate(player, args[1], "RATE:SPAWNER_RATES", parseLongOrZero(args[2]));
+            return;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
             adminActions.reload(player);
             return;

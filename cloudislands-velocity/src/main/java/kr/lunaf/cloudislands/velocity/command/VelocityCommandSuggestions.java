@@ -138,6 +138,21 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
         if (args.length == 6 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("set")) {
             addLiteralSuggestions(matches, args[5], List.of("0", "64", "256"));
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("setblockamount")) {
+            addLiteralSuggestions(matches, args[2], List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner"));
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("setblockamount")) {
+            addLiteralSuggestions(matches, args[3], List.of("1", "64", "256", "1000"));
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("seteffect")) {
+            addLiteralSuggestions(matches, args[2], List.of("SPEED", "HASTE", "JUMP_BOOST", "NIGHT_VISION", "REGENERATION"));
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("seteffect")) {
+            addLiteralSuggestions(matches, args[3], List.of("0", "1", "2", "3"));
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("setcropgrowth") || args[0].equalsIgnoreCase("setmobdrops") || args[0].equalsIgnoreCase("setspawnerrates"))) {
+            addLiteralSuggestions(matches, args[2], List.of("50", "100", "150", "200"));
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("recover")) {
             addLiteralSuggestions(matches, args[2], List.of("recovery"));
         }
@@ -209,7 +224,7 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             return "";
         }
         return switch (root) {
-            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "support-bundle", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }

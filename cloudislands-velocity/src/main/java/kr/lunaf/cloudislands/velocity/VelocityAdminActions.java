@@ -341,8 +341,28 @@ public final class VelocityAdminActions extends VelocityActionSupport {
         sendTextResult(player, coreApiClient.blockValueCommands().set(player.getUniqueId(), materialKey, worth, levelPoints, limit).thenApply(result -> islandMessages.actionResult("Block value set", materialKey, result)), "블록 가치를 변경하지 못했습니다.");
     }
 
+    public void setGameplayBlockAmount(Player player, String target, String materialKey, long amount) {
+        adminIslandTarget(player, target, islandId ->
+            sendTextResult(player, coreApiClient.environmentCommands().setLimit(islandId, player.getUniqueId(), "BLOCK_AMOUNT:" + normalizeGameplayKey(materialKey), amount).thenApply(result -> islandMessages.environmentAction("Set block amount", result)), "블록 수량을 변경하지 못했습니다."));
+    }
+
+    public void setGameplayEffect(Player player, String target, String effectKey, long amplifier) {
+        adminIslandTarget(player, target, islandId ->
+            sendTextResult(player, coreApiClient.environmentCommands().setLimit(islandId, player.getUniqueId(), "EFFECT:" + normalizeGameplayKey(effectKey), amplifier).thenApply(result -> islandMessages.environmentAction("Set island effect", result)), "섬 효과를 변경하지 못했습니다."));
+    }
+
+    public void setGameplayRate(Player player, String target, String rateKey, long percent) {
+        adminIslandTarget(player, target, islandId ->
+            sendTextResult(player, coreApiClient.environmentCommands().setLimit(islandId, player.getUniqueId(), rateKey, percent).thenApply(result -> islandMessages.environmentAction("Set gameplay rate", result)), "섬 런타임 배율을 변경하지 못했습니다."));
+    }
+
     public void reload(Player player) {
         sendTextResult(player, coreApiClient.adminMaintenance().reload().thenApply(result -> coreStatusMessages.maintenance("Core reload", result)), "reload를 요청하지 못했습니다.");
+    }
+
+    private static String normalizeGameplayKey(String value) {
+        String normalized = value == null ? "" : value.trim().toUpperCase(java.util.Locale.ROOT).replaceAll("[^A-Z0-9_.:-]+", "_");
+        return normalized.isBlank() ? "UNKNOWN" : normalized;
     }
 
     public void migrateSuperiorSkyblock2(Player player, String action, String path) {

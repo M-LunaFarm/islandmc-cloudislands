@@ -136,6 +136,11 @@ class IslandCommandCatalogTest {
                 "ciadmin integrations",
                 "ciadmin support-bundle create",
                 "ciadmin block-values reload",
+                "ciadmin setblockamount <island> <materialKey> <amount>",
+                "ciadmin seteffect <island> <effectKey> <amplifier>",
+                "ciadmin setcropgrowth <island> <percent>",
+                "ciadmin setmobdrops <island> <percent>",
+                "ciadmin setspawnerrates <island> <percent>",
                 "ciadmin template seticon <name> <material>",
                 "ciadmin template setcost <name> <amount>",
                 "ciadmin template setpermission <name> <permission>",
@@ -195,6 +200,14 @@ class IslandCommandCatalogTest {
         assertTrue(actions.contains("coreApiClient.adminSupportBundle().create()"), "Support bundle must use typed Core support-bundle client");
         assertTrue(dispatcher.contains("args[1].equalsIgnoreCase(\"reload\")"), "Velocity block-values reload must route explicitly");
         assertTrue(actions.contains("coreApiClient.adminMaintenance().reload()"), "Velocity block-values reload must use the typed Core maintenance reload boundary");
+        assertTrue(dispatcher.contains("adminActions.setGameplayBlockAmount(player"), "Velocity setblockamount must route explicitly");
+        assertTrue(dispatcher.contains("adminActions.setGameplayEffect(player"), "Velocity seteffect must route explicitly");
+        assertTrue(dispatcher.contains("adminActions.setGameplayRate(player, args[1], \"RATE:CROP_GROWTH\""), "Velocity setcropgrowth must route explicitly");
+        assertTrue(dispatcher.contains("adminActions.setGameplayRate(player, args[1], \"RATE:MOB_DROPS\""), "Velocity setmobdrops must route explicitly");
+        assertTrue(dispatcher.contains("adminActions.setGameplayRate(player, args[1], \"RATE:SPAWNER_RATES\""), "Velocity setspawnerrates must route explicitly");
+        assertTrue(actions.contains("coreApiClient.environmentCommands().setLimit"), "Velocity gameplay parity commands must write Core-visible runtime modifiers");
+        assertTrue(actions.contains("\"BLOCK_AMOUNT:\" + normalizeGameplayKey"), "Velocity setblockamount must store a namespaced block amount key");
+        assertTrue(actions.contains("\"EFFECT:\" + normalizeGameplayKey"), "Velocity seteffect must store a namespaced effect key");
         assertTrue(actions.contains("writeSupportBundle"), "Velocity support bundle must write a local operator artifact");
         assertTrue(actions.contains("cloudislands-velocity-support-bundle-") && actions.contains(".zip"), "Velocity support bundle must be packaged as a zip bundle");
         assertTrue(actions.contains("core-support-bundle.json"), "Velocity support bundle must include the redacted Core bundle");

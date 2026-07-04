@@ -152,6 +152,16 @@ permissions:
     default: op
   cloudislands.admin.upgrade-rules:
     default: op
+  cloudislands.admin.setblockamount:
+    default: op
+  cloudislands.admin.seteffect:
+    default: op
+  cloudislands.admin.setcropgrowth:
+    default: op
+  cloudislands.admin.setmobdrops:
+    default: op
+  cloudislands.admin.setspawnerrates:
+    default: op
   cloudislands.admin.templates:
     default: op
   cloudislands.admin.migrate-superiorskyblock2:

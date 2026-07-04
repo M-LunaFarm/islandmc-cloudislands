@@ -348,6 +348,40 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void gameplayParityAdminModifiersUseCoreVisibleLimitKeys() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String adminSurface = source + "\n" + catalog;
+
+        for (String command : List.of(
+            "ciadmin setblockamount <island> <materialKey> <amount>",
+            "ciadmin seteffect <island> <effectKey> <amplifier>",
+            "ciadmin setcropgrowth <island> <percent>",
+            "ciadmin setmobdrops <island> <percent>",
+            "ciadmin setspawnerrates <island> <percent>"
+        )) {
+            assertTrue(adminSurface.contains(command), command);
+        }
+        assertTrue(source.contains("handleGameplayModifier"), "Gameplay parity commands must route through a dedicated handler");
+        assertTrue(source.contains("coreApiClient.environmentCommands().setLimit"), "Gameplay parity commands must write Core-visible runtime modifiers");
+        assertTrue(source.contains("\"BLOCK_AMOUNT:\" + normalizeGameplayKey"), "setblockamount must store a namespaced block amount key");
+        assertTrue(source.contains("\"EFFECT:\" + normalizeGameplayKey"), "seteffect must store a namespaced effect key");
+        assertTrue(source.contains("\"RATE:CROP_GROWTH\""), "setcropgrowth must write the crop growth rate key");
+        assertTrue(source.contains("\"RATE:MOB_DROPS\""), "setmobdrops must write the mob drop rate key");
+        assertTrue(source.contains("\"RATE:SPAWNER_RATES\""), "setspawnerrates must write the spawner rate key");
+        for (String permission : List.of(
+            "cloudislands.admin.setblockamount",
+            "cloudislands.admin.seteffect",
+            "cloudislands.admin.setcropgrowth",
+            "cloudislands.admin.setmobdrops",
+            "cloudislands.admin.setspawnerrates"
+        )) {
+            assertTrue(plugin.contains(permission), permission);
+        }
+    }
+
+    @Test
     void adminUpgradeRulesUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
 
