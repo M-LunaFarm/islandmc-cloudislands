@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.velocity;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.scheduler.ScheduledTask;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
@@ -71,6 +72,14 @@ public final class VelocityRoutingController {
     }
 
     public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, boolean hideNodeNames, String islandPool, int routeTicketTtlSeconds, VelocityMessages messages, CoreEventCodec eventCodec) {
+        this(proxy, coreApiClient, fallbackServer, routeWaitSeconds, useActionBar, useBossBarLoading, hideNodeNames, islandPool, routeTicketTtlSeconds, messages, eventCodec, Path.of("."));
+    }
+
+    public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, boolean hideNodeNames, String islandPool, int routeTicketTtlSeconds, VelocityMessages messages, Path dataDirectory) {
+        this(proxy, coreApiClient, fallbackServer, routeWaitSeconds, useActionBar, useBossBarLoading, hideNodeNames, islandPool, routeTicketTtlSeconds, messages, new CoreEventJsonCodec(), dataDirectory);
+    }
+
+    public VelocityRoutingController(ProxyServer proxy, CoreApiClient coreApiClient, String fallbackServer, int routeWaitSeconds, boolean useActionBar, boolean useBossBarLoading, boolean hideNodeNames, String islandPool, int routeTicketTtlSeconds, VelocityMessages messages, CoreEventCodec eventCodec, Path dataDirectory) {
         this.proxy = proxy;
         this.fallbackServer = fallbackServer;
         this.routeWaitSeconds = Math.max(1, routeWaitSeconds);
@@ -91,7 +100,7 @@ public final class VelocityRoutingController {
         RouteTicketRouter routeTickets = new RouteTicketRouter(coreApiClient, this.routeWaitSeconds, this.messages, metrics, fallbackService, progressPresenter);
         VelocityTargetResolver targetResolver = new VelocityTargetResolver(coreApiClient, name -> proxy.getPlayer(name).map(Player::getUniqueId));
         PendingRouteService pendingRoutes = new PendingRouteService(coreApiClient, fallbackService, metrics, this::playerComponent);
-        this.actions = new VelocityRoutingActions(coreApiClient, hideNodeNames, this.messages, routePrivacy, fallbackService, progressPresenter, routeRequestGuard, routeTickets, targetResolver, pendingRoutes, this::statusSummary);
+        this.actions = new VelocityRoutingActions(coreApiClient, hideNodeNames, this.messages, routePrivacy, fallbackService, progressPresenter, routeRequestGuard, routeTickets, targetResolver, pendingRoutes, dataDirectory, this::statusSummary);
     }
 
     public VelocityRoutingActions actions() {

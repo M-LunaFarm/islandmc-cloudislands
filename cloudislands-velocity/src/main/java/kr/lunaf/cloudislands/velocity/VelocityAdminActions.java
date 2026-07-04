@@ -3,9 +3,16 @@ package kr.lunaf.cloudislands.velocity;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 
 import com.velocitypowered.api.proxy.Player;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import net.kyori.adventure.text.Component;
 
@@ -44,7 +51,7 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     }
 
     public void supportBundle(Player player) {
-        sendTextResult(player, coreApiClient.adminSupportBundle().create().thenApply(body -> "Support bundle: core payload bytes=" + safeLength(body) + " redacted=true"), "Support bundle을 생성하지 못했습니다.");
+        sendTextResult(player, coreApiClient.adminSupportBundle().create().thenApply(this::writeSupportBundle), "Support bundle을 생성하지 못했습니다.");
     }
 
     public void listJobs(Player player) {
@@ -487,7 +494,33 @@ public final class VelocityAdminActions extends VelocityActionSupport {
         return "PASS";
     }
 
-    private static int safeLength(String value) {
-        return value == null ? 0 : value.length();
+    private String writeSupportBundle(String coreBundleJson) {
+        try {
+            Path directory = dataDirectory.resolve("support-bundles");
+            Files.createDirectories(directory);
+            String timestamp = Instant.now().toString().replace(':', '-');
+            Path report = directory.resolve("cloudislands-velocity-support-bundle-" + timestamp + ".zip");
+            String redacted = VelocityDiagnosticRedactor.redact(coreBundleJson == null ? "{}" : coreBundleJson);
+            try (ZipOutputStream zip = new ZipOutputStream(Files.newOutputStream(report))) {
+                writeZipEntry(zip, "core-support-bundle.json", redacted);
+                writeZipEntry(zip, "velocity-runtime.txt", velocityRuntimeManifest());
+            }
+            return "Support bundle created: " + report;
+        } catch (IOException exception) {
+            return "Support bundle failed: " + exception.getMessage();
+        }
+    }
+
+    private String velocityRuntimeManifest() {
+        return "generatedAt=" + Instant.now() + '\n'
+            + "pluginVersion=" + BuildInfo.VERSION + '\n'
+            + "hideNodeNames=" + hideNodeNames + '\n'
+            + "dataDirectory=" + dataDirectory + '\n';
+    }
+
+    private static void writeZipEntry(ZipOutputStream zip, String name, String content) throws IOException {
+        zip.putNextEntry(new ZipEntry(name));
+        zip.write((content == null ? "" : content).getBytes(StandardCharsets.UTF_8));
+        zip.closeEntry();
     }
 }

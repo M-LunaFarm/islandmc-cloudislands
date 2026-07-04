@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.velocity;
 
+import java.nio.file.Path;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
@@ -29,8 +30,9 @@ public final class VelocityRoutingActions {
             RouteTicketRouter routeTickets,
             VelocityTargetResolver targetResolver,
             PendingRouteService pendingRoutes,
+            Path dataDirectory,
             Supplier<String> statusSummary) {
-        VelocityActionContext context = new VelocityActionContext(coreApiClient, hideNodeNames, messages, routePrivacy, fallbackService, progressPresenter, routeRequestGuard, routeTickets, targetResolver, pendingRoutes);
+        VelocityActionContext context = new VelocityActionContext(coreApiClient, hideNodeNames, messages, routePrivacy, fallbackService, progressPresenter, routeRequestGuard, routeTickets, targetResolver, pendingRoutes, dataDirectory);
         this.statusSummary = statusSummary;
         this.playerRouting = new VelocityPlayerRoutingActions(context);
         this.playerMembership = new VelocityPlayerMembershipActions(context);

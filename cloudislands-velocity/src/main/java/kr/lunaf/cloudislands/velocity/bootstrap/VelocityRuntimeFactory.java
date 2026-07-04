@@ -43,7 +43,8 @@ public final class VelocityRuntimeFactory {
             config.hideNodeNames(),
             islandPool,
             routeTicketTtlSeconds,
-            messages
+            messages,
+            dataDirectory
         );
         PluginMessageFirewall pluginMessageFirewall = new PluginMessageFirewall();
         VelocityStatusReporter statusReporter = new VelocityStatusReporter(proxy, config, config.aliases(), routingController, pluginMessageFirewall);

@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.velocity;
 
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 import com.velocitypowered.api.proxy.Player;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -58,6 +59,7 @@ abstract class VelocityActionSupport {
     protected final RouteTicketRouter routeTickets;
     protected final VelocityTargetResolver targetResolver;
     protected final PendingRouteService pendingRoutes;
+    protected final Path dataDirectory;
 
     VelocityActionSupport(VelocityActionContext context) {
         this.coreApiClient = context.coreApiClient();
@@ -73,6 +75,7 @@ abstract class VelocityActionSupport {
         this.routeTickets = context.routeTickets();
         this.targetResolver = context.targetResolver();
         this.pendingRoutes = context.pendingRoutes();
+        this.dataDirectory = context.dataDirectory() == null ? Path.of(".") : context.dataDirectory();
     }
 
     protected void sendActionResult(Player player, CompletableFuture<Void> future, String successMessage, String failureMessage) {

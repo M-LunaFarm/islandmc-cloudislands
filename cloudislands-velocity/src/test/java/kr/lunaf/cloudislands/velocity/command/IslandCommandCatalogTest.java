@@ -167,6 +167,8 @@ class IslandCommandCatalogTest {
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/IslandCommandCatalog.java"));
         String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityAdminCommandDispatcher.java"));
         String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityAdminActions.java"));
+        String actionContext = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityActionContext.java"));
+        String runtimeFactory = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/bootstrap/VelocityRuntimeFactory.java"));
         String coreClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/AdminNodeQueryClient.java"));
         String jdkClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminNodeQueryClient.java"));
 
@@ -187,6 +189,14 @@ class IslandCommandCatalogTest {
         assertTrue(actions.contains("coreApiClient.adminStorage().status()"), "Dashboard/doctor must include typed storage context");
         assertTrue(actions.contains("coreApiClient.adminAudit().list(5)"), "Doctor must include recent audit context");
         assertTrue(actions.contains("coreApiClient.adminSupportBundle().create()"), "Support bundle must use typed Core support-bundle client");
+        assertTrue(actions.contains("writeSupportBundle"), "Velocity support bundle must write a local operator artifact");
+        assertTrue(actions.contains("cloudislands-velocity-support-bundle-") && actions.contains(".zip"), "Velocity support bundle must be packaged as a zip bundle");
+        assertTrue(actions.contains("core-support-bundle.json"), "Velocity support bundle must include the redacted Core bundle");
+        assertTrue(actions.contains("velocity-runtime.txt"), "Velocity support bundle must include local Velocity runtime context");
+        assertTrue(actions.contains("VelocityDiagnosticRedactor.redact(coreBundleJson"), "Velocity support bundle must redact Core payload secrets before writing");
+        assertTrue(actions.contains("dataDirectory.resolve(\"support-bundles\")"), "Velocity support bundle must write under the plugin data directory");
+        assertTrue(actionContext.contains("Path dataDirectory"), "Velocity admin actions must receive the plugin data directory");
+        assertTrue(runtimeFactory.contains("dataDirectory"), "Velocity runtime factory must pass the real plugin data directory into actions");
         assertTrue(actions.contains("doctorSeverity(String body)") && actions.contains("\"PASS\"") && actions.contains("\"WARN\"") && actions.contains("\"FAIL\""), "Doctor must classify sections with PASS/WARN/FAIL");
 
         assertTrue(coreClient.contains("integrationSummary()"), "Core node client must expose typed integration metadata");

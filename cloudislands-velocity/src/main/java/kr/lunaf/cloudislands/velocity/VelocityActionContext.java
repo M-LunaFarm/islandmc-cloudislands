@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.velocity;
 
+import java.nio.file.Path;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
@@ -20,6 +21,7 @@ record VelocityActionContext(
     RouteRequestGuard routeRequestGuard,
     RouteTicketRouter routeTickets,
     VelocityTargetResolver targetResolver,
-    PendingRouteService pendingRoutes
+    PendingRouteService pendingRoutes,
+    Path dataDirectory
 ) {
 }

@@ -1,5 +1,14 @@
 package kr.lunaf.cloudislands.velocity;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.lang.reflect.Method;
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
@@ -8,15 +17,6 @@ import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.message.VelocityRoutePrivacyFormatter;
 import kr.lunaf.cloudislands.velocity.routing.RouteTicketRouter;
 import org.junit.jupiter.api.Test;
-
-import java.lang.reflect.Method;
-import java.time.Instant;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class VelocityRoutingControllerTest {
     @Test
@@ -102,7 +102,8 @@ class VelocityRoutingControllerTest {
                 null,
                 null,
                 null,
-                null
+                null,
+                Path.of("build/test-velocity-data")
             ));
         }
     }
