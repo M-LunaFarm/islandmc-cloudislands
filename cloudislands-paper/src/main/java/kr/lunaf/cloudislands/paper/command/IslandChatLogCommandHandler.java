@@ -41,8 +41,13 @@ final class IslandChatLogCommandHandler {
             openChatMenu(player);
             return true;
         }
-        if (subcommand.equals("teamchat") || subcommand.equals("team-chat") || subcommand.equals("팀채팅")) {
+        if (subcommand.equals("teamchat") || subcommand.equals("team-chat") || subcommand.equals("teamchat-toggle") || subcommand.equals("팀채팅")) {
             if (args.length < 2) {
+                openChatMenu(player);
+                return true;
+            }
+            if (isTeamChatToggle(args[1])) {
+                runtime.message(player, "팀 채팅 모드: /섬 팀채팅 <message>로 팀 채널에 보낼 수 있습니다.");
                 openChatMenu(player);
                 return true;
             }
@@ -107,6 +112,10 @@ final class IslandChatLogCommandHandler {
                     return null;
                 });
         });
+    }
+
+    private static boolean isTeamChatToggle(String value) {
+        return value.equalsIgnoreCase("toggle") || value.equalsIgnoreCase("mode") || value.equalsIgnoreCase("on") || value.equalsIgnoreCase("off") || value.equals("전환") || value.equals("모드");
     }
 
     private void listLogs(Player player, int limit) {

@@ -70,6 +70,14 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerRouting.showIslandSize(player, islandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("toggle") || args[0].equals("토글")) {
+            if (args.length > 1 && (args[1].equalsIgnoreCase("border") || args[1].equalsIgnoreCase("border-visible") || args[1].equals("경계") || args[1].equals("경계표시"))) {
+                playerProgression.toggleBorder(player, new UUID(0L, 0L), args.length > 2 ? args[2] : "");
+                return;
+            }
+            player.sendMessage(Component.text("사용법: /섬 toggle border [on|off]"));
+            return;
+        }
         if (args[0].equalsIgnoreCase("border") || args[0].equals("경계")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerRouting.showIslandBorder(player, islandId);
@@ -275,6 +283,10 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             return;
         }
         if (args[0].equalsIgnoreCase("teamchat") || args[0].equalsIgnoreCase("team-chat") || args[0].equals("팀채팅")) {
+            if (args.length > 1 && (args[1].equalsIgnoreCase("toggle") || args[1].equalsIgnoreCase("mode") || args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("off") || args[1].equals("전환") || args[1].equals("모드"))) {
+                playerProgression.showTeamChatMode(player);
+                return;
+            }
             playerProgression.sendIslandChat(player, new UUID(0L, 0L), "TEAM", joinArgs(args, 1));
             return;
         }

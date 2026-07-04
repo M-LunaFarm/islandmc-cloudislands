@@ -84,6 +84,10 @@ final class IslandEnvironmentCommandHandler {
             setBorderFlag(player, IslandFlag.BORDER_VISIBLE, toggleValue(args, 1), true);
             return true;
         }
+        if (subcommand.equals("toggle") || subcommand.equals("토글")) {
+            handleToggle(player, args);
+            return true;
+        }
         if (subcommand.equals("limit") || subcommand.equals("limits") || subcommand.equals("limit-list") || subcommand.equals("제한") || subcommand.equals("제한목록")) {
             if (args.length > 2) {
                 setLimit(player, args[1], longValue(args[2], 0L));
@@ -269,6 +273,34 @@ final class IslandEnvironmentCommandHandler {
             return;
         }
         showBorder(player);
+    }
+
+    private void handleToggle(Player player, String[] args) {
+        if (args.length < 2) {
+            runtime.message(player, "토글할 항목을 입력해주세요. 예: /섬 toggle border");
+            return;
+        }
+        String target = args[1].toLowerCase(Locale.ROOT);
+        if (!target.equals("border") && !target.equals("border-visible") && !target.equals("경계") && !target.equals("경계표시")) {
+            runtime.message(player, "지원하지 않는 토글 항목입니다. 예: /섬 toggle border");
+            return;
+        }
+        if (args.length > 2) {
+            setBorderFlag(player, IslandFlag.BORDER_VISIBLE, toggleValue(args, 2), true);
+            return;
+        }
+        toggleBorderVisibility(player);
+    }
+
+    private void toggleBorderVisibility(Player player) {
+        runtime.currentIsland(player, "섬 안에서만 경계 표시를 전환할 수 있습니다.").ifPresent(islandId -> {
+            environmentUseCase.flagValues(islandId)
+                .thenAccept(flags -> setBorderFlag(player, IslandFlag.BORDER_VISIBLE, IslandBorderRuntimePolicy.visible(flags) ? "false" : "true", true))
+                .exceptionally(error -> {
+                    runtime.message(player, "섬 경계 표시를 전환하지 못했습니다.");
+                    return null;
+                });
+        });
     }
 
     private void setBorderFlag(Player player, IslandFlag flag, String value, boolean applyAfterSave) {

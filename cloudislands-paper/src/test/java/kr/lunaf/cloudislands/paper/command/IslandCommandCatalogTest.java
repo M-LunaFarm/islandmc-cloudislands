@@ -109,6 +109,23 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void superiorSkyblockToggleAliasesAreAdvertisedAndRouted() throws Exception {
+        String environmentHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java"));
+        String chatHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandChatLogCommandHandler.java"));
+        String completer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
+
+        assertTrue(IslandCommandCatalog.SUBCOMMANDS.contains("toggle"), "SS2-style /is toggle border alias must be advertised");
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 toggle border"), "SS2-style toggle border help must be advertised");
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 teamchat toggle"), "Team chat toggle-mode help must be advertised");
+        assertEquals(IslandCommandPermission.ENVIRONMENT, IslandCommandPermission.fromSubcommand("toggle"), "toggle must use the environment permission policy");
+        assertEquals(IslandCommandPermission.CHAT, IslandCommandPermission.fromSubcommand("teamchat-toggle"), "teamchat toggle must use the chat permission policy");
+        assertTrue(environmentHandler.contains("handleToggle(Player player, String[] args)"), "toggle border must route through the environment handler");
+        assertTrue(environmentHandler.contains("toggleBorderVisibility(player)"), "toggle border must flip current border visibility when no explicit value is supplied");
+        assertTrue(chatHandler.contains("isTeamChatToggle(args[1])"), "teamchat toggle mode must be handled before message dispatch");
+        assertTrue(completer.contains("List.of(\"border\", \"border-visible\", \"경계\", \"경계표시\")"), "toggle border completions must expose SS2-style targets");
+    }
+
+    @Test
     void upgradeKeySuggestionsCoverConfiguredUpgradeEffects() {
         assertEquals(List.of(
             "size",

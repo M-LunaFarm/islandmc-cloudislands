@@ -40,6 +40,12 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             if (first.equals("setflag") || first.equals("flag-set") || first.equals("플래그설정")) {
                 addLiteralSuggestions(matches, args[1], flagNames());
             }
+            if (first.equals("toggle") || first.equals("토글")) {
+                addLiteralSuggestions(matches, args[1], List.of("border", "border-visible", "경계", "경계표시"));
+            }
+            if (first.equals("teamchat") || first.equals("team-chat") || first.equals("팀채팅")) {
+                addLiteralSuggestions(matches, args[1], List.of("toggle", "mode", "on", "off", "전환", "모드"));
+            }
             if (first.equals("biome") || first.equals("biome-menu") || first.equals("biome-info") || first.equals("바이옴") || first.equals("바이옴정보")) {
                 addLiteralSuggestions(matches, args[1], List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"));
             }
@@ -71,6 +77,9 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             } else {
                 addLiteralSuggestions(matches, args[2], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
             }
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("toggle") || args[0].equals("토글")) && (args[1].equalsIgnoreCase("border") || args[1].equalsIgnoreCase("border-visible") || args[1].equals("경계") || args[1].equals("경계표시"))) {
+            addLiteralSuggestions(matches, args[2], List.of("true", "false", "on", "off", "show", "hide", "켜기", "끄기", "표시", "숨김"));
         }
         if (args.length == 4 && (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정")) && isUuid(args[1])) {
             addLiteralSuggestions(matches, args[3], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));

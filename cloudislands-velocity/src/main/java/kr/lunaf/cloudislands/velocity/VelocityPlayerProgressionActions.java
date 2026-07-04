@@ -6,8 +6,10 @@ import com.velocitypowered.api.proxy.Player;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailView;
@@ -114,6 +116,18 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             resolved -> sendTextResult(player, coreApiClient.environmentCommands().setLimit(resolved, player.getUniqueId(), limitKey, value).thenApply(islandMessages::limitResult), "섬 제한을 변경하지 못했습니다."));
     }
 
+    public void toggleBorder(Player player, UUID islandId, String requestedValue) {
+        withResolvedIsland(player, islandId, "경계를 변경할 섬을 찾지 못했습니다.", "섬 경계 표시를 전환하지 못했습니다.", resolved -> {
+            if (requestedValue != null && !requestedValue.isBlank()) {
+                sendTextResult(player, coreApiClient.environmentCommands().setFlag(resolved, player.getUniqueId(), IslandFlag.BORDER_VISIBLE, toggleValue(requestedValue)).thenApply(result -> islandMessages.environmentAction("섬 경계 표시 전환", result)), "섬 경계 표시를 전환하지 못했습니다.");
+                return;
+            }
+            sendTextResult(player, coreApiClient.environment().flagValues(resolved)
+                .thenCompose(flags -> coreApiClient.environmentCommands().setFlag(resolved, player.getUniqueId(), IslandFlag.BORDER_VISIBLE, borderVisible(flags) ? "false" : "true"))
+                .thenApply(result -> islandMessages.environmentAction("섬 경계 표시 전환", result)), "섬 경계 표시를 전환하지 못했습니다.");
+        });
+    }
+
     public void sendIslandChat(Player player, UUID islandId, String channel, String message) {
         if (message == null || message.isBlank()) {
             player.sendMessage(Component.text("보낼 메시지를 입력해주세요."));
@@ -125,8 +139,25 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             resolved -> sendIslandChatResolved(player, resolved, channel, stripped, label));
     }
 
+    public void showTeamChatMode(Player player) {
+        player.sendMessage(Component.text("팀 채팅 모드: /섬 팀채팅 <message>로 팀 채널에 보낼 수 있습니다."));
+    }
+
     private void sendIslandChatResolved(Player player, UUID islandId, String channel, String message, String label) {
         sendTextResult(player, coreApiClient.communicationCommands().sendChat(islandId, player.getUniqueId(), channel, message).thenApply(result -> islandMessages.chatResult(label, result)), label + "을 전송하지 못했습니다.");
+    }
+
+    private static boolean borderVisible(Map<IslandFlag, String> flags) {
+        String value = flags.getOrDefault(IslandFlag.BORDER_VISIBLE, "true");
+        return !value.equalsIgnoreCase("false") && !value.equalsIgnoreCase("off") && !value.equals("0") && !value.equals("끄기");
+    }
+
+    private static String toggleValue(String value) {
+        String normalized = value.toLowerCase(Locale.ROOT);
+        if (normalized.equals("false") || normalized.equals("off") || normalized.equals("0") || normalized.equals("hide") || normalized.equals("hidden") || normalized.equals("끄기") || normalized.equals("숨김")) {
+            return "false";
+        }
+        return "true";
     }
 
     public void listSnapshots(Player player, UUID islandId) {
