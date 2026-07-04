@@ -59,6 +59,16 @@ permissions:
     default: op
   satisskyfactory.admin.integration:
     default: op
+  satisskyfactory.admin.doctor:
+    default: op
+  satisskyfactory.admin.database:
+    default: op
+  satisskyfactory.admin.runtime:
+    default: op
+  satisskyfactory.admin.routes:
+    default: op
+  satisskyfactory.admin.support:
+    default: op
   satisskyfactory.admin.state:
     default: op
   satisskyfactory.admin.migration:

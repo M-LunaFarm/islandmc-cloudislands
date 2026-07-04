@@ -43,6 +43,11 @@ class AdminFactoryCommandTest {
         assertTrue(commands.stream().allMatch(command -> !command.contains("\n") && !command.contains("\r")));
         assertEquals(commands.size(), commands.stream().distinct().count());
         assertTrue(commands.contains("ci admin migration"));
+        assertTrue(commands.contains("ci admin doctor"));
+        assertTrue(commands.contains("ci admin database"));
+        assertTrue(commands.contains("ci admin runtime"));
+        assertTrue(commands.contains("ci admin routes"));
+        assertTrue(commands.contains("ci admin support"));
         for (String policyCommand : SatisLegacyMigrationPolicy.adminCommands()) {
             assertTrue(commands.contains(policyCommand.replaceFirst("^factory", "ci")));
         }
@@ -130,6 +135,39 @@ class AdminFactoryCommandTest {
         assertTrue(source.contains("\"island-state-redis-advisory-policy\""));
         assertTrue(source.contains("\"island-state-five-six-node-policy\""));
         assertTrue(source.contains("\"island-state-seven-plus-node-policy\""));
+    }
+
+    @Test
+    void exposesOperationalDoctorDatabaseRuntimeRoutesAndSupportCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminFactoryCommand.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String messages = Files.readString(Path.of("src/main/resources/messages.yml"));
+
+        assertTrue(source.contains("\"factory admin doctor\""));
+        assertTrue(source.contains("\"factory admin database\""));
+        assertTrue(source.contains("\"factory admin runtime\""));
+        assertTrue(source.contains("\"factory admin routes\""));
+        assertTrue(source.contains("\"factory admin support\""));
+        assertTrue(source.contains("case \"doctor\" -> showDoctor(sender);"));
+        assertTrue(source.contains("case \"database\" -> showDatabase(sender);"));
+        assertTrue(source.contains("case \"runtime\" -> showRuntime(sender);"));
+        assertTrue(source.contains("case \"routes\" -> showRoutes(sender);"));
+        assertTrue(source.contains("case \"support\" -> showSupport(sender);"));
+        assertTrue(source.contains("doctorAction(state)"));
+        assertTrue(source.contains("\"runtime-owner-fence-ready\""));
+        assertTrue(source.contains("\"database-fallback-operator-remediation\""));
+        assertTrue(source.contains("\"runtime-route-events-publish-failures\""));
+        assertTrue(source.contains("visibleHelpCommands(label, sender)"));
+        assertTrue(plugin.contains("satisskyfactory.admin.doctor"));
+        assertTrue(plugin.contains("satisskyfactory.admin.database"));
+        assertTrue(plugin.contains("satisskyfactory.admin.runtime"));
+        assertTrue(plugin.contains("satisskyfactory.admin.routes"));
+        assertTrue(plugin.contains("satisskyfactory.admin.support"));
+        assertTrue(messages.contains("admin-doctor-title"));
+        assertTrue(messages.contains("admin-database-title"));
+        assertTrue(messages.contains("admin-runtime-title"));
+        assertTrue(messages.contains("admin-routes-title"));
+        assertTrue(messages.contains("admin-support-title"));
     }
 
     @SuppressWarnings("unchecked")
