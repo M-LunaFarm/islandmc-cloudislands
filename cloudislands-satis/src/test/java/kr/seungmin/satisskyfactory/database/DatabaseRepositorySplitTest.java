@@ -82,4 +82,33 @@ class DatabaseRepositorySplitTest {
         assertTrue(repository.contains("SELECT unlock_id FROM island_unlocks WHERE island_uuid = ?"));
         assertTrue(repository.contains("SELECT unlock_id, unlocked_at FROM island_unlocks WHERE island_uuid = ?"));
     }
+
+    @Test
+    void contractSqlLivesInContractRepository() throws Exception {
+        String databaseService = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/DatabaseService.java"));
+        String repository = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/ContractRepository.java"));
+
+        assertTrue(databaseService.contains("private final ContractRepository contractRepository"));
+        assertTrue(databaseService.contains("contractRepository.load(islandUuid)"));
+        assertTrue(databaseService.contains("return contractRepository.load(islandUuid, status);"));
+        assertTrue(databaseService.contains("return contractRepository.existsForTemplate(islandUuid, templateId, status);"));
+        assertTrue(databaseService.contains("return contractRepository.count(islandUuid, contractType, status, updatedSince);"));
+        assertTrue(databaseService.contains("contractRepository.save(contract);"));
+        assertTrue(databaseService.contains("contractRepository.updateStatus(contractId, status, progressJson)"));
+        assertFalse(databaseService.contains("INSERT INTO contracts"));
+        assertFalse(databaseService.contains("SELECT * FROM contracts WHERE island_uuid = ?"));
+        assertFalse(databaseService.contains("SELECT * FROM contracts WHERE island_uuid = ? AND status = ? ORDER BY created_at ASC"));
+        assertFalse(databaseService.contains("SELECT 1 FROM contracts WHERE island_uuid = ? AND template_id = ? AND status = ? LIMIT 1"));
+        assertFalse(databaseService.contains("SELECT COUNT(*) AS count FROM contracts"));
+        assertFalse(databaseService.contains("UPDATE contracts SET status = ?, progress_json = ?, updated_at = ? WHERE contract_id = ?"));
+        assertFalse(databaseService.contains("SELECT * FROM contracts WHERE contract_id = ?"));
+
+        assertTrue(repository.contains("INSERT INTO contracts"));
+        assertTrue(repository.contains("SELECT * FROM contracts WHERE island_uuid = ?"));
+        assertTrue(repository.contains("SELECT * FROM contracts WHERE island_uuid = ? AND status = ? ORDER BY created_at ASC"));
+        assertTrue(repository.contains("SELECT 1 FROM contracts WHERE island_uuid = ? AND template_id = ? AND status = ? LIMIT 1"));
+        assertTrue(repository.contains("SELECT COUNT(*) AS count FROM contracts"));
+        assertTrue(repository.contains("UPDATE contracts SET status = ?, progress_json = ?, updated_at = ? WHERE contract_id = ?"));
+        assertTrue(repository.contains("SELECT * FROM contracts WHERE contract_id = ?"));
+    }
 }

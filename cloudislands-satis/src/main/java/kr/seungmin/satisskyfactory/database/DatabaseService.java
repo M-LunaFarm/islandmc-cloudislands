@@ -108,6 +108,7 @@ public final class DatabaseService {
     private final VirtualInventoryRepository virtualInventoryRepository;
     private final ResourceNodeRepository resourceNodeRepository;
     private final ResearchRepository researchRepository;
+    private final ContractRepository contractRepository;
     private HikariDataSource dataSource;
     private StorageBackend activeBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
@@ -167,6 +168,7 @@ public final class DatabaseService {
         this.virtualInventoryRepository = new VirtualInventoryRepository(this);
         this.resourceNodeRepository = new ResourceNodeRepository(this);
         this.researchRepository = new ResearchRepository(this);
+        this.contractRepository = new ContractRepository(this);
     }
 
     public void open() {
@@ -561,19 +563,10 @@ public final class DatabaseService {
 
     private java.util.Map<String, String> contractRows(UUID islandUuid) {
         java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT * FROM contracts WHERE island_uuid = ?")) {
-            statement.setString(1, islandUuid.toString());
-            try (ResultSet rs = statement.executeQuery()) {
-                while (rs.next()) {
-                    StoredContract contract = storedContract(rs);
-                    rows.put(contract.contractId().toString(), contractJson(contract));
-                }
-            }
-            return rows;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to publish contract core state", exception);
+        for (StoredContract contract : contractRepository.load(islandUuid)) {
+            rows.put(contract.contractId().toString(), contractJson(contract));
         }
+        return rows;
     }
 
     private java.util.Map<String, String> unlockRows(UUID islandUuid) {
@@ -1474,151 +1467,26 @@ public final class DatabaseService {
     }
 
     public List<StoredContract> loadContracts(UUID islandUuid, String status) {
-        List<StoredContract> contracts = new ArrayList<>();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     SELECT * FROM contracts WHERE island_uuid = ? AND status = ? ORDER BY created_at ASC
-                     """)) {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, status);
-            try (ResultSet rs = statement.executeQuery()) {
-                while (rs.next()) {
-                    contracts.add(new StoredContract(
-                            UUID.fromString(rs.getString("contract_id")),
-                            islandUuid,
-                            rs.getString("template_id"),
-                            rs.getString("contract_type"),
-                            rs.getInt("tier"),
-                            rs.getString("required_json"),
-                            rs.getString("progress_json"),
-                            rs.getString("rewards_json"),
-                            rs.getString("status"),
-                            rs.getLong("expires_at")
-                    ));
-                }
-            }
-            return contracts;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to load contracts", exception);
-        }
+        return contractRepository.load(islandUuid, status);
     }
 
     public boolean hasContractForTemplate(UUID islandUuid, String templateId, String status) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     SELECT 1 FROM contracts WHERE island_uuid = ? AND template_id = ? AND status = ? LIMIT 1
-                     """)) {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, templateId);
-            statement.setString(3, status);
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next();
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to check contract", exception);
-        }
+        return contractRepository.existsForTemplate(islandUuid, templateId, status);
     }
 
     public int countContracts(UUID islandUuid, String contractType, String status, long updatedSince) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     SELECT COUNT(*) AS count FROM contracts
-                     WHERE island_uuid = ? AND contract_type = ? AND status = ? AND updated_at >= ?
-                     """)) {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, contractType);
-            statement.setString(3, status);
-            statement.setLong(4, updatedSince);
-            try (ResultSet rs = statement.executeQuery()) {
-                return rs.next() ? rs.getInt("count") : 0;
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to count contracts", exception);
-        }
+        return contractRepository.count(islandUuid, contractType, status, updatedSince);
     }
 
     public void saveContract(StoredContract contract) {
-        long now = Instant.now().toEpochMilli();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement(saveContractSql())) {
-            statement.setString(1, contract.contractId().toString());
-            statement.setString(2, contract.islandUuid().toString());
-            statement.setString(3, contract.templateId());
-            statement.setString(4, contract.contractType());
-            statement.setInt(5, contract.tier());
-            statement.setString(6, contract.requiredJson());
-            statement.setString(7, contract.progressJson());
-            statement.setString(8, contract.rewardsJson());
-            statement.setString(9, contract.status());
-            statement.setLong(10, contract.expiresAt());
-            statement.setLong(11, now);
-            statement.setLong(12, now);
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to save contract", exception);
-        }
+        contractRepository.save(contract);
         publishCoreRow(contract.islandUuid(), IslandAddonService.tableStateKey("contracts", contract.contractId().toString()), contractJson(contract));
     }
 
-    private String saveContractSql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                     INSERT INTO contracts(contract_id, island_uuid, template_id, contract_type, tier, required_json,
-                       progress_json, rewards_json, status, expires_at, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE progress_json=VALUES(progress_json),
-                       status=VALUES(status), updated_at=VALUES(updated_at)
-                    """;
-        }
-        return """
-                     INSERT INTO contracts(contract_id, island_uuid, template_id, contract_type, tier, required_json,
-                       progress_json, rewards_json, status, expires_at, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT(contract_id) DO UPDATE SET progress_json=excluded.progress_json,
-                       status=excluded.status, updated_at=excluded.updated_at
-                    """;
-    }
-
     public void updateContractStatus(UUID contractId, String status, String progressJson) {
-        StoredContract updated;
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     UPDATE contracts SET status = ?, progress_json = ?, updated_at = ? WHERE contract_id = ?
-                     """)) {
-            statement.setString(1, status);
-            statement.setString(2, progressJson);
-            statement.setLong(3, Instant.now().toEpochMilli());
-            statement.setString(4, contractId.toString());
-            statement.executeUpdate();
-            updated = findContract(connection, contractId).orElse(null);
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to update contract", exception);
-        }
+        StoredContract updated = contractRepository.updateStatus(contractId, status, progressJson).orElse(null);
         if (updated != null) {
             publishCoreRow(updated.islandUuid(), IslandAddonService.tableStateKey("contracts", updated.contractId().toString()), contractJson(updated));
-        }
-    }
-
-    private Optional<StoredContract> findContract(Connection connection, UUID contractId) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT * FROM contracts WHERE contract_id = ?")) {
-            statement.setString(1, contractId.toString());
-            try (ResultSet rs = statement.executeQuery()) {
-                if (!rs.next()) {
-                    return Optional.empty();
-                }
-                return Optional.of(new StoredContract(
-                        contractId,
-                        UUID.fromString(rs.getString("island_uuid")),
-                        rs.getString("template_id"),
-                        rs.getString("contract_type"),
-                        rs.getInt("tier"),
-                        rs.getString("required_json"),
-                        rs.getString("progress_json"),
-                        rs.getString("rewards_json"),
-                        rs.getString("status"),
-                        rs.getLong("expires_at")
-                ));
-            }
         }
     }
 
@@ -1813,21 +1681,6 @@ public final class DatabaseService {
                 + field("status", contract.status()) + ","
                 + number("expiresAt", contract.expiresAt())
                 + "}";
-    }
-
-    private StoredContract storedContract(ResultSet rs) throws SQLException {
-        return new StoredContract(
-                UUID.fromString(rs.getString("contract_id")),
-                UUID.fromString(rs.getString("island_uuid")),
-                rs.getString("template_id"),
-                rs.getString("contract_type"),
-                rs.getInt("tier"),
-                rs.getString("required_json"),
-                rs.getString("progress_json"),
-                rs.getString("rewards_json"),
-                rs.getString("status"),
-                rs.getLong("expires_at")
-        );
     }
 
     private String machineJson(MachineInstance machine) {
