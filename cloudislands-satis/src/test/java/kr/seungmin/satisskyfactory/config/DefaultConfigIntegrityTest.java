@@ -305,6 +305,7 @@ class DefaultConfigIntegrityTest {
         YamlConfiguration marketConfig = load("market.yml");
         YamlConfiguration contractsConfig = load("contracts.yml");
         YamlConfiguration researchConfig = load("research.yml");
+        YamlConfiguration messagesConfig = load("messages.yml");
 
         Set<String> items = keys(itemsConfig, "items");
         Set<String> machines = keys(machinesConfig, "machines");
@@ -313,6 +314,17 @@ class DefaultConfigIntegrityTest {
         Set<String> contracts = keys(contractsConfig, "contracts.templates");
         Set<String> research = keys(researchConfig, "research.unlocks");
         List<String> issues = new ArrayList<>();
+
+        assertLocalizedDisplays(itemsConfig, "items", "display");
+        assertLocalizedDisplays(machinesConfig, "machines", "display");
+        assertLocalizedDisplays(researchConfig, "research.unlocks", "display-name");
+        assertLocalizedTitle(messagesConfig, "messages.storage-title");
+        assertLocalizedTitle(messagesConfig, "messages.machine-title");
+        assertLocalizedTitle(messagesConfig, "messages.contracts-title");
+        assertLocalizedTitle(messagesConfig, "messages.contract-detail-title");
+        assertLocalizedTitle(messagesConfig, "messages.market-title");
+        assertLocalizedTitle(messagesConfig, "messages.research-title");
+        assertLocalizedTitle(messagesConfig, "messages.admin-title");
 
         assertEquals(0.55, marketConfig.getDouble("market.factor-min"));
         assertEquals(1.35, marketConfig.getDouble("market.factor-max"));
@@ -568,6 +580,18 @@ class DefaultConfigIntegrityTest {
                 .map(key -> section.getString(key, ""))
                 .filter(value -> !value.isBlank())
                 .toList();
+    }
+
+    private void assertLocalizedDisplays(YamlConfiguration config, String rootPath, String displayKey) {
+        for (String id : keys(config, rootPath)) {
+            assertLocalizedTitle(config, rootPath + "." + id + "." + displayKey);
+        }
+    }
+
+    private void assertLocalizedTitle(YamlConfiguration config, String path) {
+        String value = config.getString(path, "");
+        assertFalse(value.contains("§"), path + " contains legacy section color code");
+        assertFalse(value.matches("^[A-Za-z].*"), path + " starts with an English display value: " + value);
     }
 
     private List<String> recipeMachines(YamlConfiguration config, String base) {

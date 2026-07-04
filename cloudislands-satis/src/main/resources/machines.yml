@@ -1,6 +1,6 @@
 machines:
   harvester_t1:
-    display: "§a수확기 T1"
+    display: "수확기 T1"
     industry: AGRICULTURE
     role: PRODUCER
     material: IRON_HOE
@@ -24,7 +24,7 @@ machines:
       NETHER_WART: nether_wart
       SUGAR_CANE: sugar_cane
   harvester_t2:
-    display: "Harvester T2"
+    display: "수확기 T2"
     material: DIAMOND_HOE
     placed-block: DISPENSER
     custom-model-data: 2002
@@ -46,7 +46,7 @@ machines:
       SUGAR_CANE: sugar_cane
     required-unlocks: [tier_2]
   planter_t1:
-    display: "§a파종기 T1"
+    display: "파종기 T1"
     industry: AGRICULTURE
     role: PRODUCER
     material: WOODEN_HOE
@@ -78,7 +78,7 @@ machines:
         crop: NETHER_WART
         soil: SOUL_SAND
   fertilizer_sprayer_t1:
-    display: "Fertilizer Sprayer T1"
+    display: "비료 살포기 T1"
     material: DISPENSER
     placed-block: DISPENSER
     tier: 1
@@ -97,7 +97,7 @@ machines:
       quality-chance: 0.08
       quality-item: quality_crop
   miner_drill_t1:
-    display: "§7광맥 드릴 T1"
+    display: "광맥 드릴 T1"
     industry: MINING
     role: PRODUCER
     material: IRON_PICKAXE
@@ -115,7 +115,7 @@ machines:
     wear-per-cycle: 0.03
     node-type: MINERAL
   miner_drill_t2:
-    display: "Miner Drill T2"
+    display: "광맥 드릴 T2"
     material: DIAMOND_PICKAXE
     placed-block: BLAST_FURNACE
     custom-model-data: 2102
@@ -131,7 +131,7 @@ machines:
     node-type: MINERAL
     required-unlocks: [tier_2]
   grinder_t1:
-    display: "§f분쇄기 T1"
+    display: "분쇄기 T1"
     industry: MANUFACTURING
     role: PROCESSOR
     material: STONECUTTER
@@ -147,7 +147,7 @@ machines:
     wear-per-cycle: 0.02
     allowed-recipes: [flour_from_wheat, crushed_iron_from_ore, make_feed, scrap_to_biofuel, fish_waste_fertilizer, animal_waste_fertilizer]
   furnace_t1:
-    display: "§6제련기 T1"
+    display: "제련기 T1"
     industry: MANUFACTURING
     role: PROCESSOR
     material: BLAST_FURNACE
@@ -163,7 +163,7 @@ machines:
     wear-per-cycle: 0.03
     allowed-recipes: [iron_ingot_from_crushed_iron]
   assembler_t1:
-    display: "§b조립기 T1"
+    display: "조립기 T1"
     industry: MANUFACTURING
     role: PROCESSOR
     material: CRAFTING_TABLE
@@ -179,7 +179,7 @@ machines:
     wear-per-cycle: 0.03
     allowed-recipes: [iron_plate_from_ingot, machine_parts_t1]
   packager_t1:
-    display: "§d포장기 T1"
+    display: "포장기 T1"
     industry: MANUFACTURING
     role: PROCESSOR
     material: CARTOGRAPHY_TABLE
@@ -195,7 +195,7 @@ machines:
     wear-per-cycle: 0.02
     allowed-recipes: [bread_box]
   bio_generator_t1:
-    display: "§a바이오 발전기 T1"
+    display: "바이오 발전기 T1"
     industry: POWER
     role: GENERATOR
     material: FURNACE
@@ -213,7 +213,7 @@ machines:
     wear-per-cycle: 0.01
     allowed-recipes: [biofuel_to_power]
   battery_t1:
-    display: "§e배터리 T1"
+    display: "배터리 T1"
     industry: POWER
     role: BATTERY
     material: BARREL
@@ -227,7 +227,7 @@ machines:
     maintenance-score: 10
     wear-per-cycle: 0.01
   conveyor_t1:
-    display: "§7컨베이어 T1"
+    display: "컨베이어 T1"
     industry: LOGISTICS
     role: LOGISTICS
     material: HOPPER
@@ -244,7 +244,7 @@ machines:
     maintenance-score: 2
     wear-per-cycle: 0.015
   conveyor_t2:
-    display: "Conveyor T2"
+    display: "컨베이어 T2"
     material: IRON_BARS
     placed-block: IRON_BARS
     custom-model-data: 2302
@@ -259,7 +259,7 @@ machines:
     wear-per-cycle: 0.018
     required-unlocks: [tier_2]
   splitter_t1:
-    display: "Splitter T1"
+    display: "분배기 T1"
     material: HOPPER
     placed-block: HOPPER
     tier: 2
@@ -273,7 +273,7 @@ machines:
     wear-per-cycle: 0.018
     required-unlocks: [smart_logistics]
   merger_t1:
-    display: "Merger T1"
+    display: "병합기 T1"
     material: HOPPER
     placed-block: HOPPER
     tier: 2
@@ -287,7 +287,7 @@ machines:
     wear-per-cycle: 0.018
     required-unlocks: [smart_logistics]
   filter_splitter_t1:
-    display: "Filter Splitter T1"
+    display: "필터 분배기 T1"
     material: COMPARATOR
     placed-block: COMPARATOR
     tier: 2
@@ -304,7 +304,7 @@ machines:
     wear-per-cycle: 0.018
     required-unlocks: [smart_logistics]
   filter_distributor_t1:
-    display: "Filter Distributor T1"
+    display: "필터 배분기 T1"
     material: COMPARATOR
     placed-block: COMPARATOR
     tier: 2
@@ -321,7 +321,7 @@ machines:
     wear-per-cycle: 0.015
     required-unlocks: [smart_logistics]
   storage_t1:
-    display: "§e소형 가상 저장고"
+    display: "소형 가상 저장고"
     industry: LOGISTICS
     role: STORAGE
     material: CHEST
@@ -335,7 +335,7 @@ machines:
     maintenance-score: 6
     wear-per-cycle: 0.0
   tree_farm_t1:
-    display: "Tree Farm T1"
+    display: "나무 농장 T1"
     industry: FORESTRY
     role: PRODUCER
     material: OAK_SAPLING
@@ -351,7 +351,7 @@ machines:
     wear-per-cycle: 0.03
     node-type: FOREST
   fish_trap_t1:
-    display: "Fish Trap T1"
+    display: "어획 덫 T1"
     industry: FISHING
     role: PRODUCER
     material: FISHING_ROD
@@ -367,7 +367,7 @@ machines:
     wear-per-cycle: 0.025
     node-type: FISHING
   auto_fisher_t1:
-    display: "Auto Fisher T1"
+    display: "자동 낚시기 T1"
     industry: FISHING
     role: PROCESSOR
     material: FISHING_ROD
@@ -385,7 +385,7 @@ machines:
     allowed-recipes: [auto_fish]
     required-unlocks: [advanced_processing]
   feeder_t1:
-    display: "Pasture Feeder T1"
+    display: "목장 급식기 T1"
     industry: RANCHING
     role: PROCESSOR
     material: WHEAT
@@ -402,7 +402,7 @@ machines:
     recipe-node-use: 1
     allowed-recipes: [feed_pasture]
   collector_t1:
-    display: "Pasture Collector T1"
+    display: "목장 수집기 T1"
     industry: RANCHING
     role: PRODUCER
     material: HAY_BLOCK
@@ -418,7 +418,7 @@ machines:
     wear-per-cycle: 0.025
     node-type: PASTURE
   milker_t1:
-    display: "Milker T1"
+    display: "착유기 T1"
     industry: RANCHING
     role: PROCESSOR
     material: BUCKET
@@ -436,7 +436,7 @@ machines:
     allowed-recipes: [collect_milk, collect_eggs_wool]
     required-unlocks: [advanced_processing]
   sawmill_t1:
-    display: "Sawmill T1"
+    display: "제재소 T1"
     industry: FORESTRY
     role: PROCESSOR
     material: STONECUTTER
@@ -452,7 +452,7 @@ machines:
     allowed-recipes: [saw_logs]
     required-unlocks: [advanced_processing]
   charcoal_kiln_t1:
-    display: "Charcoal Kiln T1"
+    display: "숯 가마 T1"
     industry: FORESTRY
     role: PROCESSOR
     material: SMOKER
@@ -468,7 +468,7 @@ machines:
     allowed-recipes: [burn_charcoal]
     required-unlocks: [advanced_processing]
   fish_processor_t1:
-    display: "Fish Processor T1"
+    display: "생선 가공기 T1"
     industry: FISHING
     role: PROCESSOR
     material: BARREL

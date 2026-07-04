@@ -20,7 +20,7 @@ research:
         - merger_t1
         - filter_splitter_t1
     advanced_processing:
-      display-name: "Advanced Processing"
+      display-name: "고급 가공"
       cost-research-points: 160
       cost-money: 50000
       required-reputation: 5

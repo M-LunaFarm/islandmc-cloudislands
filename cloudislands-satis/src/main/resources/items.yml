@@ -6,25 +6,25 @@ items:
     tags: [crop, agriculture]
   wheat_seeds:
     material: WHEAT_SEEDS
-    display: "Wheat Seeds"
+    display: "밀 씨앗"
   carrot:
     material: CARROT
-    display: "Carrot"
+    display: "당근"
   potato:
     material: POTATO
-    display: "Potato"
+    display: "감자"
   beetroot:
     material: BEETROOT
-    display: "Beetroot"
+    display: "비트"
   beetroot_seeds:
     material: BEETROOT_SEEDS
-    display: "Beetroot Seeds"
+    display: "비트 씨앗"
   nether_wart:
     material: NETHER_WART
-    display: "Nether Wart"
+    display: "네더 사마귀"
   sugar_cane:
     material: SUGAR_CANE
-    display: "Sugar Cane"
+    display: "사탕수수"
   flour:
     material: SUGAR
     display: "밀가루"
@@ -38,7 +38,7 @@ items:
     tags: [packaged, food]
   quality_bread_box:
     material: CHEST
-    display: "Quality Bread Box"
+    display: "고급 빵 상자"
     custom-model-data: 1003
     base-price: 800
     quality-enabled: true
@@ -65,7 +65,7 @@ items:
     base-price: 300
   quality_machine_parts:
     material: IRON_NUGGET
-    display: "Quality Machine Parts"
+    display: "고급 기계 부품"
     custom-model-data: 1004
     base-price: 400
     quality-enabled: true
@@ -80,54 +80,54 @@ items:
     base-price: 50
   power_charge:
     material: REDSTONE
-    display: "Stored Power"
+    display: "저장 전력"
     virtual-only: true
     tags: [power, internal]
   wood_log:
     material: OAK_LOG
-    display: "Wood Log"
+    display: "원목"
   wood_plank:
     material: OAK_PLANKS
-    display: "Wood Plank"
+    display: "목재 판자"
   wood_scrap:
     material: STICK
-    display: "Wood Scrap"
+    display: "목재 조각"
   charcoal:
     material: CHARCOAL
-    display: "Charcoal"
+    display: "숯"
   raw_fish:
     material: COD
-    display: "Raw Fish"
+    display: "생선"
   processed_fish:
     material: COOKED_COD
-    display: "Processed Fish"
+    display: "손질한 생선"
   fish_oil:
     material: HONEY_BOTTLE
-    display: "Fish Oil"
+    display: "생선 기름"
   fish_waste:
     material: BONE_MEAL
-    display: "Fish Waste"
+    display: "생선 부산물"
   feed:
     material: WHEAT
-    display: "Animal Feed"
+    display: "사료"
   milk:
     material: MILK_BUCKET
-    display: "Milk"
+    display: "우유"
   egg:
     material: EGG
-    display: "Egg"
+    display: "달걀"
   wool:
     material: WHITE_WOOL
-    display: "Wool"
+    display: "양털"
   animal_waste:
     material: BROWN_DYE
-    display: "Animal Waste"
+    display: "가축 부산물"
   fertilizer:
     material: BONE_MEAL
-    display: "Fertilizer"
+    display: "비료"
   quality_crop:
     material: GOLDEN_CARROT
-    display: "Quality Crop"
+    display: "고급 작물"
     custom-model-data: 1002
     quality-enabled: true
     tags: [quality, crop]
