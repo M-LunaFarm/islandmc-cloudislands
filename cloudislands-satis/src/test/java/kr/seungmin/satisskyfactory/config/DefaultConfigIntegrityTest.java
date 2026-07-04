@@ -71,9 +71,8 @@ class DefaultConfigIntegrityTest {
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-writes", addon.getString("runtime.local-fallback-write-policy"));
         assertEquals("server-a-soft-full-or-draining-core-api-allocates-new-island-on-server-b-and-player-still-runs-logical-island-command", addon.getString("state.ab-server-new-island-scenario"));
         assertEquals("existing-island-deactivates-on-server-a-saves-satis-state-by-island-uuid-activates-on-server-b-and-remaps-volatile-placement", addon.getString("state.ab-server-existing-island-scenario"));
-        assertTrue(addon.getBoolean("superiorskyblock2.migration-input-only"));
-        assertFalse(addon.getBoolean("superiorskyblock2.runtime-dependency"));
-        assertEquals("verify-no-legacy-provider-passed-before-import", addon.getString("superiorskyblock2.import-provider-prerequisite"));
+        assertFalse(addon.isConfigurationSection("superiorskyblock2"));
+        assertFalse(addon.isConfigurationSection("migration"));
         assertEquals("kr.seungmin.satisskyfactory.SatisSkyFactoryPlugin", plugin.getString("main"));
         assertEquals(List.of("CloudIslands"), plugin.getStringList("depend"));
         assertEquals(List.of("Vault", "PlaceholderAPI"), plugin.getStringList("softdepend"));
@@ -229,7 +228,6 @@ class DefaultConfigIntegrityTest {
                 "research",
                 "maintenance",
                 "placeholders",
-                "migration",
                 "addon-state",
                 "route-events",
                 "members",

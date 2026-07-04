@@ -26,7 +26,6 @@ satis:
     research: true
     maintenance: true
     placeholders: true
-    migration: true
     addon-state: true
     route-events: true
     members: true
@@ -149,7 +148,6 @@ addons:
       research: true
       maintenance: true
       placeholders: true
-      migration: true
       addon-state: true
       route-events: true
       members: true

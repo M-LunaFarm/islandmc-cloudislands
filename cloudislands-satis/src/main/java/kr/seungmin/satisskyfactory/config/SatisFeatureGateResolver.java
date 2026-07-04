@@ -23,7 +23,6 @@ public final class SatisFeatureGateResolver {
             "research",
             "maintenance",
             "placeholders",
-            "migration",
             "addon-state",
             "route-events",
             "members",

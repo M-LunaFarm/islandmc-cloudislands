@@ -84,7 +84,6 @@ public final class SatisAddonIntegrationPolicy {
             "research",
             "maintenance",
             "placeholders",
-            "migration",
             "lifecycle",
             "addon-state",
             "route-events",

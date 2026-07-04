@@ -91,7 +91,7 @@ tasks.shadowJar {
             "CloudIslands-Satis-Core-State-Writer-State-Keys" to "runtime-core-api-state-writer,runtime-core-api-state-writer-gate,runtime-core-api-state-writer-block-reason",
             "CloudIslands-Satis-Placeholder-Exposure-Policy" to "allow-listed-public-island-metrics-only-no-server-node-world-cell-coordinate-placement-or-route-identifiers",
             "CloudIslands-Satis-Placeholder-State-Keys" to "runtime-placeholder-exposure-policy,runtime-placeholder-exposed-keys,runtime-placeholder-denied-internal-fields,runtime-placeholder-internal-placement-exposure",
-            "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,migration,addon-state,route-events,members,permissions,level-values,warps,biomes,chat,templates",
+            "CloudIslands-Addon-Feature-Gates" to "commands,machines,storage,factories,generators,upgrades,missions,menus,gui,lifecycle,resource-nodes,market,contracts,research,maintenance,placeholders,addon-state,route-events,members,permissions,level-values,warps,biomes,chat,templates",
             "CloudIslands-Addon-Feature-Dependencies" to "resource-nodes:machines,market:storage,contracts:storage,missions:contracts+storage,upgrades:research,menus:gui,route-events:addon-state,members:lifecycle,permissions:lifecycle,level-values:lifecycle,warps:lifecycle,biomes:lifecycle,chat:lifecycle,templates:lifecycle",
             "CloudIslands-Addon-Compound-Dependency-Separator" to "+",
             "CloudIslands-Addon-Feature-Disable-Policy" to "disabled-features-preserve-data-and-skip-runtime-components",
@@ -106,19 +106,8 @@ tasks.shadowJar {
             "CloudIslands-Satis-Bulk-Last-Publish-State-Keys" to "last-core-bulk-publish-status,last-core-bulk-publish-mode,last-core-bulk-publish-write-path,last-core-bulk-publish-primary-endpoint,last-core-bulk-publish-fallback-endpoint,last-core-bulk-publish-error,last-core-bulk-publish-pending-retries,last-core-global-bulk-publish-status,last-core-global-bulk-publish-mode,last-core-global-bulk-publish-write-path,last-core-global-bulk-publish-primary-endpoint,last-core-global-bulk-publish-fallback-endpoint,last-core-global-bulk-publish-error,last-core-global-bulk-publish-pending-retries",
             "CloudIslands-Satis-Bulk-Retry-State-Keys" to "addon-state-sync-bulk-max-pending-retries,addon-state-sync-island-bulk-pending-retries,addon-state-sync-island-bulk-retries-queued,addon-state-sync-island-bulk-retries-drained,addon-state-sync-island-bulk-retries-dropped,addon-state-sync-global-bulk-pending-retries,addon-state-sync-global-bulk-retries-queued,addon-state-sync-global-bulk-retries-drained,addon-state-sync-global-bulk-retries-dropped",
             "CloudIslands-Addon-Island-Move-Policy" to "island-uuid-stable-remap-active-world-and-cell",
-            "CloudIslands-Satis-Legacy-Migration-Source" to "sqlite",
-            "CloudIslands-Satis-Legacy-Migration-Approval" to "CONFIRM_IMPORT or CONFIRM_IMPORT:<dryrun-sha256>",
-            "CloudIslands-Satis-Legacy-Migration-Read-Only" to "scan,dryrun,verify",
-            "CloudIslands-Satis-Legacy-Migration-Import-Policy" to "cross-backend-sqlite-copy-insert-ignore-existing-rows",
-            "CloudIslands-Satis-Legacy-Migration-Rollback" to "sqlite-snapshot-restore-or-shared-backend-table-restore",
             "CloudIslands-Addon-API-Only" to "true",
-            "SuperiorSkyblock2-Migration-Input-Only" to "true",
-            "SuperiorSkyblock2-Runtime-Dependency" to "false",
-            "SuperiorSkyblock2-Plugin-Yml-Dependency" to "false",
-            "SuperiorSkyblock2-Live-Provider-Hooks" to "false",
-            "SuperiorSkyblock2-Provider-Service-Check" to "plugin-enabled-only-no-bukkit-service-binding",
             "CloudIslands-Satis-Runtime-Dependency-Whitelist" to "CloudIslands,Vault,PlaceholderAPI",
-            "CloudIslands-Satis-Forbidden-Skyblock-Runtime-Providers" to "SuperiorSkyblock2,BentoBox,ASkyBlock,uSkyBlock,IridiumSkyblock",
             "CloudIslands-Satis-Forbidden-Skyblock-Runtime-Action" to "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes"
         )
     }

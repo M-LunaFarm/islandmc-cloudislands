@@ -110,7 +110,6 @@ import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
 import kr.seungmin.satisskyfactory.storage.SatisRuntimeAuthority;
 import kr.seungmin.satisskyfactory.storage.SatisRuntimeTickAuthorityPolicy;
 import kr.seungmin.satisskyfactory.storage.SatisStatePortabilityPolicy;
-import kr.seungmin.satisskyfactory.storage.SatisLegacyMigrationPolicy;
 import kr.seungmin.satisskyfactory.storage.StorageService;
 import kr.seungmin.satisskyfactory.storage.VirtualInventory;
 import kr.seungmin.satisskyfactory.task.DirtySaveService;
@@ -134,7 +133,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIslandsAddon {
     private static final String ADDON_ID = "cloudislands-satis";
-    private static final List<String> FORBIDDEN_SKYBLOCK_RUNTIME_PROVIDERS = SatisLegacyMigrationPolicy.forbiddenRuntimeProviders();
     private static final Map<String, String> FEATURE_ALIASES = Map.of(
             "factories", "machines",
             "generators", "resource-nodes",
@@ -227,7 +225,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return;
         }
         configureSkyblockHook();
-        warnIfForbiddenSkyblockRuntimeProvidersPresent();
 
         databaseFallbackReason = "none";
         DatabaseService.Settings settings = databaseSettings();
@@ -529,21 +526,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-velocity-forwarding-policy", SatisAddonIntegrationPolicy.VELOCITY_FORWARDING_POLICY);
         state.put("runtime-paper-backend-access-policy", SatisAddonIntegrationPolicy.PAPER_BACKEND_ACCESS_POLICY);
         state.put("runtime-plugin-message-security-policy", SatisAddonIntegrationPolicy.PLUGIN_MESSAGE_SECURITY_POLICY);
-        state.put("runtime-superior-migration-input-only", "true");
-        state.put("runtime-superior-runtime-dependency", "false");
-        state.put("runtime-superior-runtime-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
-        state.put("runtime-superior-runtime-provider-hook-policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
-        state.put("runtime-superior-api-replacement", "SuperiorSkyblockAPI-compileOnly-removed-cloudislands-api-used-instead");
-        state.put("runtime-superior-plugin-yml-dependency", "none");
-        state.put("runtime-superior-runtime-classpath-policy", "no-superiorskyblock2-classes-or-services-required-after-migration");
-        state.put("runtime-forbidden-skyblock-providers", SatisLegacyMigrationPolicy.forbiddenRuntimeProvidersCsv());
-        state.put("runtime-forbidden-skyblock-providers-present", forbiddenSkyblockRuntimeProvidersPresent());
-        state.put("runtime-forbidden-skyblock-provider-check", "plugin-enabled-only-no-bukkit-service-binding");
-        state.put("runtime-forbidden-skyblock-provider-policy", "ignored-for-runtime-migration-input-only");
-        state.put("runtime-forbidden-skyblock-provider-action", "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes");
-        state.put("runtime-forbidden-skyblock-provider-service-binding", "false");
-        state.put("runtime-legacy-provider-lookup", "disabled");
-        state.put("runtime-migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
         state.put("runtime-addon-state-gate", "addonRuntimeEnabled&&features.addon-state&&CloudIslandsApi");
         state.put("runtime-addon-state-status", coreApiAddonStateAvailable() ? "available" : (operationalFeatureEnabled("addon-state") ? "cloudislands-api-unavailable" : "addon-state-feature-disabled"));
         state.put("runtime-addon-state-policy", "disabled-or-unavailable-core-api-uses-configured-database-fallback-and-preserves-local-state");
@@ -571,9 +553,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-placeholder-denied-internal-fields", PlaceholderFeaturePolicy.deniedInternalFields());
         state.put("runtime-placeholder-topology-privacy-policy", SatisAddonIntegrationPolicy.TOPOLOGY_PRIVACY_POLICY);
         state.put("runtime-placeholder-internal-placement-exposure", "false");
-        state.put("runtime-migration-gate", "addonRuntimeEnabled&&features.migration");
-        state.put("runtime-migration-status", operationalFeatureEnabled("migration") ? "enabled" : migrationBlockReason());
-        state.put("runtime-migration-policy", "disabled-feature-hides-migration-command-and-import-actions");
         state.put("runtime-storage-gate", "addonRuntimeEnabled&&features.storage");
         state.put("runtime-storage-status", operationalFeatureEnabled("storage") ? "enabled" : "storage-feature-disabled");
         state.put("runtime-storage-policy", "disabled-feature-blocks-storage-commands-gui-and-writes-preserve-data");
@@ -637,7 +616,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-upgrades-status", operationalFeatureEnabled("upgrades") ? "enabled" : "upgrades-or-research-feature-disabled");
         state.put("runtime-missions-gate", "addonRuntimeEnabled&&features.missions->features.contracts&&features.storage");
         state.put("runtime-missions-status", operationalFeatureEnabled("missions") ? "enabled" : "missions-contracts-or-storage-feature-disabled");
-        state.put("runtime-alias-policy", "legacy-satismc-feature-names-map-to-cloudislands-satis-canonical-gates");
         state.put("runtime-feature-dependency-policy", SatisAddonIntegrationPolicy.FEATURE_DEPENDENCY_POLICY);
         state.put("runtime-feature-dependency-blocks", SatisFeatureGateResolver.dependencyBlockSummary(configs == null ? null : configs.main()));
         state.put("runtime-data-writes-enabled", Boolean.toString(dataWritesEnabled()));
@@ -826,8 +804,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-chat-policy", "disabled-feature-skips-chat-diagnostics-and-stores-no-message-body");
         state.put("runtime-templates-status", operationalFeatureEnabled("templates") ? "enabled" : "templates-feature-disabled-or-lifecycle-disabled");
         state.put("runtime-templates-policy", "disabled-feature-skips-template-metadata-diagnostics-without-owning-cloudislands-templates");
-        state.put("write-gate-migration", Boolean.toString(operationalFeatureEnabled("migration")));
-        state.put("write-gate-migration-policy", "disabled-feature-hides-migration-admin-surface-and-rejects-scan-dryrun-verify-import-rollback");
         state.put("write-gate-lifecycle-subfeatures", "members,permissions,level-values,warps,biomes,chat,templates");
         state.put("write-gate-addon-state", Boolean.toString(operationalFeatureEnabled("addon-state") && coreApiAddonStateAvailable()));
         state.put("write-gate-route-events", Boolean.toString(routeEventStateEnabled()));
@@ -968,18 +944,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         return "not-registered";
     }
 
-    private String migrationBlockReason() {
-        if (!addonRuntimeEnabled) {
-            return "addon-disabled";
-        }
-        if (!featureEnabled("migration")) {
-            return "migration-feature-disabled";
-        }
-        if (!SatisFeatureGateResolver.featureEnabled(configs.main(), "migration")) {
-            return "migration-config-disabled";
-        }
-        return "not-registered";
-    }
 
     private String coreApiStateWriterBlockReason() {
         if (coreApiState != null) {
@@ -1903,30 +1867,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("legacy-skyblock-provider-ignored", Boolean.toString(!"CLOUDISLANDS".equalsIgnoreCase(configuredSkyblockProvider()) && !"CLOUD_ISLANDS".equalsIgnoreCase(configuredSkyblockProvider())));
         putIslandMobilityState(metadata);
         metadata.put("satis-state-schema", "3");
-        metadata.put("legacy-satismc-import-status", "factory admin migration status");
-        metadata.put("legacy-satismc-import-scan", "factory admin migration scan <sqlitePath>");
-        metadata.put("legacy-satismc-import-dryrun", "factory admin migration dryrun <sqlitePath>");
-        metadata.put("legacy-satismc-import-verify", "factory admin migration verify <sqlitePath>");
-        metadata.put("legacy-satismc-import-import", "factory admin migration import <sqlitePath> CONFIRM_IMPORT|CONFIRM_IMPORT:<dryrun-sha256>");
-        metadata.put("legacy-satismc-import-approval-token", "CONFIRM_IMPORT or CONFIRM_IMPORT:<dryrun-sha256>");
-        metadata.put("legacy-satismc-import-approval-fingerprint-token", "CONFIRM_IMPORT:<dryrun-sha256>");
-        metadata.put("legacy-satismc-import-provider-prerequisite", SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE);
-        metadata.put("legacy-satismc-import-read-only-actions", "scan,dryrun,verify");
-        metadata.put("legacy-satismc-import-write-actions", "import");
-        metadata.put("legacy-satismc-source-project", SatisLegacyMigrationPolicy.SOURCE_PROJECT);
-        metadata.put("legacy-satismc-legacy-skyblock-source", SatisLegacyMigrationPolicy.LEGACY_SKYBLOCK_SOURCE);
-        metadata.put("legacy-satismc-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
-        metadata.put("legacy-satismc-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
-        metadata.put("legacy-satismc-manifest-policy", SatisLegacyMigrationPolicy.MANIFEST_POLICY);
-        metadata.put("legacy-satismc-output-id-policy", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY);
-        metadata.put("legacy-satismc-approval-policy", SatisLegacyMigrationPolicy.APPROVAL_POLICY);
-        metadata.put("legacy-satismc-rollback-policy", SatisLegacyMigrationPolicy.ROLLBACK_POLICY);
-        metadata.put("legacy-satismc-scan-mode", "scan-dryrun-verify-read-only");
-        metadata.put("legacy-satismc-import-mode", "cross-backend-sqlite-copy");
-        metadata.put("legacy-satismc-import-conflict-policy", "insert-ignore-existing-rows");
-        metadata.put("legacy-satismc-core-api-import-guard", "reject-core-api-import-when-addon-state-writer-unavailable");
-        metadata.put("legacy-satismc-rollback-mode", "sqlite-snapshot-restore-or-manual-shared-backend-restore");
-        metadata.put("legacy-satismc-rollback-command", "factory admin migration rollback");
         metadata.put("island-position-remap", "center-delta");
         metadata.put("recovery-suspend-mode", "drop-local-dirty-state");
         metadata.put("recovery-resume-source", "core-api-confirmed-state");
@@ -2094,22 +2034,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 Map.entry("addon-data-retention", "preserve-addon-state-by-island-uuid"),
                 Map.entry("addon-runtime-owns-islands", "false"),
                 Map.entry("addon-default-database-mode", "CORE_API"),
-                Map.entry("superior-migration-input-only", "true"),
-                Map.entry("superior-runtime-dependency", "false"),
-                Map.entry("superior-api-replacement", "SuperiorSkyblockAPI-compileOnly-removed-cloudislands-api-used-instead"),
-                Map.entry("superior-plugin-yml-dependency", "none"),
-                Map.entry("superior-runtime-classpath-policy", "no-superiorskyblock2-classes-or-services-required-after-migration"),
-                Map.entry("forbidden-skyblock-runtime-dependencies", SatisLegacyMigrationPolicy.forbiddenRuntimeProvidersCsv()),
-                Map.entry("forbidden-skyblock-runtime-provider-check", "plugin-enabled-only-no-bukkit-service-binding"),
-                Map.entry("forbidden-skyblock-runtime-action", "warn-and-ignore-no-service-lookup-no-event-hooks-no-data-writes"),
-                Map.entry("forbidden-skyblock-runtime-provider-hook-policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY),
-                Map.entry("forbidden-skyblock-runtime-provider-service-binding", "false"),
-                Map.entry("legacy-provider-lookup", "disabled"),
-                Map.entry("migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY),
-                Map.entry("migration-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY),
-                Map.entry("legacy-satismc-import-provider-prerequisite", SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE),
-                Map.entry("migration-manifest-policy", SatisLegacyMigrationPolicy.MANIFEST_POLICY),
-                Map.entry("migration-output-id-policy", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY),
                 Map.entry("database-core-api-endpoint", String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS) + "," + String.join(",", AddonStateBulkLoadRequest.GLOBAL_ENDPOINTS)),
                 Map.entry("database-core-api-island-endpoint", String.join(",", AddonStateBulkSaveRequest.ISLAND_ENDPOINTS) + "," + String.join(",", AddonStateBulkLoadRequest.ISLAND_ENDPOINTS)),
                 Map.entry("cloudislands-api-only", "true"),
@@ -4125,7 +4049,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         features.put("research", configuredFeatureEnabled("research"));
         features.put("maintenance", configuredFeatureEnabled("maintenance"));
         features.put("placeholders", configuredFeatureEnabled("placeholders"));
-        features.put("migration", configuredFeatureEnabled("migration"));
         features.put("addon-state", configuredFeatureEnabled("addon-state"));
         features.put("route-events", configuredFeatureEnabled("route-events"));
         features.put("members", configuredFeatureEnabled("members"));
@@ -6018,21 +5941,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 + "). Set setup.database.type to POSTGRESQL, MYSQL, MARIADB, or CORE_API.");
     }
 
-    private void warnIfForbiddenSkyblockRuntimeProvidersPresent() {
-        String providers = forbiddenSkyblockRuntimeProvidersPresent();
-        if (providers.equals("none")) {
-            return;
-        }
-        getLogger().warning("CloudIslands Satis detected legacy skyblock plugins (" + providers
-                + ") but will not hook them at runtime. They are allowed only as offline migration input.");
-    }
 
-    private String forbiddenSkyblockRuntimeProvidersPresent() {
-        List<String> present = FORBIDDEN_SKYBLOCK_RUNTIME_PROVIDERS.stream()
-                .filter(provider -> getServer().getPluginManager().isPluginEnabled(provider))
-                .toList();
-        return present.isEmpty() ? "none" : String.join(",", present);
-    }
 
     private void warnIfUnsafeDatabaseFallbackChain() {
         if (databaseFallbackProductionSafe()) {

@@ -150,12 +150,99 @@ tasks.register("verifyMarkdownDocsExcludedFromArtifacts") {
     }
 }
 
+val verifySatisLegacyMigrationRemoved = tasks.register("verifySatisLegacyMigrationRemoved") {
+    group = "verification"
+    description = "Verifies the removed Satis legacy migration/import surface stays absent."
+
+    val satisDir = projectDir.resolve("cloudislands-satis")
+    val deletedPolicyFiles = listOf(
+        satisDir.resolve("src/main/java/kr/seungmin/satisskyfactory/storage/SatisLegacyMigrationPolicy.java"),
+        satisDir.resolve("src/test/java/kr/seungmin/satisskyfactory/storage/SatisLegacyMigrationPolicyTest.java")
+    )
+    val scanFiles = fileTree(satisDir.resolve("src/main")) {
+        include("**/*.java", "**/*.yml", "**/*.yaml", "**/*.properties")
+    }.files.toMutableList().also {
+        it += satisDir.resolve("build.gradle.kts")
+    }.filter { it.isFile }.sortedBy { it.relativeTo(projectDir).path }
+
+    inputs.files(scanFiles)
+    inputs.files(deletedPolicyFiles)
+
+    doLast {
+        val stillPresent = deletedPolicyFiles.filter { it.exists() }
+        if (stillPresent.isNotEmpty()) {
+            throw GradleException(
+                "Removed Satis legacy migration files still exist: " +
+                    stillPresent.joinToString(", ") { it.relativeTo(projectDir).path }
+            )
+        }
+
+        val forbiddenLegacySurface = listOf(
+            "SatisLegacyMigrationPolicy",
+            "LegacyImport",
+            "LegacyRollback",
+            "scanLegacyDatabase",
+            "importLegacyDatabase",
+            "rollbackLastLegacyImport",
+            "migrate-superiorskyblock2",
+            "migrate-ss2",
+            "CONFIRM_IMPORT",
+            "factory admin migration",
+            "satisskyfactory.admin.migration",
+            "CloudIslands-Satis-Legacy-Migration",
+            "migration-input-only",
+            "migration-runtime-dependency",
+            "migration-manifest-policy",
+            "migration-output-id-policy"
+        )
+
+        val legacyHits = scanFiles.flatMap { file ->
+            val text = file.readText()
+            forbiddenLegacySurface
+                .filter(text::contains)
+                .map { "${file.relativeTo(projectDir).path}: $it" }
+        }
+        if (legacyHits.isNotEmpty()) {
+            throw GradleException(
+                "Removed Satis legacy migration surface is still referenced:\n" +
+                    legacyHits.joinToString("\n")
+            )
+        }
+
+        val addonDescriptor = satisDir.resolve("src/main/resources/cloudislands-addon.yml").readText()
+        val config = satisDir.resolve("src/main/resources/config.yml").readText()
+        val moduleBuild = satisDir.resolve("build.gradle.kts").readLines()
+        val featureGateLine = moduleBuild.firstOrNull { it.contains("\"CloudIslands-Addon-Feature-Gates\"") }.orEmpty()
+        val removedFeatureGateHits = buildList {
+            if (Regex("(?m)^\\s*migration:\\s*true\\s*$").containsMatchIn(config)) {
+                add("config.yml still enables migration feature")
+            }
+            if (Regex("(?m)^\\s*migration:\\s*$").containsMatchIn(addonDescriptor)) {
+                add("cloudislands-addon.yml still declares migration section")
+            }
+            if (Regex("(?m)^\\s*superiorskyblock2:\\s*$").containsMatchIn(addonDescriptor)) {
+                add("cloudislands-addon.yml still declares superiorskyblock2 section")
+            }
+            if (Regex("(?m)^\\s*-\\s*migration\\s*$").containsMatchIn(addonDescriptor)) {
+                add("cloudislands-addon.yml still lists migration feature")
+            }
+            if (featureGateLine.split("\"").any { it.split(",").map(String::trim).contains("migration") }) {
+                add("CloudIslands-Addon-Feature-Gates still lists migration")
+            }
+        }
+        if (removedFeatureGateHits.isNotEmpty()) {
+            throw GradleException(removedFeatureGateHits.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("build") {
     dependsOn(tasks.named("verifyMarkdownDocsExcludedFromArtifacts"))
 }
 
 tasks.named("check") {
     dependsOn(tasks.named("verifyMarkdownDocsExcludedFromArtifacts"))
+    dependsOn(verifySatisLegacyMigrationRemoved)
 }
 
 apply(from = "gradle/distribution.gradle.kts")

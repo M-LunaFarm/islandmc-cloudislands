@@ -65,19 +65,3 @@ permissions:
     default: op
   satisskyfactory.admin.state:
     default: op
-  satisskyfactory.admin.migration:
-    default: op
-  satisskyfactory.admin.give:
-    default: op
-  satisskyfactory.admin.giveitem:
-    default: op
-  satisskyfactory.admin.research:
-    default: op
-  satisskyfactory.admin.maintenance:
-    default: op
-  satisskyfactory.admin.nodes:
-    default: op
-  satisskyfactory.admin.debug:
-    default: op
-  satisskyfactory.debug:
-    default: op

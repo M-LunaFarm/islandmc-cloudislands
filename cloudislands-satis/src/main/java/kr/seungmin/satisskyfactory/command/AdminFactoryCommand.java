@@ -4,7 +4,6 @@ import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.seungmin.satisskyfactory.config.MessageService;
 import kr.seungmin.satisskyfactory.config.SatisFeatureGateResolver;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
-import kr.seungmin.satisskyfactory.storage.SatisLegacyMigrationPolicy;
 import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
 import kr.seungmin.satisskyfactory.item.ItemRegistry;
@@ -29,11 +28,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,9 +39,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 public final class AdminFactoryCommand {
-    private static final String MIGRATION_IMPORT_APPROVAL = SatisLegacyMigrationPolicy.APPROVAL_TOKEN;
-    private static final String MIGRATION_SOURCE_POLICY = SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY;
-    private static final String MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS = SatisLegacyMigrationPolicy.forbiddenRuntimeProvidersCsv();
     private static final List<String> FEATURE_KEYS = SatisFeatureGateResolver.featureKeys();
     private static final List<String> HELP_COMMANDS = helpCommands();
 
@@ -63,10 +54,8 @@ public final class AdminFactoryCommand {
                 "factory admin database",
                 "factory admin runtime",
                 "factory admin routes",
-                "factory admin support",
-                "factory admin migration"
+                "factory admin support"
         ));
-        commands.addAll(SatisLegacyMigrationPolicy.adminCommands());
         commands.addAll(List.of(
                 "factory admin state",
                 "factory admin give <player> <machineType> [amount]",
@@ -101,9 +90,6 @@ public final class AdminFactoryCommand {
     private final Function<UUID, Map<String, String>> addonIslandState;
     private final Runnable reload;
     private final int commandListPageSize;
-    private String lastLegacyDryRunSource;
-    private long lastLegacyDryRunRows;
-    private String lastLegacyDryRunFingerprint;
 
     public AdminFactoryCommand(FactoryIslandService islands, MachineService machines, MachineDefinitionService definitions,
                                StorageService storage, ResourceNodeService nodes, SkyblockProvider skyblock,
@@ -177,11 +163,6 @@ public final class AdminFactoryCommand {
             case "runtime" -> showRuntime(sender);
             case "routes" -> showRoutes(sender);
             case "support" -> showSupport(sender);
-            case "migration", "migrate-superiorskyblock2", "migrate-ss2" -> {
-                if (requireFeature(sender, "migration")) {
-                    handleMigration(sender, args);
-                }
-            }
             case "state" -> {
                 if (requireFeature(sender, "addon-state")) {
                     showAddonState(sender);
@@ -295,7 +276,6 @@ public final class AdminFactoryCommand {
             case "routes" -> "satisskyfactory.admin.routes";
             case "support" -> "satisskyfactory.admin.support";
             case "state" -> "satisskyfactory.admin.state";
-            case "migration", "migrate-superiorskyblock2", "migrate-ss2" -> "satisskyfactory.admin.migration";
             case "give" -> "satisskyfactory.admin.give";
             case "giveitem" -> "satisskyfactory.admin.giveitem";
             case "addresearch" -> "satisskyfactory.admin.research";
@@ -308,7 +288,6 @@ public final class AdminFactoryCommand {
 
     private String disabledFeatureFor(String subcommand) {
         return switch (subcommand) {
-            case "migration", "migrate-superiorskyblock2", "migrate-ss2" -> enabled("migration") ? null : "migration";
             case "state" -> enabled("addon-state") ? null : "addon-state";
             case "give", "giveitem", "removehere" -> enabled("machines") ? null : "machines";
             case "addresearch" -> enabled("research") ? null : "research";
@@ -320,11 +299,6 @@ public final class AdminFactoryCommand {
         };
     }
 
-    private boolean isMigrationRoot(String value) {
-        return value.equalsIgnoreCase("migration")
-                || value.equalsIgnoreCase(SatisLegacyMigrationPolicy.LEGACY_COMMAND_ROOT)
-                || value.equalsIgnoreCase("migrate-ss2");
-    }
 
     private boolean debugCommandsVisible() {
         return enabled("machines")
@@ -355,11 +329,6 @@ public final class AdminFactoryCommand {
             values.add("runtime");
             values.add("routes");
             values.add("support");
-            if (enabled("migration")) {
-                values.add("migration");
-                values.add(SatisLegacyMigrationPolicy.LEGACY_COMMAND_ROOT);
-                values.add("migrate-ss2");
-            }
             if (enabled("addon-state")) {
                 values.add("state");
             }
@@ -397,9 +366,6 @@ public final class AdminFactoryCommand {
         }
         if (args.length == 4 && isCommandListRoot(args[1]) && (args[2].equalsIgnoreCase("list") || args[2].equals("목록"))) {
             return filter(helpPageSuggestions(), args[3]);
-        }
-        if (args.length == 3 && isMigrationRoot(args[1]) && enabled("migration")) {
-            return filter(List.of("status", "scan", "dryrun", "dry-run", "verify", "verify-addon-state", "verify-no-legacy-provider", "import", "rollback"), args[2]);
         }
         if ((args[1].equalsIgnoreCase("give") || args[1].equalsIgnoreCase("giveitem") || args[1].equalsIgnoreCase("removehere")) && !enabled("machines")) {
             return new ArrayList<>();
@@ -1050,584 +1016,6 @@ public final class AdminFactoryCommand {
         return first == null || first.isBlank() ? (fallback == null ? "" : fallback) : first;
     }
 
-    private void showMigration(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-migration-title"));
-        Map<String, String> state = new LinkedHashMap<>();
-        state.put("satis-schema", "3");
-        state.put("satis-storage-key", "cloudislands-island-uuid");
-        state.put("legacy-source-project", SatisLegacyMigrationPolicy.SOURCE_PROJECT);
-        state.put("legacy-skyblock-source", SatisLegacyMigrationPolicy.LEGACY_SKYBLOCK_SOURCE);
-        state.put("legacy-satis-source", SatisLegacyMigrationPolicy.LEGACY_SATIS_SOURCE);
-        state.put("legacy-allowed-input", "read-only-snapshot,sqlite-export");
-        state.put("superior-migration-input-only", "true");
-        state.put("superior-runtime-dependency", "false");
-        state.put("superior-forbidden-runtime-dependencies", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
-        state.put("superior-provider-lookup", "disabled-at-runtime");
-        state.put("superior-provider-service-check", "plugin-enabled-only-no-bukkit-service-binding");
-        state.put("superior-provider-service-binding", "false");
-        state.put("superior-migration-source-policy", SatisLegacyMigrationPolicy.SOURCE_ACCESS_POLICY);
-        state.put("superior-runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
-        state.put("superior-runtime-provider-hook-policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
-        state.put("superior-migration-manifest-policy", SatisLegacyMigrationPolicy.MANIFEST_POLICY);
-        state.put("superior-migration-manifest-file", "migration-backups/legacy-import-last-manifest.json");
-        state.put("superior-migration-output-id-policy", SatisLegacyMigrationPolicy.OUTPUT_ID_POLICY);
-        state.put("superior-migration-approval-policy", SatisLegacyMigrationPolicy.APPROVAL_POLICY);
-        state.put("superior-migration-approval-token-policy", SatisLegacyMigrationPolicy.APPROVAL_TOKEN_POLICY);
-        state.put("superior-import-scan", "/factory admin migrate-superiorskyblock2 scan [path]");
-        state.put("superior-import-dryrun", "/factory admin migrate-superiorskyblock2 dryrun [path]");
-        state.put("superior-import-import", "/factory admin migrate-superiorskyblock2 import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>");
-        state.put("superior-import-verify", "/factory admin migrate-superiorskyblock2 verify [path]");
-        state.put("superior-import-verify-addon-state", "/factory admin migrate-superiorskyblock2 verify-addon-state <islandUuid>");
-        state.put("superior-import-verify-no-legacy-provider", "/factory admin migrate-superiorskyblock2 verify-no-legacy-provider");
-        state.put("superior-import-rollback", "/factory admin migrate-superiorskyblock2 rollback");
-        state.put("satismc-import-status", "/factory admin migration status");
-        state.put("satismc-import-scan", "/factory admin migration scan <sqlitePath>");
-        state.put("satismc-import-dryrun", "/factory admin migration dryrun <sqlitePath>");
-        state.put("satismc-import-verify", "/factory admin migration verify <sqlitePath>");
-        state.put("satismc-import-verify-addon-state", "/factory admin migration verify-addon-state <islandUuid>");
-        state.put("satismc-import-verify-no-legacy-provider", "/factory admin migration verify-no-legacy-provider");
-        state.put("satismc-import-import", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>");
-        state.put("satismc-import-approval", MIGRATION_IMPORT_APPROVAL);
-        state.put("satismc-import-mode", "cross-backend-sqlite-copy");
-        state.put("satismc-import-manifest", "migration-backups/legacy-import-last-manifest.json");
-        state.put("satismc-import-prerequisite", "same-source-dryrun-or-verify-before-import");
-        state.put("satismc-import-provider-prerequisite", SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE);
-        state.put("satismc-core-api-import-guard", "reject-core-api-import-when-addon-state-writer-unavailable");
-        state.put("satismc-rollback-mode", "sqlite-snapshot-restore-or-shared-backend-table-restore");
-        state.put("satismc-rollback-safety", "restores-known-satis-tables-from-migration-backups/legacy-import-last.db");
-        state.put("feature-gate", "migration=" + enabled("migration"));
-        state.put("disabled-behavior", "reject-status-scan-dryrun-verify-import-rollback");
-        state.put("writes-when-disabled", "false");
-        state.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                        "key", entry.getKey(),
-                        "value", entry.getValue()
-                ))));
-    }
-
-    private void handleMigration(CommandSender sender, String[] args) {
-        if (!enabled("migration")) {
-            sender.sendMessage(messages.raw("admin-migration-title"));
-            Map<String, String> state = new LinkedHashMap<>();
-            state.put("feature-gate", "migration=false");
-            state.put("mode", "disabled");
-            state.put("writes", "false");
-            state.put("source-policy", MIGRATION_SOURCE_POLICY);
-            state.put("live-provider-hooks", "false");
-            state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
-            state.put("reason", "migration feature is disabled by config");
-            state.put("disabled-behavior", "reject-status-scan-dryrun-verify-import-rollback");
-            state.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                            "key", entry.getKey(),
-                            "value", entry.getValue()
-                    ))));
-            return;
-        }
-        if (args.length >= 3) {
-            String action = args[2].toLowerCase(Locale.ROOT);
-            if (action.equals("status")) {
-                showMigration(sender);
-                return;
-            }
-            if (action.equals("scan") || action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")) {
-                scanLegacyDatabase(sender, args, action);
-                return;
-            }
-            if (action.equals("verify-addon-state")) {
-                verifyMigrationAddonState(sender, args);
-                return;
-            }
-            if (action.equals("verify-no-legacy-provider")) {
-                verifyNoLegacyProvider(sender);
-                return;
-            }
-            if (action.equals("import")) {
-                importLegacyDatabase(sender, args);
-                return;
-            }
-            if (action.equals("rollback")) {
-                rollbackLegacyDatabase(sender);
-                return;
-            }
-        }
-        showMigration(sender);
-    }
-
-    private void verifyMigrationAddonState(CommandSender sender, String[] args) {
-        if (args.length < 4) {
-            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                    "key", "usage",
-                    "value", "/factory admin migration verify-addon-state <islandUuid>"
-            )));
-            return;
-        }
-        sender.sendMessage(messages.raw("admin-migration-title"));
-        Map<String, String> state = new LinkedHashMap<>();
-        state.put("mode", "verify-addon-state-roundtrip");
-        state.put("writes", "false");
-        state.put("policy", SatisLegacyMigrationPolicy.ADDON_STATE_VERIFY_POLICY);
-        state.put("requires-feature", "addon-state");
-        state.put("feature-gate", "addon-state=" + enabled("addon-state"));
-        try {
-            UUID islandId = UUID.fromString(args[3]);
-            Map<String, String> values = addonIslandState == null ? Map.of() : addonIslandState.apply(islandId);
-            Map<String, String> safeValues = values == null ? Map.of() : values;
-            state.put("island", islandId.toString());
-            state.put("state-keys", Integer.toString(safeValues.size()));
-            state.put("status", enabled("addon-state") ? (safeValues.isEmpty() ? "empty" : "available") : "addon-state-feature-disabled");
-            state.put("roundtrip", enabled("addon-state") && !safeValues.isEmpty() ? "passed" : "not-proven");
-            state.put("authority", "cloudislands-addon-state");
-            state.put("node-bound", "false");
-            state.put("next-step", safeValues.isEmpty() ? "activate-or-import-island-then-rerun-verify-addon-state" : "run-verify-no-legacy-provider");
-        } catch (IllegalArgumentException exception) {
-            state.put("status", "invalid-island-uuid");
-            state.put("island", args[3]);
-            state.put("roundtrip", "failed");
-        }
-        state.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                        "key", entry.getKey(),
-                        "value", entry.getValue()
-                ))));
-    }
-
-    private void verifyNoLegacyProvider(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-migration-title"));
-        Map<String, String> state = new LinkedHashMap<>();
-        state.put("mode", "verify-no-legacy-provider");
-        state.put("writes", "false");
-        state.put("policy", SatisLegacyMigrationPolicy.RUNTIME_PROVIDER_HOOK_POLICY);
-        state.put("runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
-        state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
-        boolean passed = true;
-        for (String provider : MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS.split(",")) {
-            String name = provider.trim();
-            boolean enabledProvider;
-            try {
-                enabledProvider = Bukkit.getPluginManager().isPluginEnabled(name);
-            } catch (RuntimeException exception) {
-                enabledProvider = false;
-                state.put("provider-check-error." + name, exception.getClass().getSimpleName());
-            }
-            state.put("provider." + name, enabledProvider ? "enabled" : "absent-or-disabled");
-            if (enabledProvider) {
-                passed = false;
-            }
-            boolean registeredService = legacyProviderServiceRegistered(name);
-            state.put("service." + name, registeredService ? "registered" : "absent");
-            if (registeredService) {
-                passed = false;
-            }
-        }
-        state.put("status", passed ? "passed" : "failed");
-        state.put("live-provider-hooks", passed ? "false" : "legacy-provider-plugin-or-service-present");
-        state.put("next-step", passed ? "migration-runtime-clean" : "remove-legacy-provider-before-accepting-migration");
-        state.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                        "key", entry.getKey(),
-                        "value", entry.getValue()
-                ))));
-    }
-
-    private boolean legacyProviderServiceRegistered(String provider) {
-        if (provider == null || provider.isBlank()) {
-            return false;
-        }
-        String needle = provider.toLowerCase(Locale.ROOT).replace("-", "").replace("_", "");
-        try {
-            for (Class<?> service : Bukkit.getServicesManager().getKnownServices()) {
-                String serviceName = service.getName().toLowerCase(Locale.ROOT).replace("-", "").replace("_", "");
-                if (serviceName.contains(needle)) {
-                    return true;
-                }
-            }
-        } catch (RuntimeException ignored) {
-            return true;
-        }
-        return false;
-    }
-
-    private boolean legacyRuntimeClean() {
-        for (String provider : MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS.split(",")) {
-            String name = provider.trim();
-            try {
-                if (Bukkit.getPluginManager().isPluginEnabled(name)) {
-                    return false;
-                }
-            } catch (RuntimeException ignored) {
-                return false;
-            }
-            if (legacyProviderServiceRegistered(name)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void scanLegacyDatabase(CommandSender sender, String[] args, String action) {
-        if (args.length < 4) {
-            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                    "key", "usage",
-                    "value", "/factory admin migration " + action + " <sqlitePath>"
-            )));
-            return;
-        }
-        try {
-            DatabaseService.LegacyImportPlan plan = database.scanLegacyDatabase(new File(joined(args, 3)));
-            if (action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")) {
-                lastLegacyDryRunSource = plan.sourcePath();
-                lastLegacyDryRunRows = plan.importableRows();
-                lastLegacyDryRunFingerprint = legacySourceFingerprint(plan.sourcePath());
-            }
-            sender.sendMessage(messages.raw("admin-migration-title"));
-            Map<String, String> state = new LinkedHashMap<>();
-            state.put("source", plan.sourcePath());
-            state.put("source-policy", MIGRATION_SOURCE_POLICY);
-            state.put("source-kind", "sqlite-snapshot");
-            state.put("live-provider-hooks", "false");
-            state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
-            state.put("mode", action.equals("scan") ? "scan-only" : (action.equals("verify") ? "verify-no-write" : "dryrun-no-write"));
-            state.put("target-backend", database.activeBackend().name());
-            state.put("writes", "false");
-            state.put("conflict-policy", "none-scan-only");
-            state.put("import-prerequisite-recorded", Boolean.toString(action.equals("dryrun") || action.equals("dry-run") || action.equals("verify")));
-            if (lastLegacyDryRunSource != null && lastLegacyDryRunSource.equals(plan.sourcePath())) {
-                state.put("source-fingerprint", lastLegacyDryRunFingerprint);
-                state.put("approval-fingerprint-token", legacyApprovalToken(lastLegacyDryRunFingerprint));
-            }
-            state.put("importable-rows", String.valueOf(plan.importableRows()));
-            state.put("importable-tables", String.valueOf(plan.importableTables()));
-            state.put("skipped-tables", String.valueOf(plan.skippedTables()));
-            plan.tables().forEach(table -> state.put("table." + table.table(),
-                    (table.importable() ? "ready" : "skip") + ",rows=" + table.sourceRows() + ",reason=" + table.reason()));
-            state.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                            "key", entry.getKey(),
-                            "value", entry.getValue()
-                    ))));
-        } catch (RuntimeException exception) {
-            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                    "key", "error",
-                    "value", exception.getMessage() == null ? "unknown" : exception.getMessage()
-            )));
-        }
-    }
-
-    private void importLegacyDatabase(CommandSender sender, String[] args) {
-        if (args.length < 4) {
-            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                    "key", "usage",
-                    "value", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>"
-            )));
-            return;
-        }
-        int approvalIndex = approvalIndex(args);
-        if (approvalIndex < 0 || approvalIndex <= 3) {
-            sender.sendMessage(messages.raw("admin-migration-title"));
-            Map<String, String> state = new LinkedHashMap<>();
-            state.put("mode", "approval-required");
-            state.put("writes", "false");
-            state.put("approval", MIGRATION_IMPORT_APPROVAL);
-            state.put("approval-fingerprint-form", MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>");
-            state.put("usage", "/factory admin migration import <sqlitePath> " + MIGRATION_IMPORT_APPROVAL + "|" + MIGRATION_IMPORT_APPROVAL + ":<dryrun-sha256>");
-            state.put("safe-path", "/factory admin migration dryrun <sqlitePath>");
-            state.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                            "key", entry.getKey(),
-                            "value", entry.getValue()
-                    ))));
-            return;
-        }
-        try {
-            String sourcePath = joined(args, 3, approvalIndex);
-            DatabaseService.LegacyImportPlan plan = database.scanLegacyDatabase(new File(sourcePath));
-            if (lastLegacyDryRunSource == null || !lastLegacyDryRunSource.equals(plan.sourcePath())) {
-                sender.sendMessage(messages.raw("admin-migration-title"));
-                Map<String, String> state = new LinkedHashMap<>();
-                state.put("mode", "dryrun-required");
-                state.put("writes", "false");
-                state.put("source", plan.sourcePath());
-                state.put("required", "/factory admin migration dryrun <sqlitePath>");
-                state.put("reason", "import requires a prior dryrun or verify for the same source path");
-                state.entrySet().stream()
-                        .sorted(Map.Entry.comparingByKey())
-                        .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                                "key", entry.getKey(),
-                                "value", entry.getValue()
-                        ))));
-                return;
-            }
-            if (lastLegacyDryRunRows != plan.importableRows()) {
-                sender.sendMessage(messages.raw("admin-migration-title"));
-                Map<String, String> state = new LinkedHashMap<>();
-                state.put("mode", "dryrun-stale");
-                state.put("writes", "false");
-                state.put("source", plan.sourcePath());
-                state.put("dryrun-rows", String.valueOf(lastLegacyDryRunRows));
-                state.put("current-rows", String.valueOf(plan.importableRows()));
-                state.put("required", "/factory admin migration dryrun <sqlitePath>");
-                state.put("reason", "source changed after dryrun or verify");
-                state.entrySet().stream()
-                        .sorted(Map.Entry.comparingByKey())
-                        .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                                "key", entry.getKey(),
-                                "value", entry.getValue()
-                        ))));
-                return;
-            }
-            String currentFingerprint = legacySourceFingerprint(plan.sourcePath());
-            if (lastLegacyDryRunFingerprint == null || !lastLegacyDryRunFingerprint.equals(currentFingerprint)) {
-                sender.sendMessage(messages.raw("admin-migration-title"));
-                Map<String, String> state = new LinkedHashMap<>();
-                state.put("mode", "dryrun-stale");
-                state.put("writes", "false");
-                state.put("source", plan.sourcePath());
-                state.put("dryrun-fingerprint", lastLegacyDryRunFingerprint == null ? "none" : lastLegacyDryRunFingerprint);
-                state.put("current-fingerprint", currentFingerprint);
-                state.put("required", "/factory admin migration dryrun <sqlitePath>");
-                state.put("reason", "source file changed after dryrun or verify");
-                state.entrySet().stream()
-                        .sorted(Map.Entry.comparingByKey())
-                        .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                                "key", entry.getKey(),
-                                "value", entry.getValue()
-                        ))));
-                return;
-            }
-            if (!legacyApprovalAccepted(args[approvalIndex], currentFingerprint)) {
-                sender.sendMessage(messages.raw("admin-migration-title"));
-                Map<String, String> state = new LinkedHashMap<>();
-                state.put("mode", "approval-fingerprint-mismatch");
-                state.put("writes", "false");
-                state.put("source", plan.sourcePath());
-                state.put("approval", approvalToken(args[approvalIndex]));
-                state.put("required", legacyApprovalToken(currentFingerprint));
-                state.put("compat-approval", MIGRATION_IMPORT_APPROVAL);
-                state.put("reason", "fingerprint approval token must match the last dryrun source");
-                state.entrySet().stream()
-                        .sorted(Map.Entry.comparingByKey())
-                        .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                                "key", entry.getKey(),
-                                "value", entry.getValue()
-                        ))));
-                return;
-            }
-            if (!legacyRuntimeClean()) {
-                sender.sendMessage(messages.raw("admin-migration-title"));
-                Map<String, String> state = new LinkedHashMap<>();
-                state.put("mode", "legacy-provider-present");
-                state.put("writes", "false");
-                state.put("source", plan.sourcePath());
-                state.put("required", "/factory admin migration verify-no-legacy-provider");
-                state.put("policy", SatisLegacyMigrationPolicy.IMPORT_PROVIDER_PREREQUISITE);
-                state.put("runtime-dependency-policy", SatisLegacyMigrationPolicy.RUNTIME_DEPENDENCY_POLICY);
-                state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
-                state.put("live-provider-hooks", "legacy-provider-plugin-or-service-present");
-                state.put("reason", "remove or disable legacy skyblock providers before accepting migration import");
-                state.entrySet().stream()
-                        .sorted(Map.Entry.comparingByKey())
-                        .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                                "key", entry.getKey(),
-                                "value", entry.getValue()
-                        ))));
-                return;
-            }
-            String approvedDryRunSource = lastLegacyDryRunSource;
-            long approvedDryRunRows = lastLegacyDryRunRows;
-            String approvedDryRunFingerprint = lastLegacyDryRunFingerprint;
-            String approvedToken = approvalToken(args[approvalIndex]);
-            DatabaseService.LegacyImportResult result = database.importLegacyDatabase(new File(sourcePath));
-            lastLegacyDryRunSource = null;
-            lastLegacyDryRunRows = 0L;
-            lastLegacyDryRunFingerprint = null;
-            reload.run();
-            sender.sendMessage(messages.raw("admin-migration-title"));
-            Map<String, String> state = new LinkedHashMap<>();
-            state.put("source", result.sourcePath());
-            state.put("source-policy", MIGRATION_SOURCE_POLICY);
-            state.put("source-kind", "sqlite-snapshot");
-            state.put("live-provider-hooks", "false");
-            state.put("forbidden-runtime-providers", MIGRATION_FORBIDDEN_RUNTIME_PROVIDERS);
-            state.put("target-backend", database.activeBackend().name());
-            state.put("dryrun-source", approvedDryRunSource);
-            state.put("dryrun-rows", String.valueOf(approvedDryRunRows));
-            state.put("dryrun-fingerprint", approvedDryRunFingerprint);
-            state.put("dryrun-cache", "cleared-after-import");
-            state.put("copied-rows", String.valueOf(result.copiedRows()));
-            state.put("copied-tables", String.join(",", result.copiedTables()));
-            state.put("skipped-tables", result.skippedTables().isEmpty() ? "none" : String.join(",", result.skippedTables()));
-            state.put("migration-manifest", result.manifestPath());
-            state.put("mode", "cross-backend-sqlite-copy");
-            state.put("writes", "true");
-            state.put("approval", approvedToken);
-            state.put("approval-policy", approvedToken.equalsIgnoreCase(MIGRATION_IMPORT_APPROVAL) ? "compat-token-with-dryrun-fingerprint-check" : "fingerprint-token");
-            state.put("conflict-policy", "insert-ignore-existing-rows");
-            state.put("core-api-import-guard", database.activeBackend() == DatabaseService.StorageBackend.CORE_API ? "passed-addon-state-writer-required" : "not-required-for-" + database.activeBackend().name());
-            state.put("core-api-writer-required", Boolean.toString(database.activeBackend() == DatabaseService.StorageBackend.CORE_API));
-            state.put("rollback-backup", result.rollbackBackupPath());
-            state.put("rollback-command", "/factory admin migration rollback");
-            state.put("next-import-prerequisite", "/factory admin migration dryrun <sqlitePath>");
-            state.entrySet().stream()
-                    .sorted(Map.Entry.comparingByKey())
-                    .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                            "key", entry.getKey(),
-                            "value", entry.getValue()
-                    ))));
-        } catch (RuntimeException exception) {
-            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                    "key", "error",
-                    "value", exception.getMessage() == null ? "unknown" : exception.getMessage()
-            )));
-            sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                    "key", "core-api-import-guard",
-                    "value", database.activeBackend() == DatabaseService.StorageBackend.CORE_API ? "failed-or-unavailable-addon-state-writer" : "not-required-for-" + database.activeBackend().name()
-            )));
-        }
-    }
-
-    private String legacySourceFingerprint(String sourcePath) {
-        File source = new File(sourcePath);
-        return "sha256=" + sha256(source) + ",size=" + source.length() + ",modified=" + source.lastModified();
-    }
-
-    private String sha256(File source) {
-        try (InputStream input = new java.io.BufferedInputStream(new java.io.FileInputStream(source))) {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] buffer = new byte[8192];
-            int read;
-            while ((read = input.read(buffer)) >= 0) {
-                if (read > 0) {
-                    digest.update(buffer, 0, read);
-                }
-            }
-            byte[] hash = digest.digest();
-            StringBuilder hex = new StringBuilder(hash.length * 2);
-            for (byte value : hash) {
-                hex.append(String.format("%02x", value));
-            }
-            return hex.toString();
-        } catch (IOException | NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("Failed to fingerprint legacy source database", exception);
-        }
-    }
-
-    private void rollbackLegacyDatabase(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-migration-title"));
-        Map<String, String> state = new LinkedHashMap<>();
-        try {
-            DatabaseService.LegacyRollbackResult result = database.rollbackLastLegacyImport();
-            if (result.restored()) {
-                reload.run();
-            }
-            state.put("mode", rollbackMode(result));
-            state.put("restored", Boolean.toString(result.restored()));
-            state.put("status", result.status());
-            state.put("backup", result.backupPath());
-            state.put("next-step", result.nextStep());
-            state.put("automatic-delete", "false");
-            state.put("reason", rollbackReason(result));
-            state.put("target-backend", database.activeBackend().name());
-            state.put("core-api-rollback-policy", database.activeBackend() == DatabaseService.StorageBackend.CORE_API
-                    ? "restore-local-cache-then-publish-addon-state"
-                    : "not-required-for-" + database.activeBackend().name());
-        } catch (RuntimeException exception) {
-            state.put("mode", "rollback-failed");
-            state.put("restored", "false");
-            state.put("error", exception.getMessage() == null ? "unknown" : exception.getMessage());
-            state.put("safe-path", "restore database backup, then run /factory admin migration verify <sqlitePath>");
-        }
-        state.entrySet().stream()
-                .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
-                        "key", entry.getKey(),
-                        "value", entry.getValue()
-                ))));
-    }
-
-    private String rollbackMode(DatabaseService.LegacyRollbackResult result) {
-        if (result != null && "core-api-addon-state-unavailable".equals(result.status())) {
-            return "core-api-writer-required";
-        }
-        if (result == null || !result.restored()) {
-            return "manual-restore-required";
-        }
-        if ("restored-shared-backend".equals(result.status())) {
-            return "shared-backend-snapshot-restore";
-        }
-        if ("restored-core-api-local-cache-published".equals(result.status())) {
-            return "core-api-local-cache-snapshot-publish";
-        }
-        return "sqlite-snapshot-restore";
-    }
-
-    private String rollbackReason(DatabaseService.LegacyRollbackResult result) {
-        if (result != null && "core-api-addon-state-unavailable".equals(result.status())) {
-            return "CORE_API rollback needs an active addon-state writer so restored cache rows are published cluster-wide";
-        }
-        if (result == null || !result.restored()) {
-            return "rollback must not delete mixed live CloudIslands/Satis data automatically";
-        }
-        if ("restored-shared-backend".equals(result.status())) {
-            return "restored last pre-import snapshot into active shared backend";
-        }
-        if ("restored-core-api-local-cache-published".equals(result.status())) {
-            return "restored local CORE_API cache snapshot and published addon-state rows";
-        }
-        return "restored last SQLite pre-import snapshot";
-    }
-
-    private int approvalIndex(String[] args) {
-        for (int i = 3; i < args.length; i++) {
-            String token = approvalToken(args[i]);
-            if (token.equalsIgnoreCase(MIGRATION_IMPORT_APPROVAL)
-                    || token.toUpperCase(java.util.Locale.ROOT).startsWith(MIGRATION_IMPORT_APPROVAL + ":")) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    private boolean legacyApprovalAccepted(String rawApproval, String fingerprint) {
-        String token = approvalToken(rawApproval);
-        return token.equalsIgnoreCase(MIGRATION_IMPORT_APPROVAL)
-                || token.equalsIgnoreCase(legacyApprovalToken(fingerprint));
-    }
-
-    private String approvalToken(String rawApproval) {
-        if (rawApproval == null) {
-            return "";
-        }
-        String token = rawApproval.trim();
-        if (token.toLowerCase(java.util.Locale.ROOT).startsWith("approval=")) {
-            return token.substring("approval=".length()).trim();
-        }
-        if (token.toLowerCase(java.util.Locale.ROOT).startsWith("--confirm=")) {
-            return token.substring("--confirm=".length()).trim();
-        }
-        return token;
-    }
-
-    private String legacyApprovalToken(String fingerprint) {
-        if (fingerprint == null || fingerprint.isBlank()) {
-            return MIGRATION_IMPORT_APPROVAL + ":unknown";
-        }
-        String marker = "sha256=";
-        int start = fingerprint.indexOf(marker);
-        if (start < 0) {
-            return MIGRATION_IMPORT_APPROVAL + ":" + fingerprint.replaceAll("[^A-Za-z0-9._-]", "_");
-        }
-        int valueStart = start + marker.length();
-        int valueEnd = fingerprint.indexOf(',', valueStart);
-        return MIGRATION_IMPORT_APPROVAL + ":" + fingerprint.substring(valueStart, valueEnd < 0 ? fingerprint.length() : valueEnd);
-    }
-
     private void showAddonState(CommandSender sender) {
         sender.sendMessage(messages.raw("admin-integration-title"));
         Map<String, String> state;
@@ -1787,17 +1175,6 @@ public final class AdminFactoryCommand {
                         "runtime-authoritative-store-policy",
                         "runtime-redis-advisory-policy",
                         "runtime-redis-failure-policy",
-                        "runtime-superior-migration-input-only",
-                        "runtime-superior-runtime-dependency",
-                        "runtime-superior-runtime-policy",
-                        "runtime-superior-runtime-provider-hook-policy",
-                        "runtime-superior-api-replacement",
-                        "runtime-superior-plugin-yml-dependency",
-                        "runtime-superior-runtime-classpath-policy",
-                        "runtime-forbidden-skyblock-providers",
-                        "runtime-forbidden-skyblock-provider-service-binding",
-                        "runtime-legacy-provider-lookup",
-                        "runtime-migration-source-policy",
                         "runtime-addon-state-gate",
                         "runtime-addon-state-status",
                         "runtime-addon-state-policy",
@@ -1847,9 +1224,6 @@ public final class AdminFactoryCommand {
                 "velocity-forwarding-policy",
                         "paper-backend-access-policy",
                         "plugin-message-security-policy",
-                        "runtime-migration-gate",
-                        "runtime-migration-status",
-                        "runtime-migration-policy",
                         "runtime-storage-gate",
                         "runtime-storage-status",
                         "runtime-storage-policy",
@@ -2368,7 +1742,6 @@ public final class AdminFactoryCommand {
                 || (command.contains(" setdebt ") || command.contains(" charge ") || command.contains(" repairhere")) && !enabled("maintenance")
                 || command.contains(" repairhere") && !enabled("machines")
                 || command.contains(" gennodes ") && !enabled("resource-nodes")
-                || (command.contains(" migration") || command.contains(" migrate-superiorskyblock2") || command.contains(" migrate-ss2")) && !enabled("migration")
                 || command.contains(" state") && !enabled("addon-state")
                 || command.contains(" debug ") && !debugCommandsVisible()
                 || command.contains(" debug networks") && !enabled("machines");

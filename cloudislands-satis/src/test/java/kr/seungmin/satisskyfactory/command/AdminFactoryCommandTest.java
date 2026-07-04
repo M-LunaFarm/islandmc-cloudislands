@@ -2,7 +2,6 @@ package kr.seungmin.satisskyfactory.command;
 
 import org.bukkit.command.CommandSender;
 import org.junit.jupiter.api.Test;
-import kr.seungmin.satisskyfactory.storage.SatisLegacyMigrationPolicy;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -27,30 +26,22 @@ class AdminFactoryCommandTest {
         assertEquals(List.class, AdminFactoryCommand.class
                 .getMethod("complete", CommandSender.class, String[].class)
                 .getReturnType());
-        assertEquals(void.class, AdminFactoryCommand.class
-                .getDeclaredMethod("verifyMigrationAddonState", CommandSender.class, String[].class)
-                .getReturnType());
-        assertEquals(void.class, AdminFactoryCommand.class
-                .getDeclaredMethod("verifyNoLegacyProvider", CommandSender.class)
-                .getReturnType());
     }
 
     @Test
-    void listsMigrationCommandsAsOneLineEntriesWhenFeatureIsEnabled() throws Exception {
+    void listsAdminCommandsAsOneLineEntriesWhenFeatureIsEnabled() throws Exception {
         List<String> commands = visibleHelpCommands(command(feature -> true), "ci");
 
         assertTrue(commands.stream().allMatch(command -> command.startsWith("ci ")));
         assertTrue(commands.stream().allMatch(command -> !command.contains("\n") && !command.contains("\r")));
         assertEquals(commands.size(), commands.stream().distinct().count());
-        assertTrue(commands.contains("ci admin migration"));
+        assertFalse(commands.stream().anyMatch(command -> command.contains(" migration")));
+        assertFalse(commands.stream().anyMatch(command -> command.contains("migrate-superiorskyblock2")));
         assertTrue(commands.contains("ci admin doctor"));
         assertTrue(commands.contains("ci admin database"));
         assertTrue(commands.contains("ci admin runtime"));
         assertTrue(commands.contains("ci admin routes"));
         assertTrue(commands.contains("ci admin support"));
-        for (String policyCommand : SatisLegacyMigrationPolicy.adminCommands()) {
-            assertTrue(commands.contains(policyCommand.replaceFirst("^factory", "ci")));
-        }
     }
 
     @Test
@@ -63,10 +54,20 @@ class AdminFactoryCommandTest {
     }
 
     @Test
+    void omitsLegacyMigrationCommands() throws Exception {
+        List<String> commands = visibleHelpCommands(command(feature -> true), "factory");
+
+        assertFalse(commands.stream().anyMatch(command -> command.contains(" migration")));
+        assertFalse(commands.stream().anyMatch(command -> command.contains("migrate-superiorskyblock2")));
+        assertTrue(commands.contains("factory admin state"));
+    }
+
+    @Test
     void hidesMigrationCommandsWhenMigrationFeatureIsDisabled() throws Exception {
         List<String> commands = visibleHelpCommands(command(feature -> !"migration".equals(feature)), "factory");
 
         assertFalse(commands.stream().anyMatch(command -> command.contains(" migration")));
+        assertFalse(commands.stream().anyMatch(command -> command.contains("migrate-superiorskyblock2")));
         assertTrue(commands.contains("factory admin state"));
     }
 

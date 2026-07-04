@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SatisSkyFactoryPluginTest {
@@ -65,7 +66,7 @@ class SatisSkyFactoryPluginTest {
         assertEquals("preserve-addon-state-by-island-uuid", metadata.get("addon-data-retention"));
         assertEquals("false", metadata.get("addon-runtime-owns-islands"));
         assertEquals("CORE_API", metadata.get("addon-default-database-mode"));
-        assertEquals("false", metadata.get("superior-runtime-dependency"));
+        assertNull(metadata.get("superior-runtime-dependency"));
         assertEquals("true", metadata.get("cloudislands-api-only"));
         assertEquals("true", metadata.get("config-gated"));
         assertEquals("setup.satis.mode,addons.cloudislands-satis.integration.mode,integration.mode", metadata.get("integration-mode-config-paths"));
@@ -137,11 +138,11 @@ class SatisSkyFactoryPluginTest {
         assertTrue(metadata.get("satis-completion-criteria").contains("a-server-b-server-new-and-existing-island-flows-are-pinned"));
         assertEquals("node-count-does-not-change-satis-state-keys-or-storage-authority", metadata.get("island-state-scale-policy"));
         assertEquals("A-node-save-B-node-restore-by-island-uuid", metadata.get("island-state-node-handoff-policy"));
-        assertEquals("read-only-snapshot-or-sqlite-scan-no-live-provider-hooks", metadata.get("migration-source-policy"));
-        assertEquals("legacy-provider-is-migration-input-only-never-runtime-dependency", metadata.get("migration-runtime-dependency-policy"));
-        assertEquals("verify-no-legacy-provider-passed-before-import", metadata.get("legacy-satismc-import-provider-prerequisite"));
-        assertEquals("create-cloudislands-migration-manifest-before-import", metadata.get("migration-manifest-policy"));
-        assertEquals("cloudislands-island-uuid", metadata.get("migration-output-id-policy"));
+        assertNull(metadata.get("migration-source-policy"));
+        assertNull(metadata.get("migration-runtime-dependency-policy"));
+        assertNull(metadata.get("legacy-satismc-import-provider-prerequisite"));
+        assertNull(metadata.get("migration-manifest-policy"));
+        assertNull(metadata.get("migration-output-id-policy"));
         assertEquals(
                 String.join(",", AddonStateBulkSaveRequest.GLOBAL_ENDPOINTS) + "," + String.join(",", AddonStateBulkLoadRequest.GLOBAL_ENDPOINTS),
                 metadata.get("database-core-api-endpoint")

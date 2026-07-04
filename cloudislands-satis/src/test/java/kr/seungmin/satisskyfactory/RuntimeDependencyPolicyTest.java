@@ -291,7 +291,9 @@ class RuntimeDependencyPolicyTest {
         assertTrue(rootBuild.contains("tasks.register(\"verifyMarkdownDocsExcludedFromArtifacts\")"));
         assertTrue(rootBuild.contains("markdown documents are allowed in source but excluded from packaged artifacts"));
         assertTrue(rootBuild.contains("tasks.named(\"build\") {\n    dependsOn(tasks.named(\"verifyMarkdownDocsExcludedFromArtifacts\"))\n}"));
-        assertTrue(rootBuild.contains("tasks.named(\"check\") {\n    dependsOn(tasks.named(\"verifyMarkdownDocsExcludedFromArtifacts\"))\n}"));
+        assertTrue(rootBuild.contains("tasks.named(\"check\") {"));
+        assertTrue(rootBuild.contains("dependsOn(tasks.named(\"verifyMarkdownDocsExcludedFromArtifacts\"))"));
+        assertTrue(rootBuild.contains("dependsOn(verifySatisLegacyMigrationRemoved)"));
         assertTrue(distributionBuild.contains("dependsOn(tasks.named(\"verifyMarkdownDocsExcludedFromArtifacts\"))"));
     }
 }
