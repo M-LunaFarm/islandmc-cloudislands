@@ -46,6 +46,28 @@ public final class VelocityAdminActions extends VelocityActionSupport {
         sendComposite(player, "Doctor", List.of(config, metrics, storage, nodes, jobs, routes, audit, integrations));
     }
 
+    public void setup(Player player, String section) {
+        String normalized = section == null || section.isBlank() ? "start" : section.toLowerCase(java.util.Locale.ROOT);
+        if (normalized.equals("verify")) {
+            player.sendMessage(playerComponent("Setup verify delegates to /ciadmin doctor for live PASS/WARN/FAIL checks."));
+            doctor(player);
+            return;
+        }
+        player.sendMessage(playerComponent(setupMessage(normalized)));
+    }
+
+    private static String setupMessage(String section) {
+        return switch (section) {
+            case "core" -> "Setup core: configure core-api base-url/token/admin-token, then run /ciadmin config validate, /ciadmin config effective, and /ciadmin doctor.";
+            case "redis" -> "Setup redis: configure Redis only as cache/event transport, verify it is not source-of-truth, then run /ciadmin doctor and /ciadmin metrics.";
+            case "database" -> "Setup database: configure durable shared JDBC for production, avoid in-memory production state, then run /ciadmin config validate and /ciadmin doctor.";
+            case "storage" -> "Setup storage: configure object storage credentials and bucket/prefix, then run /ciadmin storage, /ciadmin support-bundle create, and backup/restore rehearsal gates.";
+            case "velocity" -> "Setup velocity: configure forwarding secret, fallback server, island pool names, route wait seconds, and hide-node-names; verify with /ciadmin status and /ciadmin doctor.";
+            case "paper-node" -> "Setup paper-node: configure unique node.id, role, core-api, storage, integrations, and supported templates; verify with /ciadmin node list and /ciadmin doctor.";
+            default -> "Setup start: complete /ciadmin setup core, redis, database, storage, velocity, paper-node, then run /ciadmin setup verify.";
+        };
+    }
+
     public void integrations(Player player) {
         sendTextResult(player, coreApiClient.adminNodes().integrationSummary().thenApply(summary -> "Integrations: " + summary.text()), "Integration 상태를 불러오지 못했습니다.");
     }

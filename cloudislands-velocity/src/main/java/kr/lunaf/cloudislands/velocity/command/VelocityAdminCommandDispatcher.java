@@ -25,6 +25,10 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             adminActions.doctor(player);
             return;
         }
+        if (args[0].equalsIgnoreCase("setup")) {
+            adminActions.setup(player, args.length > 1 ? args[1] : "start");
+            return;
+        }
         if (args[0].equalsIgnoreCase("integrations")) {
             adminActions.integrations(player);
             return;

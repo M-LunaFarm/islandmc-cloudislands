@@ -67,6 +67,7 @@ import org.jetbrains.annotations.NotNull;
 
 final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> ROOT_COMMANDS = AdminCommandCatalog.ROOT_COMMANDS;
+    private static final List<String> SETUP_COMMANDS = AdminCommandCatalog.SETUP_COMMANDS;
     private static final List<String> CONFIG_COMMANDS = AdminCommandCatalog.CONFIG_COMMANDS;
     private static final List<String> CACHE_COMMANDS = AdminCommandCatalog.CACHE_COMMANDS;
     private static final List<String> ADDON_COMMANDS = AdminCommandCatalog.ADDON_COMMANDS;
@@ -157,6 +158,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args[0].equalsIgnoreCase("doctor")) {
             return handleDoctor(sender);
+        }
+        if (args[0].equalsIgnoreCase("setup")) {
+            return handleSetup(sender, args);
         }
         if (isHelpRequest(args)) {
             usage(sender, label, helpPage(args));
@@ -265,6 +269,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("config")) {
             return matches(CONFIG_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("setup")) {
+            return matches(SETUP_COMMANDS, args[1]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("addons") && (args[1].equalsIgnoreCase("info") || args[1].equalsIgnoreCase("feature") || args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable") || args[1].equalsIgnoreCase("reload"))) {
             return matches(addonIds(), args[2]);
@@ -702,6 +709,41 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         run(sender, "Doctor", CompletableFuture.allOf(config, snapshotPolicy, metrics, storage, nodes, jobs, routes, audit, templates, integrations)
             .thenApply(_ignored -> doctorMessage(List.of(config.join(), snapshotPolicy.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), templates.join(), integrations.join()))));
         return true;
+    }
+
+    private boolean handleSetup(CommandSender sender, String[] args) {
+        String section = args.length > 1 ? args[1].toLowerCase(Locale.ROOT) : "start";
+        if (section.equals("verify")) {
+            sender.sendMessage(adminText("admin-command-setup-verify-prefix", "Setup verify delegates to /ciadmin doctor for live PASS/WARN/FAIL checks."));
+            return handleDoctor(sender);
+        }
+        if (!SETUP_COMMANDS.contains(section)) {
+            sendCommandUsage(sender, List.of(
+                "/ciadmin setup start",
+                "/ciadmin setup core",
+                "/ciadmin setup redis",
+                "/ciadmin setup database",
+                "/ciadmin setup storage",
+                "/ciadmin setup velocity",
+                "/ciadmin setup paper-node",
+                "/ciadmin setup verify"
+            ));
+            return true;
+        }
+        sender.sendMessage(setupMessage(section));
+        return true;
+    }
+
+    private String setupMessage(String section) {
+        return switch (section) {
+            case "core" -> "Setup core: configure core-api base-url/token/admin-token, then run /ciadmin config validate, /ciadmin config effective, and /ciadmin doctor.";
+            case "redis" -> "Setup redis: configure Redis only as cache/event transport, verify it is not source-of-truth, then run /ciadmin doctor and /ciadmin metrics.";
+            case "database" -> "Setup database: configure durable shared JDBC for production, avoid in-memory production state, then run /ciadmin config validate and /ciadmin doctor.";
+            case "storage" -> "Setup storage: configure object storage credentials and bucket/prefix, then run /ciadmin storage, /ciadmin support-bundle create, and backup/restore rehearsal gates.";
+            case "velocity" -> "Setup velocity: configure forwarding secret, fallback server, island pool names, route wait seconds, and hide-node-names; verify with /ciadmin status and /ciadmin doctor.";
+            case "paper-node" -> "Setup paper-node: configure unique node.id, role, core-api, storage, integrations, and supported templates; verify with /ciadmin node list and /ciadmin doctor.";
+            default -> "Setup start: complete /ciadmin setup core, redis, database, storage, velocity, paper-node, then run /ciadmin setup verify.";
+        };
     }
 
     private boolean handleDashboard(CommandSender sender) {
@@ -2855,7 +2897,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "";
         }
         return switch (root) {
-            case "status", "dashboard", "doctor", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }

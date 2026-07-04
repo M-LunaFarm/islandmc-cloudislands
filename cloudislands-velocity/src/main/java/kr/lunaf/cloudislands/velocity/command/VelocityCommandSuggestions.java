@@ -96,6 +96,9 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
 
     public List<String> adminSuggestions(String[] args) {
         List<String> matches = suggestions(adminCommands(), "ciadmin", args);
+        if (args.length == 2 && args[0].equalsIgnoreCase("setup")) {
+            addLiteralSuggestions(matches, args[1], List.of("start", "core", "redis", "database", "storage", "velocity", "paper-node", "verify"));
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("player")) {
             addOnlinePlayerSuggestions(matches, args[2]);
         }
@@ -204,7 +207,7 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             return "";
         }
         return switch (root) {
-            case "status", "config", "cache", "addons", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "support-bundle", "block-values", "upgrade-rules", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }

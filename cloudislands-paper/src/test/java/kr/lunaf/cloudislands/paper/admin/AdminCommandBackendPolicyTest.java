@@ -3,14 +3,15 @@ package kr.lunaf.cloudislands.paper.admin;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
 class AdminCommandBackendPolicyTest {
@@ -137,6 +138,34 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("WARN_BUNDLE_MISSING"), "Doctor template diagnostics must warn when enabled templates have no bundle");
         assertTrue(source.contains("integrationStatusMessage()"), "Doctor must include integration state");
         assertTrue(plugin.contains("cloudislands.admin.doctor"), "Doctor command must have a plugin permission");
+    }
+
+    @Test
+    void setupWizardIsAFirstClassAdminCommand() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String adminSurface = source + "\n" + catalog;
+
+        for (String command : List.of(
+            "ciadmin setup start",
+            "ciadmin setup core",
+            "ciadmin setup redis",
+            "ciadmin setup database",
+            "ciadmin setup storage",
+            "ciadmin setup velocity",
+            "ciadmin setup paper-node",
+            "ciadmin setup verify"
+        )) {
+            assertTrue(adminSurface.contains(command), command);
+        }
+        assertTrue(catalog.contains("\"setup\""), "Setup root command must be registered");
+        assertTrue(catalog.contains("SETUP_COMMANDS"), "Setup subcommands must be cataloged for tab completion");
+        assertTrue(source.contains("handleSetup"), "Setup command must have a handler");
+        assertTrue(source.contains("return handleDoctor(sender)"), "Setup verify must delegate to doctor checks");
+        assertTrue(source.contains("args.length == 2 && args[0].equalsIgnoreCase(\"setup\")"), "Setup tab completion must use setup subcommands");
+        assertTrue(source.contains("\"setup\"") && source.contains("cloudislands.admin.\" + root"), "Setup must be a first-class admin permission root");
+        assertTrue(plugin.contains("cloudislands.admin.setup"), "Setup command must have a plugin permission");
     }
 
     @Test

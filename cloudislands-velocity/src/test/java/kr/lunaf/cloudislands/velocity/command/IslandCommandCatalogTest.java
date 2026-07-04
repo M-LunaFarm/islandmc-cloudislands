@@ -205,6 +205,34 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void velocitySetupWizardIsFirstClassAdminCommand() throws Exception {
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/IslandCommandCatalog.java"));
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityAdminCommandDispatcher.java"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityAdminActions.java"));
+        String suggestions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSuggestions.java"));
+
+        for (String command : List.of(
+                "ciadmin setup start",
+                "ciadmin setup core",
+                "ciadmin setup redis",
+                "ciadmin setup database",
+                "ciadmin setup storage",
+                "ciadmin setup velocity",
+                "ciadmin setup paper-node",
+                "ciadmin setup verify"
+        )) {
+            assertTrue(catalog.contains(command), command);
+        }
+        assertTrue(dispatcher.contains("adminActions.setup(player"), "Velocity setup command must route explicitly");
+        assertTrue(actions.contains("Setup verify delegates to /ciadmin doctor"), "Velocity setup verify must explain doctor delegation");
+        assertTrue(actions.contains("doctor(player)"), "Velocity setup verify must reuse doctor checks");
+        assertTrue(suggestions.contains("args[0].equalsIgnoreCase(\"setup\")"), "Velocity setup command must tab-complete subcommands");
+        assertTrue(suggestions.contains("\"dashboard\", \"doctor\", \"setup\""), "Velocity admin permission switch must include setup and health roots");
+        assertTrue(suggestions.contains("\"integrations\""), "Velocity integrations must be a first-class permission root");
+        assertTrue(suggestions.contains("\"support-bundle\""), "Velocity support-bundle must be a first-class permission root");
+    }
+
+    @Test
     void destructiveVelocityCommandsRequireConfirmationBeforeCoreMutation() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
         String player = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));

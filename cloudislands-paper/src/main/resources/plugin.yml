@@ -114,6 +114,8 @@ permissions:
     default: op
   cloudislands.admin.doctor:
     default: op
+  cloudislands.admin.setup:
+    default: op
   cloudislands.admin.config:
     default: op
   cloudislands.admin.cache:

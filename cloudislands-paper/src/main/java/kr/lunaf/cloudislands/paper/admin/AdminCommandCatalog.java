@@ -4,7 +4,8 @@ import java.util.List;
 import kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy;
 
 final class AdminCommandCatalog {
-    static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "template", "templates", "migrate-superiorskyblock2", "reload");
+    static final List<String> SETUP_COMMANDS = List.of("start", "core", "redis", "database", "storage", "velocity", "paper-node", "verify");
     static final List<String> CONFIG_COMMANDS = List.of("show", "validate", "diff", "reload", "effective", "sources");
     static final List<String> CACHE_COMMANDS = List.of("clear");
     static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary", "endpoints");
@@ -28,6 +29,14 @@ final class AdminCommandCatalog {
         "ciadmin status",
         "ciadmin dashboard",
         "ciadmin doctor",
+        "ciadmin setup start",
+        "ciadmin setup core",
+        "ciadmin setup redis",
+        "ciadmin setup database",
+        "ciadmin setup storage",
+        "ciadmin setup velocity",
+        "ciadmin setup paper-node",
+        "ciadmin setup verify",
         "ciadmin config",
         "ciadmin config validate",
         "ciadmin config diff",
