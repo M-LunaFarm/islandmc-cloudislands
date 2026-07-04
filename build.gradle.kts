@@ -919,6 +919,32 @@ tasks.register("verifySatisNetworkRebuildDebounceCoverage") {
     }
 }
 
+tasks.register("verifySatisRuntimeFencingCoverage") {
+    group = "verification"
+    description = "Verifies Satis shared SQL runtime owner fencing tracks CloudIslands fencing tokens and rejects stale writes."
+    dependsOn(project(":cloudislands-satis").tasks.named("test"))
+    val authority = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/storage/SatisRuntimeAuthority.java")
+    val plugin = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java")
+    val authorityTest = layout.projectDirectory.file("cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/storage/SatisRuntimeAuthorityTest.java")
+    val writeGateTest = layout.projectDirectory.file("cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/SatisRuntimeWriteGatePolicyTest.java")
+    inputs.files(authority, plugin, authorityTest, writeGateTest)
+    doLast {
+        val authoritySource = authority.asFile.readText()
+        val pluginSource = plugin.asFile.readText()
+        val tests = authorityTest.asFile.readText() + "\n" + writeGateTest.asFile.readText()
+        val failures = buildList {
+            if (!authoritySource.contains("long fencingToken") || !authoritySource.contains("fencingTokenMatches")) add("Satis runtime authority must persist and compare fencing tokens")
+            if (!authoritySource.contains("canWrite(UUID islandId, long localFencingToken)")) add("Satis runtime authority must expose token-aware write checks")
+            if (!pluginSource.contains("event.cellZ(), event.fencingToken())")) add("Satis migration and restore events must refresh runtime fencing tokens")
+            if (!tests.contains("fencingTokenMismatchBlocksStaleWrites")) add("Satis runtime authority test must reject stale fencing tokens")
+            if (!tests.contains("migration and restore events must refresh the runtime owner fence token")) add("Satis plugin policy test must cover lifecycle token wiring")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register("verifyGameplayModifierRuntimeCoverage") {
     group = "verification"
     description = "Verifies SS2-style gameplay modifier admin writes are consumed by Paper runtime listeners."
@@ -1025,6 +1051,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifySatisEconomyLedgerCoverage"))
     dependsOn(tasks.named("verifySatisMigrationReportCoverage"))
     dependsOn(tasks.named("verifySatisNetworkRebuildDebounceCoverage"))
+    dependsOn(tasks.named("verifySatisRuntimeFencingCoverage"))
 }
 
 tasks.register("verifyRoutingRefactorCoverage") {
