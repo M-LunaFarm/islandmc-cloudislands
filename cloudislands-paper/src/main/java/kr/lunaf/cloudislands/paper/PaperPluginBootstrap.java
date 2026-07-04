@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
 import kr.lunaf.cloudislands.paper.integration.PaperIntegrationRegistry;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
+import kr.lunaf.cloudislands.paper.limit.IslandEffectApplier;
 import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitListener;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
@@ -110,7 +111,8 @@ final class PaperPluginBootstrap {
             plugin.localCaches.register("crop-growth-levels", cropGrowthLevels::invalidateAll);
             plugin.generatorListener = new IslandGeneratorListener(plugin.agent.protection(), ConfigGeneratorRules.load(plugin), plugin.generatorLevels, blockDeltas);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.generatorListener);
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandCropGrowthListener(plugin.agent.protection(), cropGrowthLevels));
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandCropGrowthListener(plugin.agent.protection(), cropGrowthLevels, limitCache));
+            plugin.lifecycle.started("island-effects", new IslandEffectApplier(plugin, plugin.agent.protection(), limitCache).start());
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandMissionProgressListener(plugin.agent.protection(), client.progressionCommands(), client.progression()));
         }
         String fallbackServerName = config.routing().fallbackServerName();

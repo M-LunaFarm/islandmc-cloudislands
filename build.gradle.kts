@@ -919,6 +919,41 @@ tasks.register("verifySatisNetworkRebuildDebounceCoverage") {
     }
 }
 
+tasks.register("verifyGameplayModifierRuntimeCoverage") {
+    group = "verification"
+    description = "Verifies SS2-style gameplay modifier admin writes are consumed by Paper runtime listeners."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val cropGrowth = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/IslandCropGrowthListener.java")
+    val entityLimits = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/limit/IslandEntityLimitListener.java")
+    val effects = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/limit/IslandEffectApplier.java")
+    val bootstrap = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java")
+    val policyTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/limit/IslandGameplayModifierRuntimePolicyTest.java")
+    inputs.files(cropGrowth, entityLimits, effects, bootstrap, policyTest)
+    doLast {
+        val cropSource = cropGrowth.asFile.readText()
+        val entitySource = entityLimits.asFile.readText()
+        val effectSource = effects.asFile.readText()
+        val bootstrapSource = bootstrap.asFile.readText()
+        val testSource = policyTest.asFile.readText()
+        val failures = buildList {
+            if (!cropSource.contains("\"RATE:CROP_GROWTH\"")) add("Paper crop growth runtime must consume RATE:CROP_GROWTH")
+            if (!entitySource.contains("\"RATE:MOB_DROPS\"")) add("Paper mob drop runtime must consume RATE:MOB_DROPS")
+            if (!entitySource.contains("\"RATE:SPAWNER_RATES\"")) add("Paper spawner runtime must consume RATE:SPAWNER_RATES")
+            if (!entitySource.contains("CreatureSpawnEvent.SpawnReason.SPAWNER")) add("Spawner rate must be scoped to spawner-origin creature spawns")
+            listOf("EFFECT:SPEED", "EFFECT:HASTE", "EFFECT:JUMP_BOOST", "EFFECT:NIGHT_VISION", "EFFECT:REGENERATION")
+                .filterNot(effectSource::contains)
+                .forEach { add("Paper island effect runtime missing Core key: $it") }
+            if (!effectSource.contains("player.addPotionEffect")) add("Paper island effect runtime must apply potion effects to players")
+            if (!bootstrapSource.contains("new IslandCropGrowthListener(plugin.agent.protection(), cropGrowthLevels, limitCache)")) add("Paper bootstrap must wire crop growth listener to Core limit cache")
+            if (!bootstrapSource.contains("new IslandEffectApplier(plugin, plugin.agent.protection(), limitCache).start()")) add("Paper bootstrap must start the island effect applier")
+            if (!testSource.contains("gameplayModifierLimitsAreAppliedByPaperRuntime")) add("Gameplay modifier runtime policy test is missing")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register<Test>("verifySnapshotRestoreCoverage") {
     group = "verification"
     description = "Verifies snapshot restore GUI confirmation, Core restore route, route-safe restore payloads, and failed active restore runtime preservation."
@@ -939,6 +974,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
     dependsOn(tasks.named("verifySnapshotRestoreCoverage"))
+    dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifySatisEconomyLedgerCoverage"))
     dependsOn(tasks.named("verifySatisMigrationReportCoverage"))
     dependsOn(tasks.named("verifySatisNetworkRebuildDebounceCoverage"))

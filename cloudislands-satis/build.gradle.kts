@@ -1,3 +1,5 @@
+import java.util.zip.ZipFile
+
 plugins {
     `java-library`
     alias(libs.plugins.shadow)
@@ -33,20 +35,10 @@ tasks.processResources {
     filteringCharset = "UTF-8"
     inputs.property("projectVersion", project.version)
     inputs.property("paperApiBaseline", libs.versions.minecraft.baseline.get())
-    inputs.property("sqliteJdbcVersion", libs.versions.sqlite.get())
-    inputs.property("postgresqlVersion", libs.versions.postgresql.get())
-    inputs.property("mysqlVersion", libs.versions.mysql.get())
-    inputs.property("mariadbVersion", libs.versions.mariadb.get())
-    inputs.property("hikaricpVersion", libs.versions.hikaricp.get())
     filesMatching("plugin.yml") {
         expand(
             "projectVersion" to project.version,
-            "paperApiBaseline" to libs.versions.minecraft.baseline.get(),
-            "sqliteJdbcVersion" to libs.versions.sqlite.get(),
-            "postgresqlVersion" to libs.versions.postgresql.get(),
-            "mysqlVersion" to libs.versions.mysql.get(),
-            "mariadbVersion" to libs.versions.mariadb.get(),
-            "hikaricpVersion" to libs.versions.hikaricp.get()
+            "paperApiBaseline" to libs.versions.minecraft.baseline.get()
         )
     }
 }
@@ -134,4 +126,73 @@ tasks.shadowJar {
 
 tasks.jar {
     enabled = false
+}
+
+tasks.register("verifyPackagingCoverage") {
+    group = "verification"
+    description = "Verifies Satis uses shadowJar dependency packaging without duplicate Paper libraries."
+    dependsOn(tasks.named("shadowJar"))
+    dependsOn(tasks.named("test"))
+    val satisBuild = layout.projectDirectory.file("build.gradle.kts")
+    val pluginYml = layout.projectDirectory.file("src/main/resources/plugin.yml")
+    val metadataTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/SatisPluginMetadataTest.java")
+    val runtimePolicyTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/RuntimeDependencyPolicyTest.java")
+    inputs.files(satisBuild, pluginYml, metadataTest, runtimePolicyTest)
+    doLast {
+        val buildSource = satisBuild.asFile.readText()
+        val pluginSource = pluginYml.asFile.readText()
+        val tests = metadataTest.asFile.readText() + "\n" + runtimePolicyTest.asFile.readText()
+        val jarFile = layout.buildDirectory.dir("libs").get().asFile
+            .listFiles()
+            .orEmpty()
+            .filter { it.name.startsWith("CloudIslands-Satis-") && it.extension == "jar" }
+            .maxByOrNull { it.lastModified() }
+            ?: throw GradleException("Satis shadow jar was not built")
+        val entries: Set<String> = ZipFile(jarFile).use { zip ->
+            zip.entries().asSequence().map { entry -> entry.name }.toSet()
+        }
+        val missingBuildPolicy = listOf(
+            "alias(libs.plugins.shadow)",
+            "tasks.shadowJar",
+            "mergeServiceFiles()",
+            "implementation(libs.sqlite.jdbc)",
+            "implementation(libs.postgresql)",
+            "implementation(libs.mysql.connector)",
+            "implementation(libs.mariadb.client)",
+            "implementation(libs.hikaricp)"
+        ).filterNot(buildSource::contains)
+        val forbiddenPaperLibraries = listOf(
+            "libraries:",
+            "org.xerial:sqlite-jdbc",
+            "org.postgresql:postgresql",
+            "com.mysql:mysql-connector-j",
+            "org.mariadb.jdbc:mariadb-java-client",
+            "com.zaxxer:HikariCP"
+        ).filter(pluginSource::contains)
+        val requiredJarEntries = listOf(
+            "org/sqlite/JDBC.class",
+            "org/postgresql/Driver.class",
+            "com/mysql/cj/jdbc/Driver.class",
+            "org/mariadb/jdbc/Driver.class",
+            "com/zaxxer/hikari/HikariDataSource.class"
+        )
+        val missingJarEntries = requiredJarEntries.filterNot { entry -> entries.contains(entry) }
+        val missingTests = listOf(
+            "pluginMetadataUsesCentralProjectVersionPaperBaselineAndShadowBundledDependencies",
+            "cloudIslandsApiStaysProvidedForSatisRuntime"
+        ).filterNot(tests::contains)
+        val failures = buildList {
+            if (missingBuildPolicy.isNotEmpty()) add("Satis shadow packaging build policy missing: ${missingBuildPolicy.joinToString(", ")}")
+            if (forbiddenPaperLibraries.isNotEmpty()) add("Satis plugin.yml still declares duplicate Paper libraries: ${forbiddenPaperLibraries.joinToString(", ")}")
+            if (missingJarEntries.isNotEmpty()) add("Satis shadow jar missing bundled database runtime classes: ${missingJarEntries.joinToString(", ")}")
+            if (missingTests.isNotEmpty()) add("Satis packaging policy tests missing: ${missingTests.joinToString(", ")}")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("verifyPackagingCoverage"))
 }

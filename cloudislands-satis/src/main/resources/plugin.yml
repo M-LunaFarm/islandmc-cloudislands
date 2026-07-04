@@ -7,12 +7,6 @@ load: POSTWORLD
 prefix: CloudIslandsSatis
 depend: [CloudIslands]
 softdepend: [Vault, PlaceholderAPI]
-libraries:
-  - org.xerial:sqlite-jdbc:${sqliteJdbcVersion}
-  - org.postgresql:postgresql:${postgresqlVersion}
-  - com.mysql:mysql-connector-j:${mysqlVersion}
-  - org.mariadb.jdbc:mariadb-java-client:${mariadbVersion}
-  - com.zaxxer:HikariCP:${hikaricpVersion}
 author: LeeSeungmin
 website: "mailto:admin@lunaf.kr"
 commands:

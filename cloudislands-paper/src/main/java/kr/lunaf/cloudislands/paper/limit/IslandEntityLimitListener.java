@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.limit;
 
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -8,8 +9,10 @@ import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.World;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
@@ -30,6 +33,7 @@ public final class IslandEntityLimitListener implements Listener {
     private final Map<UUID, Long> observedEntities = new ConcurrentHashMap<>();
     private final Set<UUID> seededEntities = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> lastLimitNotice = new ConcurrentHashMap<>();
+    private final Random random = new Random();
 
     public IslandEntityLimitListener(ProtectionController protection, IslandLimitCache limits) {
         this(protection, limits, null);
@@ -51,6 +55,12 @@ public final class IslandEntityLimitListener implements Listener {
         }
         protection.regionAt(event.getLocation().getBlock()).ifPresent(region -> {
             UUID islandId = region.islandId();
+            if (event instanceof CreatureSpawnEvent creatureSpawn
+                && creatureSpawn.getSpawnReason() == CreatureSpawnEvent.SpawnReason.SPAWNER
+                && !spawnerSpawnAllowed(islandId)) {
+                event.setCancelled(true);
+                return;
+            }
             seedObserved(event.getEntity().getWorld(), region, event.getEntity());
             long limit = limits.limit(islandId, "ENTITY", Long.MAX_VALUE);
             long current = observedEntities.getOrDefault(islandId, 0L);
@@ -108,6 +118,7 @@ public final class IslandEntityLimitListener implements Listener {
         protection.regionAt(event.getEntity().getLocation().getBlock()).ifPresent(region -> {
             seedObserved(event.getEntity().getWorld(), region, null);
             observedEntities.merge(region.islandId(), -1L, (left, right) -> Math.max(0L, left + right));
+            applyMobDropRate(region.islandId(), event.getDrops());
         });
     }
 
@@ -143,6 +154,38 @@ public final class IslandEntityLimitListener implements Listener {
             return false;
         }
         return entity instanceof LivingEntity || entity instanceof Hanging || entity instanceof Vehicle;
+    }
+
+    private boolean spawnerSpawnAllowed(UUID islandId) {
+        long percent = Math.max(0L, limits.limit(islandId, "RATE:SPAWNER_RATES", 100L));
+        if (percent <= 0L) {
+            return false;
+        }
+        return percent >= 100L || random.nextInt(100) < percent;
+    }
+
+    private void applyMobDropRate(UUID islandId, java.util.List<ItemStack> drops) {
+        long percent = Math.max(0L, limits.limit(islandId, "RATE:MOB_DROPS", 100L));
+        if (percent == 100L || drops.isEmpty()) {
+            return;
+        }
+        if (percent <= 0L) {
+            drops.clear();
+            return;
+        }
+        drops.removeIf(drop -> scaleDrop(drop, percent) <= 0);
+    }
+
+    private int scaleDrop(ItemStack drop, long percent) {
+        int originalAmount = drop.getAmount();
+        long scaled = originalAmount * percent / 100L;
+        long remainder = originalAmount * percent % 100L;
+        if (remainder > 0 && random.nextInt(100) < remainder) {
+            scaled++;
+        }
+        int amount = (int) Math.min(Math.max(0L, scaled), drop.getMaxStackSize());
+        drop.setAmount(amount);
+        return amount;
     }
 
     private void notifyNearby(org.bukkit.Location location, UUID islandId, long current, long limit) {

@@ -11,14 +11,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SatisPluginMetadataTest {
     @Test
-    void pluginMetadataUsesCentralProjectVersionPaperBaselineAndLibraryVersions() throws IOException {
+    void pluginMetadataUsesCentralProjectVersionPaperBaselineAndShadowBundledDependencies() throws IOException {
         String descriptor = mainResource("plugin.yml");
 
         assertTrue(descriptor.contains("version: 1.0.1"));
         assertTrue(descriptor.contains("api-version: \"1.21.11\""));
-        assertTrue(descriptor.contains("org.postgresql:postgresql:42.7.7"));
-        assertTrue(descriptor.contains("com.mysql:mysql-connector-j:9.1.0"));
-        assertTrue(descriptor.contains("org.mariadb.jdbc:mariadb-java-client:3.5.1"));
+        assertFalse(descriptor.contains("libraries:"));
+        assertFalse(descriptor.contains("org.postgresql:postgresql"));
+        assertFalse(descriptor.contains("com.mysql:mysql-connector-j"));
+        assertFalse(descriptor.contains("org.mariadb.jdbc:mariadb-java-client"));
+        assertFalse(descriptor.contains("com.zaxxer:HikariCP"));
         assertFalse(descriptor.contains("${"));
     }
 
