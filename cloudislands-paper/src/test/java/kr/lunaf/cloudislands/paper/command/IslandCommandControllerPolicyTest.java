@@ -140,20 +140,35 @@ class IslandCommandControllerPolicyTest {
         String enMessages = Files.readString(Path.of("src/main/resources/config-v2/ui/messages/en_us.yml"));
 
         assertTrue(router.contains("private final IslandCommandDelayPolicy delayPolicy = new IslandCommandDelayPolicy();"));
-        assertTrue(router.contains("if (!checkCommandDelay(player, subcommand))"), "command delay policy must run before handlers mutate state");
+        assertTrue(router.contains("private final IslandCommandWarmupPolicy warmupPolicy = new IslandCommandWarmupPolicy();"));
+        assertTrue(router.contains("if (!checkCommandDelay(player, label, subcommand, args.clone()))"), "command delay policy must run before handlers mutate state");
+        assertTrue(router.contains("return runIslandAction(player, label, subcommand, args);"), "warmup must split preflight from command execution");
         assertTrue(router.contains("runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_COOLDOWN_PERMISSION)"));
         assertTrue(router.contains("runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_WARMUP_PERMISSION)"));
+        assertTrue(router.contains("runtime.scheduleCommandWarmup(player, delayTicks"), "warmup commands must run after the waiting window instead of immediately");
+        assertTrue(router.contains("warmupPolicy.complete(player.getUniqueId())"), "scheduled commands must only execute while their pending warmup remains valid");
+        assertTrue(router.contains("void cancelWarmupOnMove(Player player, Location from, Location to)"), "movement must cancel pending warmups");
+        assertTrue(router.contains("void markCombat(Player player)"), "combat must block warmup-gated movement commands");
+        assertTrue(router.contains("delayPolicy.clear(player.getUniqueId(), pending.subject())"), "cancelled warmups must not consume the command cooldown");
         assertTrue(router.contains("player.sendActionBar(Component.text(runtime.playerMessage(message)))"), "warmup state must be visible in the actionbar");
         assertTrue(router.contains("player.showTitle(Title.title("), "warmup state must also be visible as a title");
         assertTrue(router.contains("IslandCommandDelayPolicy.COOLDOWN_MESSAGE_KEY"));
         assertTrue(router.contains("IslandCommandDelayPolicy.WARMUP_MESSAGE_KEY"));
         assertTrue(router.contains("IslandCommandDelayPolicy.WARMUP_TITLE_MESSAGE_KEY"));
         assertTrue(router.contains("IslandCommandDelayPolicy.WARMUP_SUBTITLE_MESSAGE_KEY"));
+        assertTrue(router.contains("IslandCommandWarmupPolicy.WARMUP_CANCELLED_MESSAGE_KEY"));
+        assertTrue(router.contains("IslandCommandWarmupPolicy.WARMUP_PENDING_MESSAGE_KEY"));
+        assertTrue(router.contains("IslandCommandWarmupPolicy.COMBAT_BLOCKED_MESSAGE_KEY"));
         assertTrue(router.contains("void clearPlayerState(Player player)"));
+        assertTrue(factory.contains("PaperSchedulers.runLater(plugin, task, delayTicks)::cancel"), "router runtime must use the Bukkit scheduler for delayed execution");
         assertTrue(factory.contains("public boolean hasPermission(Player player, String permission)"));
         assertTrue(factory.contains("player.hasPermission(permission)"));
         assertTrue(factory.contains("public String playerMessage(String message)"));
         assertTrue(backend.contains("router.clearPlayerState(event.getPlayer())"), "quit/kick cleanup must clear command delay state");
+        assertTrue(backend.contains("public void onMove(PlayerMoveEvent event)"));
+        assertTrue(backend.contains("router.cancelWarmupOnMove(event.getPlayer(), event.getFrom(), event.getTo())"));
+        assertTrue(backend.contains("public void onDamage(EntityDamageByEntityEvent event)"));
+        assertTrue(backend.contains("router.markCombat(player)"));
         assertTrue(plugin.contains("cloudislands.bypass.cooldown:"));
         assertTrue(plugin.contains("cloudislands.bypass.warmup:"));
         assertTrue(plugin.contains("cloudislands.island.home.cooldown:"));
@@ -165,12 +180,18 @@ class IslandCommandControllerPolicyTest {
         assertTrue(plugin.contains("cloudislands.island.restore.cooldown:"));
         assertTrue(koMessages.contains("island-command-cooldown:"));
         assertTrue(koMessages.contains("island-command-warmup:"));
+        assertTrue(koMessages.contains("island-command-warmup-cancelled:"));
+        assertTrue(koMessages.contains("island-command-warmup-pending:"));
         assertTrue(koMessages.contains("island-command-warmup-title:"));
         assertTrue(koMessages.contains("island-command-warmup-subtitle:"));
+        assertTrue(koMessages.contains("island-command-combat-blocked:"));
         assertTrue(enMessages.contains("island-command-cooldown:"));
         assertTrue(enMessages.contains("island-command-warmup:"));
+        assertTrue(enMessages.contains("island-command-warmup-cancelled:"));
+        assertTrue(enMessages.contains("island-command-warmup-pending:"));
         assertTrue(enMessages.contains("island-command-warmup-title:"));
         assertTrue(enMessages.contains("island-command-warmup-subtitle:"));
+        assertTrue(enMessages.contains("island-command-combat-blocked:"));
     }
 
     @Test

@@ -59,6 +59,20 @@ final class IslandCommandDelayPolicy {
         }
     }
 
+    void clear(UUID playerUuid, DelaySubject subject) {
+        if (playerUuid == null || subject == null) {
+            return;
+        }
+        Map<DelaySubject, Long> playerCooldowns = nextAllowedAt.get(playerUuid);
+        if (playerCooldowns == null) {
+            return;
+        }
+        playerCooldowns.remove(subject);
+        if (playerCooldowns.isEmpty()) {
+            nextAllowedAt.remove(playerUuid, playerCooldowns);
+        }
+    }
+
     enum DelaySubject {
         CREATE("create", "생성"),
         HOME("home", "홈"),

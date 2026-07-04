@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.paper.command;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandOnboardingMenu;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
+import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -120,6 +122,11 @@ final class IslandCommandRouterFactory {
                 @Override
                 public String playerMessage(String message) {
                     return messages.playerMessage(message);
+                }
+
+                @Override
+                public TaskHandle scheduleCommandWarmup(Player player, long delayTicks, Runnable task) {
+                    return PaperSchedulers.runLater(plugin, task, delayTicks)::cancel;
                 }
             }
         );

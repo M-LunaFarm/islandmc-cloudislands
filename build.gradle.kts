@@ -311,7 +311,8 @@ val verifyPaperCommandCoverage = tasks.register<Test>("verifyPaperCommandCoverag
     include(
         "kr/lunaf/cloudislands/paper/command/IslandCommandCatalogTest.class",
         "kr/lunaf/cloudislands/paper/command/IslandCommandControllerPolicyTest.class",
-        "kr/lunaf/cloudislands/paper/command/IslandCommandDelayPolicyTest.class"
+        "kr/lunaf/cloudislands/paper/command/IslandCommandDelayPolicyTest.class",
+        "kr/lunaf/cloudislands/paper/command/IslandCommandWarmupPolicyTest.class"
     )
 }
 

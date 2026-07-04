@@ -17,8 +17,12 @@ import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -163,4 +167,26 @@ final class IslandCommandBackend {
         router.clearPlayerState(event.getPlayer());
     }
 
+    public void onMove(PlayerMoveEvent event) {
+        router.cancelWarmupOnMove(event.getPlayer(), event.getFrom(), event.getTo());
+    }
+
+    public void onDamage(EntityDamageByEntityEvent event) {
+        markCombat(event.getEntity());
+        markCombat(attacker(event));
+    }
+
+    private void markCombat(Entity entity) {
+        if (entity instanceof Player player) {
+            router.markCombat(player);
+        }
+    }
+
+    private Entity attacker(EntityDamageByEntityEvent event) {
+        Entity damager = event.getDamager();
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Entity shooter) {
+            return shooter;
+        }
+        return damager;
+    }
 }

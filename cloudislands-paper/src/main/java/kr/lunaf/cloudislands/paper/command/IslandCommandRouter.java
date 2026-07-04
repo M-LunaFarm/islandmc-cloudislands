@@ -2,11 +2,14 @@ package kr.lunaf.cloudislands.paper.command;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
+import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -29,6 +32,7 @@ final class IslandCommandRouter {
     private final Runtime runtime;
     private final IslandCommandSuggestionService suggestions = new IslandCommandSuggestionService();
     private final IslandCommandDelayPolicy delayPolicy = new IslandCommandDelayPolicy();
+    private final IslandCommandWarmupPolicy warmupPolicy = new IslandCommandWarmupPolicy();
 
     IslandCommandRouter(
         IslandBankCommandHandler bankCommands,
@@ -91,9 +95,13 @@ final class IslandCommandRouter {
             runtime.message(player, runtime.routeMessage("island-command-no-permission", "이 섬 명령을 사용할 권한이 없습니다."));
             return true;
         }
-        if (!checkCommandDelay(player, subcommand)) {
+        if (!checkCommandDelay(player, label, subcommand, args.clone())) {
             return true;
         }
+        return runIslandAction(player, label, subcommand, args);
+    }
+
+    private boolean runIslandAction(Player player, String label, String subcommand, String[] args) {
         if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
             openMainMenuOrCommandList(player, label);
             return true;
@@ -143,7 +151,31 @@ final class IslandCommandRouter {
     void clearPlayerState(Player player) {
         if (player != null) {
             delayPolicy.clear(player.getUniqueId());
+            warmupPolicy.clear(player.getUniqueId());
         }
+    }
+
+    void cancelWarmupOnMove(Player player, Location from, Location to) {
+        if (player == null || from == null || to == null || !movedBlock(from, to)) {
+            return;
+        }
+        warmupPolicy.cancelOnMove(player.getUniqueId(), IslandCommandWarmupPolicy.BlockPosition.from(to))
+            .ifPresent(pending -> {
+                delayPolicy.clear(player.getUniqueId(), pending.subject());
+                runtime.message(player, runtime.routeMessage(IslandCommandWarmupPolicy.WARMUP_CANCELLED_MESSAGE_KEY, "움직여서 섬 명령 준비가 취소되었습니다."));
+            });
+    }
+
+    void markCombat(Player player) {
+        if (player == null) {
+            return;
+        }
+        warmupPolicy.markCombat(player.getUniqueId(), System.currentTimeMillis());
+        warmupPolicy.cancel(player.getUniqueId())
+            .ifPresent(pending -> {
+                delayPolicy.clear(player.getUniqueId(), pending.subject());
+                runtime.message(player, runtime.routeMessage(IslandCommandWarmupPolicy.COMBAT_BLOCKED_MESSAGE_KEY, "전투 중에는 이 섬 이동 명령을 사용할 수 없습니다."));
+            });
     }
 
     void handleGuiAction(Player player, GuiAction action, GuiClick click) {
@@ -234,22 +266,49 @@ final class IslandCommandRouter {
         }
     }
 
-    private boolean checkCommandDelay(Player player, String subcommand) {
+    private boolean checkCommandDelay(Player player, String label, String subcommand, String[] args) {
+        long nowMillis = System.currentTimeMillis();
         IslandCommandDelayPolicy.Decision decision = delayPolicy.evaluate(
             player.getUniqueId(),
             subcommand,
             runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_COOLDOWN_PERMISSION),
             runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_WARMUP_PERMISSION),
-            System.currentTimeMillis()
+            nowMillis
         );
         if (!decision.allowed()) {
             runtime.message(player, runtime.routeMessage(IslandCommandDelayPolicy.COOLDOWN_MESSAGE_KEY, "잠시 후 다시 시도해주세요. 남은 시간: " + decision.secondsRemaining() + "초"));
             return false;
         }
         if (decision.warmupRequired()) {
+            if (warmupPolicy.combatBlocked(player.getUniqueId(), nowMillis)) {
+                delayPolicy.clear(player.getUniqueId(), decision.subject());
+                runtime.message(player, runtime.routeMessage(IslandCommandWarmupPolicy.COMBAT_BLOCKED_MESSAGE_KEY, "전투 중에는 이 섬 이동 명령을 사용할 수 없습니다."));
+                return false;
+            }
+            if (warmupPolicy.hasPending(player.getUniqueId())) {
+                delayPolicy.clear(player.getUniqueId(), decision.subject());
+                runtime.message(player, runtime.routeMessage(IslandCommandWarmupPolicy.WARMUP_PENDING_MESSAGE_KEY, "이미 준비 중인 섬 명령이 있습니다."));
+                return false;
+            }
             sendWarmupWaitingState(player);
+            long delayTicks = Math.max(1L, decision.secondsRemaining()) * 20L;
+            TaskHandle task = runtime.scheduleCommandWarmup(player, delayTicks, () -> {
+                if (!player.isOnline() || !warmupPolicy.complete(player.getUniqueId())) {
+                    return;
+                }
+                runIslandAction(player, label, subcommand, args);
+            });
+            warmupPolicy.start(player.getUniqueId(), decision.subject(), IslandCommandWarmupPolicy.BlockPosition.from(player.getLocation()), task);
+            return false;
         }
         return true;
+    }
+
+    private boolean movedBlock(Location from, Location to) {
+        return from.getBlockX() != to.getBlockX()
+            || from.getBlockY() != to.getBlockY()
+            || from.getBlockZ() != to.getBlockZ()
+            || !Objects.equals(from.getWorld(), to.getWorld());
     }
 
     private void sendWarmupWaitingState(Player player) {
@@ -340,6 +399,8 @@ final class IslandCommandRouter {
         boolean hasPermission(Player player, String permission);
 
         String playerMessage(String message);
+
+        TaskHandle scheduleCommandWarmup(Player player, long delayTicks, Runnable task);
     }
 
     private record HelpCategoryRequest(IslandCommandCatalog.HelpCategory category, int page) {

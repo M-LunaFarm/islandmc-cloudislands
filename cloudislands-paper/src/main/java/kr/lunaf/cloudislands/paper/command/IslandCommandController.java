@@ -17,7 +17,9 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabCompleter;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -94,5 +96,15 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     @EventHandler
     public void onKick(PlayerKickEvent event) {
         backend.onKick(event);
+    }
+
+    @EventHandler
+    public void onMove(PlayerMoveEvent event) {
+        backend.onMove(event);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onDamage(EntityDamageByEntityEvent event) {
+        backend.onDamage(event);
     }
 }
