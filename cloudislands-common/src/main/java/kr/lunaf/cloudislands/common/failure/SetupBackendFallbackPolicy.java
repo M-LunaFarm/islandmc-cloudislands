@@ -8,15 +8,15 @@ import java.util.ArrayList;
 
 public final class SetupBackendFallbackPolicy {
     public static final String CONTRACT = "setup-selects-postgresql-mysql-mariadb-or-core-api-with-shared-safe-fallback-before-local";
-    public static final String CONFIG_PATH = "setup.database";
-    public static final String FALLBACK_CONFIG_PATH = "setup.database.fallback";
-    public static final String SELECTED_BACKEND_FIELD = "setup.database.type";
-    public static final String FALLBACK_ORDER_FIELD = "setup.database.fallback.order";
-    public static final String SETUP_SOURCE_PRECEDENCE = "env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type";
-    public static final String CORE_API_ENABLED_FIELD = "setup.database.core-api.enabled";
-    public static final String CORE_API_LOCAL_CACHE_WRITES_FIELD = "setup.database.core-api.local-cache-writes.enabled";
-    public static final String CORE_API_FLATTENED_FALLBACK_FIELD = "setup.database.core-api.flattened-fallback.enabled";
-    public static final String JDBC_URL_FIELD = "setup.database.jdbc.url";
+    public static final String CONFIG_PATH = "satis.database";
+    public static final String FALLBACK_CONFIG_PATH = "satis.database.fallback";
+    public static final String SELECTED_BACKEND_FIELD = "satis.database.type";
+    public static final String FALLBACK_ORDER_FIELD = "satis.database.fallback.order";
+    public static final String SETUP_SOURCE_PRECEDENCE = "env-type>satis.database.type>satis.database.core-api.enabled>satis.database.jdbc.url>legacy-setup.database.type>single-configured-shared-backend>legacy-database.type";
+    public static final String CORE_API_ENABLED_FIELD = "satis.database.core-api.enabled";
+    public static final String CORE_API_LOCAL_CACHE_WRITES_FIELD = "satis.database.core-api.local-cache-writes.enabled";
+    public static final String CORE_API_FLATTENED_FALLBACK_FIELD = "satis.database.core-api.flattened-fallback.enabled";
+    public static final String JDBC_URL_FIELD = "satis.database.jdbc.url";
     public static final String PRODUCTION_SAFE_ORDER = "POSTGRESQL,MYSQL,MARIADB,CORE_API";
     public static final String LAST_RESORT_ORDER = "SQLITE,UNSUPPORTED_JDBC";
     public static final String FALLBACK_POLICY = "shared-db-or-core-api-before-unsupported-local-fallback";
@@ -64,34 +64,34 @@ public final class SetupBackendFallbackPolicy {
 
     public static final Map<String, List<String>> BACKEND_READINESS_FIELDS = Map.of(
         "CORE_API", List.of(
-            "setup.database.core-api.enabled",
+            "satis.database.core-api.enabled",
             "cloudislands-api",
             "addon-state",
             "table-key-value-bulk-save-or-flattened-fallback"
         ),
         "POSTGRESQL", List.of(
-            "setup.database.postgresql.jdbc-url",
-            "setup.database.postgresql.host",
-            "setup.database.postgresql.database",
-            "setup.database.postgresql.username",
-            "setup.database.postgresql.password"
+            "satis.database.postgresql.jdbc-url",
+            "satis.database.postgresql.host",
+            "satis.database.postgresql.database",
+            "satis.database.postgresql.username",
+            "satis.database.postgresql.password"
         ),
         "MYSQL", List.of(
-            "setup.database.mysql.jdbc-url",
-            "setup.database.mysql.host",
-            "setup.database.mysql.database",
-            "setup.database.mysql.username",
-            "setup.database.mysql.password"
+            "satis.database.mysql.jdbc-url",
+            "satis.database.mysql.host",
+            "satis.database.mysql.database",
+            "satis.database.mysql.username",
+            "satis.database.mysql.password"
         ),
         "MARIADB", List.of(
-            "setup.database.mariadb.jdbc-url",
-            "setup.database.mariadb.host",
-            "setup.database.mariadb.database",
-            "setup.database.mariadb.username",
-            "setup.database.mariadb.password"
+            "satis.database.mariadb.jdbc-url",
+            "satis.database.mariadb.host",
+            "satis.database.mariadb.database",
+            "satis.database.mariadb.username",
+            "satis.database.mariadb.password"
         ),
         "SQLITE", List.of(
-            "setup.database.sqlite-file",
+            "satis.database.sqlite-file",
             "single-node-or-shared-directory-only"
         )
     );
@@ -144,9 +144,10 @@ public final class SetupBackendFallbackPolicy {
     public static List<String> setupSourcePrecedence() {
         return List.of(
             "env-type",
-            "setup.database.type",
-            "setup.database.core-api.enabled",
-            "setup.database.jdbc.url",
+            "satis.database.type",
+            "satis.database.core-api.enabled",
+            "satis.database.jdbc.url",
+            "legacy-setup.database.type",
             "single-configured-shared-backend",
             "legacy-database.type"
         );

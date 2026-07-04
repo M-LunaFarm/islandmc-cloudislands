@@ -32,8 +32,8 @@ class SatisStatePortabilityPolicyTest {
         assertEquals("preflush-satis-state-stop-runtime-keep-cloudislands-lifecycle", state.get("core-api-sync-addon-disable-policy"));
         assertEquals("when-feature-disabled-store-original-center-and-apply-remap-when-reenabled", state.get("core-api-sync-deferred-remap-policy"));
         assertEquals("pendingMachineRemap,pendingResourceNodeRemap", state.get("core-api-sync-deferred-remap-key"));
-        assertEquals("env-explicit-type-setup-core-api-marker-auto-single-backend-database-default", state.get("core-api-sync-setup-selection-policy"));
-        assertEquals("CLOUDISLANDS_SATIS_DATABASE_TYPE,setup.database.type,addons.cloudislands-satis.database.type,setup.database.core-api.enabled,setup.database.core_api.enabled,setup.database.core.api.enabled,addons.cloudislands-satis.database.core-api.enabled,database.core-api.enabled,jdbc-url,setup.database.<backend>,database.type", state.get("core-api-sync-setup-backend-priority"));
+        assertEquals("env-explicit-type-satis-canonical-core-api-marker-legacy-alias-jdbc-url-single-backend-database-default", state.get("core-api-sync-setup-selection-policy"));
+        assertEquals("CLOUDISLANDS_SATIS_DATABASE_TYPE,satis.database.type,satis.database.core-api.enabled,satis.database.core_api.enabled,satis.database.core.api.enabled,satis.database.<backend>,setup.database.type,addons.cloudislands-satis.database.type,setup.database.core-api.enabled,setup.database.core_api.enabled,setup.database.core.api.enabled,addons.cloudislands-satis.database.core-api.enabled,database.core-api.enabled,jdbc-url,setup.database.<backend>,database.type", state.get("core-api-sync-setup-backend-priority"));
         assertEquals("shared-backend-before-local-sqlite-or-warn", state.get("core-api-sync-fallback-chain-policy"));
         assertEquals("use-only-explicitly-configured-shared-targets-then-explicit-local-sqlite", state.get("core-api-sync-fallback-readiness-policy"));
         assertEquals("report-ready-fallback-targets-before-using-local-sqlite", state.get("core-api-sync-fallback-ready-chain-policy"));

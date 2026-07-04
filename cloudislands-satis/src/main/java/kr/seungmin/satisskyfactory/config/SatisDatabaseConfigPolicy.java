@@ -9,10 +9,11 @@ public final class SatisDatabaseConfigPolicy {
     public static final String ENV_JDBC_URL = "CLOUDISLANDS_SATIS_JDBC_URL";
     public static final String ENV_USERNAME = "CLOUDISLANDS_SATIS_DB_USERNAME";
     public static final String ENV_PASSWORD = "CLOUDISLANDS_SATIS_DB_PASSWORD";
+    public static final String CANONICAL_ROOT = "satis.database";
     public static final String SETUP_ROOT = "setup.database";
     public static final String ADDON_ROOT = "addons.cloudislands-satis.database";
     public static final String LEGACY_ROOT = "database";
-    public static final String FALLBACK_PRECEDENCE = "env,setup.database,addons.cloudislands-satis.database,database";
+    public static final String FALLBACK_PRECEDENCE = "env,satis.database,setup.database,addons.cloudislands-satis.database,database";
     public static final String SETUP_CHOICES = "SQLITE,POSTGRESQL,MYSQL,MARIADB,CORE_API";
     public static final String SETUP_SHARED_CHOICES = "POSTGRESQL,MYSQL,MARIADB,CORE_API";
     public static final String SETUP_LOCAL_CHOICES = "SQLITE";
@@ -26,8 +27,12 @@ public final class SatisDatabaseConfigPolicy {
 
     private static final List<String> TYPE_PRIORITY = List.of(
             ENV_TYPE,
+            "satis.database.type",
             "setup.database.type",
             "addons.cloudislands-satis.database.type",
+            "satis.database.core-api.enabled",
+            "satis.database.core_api.enabled",
+            "satis.database.core.api.enabled",
             "setup.database.core-api.enabled",
             "setup.database.core_api.enabled",
             "setup.database.core.api.enabled",
@@ -38,18 +43,22 @@ public final class SatisDatabaseConfigPolicy {
             "database.core_api.enabled",
             "database.core.api.enabled",
             "jdbc-url-inference",
+            "satis.database.<backend>",
             "setup.database.<backend>",
             "database.type"
     );
 
     private static final List<String> PATH_PRIORITY = List.of(
             "CLOUDISLANDS_SATIS_DB",
+            "satis.database.path",
             "setup.database.path",
             "addons.cloudislands-satis.database.path",
             "database.path",
+            "satis.database.shared-directory",
             "setup.database.shared-directory",
             "addons.cloudislands-satis.database.shared-directory",
             "database.shared-directory",
+            "satis.database.sqlite-file",
             "setup.database.sqlite-file",
             "addons.cloudislands-satis.database.sqlite-file",
             "database.sqlite-file"
@@ -57,6 +66,9 @@ public final class SatisDatabaseConfigPolicy {
 
     private static final List<String> COMMON_JDBC_ALIASES = List.of(
             ENV_JDBC_URL,
+            "satis.database.jdbc-url",
+            "satis.database.jdbc.url",
+            "satis.database.url",
             "setup.database.jdbc-url",
             "setup.database.jdbc.url",
             "setup.database.url",
@@ -72,6 +84,12 @@ public final class SatisDatabaseConfigPolicy {
             "CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL",
             "CLOUDISLANDS_SATIS_MYSQL_JDBC_URL",
             "CLOUDISLANDS_SATIS_MARIADB_JDBC_URL",
+            "satis.database.postgresql.jdbc-url",
+            "satis.database.postgresql.url",
+            "satis.database.mysql.jdbc-url",
+            "satis.database.mysql.url",
+            "satis.database.mariadb.jdbc-url",
+            "satis.database.mariadb.url",
             "setup.database.postgresql.jdbc-url",
             "setup.database.postgresql.url",
             "setup.database.mysql.jdbc-url",
@@ -92,6 +110,8 @@ public final class SatisDatabaseConfigPolicy {
     private static final List<String> CREDENTIAL_ALIASES = List.of(
             ENV_USERNAME,
             ENV_PASSWORD,
+            "satis.database.jdbc.username",
+            "satis.database.jdbc.password",
             "setup.database.jdbc.username",
             "setup.database.jdbc.password",
             "addons.cloudislands-satis.database.jdbc.username",
@@ -107,6 +127,12 @@ public final class SatisDatabaseConfigPolicy {
             "CLOUDISLANDS_SATIS_MYSQL_PASSWORD",
             "CLOUDISLANDS_SATIS_MARIADB_USERNAME",
             "CLOUDISLANDS_SATIS_MARIADB_PASSWORD",
+            "satis.database.postgresql.username",
+            "satis.database.postgresql.password",
+            "satis.database.mysql.username",
+            "satis.database.mysql.password",
+            "satis.database.mariadb.username",
+            "satis.database.mariadb.password",
             "setup.database.postgresql.username",
             "setup.database.postgresql.password",
             "setup.database.mysql.username",
@@ -152,7 +178,7 @@ public final class SatisDatabaseConfigPolicy {
     }
 
     public static String commonJdbcAliasMetadata() {
-        return "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL,setup.database.jdbc-url,setup.database.jdbc.url,setup.database.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc-url,addons.cloudislands-satis.database.jdbc.url,addons.cloudislands-satis.database.url,addons.cloudislands-satis.database.<backend>.jdbc-url,addons.cloudislands-satis.database.<backend>.url,database.jdbc-url,database.jdbc.url,database.url,database.<backend>.url";
+        return "CLOUDISLANDS_SATIS_JDBC_URL,CLOUDISLANDS_SATIS_POSTGRESQL_JDBC_URL,CLOUDISLANDS_SATIS_MYSQL_JDBC_URL,CLOUDISLANDS_SATIS_MARIADB_JDBC_URL,satis.database.jdbc-url,satis.database.jdbc.url,satis.database.url,satis.database.<backend>.jdbc-url,satis.database.<backend>.url,setup.database.jdbc-url,setup.database.jdbc.url,setup.database.url,setup.database.<backend>.jdbc-url,setup.database.<backend>.url,addons.cloudislands-satis.database.jdbc-url,addons.cloudislands-satis.database.jdbc.url,addons.cloudislands-satis.database.url,addons.cloudislands-satis.database.<backend>.jdbc-url,addons.cloudislands-satis.database.<backend>.url,database.jdbc-url,database.jdbc.url,database.url,database.<backend>.url";
     }
 
     public static List<String> sharedBackends() {

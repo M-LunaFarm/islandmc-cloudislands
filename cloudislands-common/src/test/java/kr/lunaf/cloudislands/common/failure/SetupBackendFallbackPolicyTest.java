@@ -15,18 +15,18 @@ class SetupBackendFallbackPolicyTest {
             "setup-selects-postgresql-mysql-mariadb-or-core-api-with-shared-safe-fallback-before-local",
             SetupBackendFallbackPolicy.CONTRACT
         );
-        assertEquals("setup.database", SetupBackendFallbackPolicy.CONFIG_PATH);
-        assertEquals("setup.database.fallback", SetupBackendFallbackPolicy.FALLBACK_CONFIG_PATH);
-        assertEquals("setup.database.type", SetupBackendFallbackPolicy.SELECTED_BACKEND_FIELD);
-        assertEquals("setup.database.fallback.order", SetupBackendFallbackPolicy.FALLBACK_ORDER_FIELD);
-        assertEquals("setup.database.core-api.enabled", SetupBackendFallbackPolicy.CORE_API_ENABLED_FIELD);
-        assertEquals("setup.database.core-api.local-cache-writes.enabled", SetupBackendFallbackPolicy.CORE_API_LOCAL_CACHE_WRITES_FIELD);
-        assertEquals("setup.database.core-api.flattened-fallback.enabled", SetupBackendFallbackPolicy.CORE_API_FLATTENED_FALLBACK_FIELD);
-        assertEquals("setup.database.jdbc.url", SetupBackendFallbackPolicy.JDBC_URL_FIELD);
+        assertEquals("satis.database", SetupBackendFallbackPolicy.CONFIG_PATH);
+        assertEquals("satis.database.fallback", SetupBackendFallbackPolicy.FALLBACK_CONFIG_PATH);
+        assertEquals("satis.database.type", SetupBackendFallbackPolicy.SELECTED_BACKEND_FIELD);
+        assertEquals("satis.database.fallback.order", SetupBackendFallbackPolicy.FALLBACK_ORDER_FIELD);
+        assertEquals("satis.database.core-api.enabled", SetupBackendFallbackPolicy.CORE_API_ENABLED_FIELD);
+        assertEquals("satis.database.core-api.local-cache-writes.enabled", SetupBackendFallbackPolicy.CORE_API_LOCAL_CACHE_WRITES_FIELD);
+        assertEquals("satis.database.core-api.flattened-fallback.enabled", SetupBackendFallbackPolicy.CORE_API_FLATTENED_FALLBACK_FIELD);
+        assertEquals("satis.database.jdbc.url", SetupBackendFallbackPolicy.JDBC_URL_FIELD);
         assertEquals("POSTGRESQL,MYSQL,MARIADB,CORE_API", SetupBackendFallbackPolicy.PRODUCTION_SAFE_ORDER);
         assertEquals("SQLITE,UNSUPPORTED_JDBC", SetupBackendFallbackPolicy.LAST_RESORT_ORDER);
         assertEquals(
-            "env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type",
+            "env-type>satis.database.type>satis.database.core-api.enabled>satis.database.jdbc.url>legacy-setup.database.type>single-configured-shared-backend>legacy-database.type",
             SetupBackendFallbackPolicy.SETUP_SOURCE_PRECEDENCE
         );
         assertEquals(
@@ -44,9 +44,10 @@ class SetupBackendFallbackPolicyTest {
         assertEquals(
             List.of(
                 "env-type",
-                "setup.database.type",
-                "setup.database.core-api.enabled",
-                "setup.database.jdbc.url",
+                "satis.database.type",
+                "satis.database.core-api.enabled",
+                "satis.database.jdbc.url",
+                "legacy-setup.database.type",
                 "single-configured-shared-backend",
                 "legacy-database.type"
             ),
@@ -54,7 +55,7 @@ class SetupBackendFallbackPolicyTest {
         );
         assertEquals(
             List.of(
-                "setup.database.core-api.enabled",
+                "satis.database.core-api.enabled",
                 "cloudislands-api",
                 "addon-state",
                 "table-key-value-bulk-save-or-flattened-fallback"
@@ -63,31 +64,31 @@ class SetupBackendFallbackPolicyTest {
         );
         assertEquals(
             List.of(
-                "setup.database.postgresql.jdbc-url",
-                "setup.database.postgresql.host",
-                "setup.database.postgresql.database",
-                "setup.database.postgresql.username",
-                "setup.database.postgresql.password"
+                "satis.database.postgresql.jdbc-url",
+                "satis.database.postgresql.host",
+                "satis.database.postgresql.database",
+                "satis.database.postgresql.username",
+                "satis.database.postgresql.password"
             ),
             SetupBackendFallbackPolicy.backendReadinessFields("postgres")
         );
         assertEquals(
             List.of(
-                "setup.database.mysql.jdbc-url",
-                "setup.database.mysql.host",
-                "setup.database.mysql.database",
-                "setup.database.mysql.username",
-                "setup.database.mysql.password"
+                "satis.database.mysql.jdbc-url",
+                "satis.database.mysql.host",
+                "satis.database.mysql.database",
+                "satis.database.mysql.username",
+                "satis.database.mysql.password"
             ),
             SetupBackendFallbackPolicy.backendReadinessFields("mysql")
         );
         assertEquals(
             List.of(
-                "setup.database.mariadb.jdbc-url",
-                "setup.database.mariadb.host",
-                "setup.database.mariadb.database",
-                "setup.database.mariadb.username",
-                "setup.database.mariadb.password"
+                "satis.database.mariadb.jdbc-url",
+                "satis.database.mariadb.host",
+                "satis.database.mariadb.database",
+                "satis.database.mariadb.username",
+                "satis.database.mariadb.password"
             ),
             SetupBackendFallbackPolicy.backendReadinessFields("mariadb")
         );

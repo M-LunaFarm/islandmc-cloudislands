@@ -123,15 +123,15 @@ class SatisFeatureGateResolverTest {
                 SatisFeatureGateResolver.featureRootMetadata()
         );
         assertEquals(
-                List.of("satis.enabled", "integration.enabled", "addons.cloudislands-satis.enabled", "setup.satis.mode|addons.cloudislands-satis.integration.mode|integration.mode!=DISABLED"),
+                List.of("satis.enabled", "integration.enabled", "addons.cloudislands-satis.enabled", "satis.mode|setup.satis.mode|addons.cloudislands-satis.integration.mode|integration.mode!=DISABLED"),
                 SatisFeatureGateResolver.rootGates()
         );
         assertEquals(
-                "satis.enabled&&integration.enabled&&addons.cloudislands-satis.enabled&&setup.satis.mode|addons.cloudislands-satis.integration.mode|integration.mode!=DISABLED",
+                "satis.enabled&&integration.enabled&&addons.cloudislands-satis.enabled&&satis.mode|setup.satis.mode|addons.cloudislands-satis.integration.mode|integration.mode!=DISABLED",
                 SatisFeatureGateResolver.rootGateMetadata()
         );
         assertEquals(
-                List.of("setup.satis.mode", "addons.cloudislands-satis.integration.mode", "integration.mode"),
+                List.of("satis.mode", "setup.satis.mode", "addons.cloudislands-satis.integration.mode", "integration.mode"),
                 SatisFeatureGateResolver.integrationModePaths()
         );
         assertEquals(

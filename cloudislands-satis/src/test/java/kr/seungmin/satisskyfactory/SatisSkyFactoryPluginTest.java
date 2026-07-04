@@ -69,7 +69,10 @@ class SatisSkyFactoryPluginTest {
         assertNull(metadata.get("superior-runtime-dependency"));
         assertEquals("true", metadata.get("cloudislands-api-only"));
         assertEquals("true", metadata.get("config-gated"));
-        assertEquals("setup.satis.mode,addons.cloudislands-satis.integration.mode,integration.mode", metadata.get("integration-mode-config-paths"));
+        assertEquals("satis.mode,setup.satis.mode,addons.cloudislands-satis.integration.mode,integration.mode", metadata.get("integration-mode-config-paths"));
+        assertEquals("satis", metadata.get("config-schema-canonical-root"));
+        assertEquals("satis.database", metadata.get("config-schema-canonical-database-root"));
+        assertEquals("legacy-alias-used-is-reported-in-config-validation-warnings", metadata.get("config-schema-alias-warning-policy"));
         assertEquals("external-addon-and-built-in-compatible-use-same-root-gate-feature-gate-and-cloudislands-api-checks", metadata.get("feature-pack-activation-policy"));
         assertEquals("EXTERNAL_ADDON,BUILT_IN_COMPATIBLE,DISABLED", metadata.get("feature-pack-activation-supported-modes"));
         assertTrue(metadata.get("activation-state-keys").contains("runtime-feature-pack-activation-policy"));
@@ -90,11 +93,11 @@ class SatisSkyFactoryPluginTest {
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-ticks", metadata.get("runtime-tick-authority-local-fallback-policy"));
         assertEquals("core-api-writes-require-addon-state-write-authority", metadata.get("runtime-write-authority-policy"));
         assertEquals("local-sqlite-fallback-preserves-state-but-blocks-distributed-runtime-writes", metadata.get("runtime-write-authority-local-fallback-policy"));
-        assertEquals("env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type", metadata.get("database-setup-source-precedence"));
+        assertEquals("env-type>satis.database.type>satis.database.core-api.enabled>satis.database.jdbc.url>legacy-setup.database.type>single-configured-shared-backend>legacy-database.type", metadata.get("database-setup-source-precedence"));
         assertTrue(metadata.get("database-setup-core-api-readiness-fields").contains("table-key-value-bulk-save-or-flattened-fallback"));
-        assertTrue(metadata.get("database-setup-postgresql-readiness-fields").contains("setup.database.postgresql.jdbc-url"));
-        assertTrue(metadata.get("database-setup-mysql-readiness-fields").contains("setup.database.mysql.database"));
-        assertTrue(metadata.get("database-setup-mariadb-readiness-fields").contains("setup.database.mariadb.password"));
+        assertTrue(metadata.get("database-setup-postgresql-readiness-fields").contains("satis.database.postgresql.jdbc-url"));
+        assertTrue(metadata.get("database-setup-mysql-readiness-fields").contains("satis.database.mysql.database"));
+        assertTrue(metadata.get("database-setup-mariadb-readiness-fields").contains("satis.database.mariadb.password"));
         assertTrue(metadata.get("database-setup-sqlite-readiness-fields").contains("single-node-or-shared-directory-only"));
         assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", metadata.get("database-setup-jdbc-readiness-policy"));
         assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", metadata.get("database-setup-core-api-local-cache-write-policy"));

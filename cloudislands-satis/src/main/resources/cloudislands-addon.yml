@@ -94,11 +94,11 @@ database:
   fallback-operator-remediation: put-shared-backend-before-sqlite-or-disable-distributed-runtime-writes
   setup-path: setup.database
   setup-source-policy: env-type-explicit-type-core-api-marker-jdbc-url-single-backend-section-legacy-database
-  setup-source-precedence: env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type
-  core-api-readiness-fields: setup.database.core-api.enabled,cloudislands-api,addon-state,table-key-value-bulk-save-or-flattened-fallback
-  postgresql-readiness-fields: setup.database.postgresql.jdbc-url,setup.database.postgresql.host,setup.database.postgresql.database,setup.database.postgresql.username,setup.database.postgresql.password
-  mysql-readiness-fields: setup.database.mysql.jdbc-url,setup.database.mysql.host,setup.database.mysql.database,setup.database.mysql.username,setup.database.mysql.password
-  mariadb-readiness-fields: setup.database.mariadb.jdbc-url,setup.database.mariadb.host,setup.database.mariadb.database,setup.database.mariadb.username,setup.database.mariadb.password
+  setup-source-precedence: env-type>satis.database.type>satis.database.core-api.enabled>satis.database.jdbc.url>legacy-setup.database.type>single-configured-shared-backend>legacy-database.type
+  core-api-readiness-fields: satis.database.core-api.enabled,cloudislands-api,addon-state,table-key-value-bulk-save-or-flattened-fallback
+  postgresql-readiness-fields: satis.database.postgresql.jdbc-url,satis.database.postgresql.host,satis.database.postgresql.database,satis.database.postgresql.username,satis.database.postgresql.password
+  mysql-readiness-fields: satis.database.mysql.jdbc-url,satis.database.mysql.host,satis.database.mysql.database,satis.database.mysql.username,satis.database.mysql.password
+  mariadb-readiness-fields: satis.database.mariadb.jdbc-url,satis.database.mariadb.host,satis.database.mariadb.database,satis.database.mariadb.username,satis.database.mariadb.password
   sqlite-readiness-fields: setup.database.sqlite-file,single-node-or-shared-directory-only
   jdbc-readiness-policy: jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials
   core-api-local-cache-write-policy: core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only

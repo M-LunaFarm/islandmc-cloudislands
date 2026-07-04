@@ -42,9 +42,10 @@ public final class SatisFeatureGateResolver {
             "satis.enabled",
             "integration.enabled",
             "addons.cloudislands-satis.enabled",
-            "setup.satis.mode|addons.cloudislands-satis.integration.mode|integration.mode!=DISABLED"
+            "satis.mode|setup.satis.mode|addons.cloudislands-satis.integration.mode|integration.mode!=DISABLED"
     );
     private static final List<String> INTEGRATION_MODE_PATHS = List.of(
+            "satis.mode",
             "setup.satis.mode",
             "addons.cloudislands-satis.integration.mode",
             "integration.mode"

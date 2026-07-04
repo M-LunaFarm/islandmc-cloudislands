@@ -56,7 +56,7 @@ public final class SatisConfigValidator {
         validateMarket(market, itemIds, builder);
         validateResearch(research, machineIds, featureIds, researchIds, builder);
         validateMaintenance(maintenance, itemIds, builder);
-        validateAliasConflicts(config, builder);
+        validateConfigSchemaAliases(config, builder);
 
         return builder.build();
     }
@@ -195,17 +195,68 @@ public final class SatisConfigValidator {
         validateCostSection(config, "maintenance.broken-repair-cost", itemIds, "maintenance.yml", builder);
     }
 
-    private void validateAliasConflicts(FileConfiguration config, ValidationBuilder builder) {
+    private void validateConfigSchemaAliases(FileConfiguration config, ValidationBuilder builder) {
         if (config == null) {
             return;
         }
+        compare(config, "satis.enabled", "integration.enabled", builder);
         compare(config, "satis.enabled", "addons.cloudislands-satis.enabled", builder);
-        compare(config, "database.type", "setup.database.type", builder);
-        compare(config, "database.type", "addons.cloudislands-satis.database.type", builder);
-        compare(config, "database.path", "setup.database.path", builder);
-        compare(config, "database.shared-directory", "setup.database.shared-directory", builder);
+        compare(config, "satis.mode", "setup.satis.mode", builder);
+        compare(config, "satis.mode", "addons.cloudislands-satis.integration.mode", builder);
+        compare(config, "satis.mode", "integration.mode", builder);
+        warnAliasIfCanonicalMissing(config, "satis.mode", "setup.satis.mode", builder);
+        warnAliasIfCanonicalMissing(config, "satis.mode", "addons.cloudislands-satis.integration.mode", builder);
+        warnAliasIfCanonicalMissing(config, "satis.mode", "integration.mode", builder);
+
+        for (String path : List.of("type", "path", "shared-directory", "sqlite-file")) {
+            compare(config, "satis.database." + path, "setup.database." + path, builder);
+            compare(config, "satis.database." + path, "addons.cloudislands-satis.database." + path, builder);
+            compare(config, "satis.database." + path, "database." + path, builder);
+            warnAliasIfCanonicalMissing(config, "satis.database." + path, "setup.database." + path, builder);
+            warnAliasIfCanonicalMissing(config, "satis.database." + path, "addons.cloudislands-satis.database." + path, builder);
+            warnAliasIfCanonicalMissing(config, "satis.database." + path, "database." + path, builder);
+        }
+        for (String path : List.of(
+                "fallback.enabled",
+                "core-api.enabled",
+                "core-api.flattened-fallback.enabled",
+                "core-api.local-cache-writes.enabled",
+                "jdbc.url",
+                "jdbc.username",
+                "jdbc.password",
+                "jdbc.max-pool-size",
+                "jdbc.connection-timeout-ms"
+        )) {
+            compare(config, "satis.database." + path, "setup.database." + path, builder);
+            compare(config, "satis.database." + path, "addons.cloudislands-satis.database." + path, builder);
+            compare(config, "satis.database." + path, "database." + path, builder);
+            warnAliasIfCanonicalMissing(config, "satis.database." + path, "setup.database." + path, builder);
+            warnAliasIfCanonicalMissing(config, "satis.database." + path, "addons.cloudislands-satis.database." + path, builder);
+            warnAliasIfCanonicalMissing(config, "satis.database." + path, "database." + path, builder);
+        }
+        compareList(config, "satis.database.fallback.order", "setup.database.fallback.order", builder);
+        compareList(config, "satis.database.fallback.order", "addons.cloudislands-satis.database.fallback.order", builder);
+        compareList(config, "satis.database.fallback.order", "database.fallback.order", builder);
+        warnAliasIfCanonicalMissing(config, "satis.database.fallback.order", "setup.database.fallback.order", builder);
+        warnAliasIfCanonicalMissing(config, "satis.database.fallback.order", "addons.cloudislands-satis.database.fallback.order", builder);
+        warnAliasIfCanonicalMissing(config, "satis.database.fallback.order", "database.fallback.order", builder);
+
+        for (String backend : List.of("postgresql", "mysql", "mariadb")) {
+            for (String field : List.of("jdbc-url", "url", "host", "port", "name", "database", "options", "username", "password", "max-pool-size", "connection-timeout-ms")) {
+                String canonical = "satis.database." + backend + "." + field;
+                compare(config, canonical, "setup.database." + backend + "." + field, builder);
+                compare(config, canonical, "addons.cloudislands-satis.database." + backend + "." + field, builder);
+                compare(config, canonical, "database." + backend + "." + field, builder);
+                warnAliasIfCanonicalMissing(config, canonical, "setup.database." + backend + "." + field, builder);
+                warnAliasIfCanonicalMissing(config, canonical, "addons.cloudislands-satis.database." + backend + "." + field, builder);
+                warnAliasIfCanonicalMissing(config, canonical, "database." + backend + "." + field, builder);
+            }
+        }
         for (String feature : SatisFeatureGateResolver.featureKeys()) {
+            compare(config, "satis.features." + feature, "features." + feature, builder);
             compare(config, "satis.features." + feature, "addons.cloudislands-satis.features." + feature, builder);
+            warnAliasIfCanonicalMissing(config, "satis.features." + feature, "features." + feature, builder);
+            warnAliasIfCanonicalMissing(config, "satis.features." + feature, "addons.cloudislands-satis.features." + feature, builder);
         }
     }
 
@@ -218,6 +269,38 @@ public final class SatisConfigValidator {
         if (!first.isBlank() && !second.isBlank() && !first.equals(second)) {
             builder.warn("config.yml:" + firstPath + "," + secondPath, "alias-conflict:" + firstPath + "!=" + secondPath);
         }
+    }
+
+    private void compareList(FileConfiguration config, String firstPath, String secondPath, ValidationBuilder builder) {
+        if (!config.contains(firstPath) || !config.contains(secondPath)) {
+            return;
+        }
+        String first = String.join("+", config.getStringList(firstPath)).trim().toLowerCase(Locale.ROOT);
+        String second = String.join("+", config.getStringList(secondPath)).trim().toLowerCase(Locale.ROOT);
+        if (!first.isBlank() && !second.isBlank() && !first.equals(second)) {
+            builder.warn("config.yml:" + firstPath + "," + secondPath, "alias-conflict:" + firstPath + "!=" + secondPath);
+        }
+    }
+
+    private void warnAliasIfCanonicalMissing(FileConfiguration config, String canonicalPath, String aliasPath, ValidationBuilder builder) {
+        if (config.contains(canonicalPath) || !config.contains(aliasPath) || blankAliasValue(config, aliasPath)) {
+            return;
+        }
+        builder.warn("config.yml:" + aliasPath, "deprecated-alias-used:set-" + canonicalPath);
+    }
+
+    private boolean blankAliasValue(FileConfiguration config, String path) {
+        Object value = config.get(path);
+        if (value == null) {
+            return true;
+        }
+        if (value instanceof List<?> list) {
+            return list.isEmpty();
+        }
+        if (value instanceof ConfigurationSection section) {
+            return section.getKeys(false).isEmpty();
+        }
+        return value.toString().isBlank();
     }
 
     private void validateItemAmountSection(FileConfiguration config, String base, String first, String second,

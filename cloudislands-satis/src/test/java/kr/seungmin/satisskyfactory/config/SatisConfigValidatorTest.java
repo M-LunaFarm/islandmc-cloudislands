@@ -60,6 +60,19 @@ class SatisConfigValidatorTest {
         assertTrue(report.warningSummary().contains("alias-conflict:satis.features.market!=addons.cloudislands-satis.features.market"));
     }
 
+    @Test
+    void reportsDeprecatedAliasUseWhenCanonicalPathIsMissing() {
+        Map<String, YamlConfiguration> files = defaultFiles();
+        files.get("config.yml").set("satis.database.type", null);
+        files.get("config.yml").set("setup.database.type", "CORE_API");
+
+        SatisConfigValidator.ValidationReport report = validator.validate(files);
+
+        assertFalse(report.hasErrors(), report.errorSummary());
+        assertEquals("WARN", report.status());
+        assertTrue(report.warningSummary().contains("deprecated-alias-used:set-satis.database.type"));
+    }
+
     private Map<String, YamlConfiguration> defaultFiles() {
         Map<String, YamlConfiguration> files = new LinkedHashMap<>();
         for (String file : java.util.List.of(

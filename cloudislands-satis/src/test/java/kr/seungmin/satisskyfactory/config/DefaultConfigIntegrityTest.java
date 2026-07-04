@@ -82,6 +82,7 @@ class DefaultConfigIntegrityTest {
         assertTrue(plugin.isConfigurationSection("commands.sfactory"));
         assertFalse(plugin.isConfigurationSection("commands.ciadmin"));
         assertTrue(config.getBoolean("satis.enabled"));
+        assertEquals("EXTERNAL_ADDON", config.getString("satis.mode"));
         assertEquals("EXTERNAL_ADDON", config.getString("setup.satis.mode"));
         assertEquals("EXTERNAL_ADDON", config.getString("integration.mode"));
         assertEquals("CLOUDISLANDS", config.getString("integration.skyblock-provider"));
@@ -98,9 +99,15 @@ class DefaultConfigIntegrityTest {
         assertEquals("VAULT_PLAYER", config.getString("economy.mode"));
         assertTrue(config.getBoolean("economy.use-vault"));
         assertEquals("원", config.getString("economy.currency-symbol"));
+        assertEquals("CORE_API", config.getString("satis.database.type"));
+        assertTrue(config.getBoolean("satis.database.core-api.flattened-fallback.enabled"));
         assertEquals("CORE_API", config.getString("database.type"));
         assertTrue(config.getBoolean("database.core-api.flattened-fallback.enabled"));
         assertTrue(config.getBoolean("setup.database.core-api.flattened-fallback.enabled"));
+        assertTrue(config.isConfigurationSection("satis.database"));
+        assertTrue(config.isConfigurationSection("satis.database.postgresql"));
+        assertTrue(config.isConfigurationSection("satis.database.mysql"));
+        assertTrue(config.isConfigurationSection("satis.database.mariadb"));
         assertTrue(config.isConfigurationSection("setup.database"));
         assertTrue(config.isConfigurationSection("setup.database.postgresql"));
         assertTrue(config.isConfigurationSection("setup.database.mysql"));
@@ -113,8 +120,11 @@ class DefaultConfigIntegrityTest {
         assertTrue(config.getBoolean("database.fallback.enabled"));
         assertTrue(config.getBoolean("setup.database.fallback.enabled"));
         assertTrue(config.getBoolean("setup.database.core-api.enabled"));
+        assertTrue(SatisDatabaseConfigPolicy.typePriority().indexOf("satis.database.type")
+                < SatisDatabaseConfigPolicy.typePriority().indexOf("setup.database.type"));
         assertTrue(SatisDatabaseConfigPolicy.typePriority().indexOf("setup.database.type")
                 < SatisDatabaseConfigPolicy.typePriority().indexOf("database.type"));
+        assertTrue(SatisDatabaseConfigPolicy.commonJdbcAliases().contains("satis.database.jdbc-url"));
         assertTrue(SatisDatabaseConfigPolicy.typePriority().contains("setup.database.core-api.enabled"));
         assertTrue(SatisDatabaseConfigPolicy.commonJdbcAliases().contains("setup.database.jdbc-url"));
         assertTrue(SatisDatabaseConfigPolicy.backendJdbcAliases().contains("setup.database.postgresql.jdbc-url"));
@@ -126,6 +136,8 @@ class DefaultConfigIntegrityTest {
         assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API"),
                 SatisDatabaseConfigPolicy.sharedBackends());
         assertEquals(List.of("SQLITE"), SatisDatabaseConfigPolicy.localBackends());
+        assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
+                config.getStringList("satis.database.fallback.order"));
         assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
                 config.getStringList("database.fallback.order"));
         assertEquals(List.of("POSTGRESQL", "MYSQL", "MARIADB", "CORE_API", "SQLITE"),
@@ -150,19 +162,19 @@ class DefaultConfigIntegrityTest {
         assertEquals("data.db", config.getString("database.sqlite-file"));
         assertEquals(60, config.getInt("database.save-interval-seconds"));
         assertEquals(1200, config.getInt("settings.dirty-save-period-ticks"));
-        assertEquals("env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type", config.getString("setup.database.readiness.source-precedence"));
+        assertEquals("env-type>satis.database.type>satis.database.core-api.enabled>satis.database.jdbc.url>legacy-setup.database.type>single-configured-shared-backend>legacy-database.type", config.getString("setup.database.readiness.source-precedence"));
         assertTrue(config.getStringList("setup.database.readiness.core-api-fields").contains("table-key-value-bulk-save-or-flattened-fallback"));
-        assertTrue(config.getStringList("setup.database.readiness.postgresql-fields").contains("setup.database.postgresql.jdbc-url"));
-        assertTrue(config.getStringList("setup.database.readiness.mysql-fields").contains("setup.database.mysql.database"));
-        assertTrue(config.getStringList("setup.database.readiness.mariadb-fields").contains("setup.database.mariadb.password"));
+        assertTrue(config.getStringList("setup.database.readiness.postgresql-fields").contains("satis.database.postgresql.jdbc-url"));
+        assertTrue(config.getStringList("setup.database.readiness.mysql-fields").contains("satis.database.mysql.database"));
+        assertTrue(config.getStringList("setup.database.readiness.mariadb-fields").contains("satis.database.mariadb.password"));
         assertTrue(config.getStringList("setup.database.readiness.sqlite-fields").contains("single-node-or-shared-directory-only"));
         assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", config.getString("setup.database.readiness.jdbc-policy"));
         assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", config.getString("setup.database.readiness.local-cache-write-policy"));
-        assertEquals("env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type", addon.getString("database.setup-source-precedence"));
+        assertEquals("env-type>satis.database.type>satis.database.core-api.enabled>satis.database.jdbc.url>legacy-setup.database.type>single-configured-shared-backend>legacy-database.type", addon.getString("database.setup-source-precedence"));
         assertTrue(addon.getString("database.core-api-readiness-fields").contains("table-key-value-bulk-save-or-flattened-fallback"));
-        assertTrue(addon.getString("database.postgresql-readiness-fields").contains("setup.database.postgresql.jdbc-url"));
-        assertTrue(addon.getString("database.mysql-readiness-fields").contains("setup.database.mysql.database"));
-        assertTrue(addon.getString("database.mariadb-readiness-fields").contains("setup.database.mariadb.password"));
+        assertTrue(addon.getString("database.postgresql-readiness-fields").contains("satis.database.postgresql.jdbc-url"));
+        assertTrue(addon.getString("database.mysql-readiness-fields").contains("satis.database.mysql.database"));
+        assertTrue(addon.getString("database.mariadb-readiness-fields").contains("satis.database.mariadb.password"));
         assertTrue(addon.getString("database.sqlite-readiness-fields").contains("single-node-or-shared-directory-only"));
         assertEquals("jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials", addon.getString("database.jdbc-readiness-policy"));
         assertEquals("core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only", addon.getString("database.core-api-local-cache-write-policy"));

@@ -1,5 +1,67 @@
 satis:
   enabled: true
+  # Canonical Satis configuration root for new installs. Legacy setup.*, addons.cloudislands-satis.*,
+  # integration.* and database.* aliases are still read for compatibility, but /factory admin doctor
+  # reports when an alias is the active source.
+  mode: EXTERNAL_ADDON
+  database:
+    # SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API.
+    type: CORE_API
+    core-api:
+      local-cache-writes:
+        enabled: false
+      flattened-fallback:
+        enabled: true
+    fallback:
+      enabled: true
+      order:
+        - POSTGRESQL
+        - MYSQL
+        - MARIADB
+        - CORE_API
+        - SQLITE
+    jdbc:
+      url: ""
+      username: ""
+      password: ""
+      max-pool-size: 8
+      connection-timeout-ms: 5000
+    postgresql:
+      jdbc-url: ""
+      url: ""
+      host: "127.0.0.1"
+      port: 5432
+      database: "cloudislands_satis"
+      options: "sslmode=disable"
+      username: ""
+      password: ""
+      max-pool-size: 0
+      connection-timeout-ms: 0
+    mysql:
+      jdbc-url: ""
+      url: ""
+      host: "127.0.0.1"
+      port: 3306
+      database: "cloudislands_satis"
+      options: "useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+      username: ""
+      password: ""
+      max-pool-size: 0
+      connection-timeout-ms: 0
+    mariadb:
+      jdbc-url: ""
+      url: ""
+      host: "127.0.0.1"
+      port: 3306
+      database: "cloudislands_satis"
+      options: "useSSL=false&serverTimezone=UTC"
+      username: ""
+      password: ""
+      max-pool-size: 0
+      connection-timeout-ms: 0
+    path: ""
+    shared-directory: "../CloudIslands/satis-state"
+    sqlite-file: "data.db"
   features:
     # Dependencies are enforced even when a child feature is set to true:
     # resource-nodes requires machines, market/contracts require storage.
@@ -180,7 +242,7 @@ setup:
     # Setup-time alias for integration.mode. Valid: EXTERNAL_ADDON, BUILT_IN_COMPATIBLE, DISABLED.
     mode: EXTERNAL_ADDON
   database:
-    # Highest-priority config shape for new CloudIslands installs.
+    # Deprecated alias mirror. New installs should use satis.database above.
     # SQLITE, POSTGRESQL, MYSQL, MARIADB, CORE_API.
     # CORE_API uses CloudIslands addon-state as the authority and keeps a local SQLite read cache.
     type: CORE_API
@@ -188,32 +250,32 @@ setup:
     shared-directory: "../CloudIslands/satis-state"
     sqlite-file: "data.db"
     readiness:
-      source-precedence: env-type>setup.database.type>setup.database.core-api.enabled>setup.database.jdbc.url>single-configured-shared-backend>legacy-database.type
+      source-precedence: env-type>satis.database.type>satis.database.core-api.enabled>satis.database.jdbc.url>legacy-setup.database.type>single-configured-shared-backend>legacy-database.type
       core-api-fields:
-        - setup.database.core-api.enabled
+        - satis.database.core-api.enabled
         - cloudislands-api
         - addon-state
         - table-key-value-bulk-save-or-flattened-fallback
       postgresql-fields:
-        - setup.database.postgresql.jdbc-url
-        - setup.database.postgresql.host
-        - setup.database.postgresql.database
-        - setup.database.postgresql.username
-        - setup.database.postgresql.password
+        - satis.database.postgresql.jdbc-url
+        - satis.database.postgresql.host
+        - satis.database.postgresql.database
+        - satis.database.postgresql.username
+        - satis.database.postgresql.password
       mysql-fields:
-        - setup.database.mysql.jdbc-url
-        - setup.database.mysql.host
-        - setup.database.mysql.database
-        - setup.database.mysql.username
-        - setup.database.mysql.password
+        - satis.database.mysql.jdbc-url
+        - satis.database.mysql.host
+        - satis.database.mysql.database
+        - satis.database.mysql.username
+        - satis.database.mysql.password
       mariadb-fields:
-        - setup.database.mariadb.jdbc-url
-        - setup.database.mariadb.host
-        - setup.database.mariadb.database
-        - setup.database.mariadb.username
-        - setup.database.mariadb.password
+        - satis.database.mariadb.jdbc-url
+        - satis.database.mariadb.host
+        - satis.database.mariadb.database
+        - satis.database.mariadb.username
+        - satis.database.mariadb.password
       sqlite-fields:
-        - setup.database.sqlite-file
+        - satis.database.sqlite-file
         - single-node-or-shared-directory-only
       jdbc-policy: jdbc-backend-ready-requires-jdbc-url-or-host-database-credentials
       local-cache-write-policy: core-api-local-cache-writes-disabled-by-default-and-single-node-rescue-only
