@@ -23,6 +23,7 @@ final class IslandCommandMessages {
             case "REVIEW_OWNER_DENIED" -> "자기 섬은 평가할 수 없습니다.";
             case "REVIEW_RATING_INVALID" -> "평점은 1~5 사이여야 합니다.";
             case "INSUFFICIENT_ITEMS" -> "섬 창고 수량이 부족합니다.";
+            case "TEMPLATE_PERMISSION_DENIED" -> "이 템플릿을 사용할 권한이 없습니다.";
             default -> fallback;
         };
     }

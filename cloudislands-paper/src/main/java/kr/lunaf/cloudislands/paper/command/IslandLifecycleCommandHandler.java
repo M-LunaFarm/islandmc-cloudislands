@@ -4,7 +4,9 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.paper.application.IslandCreationUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandCreationUseCase.IslandActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
@@ -122,7 +124,11 @@ final class IslandLifecycleCommandHandler {
     private void createIsland(Player player, String templateId) {
         MessageRenderer messages = runtime.messagesFor(player);
         GuiStateMenus.openSaving(plugin, player, messages, runtime.routeMessage("create-progress-title", "섬 생성 요청 중"));
-        creationUseCase.create(player.getUniqueId(), templateId, runtime::mutate)
+        String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
+        coreApiClient.templates().get(normalizedTemplateId)
+            .thenCompose(template -> canUseTemplate(player, template)
+                ? creationUseCase.create(player.getUniqueId(), normalizedTemplateId, runtime::mutate)
+                : CompletableFuture.completedFuture(new CreateIslandResult(false, "TEMPLATE_PERMISSION_DENIED", null, null)))
             .thenAccept(result -> {
                 if (!result.accepted()) {
                     String detail = runtime.playerCodeMessage(result.code(), "섬 생성을 시작하지 못했습니다.");
@@ -139,6 +145,10 @@ final class IslandLifecycleCommandHandler {
                 runtime.message(player, detail);
                 return null;
             });
+    }
+
+    private static boolean canUseTemplate(Player player, TemplateView template) {
+        return template.requiredPermission().isBlank() || player.hasPermission(template.requiredPermission());
     }
 
     private void deleteIsland(Player player) {

@@ -44,6 +44,17 @@ class IslandCreateMenuPolicyTest {
         assertTrue(handler.contains("runtime.playerCodeMessage(result.code()"), "Create errors must preserve code-specific player messaging");
     }
 
+    @Test
+    void directCreateCommandHonorsTemplatePermission() throws IOException {
+        String handler = read("src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java");
+        String messages = read("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandMessages.java");
+
+        assertTrue(handler.contains("coreApiClient.templates().get(normalizedTemplateId)"), "Direct /is create <template> must load template metadata before mutation");
+        assertTrue(handler.contains("canUseTemplate(player, template)"), "Direct create must check template requiredPermission");
+        assertTrue(handler.contains("TEMPLATE_PERMISSION_DENIED"), "Direct create must reject locked templates without calling Core create");
+        assertTrue(messages.contains("TEMPLATE_PERMISSION_DENIED"), "Template permission denial must have a player-safe message");
+    }
+
     private static String read(String relative) throws IOException {
         return Files.readString(Path.of(relative));
     }
