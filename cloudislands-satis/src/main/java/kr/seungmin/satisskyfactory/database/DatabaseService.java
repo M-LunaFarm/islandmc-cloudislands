@@ -106,6 +106,7 @@ public final class DatabaseService {
     private final File dataFolder;
     private final Settings settings;
     private final FactoryIslandRepository factoryIslandRepository;
+    private final VirtualInventoryRepository virtualInventoryRepository;
     private HikariDataSource dataSource;
     private StorageBackend activeBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
@@ -162,6 +163,7 @@ public final class DatabaseService {
         this.dataFolder = dataFolder;
         this.settings = settings == null ? Settings.sqlite("data.db") : settings;
         this.factoryIslandRepository = new FactoryIslandRepository(this);
+        this.virtualInventoryRepository = new VirtualInventoryRepository(this);
     }
 
     public void open() {
@@ -536,17 +538,12 @@ public final class DatabaseService {
 
     private java.util.Map<String, String> inventoryRows(UUID islandUuid) {
         java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT inventory_id FROM virtual_inventories WHERE island_uuid = ?")) {
-            statement.setString(1, islandUuid.toString());
-            try (ResultSet rs = statement.executeQuery()) {
-                while (rs.next()) {
-                    UUID inventoryId = UUID.fromString(rs.getString("inventory_id"));
-                    loadInventory(inventoryId).ifPresent(inventory -> rows.put(inventoryId.toString(), inventoryJson(inventory)));
-                }
+        try {
+            for (UUID inventoryId : virtualInventoryRepository.inventoryIds(islandUuid)) {
+                loadInventory(inventoryId).ifPresent(inventory -> rows.put(inventoryId.toString(), inventoryJson(inventory)));
             }
             return rows;
-        } catch (SQLException exception) {
+        } catch (IllegalStateException exception) {
             throw new IllegalStateException("Failed to publish inventory core state", exception);
         }
     }
@@ -1113,112 +1110,19 @@ public final class DatabaseService {
     }
 
     public void saveInventory(VirtualInventory inventory) {
-        long now = Instant.now().toEpochMilli();
-        try (Connection connection = connection()) {
-            connection.setAutoCommit(false);
-            try (PreparedStatement inv = connection.prepareStatement(saveInventorySql())) {
-                inv.setString(1, inventory.inventoryId().toString());
-                inv.setString(2, inventory.islandUuid().toString());
-                inv.setString(3, inventory.holderType());
-                inv.setString(4, inventory.holderId());
-                inv.setLong(5, inventory.capacity());
-                inv.setLong(6, now);
-                inv.setLong(7, now);
-                inv.executeUpdate();
-            }
-            try (PreparedStatement delete = connection.prepareStatement("DELETE FROM virtual_inventory_items WHERE inventory_id = ?")) {
-                delete.setString(1, inventory.inventoryId().toString());
-                delete.executeUpdate();
-            }
-            try (PreparedStatement item = connection.prepareStatement("INSERT INTO virtual_inventory_items(inventory_id, item_id, amount) VALUES(?, ?, ?)")) {
-                for (var entry : inventory.items().entrySet()) {
-                    item.setString(1, inventory.inventoryId().toString());
-                    item.setString(2, entry.getKey());
-                    item.setLong(3, entry.getValue());
-                    item.addBatch();
-                }
-                item.executeBatch();
-            }
-            connection.commit();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to save inventory", exception);
-        }
-    }
-
-    private String saveInventorySql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                    INSERT INTO virtual_inventories(inventory_id, island_uuid, holder_type, holder_id, capacity, created_at, updated_at)
-                    VALUES(?, ?, ?, ?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE capacity=VALUES(capacity), updated_at=VALUES(updated_at)
-                    """;
-        }
-        return """
-                    INSERT INTO virtual_inventories(inventory_id, island_uuid, holder_type, holder_id, capacity, created_at, updated_at)
-                    VALUES(?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(inventory_id) DO UPDATE SET capacity=excluded.capacity, updated_at=excluded.updated_at
-                    """;
+        virtualInventoryRepository.save(inventory);
     }
 
     public Optional<VirtualInventory> loadInventory(UUID inventoryId) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT * FROM virtual_inventories WHERE inventory_id = ?")) {
-            statement.setString(1, inventoryId.toString());
-            try (ResultSet rs = statement.executeQuery()) {
-                if (!rs.next()) {
-                    return Optional.empty();
-                }
-                VirtualInventory inventory = new VirtualInventory(
-                        inventoryId,
-                        UUID.fromString(rs.getString("island_uuid")),
-                        rs.getString("holder_type"),
-                        rs.getString("holder_id"),
-                        rs.getLong("capacity")
-                );
-                loadInventoryItems(connection, inventory);
-                return Optional.of(inventory);
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to load inventory", exception);
-        }
+        return virtualInventoryRepository.load(inventoryId);
     }
 
     public Optional<VirtualInventory> findInventoryByHolder(UUID islandUuid, String holderType, String holderId) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     SELECT inventory_id FROM virtual_inventories
-                     WHERE island_uuid = ? AND holder_type = ? AND holder_id = ?
-                     LIMIT 1
-                     """)) {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, holderType);
-            statement.setString(3, holderId);
-            try (ResultSet rs = statement.executeQuery()) {
-                if (!rs.next()) {
-                    return Optional.empty();
-                }
-                return loadInventory(UUID.fromString(rs.getString("inventory_id")));
-            }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to find inventory", exception);
-        }
+        return virtualInventoryRepository.findByHolder(islandUuid, holderType, holderId);
     }
 
     public void deleteInventory(UUID inventoryId) {
-        try (Connection connection = connection()) {
-            connection.setAutoCommit(false);
-            try (PreparedStatement items = connection.prepareStatement("DELETE FROM virtual_inventory_items WHERE inventory_id = ?")) {
-                items.setString(1, inventoryId.toString());
-                items.executeUpdate();
-            }
-            try (PreparedStatement inventory = connection.prepareStatement("DELETE FROM virtual_inventories WHERE inventory_id = ?")) {
-                inventory.setString(1, inventoryId.toString());
-                inventory.executeUpdate();
-            }
-            connection.commit();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to delete inventory", exception);
-        }
+        virtualInventoryRepository.delete(inventoryId);
     }
 
     public List<ResourceNode> loadNodes(UUID islandUuid) {
@@ -2165,17 +2069,6 @@ public final class DatabaseService {
                      INSERT OR IGNORE INTO island_unlocks(island_uuid, unlock_id, unlocked_at)
                      VALUES(?, ?, ?)
                     """;
-    }
-
-    private void loadInventoryItems(Connection connection, VirtualInventory inventory) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT item_id, amount FROM virtual_inventory_items WHERE inventory_id = ?")) {
-            statement.setString(1, inventory.inventoryId().toString());
-            try (ResultSet rs = statement.executeQuery()) {
-                while (rs.next()) {
-                    inventory.set(rs.getString("item_id"), rs.getLong("amount"));
-                }
-            }
-        }
     }
 
     private UUID uuidOrNull(String value) {
