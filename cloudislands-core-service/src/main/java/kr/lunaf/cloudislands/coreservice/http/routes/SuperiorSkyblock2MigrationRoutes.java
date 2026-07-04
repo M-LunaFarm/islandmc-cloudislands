@@ -28,9 +28,11 @@ public final class SuperiorSkyblock2MigrationRoutes implements RouteGroup {
         registry.routePost("/v1/admin/migrations/superiorskyblock2/scan", this::scan);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/status", this::status);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/dryrun", this::dryRun);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/report", this::report);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/extract", this::extract);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/import", this::importPlan);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/verify", this::verify);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/compare", this::compare);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/rollback", this::rollback);
     }
 
@@ -64,6 +66,14 @@ public final class SuperiorSkyblock2MigrationRoutes implements RouteGroup {
         CoreHttpResponses.write(exchange, 202, migrationAdmin.dryRun());
     }
 
+    private void report(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        if (!enabled(exchange)) {
+            return;
+        }
+        audit("MIGRATION_REPORT", Map.of());
+        CoreHttpResponses.write(exchange, 200, migrationAdmin.report());
+    }
+
     private void extract(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         if (!enabled(exchange)) {
             return;
@@ -90,6 +100,16 @@ public final class SuperiorSkyblock2MigrationRoutes implements RouteGroup {
         String path = JsonFields.text(body, "path", "");
         audit("MIGRATION_VERIFY", path.isBlank() ? Map.of() : Map.of("path", path));
         CoreHttpResponses.write(exchange, 202, migrationAdmin.verify(path));
+    }
+
+    private void compare(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        if (!enabled(exchange)) {
+            return;
+        }
+        String body = CoreHttpResponses.readBody(exchange);
+        String island = JsonFields.text(body, "island", JsonFields.text(body, "islandId", ""));
+        audit("MIGRATION_COMPARE", island.isBlank() ? Map.of() : Map.of("island", island));
+        CoreHttpResponses.write(exchange, 200, migrationAdmin.compare(island));
     }
 
     private void rollback(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

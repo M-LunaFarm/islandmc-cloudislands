@@ -9,9 +9,11 @@ public final class JdkMigrationCommandClient implements MigrationCommandClient {
     private static final String SUPERIOR_SKYBLOCK2_SCAN = "/v1/admin/migrations/superiorskyblock2/scan";
     private static final String SUPERIOR_SKYBLOCK2_STATUS = "/v1/admin/migrations/superiorskyblock2/status";
     private static final String SUPERIOR_SKYBLOCK2_DRYRUN = "/v1/admin/migrations/superiorskyblock2/dryrun";
+    private static final String SUPERIOR_SKYBLOCK2_REPORT = "/v1/admin/migrations/superiorskyblock2/report";
     private static final String SUPERIOR_SKYBLOCK2_EXTRACT = "/v1/admin/migrations/superiorskyblock2/extract";
     private static final String SUPERIOR_SKYBLOCK2_IMPORT = "/v1/admin/migrations/superiorskyblock2/import";
     private static final String SUPERIOR_SKYBLOCK2_VERIFY = "/v1/admin/migrations/superiorskyblock2/verify";
+    private static final String SUPERIOR_SKYBLOCK2_COMPARE = "/v1/admin/migrations/superiorskyblock2/compare";
     private static final String SUPERIOR_SKYBLOCK2_ROLLBACK = "/v1/admin/migrations/superiorskyblock2/rollback";
 
     private final JdkCoreApiClient core;
@@ -31,9 +33,11 @@ public final class JdkMigrationCommandClient implements MigrationCommandClient {
             case "scan" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_SCAN, CoreJsonPayload.object("path", value)));
             case "status" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_STATUS, "{}"));
             case "dryrun", "dry-run" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_DRYRUN, CoreJsonPayload.object("path", value)));
+            case "report" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_REPORT, "{}"));
             case "extract", "extract-worlds", "world-extract" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_EXTRACT, CoreJsonPayload.object("path", value)));
             case "import" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_IMPORT, CoreJsonPayload.object("approval", value)));
             case "verify" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_VERIFY, CoreJsonPayload.object("path", value)));
+            case "compare" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_COMPARE, CoreJsonPayload.object("island", value)));
             case "rollback" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_ROLLBACK, "{}"));
             default -> CompletableFuture.completedFuture(new MigrationRunSnapshot(
                 "INVALID_MIGRATION_ACTION",

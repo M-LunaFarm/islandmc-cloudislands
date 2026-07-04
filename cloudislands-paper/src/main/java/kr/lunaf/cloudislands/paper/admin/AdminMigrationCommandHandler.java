@@ -56,9 +56,11 @@ final class AdminMigrationCommandHandler {
                 "/ciadmin migrate-superiorskyblock2 status",
                 "/ciadmin migrate-superiorskyblock2 dryrun [path]",
                 "/ciadmin migrate-superiorskyblock2 dry-run [path]",
+                "/ciadmin migrate-superiorskyblock2 report",
                 "/ciadmin migrate-superiorskyblock2 extract [path]",
                 "/ciadmin migrate-superiorskyblock2 import <approvalToken>",
                 "/ciadmin migrate-superiorskyblock2 verify [path]",
+                "/ciadmin migrate-superiorskyblock2 compare <island>",
                 "/ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
                 "/ciadmin migrate-superiorskyblock2 rollback"
             ));
@@ -76,8 +78,14 @@ final class AdminMigrationCommandHandler {
             sender.sendMessage(text.get("admin-command-migration-import-usage", "사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>"));
             return true;
         }
-        String path = args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
-        runner.run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrations().migrateSuperiorSkyblock2(action, path).thenApply(formatter::format));
+        if (action.equalsIgnoreCase("compare") && args.length < 3) {
+            sender.sendMessage(text.get("admin-command-migration-compare-usage", "사용법: /ciadmin migrate-superiorskyblock2 compare <island>"));
+            return true;
+        }
+        String value = action.equalsIgnoreCase("report") || action.equalsIgnoreCase("status") || action.equalsIgnoreCase("rollback")
+            ? ""
+            : args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
+        runner.run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrations().migrateSuperiorSkyblock2(action, value).thenApply(formatter::format));
         return true;
     }
 

@@ -124,4 +124,22 @@ class SuperiorSkyblockReplacementFeaturePolicyTest {
         assertTrue(SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProvider(" bentobox "));
         assertFalse(SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProvider("CloudIslands"));
     }
+
+    @Test
+    void pinsMigrationOperatorCommands() {
+        assertEquals(
+            List.of(
+                "/ciadmin migrate-superiorskyblock2 scan",
+                "/ciadmin migrate-superiorskyblock2 dryrun",
+                "/ciadmin migrate-superiorskyblock2 report",
+                "/ciadmin migrate-superiorskyblock2 import",
+                "/ciadmin migrate-superiorskyblock2 verify",
+                "/ciadmin migrate-superiorskyblock2 compare",
+                "/ciadmin migrate-superiorskyblock2 rollback"
+            ),
+            SuperiorSkyblockReplacementFeaturePolicy.migrationCommands()
+        );
+        assertTrue(SuperiorSkyblockReplacementFeaturePolicy.migrationCommandSummary().contains("migrate-superiorskyblock2 report"));
+        assertTrue(SuperiorSkyblockReplacementFeaturePolicy.migrationCommandSummary().contains("migrate-superiorskyblock2 compare"));
+    }
 }

@@ -56,6 +56,10 @@ public final class MigrationAdminService {
         return backend.status();
     }
 
+    public synchronized String report() {
+        return backend.report();
+    }
+
     public synchronized String extractWorldBundles(String outputPath) {
         return backend.extractWorldBundles(outputPath);
     }
@@ -74,6 +78,10 @@ public final class MigrationAdminService {
 
     public synchronized String verify(String bundleRootPath) {
         return backend.verify(bundleRootPath);
+    }
+
+    public synchronized String compare(String islandKey) {
+        return backend.compare(islandKey);
     }
 
     public synchronized String rollbackLastImport() {

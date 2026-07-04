@@ -203,8 +203,14 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
                 player.sendMessage(Component.text("사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>"));
                 return;
             }
-            String path = args.length > 2 ? joinArgs(args, 2) : "";
-            adminActions.migrateSuperiorSkyblock2(player, action, path);
+            if (action.equalsIgnoreCase("compare") && args.length < 3) {
+                player.sendMessage(Component.text("사용법: /ciadmin migrate-superiorskyblock2 compare <island>"));
+                return;
+            }
+            String value = action.equalsIgnoreCase("report") || action.equalsIgnoreCase("status") || action.equalsIgnoreCase("rollback")
+                ? ""
+                : args.length > 2 ? joinArgs(args, 2) : "";
+            adminActions.migrateSuperiorSkyblock2(player, action, value);
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("player") && args[1].equalsIgnoreCase("info")) {

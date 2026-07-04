@@ -22,9 +22,11 @@ class SuperiorSkyblock2MigrationRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(7, paths.size());
+        assertEquals(9, paths.size());
         assertTrue(paths.contains("/v1/admin/migrations/superiorskyblock2/scan"));
         assertTrue(paths.contains("/v1/admin/migrations/superiorskyblock2/status"));
+        assertTrue(paths.contains("/v1/admin/migrations/superiorskyblock2/report"));
+        assertTrue(paths.contains("/v1/admin/migrations/superiorskyblock2/compare"));
         assertTrue(paths.contains("/v1/admin/migrations/superiorskyblock2/rollback"));
     }
 
@@ -37,9 +39,11 @@ class SuperiorSkyblock2MigrationRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/migrations/superiorskyblock2/scan"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/migrations/superiorskyblock2/status"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/migrations/superiorskyblock2/dryrun"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/migrations/superiorskyblock2/report"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/migrations/superiorskyblock2/extract"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/migrations/superiorskyblock2/import"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/migrations/superiorskyblock2/verify"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/migrations/superiorskyblock2/compare"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/migrations/superiorskyblock2/rollback"));
     }
 

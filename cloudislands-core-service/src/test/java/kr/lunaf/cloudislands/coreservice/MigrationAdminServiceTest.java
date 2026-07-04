@@ -28,4 +28,23 @@ class MigrationAdminServiceTest {
         assertTrue(service.contains("IslandWarehouseRepository warehouse"));
         assertTrue(app.contains("warehouseRepository,"));
     }
+
+    @Test
+    void migrationReportAndCompareAreFirstClassOperations() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/MigrationAdminBackend.java"));
+        String service = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/MigrationAdminService.java"));
+        String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/SuperiorSkyblock2MigrationRoutes.java"));
+        String client = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkMigrationCommandClient.java"));
+
+        assertTrue(backend.contains("scan,dryrun,report,import,verify,compare,rollback"));
+        assertTrue(backend.contains("public synchronized String report()"));
+        assertTrue(backend.contains("public synchronized String compare(String islandKey)"));
+        assertTrue(backend.contains("compareImportedManifest(MigrationManifest manifest)"));
+        assertTrue(service.contains("backend.report()"));
+        assertTrue(service.contains("backend.compare(islandKey)"));
+        assertTrue(routes.contains("/v1/admin/migrations/superiorskyblock2/report"));
+        assertTrue(routes.contains("/v1/admin/migrations/superiorskyblock2/compare"));
+        assertTrue(client.contains("case \"report\""));
+        assertTrue(client.contains("case \"compare\""));
+    }
 }

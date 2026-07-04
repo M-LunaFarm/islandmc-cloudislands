@@ -160,6 +160,26 @@ tasks.named("check") {
 
 apply(from = "gradle/distribution.gradle.kts")
 
+val sourceScanningVerificationTests = setOf(
+    "verifyApiRouteCoverage",
+    "verifyRouteDomainCoverage",
+    "verifyEventCoverage",
+    "verifyGuiActionCoverage",
+    "verifyPermissionCoverage",
+    "verifyCoreConfigCoverage",
+    "verifyPaperConfigCoverage",
+    "verifyMetricCoverage",
+    "verifyPaperCommandCoverage",
+    "verifyVelocityCommandCoverage",
+    "verifySnapshotRestoreCoverage"
+)
+
+tasks.withType<Test>().configureEach {
+    if (name in sourceScanningVerificationTests) {
+        doNotTrackState("Source-scanning verification gates can complete without stable binary test-result outputs after clean.")
+    }
+}
+
 val apiCompatibilityReportFile = layout.buildDirectory.file("reports/api-compatibility/api-compatibility-report.json")
 
 tasks.register<Test>("verifyApiRouteCoverage") {
@@ -557,6 +577,96 @@ tasks.register("verifySatisEconomyLedgerCoverage") {
     }
 }
 
+tasks.register("verifySatisMigrationReportCoverage") {
+    group = "verification"
+    description = "Verifies SuperiorSkyblock2 migration report and compare operations remain wired through Core, Paper, Velocity, policy, and security layers."
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    dependsOn(project(":cloudislands-velocity").tasks.named("test"))
+    val backend = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/MigrationAdminBackend.java")
+    val service = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/MigrationAdminService.java")
+    val routes = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/SuperiorSkyblock2MigrationRoutes.java")
+    val guard = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/security/AdminEndpointGuard.java")
+    val configRoutes = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/CoreConfigRoutes.java")
+    val commonPolicy = layout.projectDirectory.file("cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/feature/SuperiorSkyblockReplacementFeaturePolicy.java")
+    val client = layout.projectDirectory.file("cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkMigrationCommandClient.java")
+    val paperCatalog = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java")
+    val paperHandler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminMigrationCommandHandler.java")
+    val velocityCatalog = layout.projectDirectory.file("cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/command/IslandCommandCatalog.java")
+    val velocityDispatcher = layout.projectDirectory.file("cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityAdminCommandDispatcher.java")
+    val velocitySuggestions = layout.projectDirectory.file("cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSuggestions.java")
+    val serviceTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/MigrationAdminServiceTest.java")
+    val routesTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/SuperiorSkyblock2MigrationRoutesTest.java")
+    val paperTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackendPolicyTest.java")
+    val velocityTest = layout.projectDirectory.file("cloudislands-velocity/src/test/java/kr/lunaf/cloudislands/velocity/command/IslandCommandCatalogTest.java")
+    inputs.files(
+        backend, service, routes, guard, configRoutes, commonPolicy, client,
+        paperCatalog, paperHandler, velocityCatalog, velocityDispatcher, velocitySuggestions,
+        serviceTest, routesTest, paperTest, velocityTest
+    )
+    doLast {
+        val backendSource = backend.asFile.readText()
+        val serviceSource = service.asFile.readText()
+        val routeSource = routes.asFile.readText()
+        val guardSource = guard.asFile.readText()
+        val configSource = configRoutes.asFile.readText()
+        val policySource = commonPolicy.asFile.readText()
+        val clientSource = client.asFile.readText()
+        val commandSurfaces = listOf(paperCatalog, paperHandler, velocityCatalog, velocityDispatcher, velocitySuggestions)
+            .joinToString("\n") { it.asFile.readText() }
+        val tests = listOf(serviceTest, routesTest, paperTest, velocityTest).joinToString("\n") { it.asFile.readText() }
+        val missingCore = listOf(
+            "scan,dryrun,report,import,verify,compare,rollback",
+            "public synchronized String report()",
+            "public synchronized String compare(String islandKey)",
+            "compareImportedManifest(MigrationManifest manifest)",
+            "backend.report()",
+            "backend.compare(islandKey)",
+            "/v1/admin/migrations/superiorskyblock2/report",
+            "/v1/admin/migrations/superiorskyblock2/compare"
+        ).filterNot { signal ->
+            backendSource.contains(signal) || serviceSource.contains(signal) || routeSource.contains(signal)
+        }
+        val missingSecurity = listOf(
+            "/v1/admin/migrations/superiorskyblock2/report",
+            "/v1/admin/migrations/superiorskyblock2/compare",
+            "AdminPermission.MIGRATION_MANAGE"
+        ).filterNot(guardSource::contains)
+        val missingPolicy = listOf(
+            "superiorSkyblock2MigrationEndpoints\", \"scan,status,dryrun,report,extract,import,verify,compare,rollback",
+            "/ciadmin migrate-superiorskyblock2 report",
+            "/ciadmin migrate-superiorskyblock2 compare"
+        ).filterNot { signal -> configSource.contains(signal) || policySource.contains(signal) }
+        val missingClient = listOf("case \"report\"", "case \"compare\"", "SUPERIOR_SKYBLOCK2_REPORT", "SUPERIOR_SKYBLOCK2_COMPARE")
+            .filterNot(clientSource::contains)
+        val missingCommands = listOf(
+            "migrate-superiorskyblock2 report",
+            "migrate-superiorskyblock2 compare <island>",
+            "action.equalsIgnoreCase(\"compare\") && args.length < 3",
+            "<islandUuid>",
+            "<ownerUuid>"
+        ).filterNot(commandSurfaces::contains)
+        val missingTests = listOf(
+            "migrationReportAndCompareAreFirstClassOperations",
+            "/v1/admin/migrations/superiorskyblock2/report",
+            "/v1/admin/migrations/superiorskyblock2/compare",
+            "Migration report must be a first-class migration subcommand",
+            "ciadmin migrate-superiorskyblock2 compare <island>"
+        ).filterNot(tests::contains)
+        val failures = buildList {
+            if (missingCore.isNotEmpty()) add("Satis migration report Core wiring missing: ${missingCore.joinToString(", ")}")
+            if (missingSecurity.isNotEmpty()) add("Satis migration report security wiring missing: ${missingSecurity.joinToString(", ")}")
+            if (missingPolicy.isNotEmpty()) add("Satis migration report policy/config wiring missing: ${missingPolicy.joinToString(", ")}")
+            if (missingClient.isNotEmpty()) add("Satis migration report client wiring missing: ${missingClient.joinToString(", ")}")
+            if (missingCommands.isNotEmpty()) add("Satis migration report command wiring missing: ${missingCommands.joinToString(", ")}")
+            if (missingTests.isNotEmpty()) add("Satis migration report tests missing: ${missingTests.joinToString(", ")}")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register("verifyRankingWorthCertification") {
     group = "verification"
     description = "Verifies ranking/worth certification covers 10k island recalculation, dirty debounce, ignored islands, and event publication."
@@ -792,6 +902,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyRankingWorthCertification"))
     dependsOn(tasks.named("verifySnapshotRestoreCoverage"))
     dependsOn(tasks.named("verifySatisEconomyLedgerCoverage"))
+    dependsOn(tasks.named("verifySatisMigrationReportCoverage"))
 }
 
 tasks.register("verifyRoutingRefactorCoverage") {

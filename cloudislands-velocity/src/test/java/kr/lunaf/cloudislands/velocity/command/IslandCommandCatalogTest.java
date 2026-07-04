@@ -141,7 +141,9 @@ class IslandCommandCatalogTest {
                 "ciadmin template setpermission <name> <permission>",
                 "ciadmin cache clear",
                 "ciadmin reload",
-                "ciadmin migrate-superiorskyblock2 scan [path]"
+                "ciadmin migrate-superiorskyblock2 scan [path]",
+                "ciadmin migrate-superiorskyblock2 report",
+                "ciadmin migrate-superiorskyblock2 compare <island>"
         )) {
             assertTrue(commands.contains(command), command);
         }

@@ -57,7 +57,7 @@ final class MigrationAdminBackend {
     static final String MIGRATION_SNAPSHOT_REASON = "BEFORE_MIGRATION:SUPERIORSKYBLOCK2_IMPORT";
     static final String MIGRATION_TARGET_FIELDS = "island-id,owner-uuid,members,roles,permissions,island-location,island-size,homes,warps,banned-visitors,level,worth,upgrades,flags,block-values";
     static final String MIGRATION_PIPELINE_STEPS = "read-only-scan,manifest-generate,dry-run,conflict-report,admin-approval,db-import,world-cell-extract,island-bundle-create,checksum-verify,cloudislands-activation-test";
-    static final String MIGRATION_COMMAND_SET = "scan,dryrun,import,verify,rollback";
+    static final String MIGRATION_COMMAND_SET = "scan,dryrun,report,import,verify,compare,rollback";
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
     private final PlayerProfileRepository playerProfiles;
@@ -189,6 +189,80 @@ final class MigrationAdminBackend {
             + reportFields(lastPlan.report())
             + ",\"issues\":" + issuesJson(lastPlan.issues())
             + "}";
+    }
+
+    public synchronized String report() {
+        return status();
+    }
+
+    public synchronized String compare(String islandKey) {
+        String target = islandKey == null ? "" : islandKey.trim();
+        if (lastScan.manifests().isEmpty()) {
+            List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SCAN_REQUIRED", "run scan before comparing SuperiorSkyblock2 migration state", true));
+            return "{\"state\":\"COMPARE_FAILED\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"path\":\"" + escape(target) + "\",\"passed\":false,\"expected\":0,\"imported\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        }
+        Optional<MigrationManifest> selected = lastScan.manifests().stream()
+            .filter(manifest -> matchesMigrationTarget(manifest, target))
+            .findFirst();
+        if (selected.isEmpty()) {
+            List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_COMPARE_TARGET_NOT_FOUND", "scan manifest does not contain migration target " + target, true));
+            return "{\"state\":\"COMPARE_FAILED\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"path\":\"" + escape(target) + "\",\"passed\":false,\"expected\":1,\"imported\":0" + reportFields(MigrationReportBuilder.build(lastScan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        }
+        MigrationManifest manifest = selected.get();
+        List<MigrationIssue> issues = compareImportedManifest(manifest);
+        boolean passed = issues.isEmpty();
+        String state = passed ? "COMPARE_PASSED" : "COMPARE_FAILED";
+        return "{\"state\":\"" + state + "\""
+            + migrationBoundaryFields()
+            + migrationCoverageFields()
+            + ",\"path\":\"" + escape(target) + "\""
+            + ",\"passed\":" + passed
+            + ",\"expected\":1"
+            + ",\"imported\":" + (islands.findById(manifest.islandId()).isPresent() ? 1 : 0)
+            + ",\"manifests\":1"
+            + reportFields(MigrationReportBuilder.build(List.of(manifest), issues))
+            + ",\"issues\":" + issuesJson(issues)
+            + "}";
+    }
+
+    private boolean matchesMigrationTarget(MigrationManifest manifest, String target) {
+        if (target.isBlank()) {
+            return false;
+        }
+        return manifest.islandId().toString().equalsIgnoreCase(target)
+            || manifest.ownerUuid().toString().equalsIgnoreCase(target);
+    }
+
+    private List<MigrationIssue> compareImportedManifest(MigrationManifest manifest) {
+        List<MigrationIssue> issues = new ArrayList<>();
+        IslandSnapshot island = islands.findById(manifest.islandId()).orElse(null);
+        if (island == null) {
+            issues.add(new MigrationIssue("MISSING_IMPORTED_ISLAND", "missing imported island " + manifest.islandId(), true));
+            return issues;
+        }
+        expect(issues, island.ownerUuid().equals(manifest.ownerUuid()), "OWNER_MISMATCH", "owner mismatch " + manifest.islandId());
+        expect(issues, island.size() == manifest.size(), "SIZE_MISMATCH", "size mismatch " + manifest.islandId());
+        expect(issues, island.level() == manifest.level(), "LEVEL_MISMATCH", "level mismatch " + manifest.islandId());
+        expect(issues, decimal(island.worth()).compareTo(decimal(manifest.worth())) == 0, "WORTH_MISMATCH", "worth mismatch " + manifest.islandId());
+        expect(issues, manifest.members().stream().allMatch(memberUuid -> metadata.isMember(manifest.islandId(), memberUuid)), "MEMBER_MISMATCH", "member mismatch " + manifest.islandId());
+        expect(issues, memberRolesMatch(manifest), "MEMBER_ROLE_MISMATCH", "member role mismatch " + manifest.islandId());
+        expect(issues, manifest.bannedVisitors().stream().allMatch(bannedUuid -> metadata.isBanned(manifest.islandId(), bannedUuid)), "BAN_MISMATCH", "ban mismatch " + manifest.islandId());
+        expect(issues, manifest.homes().stream().allMatch(home -> metadata.home(manifest.islandId(), home.name()).isPresent()), "HOME_MISMATCH", "home mismatch " + manifest.islandId());
+        expect(issues, !manifest.islandLocation().present() || originLocationMatches(manifest), "ISLAND_LOCATION_MISMATCH", "island location mismatch " + manifest.islandId());
+        expect(issues, manifest.warps().stream().allMatch(warp -> metadata.warp(manifest.islandId(), warp.name()).isPresent()), "WARP_MISMATCH", "warp mismatch " + manifest.islandId());
+        expect(issues, manifest.flags().stream().allMatch(flag -> flag.value().equals(metadata.flags(manifest.islandId()).values().get(IslandFlag.valueOf(flag.flagName())))), "FLAG_MISMATCH", "flag mismatch " + manifest.islandId());
+        expect(issues, permissionsMatch(manifest), "PERMISSION_MISMATCH", "permission mismatch " + manifest.islandId());
+        expect(issues, upgradesMatch(manifest), "UPGRADE_MISMATCH", "upgrade mismatch " + manifest.islandId());
+        expect(issues, limitsMatch(manifest), "LIMIT_MISMATCH", "limit mismatch " + manifest.islandId());
+        expect(issues, missionsMatch(manifest), "MISSION_MISMATCH", "mission mismatch " + manifest.islandId());
+        expect(issues, blockValuesMatch(manifest), "BLOCK_VALUE_MISMATCH", "block value mismatch " + manifest.islandId());
+        expect(issues, blockCountsMatch(manifest), "BLOCK_COUNT_MISMATCH", "block count mismatch " + manifest.islandId());
+        expect(issues, warehouseItemsMatch(manifest), "WAREHOUSE_MISMATCH", "warehouse mismatch " + manifest.islandId());
+        expect(issues, manifest.biomeKey().isBlank() || metadata.biome(manifest.islandId()).biomeKey().equals(manifest.biomeKey()), "BIOME_MISMATCH", "biome mismatch " + manifest.islandId());
+        expect(issues, decimal(bank.balance(manifest.islandId()).balance()).compareTo(decimal(manifest.bankBalance())) == 0, "BANK_MISMATCH", "bank mismatch " + manifest.islandId());
+        expect(issues, metadata.isPublicAccess(manifest.islandId()) == manifest.publicAccess(), "PUBLIC_ACCESS_MISMATCH", "public access mismatch " + manifest.islandId());
+        expect(issues, metadata.isLocked(manifest.islandId()) == manifest.locked(), "LOCKED_MISMATCH", "locked mismatch " + manifest.islandId());
+        return issues;
     }
 
     private List<MigrationIssue> targetConflictIssues(List<MigrationManifest> manifests) {

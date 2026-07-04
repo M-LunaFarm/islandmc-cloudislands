@@ -447,7 +447,12 @@ class AdminCommandBackendPolicyTest {
         assertTrue(formatter.contains("String format(MigrationRunSnapshot snapshot)"), "Migration formatter must accept typed migration snapshots");
         assertTrue(!formatter.contains("String format(String body)"), "Migration formatter must not reparse Core JSON after the typed client boundary");
         assertTrue(catalog.contains("\"wizard\", \"scan\""), "Migration wizard must be a first-class migration subcommand");
+        assertTrue(catalog.contains("\"report\""), "Migration report must be a first-class migration subcommand");
+        assertTrue(catalog.contains("\"compare\""), "Migration compare must be a first-class migration subcommand");
         assertTrue(catalog.contains("ciadmin migrate-superiorskyblock2 wizard"), "Migration wizard must be listed in admin help");
+        assertTrue(catalog.contains("ciadmin migrate-superiorskyblock2 report"), "Migration report must be listed in admin help");
+        assertTrue(catalog.contains("ciadmin migrate-superiorskyblock2 compare <island>"), "Migration compare must be listed in admin help");
+        assertTrue(handler.contains("action.equalsIgnoreCase(\"compare\") && args.length < 3"), "Migration compare must require an island selector");
         assertTrue(handler.contains("AdminMigrationMenu.open(player, messageProvider.messagesFor(player))"), "Migration wizard must open the existing GUI for player operators");
         assertTrue(handler.contains("AdminCommandCatalog.MIGRATION_HELP_COMMANDS"), "Migration wizard console fallback must reuse the migration command catalog");
         assertTrue(backend.contains("this::messagesFor"), "Admin backend must pass localized messages into the migration wizard handler");
