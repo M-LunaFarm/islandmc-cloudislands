@@ -199,6 +199,18 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             adminActions.disableTemplate(player, args[2]);
             return;
         }
+        if (args.length >= 3 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && (args[1].equalsIgnoreCase("verify-bundle") || args[1].equalsIgnoreCase("verify"))) {
+            adminActions.verifyTemplateBundle(player, args[2]);
+            return;
+        }
+        if (args.length >= 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("delete")) {
+            adminActions.deleteTemplate(player, args[2], args[3].equalsIgnoreCase("--confirm") || args[3].equalsIgnoreCase("confirm") || parseToggle(args, 3, false));
+            return;
+        }
+        if (args.length >= 4 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("reorder")) {
+            adminActions.reorderTemplate(player, args[2], (int) parseLongOrZero(args[3]));
+            return;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("node") && (args.length == 1 || args[1].equalsIgnoreCase("menu") || args[1].equalsIgnoreCase("list"))) {
             adminActions.listNodes(player);
             return;

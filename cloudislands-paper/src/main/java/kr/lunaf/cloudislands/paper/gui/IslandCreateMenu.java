@@ -77,7 +77,11 @@ public final class IslandCreateMenu implements Listener {
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<TemplateView> templates, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
-            List<TemplateView> enabled = templates.stream().filter(TemplateView::enabled).limit(14).toList();
+            List<TemplateView> enabled = templates.stream()
+                .filter(TemplateView::enabled)
+                .filter(template -> template.requiredPermission().isBlank() || player.hasPermission(template.requiredPermission()))
+                .limit(14)
+                .toList();
             if (enabled.isEmpty()) {
                 enabled = List.of(new TemplateView("default", message(messages, "create-menu-default-template", "기본 섬"), true, ""));
             }
@@ -92,8 +96,24 @@ public final class IslandCreateMenu implements Listener {
     private static ItemStack item(TemplateView template, MessageRenderer messages) {
         String displayName = template.displayName().isBlank() ? template.id() : template.displayName();
         List<String> lore = new ArrayList<>();
+        if (!template.description().isBlank()) {
+            lore.add(template.description());
+        }
+        if (!template.category().isBlank()) {
+            lore.add(message(messages, "create-menu-category", "카테고리: ") + template.category());
+        }
+        lore.add(message(messages, "create-menu-size", "섬 크기: ") + template.defaultIslandSize());
+        if (!template.creationCost().isBlank() && !"0".equals(template.creationCost())) {
+            lore.add(message(messages, "create-menu-cost", "생성 비용: ") + template.creationCost());
+        }
+        if (!template.requiredPermission().isBlank()) {
+            lore.add(message(messages, "create-menu-required-permission", "필요 권한: ") + template.requiredPermission());
+        }
         if (!template.minNodeVersion().isBlank()) {
             lore.add(message(messages, "create-menu-required-version", "필요 플랫폼 버전: ") + template.minNodeVersion());
+        }
+        if (!template.bundleStoragePath().isBlank()) {
+            lore.add(message(messages, "create-menu-bundle-ready", "번들: 준비됨"));
         }
         lore.add(message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
         return MENU.item("_")

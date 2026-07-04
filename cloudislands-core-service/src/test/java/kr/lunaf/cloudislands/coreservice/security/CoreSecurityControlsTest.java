@@ -205,6 +205,22 @@ class CoreSecurityControlsTest {
             "X-CloudIslands-Admin-Token", "admin-secret",
             "X-CloudIslands-Admin-Permissions", "audit-read"
         )));
+        AdminEndpointGuard templateGuard = new AdminEndpointGuard("admin-secret", true, "template-manage");
+        assertTrue(templateGuard.allowed("/v1/admin/templates/import-bundle", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret",
+            "X-CloudIslands-Admin-Permissions", "template-manage"
+        )));
+        assertTrue(templateGuard.allowed("/v1/admin/templates/verify-bundle", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret",
+            "X-CloudIslands-Admin-Permissions", "template-manage"
+        )));
+        assertFalse(guard.allowed("/v1/admin/templates/delete", exchange(
+            "127.0.0.1",
+            "X-CloudIslands-Admin-Token", "admin-secret",
+            "X-CloudIslands-Admin-Permissions", "audit-read"
+        )));
         assertFalse(new AdminEndpointGuard("admin-secret", false).allowed("/v1/admin/audit", exchange(
             "127.0.0.1",
             "X-CloudIslands-Admin-Token", "admin-secret",

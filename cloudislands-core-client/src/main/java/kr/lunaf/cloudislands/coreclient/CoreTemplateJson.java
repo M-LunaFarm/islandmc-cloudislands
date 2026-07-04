@@ -19,6 +19,21 @@ final class CoreTemplateJson {
         return template(CoreJson.object(body));
     }
 
+    static TemplateBundleVerificationView bundleVerification(String body) {
+        Map<?, ?> root = CoreJson.object(body);
+        return new TemplateBundleVerificationView(
+            CoreJson.bool(root, "ok", false),
+            CoreJson.text(root, "templateId"),
+            CoreJson.text(root, "bundleStoragePath"),
+            CoreJson.text(root, "bundleChecksum"),
+            CoreJson.number(root, "bundleSizeBytes")
+        );
+    }
+
+    static boolean accepted(String body) {
+        return CoreJson.accepted(CoreJson.object(body));
+    }
+
     static List<CoreGuiViews.TemplateView> guiTemplates(String body) {
         return guiTemplates(templates(body));
     }

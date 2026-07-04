@@ -174,10 +174,16 @@ public final class IslandCommandCatalog {
             "ciadmin template upsert <id> <name> [enabled|disabled] [minNodeVersion]",
             "ciadmin template enable <id>",
             "ciadmin template disable <id>",
+            "ciadmin template verify-bundle <id>",
+            "ciadmin template delete <id> --confirm",
+            "ciadmin template reorder <id> <sortOrder>",
             "ciadmin templates list",
             "ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]",
             "ciadmin templates enable <id>",
             "ciadmin templates disable <id>",
+            "ciadmin templates verify-bundle <id>",
+            "ciadmin templates delete <id> --confirm",
+            "ciadmin templates reorder <id> <sortOrder>",
             "ciadmin reload"
         ));
         if (!includeMigration) {

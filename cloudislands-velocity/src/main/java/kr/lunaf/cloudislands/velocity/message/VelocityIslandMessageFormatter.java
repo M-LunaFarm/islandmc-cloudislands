@@ -25,6 +25,7 @@ import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
+import kr.lunaf.cloudislands.coreclient.TemplateBundleVerificationView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 
 public final class VelocityIslandMessageFormatter {
@@ -143,7 +144,21 @@ public final class VelocityIslandMessageFormatter {
         }
         return label + ": accepted target=" + compactTarget(view.id().isBlank() ? templateId : view.id())
             + " 상태=" + (view.enabled() ? "사용 가능" : "비활성")
-            + (view.minNodeVersion().isBlank() ? "" : " 최소버전=" + view.minNodeVersion());
+            + (view.minNodeVersion().isBlank() ? "" : " 최소버전=" + view.minNodeVersion())
+            + (view.bundleStoragePath().isBlank() ? "" : " 번들=" + shortId(view.bundleStoragePath()))
+            + " 순서=" + view.sortOrder();
+    }
+
+    public String templateBundleVerification(TemplateBundleVerificationView view) {
+        return "템플릿 번들 검증: id=" + view.templateId()
+            + " ok=" + view.ok()
+            + " 번들=" + shortId(view.bundleStoragePath())
+            + " checksum=" + shortId(view.bundleChecksum())
+            + " size=" + view.bundleSizeBytes();
+    }
+
+    public String templateDelete(String templateId, boolean accepted) {
+        return "Template delete: " + (accepted ? "accepted" : "rejected") + " target=" + compactTarget(templateId);
     }
 
     public String inviteCreate(CoreGuiViews.InviteView invite) {
@@ -292,7 +307,9 @@ public final class VelocityIslandMessageFormatter {
             if (entries.size() < 10) {
                 entries.add(template.id()
                     + " " + (template.enabled() ? "사용 가능" : "비활성")
-                    + (template.minNodeVersion().isBlank() ? "" : " 최소버전=" + template.minNodeVersion()));
+                    + (template.minNodeVersion().isBlank() ? "" : " 최소버전=" + template.minNodeVersion())
+                    + (template.bundleStoragePath().isBlank() ? "" : " 번들=" + shortId(template.bundleStoragePath()))
+                    + (template.creationCost().isBlank() || "0".equals(template.creationCost()) ? "" : " 비용=" + template.creationCost()));
             }
         }
         return "섬 템플릿: 전체 " + templates.size() + "개, 사용 가능 " + enabled + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));

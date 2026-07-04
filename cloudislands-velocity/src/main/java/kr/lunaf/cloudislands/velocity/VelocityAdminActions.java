@@ -356,4 +356,20 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     public void disableTemplate(Player player, String templateId) {
         sendTextResult(player, coreApiClient.templateCommands().disable(templateId).thenApply(result -> islandMessages.templateAction("Template disable", templateId, result)), "섬 템플릿을 비활성화하지 못했습니다.");
     }
+
+    public void verifyTemplateBundle(Player player, String templateId) {
+        sendTextResult(player, coreApiClient.templateCommands().verifyBundle(templateId).thenApply(islandMessages::templateBundleVerification), "섬 템플릿 번들을 검증하지 못했습니다.");
+    }
+
+    public void deleteTemplate(Player player, String templateId, boolean confirm) {
+        if (!confirm) {
+            player.sendMessage(Component.text("사용법: /ciadmin templates delete <id> --confirm"));
+            return;
+        }
+        sendTextResult(player, coreApiClient.templateCommands().delete(templateId, true).thenApply(accepted -> islandMessages.templateDelete(templateId, accepted)), "섬 템플릿을 삭제하지 못했습니다.");
+    }
+
+    public void reorderTemplate(Player player, String templateId, int sortOrder) {
+        sendTextResult(player, coreApiClient.templateCommands().reorder(templateId, sortOrder).thenApply(result -> islandMessages.templateAction("Template reorder", templateId, result)), "섬 템플릿 순서를 변경하지 못했습니다.");
+    }
 }

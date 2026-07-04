@@ -49,6 +49,7 @@ import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
+import kr.lunaf.cloudislands.coreclient.TemplateBundleVerificationView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
@@ -1229,6 +1230,22 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Template import", coreApiClient.templateCommands().upsert(templateId, displayName, false, "").thenApply(template -> templateActionMessage("Template import", templateId, template) + " / " + templateValidationStatus(template)));
             return true;
         }
+        if (args[1].equalsIgnoreCase("import-bundle")) {
+            if (args.length < 5) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin templates import-bundle <id> <bundlePath> <checksum> [sizeBytes] [displayName]"
+                ));
+                return true;
+            }
+            String templateId = normalizeTemplateId(args[2]);
+            String bundlePath = args[3];
+            String checksum = args[4];
+            long bundleSizeBytes = args.length > 5 ? number(args[5], 0L) : 0L;
+            String displayName = args.length > 6 ? joined(args, 6) : templateId;
+            TemplateView template = templateBundleView(templateId, displayName, bundlePath, checksum, bundleSizeBytes);
+            run(sender, "Template import bundle", coreApiClient.templateCommands().importBundle(template).thenApply(result -> templateActionMessage("Template import bundle", templateId, result) + " / " + templateValidationStatus(result)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("upsert")) {
             if (args.length < 4) {
                 sendCommandUsage(sender, List.of(
@@ -1253,12 +1270,38 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Template validate", coreApiClient.templates().list().thenApply(templates -> templateValidateMessage(args[2], templates)));
             return true;
         }
+        if (args[1].equalsIgnoreCase("verify-bundle") || args[1].equalsIgnoreCase("verify")) {
+            run(sender, "Template verify bundle", coreApiClient.templateCommands().verifyBundle(args[2]).thenApply(this::templateBundleVerificationMessage));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("enable")) {
             run(sender, "Template enable", coreApiClient.templateCommands().enable(args[2]).thenApply(template -> templateActionMessage("Template enable", args[2], template)));
             return true;
         }
         if (args[1].equalsIgnoreCase("disable")) {
             run(sender, "Template disable", coreApiClient.templateCommands().disable(args[2]).thenApply(template -> templateActionMessage("Template disable", args[2], template)));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("delete")) {
+            boolean confirm = args.length > 3 && (args[3].equalsIgnoreCase("--confirm") || args[3].equalsIgnoreCase("confirm") || booleanArgument(args[3], false));
+            if (!confirm) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin templates delete <id> --confirm"
+                ));
+                return true;
+            }
+            run(sender, "Template delete", coreApiClient.templateCommands().delete(args[2], true).thenApply(accepted -> templateBooleanActionMessage("Template delete", args[2], accepted)));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("reorder")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin templates reorder <id> <sortOrder>"
+                ));
+                return true;
+            }
+            int sortOrder = (int) number(args[3], 0L);
+            run(sender, "Template reorder", coreApiClient.templateCommands().reorder(args[2], sortOrder).thenApply(template -> templateActionMessage("Template reorder", args[2], template) + adminText("admin-command-template-sort-prefix", " sort=") + template.sortOrder()));
             return true;
         }
         sendTemplateCommandUsage(sender);
@@ -1269,11 +1312,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         sendCommandUsage(sender, List.of(
             "/ciadmin templates list",
             "/ciadmin templates import <name>",
+            "/ciadmin templates import-bundle <id> <bundlePath> <checksum> [sizeBytes] [displayName]",
             "/ciadmin templates upsert <id> <name> [enabled|disabled] [minNodeVersion]",
             "/ciadmin templates enable <id>",
             "/ciadmin templates disable <id>",
             "/ciadmin templates preview <id>",
-            "/ciadmin templates validate <id>"
+            "/ciadmin templates validate <id>",
+            "/ciadmin templates verify-bundle <id>",
+            "/ciadmin templates delete <id> --confirm",
+            "/ciadmin templates reorder <id> <sortOrder>"
         ));
     }
 
@@ -1812,7 +1859,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 String minNodeVersion = template.minNodeVersion();
                 entries.add(template.id()
                     + " " + (template.enabled() ? adminText("admin-command-template-enabled", "enabled") : adminText("admin-command-template-disabled", "disabled"))
-                    + (minNodeVersion.isBlank() ? "" : adminText("admin-command-template-min-prefix", " min=") + minNodeVersion));
+                    + (minNodeVersion.isBlank() ? "" : adminText("admin-command-template-min-prefix", " min=") + minNodeVersion)
+                    + (template.bundleStoragePath().isBlank() ? "" : adminText("admin-command-template-bundle-prefix", " bundle=") + shortId(template.bundleStoragePath()))
+                    + (template.creationCost().isBlank() || "0".equals(template.creationCost()) ? "" : adminText("admin-command-template-cost-prefix", " cost=") + template.creationCost()));
             }
         }
         return adminText("admin-command-templates-total-prefix", "Templates: total=") + templates.size() + adminText("admin-command-templates-enabled-prefix", " enabled=") + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
@@ -1820,7 +1869,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private String templateActionMessage(String label, String targetId, TemplateView template) {
         String resolvedTarget = template.id().isBlank() ? targetId : template.id();
-        return label + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=") + shortId(resolvedTarget);
+        return label + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=") + shortId(resolvedTarget)
+            + adminText("admin-command-template-enabled-prefix", " enabled=") + template.enabled()
+            + (template.bundleStoragePath().isBlank() ? "" : adminText("admin-command-template-bundle-prefix", " bundle=") + shortId(template.bundleStoragePath()));
+    }
+
+    private String templateBooleanActionMessage(String label, String targetId, boolean accepted) {
+        return label + ": " + (accepted ? adminText("admin-command-action-result-accepted", "accepted") : adminText("admin-command-action-result-rejected", "rejected"))
+            + adminText("admin-command-action-result-target-prefix", " target=") + compactTarget(targetId);
     }
 
     private String templatePreviewMessage(String targetId, List<TemplateView> templates) {
@@ -1831,11 +1887,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return adminText("admin-command-template-preview-prefix", "Template preview: ")
             + "id=" + template.id()
             + adminText("admin-command-template-name-prefix", " name=") + (template.displayName().isBlank() ? template.id() : template.displayName())
+            + adminText("admin-command-template-category-prefix", " category=") + template.category()
             + adminText("admin-command-template-enabled-prefix", " enabled=") + template.enabled()
             + (template.minNodeVersion().isBlank() ? "" : adminText("admin-command-template-min-prefix", " min=") + template.minNodeVersion())
-            + adminText("admin-command-template-node-pool-prefix", " nodePool=") + "current"
-            + adminText("admin-command-template-bundle-prefix", " bundle=") + "not-certified"
-            + adminText("admin-command-template-checksum-prefix", " checksum=") + "not-certified";
+            + adminText("admin-command-template-size-prefix", " size=") + template.defaultIslandSize()
+            + (template.creationCost().isBlank() || "0".equals(template.creationCost()) ? "" : adminText("admin-command-template-cost-prefix", " cost=") + template.creationCost())
+            + (template.requiredPermission().isBlank() ? "" : adminText("admin-command-template-permission-prefix", " permission=") + template.requiredPermission())
+            + adminText("admin-command-template-bundle-prefix", " bundle=") + (template.bundleStoragePath().isBlank() ? "not-certified" : shortId(template.bundleStoragePath()))
+            + adminText("admin-command-template-checksum-prefix", " checksum=") + (template.bundleChecksum().isBlank() ? "not-certified" : shortId(template.bundleChecksum()));
     }
 
     private String templateValidateMessage(String targetId, List<TemplateView> templates) {
@@ -1848,8 +1907,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + adminText("admin-command-template-validation-status-prefix", " status=") + templateValidationStatus(template)
             + adminText("admin-command-template-enabled-prefix", " enabled=") + template.enabled()
             + (template.minNodeVersion().isBlank() ? adminText("admin-command-template-min-missing", " min=missing") : adminText("admin-command-template-min-prefix", " min=") + template.minNodeVersion())
-            + adminText("admin-command-template-bundle-prefix", " bundle=") + "not-certified"
-            + adminText("admin-command-template-checksum-prefix", " checksum=") + "not-certified";
+            + adminText("admin-command-template-bundle-prefix", " bundle=") + (template.bundleStoragePath().isBlank() ? "not-certified" : shortId(template.bundleStoragePath()))
+            + adminText("admin-command-template-checksum-prefix", " checksum=") + (template.bundleChecksum().isBlank() ? "not-certified" : shortId(template.bundleChecksum()));
     }
 
     private String templateValidationStatus(TemplateView template) {
@@ -1862,7 +1921,55 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (template.enabled() && template.minNodeVersion().isBlank()) {
             return "WARN_MIN_NODE_VERSION_MISSING";
         }
+        if (!template.bundleStoragePath().isBlank() && template.bundleChecksum().isBlank()) {
+            return "INVALID_BUNDLE_CHECKSUM_MISSING";
+        }
+        if (template.enabled() && template.bundleStoragePath().isBlank()) {
+            return "WARN_BUNDLE_MISSING";
+        }
         return "OK";
+    }
+
+    private String templateBundleVerificationMessage(TemplateBundleVerificationView view) {
+        return adminText("admin-command-template-verify-prefix", "Template bundle verify: ")
+            + "id=" + view.templateId()
+            + adminText("admin-command-template-ok-prefix", " ok=") + view.ok()
+            + adminText("admin-command-template-bundle-prefix", " bundle=") + shortId(view.bundleStoragePath())
+            + adminText("admin-command-template-checksum-prefix", " checksum=") + shortId(view.bundleChecksum())
+            + adminText("admin-command-template-size-prefix", " size=") + view.bundleSizeBytes();
+    }
+
+    private static TemplateView templateBundleView(String templateId, String displayName, String bundlePath, String checksum, long bundleSizeBytes) {
+        return new TemplateView(
+            templateId,
+            displayName,
+            "",
+            "default",
+            false,
+            "",
+            "",
+            "GRASS_BLOCK",
+            0,
+            "",
+            bundlePath,
+            checksum,
+            bundleSizeBytes,
+            3,
+            300,
+            0.5D,
+            100.0D,
+            0.5D,
+            180.0F,
+            0.0F,
+            "default",
+            "normal",
+            "minecraft:plains",
+            "BLUE",
+            "0",
+            "0",
+            0,
+            List.of()
+        );
     }
 
     private TemplateView templateById(String targetId, List<TemplateView> templates) {
