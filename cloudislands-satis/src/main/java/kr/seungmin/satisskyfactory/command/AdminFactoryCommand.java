@@ -789,6 +789,7 @@ public final class AdminFactoryCommand {
         summary.put("dirty-save", dirtySaveStatus(state));
         summary.put("routes", routeStatus(state));
         summary.put("lifecycle", firstNonBlank(state.get("last-lifecycle-status"), "unknown"));
+        summary.put("config-validation", configValidationStatus(state));
         summary.put("blocked-components", firstNonBlank(state.get("runtime-blocked-components"), "none"));
         summary.put("operator-action", doctorAction(state));
         printSection(sender, summary);
@@ -877,6 +878,7 @@ public final class AdminFactoryCommand {
         summary.put("doctor-status", runtimeStatus(state));
         summary.put("database-status", databaseStatus(state));
         summary.put("runtime-status", firstNonBlank(state.get("runtime-addon-status"), "unknown"));
+        summary.put("config-validation", configValidationStatus(state));
         summary.put("feature-blocks", firstNonBlank(state.get("runtime-feature-dependency-blocks"), "none"));
         summary.put("disabled-features", firstNonBlank(state.get("runtime-disabled-features"), "none"));
         summary.put("dirty-save-pending", firstNonBlank(state.get("runtime-dirty-save-pending-writes"), "0"));
@@ -922,6 +924,9 @@ public final class AdminFactoryCommand {
     }
 
     private String runtimeStatus(Map<String, String> state) {
+        if (!"0".equals(firstNonBlank(state.get("config-validation-error-count"), "0"))) {
+            return "BLOCKED:config-validation-error";
+        }
         if (!"true".equalsIgnoreCase(firstNonBlank(state.get("runtime-cloudislands-api-available"), "true"))) {
             return "BLOCKED:cloudislands-api-unavailable";
         }
@@ -973,7 +978,26 @@ public final class AdminFactoryCommand {
         return status;
     }
 
+    private String configValidationStatus(Map<String, String> state) {
+        String status = firstNonBlank(state.get("config-validation-status"), "unknown");
+        String errors = firstNonBlank(state.get("config-validation-error-count"), "0");
+        String warnings = firstNonBlank(state.get("config-validation-warning-count"), "0");
+        if (!"0".equals(errors)) {
+            return "ERROR:" + firstNonBlank(state.get("config-validation-errors"), errors);
+        }
+        if (!"0".equals(warnings)) {
+            return "WARN:" + firstNonBlank(state.get("config-validation-warnings"), warnings);
+        }
+        return status;
+    }
+
     private String doctorAction(Map<String, String> state) {
+        if (!"0".equals(firstNonBlank(state.get("config-validation-error-count"), "0"))) {
+            return "fix-satis-config-validation-errors-before-starting-runtime";
+        }
+        if (!"0".equals(firstNonBlank(state.get("config-validation-warning-count"), "0"))) {
+            return "review-satis-config-validation-warnings";
+        }
         if (!"true".equalsIgnoreCase(firstNonBlank(state.get("runtime-cloudislands-api-available"), "true"))) {
             return "restore-cloudislands-api-before-starting-satis-runtime";
         }

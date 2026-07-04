@@ -245,8 +245,8 @@ machines:
     wear-per-cycle: 0.015
   conveyor_t2:
     display: "Conveyor T2"
-    material: CHAIN
-    placed-block: CHAIN
+    material: IRON_BARS
+    placed-block: IRON_BARS
     custom-model-data: 2302
     tier: 2
     input-capacity: 128

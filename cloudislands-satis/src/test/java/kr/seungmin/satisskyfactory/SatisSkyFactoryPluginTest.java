@@ -177,6 +177,8 @@ class SatisSkyFactoryPluginTest {
         assertTrue(source.contains("runtime-disable-activation-block-reason"));
         assertTrue(source.contains("last-preflush-activation-block-reason"));
         assertTrue(source.contains("preflush-activation-block-reason"));
+        assertTrue(source.contains("configValidationReport.hasErrors()"));
+        assertTrue(source.contains("errors-block-satis-runtime-start-warnings-visible-in-doctor"));
         assertTrue(source.contains("CloudIslands Satis runtime blocked by activation policy"));
         assertTrue(adminSource.contains("runtime-feature-pack-activation-policy"));
         assertTrue(adminSource.contains("runtime-feature-pack-activation-mode"));
@@ -186,6 +188,8 @@ class SatisSkyFactoryPluginTest {
         assertTrue(adminSource.contains("runtime-disable-activation-block-reason"));
         assertTrue(adminSource.contains("last-preflush-activation-block-reason"));
         assertTrue(adminSource.contains("preflush-activation-block-reason"));
+        assertTrue(adminSource.contains("config-validation-status"));
+        assertTrue(adminSource.contains("fix-satis-config-validation-errors-before-starting-runtime"));
         assertTrue(adminSource.contains("database-setup-core-api-readiness-fields"));
         assertTrue(adminSource.contains("database-setup-postgresql-readiness-fields"));
         assertTrue(adminSource.contains("database-setup-mysql-readiness-fields"));

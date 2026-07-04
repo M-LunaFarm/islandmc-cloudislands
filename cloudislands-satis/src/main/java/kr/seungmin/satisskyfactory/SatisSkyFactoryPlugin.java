@@ -65,6 +65,7 @@ import kr.seungmin.satisskyfactory.command.FactoryCommand;
 import kr.seungmin.satisskyfactory.config.ConfigService;
 import kr.seungmin.satisskyfactory.config.MessageService;
 import kr.seungmin.satisskyfactory.config.SatisDatabaseConfigPolicy;
+import kr.seungmin.satisskyfactory.config.SatisConfigValidator;
 import kr.seungmin.satisskyfactory.config.SatisFeatureGateResolver;
 import kr.seungmin.satisskyfactory.contract.ContractService;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
@@ -180,6 +181,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private final SatisPlaceholderRuntime placeholderRuntime = new SatisPlaceholderRuntime(this);
     private final SatisRuntimeBootstrap runtimeBootstrap = new SatisRuntimeBootstrap();
     private final SatisStatePublisher statePublisher = new SatisStatePublisher(getLogger());
+    private final SatisConfigValidator configValidator = new SatisConfigValidator();
+    private SatisConfigValidator.ValidationReport configValidationReport = SatisConfigValidator.ValidationReport.empty();
     private boolean machineListenerRegistered;
     private boolean guiListenerRegistered;
     private boolean lifecycleListenerRegistered;
@@ -199,9 +202,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         configs = new ConfigService(this);
         configs.load();
         messages = new MessageService(configs);
+        validateSatisConfig();
         runtimeAuthority = new SatisRuntimeAuthority(localRuntimeNodeId());
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
+        if (configValidationReport.hasErrors()) {
+            getLogger().severe("CloudIslands Satis config validation failed: " + configValidationReport.errorSummary());
+            unregisterAddonCommands();
+            return;
+        }
         SatisRuntimeBootstrap.RuntimeBootstrapDecision bootstrapDecision = runtimeBootstrap.decide(
                 new SatisRuntimeBootstrap.RuntimeBootstrapSnapshot(registerCloudIslandsAddon(), cloudIslandsApiMissing));
         if (!bootstrapDecision.startRuntime()) {
@@ -215,6 +224,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void startRuntime() {
+        if (configValidationReport.hasErrors()) {
+            addonRuntimeEnabled = false;
+            effectiveFeatures = Map.of();
+            getLogger().severe("CloudIslands Satis runtime blocked by config validation: " + configValidationReport.errorSummary());
+            unregisterAddonCommands();
+            return;
+        }
         if (database != null) {
             applyAddonRuntimeState();
             return;
@@ -310,7 +326,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void reloadPluginConfig() {
         Map<String, Boolean> previousEffectiveFeatures = effectiveFeatures;
         configs.load();
+        validateSatisConfig();
         runtimeAuthority = new SatisRuntimeAuthority(localRuntimeNodeId());
+        if (configValidationReport.hasErrors()) {
+            getLogger().severe("CloudIslands Satis reload blocked by config validation: " + configValidationReport.errorSummary());
+            flushPendingSatisStateBeforeDisable("reload-config-validation-error", previousEffectiveFeatures);
+            stopRuntimeActivity();
+            return;
+        }
         if (!registerCloudIslandsAddon()) {
             flushPendingSatisStateBeforeDisable("reload-registration-disabled", previousEffectiveFeatures);
             stopRuntimeActivity();
@@ -490,6 +513,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-feature-pack-runtime-enabled", Boolean.toString(activationDecision.runtimeEnabled()));
         state.put("runtime-feature-pack-runtime-shape", activationDecision.runtimeShape());
         state.put("runtime-feature-pack-block-reason", activationDecision.blockReason());
+        putConfigValidationState(state);
         state.put("runtime-addon-policy", "disabled-addon-registers-no-active-components-preserves-satis-data-and-cloudislands-core");
         state.put("runtime-addon-removal-safe", "true");
         state.put("runtime-addon-removal-policy", SatisAddonIntegrationPolicy.REMOVAL_POLICY);
@@ -1701,6 +1725,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("integration-packaging", addonPackaging());
         metadata.put("integration-runtime-shape", integrationRuntimeShape(integrationMode));
         metadata.putAll(cloudIslandsIntegrationMetadata());
+        putConfigValidationState(metadata);
         metadata.put("skyblock-provider", "CLOUDISLANDS");
         metadata.put("cloudislands-adapter", Boolean.toString(configs.main().getBoolean("integration.cloudislands-adapter", true)));
         metadata.put("requires-cloudislands-api", Boolean.toString(requiresCloudIslandsApi()));
@@ -1874,6 +1899,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         metadata.put("recovery-stale-write-policy", "discard-local-dirty-state");
         metadata.put("runtime-registration-policy", "disabled-features-skip-active-commands-gui-listeners-tasks-and-writes");
         metadata.put("runtime-disabled-features", disabledRuntimeFeatures());
+        putConfigValidationState(metadata);
         metadata.put("addon-api-lookup-policy", "CloudIslandsProvider-first-Bukkit-ServicesManager-fallback");
         metadata.put("addon-api-bootstrap-policy", "register-if-cloudislands-api-available-disable-runtime-components-when-missing");
         putDataWriteGateState(metadata);
@@ -4022,6 +4048,12 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (database == null || configs == null) {
             return;
         }
+        if (configValidationReport.hasErrors()) {
+            addonRuntimeEnabled = false;
+            effectiveFeatures = Map.of();
+            stopRuntimeActivity();
+            return;
+        }
         loadDefinitions();
         refreshIslandCache();
         refreshMachineCache();
@@ -4247,6 +4279,22 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (!warnings.equals("none")) {
             getLogger().warning("CloudIslands Satis feature warnings: " + warnings);
         }
+        if (!configValidationReport.warnings().isEmpty()) {
+            getLogger().warning("CloudIslands Satis config warnings: " + configValidationReport.warningSummary());
+        }
+    }
+
+    private void validateSatisConfig() {
+        configValidationReport = configValidator.validate(configs);
+    }
+
+    private void putConfigValidationState(Map<String, String> state) {
+        state.put("config-validation-status", configValidationReport.status());
+        state.put("config-validation-error-count", Integer.toString(configValidationReport.errors().size()));
+        state.put("config-validation-warning-count", Integer.toString(configValidationReport.warnings().size()));
+        state.put("config-validation-errors", configValidationReport.errorSummary());
+        state.put("config-validation-warnings", configValidationReport.warningSummary());
+        state.put("config-validation-runtime-policy", "errors-block-satis-runtime-start-warnings-visible-in-doctor");
     }
 
     private boolean configuredFeatureEnabled(String key) {
