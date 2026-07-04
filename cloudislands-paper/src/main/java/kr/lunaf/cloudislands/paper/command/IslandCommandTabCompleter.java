@@ -50,13 +50,13 @@ final class IslandCommandTabCompleter implements TabCompleter {
             if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("public-warps") || first.equals("공개워프")) {
                 return literalMatches(List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"), args[1]);
             }
-            if (first.equals("rank") || first.equals("ranking") || first.equals("랭킹")) {
+            if (first.equals("rank") || first.equals("ranking") || first.equals("top") || first.equals("leaderboard") || first.equals("랭킹")) {
                 return literalMatches(List.of("worth", "value", "10", "25", "50"), args[1]);
             }
-            if (first.equals("blocks") || first.equals("block-details") || first.equals("block-counts") || first.equals("블록상세") || first.equals("블록목록")) {
+            if (first.equals("blocks") || first.equals("values") || first.equals("block-details") || first.equals("block-counts") || first.equals("블록상세") || first.equals("블록목록")) {
                 return literalMatches(List.of("10", "25", "50", "100"), args[1]);
             }
-            if (first.equals("reviews") || first.equals("review-list") || first.equals("후기") || first.equals("후기목록")) {
+            if (first.equals("reviews") || first.equals("review-list") || first.equals("ratings") || first.equals("후기") || first.equals("후기목록") || first.equals("평가목록")) {
                 return literalMatches(List.of("5", "10", "20", "50"), args[1]);
             }
             if (first.equals("visitor-stats") || first.equals("visitorstats") || first.equals("visitors") || first.equals("방문통계") || first.equals("방문자통계")) {
@@ -89,7 +89,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
             if (first.equals("warehouse-deposit") || first.equals("warehouse-withdraw") || first.equals("창고입금") || first.equals("창고출금")) {
                 return literalMatches(List.of("minecraft:cobblestone", "minecraft:dirt", "minecraft:oak_log", "minecraft:iron_ingot"), args[1]);
             }
-            if (first.equals("buyupgrade") || first.equals("upgrade-buy") || first.equals("업그레이드구매")) {
+            if (first.equals("buyupgrade") || first.equals("upgrade-buy") || first.equals("rankup") || first.equals("업그레이드구매")) {
                 return literalMatches(IslandCommandCatalog.upgradeKeys(), args[1]);
             }
             if (first.equals("setpermission") || first.equals("permission-set") || first.equals("권한설정")) {

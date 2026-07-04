@@ -40,7 +40,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(completer.contains("IslandCommandCatalog.helpCategoryNames()"));
         assertTrue(completer.contains("IslandCommandCatalog.helpCategory("));
         assertTrue(completer.contains("IslandCommandCatalog.upgradeKeys()"), "upgrade purchase tab completion must suggest known upgrade keys");
-        assertTrue(completer.contains("first.equals(\"buyupgrade\")") && completer.contains("first.equals(\"upgrade-buy\")") && completer.contains("first.equals(\"업그레이드구매\")"));
+        assertTrue(completer.contains("first.equals(\"buyupgrade\")") && completer.contains("first.equals(\"upgrade-buy\")") && completer.contains("first.equals(\"rankup\")") && completer.contains("first.equals(\"업그레이드구매\")"));
     }
 
     @Test
@@ -251,6 +251,17 @@ class IslandCommandControllerPolicyTest {
         assertTrue(plugin.contains("cloudislands.island.warehouse.view:"));
         assertTrue(plugin.contains("cloudislands.island.warehouse.deposit:"));
         assertTrue(plugin.contains("cloudislands.island.warehouse.withdraw:"));
+    }
+
+    @Test
+    void ss2AliasTabCompletionsMirrorCanonicalCommands() throws Exception {
+        String completer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
+
+        assertTrue(completer.contains("first.equals(\"top\")"), "top alias must share ranking suggestions");
+        assertTrue(completer.contains("first.equals(\"leaderboard\")"), "leaderboard alias must share ranking suggestions");
+        assertTrue(completer.contains("first.equals(\"values\")"), "values alias must share block-value suggestions");
+        assertTrue(completer.contains("first.equals(\"ratings\")"), "ratings alias must share review-list suggestions");
+        assertTrue(completer.contains("first.equals(\"rankup\")"), "rankup alias must share upgrade-key suggestions");
     }
 
     @Test
