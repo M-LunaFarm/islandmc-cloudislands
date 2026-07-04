@@ -201,6 +201,7 @@ class IslandCommandCatalogTest {
         assertTrue(actions.contains("doctorSeverity(String body)") && actions.contains("\"PASS\"") && actions.contains("\"WARN\"") && actions.contains("\"FAIL\""), "Doctor must classify sections with PASS/WARN/FAIL");
         assertTrue(actions.contains("coreConfigMessages::format"), "Velocity doctor must render Core config-doctor details");
         assertTrue(coreConfigFormatter.contains("configDoctorChecks"), "Velocity Core config output must include the P8 config-doctor risk checklist");
+        assertTrue(coreConfigFormatter.contains("gameplayParityContract"), "Velocity Core config output must include the P5 gameplay parity contract");
 
         assertTrue(coreClient.contains("integrationSummary()"), "Core node client must expose typed integration metadata");
         assertTrue(jdkClient.contains("AdminNodeIntegrationSummaryView integrationSummary(String body)"), "JDK node client must parse integration metadata from Core node JSON");

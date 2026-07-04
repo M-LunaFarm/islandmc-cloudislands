@@ -402,6 +402,8 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.adminCoreConfig().config"), "Core config commands must use the typed Core config API");
         assertTrue(source.contains("coreConfigMessage(AdminCoreConfigView"), "Core config command must render a typed config view");
         assertTrue(source.contains("addonEndpointMessage(AdminCoreConfigView"), "Addon endpoint command must render a typed config view");
+        assertTrue(source.contains("gameplayParityContract"), "Core config output must render the P5 gameplay parity contract");
+        assertTrue(source.contains("gameplayParityAdminSurfaces"), "Core config output must render required gameplay admin surfaces");
     }
 
     @Test

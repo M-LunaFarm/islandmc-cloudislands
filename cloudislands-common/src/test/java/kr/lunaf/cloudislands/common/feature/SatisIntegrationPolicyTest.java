@@ -46,4 +46,17 @@ class SatisIntegrationPolicyTest {
         assertTrue(SatisIntegrationPolicy.completionCriteria().contains("state-survives-a-node-to-b-node-island-move"));
         assertTrue(SatisIntegrationPolicy.completionCriteria().contains("base-cloudislands-functions-survive-satis-disable-or-addon-removal"));
     }
+
+    @Test
+    void pinsGameplayParitySurfacesFromEditPlan() {
+        assertTrue(GameplayParityPolicy.CONTRACT.contains("stacked-block"));
+        assertTrue(GameplayParityPolicy.requiredPlayerSurface("island-toggle-blocks"));
+        assertTrue(GameplayParityPolicy.requiredPlayerSurface("island-effects"));
+        assertTrue(GameplayParityPolicy.requiredPlayerSurface("island-values"));
+        assertTrue(GameplayParityPolicy.requiredAdminSurface("ciadmin-setblockamount"));
+        assertTrue(GameplayParityPolicy.requiredAdminSurface("ciadmin-seteffect"));
+        assertTrue(GameplayParityPolicy.requiredAdminSurface("ciadmin-setspawnerrates"));
+        assertTrue(GameplayParityPolicy.STACKED_BLOCK_POLICY.contains("worth"));
+        assertTrue(GameplayParityPolicy.EFFECT_RATE_POLICY.contains("crop-growth"));
+    }
 }

@@ -24,6 +24,10 @@ class CoreConfigRoutesProductionReadinessTest {
         assertEquals(kr.lunaf.cloudislands.common.observability.ProductionConfigDoctorPolicy.checkSummary(), SimpleJson.text(summary.get("configDoctorChecks")));
         assertTrue(SimpleJson.text(summary.get("configDoctorStartupBoundary")).contains("validateStartupSecurity"));
         assertTrue(SimpleJson.text(summary.get("configDoctorCommandBoundary")).contains("/ciadmin doctor"));
+        assertEquals(kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.CONTRACT, SimpleJson.text(summary.get("gameplayParityContract")));
+        assertEquals(kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.requiredPlayerSurfaceSummary(), SimpleJson.text(summary.get("gameplayParityPlayerSurfaces")));
+        assertEquals(kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.requiredAdminSurfaceSummary(), SimpleJson.text(summary.get("gameplayParityAdminSurfaces")));
+        assertTrue(SimpleJson.text(summary.get("gameplayParityStackedBlockPolicy")).contains("stacker"));
         assertEquals(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.matrixSummary(), SimpleJson.text(summary.get("versionCompatibilityMatrix")));
         assertEquals(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.rollingUpgradeOrderSummary(), SimpleJson.text(summary.get("versionRollingUpgradeOrder")));
         assertEquals(kr.lunaf.cloudislands.common.observability.VersionCompatibilityPolicy.SUPPORTED_PAPER_VERSION, SimpleJson.text(summary.get("versionSupportedPaper")));

@@ -310,6 +310,12 @@ public final class CoreConfigRoutes implements RouteGroup {
         summary.put("addonEventDeliveryPolicy", "core-global-events-to-paper-poller-to-cloudislands-addon-and-bukkit-events");
         summary.put("addonEventCoverage", "pre-create,create,pre-activate,activate,deactivate,migrate,delete,delete-backup-failed,restore,reset,recovery,runtime,pre-visit,visit,invite,member-join,member-left,member-role,member-change,ownership,rename,access,visitor-ban,visitor-kick,flag,permission-check,permission-change,role-catalog,biome,home,warp-create,warp-delete,warp-change,bank,chat,mission,blocks,block-value,level,worth,upgrade,limit,snapshot,template,addon-state,node,core-cache,core-reload,route-ticket");
         summary.put("addonEventBackfillPolicy", "paper-poller-uses-listEventsSince-with-sequence-gap-cache-invalidation");
+        summary.put("gameplayParityContract", kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.CONTRACT);
+        summary.put("gameplayParityPlayerSurfaces", kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.requiredPlayerSurfaceSummary());
+        summary.put("gameplayParityAdminSurfaces", kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.requiredAdminSurfaceSummary());
+        summary.put("gameplayParityStackedBlockPolicy", kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.STACKED_BLOCK_POLICY);
+        summary.put("gameplayParityEffectRatePolicy", kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.EFFECT_RATE_POLICY);
+        summary.put("gameplayParityBlockValuePolicy", kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.BLOCK_VALUE_POLICY);
         summary.put("satisPackaging", "official-external-addon");
         summary.put("satisCoreCoupling", "optional-addon-no-core-runtime-dependency");
         summary.put("satisAddonRemovalPolicy", "core-boots-and-islands-load-without-satis-jar");
