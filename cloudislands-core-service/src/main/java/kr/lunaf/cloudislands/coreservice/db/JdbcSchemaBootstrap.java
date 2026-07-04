@@ -88,7 +88,10 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V67__completion_event_outbox.sql",
         "/db/migration/V68__mission_definition_metadata.sql",
         "/db/migration/V69__generator_profiles_and_rules.sql",
-        "/db/migration/V70__review_moderation.sql"
+        "/db/migration/V70__review_moderation.sql",
+        "/db/migration/V71__island_snapshot_node_id.sql",
+        "/db/migration/V72__island_rank_ignored.sql",
+        "/db/migration/V73__template_bundle_metadata.sql"
     };
 
     private enum Dialect {

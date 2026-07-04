@@ -8,9 +8,21 @@ public interface IslandTemplateRepository {
 
     List<IslandTemplateSnapshot> list();
 
-    IslandTemplateSnapshot upsert(String templateId, String displayName, boolean enabled, String minNodeVersion);
+    IslandTemplateSnapshot upsert(IslandTemplateSnapshot template);
+
+    default IslandTemplateSnapshot upsert(String templateId, String displayName, boolean enabled, String minNodeVersion) {
+        return upsert(new IslandTemplateSnapshot(templateId, displayName, enabled, minNodeVersion));
+    }
 
     boolean setEnabled(String templateId, boolean enabled);
+
+    default boolean delete(String templateId) {
+        return false;
+    }
+
+    default boolean reorder(String templateId, int sortOrder) {
+        return false;
+    }
 
     default boolean enabled(String templateId) {
         return find(templateId).map(IslandTemplateSnapshot::enabled).orElse(false);

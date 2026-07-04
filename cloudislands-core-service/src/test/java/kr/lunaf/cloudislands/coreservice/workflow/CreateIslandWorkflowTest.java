@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataReposi
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.template.InMemoryIslandTemplateRepository;
+import kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot;
 import kr.lunaf.cloudislands.coreservice.ticket.InMemoryRouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -113,16 +114,84 @@ class CreateIslandWorkflowTest {
         assertFalse(first.island().name().equals(second.island().name()));
     }
 
+    @Test
+    void copiesTemplateBundleAndSpawnMetadataIntoCreateJobAndTicket() {
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC));
+        InMemoryIslandTemplateRepository templates = new InMemoryIslandTemplateRepository();
+        templates.upsert(new IslandTemplateSnapshot(
+            "hardcore",
+            "Hardcore Island",
+            "Hard mode starter",
+            "challenge",
+            true,
+            "1.2.0",
+            "cloudislands.template.hardcore",
+            "NETHERRACK",
+            17,
+            "preview/hardcore.png",
+            "templates/hardcore.tar.zst",
+            "feedbeef",
+            8192L,
+            4,
+            192,
+            8.5D,
+            96.0D,
+            -7.5D,
+            45.0F,
+            10.0F,
+            "arrival",
+            "nether",
+            "minecraft:nether_wastes",
+            "RED",
+            "0",
+            "250",
+            5,
+            List.of("challenge"),
+            java.time.Instant.EPOCH,
+            java.time.Instant.EPOCH
+        ));
+        CreateIslandWorkflow workflow = workflow(islands, runtimes, profiles, jobs, tickets, new RecordingEvents(), templates);
+
+        CreateIslandResult result = workflow.create(OWNER, "hardcore");
+
+        assertTrue(result.accepted());
+        assertEquals(192, result.island().size());
+        IslandJob job = jobs.snapshot().getFirst();
+        assertEquals("hardcore", job.payload().get("templateId"));
+        assertEquals("templates/hardcore.tar.zst", job.payload().get("templateBundlePath"));
+        assertEquals("feedbeef", job.payload().get("templateBundleChecksum"));
+        assertEquals("4", job.payload().get("templateSchemaVersion"));
+        assertEquals("arrival", job.payload().get("homeName"));
+        assertEquals("8.5", job.payload().get("localX"));
+        assertEquals("96.0", job.payload().get("localY"));
+        assertEquals("-7.5", job.payload().get("localZ"));
+        assertEquals("45.0", job.payload().get("yaw"));
+        assertEquals("10.0", job.payload().get("pitch"));
+        assertEquals("250", job.payload().get("creationCost"));
+        assertEquals("arrival", result.ticket().payload().get("homeName"));
+        assertEquals("8.5", result.ticket().payload().get("localX"));
+        assertEquals("96.0", result.ticket().payload().get("localY"));
+        assertEquals("-7.5", result.ticket().payload().get("localZ"));
+    }
+
     private CreateIslandWorkflow workflow(InMemoryIslandRepository islands, InMemoryIslandRuntimeRepository runtimes, InMemoryPlayerProfileRepository profiles, InMemoryIslandJobPublisher jobs, InMemoryRouteTicketStore tickets) {
         return workflow(islands, runtimes, profiles, jobs, tickets, new RecordingEvents());
     }
 
     private CreateIslandWorkflow workflow(InMemoryIslandRepository islands, InMemoryIslandRuntimeRepository runtimes, InMemoryPlayerProfileRepository profiles, InMemoryIslandJobPublisher jobs, InMemoryRouteTicketStore tickets, GlobalEventPublisher events) {
+        return workflow(islands, runtimes, profiles, jobs, tickets, events, new InMemoryIslandTemplateRepository());
+    }
+
+    private CreateIslandWorkflow workflow(InMemoryIslandRepository islands, InMemoryIslandRuntimeRepository runtimes, InMemoryPlayerProfileRepository profiles, InMemoryIslandJobPublisher jobs, InMemoryRouteTicketStore tickets, GlobalEventPublisher events, InMemoryIslandTemplateRepository templates) {
         return new CreateIslandWorkflow(
             islands,
             new InMemoryIslandMetadataRepository(),
             profiles,
-            new InMemoryIslandTemplateRepository(),
+            templates,
             new StaticNodeRegistry(List.of(node("island-2", "Island-2", 20, 120, 20.0, 1))),
             new NodeAllocator(Duration.ofSeconds(5)),
             runtimes,

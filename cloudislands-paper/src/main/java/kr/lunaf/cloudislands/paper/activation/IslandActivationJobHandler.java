@@ -122,19 +122,26 @@ public final class IslandActivationJobHandler {
                 uuidValue(job.payload().get("ownerUuid")),
                 3,
                 "1.21.11",
-                12,
+                intValue(job.payload().get("templateSchemaVersion"), 12),
                 Math.max(1, size),
-                new IslandLocation(job.payload().getOrDefault("worldName", "ci_shard_001"), 0.5D, 100.0D, 0.5D, 180.0F, 0.0F),
+                new IslandLocation(
+                    job.payload().getOrDefault("worldName", "ci_shard_001"),
+                    doubleValue(job.payload().get("localX"), 0.5D),
+                    doubleValue(job.payload().get("localY"), 100.0D),
+                    doubleValue(job.payload().get("localZ"), 0.5D),
+                    (float) doubleValue(job.payload().get("yaw"), 180.0D),
+                    (float) doubleValue(job.payload().get("pitch"), 0.0D)
+                ),
+                List.of(job.payload().getOrDefault("homeName", "default")),
                 List.of(),
-                List.of(),
-                List.of(),
+                List.of(job.payload().getOrDefault("biomeKey", "minecraft:plains")),
                 now,
                 now,
-                "",
+                job.payload().getOrDefault("templateBundleChecksum", ""),
                 BundleRestorePolicy.CHECKSUM_ALGORITHM,
                 BundleRestorePolicy.COMPRESSION,
-                "",
-                0L,
+                job.payload().getOrDefault("templateBundlePath", ""),
+                longValue(job.payload().get("templateBundleSizeBytes")),
                 "",
                 true,
                 BundleRestorePolicy.PLACEMENT_POLICY,
@@ -198,6 +205,12 @@ public final class IslandActivationJobHandler {
     }
 
     private BundleRestorePlan stageBundle(IslandJob job, UUID islandId, ShardWorldManager.CellAssignment cell, long snapshotNo, String storagePath) throws IOException {
+        if (job.type() == IslandJobType.CREATE_ISLAND && !job.payload().getOrDefault("templateBundlePath", "").isBlank()) {
+            if (worldRestorer == null) {
+                return null;
+            }
+            return worldRestorer.stageTemplateBundle(islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), longValue(job.payload().get("fencingToken")), job.payload().getOrDefault("templateBundlePath", ""), job.payload().getOrDefault("templateBundleChecksum", ""));
+        }
         if (job.type() == IslandJobType.CREATE_ISLAND && snapshotNo <= 0L && (storagePath == null || storagePath.isBlank())) {
             return null;
         }
@@ -220,6 +233,14 @@ public final class IslandActivationJobHandler {
             return Long.parseLong(value);
         } catch (RuntimeException ignored) {
             return 0L;
+        }
+    }
+
+    private double doubleValue(String value, double fallback) {
+        try {
+            return Double.parseDouble(value);
+        } catch (RuntimeException ignored) {
+            return fallback;
         }
     }
 

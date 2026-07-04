@@ -9,6 +9,7 @@ import subprocess
 import sys
 import time
 import uuid
+import socket
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -86,6 +87,84 @@ def wait_for_live(base_url: str, deadline: float) -> None:
 
 def wait_for_ready(base_url: str, deadline: float) -> None:
     wait_for_probe(base_url, "/ready", deadline, "ready")
+
+
+def redis_command(sock: socket.socket, *args: str):
+    payload = f"*{len(args)}\r\n".encode("utf-8")
+    for arg in args:
+        data = arg.encode("utf-8")
+        payload += f"${len(data)}\r\n".encode("utf-8") + data + b"\r\n"
+    sock.sendall(payload)
+    return redis_read(sock)
+
+
+def redis_read(sock: socket.socket):
+    prefix = sock.recv(1)
+    if not prefix:
+        raise RuntimeError("redis closed connection")
+    line = redis_readline(sock)
+    if prefix == b"+":
+        return line
+    if prefix == b":":
+        return int(line)
+    if prefix == b"-":
+        raise RuntimeError(f"redis error: {line}")
+    if prefix == b"$":
+        length = int(line)
+        if length < 0:
+            return ""
+        data = redis_read_exact(sock, length)
+        redis_read_exact(sock, 2)
+        return data.decode("utf-8")
+    if prefix == b"*":
+        count = int(line)
+        return [redis_read(sock) for _ in range(max(0, count))]
+    raise RuntimeError(f"unsupported redis reply prefix: {prefix!r}")
+
+
+def redis_readline(sock: socket.socket) -> str:
+    data = bytearray()
+    while True:
+        char = sock.recv(1)
+        if not char:
+            raise RuntimeError("redis closed line")
+        data.extend(char)
+        if len(data) >= 2 and data[-2:] == b"\r\n":
+            return data[:-2].decode("utf-8")
+
+
+def redis_read_exact(sock: socket.socket, length: int) -> bytes:
+    data = bytearray()
+    while len(data) < length:
+        chunk = sock.recv(length - len(data))
+        if not chunk:
+            raise RuntimeError("redis closed bulk string")
+        data.extend(chunk)
+    return bytes(data)
+
+
+def reset_smoke_redis(redis_uri: str) -> int:
+    parsed = urllib.parse.urlparse(redis_uri)
+    host = parsed.hostname or "127.0.0.1"
+    port = parsed.port or 6379
+    removed = 0
+    with socket.create_connection((host, port), timeout=5) as sock:
+        sock.settimeout(5)
+        if parsed.username and parsed.password:
+            redis_command(sock, "AUTH", urllib.parse.unquote(parsed.username), urllib.parse.unquote(parsed.password))
+        elif parsed.password:
+            redis_command(sock, "AUTH", urllib.parse.unquote(parsed.password))
+        cursor = "0"
+        while True:
+            reply = redis_command(sock, "SCAN", cursor, "MATCH", "ci:*", "COUNT", "1000")
+            cursor = str(reply[0])
+            keys = [key for key in reply[1] if isinstance(key, str)]
+            for index in range(0, len(keys), 100):
+                batch = keys[index:index + 100]
+                if batch:
+                    removed += int(redis_command(sock, "DEL", *batch))
+            if cursor == "0":
+                return removed
 
 
 def heartbeat(base_url: str, node_id: str, velocity_server_name: str, state: str = "READY", active_islands: int = 0) -> None:
@@ -1147,6 +1226,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
     processes = []
     runtime_artifacts = []
     try:
+        reset_smoke_redis(env["CI_REDIS_URI"])
         deadline = time.monotonic() + timeout
         processes.append(start_core(core_bin, work_dir / "core-1", port, env))
         wait_for_live(primary_url, deadline)

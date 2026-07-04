@@ -24,11 +24,16 @@ class TemplateRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(4, paths.size());
+        assertEquals(9, paths.size());
         assertTrue(paths.contains("/v1/admin/templates/list"));
+        assertTrue(paths.contains("/v1/admin/templates/get"));
         assertTrue(paths.contains("/v1/admin/templates/upsert"));
+        assertTrue(paths.contains("/v1/admin/templates/import-bundle"));
+        assertTrue(paths.contains("/v1/admin/templates/verify-bundle"));
         assertTrue(paths.contains("/v1/admin/templates/enable"));
         assertTrue(paths.contains("/v1/admin/templates/disable"));
+        assertTrue(paths.contains("/v1/admin/templates/delete"));
+        assertTrue(paths.contains("/v1/admin/templates/reorder"));
     }
 
     @Test
@@ -38,16 +43,21 @@ class TemplateRoutesTest {
         new TemplateRoutes(null, null, null).register(registry);
 
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/templates/list"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/templates/get"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/templates/upsert"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/templates/import-bundle"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/templates/verify-bundle"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/templates/enable"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/templates/disable"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/templates/delete"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/templates/reorder"));
     }
 
     @Test
     void rendersTemplateList() {
         String json = TemplateRoutes.templatesJson(List.of(
             new IslandTemplateSnapshot("default", "Default Island", true, ""),
-            new IslandTemplateSnapshot("sky", "Sky \"Island\", North", false, "1.2")
+            new IslandTemplateSnapshot("sky", "Sky \"Island\", North", "starter template", "basic", false, "1.2", "cloudislands.template.sky", "GRASS_BLOCK", 7, "preview/sky.png", "templates/sky.tar.zst", "abc123", 4096L, 3, 256, 4.5D, 101.0D, -3.5D, 90.0F, 5.0F, "spawn", "void", "minecraft:plains", "CYAN", "25", "100", 3, List.of("starter", "premium"), java.time.Instant.EPOCH, java.time.Instant.EPOCH)
         ));
         Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
         List<?> templates = SimpleJson.list(root.get("templates"));
@@ -58,6 +68,10 @@ class TemplateRoutesTest {
         assertEquals(true, first.get("enabled"));
         assertEquals("Sky \"Island\", North", SimpleJson.text(second.get("displayName")));
         assertEquals("1.2", SimpleJson.text(second.get("minNodeVersion")));
+        assertEquals("templates/sky.tar.zst", SimpleJson.text(second.get("bundleStoragePath")));
+        assertEquals("abc123", SimpleJson.text(second.get("bundleChecksum")));
+        assertEquals("spawn", SimpleJson.text(second.get("homeName")));
+        assertEquals("100", SimpleJson.text(second.get("creationCost")));
     }
 
     @Test

@@ -206,7 +206,10 @@ public final class CoreGuiViews {
         }
     }
 
-    public record TemplateView(String id, String displayName, boolean enabled, String minNodeVersion) {
+    public record TemplateView(String id, String displayName, String description, String category, boolean enabled, String minNodeVersion, String requiredPermission, String iconMaterial, int iconCustomModelData, String previewImageKey, String bundleStoragePath, String bundleChecksum, long bundleSizeBytes, int schemaVersion, int defaultIslandSize, double spawnWorldOffsetX, double spawnWorldOffsetY, double spawnWorldOffsetZ, float spawnYaw, float spawnPitch, String homeName, String environmentPreset, String biomeKey, String borderColor, String bankInitialBalance, String creationCost, int sortOrder, List<String> tags) {
+        public TemplateView(String id, String displayName, boolean enabled, String minNodeVersion) {
+            this(id, displayName, "", "default", enabled, minNodeVersion, "", "GRASS_BLOCK", 0, "", "", "", 0L, 3, 300, 0.5D, 100.0D, 0.5D, 180.0F, 0.0F, "default", "normal", "minecraft:plains", "BLUE", "0", "0", 0, List.of());
+        }
     }
 
     public record RankingData(List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews) {

@@ -31,7 +31,7 @@ class CloudIslandsApiContractTest {
         assertTrue(CloudIslandsApiContract.requiredMetadataKeys().contains("integration-port-policy"));
 
         assertEquals("external-plugin,built-in-feature-pack,built-in-compatible", CloudIslandsApiContract.ADDON_SUPPORTED_PACKAGING);
-        assertEquals("island-query.reviews,island-query.visitor-stats,island-query.warehouse", CloudIslandsApiContract.capabilitiesCsv());
+        assertEquals("island-query.reviews,island-query.visitor-stats,island-query.warehouse,island-template.bundle,island-template.preview,island-template.cost", CloudIslandsApiContract.capabilitiesCsv());
         assertEquals("addons-may-run-as-external-plugins-or-built-in-feature-packs-through-the-same-spi", CloudIslandsApiContract.ADDON_PACKAGING_POLICY);
         assertEquals("addon-descriptor-may-be-embedded-in-jar-or-distributed-as-sidecar-cloudislands-addon-yml", CloudIslandsApiContract.ADDON_DESCRIPTOR_POLICY);
         assertEquals("distAddons-and-distAddonBundle-package-addon-jars-and-descriptor-sidecars-separately-from-required-core", CloudIslandsApiContract.ADDON_DISTRIBUTION_POLICY);

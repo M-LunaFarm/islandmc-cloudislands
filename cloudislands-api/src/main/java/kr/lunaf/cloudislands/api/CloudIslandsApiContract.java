@@ -39,6 +39,9 @@ public final class CloudIslandsApiContract {
     public static final String REVIEW_QUERY_CAPABILITY = "island-query.reviews";
     public static final String VISITOR_STATS_QUERY_CAPABILITY = "island-query.visitor-stats";
     public static final String WAREHOUSE_QUERY_CAPABILITY = "island-query.warehouse";
+    public static final String TEMPLATE_BUNDLE_CAPABILITY = "island-template.bundle";
+    public static final String TEMPLATE_PREVIEW_CAPABILITY = "island-template.preview";
+    public static final String TEMPLATE_COST_CAPABILITY = "island-template.cost";
 
     private CloudIslandsApiContract() {
     }
@@ -47,7 +50,10 @@ public final class CloudIslandsApiContract {
         return List.of(
             REVIEW_QUERY_CAPABILITY,
             VISITOR_STATS_QUERY_CAPABILITY,
-            WAREHOUSE_QUERY_CAPABILITY
+            WAREHOUSE_QUERY_CAPABILITY,
+            TEMPLATE_BUNDLE_CAPABILITY,
+            TEMPLATE_PREVIEW_CAPABILITY,
+            TEMPLATE_COST_CAPABILITY
         );
     }
 

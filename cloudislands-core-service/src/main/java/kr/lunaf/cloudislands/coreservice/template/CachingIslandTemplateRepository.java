@@ -45,8 +45,8 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
     }
 
     @Override
-    public IslandTemplateSnapshot upsert(String templateId, String displayName, boolean enabled, String minNodeVersion) {
-        IslandTemplateSnapshot snapshot = delegate.upsert(templateId, displayName, enabled, minNodeVersion);
+    public IslandTemplateSnapshot upsert(IslandTemplateSnapshot template) {
+        IslandTemplateSnapshot snapshot = delegate.upsert(template);
         cache(delegate.list());
         return snapshot;
     }
@@ -91,8 +91,32 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
         for (IslandTemplateSnapshot template : templates) {
             out.append(encodeText(template.id())).append('|')
                 .append(encodeText(template.displayName())).append('|')
+                .append(encodeText(template.description())).append('|')
+                .append(encodeText(template.category())).append('|')
                 .append(template.enabled()).append('|')
-                .append(encodeText(template.minNodeVersion()))
+                .append(encodeText(template.minNodeVersion())).append('|')
+                .append(encodeText(template.requiredPermission())).append('|')
+                .append(encodeText(template.iconMaterial())).append('|')
+                .append(template.iconCustomModelData()).append('|')
+                .append(encodeText(template.previewImageKey())).append('|')
+                .append(encodeText(template.bundleStoragePath())).append('|')
+                .append(encodeText(template.bundleChecksum())).append('|')
+                .append(template.bundleSizeBytes()).append('|')
+                .append(template.schemaVersion()).append('|')
+                .append(template.defaultIslandSize()).append('|')
+                .append(template.spawnWorldOffsetX()).append('|')
+                .append(template.spawnWorldOffsetY()).append('|')
+                .append(template.spawnWorldOffsetZ()).append('|')
+                .append(template.spawnYaw()).append('|')
+                .append(template.spawnPitch()).append('|')
+                .append(encodeText(template.homeName())).append('|')
+                .append(encodeText(template.environmentPreset())).append('|')
+                .append(encodeText(template.biomeKey())).append('|')
+                .append(encodeText(template.borderColor())).append('|')
+                .append(encodeText(template.bankInitialBalance())).append('|')
+                .append(encodeText(template.creationCost())).append('|')
+                .append(template.sortOrder()).append('|')
+                .append(encodeText(String.join(",", template.tags())))
                 .append('\n');
         }
         return out.toString();
@@ -105,15 +129,54 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
                 continue;
             }
             String[] parts = line.split("\\|", -1);
-            if (parts.length != 4) {
+            if (parts.length == 4) {
+                try {
+                    templates.add(new IslandTemplateSnapshot(
+                        decodeText(parts[0]),
+                        decodeText(parts[1]),
+                        Boolean.parseBoolean(parts[2]),
+                        decodeText(parts[3])
+                    ));
+                } catch (RuntimeException ignored) {
+                    // Skip corrupt Redis cache rows without discarding every cached template.
+                }
+                continue;
+            }
+            if (parts.length != 28) {
                 continue;
             }
             try {
                 templates.add(new IslandTemplateSnapshot(
                     decodeText(parts[0]),
                     decodeText(parts[1]),
-                    Boolean.parseBoolean(parts[2]),
-                    decodeText(parts[3])
+                    decodeText(parts[2]),
+                    decodeText(parts[3]),
+                    Boolean.parseBoolean(parts[4]),
+                    decodeText(parts[5]),
+                    decodeText(parts[6]),
+                    decodeText(parts[7]),
+                    intValue(parts[8]),
+                    decodeText(parts[9]),
+                    decodeText(parts[10]),
+                    decodeText(parts[11]),
+                    longValue(parts[12]),
+                    intValue(parts[13]),
+                    intValue(parts[14]),
+                    doubleValue(parts[15]),
+                    doubleValue(parts[16]),
+                    doubleValue(parts[17]),
+                    (float) doubleValue(parts[18]),
+                    (float) doubleValue(parts[19]),
+                    decodeText(parts[20]),
+                    decodeText(parts[21]),
+                    decodeText(parts[22]),
+                    decodeText(parts[23]),
+                    decodeText(parts[24]),
+                    decodeText(parts[25]),
+                    intValue(parts[26]),
+                    tags(decodeText(parts[27])),
+                    java.time.Instant.EPOCH,
+                    java.time.Instant.EPOCH
                 ));
             } catch (RuntimeException ignored) {
                 // Skip corrupt Redis cache rows without discarding every cached template.
@@ -128,6 +191,40 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
 
     private static String decodeText(String encodedBase64) {
         return new String(Base64.getUrlDecoder().decode(encodedBase64), StandardCharsets.UTF_8);
+    }
+
+    private static int intValue(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (RuntimeException ignored) {
+            return 0;
+        }
+    }
+
+    private static long longValue(String value) {
+        try {
+            return Long.parseLong(value);
+        } catch (RuntimeException ignored) {
+            return 0L;
+        }
+    }
+
+    private static double doubleValue(String value) {
+        try {
+            return Double.parseDouble(value);
+        } catch (RuntimeException ignored) {
+            return 0.0D;
+        }
+    }
+
+    private static List<String> tags(String value) {
+        if (value == null || value.isBlank()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(value.split(","))
+            .map(String::trim)
+            .filter(tag -> !tag.isBlank())
+            .toList();
     }
 
     private static String normalize(String templateId) {

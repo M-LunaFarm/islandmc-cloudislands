@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.workflow;
 
 import java.time.Instant;
 import java.time.Duration;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -111,6 +112,10 @@ public final class CreateIslandWorkflow {
         }
         UUID islandId = UUID.randomUUID();
         IslandSnapshot island = islands.createOwnedIsland(islandId, ownerUuid, normalizedTemplate, defaultIslandName(islandId));
+        if (template.defaultIslandSize() != island.size()) {
+            islands.updateStats(islandId, template.defaultIslandSize(), island.level(), island.worth());
+            island = islands.findById(islandId).orElse(island);
+        }
         metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
         playerProfiles.setPrimaryIsland(ownerUuid, islandId);
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime;
@@ -133,7 +138,7 @@ public final class CreateIslandWorkflow {
             return new CreateIslandResult(false, "PLACEMENT_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
         }
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, Map.of("templateId", normalizedTemplate, "ownerUuid", ownerUuid.toString(), "islandSize", Integer.toString(island.size()), "worldName", runtime.activeWorld(), "cellX", Integer.toString(runtime.cellX()), "cellZ", Integer.toString(runtime.cellZ()), "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, createJobPayload(template, ownerUuid, island, runtime), Instant.now()));
         } catch (RuntimeException exception) {
             releaseCreationLock(lease);
             islands.setState(islandId, IslandState.ERROR_CREATING);
@@ -144,16 +149,7 @@ public final class CreateIslandWorkflow {
         }
         events.publish(CloudIslandEventType.ISLAND_CREATED.name(), Map.of("islandId", islandId.toString(), "ownerUuid", ownerUuid.toString(), "targetNode", node.nodeId()));
         String targetServerName = node.velocityServerName() == null || node.velocityServerName().isBlank() ? node.nodeId() : node.velocityServerName();
-        RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), runtime.activeWorld(), RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), Map.of(
-            "targetServerName", targetServerName,
-            "targetType", "ISLAND_HOME",
-            "homeName", "default",
-            "localX", "0.5",
-            "localY", "100.0",
-            "localZ", "0.5",
-            "yaw", "180.0",
-            "pitch", "0.0"
-        )));
+        RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), runtime.activeWorld(), RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), routePayload(targetServerName, template)));
         events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of("ticketId", ticket.ticketId().toString(), "islandId", islandId.toString(), "playerUuid", ownerUuid.toString(), "action", ticket.action().name(), "targetNode", ticket.targetNode(), "targetServerName", ticket.payload().getOrDefault("targetServerName", ticket.targetNode()), "state", ticket.state().name()));
         releaseCreationLock(lease);
         return new CreateIslandResult(true, "CREATING", island, ticket);
@@ -161,6 +157,45 @@ public final class CreateIslandWorkflow {
             releaseCreationLock(lease);
             throw exception;
         }
+    }
+
+    private static Map<String, String> createJobPayload(IslandTemplateSnapshot template, UUID ownerUuid, IslandSnapshot island, kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime) {
+        Map<String, String> payload = new LinkedHashMap<>();
+        payload.put("templateId", template.id());
+        payload.put("ownerUuid", ownerUuid.toString());
+        payload.put("islandSize", Integer.toString(island.size()));
+        payload.put("worldName", runtime.activeWorld());
+        payload.put("cellX", Integer.toString(runtime.cellX()));
+        payload.put("cellZ", Integer.toString(runtime.cellZ()));
+        payload.put("fencingToken", Long.toString(runtime.fencingToken()));
+        payload.put("templateBundlePath", template.bundleStoragePath());
+        payload.put("templateBundleChecksum", template.bundleChecksum());
+        payload.put("templateBundleSizeBytes", Long.toString(template.bundleSizeBytes()));
+        payload.put("templateSchemaVersion", Integer.toString(template.schemaVersion()));
+        payload.put("homeName", template.homeName());
+        payload.put("localX", Double.toString(template.spawnWorldOffsetX()));
+        payload.put("localY", Double.toString(template.spawnWorldOffsetY()));
+        payload.put("localZ", Double.toString(template.spawnWorldOffsetZ()));
+        payload.put("yaw", Float.toString(template.spawnYaw()));
+        payload.put("pitch", Float.toString(template.spawnPitch()));
+        payload.put("creationCost", template.creationCost());
+        payload.put("requiredPermission", template.requiredPermission());
+        payload.put("creationRequestId", UUID.randomUUID().toString());
+        return Map.copyOf(payload);
+    }
+
+    private static Map<String, String> routePayload(String targetServerName, IslandTemplateSnapshot template) {
+        Map<String, String> payload = new LinkedHashMap<>();
+        payload.put("targetServerName", targetServerName);
+        payload.put("targetType", "ISLAND_HOME");
+        payload.put("homeName", template.homeName());
+        payload.put("localX", Double.toString(template.spawnWorldOffsetX()));
+        payload.put("localY", Double.toString(template.spawnWorldOffsetY()));
+        payload.put("localZ", Double.toString(template.spawnWorldOffsetZ()));
+        payload.put("yaw", Float.toString(template.spawnYaw()));
+        payload.put("pitch", Float.toString(template.spawnPitch()));
+        payload.put("templateId", template.id());
+        return Map.copyOf(payload);
     }
 
     private static String defaultIslandName(UUID islandId) {

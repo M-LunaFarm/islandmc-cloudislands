@@ -1,8 +1,32 @@
 CREATE TABLE IF NOT EXISTS island_templates (
     id VARCHAR(64) PRIMARY KEY,
     display_name VARCHAR(128) NOT NULL,
+    description VARCHAR(512) NOT NULL DEFAULT '',
+    category VARCHAR(64) NOT NULL DEFAULT 'default',
     enabled BOOLEAN NOT NULL DEFAULT true,
     min_node_version VARCHAR(64),
+    required_permission VARCHAR(128) NOT NULL DEFAULT '',
+    icon_material VARCHAR(64) NOT NULL DEFAULT 'GRASS_BLOCK',
+    icon_custom_model_data INTEGER NOT NULL DEFAULT 0,
+    preview_image_key VARCHAR(256) NOT NULL DEFAULT '',
+    bundle_storage_path VARCHAR(512) NOT NULL DEFAULT '',
+    bundle_checksum VARCHAR(128) NOT NULL DEFAULT '',
+    bundle_size_bytes BIGINT NOT NULL DEFAULT 0,
+    schema_version INTEGER NOT NULL DEFAULT 3,
+    default_island_size INTEGER NOT NULL DEFAULT 300,
+    spawn_world_offset_x DOUBLE NOT NULL DEFAULT 0.5,
+    spawn_world_offset_y DOUBLE NOT NULL DEFAULT 100.0,
+    spawn_world_offset_z DOUBLE NOT NULL DEFAULT 0.5,
+    spawn_yaw DOUBLE NOT NULL DEFAULT 180.0,
+    spawn_pitch DOUBLE NOT NULL DEFAULT 0.0,
+    home_name VARCHAR(64) NOT NULL DEFAULT 'default',
+    environment_preset VARCHAR(64) NOT NULL DEFAULT 'normal',
+    biome_key VARCHAR(96) NOT NULL DEFAULT 'minecraft:plains',
+    border_color VARCHAR(32) NOT NULL DEFAULT 'BLUE',
+    bank_initial_balance VARCHAR(48) NOT NULL DEFAULT '0',
+    creation_cost VARCHAR(48) NOT NULL DEFAULT '0',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    tags_csv VARCHAR(512) NOT NULL DEFAULT '',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT chk_island_templates_id_not_blank CHECK (trim(id) <> ''),
@@ -11,8 +35,19 @@ CREATE TABLE IF NOT EXISTS island_templates (
     CONSTRAINT chk_island_templates_display_name_not_blank CHECK (trim(display_name) <> ''),
     CONSTRAINT chk_island_templates_display_name_trimmed CHECK (display_name = trim(display_name)),
     CONSTRAINT chk_island_templates_min_node_version_trimmed CHECK (min_node_version IS NULL OR min_node_version = trim(min_node_version)),
-    CONSTRAINT chk_island_templates_min_node_version_not_blank CHECK (min_node_version IS NULL OR trim(min_node_version) <> '')
+    CONSTRAINT chk_island_templates_min_node_version_not_blank CHECK (min_node_version IS NULL OR trim(min_node_version) <> ''),
+    CONSTRAINT chk_island_templates_bundle_size_non_negative CHECK (bundle_size_bytes >= 0),
+    CONSTRAINT chk_island_templates_schema_version_positive CHECK (schema_version > 0),
+    CONSTRAINT chk_island_templates_default_size_positive CHECK (default_island_size > 0),
+    CONSTRAINT chk_island_templates_icon_model_non_negative CHECK (icon_custom_model_data >= 0),
+    CONSTRAINT chk_island_templates_sort_order_non_negative CHECK (sort_order >= 0)
 );
+
+CREATE INDEX idx_island_templates_enabled_order
+    ON island_templates(enabled, sort_order, id);
+
+CREATE INDEX idx_island_templates_category_order
+    ON island_templates(category, sort_order, id);
 
 INSERT IGNORE INTO island_templates(id, display_name, enabled)
 VALUES

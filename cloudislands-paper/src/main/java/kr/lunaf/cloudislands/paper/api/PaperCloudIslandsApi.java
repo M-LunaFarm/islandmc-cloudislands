@@ -3107,12 +3107,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
 
     private static List<IslandTemplateSnapshot> templates(List<TemplateView> views) {
         return (views == null ? List.<TemplateView>of() : views).stream()
-            .map(view -> new IslandTemplateSnapshot(
-                view.id(),
-                view.displayName(),
-                view.enabled(),
-                view.minNodeVersion()
-            ))
+            .map(PaperCloudIslandsApi::template)
             .toList();
     }
 
@@ -3120,7 +3115,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         if (view == null) {
             return new IslandTemplateSnapshot("", "", false, "");
         }
-        return new IslandTemplateSnapshot(view.id(), view.displayName(), view.enabled(), view.minNodeVersion());
+        return new IslandTemplateSnapshot(view.id(), view.displayName(), view.description(), view.category(), view.enabled(), view.minNodeVersion(), view.requiredPermission(), view.iconMaterial(), view.iconCustomModelData(), view.previewImageKey(), view.bundleStoragePath(), view.bundleChecksum(), view.bundleSizeBytes(), view.schemaVersion(), view.defaultIslandSize(), view.spawnWorldOffsetX(), view.spawnWorldOffsetY(), view.spawnWorldOffsetZ(), view.spawnYaw(), view.spawnPitch(), view.homeName(), view.environmentPreset(), view.biomeKey(), view.borderColor(), view.bankInitialBalance(), view.creationCost(), view.sortOrder(), view.tags(), java.time.Instant.EPOCH, java.time.Instant.EPOCH);
     }
 
     private static List<GlobalEventSnapshot> events(AdminEventStreamView stream) {

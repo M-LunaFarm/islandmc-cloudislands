@@ -64,6 +64,31 @@ public final class IslandWorldRestorer {
         return plan;
     }
 
+    public BundleRestorePlan stageTemplateBundle(UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, long fencingToken, String storagePath, String expectedChecksum) throws IOException {
+        if (storagePath == null || storagePath.isBlank()) {
+            throw new IOException("missing template bundle storage path: " + islandId);
+        }
+        Path islandStage = stagingRoot.resolve(islandId.toString());
+        Files.createDirectories(islandStage);
+        Path bundle = islandStage.resolve("template-bundle.tar.zst");
+        try (InputStream input = storage.openBundle(storagePath)) {
+            Files.copy(input, bundle, StandardCopyOption.REPLACE_EXISTING);
+        }
+        verifyExpectedChecksum(islandId, bundle, expectedChecksum);
+        Optional<IslandBundleManifest> manifest = storage.readBundleManifest(storagePath);
+        if (manifest.isEmpty()) {
+            throw new IOException("missing template bundle manifest: " + storagePath);
+        }
+        validateRestoreManifest(islandId, manifest.get());
+        RestorePlan restorePlan = new RestorePlan(islandId, worldName, originX, originZ, bundle);
+        BundleRestorePlan plan = restorePlanner.plan(restorePlan);
+        IslandBundleManifest embeddedManifest = validateExtractedTemplateManifest(islandId, plan.extractedRoot().resolve("manifest.json"));
+        IntegrationLifecycleHooks.LifecycleBatch integrations = integrationHooks.restoreState(islandId, worldName, cellX, cellZ, originX, originZ, fencingToken, 0L, storagePath, bundle, plan.extractedRoot(), embeddedManifest);
+        integrations.throwIfFailed();
+        integrations.writeIfPresent(plan.extractedRoot().resolve("integrations/restore.json"));
+        return plan;
+    }
+
     private void verifyStagedBundle(UUID islandId, Path bundle, long snapshotNo, String storagePath) throws IOException {
         Optional<IslandBundleManifest> manifest = restoreManifest(islandId, snapshotNo, storagePath);
         if (manifest.isEmpty()) {
@@ -84,6 +109,19 @@ public final class IslandWorldRestorer {
         }
     }
 
+    private void verifyExpectedChecksum(UUID islandId, Path bundle, String expectedChecksum) throws IOException {
+        if (expectedChecksum == null || expectedChecksum.isBlank()) {
+            return;
+        }
+        String actualChecksum;
+        try (InputStream input = Files.newInputStream(bundle)) {
+            actualChecksum = Sha256Checksums.of(input);
+        }
+        if (!expectedChecksum.equalsIgnoreCase(actualChecksum)) {
+            throw new IOException("template bundle checksum mismatch: " + islandId);
+        }
+    }
+
     private IslandBundleManifest validateExtractedManifest(UUID islandId, Path manifestPath) throws IOException {
         if (!Files.isRegularFile(manifestPath)) {
             throw new IOException("extracted island bundle is missing manifest.json: " + islandId);
@@ -92,6 +130,15 @@ public final class IslandWorldRestorer {
         if (!islandId.equals(embeddedManifest.islandId())) {
             throw new IOException("extracted island bundle manifest island mismatch: " + islandId);
         }
+        validateRestoreManifest(islandId, embeddedManifest);
+        return embeddedManifest;
+    }
+
+    private IslandBundleManifest validateExtractedTemplateManifest(UUID islandId, Path manifestPath) throws IOException {
+        if (!Files.isRegularFile(manifestPath)) {
+            throw new IOException("extracted template bundle is missing manifest.json: " + islandId);
+        }
+        IslandBundleManifest embeddedManifest = IslandManifestJson.read(Files.readString(manifestPath, StandardCharsets.UTF_8));
         validateRestoreManifest(islandId, embeddedManifest);
         return embeddedManifest;
     }
