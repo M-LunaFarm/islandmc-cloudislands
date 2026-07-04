@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PowerNetworkServiceTest {
@@ -172,6 +173,42 @@ class PowerNetworkServiceTest {
 
             assertEquals(1.0, power.powerRatio(islandUuid));
             assertEquals(0.0, power.state(islandUuid).consumption());
+        } finally {
+            database.close();
+        }
+    }
+
+    @Test
+    void rebuildRequestsAreDebouncedPerIslandUntilFlush() {
+        UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000000641");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000642");
+
+        DatabaseService database = new DatabaseService(tempDir.resolve("debounced-power-network-db").toFile());
+        database.open();
+        try {
+            MachineDefinitionService definitions = new MachineDefinitionService();
+            register(definitions, definition("bio_generator_t1", 20.0, 0.0, 0.0));
+            register(definitions, definition("grinder_t1", 0.0, 8.0, 0.0));
+            StorageService storage = new StorageService(database, 1000);
+            VirtualInventory islandStorage = storage.islandStorage(islandUuid);
+            islandStorage.add("biofuel", 4);
+            storage.saveNow(islandStorage);
+            MachineService machines = new MachineService(database, definitions, storage);
+            saveMachine(machines, islandUuid, ownerUuid, "bio_generator_t1", 0);
+            saveMachine(machines, islandUuid, ownerUuid, "grinder_t1", 1);
+
+            PowerNetworkService power = new PowerNetworkService(database, machines, definitions, new RecipeService(), storage);
+
+            assertTrue(power.requestRebuild(islandUuid));
+            assertFalse(power.requestRebuild(islandUuid));
+            assertFalse(power.requestRebuild(islandUuid));
+            assertEquals(1, power.queuedRebuildCount());
+            assertTrue(database.loadPowerNetworks(islandUuid).isEmpty());
+
+            assertEquals(1, power.flushRebuildQueue(10));
+            assertEquals(0, power.queuedRebuildCount());
+            assertEquals(1, database.loadPowerNetworks(islandUuid).size());
+            assertEquals(0, power.flushRebuildQueue(10));
         } finally {
             database.close();
         }

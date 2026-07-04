@@ -75,8 +75,7 @@ public final class FactoryLifecycleListener implements Listener {
                 maintenance.updateStatus(island);
             }
             if (machinesEnabled()) {
-                itemNetworks.rebuildIsland(island.islandUuid());
-                power.rebuildIsland(island.islandUuid());
+                requestNetworkRebuild(island.islandUuid());
             }
             if (!islands.save(island)) {
                 island.lastTickAt(previousLastTickAt);
@@ -121,10 +120,14 @@ public final class FactoryLifecycleListener implements Listener {
                     machine.status(previousStatus);
                     continue;
                 }
-                itemNetworks.rebuildIsland(machine.islandUuid());
-                power.rebuildIsland(machine.islandUuid());
+                requestNetworkRebuild(machine.islandUuid());
             }
         }
+    }
+
+    private void requestNetworkRebuild(java.util.UUID islandUuid) {
+        itemNetworks.requestRebuild(islandUuid);
+        power.requestRebuild(islandUuid);
     }
 
     private boolean lifecycleDataWritesEnabled() {

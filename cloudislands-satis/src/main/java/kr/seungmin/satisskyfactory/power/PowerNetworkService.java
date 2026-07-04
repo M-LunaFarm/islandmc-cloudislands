@@ -33,6 +33,7 @@ public final class PowerNetworkService {
     private final RecipeService recipes;
     private final StorageService storage;
     private final Map<UUID, NetworkState> cache = new ConcurrentHashMap<>();
+    private final Set<UUID> pendingRebuilds = ConcurrentHashMap.newKeySet();
     private BooleanSupplier writesEnabled = () -> true;
     private long cycleId;
     private boolean active;
@@ -61,10 +62,47 @@ public final class PowerNetworkService {
         active = true;
     }
 
+    public boolean requestRebuild(UUID islandUuid) {
+        if (!active || islandUuid == null) {
+            return false;
+        }
+        return pendingRebuilds.add(islandUuid);
+    }
+
+    public int flushRebuildQueue(int maxIslands) {
+        if (!active) {
+            pendingRebuilds.clear();
+            return 0;
+        }
+        int limit = Math.max(1, maxIslands);
+        List<UUID> snapshot = new ArrayList<>(pendingRebuilds);
+        int processed = 0;
+        for (UUID islandUuid : snapshot) {
+            if (processed >= limit) {
+                break;
+            }
+            if (!pendingRebuilds.remove(islandUuid)) {
+                continue;
+            }
+            rebuildIsland(islandUuid);
+            processed++;
+        }
+        return processed;
+    }
+
+    public int queuedRebuildCount() {
+        return pendingRebuilds.size();
+    }
+
+    public void discardRebuildQueue() {
+        pendingRebuilds.clear();
+    }
+
     public void clear() {
         active = false;
         cycleId++;
         cache.clear();
+        pendingRebuilds.clear();
     }
 
     public double powerRatio(UUID islandUuid) {
@@ -86,6 +124,7 @@ public final class PowerNetworkService {
         if (!active) {
             return List.of();
         }
+        pendingRebuilds.remove(islandUuid);
         if (!writesEnabled()) {
             return load(islandUuid);
         }

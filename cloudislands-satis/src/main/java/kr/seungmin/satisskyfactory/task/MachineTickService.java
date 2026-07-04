@@ -12,6 +12,7 @@ import kr.seungmin.satisskyfactory.model.MachineStatus;
 import kr.seungmin.satisskyfactory.model.MaintenanceStatus;
 import kr.seungmin.satisskyfactory.model.ResourceNode;
 import kr.seungmin.satisskyfactory.node.ResourceNodeService;
+import kr.seungmin.satisskyfactory.logistics.ItemNetworkService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.recipe.RecipeDefinition;
 import kr.seungmin.satisskyfactory.recipe.RecipeService;
@@ -54,6 +55,7 @@ public final class MachineTickService {
     private final RecipeService recipes;
     private final ResearchService research;
     private final ResourceNodeService nodes;
+    private final ItemNetworkService itemNetworks;
     private final PowerNetworkService power;
     private final IslandBoostService boosts;
     private final FactoryIslandService islands;
@@ -83,7 +85,8 @@ public final class MachineTickService {
     private final Set<UUID> queuedMachines = new HashSet<>();
 
     public MachineTickService(JavaPlugin plugin, MachineService machines, MachineDefinitionService definitions, StorageService storage,
-                              RecipeService recipes, ResearchService research, ResourceNodeService nodes, PowerNetworkService power,
+                              RecipeService recipes, ResearchService research, ResourceNodeService nodes, ItemNetworkService itemNetworks,
+                              PowerNetworkService power,
                               IslandBoostService boosts, FactoryIslandService islands, int maxPerCycle,
                               int maxBackfillCycles, boolean offlineProductionEnabled, long offlineMaxMillis,
                               double offlineEfficiency, int nodeLinkRadius, Set<String> recoveryTypes,
@@ -99,6 +102,7 @@ public final class MachineTickService {
         this.recipes = recipes;
         this.research = research;
         this.nodes = nodes;
+        this.itemNetworks = itemNetworks;
         this.power = power;
         this.boosts = boosts;
         this.islands = islands;
@@ -142,9 +146,13 @@ public final class MachineTickService {
         if (!activeEnabled()) {
             activeMachineQueue.clear();
             queuedMachines.clear();
+            itemNetworks.discardRebuildQueue();
+            power.discardRebuildQueue();
             return;
         }
         power.beginCycle();
+        itemNetworks.flushRebuildQueue(maxPerCycle);
+        power.flushRebuildQueue(maxPerCycle);
         long now = Instant.now().toEpochMilli();
         Set<UUID> touchedIslands = new HashSet<>();
         List<MachineInstance> snapshot = machineSnapshot();

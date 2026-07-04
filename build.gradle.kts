@@ -881,6 +881,44 @@ tasks.register("verifyAddonDeveloperKitCoverage") {
     }
 }
 
+tasks.register("verifySatisNetworkRebuildDebounceCoverage") {
+    group = "verification"
+    description = "Verifies Satis item and power network rebuilds are debounced through dirty queues and drained from the machine tick."
+    dependsOn(project(":cloudislands-satis").tasks.named("test"))
+    val itemService = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/logistics/ItemNetworkService.java")
+    val powerService = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/power/PowerNetworkService.java")
+    val tickService = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/task/MachineTickService.java")
+    val machineListener = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/listener/MachineListener.java")
+    val lifecycleListener = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/listener/FactoryLifecycleListener.java")
+    val guiListener = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/listener/FactoryGuiListener.java")
+    val itemTest = layout.projectDirectory.file("cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/logistics/ItemNetworkServiceTest.java")
+    val powerTest = layout.projectDirectory.file("cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/power/PowerNetworkServiceTest.java")
+    inputs.files(itemService, powerService, tickService, machineListener, lifecycleListener, guiListener, itemTest, powerTest)
+    doLast {
+        val itemSource = itemService.asFile.readText()
+        val powerSource = powerService.asFile.readText()
+        val tickSource = tickService.asFile.readText()
+        val listenerSources = listOf(machineListener, lifecycleListener, guiListener).joinToString("\n") { it.asFile.readText() }
+        val tests = itemTest.asFile.readText() + "\n" + powerTest.asFile.readText()
+        val missingQueueApi = listOf("pendingRebuilds", "requestRebuild", "flushRebuildQueue", "queuedRebuildCount", "discardRebuildQueue")
+            .filterNot { signal -> itemSource.contains(signal) && powerSource.contains(signal) }
+        val missingTickDrain = listOf("itemNetworks.flushRebuildQueue(maxPerCycle)", "power.flushRebuildQueue(maxPerCycle)")
+            .filterNot(tickSource::contains)
+        val missingListenerRequests = listOf("itemNetworks.requestRebuild", "power.requestRebuild")
+            .filterNot(listenerSources::contains)
+        val debounceTestCount = Regex("rebuildRequestsAreDebouncedPerIslandUntilFlush").findAll(tests).count()
+        val failures = buildList {
+            if (missingQueueApi.isNotEmpty()) add("Satis network rebuild debounce queue API missing: ${missingQueueApi.joinToString(", ")}")
+            if (missingTickDrain.isNotEmpty()) add("Satis network rebuild tick drain missing: ${missingTickDrain.joinToString(", ")}")
+            if (missingListenerRequests.isNotEmpty()) add("Satis network rebuild listener request path missing: ${missingListenerRequests.joinToString(", ")}")
+            if (debounceTestCount < 2) add("Satis item and power network debounce tests are both required")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register<Test>("verifySnapshotRestoreCoverage") {
     group = "verification"
     description = "Verifies snapshot restore GUI confirmation, Core restore route, route-safe restore payloads, and failed active restore runtime preservation."
@@ -903,6 +941,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifySnapshotRestoreCoverage"))
     dependsOn(tasks.named("verifySatisEconomyLedgerCoverage"))
     dependsOn(tasks.named("verifySatisMigrationReportCoverage"))
+    dependsOn(tasks.named("verifySatisNetworkRebuildDebounceCoverage"))
 }
 
 tasks.register("verifyRoutingRefactorCoverage") {

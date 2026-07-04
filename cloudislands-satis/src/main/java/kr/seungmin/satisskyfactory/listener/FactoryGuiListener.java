@@ -612,12 +612,16 @@ public final class FactoryGuiListener implements Listener {
             return;
         }
         location(machine.location()).ifPresent(location -> location.getBlock().setType(Material.AIR, false));
-        itemNetworks.rebuildIsland(island.islandUuid());
-        power.rebuildIsland(island.islandUuid());
+        requestNetworkRebuild(island.islandUuid());
         Map<Integer, ItemStack> overflow = player.getInventory().addItem(itemFactory.createMachineItem(definition.typeId(), 1));
         overflow.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
         player.closeInventory();
         messages.send(player, "machine-reclaimed", Map.of("machine", definition.displayName()));
+    }
+
+    private void requestNetworkRebuild(UUID islandUuid) {
+        itemNetworks.requestRebuild(islandUuid);
+        power.requestRebuild(islandUuid);
     }
 
     private Optional<Location> location(BlockKey key) {

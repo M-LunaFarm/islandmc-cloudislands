@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ItemNetworkServiceTest {
@@ -70,6 +71,44 @@ class ItemNetworkServiceTest {
             assertTrue(database.loadItemNetworks(islandUuid).stream()
                     .anyMatch(stored -> stored.connectedMachineIds().equals(network.connectedMachineIds())
                             && Set.copyOf(stored.routes()).equals(Set.copyOf(network.routes()))));
+        } finally {
+            database.close();
+        }
+    }
+
+    @Test
+    void rebuildRequestsAreDebouncedPerIslandUntilFlush() {
+        UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000000411");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000412");
+        UUID conveyorId = UUID.fromString("00000000-0000-0000-0000-000000000413");
+        UUID grinderId = UUID.fromString("00000000-0000-0000-0000-000000000414");
+
+        DatabaseService database = new DatabaseService(tempDir.resolve("debounced-item-network-db").toFile());
+        database.open();
+        try {
+            MachineDefinitionService definitions = new MachineDefinitionService();
+            register(definitions, definition("conveyor_t1", 32));
+            register(definitions, definition("grinder_t1", 0));
+            MachineService machines = new MachineService(database, definitions, new StorageService(database, 1000));
+            MachineInstance conveyor = new MachineInstance(conveyorId, islandUuid, ownerUuid, "conveyor_t1", 1,
+                    new BlockKey("world", 0, 64, 0));
+            MachineInstance grinder = new MachineInstance(grinderId, islandUuid, ownerUuid, "grinder_t1", 1,
+                    new BlockKey("world", 1, 64, 0));
+            machines.save(conveyor);
+            machines.save(grinder);
+
+            ItemNetworkService itemNetworks = new ItemNetworkService(database, machines, definitions);
+
+            assertTrue(itemNetworks.requestRebuild(islandUuid));
+            assertFalse(itemNetworks.requestRebuild(islandUuid));
+            assertFalse(itemNetworks.requestRebuild(islandUuid));
+            assertEquals(1, itemNetworks.queuedRebuildCount());
+            assertTrue(database.loadItemNetworks(islandUuid).isEmpty());
+
+            assertEquals(1, itemNetworks.flushRebuildQueue(10));
+            assertEquals(0, itemNetworks.queuedRebuildCount());
+            assertEquals(1, database.loadItemNetworks(islandUuid).size());
+            assertEquals(0, itemNetworks.flushRebuildQueue(10));
         } finally {
             database.close();
         }

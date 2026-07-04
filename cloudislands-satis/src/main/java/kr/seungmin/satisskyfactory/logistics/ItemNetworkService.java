@@ -7,17 +7,21 @@ import kr.seungmin.satisskyfactory.model.ItemNetwork;
 import kr.seungmin.satisskyfactory.model.MachineInstance;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BooleanSupplier;
 
 public final class ItemNetworkService {
     private final DatabaseService database;
     private final MachineService machines;
     private final NetworkRebuildService networkRebuild;
+    private final Set<UUID> pendingRebuilds = ConcurrentHashMap.newKeySet();
     private BooleanSupplier writesEnabled = () -> true;
     private boolean active = true;
 
@@ -35,10 +39,47 @@ public final class ItemNetworkService {
         active = true;
     }
 
+    public boolean requestRebuild(UUID islandUuid) {
+        if (!active || islandUuid == null) {
+            return false;
+        }
+        return pendingRebuilds.add(islandUuid);
+    }
+
+    public int flushRebuildQueue(int maxIslands) {
+        if (!active) {
+            pendingRebuilds.clear();
+            return 0;
+        }
+        int limit = Math.max(1, maxIslands);
+        List<UUID> snapshot = new ArrayList<>(pendingRebuilds);
+        int processed = 0;
+        for (UUID islandUuid : snapshot) {
+            if (processed >= limit) {
+                break;
+            }
+            if (!pendingRebuilds.remove(islandUuid)) {
+                continue;
+            }
+            rebuildIsland(islandUuid);
+            processed++;
+        }
+        return processed;
+    }
+
+    public int queuedRebuildCount() {
+        return pendingRebuilds.size();
+    }
+
+    public void discardRebuildQueue() {
+        pendingRebuilds.clear();
+    }
+
     public List<ItemNetwork> rebuildIsland(UUID islandUuid) {
         if (!active) {
             return List.of();
         }
+        pendingRebuilds.remove(islandUuid);
         if (!writesEnabled()) {
             return load(islandUuid);
         }
@@ -89,6 +130,7 @@ public final class ItemNetworkService {
 
     public void clear() {
         active = false;
+        pendingRebuilds.clear();
     }
 
     private boolean writesEnabled() {

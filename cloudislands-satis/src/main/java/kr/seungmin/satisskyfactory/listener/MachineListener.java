@@ -182,8 +182,7 @@ public final class MachineListener implements Listener {
             consumeHand(player, hand);
         }
         messages.send(player, "placed", Map.of("machine", definition.displayName()));
-        itemNetworks.rebuildIsland(island.islandUuid());
-        power.rebuildIsland(island.islandUuid());
+        requestNetworkRebuild(island.islandUuid());
         return true;
     }
 
@@ -317,9 +316,13 @@ public final class MachineListener implements Listener {
                         itemFactory.createMachineItem(definition.typeId(), 1));
                 messages.send(player, "removed", Map.of("machine", definition.displayName()));
             }
-            itemNetworks.rebuildIsland(machine.islandUuid());
-            power.rebuildIsland(machine.islandUuid());
+            requestNetworkRebuild(machine.islandUuid());
         });
+    }
+
+    private void requestNetworkRebuild(UUID islandUuid) {
+        itemNetworks.requestRebuild(islandUuid);
+        power.requestRebuild(islandUuid);
     }
 
     @EventHandler(ignoreCancelled = true)

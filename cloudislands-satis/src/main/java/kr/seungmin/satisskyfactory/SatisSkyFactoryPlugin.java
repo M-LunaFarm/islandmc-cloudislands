@@ -349,6 +349,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     recipes,
                     research,
                     nodes,
+                    itemNetworks,
                     power,
                     boosts,
                     islands,
