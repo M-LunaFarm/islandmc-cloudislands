@@ -109,6 +109,7 @@ public final class DatabaseService {
     private final ResourceNodeRepository resourceNodeRepository;
     private final ResearchRepository researchRepository;
     private final ContractRepository contractRepository;
+    private final LedgerRepository ledgerRepository;
     private HikariDataSource dataSource;
     private StorageBackend activeBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
@@ -169,6 +170,7 @@ public final class DatabaseService {
         this.resourceNodeRepository = new ResourceNodeRepository(this);
         this.researchRepository = new ResearchRepository(this);
         this.contractRepository = new ContractRepository(this);
+        this.ledgerRepository = new LedgerRepository(this);
     }
 
     public void open() {
@@ -597,19 +599,10 @@ public final class DatabaseService {
 
     private java.util.Map<String, String> ledgerRows(UUID islandUuid) {
         java.util.LinkedHashMap<String, String> rows = new java.util.LinkedHashMap<>();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT ledger_id, type, amount, reason, created_at FROM ledger WHERE island_uuid = ?")) {
-            statement.setString(1, islandUuid.toString());
-            try (ResultSet rs = statement.executeQuery()) {
-                while (rs.next()) {
-                    UUID ledgerId = UUID.fromString(rs.getString("ledger_id"));
-                    rows.put(ledgerId.toString(), ledgerJson(ledgerId, islandUuid, rs.getString("type"), rs.getLong("amount"), rs.getString("reason"), rs.getLong("created_at")));
-                }
-            }
-            return rows;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to publish ledger core state", exception);
+        for (LedgerRepository.LedgerEntry entry : ledgerRepository.load(islandUuid)) {
+            rows.put(entry.ledgerId().toString(), ledgerJson(entry.ledgerId(), entry.islandUuid(), entry.type(), entry.amount(), entry.reason(), entry.createdAt()));
         }
+        return rows;
     }
 
     private java.util.Map<String, String> marketDailyRows() {
@@ -1125,132 +1118,30 @@ public final class DatabaseService {
     }
 
     public void addLedger(UUID islandUuid, String type, long amount, String reason) {
-        UUID ledgerId = UUID.randomUUID();
-        long now = Instant.now().toEpochMilli();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("INSERT INTO ledger(ledger_id, island_uuid, type, amount, reason, created_at) VALUES(?, ?, ?, ?, ?, ?)")) {
-            statement.setString(1, ledgerId.toString());
-            statement.setString(2, islandUuid.toString());
-            statement.setString(3, type);
-            statement.setLong(4, amount);
-            statement.setString(5, reason);
-            statement.setLong(6, now);
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to write ledger", exception);
-        }
-        publishCoreRow(islandUuid, IslandAddonService.tableStateKey("ledger", ledgerId.toString()), ledgerJson(ledgerId, islandUuid, type, amount, reason, now));
+        LedgerRepository.LedgerEntry entry = ledgerRepository.add(islandUuid, type, amount, reason);
+        publishCoreRow(islandUuid, IslandAddonService.tableStateKey("ledger", entry.ledgerId().toString()),
+                ledgerJson(entry.ledgerId(), entry.islandUuid(), entry.type(), entry.amount(), entry.reason(), entry.createdAt()));
     }
 
     public EconomyLedgerClaim beginEconomyLedger(UUID islandUuid, UUID playerUuid, String operation, long amount,
                                                  String reason, String idempotencyKey) {
-        if (islandUuid == null || idempotencyKey == null || idempotencyKey.isBlank()) {
-            throw new IllegalArgumentException("Economy ledger requires island UUID and idempotency key");
-        }
-        long now = Instant.now().toEpochMilli();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement(insertEconomyLedgerSql())) {
-            statement.setString(1, idempotencyKey);
-            statement.setString(2, islandUuid.toString());
-            statement.setString(3, playerUuid == null ? "" : playerUuid.toString());
-            statement.setString(4, operation == null ? "" : operation);
-            statement.setLong(5, amount);
-            statement.setString(6, "PENDING");
-            statement.setString(7, reason == null ? "" : reason);
-            statement.setLong(8, now);
-            statement.setLong(9, 0L);
-            if (statement.executeUpdate() > 0) {
-                return EconomyLedgerClaim.STARTED;
-            }
-            EconomyLedgerClaim claim = economyLedgerClaim(connection, idempotencyKey);
-            if (claim == EconomyLedgerClaim.FAILED && retryFailedEconomyLedger(connection, idempotencyKey)) {
-                return EconomyLedgerClaim.STARTED;
-            }
-            return claim;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to begin economy ledger", exception);
-        }
-    }
-
-    private String insertEconomyLedgerSql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                    INSERT IGNORE INTO satis_economy_ledger(idempotency_key, island_uuid, player_uuid, operation, amount, status, reason, created_at, completed_at)
-                    VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """;
-        }
-        return """
-                INSERT INTO satis_economy_ledger(idempotency_key, island_uuid, player_uuid, operation, amount, status, reason, created_at, completed_at)
-                VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(idempotency_key) DO NOTHING
-                """;
+        return ledgerRepository.beginEconomyLedger(islandUuid, playerUuid, operation, amount, reason, idempotencyKey);
     }
 
     public EconomyLedgerClaim economyLedgerClaim(String idempotencyKey) {
-        try (Connection connection = connection()) {
-            return economyLedgerClaim(connection, idempotencyKey);
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to read economy ledger", exception);
-        }
-    }
-
-    private EconomyLedgerClaim economyLedgerClaim(Connection connection, String idempotencyKey) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT status FROM satis_economy_ledger WHERE idempotency_key = ?")) {
-            statement.setString(1, idempotencyKey);
-            try (ResultSet rs = statement.executeQuery()) {
-                if (!rs.next()) {
-                    return EconomyLedgerClaim.FAILED;
-                }
-                return switch (rs.getString("status")) {
-                    case "COMPLETED" -> EconomyLedgerClaim.COMPLETED;
-                    case "FAILED" -> EconomyLedgerClaim.FAILED;
-                    case "NEEDS_COMPENSATION" -> EconomyLedgerClaim.NEEDS_COMPENSATION;
-                    default -> EconomyLedgerClaim.PENDING;
-                };
-            }
-        }
-    }
-
-    private boolean retryFailedEconomyLedger(Connection connection, String idempotencyKey) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("""
-                UPDATE satis_economy_ledger
-                SET status = 'PENDING', completed_at = 0
-                WHERE idempotency_key = ? AND status = 'FAILED'
-                """)) {
-            statement.setString(1, idempotencyKey);
-            return statement.executeUpdate() > 0;
-        }
+        return ledgerRepository.economyLedgerClaim(idempotencyKey);
     }
 
     public void completeEconomyLedger(String idempotencyKey) {
-        updateEconomyLedgerStatus(idempotencyKey, "COMPLETED", Instant.now().toEpochMilli());
+        ledgerRepository.completeEconomyLedger(idempotencyKey);
     }
 
     public void failEconomyLedger(String idempotencyKey) {
-        updateEconomyLedgerStatus(idempotencyKey, "FAILED", 0L);
+        ledgerRepository.failEconomyLedger(idempotencyKey);
     }
 
     public void compensateEconomyLedger(String idempotencyKey) {
-        updateEconomyLedgerStatus(idempotencyKey, "NEEDS_COMPENSATION", 0L);
-    }
-
-    private void updateEconomyLedgerStatus(String idempotencyKey, String status, long completedAt) {
-        if (idempotencyKey == null || idempotencyKey.isBlank()) {
-            return;
-        }
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("""
-                     UPDATE satis_economy_ledger
-                     SET status = ?, completed_at = ?
-                     WHERE idempotency_key = ? AND status <> 'COMPLETED'
-                     """)) {
-            statement.setString(1, status);
-            statement.setLong(2, completedAt);
-            statement.setString(3, idempotencyKey);
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to update economy ledger", exception);
-        }
+        ledgerRepository.compensateEconomyLedger(idempotencyKey);
     }
 
     public long marketDailySold(String itemId, String dateKey) {
@@ -1401,33 +1292,7 @@ public final class DatabaseService {
     }
 
     public void saveLedgerSnapshot(UUID ledgerId, UUID islandUuid, String type, long amount, String reason, long createdAt) {
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement(saveLedgerSnapshotSql())) {
-            statement.setString(1, ledgerId.toString());
-            statement.setString(2, islandUuid.toString());
-            statement.setString(3, type);
-            statement.setLong(4, amount);
-            statement.setString(5, reason);
-            statement.setLong(6, createdAt);
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to save ledger snapshot", exception);
-        }
-    }
-
-    private String saveLedgerSnapshotSql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                    INSERT INTO ledger(ledger_id, island_uuid, type, amount, reason, created_at)
-                    VALUES(?, ?, ?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE reason = VALUES(reason)
-                    """;
-        }
-        return """
-                    INSERT INTO ledger(ledger_id, island_uuid, type, amount, reason, created_at)
-                    VALUES(?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(ledger_id) DO NOTHING
-                    """;
+        ledgerRepository.saveSnapshot(ledgerId, islandUuid, type, amount, reason, createdAt);
     }
 
     private String recordMarketDailySql() {

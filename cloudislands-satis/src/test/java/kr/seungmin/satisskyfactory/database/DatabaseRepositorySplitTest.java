@@ -111,4 +111,33 @@ class DatabaseRepositorySplitTest {
         assertTrue(repository.contains("UPDATE contracts SET status = ?, progress_json = ?, updated_at = ? WHERE contract_id = ?"));
         assertTrue(repository.contains("SELECT * FROM contracts WHERE contract_id = ?"));
     }
+
+    @Test
+    void ledgerSqlLivesInLedgerRepository() throws Exception {
+        String databaseService = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/DatabaseService.java"));
+        String repository = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/LedgerRepository.java"));
+
+        assertTrue(databaseService.contains("private final LedgerRepository ledgerRepository"));
+        assertTrue(databaseService.contains("ledgerRepository.load(islandUuid)"));
+        assertTrue(databaseService.contains("ledgerRepository.add(islandUuid, type, amount, reason);"));
+        assertTrue(databaseService.contains("return ledgerRepository.beginEconomyLedger(islandUuid, playerUuid, operation, amount, reason, idempotencyKey);"));
+        assertTrue(databaseService.contains("return ledgerRepository.economyLedgerClaim(idempotencyKey);"));
+        assertTrue(databaseService.contains("ledgerRepository.completeEconomyLedger(idempotencyKey);"));
+        assertTrue(databaseService.contains("ledgerRepository.failEconomyLedger(idempotencyKey);"));
+        assertTrue(databaseService.contains("ledgerRepository.compensateEconomyLedger(idempotencyKey);"));
+        assertTrue(databaseService.contains("ledgerRepository.saveSnapshot(ledgerId, islandUuid, type, amount, reason, createdAt);"));
+        assertFalse(databaseService.contains("INSERT INTO ledger"));
+        assertFalse(databaseService.contains("SELECT ledger_id, type, amount, reason, created_at FROM ledger WHERE island_uuid = ?"));
+        assertFalse(databaseService.contains("INSERT IGNORE INTO satis_economy_ledger"));
+        assertFalse(databaseService.contains("INSERT INTO satis_economy_ledger"));
+        assertFalse(databaseService.contains("SELECT status FROM satis_economy_ledger WHERE idempotency_key = ?"));
+        assertFalse(databaseService.contains("UPDATE satis_economy_ledger"));
+
+        assertTrue(repository.contains("INSERT INTO ledger"));
+        assertTrue(repository.contains("SELECT ledger_id, type, amount, reason, created_at FROM ledger WHERE island_uuid = ?"));
+        assertTrue(repository.contains("INSERT IGNORE INTO satis_economy_ledger"));
+        assertTrue(repository.contains("INSERT INTO satis_economy_ledger"));
+        assertTrue(repository.contains("SELECT status FROM satis_economy_ledger WHERE idempotency_key = ?"));
+        assertTrue(repository.contains("UPDATE satis_economy_ledger"));
+    }
 }
