@@ -1026,6 +1026,45 @@ tasks.register("verifyStackedBlockParityCoverage") {
     }
 }
 
+val verifyCoreTemplateBundleCreateCoverage = tasks.register<Test>("verifyCoreTemplateBundleCreateCoverage") {
+    group = "verification"
+    description = "Verifies Core template routes and create workflow emit full template bundle metadata."
+    val coreServiceSourceSets = project(":cloudislands-core-service").extensions.getByType<SourceSetContainer>()
+    val coreServiceTest = coreServiceSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-core-service").tasks.named("testClasses"))
+    testClassesDirs = coreServiceTest.output.classesDirs
+    classpath = coreServiceTest.runtimeClasspath
+    workingDir = project(":cloudislands-core-service").projectDir
+    useJUnitPlatform()
+    include(
+        "kr/lunaf/cloudislands/coreservice/http/routes/TemplateRoutesTest.class",
+        "kr/lunaf/cloudislands/coreservice/workflow/CreateIslandWorkflowTest.class"
+    )
+}
+
+val verifyPaperTemplateBundleCreateCoverage = tasks.register<Test>("verifyPaperTemplateBundleCreateCoverage") {
+    group = "verification"
+    description = "Verifies Paper creates islands from template bundles with checksum, placement, protection, and creation snapshots."
+    val paperSourceSets = project(":cloudislands-paper").extensions.getByType<SourceSetContainer>()
+    val paperTest = paperSourceSets.named("test").get()
+    dependsOn(project(":cloudislands-paper").tasks.named("testClasses"))
+    testClassesDirs = paperTest.output.classesDirs
+    classpath = paperTest.runtimeClasspath
+    workingDir = project(":cloudislands-paper").projectDir
+    useJUnitPlatform()
+    include(
+        "kr/lunaf/cloudislands/paper/activation/IslandActivationJobHandlerPolicyTest.class",
+        "kr/lunaf/cloudislands/paper/world/IslandWorldRestorerTest.class"
+    )
+}
+
+tasks.register("verifyTemplateBundleCreateCoverage") {
+    group = "verification"
+    description = "Verifies edit.md P1/PR-002/PR-003 template metadata, create payload, checksum restore, placement, and snapshot coverage."
+    dependsOn(verifyCoreTemplateBundleCreateCoverage)
+    dependsOn(verifyPaperTemplateBundleCreateCoverage)
+}
+
 tasks.register<Test>("verifySnapshotRestoreCoverage") {
     group = "verification"
     description = "Verifies snapshot restore GUI confirmation, Core restore route, route-safe restore payloads, and failed active restore runtime preservation."
@@ -1046,6 +1085,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
     dependsOn(tasks.named("verifySnapshotRestoreCoverage"))
+    dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))
     dependsOn(tasks.named("verifySatisEconomyLedgerCoverage"))
