@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 
 public final class JdbcIslandLimitRepository implements IslandLimitRepository {
     private final DataSource dataSource;
@@ -65,6 +66,7 @@ public final class JdbcIslandLimitRepository implements IslandLimitRepository {
             putDefault(statement, islandId, "ENTITY", 200L);
             putDefault(statement, islandId, "REDSTONE", 512L);
             putDefault(statement, islandId, "BANK", 100000L);
+            putDefault(statement, islandId, GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY, 1L);
             statement.executeBatch();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to seed island limits", exception);
@@ -113,6 +115,6 @@ public final class JdbcIslandLimitRepository implements IslandLimitRepository {
     }
 
     private String normalize(String limitKey) {
-        return limitKey == null || limitKey.isBlank() ? "HOPPER" : limitKey.toUpperCase();
+        return GameplayParityPolicy.normalizeIslandLimitKey(limitKey);
     }
 }

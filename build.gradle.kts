@@ -954,6 +954,52 @@ tasks.register("verifyGameplayModifierRuntimeCoverage") {
     }
 }
 
+tasks.register("verifyStackedBlockParityCoverage") {
+    group = "verification"
+    description = "Verifies SS2-style stacked block amounts persist through Core limits and /is toggle blocks is player-facing."
+    dependsOn(project(":cloudislands-common").tasks.named("test"))
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val policy = layout.projectDirectory.file("cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/feature/GameplayParityPolicy.java")
+    val policyTest = layout.projectDirectory.file("cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/feature/GameplayParityPolicyTest.java")
+    val memoryLimits = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/limit/InMemoryIslandLimitRepository.java")
+    val jdbcLimits = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/limit/JdbcIslandLimitRepository.java")
+    val limitTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/limit/InMemoryIslandLimitRepositoryTest.java")
+    val adminBackend = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java")
+    val environmentHandler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java")
+    val catalog = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandCatalog.java")
+    val completer = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java")
+    val commandTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandCatalogTest.java")
+    inputs.files(policy, policyTest, memoryLimits, jdbcLimits, limitTest, adminBackend, environmentHandler, catalog, completer, commandTest)
+    doLast {
+        val policySource = policy.asFile.readText()
+        val policyTestSource = policyTest.asFile.readText()
+        val memorySource = memoryLimits.asFile.readText()
+        val jdbcSource = jdbcLimits.asFile.readText()
+        val limitTestSource = limitTest.asFile.readText()
+        val adminSource = adminBackend.asFile.readText()
+        val environmentSource = environmentHandler.asFile.readText()
+        val catalogSource = catalog.asFile.readText()
+        val completerSource = completer.asFile.readText()
+        val commandTestSource = commandTest.asFile.readText()
+        val failures = buildList {
+            if (!policySource.contains("BLOCK_AMOUNT_LIMIT_PREFIX") || !policySource.contains("STACKED_BLOCKS_VISIBLE_LIMIT_KEY")) add("Shared gameplay parity policy must define stacked block amount and visibility keys")
+            if (!policyTestSource.contains("exposesStackedBlockLimitKeysAsStableGameplayContract")) add("Shared stacked block key policy test is missing")
+            if (!memorySource.contains("GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY")) add("In-memory limits must seed stacked block visibility")
+            if (!jdbcSource.contains("GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY")) add("JDBC limits must seed stacked block visibility")
+            if (!limitTestSource.contains("persistsStackedBlockAmountsAndVisibilityWithSharedKeys")) add("Core limit repository must test stacked block persistence")
+            if (!adminSource.contains("GameplayParityPolicy.blockAmountLimitKey(args[2])")) add("Admin setblockamount must write the shared BLOCK_AMOUNT limit key")
+            if (!environmentSource.contains("toggleStackedBlockVisibility(player)") || !environmentSource.contains("setStackedBlockVisibility(player")) add("Paper environment command must route /is toggle blocks")
+            if (!catalogSource.contains("\"섬 toggle blocks\"")) add("Command catalog must advertise /is toggle blocks")
+            if (!completerSource.contains("\"blocks\", \"stacked-blocks\"")) add("Tab completer must expose toggle blocks targets")
+            if (!commandTestSource.contains("SS2-style toggle blocks help must be advertised")) add("Paper command catalog test must cover /is toggle blocks")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register<Test>("verifySnapshotRestoreCoverage") {
     group = "verification"
     description = "Verifies snapshot restore GUI confirmation, Core restore route, route-safe restore payloads, and failed active restore runtime preservation."
@@ -975,6 +1021,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyRankingWorthCertification"))
     dependsOn(tasks.named("verifySnapshotRestoreCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
+    dependsOn(tasks.named("verifyStackedBlockParityCoverage"))
     dependsOn(tasks.named("verifySatisEconomyLedgerCoverage"))
     dependsOn(tasks.named("verifySatisMigrationReportCoverage"))
     dependsOn(tasks.named("verifySatisNetworkRebuildDebounceCoverage"))

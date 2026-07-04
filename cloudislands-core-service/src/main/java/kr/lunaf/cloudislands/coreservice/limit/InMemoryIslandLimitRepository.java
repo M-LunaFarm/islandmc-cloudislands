@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 
 public final class InMemoryIslandLimitRepository implements IslandLimitRepository {
     private final Map<UUID, Map<String, IslandLimitSnapshot>> limits = new ConcurrentHashMap<>();
@@ -37,6 +38,7 @@ public final class InMemoryIslandLimitRepository implements IslandLimitRepositor
         putDefault(islandLimits, islandId, "ENTITY", 200L);
         putDefault(islandLimits, islandId, "REDSTONE", 512L);
         putDefault(islandLimits, islandId, "BANK", 100000L);
+        putDefault(islandLimits, islandId, GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY, 1L);
     }
 
     private void putDefault(Map<String, IslandLimitSnapshot> islandLimits, UUID islandId, String key, long value) {
@@ -44,6 +46,6 @@ public final class InMemoryIslandLimitRepository implements IslandLimitRepositor
     }
 
     private String normalize(String limitKey) {
-        return limitKey == null || limitKey.isBlank() ? "HOPPER" : limitKey.toUpperCase();
+        return GameplayParityPolicy.normalizeIslandLimitKey(limitKey);
     }
 }

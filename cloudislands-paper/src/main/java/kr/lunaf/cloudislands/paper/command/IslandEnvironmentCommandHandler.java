@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.IslandInfoView;
@@ -277,12 +278,20 @@ final class IslandEnvironmentCommandHandler {
 
     private void handleToggle(Player player, String[] args) {
         if (args.length < 2) {
-            runtime.message(player, "토글할 항목을 입력해주세요. 예: /섬 toggle border");
+            runtime.message(player, "토글할 항목을 입력해주세요. 예: /섬 toggle border 또는 /섬 toggle blocks");
             return;
         }
         String target = args[1].toLowerCase(Locale.ROOT);
+        if (target.equals("blocks") || target.equals("blockamounts") || target.equals("stacked-blocks") || target.equals("블록") || target.equals("블록수") || target.equals("스택블록")) {
+            if (args.length > 2) {
+                setStackedBlockVisibility(player, toggleValue(args, 2));
+                return;
+            }
+            toggleStackedBlockVisibility(player);
+            return;
+        }
         if (!target.equals("border") && !target.equals("border-visible") && !target.equals("경계") && !target.equals("경계표시")) {
-            runtime.message(player, "지원하지 않는 토글 항목입니다. 예: /섬 toggle border");
+            runtime.message(player, "지원하지 않는 토글 항목입니다. 예: /섬 toggle border 또는 /섬 toggle blocks");
             return;
         }
         if (args.length > 2) {
@@ -290,6 +299,39 @@ final class IslandEnvironmentCommandHandler {
             return;
         }
         toggleBorderVisibility(player);
+    }
+
+    private void toggleStackedBlockVisibility(Player player) {
+        runtime.currentIsland(player, "섬 안에서만 스택 블록 표시를 전환할 수 있습니다.").ifPresent(islandId -> {
+            environmentUseCase.limitViews(islandId)
+                .thenAccept(limits -> setStackedBlockVisibility(player, stackedBlockVisible(limits) ? "false" : "true"))
+                .exceptionally(error -> {
+                    runtime.message(player, "스택 블록 표시를 전환하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
+    private void setStackedBlockVisibility(Player player, String value) {
+        runtime.currentIsland(player, "섬 안에서만 스택 블록 표시를 변경할 수 있습니다.").ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.MANAGE_UPGRADES)) {
+                runtime.message(player, runtime.routeMessage("stacked-block-toggle-denied", "스택 블록 표시를 변경할 권한이 없습니다."));
+                return;
+            }
+            long numericValue = "false".equals(value) ? 0L : 1L;
+            environmentUseCase.setLimitAction(islandId, player.getUniqueId(), GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY, numericValue, runtime::mutate)
+                .thenAccept(result -> {
+                    if (!result.accepted()) {
+                        runtime.message(player, runtime.playerCodeMessage(result.code(), "스택 블록 표시를 변경하지 못했습니다."));
+                        return;
+                    }
+                    runtime.message(player, numericValue == 1L ? "스택 블록 표시를 켰습니다." : "스택 블록 표시를 껐습니다.");
+                })
+                .exceptionally(error -> {
+                    runtime.message(player, "스택 블록 표시를 변경하지 못했습니다.");
+                    return null;
+                });
+        });
     }
 
     private void toggleBorderVisibility(Player player) {
@@ -434,6 +476,14 @@ final class IslandEnvironmentCommandHandler {
             .map(limit -> limit.key() + " 값=" + limit.value())
             .toList();
         return entries.isEmpty() ? "섬 제한이 없습니다." : "섬 제한: " + String.join(", ", entries);
+    }
+
+    private static boolean stackedBlockVisible(List<LimitView> limits) {
+        return limits.stream()
+            .filter(limit -> GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY.equalsIgnoreCase(limit.key()))
+            .findFirst()
+            .map(limit -> limit.value() > 0L)
+            .orElse(true);
     }
 
     private static String toggleValue(String[] args, int index) {

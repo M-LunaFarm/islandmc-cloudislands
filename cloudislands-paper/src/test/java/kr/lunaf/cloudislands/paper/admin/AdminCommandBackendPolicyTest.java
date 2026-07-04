@@ -365,7 +365,7 @@ class AdminCommandBackendPolicyTest {
         }
         assertTrue(source.contains("handleGameplayModifier"), "Gameplay parity commands must route through a dedicated handler");
         assertTrue(source.contains("coreApiClient.environmentCommands().setLimit"), "Gameplay parity commands must write Core-visible runtime modifiers");
-        assertTrue(source.contains("\"BLOCK_AMOUNT:\" + normalizeGameplayKey"), "setblockamount must store a namespaced block amount key");
+        assertTrue(source.contains("GameplayParityPolicy.blockAmountLimitKey(args[2])"), "setblockamount must store the shared namespaced block amount key");
         assertTrue(source.contains("\"EFFECT:\" + normalizeGameplayKey"), "seteffect must store a namespaced effect key");
         assertTrue(source.contains("\"RATE:CROP_GROWTH\""), "setcropgrowth must write the crop growth rate key");
         assertTrue(source.contains("\"RATE:MOB_DROPS\""), "setmobdrops must write the mob drop rate key");

@@ -52,6 +52,7 @@ import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.TemplateBundleVerificationView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
@@ -1341,7 +1342,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                     return;
                 }
                 UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
-                run(sender, "Set block amount", coreApiClient.environmentCommands().setLimit(islandId, actorUuid, "BLOCK_AMOUNT:" + normalizeGameplayKey(args[2]), number(args[3], 0L)).thenApply(result -> gameplayModifierMessage("Set block amount", result)));
+                run(sender, "Set block amount", coreApiClient.environmentCommands().setLimit(islandId, actorUuid, GameplayParityPolicy.blockAmountLimitKey(args[2]), number(args[3], 0L)).thenApply(result -> gameplayModifierMessage("Set block amount", result)));
             });
             return true;
         }
