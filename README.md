@@ -285,7 +285,6 @@ Feature gates:
 - GUI
 - placeholders
 - lifecycle hooks
-- migration
 
 Disabled means disabled:
 
@@ -294,27 +293,48 @@ Disabled means disabled:
 - no listener
 - no ticker
 - no unnecessary writes
+- existing island-scoped Satis database rows are preserved unless an operator
+  explicitly removes island data
 
 Satis state is scoped by CloudIslands island UUID.
 If an island moves from server A to server B, Satis state follows the island.
 
-## SuperiorSkyblock2 migration
+### Satis operator commands
 
-SuperiorSkyblock2 is migration input only.
-Not runtime authority.
-No live provider hook.
+Use these before and after enabling the feature pack on a Paper island node:
 
-Supported admin flow:
+- `/factory admin doctor`: first-line health summary. Check runtime, database,
+  addon-state, dirty-save, route, lifecycle, config validation, blocked
+  components, and the suggested operator action.
+- `/factory admin database`: database backend view. Check active backend,
+  fallback status, fallback risk, production safety, Core API cache backend, and
+  local cache description.
+- `/factory admin runtime`: runtime authority view. Check CloudIslands API
+  availability, runtime owner fence, tick/write authority, dirty-save state, and
+  Core API addon-state retry status.
+- `/factory admin state`: raw addon-state snapshot for operators. Use it when
+  comparing node-local diagnostics with Core API published state.
 
-```text
-/ciadmin migrate-superiorskyblock2 scan
-/ciadmin migrate-superiorskyblock2 dryrun
-/ciadmin migrate-superiorskyblock2 import
-/ciadmin migrate-superiorskyblock2 verify
-/ciadmin migrate-superiorskyblock2 rollback
-```
+Feature-disable preservation:
 
-The import path uses dry-run, conflict reports, approval token, bundle creation, checksum verification, and activation test.
+- disabling `machines` stops placement, listeners, tickers, and machine GUI, but
+  stored machine rows and machine inventories remain keyed by island UUID
+- disabling `storage` stops storage commands, market, and contract flows that
+  depend on storage, but virtual inventory rows remain in the Satis database
+- disabling `resource-nodes` stops node generation and node scans, but stored
+  node rows remain for re-enable or island relocation
+- disabling `market`, `contracts`, `research`, or `maintenance` stops the
+  matching gameplay surface without purging ledgers, unlocks, contract history,
+  or maintenance debt
+- disabling `addon-state` or `route-events` stops Core API publication for those
+  surfaces; restore or migration should wait until publication is healthy again
+
+### Legacy migration status
+
+SuperiorSkyblock2 and legacy satismc import commands are no longer runtime
+features in `cloudislands-satis`. Historical schema initialization remains in
+`SatisSchemaService`, but legacy import, rollback, and migration command
+surfaces are intentionally removed.
 
 ## Failure behavior
 
@@ -427,8 +447,9 @@ Built for the CloudIslands 1.0.1 baseline.
 
 Release notes for `v1.0.1`:
 
-- migration compatibility: SuperiorSkyblock2 is supported as migration input
-  through scan, dry-run, backup-gated import, verify, and rollback workflows
+- Core migration compatibility: SuperiorSkyblock2 import remains a CloudIslands
+  Core/Paper/Velocity operation; `cloudislands-satis` no longer exposes legacy
+  import or rollback commands
 - supported Paper version: Paper `1.21.x` is release-supported; Paper `26.1.x`
   and `26.2.x` are compile-only experimental targets until official bootable
   Paper builds are available

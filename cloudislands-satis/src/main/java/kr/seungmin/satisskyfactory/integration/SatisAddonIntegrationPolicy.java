@@ -323,11 +323,22 @@ public final class SatisAddonIntegrationPolicy {
     }
 
     public static Map<String, String> featureOffRuntimeBlocks() {
-        return SatisIntegrationPolicy.featureOffRuntimeBlocks();
+        Map<String, String> common = SatisIntegrationPolicy.featureOffRuntimeBlocks();
+        java.util.LinkedHashMap<String, String> supported = new java.util.LinkedHashMap<>();
+        for (String feature : FEATURE_GATES) {
+            String block = common.get(feature);
+            if (block != null) {
+                supported.put(feature, block);
+            }
+        }
+        return Map.copyOf(supported);
     }
 
     public static String featureOffRuntimeBlockSummary() {
-        return SatisIntegrationPolicy.featureOffRuntimeBlockSummary();
+        return featureOffRuntimeBlocks().entrySet().stream()
+                .map(entry -> entry.getKey() + "=" + entry.getValue())
+                .reduce((left, right) -> left + ";" + right)
+                .orElse("");
     }
 
     public static List<String> nodeMoveRemapSteps() {

@@ -71,50 +71,52 @@ public final class FactoryGuiService {
         holder.inventory(inventory);
         if (enabled("machines") && powerState != null) {
             List<String> factoryLore = new ArrayList<>();
-            factoryLore.add(ChatColor.GRAY + "Tier: " + island.tier());
-            factoryLore.add(ChatColor.GRAY + "Machines: " + machineCount);
+            factoryLore.add(gray("gui-tier", "티어: {tier}", Map.of("tier", String.valueOf(island.tier()))));
+            factoryLore.add(gray("gui-machines", "기계 수: {count}", Map.of("count", String.valueOf(machineCount))));
             if (enabled("storage")) {
-                factoryLore.add(ChatColor.GRAY + "Storage used: " + storage.findIslandStorage(island.islandUuid())
+                factoryLore.add(gray("gui-storage-used", "저장고 사용량: {used}", Map.of("used", String.valueOf(storage.findIslandStorage(island.islandUuid())
                         .map(VirtualInventory::used)
-                        .orElse(0L));
+                        .orElse(0L)))));
             }
-            inventory.setItem(10, icon(Material.CRAFTING_TABLE, ChatColor.GOLD + "Factory",
+            inventory.setItem(10, icon(Material.CRAFTING_TABLE, line(ChatColor.GOLD, "gui-factory", "공장"),
                     factoryLore));
-            inventory.setItem(12, icon(Material.REDSTONE, ChatColor.RED + "Power",
-                    List.of(ChatColor.GRAY + "Ratio: " + NumberFormatter.ratio(powerState.ratio()),
-                            ChatColor.GRAY + "Generation: " + NumberFormatter.decimal(powerState.generation(), 1),
-                            ChatColor.GRAY + "Consumption: " + NumberFormatter.decimal(powerState.consumption(), 1),
-                            ChatColor.GRAY + "Battery: " + NumberFormatter.decimal(powerState.batteryStored(), 1) + "/" + NumberFormatter.whole(powerState.batteryCapacity()))));
+            inventory.setItem(12, icon(Material.REDSTONE, line(ChatColor.RED, "gui-power", "전력"),
+                    List.of(gray("gui-power-ratio", "전력 비율: {ratio}", Map.of("ratio", NumberFormatter.ratio(powerState.ratio()))),
+                            gray("gui-generation", "생산량: {value}", Map.of("value", NumberFormatter.decimal(powerState.generation(), 1))),
+                            gray("gui-consumption", "소비량: {value}", Map.of("value", NumberFormatter.decimal(powerState.consumption(), 1))),
+                            gray("gui-battery", "배터리: {stored}/{capacity}", Map.of(
+                                    "stored", NumberFormatter.decimal(powerState.batteryStored(), 1),
+                                    "capacity", NumberFormatter.whole(powerState.batteryCapacity()))))));
         } else {
-            inventory.setItem(10, icon(Material.CRAFTING_TABLE, ChatColor.DARK_GRAY + "Factory",
-                    List.of(ChatColor.GRAY + "Machine features are disabled.")));
+            inventory.setItem(10, icon(Material.CRAFTING_TABLE, line(ChatColor.DARK_GRAY, "gui-factory", "공장"),
+                    List.of(gray("gui-machine-features-disabled", "기계 기능이 비활성화되어 있습니다."))));
         }
-        inventory.setItem(14, icon(Material.EMERALD, ChatColor.GREEN + "Economy",
+        inventory.setItem(14, icon(Material.EMERALD, line(ChatColor.GREEN, "gui-economy", "경제"),
                 economyLore(island)));
         if (enabled("research")) {
             holder.action(16, "main_research", "");
-            inventory.setItem(16, icon(Material.EXPERIENCE_BOTTLE, ChatColor.AQUA + "Research",
+            inventory.setItem(16, icon(Material.EXPERIENCE_BOTTLE, line(ChatColor.AQUA, "gui-research", "연구"),
                     researchMainLore(island, boosts)));
         }
         if (player.hasPermission("satisskyfactory.admin")) {
             holder.action(8, "main_admin", "");
-            inventory.setItem(8, icon(Material.COMMAND_BLOCK, ChatColor.RED + "Admin",
-                    List.of(ChatColor.GRAY + "Open factory administration.")));
+            inventory.setItem(8, icon(Material.COMMAND_BLOCK, line(ChatColor.RED, "gui-admin", "관리"),
+                    List.of(gray("gui-open-admin", "공장 관리 메뉴를 엽니다."))));
         }
         if (enabled("contracts") && enabled("storage")) {
             holder.action(20, "main_contracts", "");
-            inventory.setItem(20, icon(Material.WRITABLE_BOOK, ChatColor.GOLD + "Contracts",
-                    List.of(ChatColor.GRAY + "Open delivery contracts.")));
+            inventory.setItem(20, icon(Material.WRITABLE_BOOK, line(ChatColor.GOLD, "gui-contracts", "계약"),
+                    List.of(gray("gui-open-contracts", "납품 계약을 엽니다."))));
         }
         if (enabled("market") && enabled("storage")) {
             holder.action(22, "main_market", "");
-            inventory.setItem(22, icon(Material.EMERALD, ChatColor.GREEN + "Market",
-                    List.of(ChatColor.GRAY + "Sell stored factory items.")));
+            inventory.setItem(22, icon(Material.EMERALD, line(ChatColor.GREEN, "gui-market", "시장"),
+                    List.of(gray("gui-open-market", "저장된 공장 아이템을 판매합니다."))));
         }
         if (enabled("storage")) {
             holder.action(24, "main_storage", "");
-            inventory.setItem(24, icon(Material.CHEST, ChatColor.YELLOW + "Storage",
-                    List.of(ChatColor.GRAY + "Browse island virtual storage.")));
+            inventory.setItem(24, icon(Material.CHEST, line(ChatColor.YELLOW, "gui-storage", "저장고"),
+                    List.of(gray("gui-open-storage", "섬 가상 저장고를 봅니다."))));
         }
         player.openInventory(inventory);
     }
@@ -142,43 +144,45 @@ public final class FactoryGuiService {
     private List<String> economyLore(FactoryIsland island) {
         List<String> lore = new ArrayList<>();
         if (enabled("maintenance")) {
-            lore.add(ChatColor.GRAY + "Debt: " + island.maintenanceDebt());
-            lore.add(ChatColor.GRAY + "Status: " + island.maintenanceStatus());
+            lore.add(gray("gui-debt", "부채: {debt}", Map.of("debt", String.valueOf(island.maintenanceDebt()))));
+            lore.add(gray("gui-status", "상태: {status}", Map.of("status", island.maintenanceStatus().name())));
         }
-        lore.add(ChatColor.GRAY + "Reputation: " + island.reputation());
+        lore.add(gray("gui-reputation", "평판: {reputation}", Map.of("reputation", String.valueOf(island.reputation()))));
         return lore;
     }
 
     private List<String> marketLore(FactoryIsland island, int safePage, int maxPage) {
         List<String> lore = new ArrayList<>();
         if (enabled("maintenance")) {
-            lore.add(ChatColor.GRAY + "Debt: " + island.maintenanceDebt());
+            lore.add(gray("gui-debt", "부채: {debt}", Map.of("debt", String.valueOf(island.maintenanceDebt()))));
         }
-        lore.add(ChatColor.GRAY + "Page: " + (safePage + 1) + "/" + (maxPage + 1));
+        lore.add(gray("gui-page", "페이지: {page}/{pages}", Map.of(
+                "page", String.valueOf(safePage + 1),
+                "pages", String.valueOf(maxPage + 1))));
         return lore;
     }
 
     private List<String> adminLore(FactoryIsland island, int machineCount, PowerNetworkService.NetworkState powerState) {
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Island: " + island.islandUuid());
+        lore.add(gray("gui-island", "섬: {island}", Map.of("island", island.islandUuid().toString())));
         if (enabled("machines") && powerState != null) {
-            lore.add(ChatColor.GRAY + "Machines: " + machineCount);
-            lore.add(ChatColor.GRAY + "Power ratio: " + NumberFormatter.ratio(powerState.ratio()));
+            lore.add(gray("gui-machines", "기계 수: {count}", Map.of("count", String.valueOf(machineCount))));
+            lore.add(gray("gui-power-ratio", "전력 비율: {ratio}", Map.of("ratio", NumberFormatter.ratio(powerState.ratio()))));
         } else {
-            lore.add(ChatColor.GRAY + "Machine features are disabled.");
+            lore.add(gray("gui-machine-features-disabled", "기계 기능이 비활성화되어 있습니다."));
         }
         return lore;
     }
 
     private List<String> researchMainLore(FactoryIsland island, IslandBoostService.Boosts boosts) {
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Points: " + island.researchPoints());
+        lore.add(gray("gui-points", "포인트: {points}", Map.of("points", String.valueOf(island.researchPoints()))));
         if (enabled("machines")) {
-            lore.add(ChatColor.GRAY + "Agriculture x" + NumberFormatter.ratio(boosts.agricultureBoost()));
-            lore.add(ChatColor.GRAY + "Machine slots +" + boosts.factorySlotBonus());
+            lore.add(gray("gui-agriculture-boost", "농업 x{ratio}", Map.of("ratio", NumberFormatter.ratio(boosts.agricultureBoost()))));
+            lore.add(gray("gui-machine-slots", "기계 슬롯 +{slots}", Map.of("slots", String.valueOf(boosts.factorySlotBonus()))));
         }
         if (enabled("contracts") && enabled("storage")) {
-            lore.add(ChatColor.GRAY + "Contract slots +" + boosts.contractSlotBonus());
+            lore.add(gray("gui-contract-slots", "계약 슬롯 +{slots}", Map.of("slots", String.valueOf(boosts.contractSlotBonus()))));
         }
         return lore;
     }
@@ -188,24 +192,24 @@ public final class FactoryGuiService {
             return;
         }
         FactoryGuiHolder holder = new FactoryGuiHolder("admin", island.islandUuid(), null);
-        Inventory inventory = Bukkit.createInventory(holder, 27, title("admin-title", "Factory Admin"));
+        Inventory inventory = Bukkit.createInventory(holder, 27, title("admin-title", "공장 관리"));
         holder.inventory(inventory);
-        inventory.setItem(4, icon(Material.COMMAND_BLOCK, ChatColor.RED + "Admin",
+        inventory.setItem(4, icon(Material.COMMAND_BLOCK, line(ChatColor.RED, "gui-admin", "관리"),
                 adminLore(island, machineCount, powerState)));
         holder.action(10, "admin_reload", "");
-        inventory.setItem(10, icon(Material.REDSTONE_TORCH, ChatColor.YELLOW + "Reload",
-                List.of(ChatColor.GRAY + "Reload configs and rebuild networks.")));
+        inventory.setItem(10, icon(Material.REDSTONE_TORCH, line(ChatColor.YELLOW, "gui-reload", "다시 불러오기"),
+                List.of(gray("gui-reload-lore", "설정과 네트워크를 다시 구성합니다."))));
         holder.action(12, "admin_debug_island", "");
-        inventory.setItem(12, icon(Material.MAP, ChatColor.AQUA + "Island Debug",
-                List.of(ChatColor.GRAY + "Send island id to chat.")));
+        inventory.setItem(12, icon(Material.MAP, line(ChatColor.AQUA, "gui-island-debug", "섬 디버그"),
+                List.of(gray("gui-island-debug-lore", "섬 ID를 채팅으로 출력합니다."))));
         if (enabled("machines")) {
             holder.action(14, "admin_debug_networks", "");
-            inventory.setItem(14, icon(Material.REDSTONE, ChatColor.RED + "Network Debug",
-                    List.of(ChatColor.GRAY + "Send power and machine state to chat.")));
+            inventory.setItem(14, icon(Material.REDSTONE, line(ChatColor.RED, "gui-network-debug", "네트워크 디버그"),
+                    List.of(gray("gui-network-debug-lore", "전력과 기계 상태를 채팅으로 출력합니다."))));
         }
         holder.action(22, "admin_back", "");
-        inventory.setItem(22, icon(Material.ARROW, ChatColor.YELLOW + "Back",
-                List.of(ChatColor.GRAY + "Return to the main factory menu.")));
+        inventory.setItem(22, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-back", "뒤로"),
+                List.of(gray("gui-back-main", "메인 공장 메뉴로 돌아갑니다."))));
         player.openInventory(inventory);
     }
 
@@ -224,7 +228,7 @@ public final class FactoryGuiService {
         }
         int safePage = Math.max(0, page);
         FactoryGuiHolder holder = new FactoryGuiHolder("storage", island.islandUuid(), null, safePage);
-        Inventory inventory = Bukkit.createInventory(holder, 54, title("storage-title", "Factory Storage"));
+        Inventory inventory = Bukkit.createInventory(holder, 54, title("storage-title", "공장 저장고"));
         holder.inventory(inventory);
         VirtualInventory virtual = storage.islandStorageIfAllowed(island.islandUuid()).orElse(null);
         if (virtual == null) {
@@ -242,17 +246,25 @@ public final class FactoryGuiService {
             return;
         }
         holder.action(45, "storage_page", String.valueOf(Math.max(0, safePage - 1)));
-        inventory.setItem(45, icon(Material.ARROW, ChatColor.YELLOW + "Previous Page",
-                List.of(ChatColor.GRAY + "Page " + (safePage + 1) + " of " + (maxPage + 1))));
-        inventory.setItem(49, icon(Material.BOOK, ChatColor.AQUA + "Storage",
-                List.of(ChatColor.GRAY + "Used: " + virtual.used() + "/" + virtual.capacity(),
-                        ChatColor.GRAY + "Page: " + (safePage + 1) + "/" + (maxPage + 1))));
+        inventory.setItem(45, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-previous-page", "이전 페이지"),
+                List.of(gray("gui-page-of", "페이지 {page}/{pages}", Map.of(
+                        "page", String.valueOf(safePage + 1),
+                        "pages", String.valueOf(maxPage + 1))))));
+        inventory.setItem(49, icon(Material.BOOK, line(ChatColor.AQUA, "gui-storage", "저장고"),
+                List.of(gray("gui-used-capacity", "사용량: {used}/{capacity}", Map.of(
+                                "used", String.valueOf(virtual.used()),
+                                "capacity", String.valueOf(virtual.capacity()))),
+                        gray("gui-page", "페이지: {page}/{pages}", Map.of(
+                                "page", String.valueOf(safePage + 1),
+                                "pages", String.valueOf(maxPage + 1))))));
         holder.action(53, "deposit_hand", "");
-        inventory.setItem(53, icon(Material.HOPPER, ChatColor.GREEN + "Deposit Hand",
-                List.of(ChatColor.GRAY + "Move the item stack in your hand into storage.")));
+        inventory.setItem(53, icon(Material.HOPPER, line(ChatColor.GREEN, "gui-deposit-hand", "손에 든 아이템 입고"),
+                List.of(gray("gui-deposit-hand-lore", "손에 든 아이템 묶음을 저장고에 넣습니다."))));
         holder.action(52, "storage_page", String.valueOf(Math.min(maxPage, safePage + 1)));
-        inventory.setItem(52, icon(Material.ARROW, ChatColor.YELLOW + "Next Page",
-                List.of(ChatColor.GRAY + "Page " + (safePage + 1) + " of " + (maxPage + 1))));
+        inventory.setItem(52, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-next-page", "다음 페이지"),
+                List.of(gray("gui-page-of", "페이지 {page}/{pages}", Map.of(
+                        "page", String.valueOf(safePage + 1),
+                        "pages", String.valueOf(maxPage + 1))))));
         int slot = 0;
         int start = safePage * pageSize;
         int end = Math.min(entries.size(), start + pageSize);
@@ -262,8 +274,8 @@ public final class FactoryGuiService {
             ItemStack stack = new ItemStack(item.material(), (int) Math.max(1, Math.min(64, entry.getValue())));
             ItemMeta meta = stack.getItemMeta();
             meta.setDisplayName(ChatColor.WHITE + item.displayName());
-            meta.setLore(List.of(ChatColor.GRAY + "Amount: " + entry.getValue(),
-                    ChatColor.DARK_GRAY + "Left: 64, Right: 1, Shift: max"));
+            meta.setLore(List.of(gray("gui-amount", "수량: {amount}", Map.of("amount", String.valueOf(entry.getValue()))),
+                    line(ChatColor.DARK_GRAY, "gui-click-hint-stack", "좌클릭: 64, 우클릭: 1, Shift: 최대")));
             stack.setItemMeta(meta);
             holder.action(slot, "withdraw_storage", entry.getKey());
             inventory.setItem(slot++, stack);
@@ -280,38 +292,42 @@ public final class FactoryGuiService {
             return;
         }
         FactoryGuiHolder holder = new FactoryGuiHolder("machine", machine.islandUuid(), machine.machineId());
-        Inventory inventory = Bukkit.createInventory(holder, 27, title("machine-title", "Machine"));
+        Inventory inventory = Bukkit.createInventory(holder, 27, title("machine-title", "기계"));
         holder.inventory(inventory);
         MachineDefinition definition = definitions.get(machine.typeId()).orElse(null);
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Type: " + machine.typeId());
+        lore.add(gray("gui-type", "유형: {type}", Map.of("type", machine.typeId())));
         lore.add(messages.raw("machine-status", Map.of("status", machine.status().name())));
-        lore.add(ChatColor.GRAY + "Wear: " + NumberFormatter.ratio(machine.wear()));
-        lore.add(ChatColor.GRAY + "Island: " + machine.islandUuid());
+        lore.add(gray("gui-wear", "마모도: {wear}", Map.of("wear", NumberFormatter.ratio(machine.wear()))));
+        lore.add(gray("gui-island", "섬: {island}", Map.of("island", machine.islandUuid().toString())));
         if (definition != null) {
-            lore.add(ChatColor.GRAY + "Power: " + definition.powerConsumption());
-            lore.add(ChatColor.GRAY + "Tier: " + definition.tier());
+            lore.add(gray("gui-machine-power", "전력: {power}", Map.of("power", String.valueOf(definition.powerConsumption()))));
+            lore.add(gray("gui-tier", "티어: {tier}", Map.of("tier", String.valueOf(definition.tier()))));
             if (!definition.requiredUnlocks().isEmpty()) {
-                lore.add(ChatColor.GRAY + "Requires: " + definition.requiredUnlocks());
+                lore.add(gray("gui-requires", "필요 조건: {requires}", Map.of("requires", definition.requiredUnlocks().toString())));
             }
             if (definition.isLogistics()) {
-                lore.add(ChatColor.GRAY + "Throughput: " + definition.logisticsThroughput() + "/cycle");
+                lore.add(gray("gui-throughput", "처리량: {throughput}/cycle", Map.of("throughput", String.valueOf(definition.logisticsThroughput()))));
             }
         }
         storage.get(machine.inputInventoryId()).ifPresent(input -> {
-            lore.add(ChatColor.GRAY + "Input: " + input.used() + "/" + input.capacity());
+            lore.add(gray("gui-input", "입력: {used}/{capacity}", Map.of(
+                    "used", String.valueOf(input.used()),
+                    "capacity", String.valueOf(input.capacity()))));
             if (!input.items().isEmpty()) {
-                lore.add(ChatColor.DARK_GRAY + "In: " + input.items());
+                lore.add(line(ChatColor.DARK_GRAY, "gui-input-items", "입력품: {items}", Map.of("items", input.items().toString())));
             }
         });
         storage.get(machine.outputInventoryId()).ifPresent(output -> {
-            lore.add(ChatColor.GRAY + "Output: " + output.used() + "/" + output.capacity());
+            lore.add(gray("gui-output", "출력: {used}/{capacity}", Map.of(
+                    "used", String.valueOf(output.used()),
+                    "capacity", String.valueOf(output.capacity()))));
             if (!output.items().isEmpty()) {
-                lore.add(ChatColor.DARK_GRAY + "Out: " + output.items());
+                lore.add(line(ChatColor.DARK_GRAY, "gui-output-items", "출력품: {items}", Map.of("items", output.items().toString())));
             }
         });
         if (machine.linkedResourceNodeId() != null) {
-            lore.add(ChatColor.GRAY + "Node: " + machine.linkedResourceNodeId());
+            lore.add(gray("gui-node", "노드: {node}", Map.of("node", machine.linkedResourceNodeId().toString())));
         }
         ItemStack info = new ItemStack(definition == null ? Material.STONE : definition.material());
         ItemMeta meta = info.getItemMeta();
@@ -321,17 +337,17 @@ public final class FactoryGuiService {
         inventory.setItem(13, info);
         addRecipeSelectors(holder, inventory, machine, definition);
         holder.action(20, "deposit_machine_input", "");
-        inventory.setItem(20, icon(Material.HOPPER, ChatColor.GREEN + "Deposit Input",
-                List.of(ChatColor.GRAY + "Move the item stack in your hand into this machine input.")));
+        inventory.setItem(20, icon(Material.HOPPER, line(ChatColor.GREEN, "gui-deposit-input", "입력 입고"),
+                List.of(gray("gui-deposit-input-lore", "손에 든 아이템 묶음을 이 기계 입력 저장소에 넣습니다."))));
         holder.action(22, "withdraw_machine_input", "");
-        inventory.setItem(22, icon(Material.DROPPER, ChatColor.YELLOW + "Take Input",
-                List.of(ChatColor.GRAY + "Withdraw up to one stack from this machine input.")));
+        inventory.setItem(22, icon(Material.DROPPER, line(ChatColor.YELLOW, "gui-take-input", "입력 출고"),
+                List.of(gray("gui-take-input-lore", "이 기계 입력 저장소에서 최대 한 묶음을 꺼냅니다."))));
         holder.action(24, "withdraw_machine_output", "");
-        inventory.setItem(24, icon(Material.CHEST, ChatColor.AQUA + "Take Output",
-                List.of(ChatColor.GRAY + "Withdraw up to one stack from this machine output.")));
+        inventory.setItem(24, icon(Material.CHEST, line(ChatColor.AQUA, "gui-take-output", "출력 출고"),
+                List.of(gray("gui-take-output-lore", "이 기계 출력 저장소에서 최대 한 묶음을 꺼냅니다."))));
         holder.action(26, "reclaim_machine", "");
-        inventory.setItem(26, icon(Material.BARRIER, ChatColor.RED + "Reclaim Machine",
-                List.of(ChatColor.GRAY + "Return buffers to island storage and pick up this machine.")));
+        inventory.setItem(26, icon(Material.BARRIER, line(ChatColor.RED, "gui-reclaim-machine", "기계 회수"),
+                List.of(gray("gui-reclaim-machine-lore", "버퍼를 섬 저장고로 돌려보내고 기계를 회수합니다."))));
         player.openInventory(inventory);
     }
 
@@ -354,8 +370,8 @@ public final class FactoryGuiService {
         String selectedRecipeId = machine.selectedRecipeId();
         holder.action(0, "select_recipe", "");
         inventory.setItem(0, icon(selectedRecipeId == null || selectedRecipeId.isBlank() ? Material.LIME_DYE : Material.GRAY_DYE,
-                ChatColor.AQUA + "Auto Recipe",
-                List.of(ChatColor.GRAY + "Machine chooses the first runnable recipe.")));
+                line(ChatColor.AQUA, "gui-auto-recipe", "자동 레시피"),
+                List.of(gray("gui-auto-recipe-lore", "실행 가능한 첫 레시피를 기계가 선택합니다."))));
         int slot = 1;
         for (RecipeDefinition recipe : availableRecipes) {
             if (slot >= 9) {
@@ -365,9 +381,9 @@ public final class FactoryGuiService {
             holder.action(slot, "select_recipe", recipe.id());
             inventory.setItem(slot++, icon(selected ? Material.LIME_DYE : Material.PAPER,
                     (selected ? ChatColor.GREEN : ChatColor.YELLOW) + recipe.id(),
-                    List.of(ChatColor.GRAY + "Input: " + recipe.input(),
-                            ChatColor.GRAY + "Output: " + recipe.output(),
-                            ChatColor.GRAY + "Byproducts: " + recipe.byproducts())));
+                    List.of(gray("gui-recipe-input", "입력: {input}", Map.of("input", recipe.input().toString())),
+                            gray("gui-recipe-output", "출력: {output}", Map.of("output", recipe.output().toString())),
+                            gray("gui-recipe-byproducts", "부산물: {byproducts}", Map.of("byproducts", recipe.byproducts().toString())))));
         }
     }
 
@@ -386,12 +402,12 @@ public final class FactoryGuiService {
             return;
         }
         FactoryGuiHolder holder = new FactoryGuiHolder("contracts", island.islandUuid(), null);
-        Inventory inventory = Bukkit.createInventory(holder, 27, title("contracts-title", "Factory Contracts"));
+        Inventory inventory = Bukkit.createInventory(holder, 27, title("contracts-title", "공장 계약"));
         holder.inventory(inventory);
         int slot = 10;
         List<ContractService.ActiveContract> activeContracts = contracts.activeContracts(island);
-        inventory.setItem(4, icon(Material.CLOCK, ChatColor.AQUA + "Active Contracts",
-                List.of(ChatColor.GRAY + "Open: " + activeContracts.size())));
+        inventory.setItem(4, icon(Material.CLOCK, line(ChatColor.AQUA, "gui-active-contracts", "진행 중인 계약"),
+                List.of(gray("gui-open-count", "진행 중: {count}", Map.of("count", String.valueOf(activeContracts.size()))))));
         for (ContractService.ActiveContract active : activeContracts) {
             if (slot >= 17) {
                 break;
@@ -399,29 +415,32 @@ public final class FactoryGuiService {
             ContractTemplate template = active.template();
             holder.action(slot, "contract_detail", active.contractId().toString());
             inventory.setItem(slot++, icon(Material.WRITABLE_BOOK, ChatColor.GOLD + template.id(),
-                    List.of(ChatColor.GRAY + "Type: " + template.type(),
-                            ChatColor.GRAY + "Tier: " + template.tier(),
-                            ChatColor.GRAY + "Required: " + template.required(),
-                            ChatColor.GRAY + "Money: " + template.money(),
-                            ChatColor.GRAY + "Research: " + template.research(),
-                            ChatColor.GRAY + "Reputation: " + template.reputation(),
-                            ChatColor.GRAY + "Items: " + template.itemRewards(),
-                            ChatColor.GRAY + "Expires: " + NumberFormatter.minutesUntil(active.expiresAt(), System.currentTimeMillis()) + "m")));
+                    List.of(gray("gui-type", "유형: {type}", Map.of("type", template.type())),
+                            gray("gui-tier", "티어: {tier}", Map.of("tier", String.valueOf(template.tier()))),
+                            gray("gui-required", "필요: {required}", Map.of("required", template.required().toString())),
+                            gray("gui-money", "돈: {money}", Map.of("money", String.valueOf(template.money()))),
+                            gray("gui-research-value", "연구: {research}", Map.of("research", String.valueOf(template.research()))),
+                            gray("gui-reputation-value", "평판: {reputation}", Map.of("reputation", String.valueOf(template.reputation()))),
+                            gray("gui-items", "아이템: {items}", Map.of("items", template.itemRewards().toString())),
+                            gray("gui-expires", "만료: {minutes}분", Map.of("minutes", String.valueOf(NumberFormatter.minutesUntil(active.expiresAt(), System.currentTimeMillis())))))));
         }
         if (enabled("maintenance")) {
             contracts.emergencyTemplate().ifPresent(template -> {
-            int used = contracts.emergencyUsedToday(island);
-            boolean available = island.maintenanceDebt() > 0 && used < contracts.emergencyDailyLimit();
-            if (available) {
-                holder.action(22, "complete_emergency", "");
-            }
-            inventory.setItem(22, icon(available ? Material.FIREWORK_STAR : Material.GRAY_DYE,
-                    (available ? ChatColor.RED : ChatColor.GRAY) + "Emergency Contract",
-                    List.of(ChatColor.GRAY + "Debt: " + island.maintenanceDebt(),
-                            ChatColor.GRAY + "Used today: " + used + "/" + contracts.emergencyDailyLimit(),
-                            ChatColor.GRAY + "Required: " + template.required(),
-                            ChatColor.GRAY + "Debt relief: " + template.debtRelief(),
-                            ChatColor.GRAY + (available ? "Click to deliver from island storage." : "No emergency delivery is available."))));
+                int used = contracts.emergencyUsedToday(island);
+                boolean available = island.maintenanceDebt() > 0 && used < contracts.emergencyDailyLimit();
+                if (available) {
+                    holder.action(22, "complete_emergency", "");
+                }
+                inventory.setItem(22, icon(available ? Material.FIREWORK_STAR : Material.GRAY_DYE,
+                        line(available ? ChatColor.RED : ChatColor.GRAY, "gui-emergency-contract", "비상 계약"),
+                        List.of(gray("gui-debt", "부채: {debt}", Map.of("debt", String.valueOf(island.maintenanceDebt()))),
+                                gray("gui-used-today", "오늘 사용: {used}/{limit}", Map.of(
+                                        "used", String.valueOf(used),
+                                        "limit", String.valueOf(contracts.emergencyDailyLimit()))),
+                                gray("gui-required", "필요: {required}", Map.of("required", template.required().toString())),
+                                gray("gui-debt-relief", "부채 상환: {amount}", Map.of("amount", String.valueOf(template.debtRelief()))),
+                                gray(available ? "gui-emergency-deliver" : "gui-emergency-unavailable",
+                                        available ? "섬 저장고에서 납품합니다." : "사용 가능한 비상 납품이 없습니다."))));
             });
         }
         player.openInventory(inventory);
@@ -451,54 +470,58 @@ public final class FactoryGuiService {
         }
         ContractTemplate template = active.template();
         FactoryGuiHolder holder = new FactoryGuiHolder("contract-detail", island.islandUuid(), null);
-        Inventory inventory = Bukkit.createInventory(holder, 27, title("contract-detail-title", "Contract Detail"));
+        Inventory inventory = Bukkit.createInventory(holder, 27, title("contract-detail-title", "계약 상세"));
         holder.inventory(inventory);
         inventory.setItem(4, icon(Material.WRITABLE_BOOK, ChatColor.GOLD + template.id(),
-                List.of(ChatColor.GRAY + "Type: " + template.type(),
-                        ChatColor.GRAY + "Tier: " + template.tier(),
-                        ChatColor.GRAY + "Expires: " + NumberFormatter.minutesUntil(active.expiresAt(), System.currentTimeMillis()) + "m")));
-        inventory.setItem(11, icon(Material.CHEST, ChatColor.YELLOW + "Required Items",
-                contractLines(template.required(), "No items required.")));
-        inventory.setItem(15, icon(Material.EMERALD, ChatColor.GREEN + "Rewards",
+                List.of(gray("gui-type", "유형: {type}", Map.of("type", template.type())),
+                        gray("gui-tier", "티어: {tier}", Map.of("tier", String.valueOf(template.tier()))),
+                        gray("gui-expires", "만료: {minutes}분", Map.of("minutes", String.valueOf(NumberFormatter.minutesUntil(active.expiresAt(), System.currentTimeMillis())))))));
+        inventory.setItem(11, icon(Material.CHEST, line(ChatColor.YELLOW, "gui-required-items", "필요 아이템"),
+                contractLines(template.required())));
+        inventory.setItem(15, icon(Material.EMERALD, line(ChatColor.GREEN, "gui-rewards", "보상"),
                 rewardLines(template)));
         holder.action(18, "contracts_back", "");
-        inventory.setItem(18, icon(Material.ARROW, ChatColor.YELLOW + "Back",
-                List.of(ChatColor.GRAY + "Return to contract list.")));
+        inventory.setItem(18, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-back", "뒤로"),
+                List.of(gray("gui-back-contracts", "계약 목록으로 돌아갑니다."))));
         holder.action(22, "complete_contract", active.contractId().toString());
-        inventory.setItem(22, icon(Material.LIME_DYE, ChatColor.GREEN + "Deliver Contract",
-                List.of(ChatColor.GRAY + "Submit required items from island storage.")));
+        inventory.setItem(22, icon(Material.LIME_DYE, line(ChatColor.GREEN, "gui-deliver-contract", "계약 납품"),
+                List.of(gray("gui-deliver-contract-lore", "섬 저장고에서 필요 아이템을 제출합니다."))));
         player.openInventory(inventory);
     }
 
-    private List<String> contractLines(Map<String, Long> values, String emptyText) {
+    private List<String> contractLines(Map<String, Long> values) {
         if (values.isEmpty()) {
-            return List.of(ChatColor.GRAY + emptyText);
+            return List.of(gray("gui-no-items-required", "필요 아이템 없음"));
         }
         return values.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .map(entry -> ChatColor.GRAY + entry.getKey() + " x" + entry.getValue())
+                .map(entry -> gray("gui-item-amount", "{item} x{amount}", Map.of(
+                        "item", entry.getKey(),
+                        "amount", String.valueOf(entry.getValue()))))
                 .toList();
     }
 
     private List<String> rewardLines(ContractTemplate template) {
         List<String> lore = new ArrayList<>();
         if (template.money() > 0) {
-            lore.add(ChatColor.GRAY + "Money: " + template.money());
+            lore.add(gray("gui-money", "돈: {money}", Map.of("money", String.valueOf(template.money()))));
         }
         if (template.research() > 0) {
-            lore.add(ChatColor.GRAY + "Research: " + template.research());
+            lore.add(gray("gui-research-value", "연구: {research}", Map.of("research", String.valueOf(template.research()))));
         }
         if (template.reputation() > 0) {
-            lore.add(ChatColor.GRAY + "Reputation: " + template.reputation());
+            lore.add(gray("gui-reputation-value", "평판: {reputation}", Map.of("reputation", String.valueOf(template.reputation()))));
         }
         if (enabled("maintenance") && template.debtRelief() > 0) {
-            lore.add(ChatColor.GRAY + "Debt relief: " + template.debtRelief());
+            lore.add(gray("gui-debt-relief", "부채 상환: {amount}", Map.of("amount", String.valueOf(template.debtRelief()))));
         }
         template.itemRewards().entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .map(entry -> ChatColor.GRAY + entry.getKey() + " x" + entry.getValue())
+                .map(entry -> gray("gui-item-amount", "{item} x{amount}", Map.of(
+                        "item", entry.getKey(),
+                        "amount", String.valueOf(entry.getValue()))))
                 .forEach(lore::add);
-        return lore.isEmpty() ? List.of(ChatColor.GRAY + "No rewards.") : lore;
+        return lore.isEmpty() ? List.of(gray("gui-no-rewards", "보상 없음")) : lore;
     }
 
     public void openMarket(Player player, FactoryIsland island, MarketService market) {
@@ -521,7 +544,7 @@ public final class FactoryGuiService {
         }
         int safePage = Math.max(0, page);
         FactoryGuiHolder holder = new FactoryGuiHolder("market", island.islandUuid(), null, safePage);
-        Inventory inventory = Bukkit.createInventory(holder, 54, title("market-title", "Factory Market"));
+        Inventory inventory = Bukkit.createInventory(holder, 54, title("market-title", "공장 시장"));
         holder.inventory(inventory);
         List<String> itemIds = market.prices().keySet().stream().sorted().toList();
         int pageSize = 45;
@@ -531,13 +554,17 @@ public final class FactoryGuiService {
             return;
         }
         holder.action(45, "market_page", String.valueOf(Math.max(0, safePage - 1)));
-        inventory.setItem(45, icon(Material.ARROW, ChatColor.YELLOW + "Previous Page",
-                List.of(ChatColor.GRAY + "Page " + (safePage + 1) + " of " + (maxPage + 1))));
-        inventory.setItem(49, icon(Material.EMERALD, ChatColor.GREEN + "Market",
+        inventory.setItem(45, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-previous-page", "이전 페이지"),
+                List.of(gray("gui-page-of", "페이지 {page}/{pages}", Map.of(
+                        "page", String.valueOf(safePage + 1),
+                        "pages", String.valueOf(maxPage + 1))))));
+        inventory.setItem(49, icon(Material.EMERALD, line(ChatColor.GREEN, "gui-market", "시장"),
                 marketLore(island, safePage, maxPage)));
         holder.action(52, "market_page", String.valueOf(Math.min(maxPage, safePage + 1)));
-        inventory.setItem(52, icon(Material.ARROW, ChatColor.YELLOW + "Next Page",
-                List.of(ChatColor.GRAY + "Page " + (safePage + 1) + " of " + (maxPage + 1))));
+        inventory.setItem(52, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-next-page", "다음 페이지"),
+                List.of(gray("gui-page-of", "페이지 {page}/{pages}", Map.of(
+                        "page", String.valueOf(safePage + 1),
+                        "pages", String.valueOf(maxPage + 1))))));
         int start = safePage * pageSize;
         int end = Math.min(itemIds.size(), start + pageSize);
         int slot = 0;
@@ -550,9 +577,9 @@ public final class FactoryGuiService {
             ItemStack stack = new ItemStack(item.material(), (int) Math.max(1, Math.min(64, stored)));
             ItemMeta meta = stack.getItemMeta();
             meta.setDisplayName((stored > 0 ? ChatColor.GREEN : ChatColor.GRAY) + item.displayName());
-            meta.setLore(List.of(ChatColor.GRAY + "Stored: " + stored,
-                    ChatColor.GRAY + "Current price: " + unitPrice,
-                    ChatColor.DARK_GRAY + "Left: 64, Right: 1, Shift: max"));
+            meta.setLore(List.of(gray("gui-stored", "보유량: {stored}", Map.of("stored", String.valueOf(stored))),
+                    gray("gui-current-price", "현재 가격: {price}", Map.of("price", String.valueOf(unitPrice))),
+                    line(ChatColor.DARK_GRAY, "gui-click-hint-stack", "좌클릭: 64, 우클릭: 1, Shift: 최대")));
             stack.setItemMeta(meta);
             holder.action(slot, "sell_market_item", itemId);
             inventory.setItem(slot++, stack);
@@ -570,7 +597,7 @@ public final class FactoryGuiService {
             return;
         }
         FactoryGuiHolder holder = new FactoryGuiHolder("research", island.islandUuid(), null);
-        Inventory inventory = Bukkit.createInventory(holder, 27, title("research-title", "Factory Research"));
+        Inventory inventory = Bukkit.createInventory(holder, 27, title("research-title", "공장 연구"));
         holder.inventory(inventory);
         int slot = 10;
         Set<String> unlockedIds = research.unlocked(island);
@@ -585,21 +612,31 @@ public final class FactoryGuiService {
             boolean hasReputation = island.reputation() >= unlock.requiredReputation();
             boolean hasMoney = balance >= unlock.moneyCost();
             boolean ready = !unlocked && hasRequiredUnlocks && hasPoints && hasReputation && hasMoney;
+            String prerequisiteStatus = text(hasRequiredUnlocks ? "gui-ready" : "gui-missing",
+                    hasRequiredUnlocks ? "준비됨" : "부족");
+            String unlockStatus = text(unlocked ? "gui-unlocked" : (ready ? "gui-ready" : "gui-locked"),
+                    unlocked ? "해금됨" : (ready ? "준비됨" : "잠김"));
             holder.action(slot, "unlock_research", unlock.id());
             inventory.setItem(slot++, icon(unlocked ? Material.LIME_DYE : (ready ? Material.YELLOW_DYE : Material.GRAY_DYE),
                     (unlocked ? ChatColor.GREEN : ChatColor.YELLOW) + unlock.displayName(),
-                    List.of(ChatColor.GRAY + "Research: " + island.researchPoints() + "/" + unlock.cost(),
-                            ChatColor.GRAY + "Money: " + NumberFormatter.whole(balance) + "/" + unlock.moneyCost(),
-                            ChatColor.GRAY + "Reputation: " + island.reputation() + "/" + unlock.requiredReputation(),
-                            ChatColor.GRAY + "Id: " + unlock.id(),
-                            ChatColor.GRAY + "Requires: " + unlock.requires(),
-                            ChatColor.GRAY + "Unlocks: " + unlock.grants(),
-                            ChatColor.GRAY + "Factory tier: " + (unlock.factoryTier() > 0 ? unlock.factoryTier() : "-"),
-                            ChatColor.GRAY + "Prerequisites: " + (hasRequiredUnlocks ? "Ready" : "Missing"),
-                            ChatColor.GRAY + "Status: " + (unlocked ? "Unlocked" : (ready ? "Ready" : "Locked")))));
+                    List.of(gray("gui-research-progress", "연구: {current}/{required}", Map.of(
+                                    "current", String.valueOf(island.researchPoints()),
+                                    "required", String.valueOf(unlock.cost()))),
+                            gray("gui-money-progress", "돈: {current}/{required}", Map.of(
+                                    "current", NumberFormatter.whole(balance),
+                                    "required", String.valueOf(unlock.moneyCost()))),
+                            gray("gui-reputation-progress", "평판: {current}/{required}", Map.of(
+                                    "current", String.valueOf(island.reputation()),
+                                    "required", String.valueOf(unlock.requiredReputation()))),
+                            gray("gui-id", "식별자: {id}", Map.of("id", unlock.id())),
+                            gray("gui-requires", "필요 조건: {requires}", Map.of("requires", unlock.requires().toString())),
+                            gray("gui-unlocks", "해금: {unlocks}", Map.of("unlocks", unlock.grants().toString())),
+                            gray("gui-factory-tier", "공장 티어: {tier}", Map.of("tier", unlock.factoryTier() > 0 ? String.valueOf(unlock.factoryTier()) : "-")),
+                            gray("gui-prerequisites", "선행 조건: {status}", Map.of("status", prerequisiteStatus)),
+                            gray("gui-status", "상태: {status}", Map.of("status", unlockStatus)))));
         }
-        inventory.setItem(22, icon(Material.EXPERIENCE_BOTTLE, ChatColor.AQUA + "Research Points",
-                List.of(ChatColor.GRAY + String.valueOf(island.researchPoints()))));
+        inventory.setItem(22, icon(Material.EXPERIENCE_BOTTLE, line(ChatColor.AQUA, "gui-research-points", "연구 포인트"),
+                List.of(gray("gui-points", "포인트: {points}", Map.of("points", String.valueOf(island.researchPoints()))))));
         player.openInventory(inventory);
     }
 
@@ -613,7 +650,40 @@ public final class FactoryGuiService {
     }
 
     private String title(String key, String fallback) {
+        return text(key, fallback);
+    }
+
+    private String gray(String key, String fallback) {
+        return line(ChatColor.GRAY, key, fallback);
+    }
+
+    private String gray(String key, String fallback, Map<String, String> placeholders) {
+        return line(ChatColor.GRAY, key, fallback, placeholders);
+    }
+
+    private String line(ChatColor color, String key, String fallback) {
+        return color + text(key, fallback);
+    }
+
+    private String line(ChatColor color, String key, String fallback, Map<String, String> placeholders) {
+        return color + text(key, fallback, placeholders);
+    }
+
+    private String text(String key, String fallback) {
         String value = messages.raw(key);
         return value.equals(key) ? fallback : value;
+    }
+
+    private String text(String key, String fallback, Map<String, String> placeholders) {
+        String value = messages.raw(key, placeholders);
+        return value.equals(key) ? replace(fallback, placeholders) : value;
+    }
+
+    private String replace(String text, Map<String, String> placeholders) {
+        String replaced = text;
+        for (Map.Entry<String, String> entry : placeholders.entrySet()) {
+            replaced = replaced.replace("{" + entry.getKey() + "}", entry.getValue());
+        }
+        return replaced;
     }
 }

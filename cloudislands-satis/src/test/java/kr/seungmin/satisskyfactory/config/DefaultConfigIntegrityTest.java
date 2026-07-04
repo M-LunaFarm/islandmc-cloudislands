@@ -7,10 +7,16 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -505,6 +511,59 @@ class DefaultConfigIntegrityTest {
         }
 
         assertTrue(issues.isEmpty(), String.join("\n", issues));
+    }
+
+    @Test
+    void factoryGuiDisplayTextUsesMessagesAndLocalizedDefaults() throws IOException {
+        YamlConfiguration messages = load("messages.yml");
+        String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/gui/FactoryGuiService.java"));
+
+        Set<String> referencedGuiKeys = new HashSet<>();
+        Matcher matcher = Pattern.compile("\"(gui-[a-z0-9-]+)\"").matcher(source);
+        while (matcher.find()) {
+            referencedGuiKeys.add(matcher.group(1));
+        }
+        assertFalse(referencedGuiKeys.isEmpty(), "FactoryGuiService should reference GUI message keys");
+        for (String key : referencedGuiKeys) {
+            assertTrue(messages.isString("messages." + key), "missing GUI message key " + key);
+        }
+
+        for (String key : keys(messages, "messages")) {
+            if (key.startsWith("gui-")) {
+                assertLocalizedTitle(messages, "messages." + key);
+            }
+        }
+
+        List<String> forbiddenPhrases = List.of(
+                "\"Factory Admin\"",
+                "\"Factory Storage\"",
+                "\"Factory Contracts\"",
+                "\"Contract Detail\"",
+                "\"Factory Market\"",
+                "\"Factory Research\"",
+                "\"Previous Page\"",
+                "\"Next Page\"",
+                "\"Deposit Hand\"",
+                "\"Deposit Input\"",
+                "\"Take Input\"",
+                "\"Take Output\"",
+                "\"Reclaim Machine\"",
+                "\"Auto Recipe\"",
+                "\"Active Contracts\"",
+                "\"Emergency Contract\"",
+                "\"Required Items\"",
+                "\"Deliver Contract\"",
+                "\"Research Points\"",
+                "\"Machine features are disabled.\"",
+                "\"Left: 64, Right: 1, Shift: max\"",
+                "\"No rewards.\"",
+                "\"No items required.\""
+        );
+        for (String phrase : forbiddenPhrases) {
+            assertFalse(source.contains(phrase), "FactoryGuiService still contains hardcoded GUI phrase " + phrase);
+        }
+        assertFalse(Pattern.compile("ChatColor\\.[A-Z_]+ \\+ \"[A-Z][A-Za-z ]").matcher(source).find(),
+                "FactoryGuiService should not build player-facing English labels with ChatColor");
     }
 
     @Test

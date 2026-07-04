@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -347,10 +348,8 @@ class SatisAddonIntegrationPolicyTest {
                 "maintenance-task-registration-repair-gui-and-operator-write-paths",
                 SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("maintenance")
         );
-        assertEquals(
-                "migration-scan-dryrun-import-rollback-and-legacy-provider-check-commands",
-                SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().get("migration")
-        );
+        assertFalse(SatisAddonIntegrationPolicy.featureGates().contains("migration"));
+        assertFalse(SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().containsKey("migration"));
         for (String featureGate : SatisAddonIntegrationPolicy.featureGates()) {
             assertTrue(
                     SatisAddonIntegrationPolicy.featureOffRuntimeBlocks().containsKey(featureGate),
