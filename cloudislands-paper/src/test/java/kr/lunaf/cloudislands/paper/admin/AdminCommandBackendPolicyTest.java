@@ -339,10 +339,12 @@ class AdminCommandBackendPolicyTest {
         String adminSurface = source + "\n" + catalog;
 
         assertTrue(adminSurface.contains("ciadmin block-values search <query> [limit]"), "Block value search must be listed for operators");
-        assertTrue(catalog.contains("List.of(\"list\", \"search\", \"set\")"), "Block value tab completion must include search");
+        assertTrue(catalog.contains("List.of(\"list\", \"search\", \"set\", \"reload\")"), "Block value tab completion must include search and reload");
         assertTrue(source.contains("args[1].equalsIgnoreCase(\"search\")"), "Block value search must route explicitly");
+        assertTrue(source.contains("args[1].equalsIgnoreCase(\"reload\")"), "Block value reload must route explicitly");
         assertTrue(source.contains("blockValueSearchMessage(String query, List<BlockValueView> values, int limit)"), "Block value search must render a focused result");
         assertTrue(source.contains("coreApiClient.blockValues().list().thenApply(values -> blockValueSearchMessage"), "Block value search must reuse the typed Core block value query");
+        assertTrue(source.contains("coreApiClient.adminMaintenance().reload().thenApply(result -> maintenanceMessage(\"Block values reload\", result))"), "Block value reload must use the typed Core maintenance reload boundary");
     }
 
     @Test

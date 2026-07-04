@@ -135,6 +135,7 @@ class IslandCommandCatalogTest {
                 "ciadmin jobs cancel <jobId>",
                 "ciadmin integrations",
                 "ciadmin support-bundle create",
+                "ciadmin block-values reload",
                 "ciadmin template seticon <name> <material>",
                 "ciadmin template setcost <name> <amount>",
                 "ciadmin template setpermission <name> <permission>",
@@ -190,6 +191,8 @@ class IslandCommandCatalogTest {
         assertTrue(actions.contains("coreApiClient.adminStorage().status()"), "Dashboard/doctor must include typed storage context");
         assertTrue(actions.contains("coreApiClient.adminAudit().list(5)"), "Doctor must include recent audit context");
         assertTrue(actions.contains("coreApiClient.adminSupportBundle().create()"), "Support bundle must use typed Core support-bundle client");
+        assertTrue(dispatcher.contains("args[1].equalsIgnoreCase(\"reload\")"), "Velocity block-values reload must route explicitly");
+        assertTrue(actions.contains("coreApiClient.adminMaintenance().reload()"), "Velocity block-values reload must use the typed Core maintenance reload boundary");
         assertTrue(actions.contains("writeSupportBundle"), "Velocity support bundle must write a local operator artifact");
         assertTrue(actions.contains("cloudislands-velocity-support-bundle-") && actions.contains(".zip"), "Velocity support bundle must be packaged as a zip bundle");
         assertTrue(actions.contains("core-support-bundle.json"), "Velocity support bundle must include the redacted Core bundle");

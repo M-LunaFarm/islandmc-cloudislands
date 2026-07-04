@@ -181,6 +181,10 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             adminActions.setBlockValue(player, args[2], args[3], parseLongOrZero(args[4]), parseLongOrZero(args[5]));
             return;
         }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("block-values") && args[1].equalsIgnoreCase("reload")) {
+            adminActions.reload(player);
+            return;
+        }
         if (args.length >= 1 && args[0].equalsIgnoreCase("upgrade-rules")) {
             playerProgression.listUpgradeRules(player);
             return;

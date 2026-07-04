@@ -1298,10 +1298,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Block value set", coreApiClient.blockValueCommands().set(actorUuid, args[2], args[3], number(args[4], 0L), number(args[5], 0L)).thenApply(result -> blockValueActionMessage("Block value set", args[2], result)));
             return true;
         }
+        if (args[1].equalsIgnoreCase("reload")) {
+            run(sender, "Block values reload", coreApiClient.adminMaintenance().reload().thenApply(result -> maintenanceMessage("Block values reload", result)));
+            return true;
+        }
         sendCommandUsage(sender, List.of(
             "/ciadmin block-values list",
             "/ciadmin block-values search <query> [limit]",
-            "/ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>"
+            "/ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",
+            "/ciadmin block-values reload"
         ));
         return true;
     }

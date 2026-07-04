@@ -192,6 +192,7 @@ public final class IslandCommandCatalog {
             "ciadmin rankings worth [limit]",
             "ciadmin block-values list",
             "ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",
+            "ciadmin block-values reload",
             "ciadmin upgrade-rules",
             "ciadmin template list",
             "ciadmin template upsert <id> <name> [enabled|disabled] [minNodeVersion]",
