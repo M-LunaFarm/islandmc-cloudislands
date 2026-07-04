@@ -18,6 +18,7 @@ class SatisRuntimeWriteGatePolicyTest {
         assertTrue(source.contains("this::dataWritesEnabled"));
         assertTrue(source.contains("dirtySaves.inventoryWriteGate(this::inventoryDataWritesEnabled);"));
         assertTrue(source.contains("dirtySaves.islandRuntimeAuthority(this::dirtySaveRuntimeAuthorityReady);"));
+        assertTrue(source.contains("event.cellZ(), event.fencingToken())"), "migration and restore events must refresh the runtime owner fence token");
     }
 
     @Test

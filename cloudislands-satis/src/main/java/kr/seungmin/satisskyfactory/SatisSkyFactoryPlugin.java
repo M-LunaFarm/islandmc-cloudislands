@@ -3130,7 +3130,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     @Override
     public void onIslandMigrated(IslandMigratedEvent event) {
         if (runtimeAuthority != null) {
-            runtimeAuthority.activated(event.islandId(), event.toNode(), event.worldName(), event.cellX(), event.cellZ());
+            runtimeAuthority.activated(event.islandId(), event.toNode(), event.worldName(), event.cellX(), event.cellZ(), event.fencingToken());
         }
         String operation = "migrated:" + lifecycleNode(event.fromNode()) + "->" + lifecycleNode(event.toNode()) + lifecycleWorldToken(event.worldName()) + lifecycleCellToken(event.cellX(), event.cellZ()) + lifecyclePlacementToken(event.placementSource());
         runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
@@ -3168,6 +3168,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandRestored(kr.lunaf.cloudislands.api.event.IslandRestoredEvent event) {
+        if (runtimeAuthority != null) {
+            runtimeAuthority.activated(event.islandId(), event.targetNode(), event.worldName(), event.cellX(), event.cellZ(), event.fencingToken());
+        }
         String operation = "restored:" + lifecycleNode(event.targetNode())
                 + lifecycleWorldToken(event.worldName())
                 + lifecycleCellToken(event.cellX(), event.cellZ())
