@@ -95,6 +95,7 @@ import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
+import kr.seungmin.satisskyfactory.runtime.SatisAddonRegistration;
 import kr.seungmin.satisskyfactory.runtime.SatisCommandRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisFeatureRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisListenerRuntime;
@@ -167,6 +168,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean addonRuntimeEnabled;
     private boolean cloudIslandsApiMissing;
     private boolean commandsRegistered;
+    private final SatisAddonRegistration addonRegistration = new SatisAddonRegistration(this);
     private final SatisCommandRuntime commandRuntime = new SatisCommandRuntime(this);
     private final SatisFeatureRuntime featureRuntime = new SatisFeatureRuntime();
     private final SatisListenerRuntime listenerRuntime = new SatisListenerRuntime(this);
@@ -1607,50 +1609,33 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private boolean registerCloudIslandsAddon() {
         cloudIslandsApiMissing = false;
-        cloudIslandsApi = resolveCloudIslandsApi();
+        cloudIslandsApi = addonRegistration.resolveApi();
         if (cloudIslandsApi == null) {
             getLogger().severe("CloudIslands API is required. Satis will not start a standalone island runtime.");
-            addonRuntimeEnabled = false;
-            effectiveFeatures = Map.of();
-            addonStateReportingWasEnabled = false;
-            cloudIslandsApiMissing = true;
+            applyAddonRegistrationState(SatisAddonRegistration.missingApiState());
             return false;
         }
         try {
             CloudIslandsAddonSnapshot addon = register(cloudIslandsApi).join();
-            var activationDecision = SatisAddonIntegrationPolicy.activationDecision(
+            SatisAddonRegistration.RuntimeState state = SatisAddonRegistration.registeredState(
+                    addon,
                     configuredIntegrationMode(),
                     enabledByDefault(),
-                    addon.enabled(),
-                    true,
-                    true
+                    addonStateReportingEnabled(addon)
             );
-            addonRuntimeEnabled = activationDecision.runtimeEnabled();
-            effectiveFeatures = addon.features();
-            addonStateReportingWasEnabled = addonStateReportingEnabled(addon);
-            getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled() + " activation=" + activationDecision.runtimeEnabled());
-            if (!activationDecision.runtimeEnabled()) {
-                getLogger().info("CloudIslands Satis runtime blocked by activation policy: " + activationDecision.blockReason());
-                effectiveFeatures = Map.of();
+            applyAddonRegistrationState(state);
+            getLogger().info("Registered CloudIslands addon: " + addon.id() + " enabled=" + addon.enabled() + " activation=" + state.runtimeEnabled());
+            if (!state.runtimeEnabled()) {
+                getLogger().info("CloudIslands Satis runtime blocked by activation policy: " + state.blockReason());
                 return false;
             }
         } catch (RuntimeException exception) {
             getLogger().warning("Failed to register CloudIslands Satis addon: " + exception.getMessage());
             cloudIslandsApi = null;
-            addonRuntimeEnabled = false;
-            effectiveFeatures = Map.of();
-            addonStateReportingWasEnabled = false;
+            applyAddonRegistrationState(SatisAddonRegistration.failedRegistrationState());
             return false;
         }
         return true;
-    }
-
-    private CloudIslandsApi resolveCloudIslandsApi() {
-        CloudIslandsApi api = CloudIslandsAddonBootstrap.findApi().orElse(null);
-        if (api != null) {
-            return api;
-        }
-        return getServer().getServicesManager().load(CloudIslandsApi.class);
     }
 
     private boolean requiresCloudIslandsApi() {
@@ -1660,9 +1645,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void unregisterCloudIslandsAddon() {
         CloudIslandsApi api = cloudIslandsApi;
         cloudIslandsApi = null;
-        addonRuntimeEnabled = false;
-        effectiveFeatures = Map.of();
-        addonStateReportingWasEnabled = false;
+        applyAddonRegistrationState(SatisAddonRegistration.unregisteredState());
         if (api == null) {
             return;
         }
@@ -1671,6 +1654,13 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         } catch (RuntimeException exception) {
             getLogger().warning("Failed to unregister CloudIslands Satis addon: " + exception.getMessage());
         }
+    }
+
+    private void applyAddonRegistrationState(SatisAddonRegistration.RuntimeState state) {
+        addonRuntimeEnabled = state.runtimeEnabled();
+        cloudIslandsApiMissing = state.cloudIslandsApiMissing();
+        effectiveFeatures = state.features();
+        addonStateReportingWasEnabled = state.addonStateReportingEnabled();
     }
 
     @Override
