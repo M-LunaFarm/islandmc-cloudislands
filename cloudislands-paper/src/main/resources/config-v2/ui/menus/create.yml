@@ -31,5 +31,5 @@ items:
     action: open
 actions:
   open: island.create.open
-  create: island.create
+  create: island.create.prepare
   back: island.main.open

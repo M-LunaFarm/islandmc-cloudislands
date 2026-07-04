@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.paper.application.IslandCreationUseCase.IslandActio
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.DangerousGuiActionPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
+import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandDangerMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -66,6 +67,14 @@ final class IslandLifecycleCommandHandler {
             createIsland(player, islandCreate.templateId());
             return true;
         }
+        if (action instanceof GuiAction.IslandCreatePrepare createPrepare) {
+            IslandCreateMenu.openConfirm(plugin, coreApiClient, player, createPrepare.templateId(), runtime.messagesFor(player));
+            return true;
+        }
+        if (action instanceof GuiAction.IslandCreateLocked locked) {
+            runtime.message(player, runtime.routeMessage("create-menu-locked", "이 템플릿을 사용할 권한이 없습니다.") + (locked.requiredPermission().isBlank() ? "" : " " + locked.requiredPermission()));
+            return true;
+        }
         if (action instanceof GuiAction.DangerResetConfirm resetConfirm) {
             if (dangerConfirmed(player, resetConfirm.operation(), resetConfirm.token(), click, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN)) {
                 resetIsland(player, resetConfirm.reason());
@@ -111,16 +120,23 @@ final class IslandLifecycleCommandHandler {
     }
 
     private void createIsland(Player player, String templateId) {
+        MessageRenderer messages = runtime.messagesFor(player);
+        GuiStateMenus.openSaving(plugin, player, messages, runtime.routeMessage("create-progress-title", "섬 생성 요청 중"));
         creationUseCase.create(player.getUniqueId(), templateId, runtime::mutate)
             .thenAccept(result -> {
                 if (!result.accepted()) {
-                    runtime.message(player, runtime.playerCodeMessage(result.code(), "섬 생성을 시작하지 못했습니다."));
+                    String detail = runtime.playerCodeMessage(result.code(), "섬 생성을 시작하지 못했습니다.");
+                    GuiStateMenus.openError(plugin, player, messages, runtime.routeMessage("create-progress-title", "섬 생성 요청 중"), detail, "island.create.open", "island.create.open");
+                    runtime.message(player, detail);
                     return;
                 }
-                runtime.message(player, "섬 생성을 시작했습니다.");
+                GuiStateMenus.openSuccess(plugin, player, messages, runtime.routeMessage("create-progress-title", "섬 생성 요청 중"), runtime.routeMessage("create-progress-started", "섬 생성을 시작했습니다."), "island.main.open");
+                runtime.message(player, runtime.routeMessage("create-progress-started", "섬 생성을 시작했습니다."));
             })
             .exceptionally(error -> {
-                runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 생성을 시작하지 못했습니다."));
+                String detail = runtime.coreWriteFailureMessage(error, "섬 생성을 시작하지 못했습니다.");
+                GuiStateMenus.openError(plugin, player, messages, runtime.routeMessage("create-progress-title", "섬 생성 요청 중"), detail, "island.create.open", "island.create.open");
+                runtime.message(player, detail);
                 return null;
             });
     }

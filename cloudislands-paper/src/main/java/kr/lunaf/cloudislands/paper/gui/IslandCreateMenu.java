@@ -2,10 +2,12 @@ package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.TemplateView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -21,11 +23,30 @@ public final class IslandCreateMenu implements Listener {
         "config-v2/ui/menus/create.yml",
         new GuiMenuDefinition("island.create", 3, TITLE_KEY, java.util.Map.of(
             "open", "island.create.open",
-            "create", "island.create",
+            "create", "island.create.prepare",
             "back", "island.main.open"
         ))
     );
     private static final String MENU_ID = MENU.id();
+    private static final GuiMenuDefinition CONFIRM_MENU = new GuiMenuDefinition(
+        "island.create.confirm",
+        3,
+        "create-confirm-menu-title",
+        List.of(
+            ".........",
+            "...C.B...",
+            "........."
+        ),
+        Map.of(
+            "C", new GuiMenuDefinition.MenuItem("C", "EMERALD_BLOCK", "create-confirm-name", "섬 생성 확인", "", "", List.of(), List.of(), Map.of(), "confirm"),
+            "B", new GuiMenuDefinition.MenuItem("B", "OAK_DOOR", "create-confirm-back-name", "템플릿 다시 선택", "", "", List.of(), List.of(), Map.of(), "back")
+        ),
+        Map.of(
+            "confirm", "island.create",
+            "back", "island.create.open"
+        )
+    );
+    private static final String CONFIRM_MENU_ID = CONFIRM_MENU.id();
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -57,9 +78,35 @@ public final class IslandCreateMenu implements Listener {
             });
     }
 
+    public static void openConfirm(Plugin plugin, CoreApiClient client, Player player, String templateId, MessageRenderer messages) {
+        String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
+        GuiSession session = GuiSessions.begin(player, CONFIRM_MENU_ID);
+        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, "create-confirm-menu-title", "섬 생성 확인"));
+        PaperGuiViews.templates(client)
+            .thenAccept(templates -> {
+                TemplateView template = templates.stream()
+                    .filter(candidate -> candidate.id().equalsIgnoreCase(normalizedTemplateId))
+                    .findFirst()
+                    .orElse(null);
+                if (template == null || !template.enabled()) {
+                    GuiStateMenus.openError(plugin, player, session, messages, message(messages, "create-confirm-menu-title", "섬 생성 확인"), message(messages, "create-confirm-template-unavailable", "사용할 수 없는 템플릿입니다."), "island.create.open", "island.create.open");
+                    return;
+                }
+                if (!canUse(player, template)) {
+                    GuiStateMenus.openError(plugin, player, session, messages, message(messages, "create-confirm-menu-title", "섬 생성 확인"), message(messages, "create-menu-locked", "이 템플릿을 사용할 권한이 없습니다."), "island.create.open", "island.create.open");
+                    return;
+                }
+                openConfirmSync(plugin, player, session, template, messages);
+            })
+            .exceptionally(error -> {
+                GuiStateMenus.openError(plugin, player, session, messages, message(messages, "create-confirm-menu-title", "섬 생성 확인"), message(messages, "create-menu-load-failed", "섬 템플릿을 불러오지 못했습니다."), "island.create.open", "island.create.open");
+                return null;
+            });
+    }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!GuiItems.menuClick(event, MENU_ID)) {
+        if (!GuiItems.menuClick(event, MENU_ID) && !GuiItems.menuClick(event, CONFIRM_MENU_ID)) {
             return;
         }
         event.setCancelled(true);
@@ -79,7 +126,6 @@ public final class IslandCreateMenu implements Listener {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             List<TemplateView> enabled = templates.stream()
                 .filter(TemplateView::enabled)
-                .filter(template -> template.requiredPermission().isBlank() || player.hasPermission(template.requiredPermission()))
                 .limit(14)
                 .toList();
             if (enabled.isEmpty()) {
@@ -87,14 +133,43 @@ public final class IslandCreateMenu implements Listener {
             }
             List<Integer> templateSlots = GuiMenuRenderer.slots(MENU, "_");
             for (int index = 0; index < enabled.size() && index < templateSlots.size(); index++) {
-                inventory.setItem(templateSlots.get(index), item(enabled.get(index), messages));
+                inventory.setItem(templateSlots.get(index), item(enabled.get(index), messages, canUse(player, enabled.get(index))));
             }
             player.openInventory(inventory);
         });
     }
 
-    private static ItemStack item(TemplateView template, MessageRenderer messages) {
+    private static void openConfirmSync(Plugin plugin, Player player, GuiSession session, TemplateView template, MessageRenderer messages) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
+            Inventory inventory = GuiMenuRenderer.render(CONFIRM_MENU, session, messages, "섬 생성 확인", item -> true);
+            List<String> lore = templateLore(template, messages);
+            lore.add(message(messages, "create-confirm-click", "클릭하면 이 템플릿으로 섬 생성을 요청합니다."));
+            CONFIRM_MENU.item("C")
+                .ifPresent(item -> GuiMenuRenderer.slots(CONFIRM_MENU, "C").forEach(slot -> inventory.setItem(slot, GuiMenuRenderer.item(CONFIRM_MENU, item, messages, template.displayName().isBlank() ? template.id() : template.displayName(), Map.of("templateId", template.id()), lore))));
+            player.openInventory(inventory);
+        });
+    }
+
+    private static ItemStack item(TemplateView template, MessageRenderer messages, boolean allowed) {
         String displayName = template.displayName().isBlank() ? template.id() : template.displayName();
+        List<String> lore = templateLore(template, messages);
+        if (allowed) {
+            lore.add(message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
+            return MENU.item("_")
+                .map(item -> GuiMenuRenderer.item(MENU, item, messages, displayName, Map.of("templateId", template.id()), lore))
+                .orElseThrow(() -> new IllegalStateException("Missing create menu template item symbol _"));
+        }
+        lore.add(message(messages, "create-menu-locked", "이 템플릿을 사용할 권한이 없습니다."));
+        return GuiItems.action(
+            Material.BARRIER,
+            displayName,
+            "island.create.locked",
+            Map.of("templateId", template.id(), "requiredPermission", template.requiredPermission()),
+            lore.toArray(String[]::new)
+        );
+    }
+
+    private static List<String> templateLore(TemplateView template, MessageRenderer messages) {
         List<String> lore = new ArrayList<>();
         if (!template.description().isBlank()) {
             lore.add(template.description());
@@ -115,10 +190,11 @@ public final class IslandCreateMenu implements Listener {
         if (!template.bundleStoragePath().isBlank()) {
             lore.add(message(messages, "create-menu-bundle-ready", "번들: 준비됨"));
         }
-        lore.add(message(messages, "create-menu-click-to-create", "클릭하면 이 템플릿으로 섬을 생성합니다."));
-        return MENU.item("_")
-            .map(item -> GuiMenuRenderer.item(MENU, item, messages, displayName, java.util.Map.of("templateId", template.id()), lore))
-            .orElseThrow(() -> new IllegalStateException("Missing create menu template item symbol _"));
+        return lore;
+    }
+
+    private static boolean canUse(Player player, TemplateView template) {
+        return template.requiredPermission().isBlank() || player.hasPermission(template.requiredPermission());
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

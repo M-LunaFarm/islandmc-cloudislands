@@ -133,11 +133,17 @@ class GuiActionParserTest {
     @Test
     void parsesCreateAndDangerConfirmActionsIntoTypedActions() {
         GuiAction create = GuiActionParser.parse("island.create", Map.of("templateId", " starter ")).orElseThrow();
+        GuiAction createPrepare = GuiActionParser.parse("island.create.prepare", Map.of("templateId", " starter ")).orElseThrow();
+        GuiAction createLocked = GuiActionParser.parse("island.create.locked", Map.of("templateId", " premium ", "requiredPermission", " cloudislands.template.premium ")).orElseThrow();
         GuiAction reset = GuiActionParser.parse(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION, DangerousGuiActionPolicy.resetConfirmationData()).orElseThrow();
         GuiAction delete = GuiActionParser.parse(DangerousGuiActionPolicy.DELETE_CONFIRM_ACTION, DangerousGuiActionPolicy.deleteConfirmationData()).orElseThrow();
 
         assertTrue(create instanceof GuiAction.IslandCreate);
         assertEquals(Map.of("templateId", "starter"), create.data());
+        assertTrue(createPrepare instanceof GuiAction.IslandCreatePrepare);
+        assertEquals(Map.of("templateId", "starter"), createPrepare.data());
+        assertTrue(createLocked instanceof GuiAction.IslandCreateLocked);
+        assertEquals(Map.of("templateId", "premium", "requiredPermission", "cloudislands.template.premium"), createLocked.data());
         assertTrue(reset instanceof GuiAction.DangerResetConfirm);
         assertEquals(DangerousGuiActionPolicy.resetConfirmationData(), reset.data());
         assertTrue(delete instanceof GuiAction.DangerDeleteConfirm);

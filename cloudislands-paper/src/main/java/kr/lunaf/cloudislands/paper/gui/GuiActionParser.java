@@ -56,7 +56,9 @@ public final class GuiActionParser {
         "island.biome.show",
         "island.chat.open",
         "island.create",
+        "island.create.locked",
         "island.create.open",
+        "island.create.prepare",
         "island.danger.delete.confirm",
         "island.danger.delete.prepare",
         "island.danger.open",
@@ -301,6 +303,13 @@ public final class GuiActionParser {
                 case "island.help.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.HELP_OPEN));
                 case "island.create" -> Optional.of(new GuiAction.IslandCreate(
                     safeData.getOrDefault("templateId", "default")
+                ));
+                case "island.create.prepare" -> Optional.of(new GuiAction.IslandCreatePrepare(
+                    safeData.getOrDefault("templateId", "default")
+                ));
+                case "island.create.locked" -> Optional.of(new GuiAction.IslandCreateLocked(
+                    safeData.getOrDefault("templateId", "default"),
+                    safeData.getOrDefault("requiredPermission", "")
                 ));
                 case "island.bank.deposit", "island.bank.withdraw" -> Optional.of(new GuiAction.BankAmount(
                     safeAction.equals("island.bank.deposit") ? GuiAction.BankAmountType.DEPOSIT : GuiAction.BankAmountType.WITHDRAW,

@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.ReviewSet, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.PublicWarpCategory, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RankingList, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.BiomeSet, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.VisitTarget, GuiAction.ReviewSet, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.WarpTeleport, GuiAction.PublicWarpCategory, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RankingList, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.UpgradePurchase, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -375,6 +375,39 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         @Override
         public Map<String, String> data() {
             return Map.of("templateId", templateId);
+        }
+    }
+
+    record IslandCreatePrepare(String templateId) implements GuiAction {
+        public IslandCreatePrepare {
+            templateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return "island.create.prepare";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("templateId", templateId);
+        }
+    }
+
+    record IslandCreateLocked(String templateId, String requiredPermission) implements GuiAction {
+        public IslandCreateLocked {
+            templateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
+            requiredPermission = requiredPermission == null ? "" : requiredPermission.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return "island.create.locked";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("templateId", templateId, "requiredPermission", requiredPermission);
         }
     }
 
