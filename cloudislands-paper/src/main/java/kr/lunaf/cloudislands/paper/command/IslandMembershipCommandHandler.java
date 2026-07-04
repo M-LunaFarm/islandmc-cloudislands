@@ -87,6 +87,14 @@ final class IslandMembershipCommandHandler {
             removeIslandMember(player, args[1]);
             return true;
         }
+        if (subcommand.equals("leave") || subcommand.equals("탈퇴")) {
+            if (args.length < 2 || !confirmed(args[1])) {
+                runtime.message(player, runtime.routeMessage("member-leave-confirm-required", "섬 탈퇴는 /섬 탈퇴 confirm 으로 확인해주세요."));
+                return true;
+            }
+            leaveIsland(player);
+            return true;
+        }
         if (subcommand.equals("trust") || subcommand.equals("신뢰") || subcommand.equals("coop") || subcommand.equals("co-op") || subcommand.equals("협동")) {
             if (args.length < 2) {
                 runtime.message(player, runtime.routeMessage("input-trust-player-required", "신뢰할 플레이어를 입력해주세요."));
@@ -475,6 +483,18 @@ final class IslandMembershipCommandHandler {
         });
     }
 
+    private void leaveIsland(Player player) {
+        runtime.currentIsland(player, "섬 안에서만 탈퇴할 수 있습니다.").ifPresent(islandId -> {
+            UUID playerUuid = player.getUniqueId();
+            runtime.mutateIdempotent("island.member.leave", () -> memberManagement.removeMemberAction(islandId, playerUuid, playerUuid))
+                .thenAccept(result -> runtime.message(player, memberActionMessage("섬 탈퇴", playerUuid, result)))
+                .exceptionally(error -> {
+                    runtime.message(player, "섬 탈퇴를 처리하지 못했습니다.");
+                    return null;
+                });
+        });
+    }
+
     private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage) {
         runtime.currentIsland(player, "섬 안에서만 멤버 역할을 변경할 수 있습니다.").ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
@@ -497,6 +517,10 @@ final class IslandMembershipCommandHandler {
         String safePermission = permission == null || permission.isBlank() ? "<permission>" : permission.trim();
         String safeAllowed = allowedValue == null || allowedValue.isBlank() ? "<허용|거부>" : allowedValue.trim();
         return "/섬 권한예외 " + safeTarget + " " + safePermission + " " + safeAllowed;
+    }
+
+    private static boolean confirmed(String value) {
+        return value != null && (value.equalsIgnoreCase("confirm") || value.equalsIgnoreCase("confirmed") || value.equals("확인"));
     }
 
     private void trustIslandMemberTemporary(Player player, String target, String duration) {

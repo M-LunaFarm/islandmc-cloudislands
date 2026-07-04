@@ -21,12 +21,15 @@ class IslandCommandCatalogTest {
                 "섬 홈 <이름>",
                 "섬 셋홈",
                 "섬 셋홈 <이름>",
+                "섬 setteleport [name]",
+                "섬 setspawnpoint [name]",
                 "섬 방문 <플레이어>",
                 "섬 방문 <섬이름>",
                 "섬 랜덤방문",
                 "섬 초대 <player>",
                 "섬 초대수락 <플레이어|섬|inviteId>",
                 "섬 초대거절 <플레이어|섬|inviteId>",
+                "섬 탈퇴 confirm",
                 "섬 멤버",
                 "섬 추방 <player>",
                 "섬 승급 <player>",
@@ -52,9 +55,15 @@ class IslandCommandCatalogTest {
                 "섬 워프비공개 <name>",
                 "섬 레벨",
                 "섬 가치",
+                "섬 values [limit]",
+                "섬 블록상세 [limit]",
                 "섬 랭킹 [limit]",
+                "섬 top [limit]",
+                "섬 leaderboard [limit]",
+                "섬 ratings [limit]",
                 "섬 레벨계산",
                 "섬 업그레이드",
+                "섬 rankup <upgradeKey>",
                 "섬 크기",
                 "섬 바이옴",
                 "섬 바이옴 <바이옴>",
@@ -125,6 +134,7 @@ class IslandCommandCatalogTest {
         assertTrue(support.contains("confirm") && support.contains("확인"), "Velocity destructive confirmation must support English and Korean confirmation tokens");
         assertTrue(indexOf(player, "sendDestructiveConfirmationRequired(player, \"섬 리셋 [reason] confirm\")") < indexOf(player, "playerRouting.resetIsland("), "player reset must require confirmation before Core mutation");
         assertTrue(indexOf(player, "sendDestructiveConfirmationRequired(player, \"섬 삭제 confirm\")") < indexOf(player, "playerRouting.deleteIsland("), "player delete must require confirmation before Core mutation");
+        assertTrue(indexOf(player, "sendDestructiveConfirmationRequired(player, \"섬 탈퇴 confirm\")") < indexOf(player, "playerMembership.leaveIsland("), "player leave must require confirmation before Core mutation");
         assertTrue(indexOf(admin, "sendDestructiveConfirmationRequired(player, \"ciadmin island delete <island> confirm\")") < indexOf(admin, "adminActions.adminDeleteIslandTarget("), "admin delete must require confirmation before Core mutation");
         assertTrue(suggestions.contains("List.of(\"confirm\", \"확인\")"), "Velocity suggestions must expose destructive confirmation tokens");
     }

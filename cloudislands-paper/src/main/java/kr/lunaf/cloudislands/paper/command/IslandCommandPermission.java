@@ -13,7 +13,7 @@ public enum IslandCommandPermission {
     DELETE("cloudislands.island.delete", "delete", "삭제"),
     RESET("cloudislands.island.reset", "reset", "리셋", "danger", "위험작업"),
     HOME("cloudislands.island.home", "home", "homes", "home-menu", "home-list", "홈", "홈관리", "홈목록"),
-    SET_HOME("cloudislands.island.sethome", "sethome", "셋홈"),
+    SET_HOME("cloudislands.island.sethome", "sethome", "setteleport", "setspawnpoint", "셋홈"),
     WARP("cloudislands.island.warp", "warp", "warps", "warp-menu", "warp-list", "public-warps", "publicwarplist", "visit", "randomvisit", "random-visit", "public-islands", "publicislands", "visit-list", "방문", "랜덤방문", "공개섬", "방문목록", "워프", "워프관리", "워프목록", "공개워프목록"),
     SET_WARP("cloudislands.island.setwarp", "setwarp", "delwarp", "deletewarp", "warp-public", "publicwarp", "warp-private", "privatewarp", "워프설정", "워프삭제", "워프공개", "워프비공개"),
     BANK("cloudislands.island.bank", "bank", "bank-balance", "은행", "은행잔액"),
@@ -25,6 +25,7 @@ public enum IslandCommandPermission {
     MEMBERS("cloudislands.island.members", "members", "member-menu", "member-list", "roles", "role-menu", "role-list", "invites", "invite-menu", "invite-list", "bans", "ban-menu", "ban-list", "banlist", "멤버", "멤버관리", "멤버목록", "역할", "역할목록", "초대목록", "밴목록"),
     INVITE("cloudislands.island.invite", "invite", "초대"),
     INVITE_RESPOND("cloudislands.island.invite.respond", "accept", "invite-accept", "decline", "invite-decline", "초대수락", "초대거절"),
+    LEAVE("cloudislands.island.leave", "leave", "탈퇴"),
     KICK("cloudislands.island.kick", "kick", "remove-member", "untrust", "ban", "unban", "pardon", "kickvisitor", "추방", "신뢰해제", "밴", "밴해제", "방문자추방"),
     TRUST("cloudislands.island.trust", "trust", "coop", "co-op", "신뢰", "협동"),
     PROMOTE("cloudislands.island.promote", "promote", "setrole", "role-set", "role-upsert", "role-edit", "role-reset", "승급", "역할설정", "역할편집", "역할초기화"),
@@ -34,9 +35,9 @@ public enum IslandCommandPermission {
     PERMISSIONS("cloudislands.island.permissions", "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "permission-exception", "permission-exception-list", "권한", "권한설정", "권한목록", "권한예외", "권한예외목록"),
     SNAPSHOT("cloudislands.island.snapshot", "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "snapshot-create", "snapshot-request", "스냅샷", "스냅샷목록", "스냅샷생성"),
     RESTORE("cloudislands.island.restore", "snapshot-restore", "restore", "rollback", "스냅샷복원", "복원", "롤백"),
-    REVIEW("cloudislands.island.review", "reviews", "review-list", "rate", "review", "delete-review", "review-delete", "reviewdel", "reviewrank", "평가", "후기", "후기삭제", "평가삭제", "평가목록", "후기목록", "평가랭킹", "후기랭킹"),
+    REVIEW("cloudislands.island.review", "reviews", "review-list", "ratings", "rate", "review", "delete-review", "review-delete", "reviewdel", "reviewrank", "평가", "후기", "후기삭제", "평가삭제", "평가목록", "후기목록", "평가랭킹", "후기랭킹"),
     VISITOR_STATS("cloudislands.island.visitor-stats", "visitor-stats", "visitorstats", "visitors", "방문통계", "방문자통계"),
-    PROGRESSION("cloudislands.island.progression", "level", "worth", "value", "blocks", "block-details", "block-counts", "rank", "ranking", "rank-list", "worthrank", "valuerank", "levelcalc", "recalculate", "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "buyupgrade", "upgrade-buy", "generator", "generator-info", "mission", "missions", "mission-menu", "mission-list", "challenge", "challenges", "challenge-menu", "challenge-list", "레벨", "가치", "블록상세", "블록목록", "랭킹", "랭킹목록", "가치랭킹", "레벨계산", "업그레이드", "업그레이드목록", "업그레이드구매", "생성기", "생성기정보", "미션", "미션목록", "챌린지", "챌린지목록"),
+    PROGRESSION("cloudislands.island.progression", "level", "worth", "value", "values", "blocks", "block-details", "block-counts", "rank", "ranking", "top", "leaderboard", "rank-list", "worthrank", "valuerank", "levelcalc", "recalculate", "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "buyupgrade", "upgrade-buy", "rankup", "generator", "generator-info", "mission", "missions", "mission-menu", "mission-list", "challenge", "challenges", "challenge-menu", "challenge-list", "레벨", "가치", "블록상세", "블록목록", "랭킹", "랭킹목록", "가치랭킹", "레벨계산", "업그레이드", "업그레이드목록", "업그레이드구매", "생성기", "생성기정보", "미션", "미션목록", "챌린지", "챌린지목록"),
     CHAT("cloudislands.island.chat", "chat", "chat-menu", "islandchat", "teamchat", "team-chat", "log", "logs", "log-menu", "log-list", "채팅", "팀채팅", "로그", "로그목록"),
     ENVIRONMENT("cloudislands.island.environment", "biome", "biome-menu", "biome-info", "size", "border", "border-ui", "border-color", "border-visible", "limit", "limits", "limit-menu", "limit-list", "setlimit", "limit-set", "hoppers", "spawners", "entities", "redstone", "바이옴", "바이옴정보", "크기", "경계", "경계표시", "경계색상", "제한", "제한목록", "제한설정", "호퍼", "스포너", "엔티티", "레드스톤");
 

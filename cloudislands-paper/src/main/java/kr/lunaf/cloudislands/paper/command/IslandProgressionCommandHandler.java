@@ -63,11 +63,11 @@ final class IslandProgressionCommandHandler {
             showWorth(player);
             return true;
         }
-        if (subcommand.equals("blocks") || subcommand.equals("block-details") || subcommand.equals("block-counts") || subcommand.equals("블록상세") || subcommand.equals("블록목록")) {
+        if (subcommand.equals("blocks") || subcommand.equals("values") || subcommand.equals("block-details") || subcommand.equals("block-counts") || subcommand.equals("블록상세") || subcommand.equals("블록목록")) {
             showBlockDetails(player, args.length > 1 ? integer(args[1], 10) : 10);
             return true;
         }
-        if (subcommand.equals("rank") || subcommand.equals("ranking") || subcommand.equals("랭킹")) {
+        if (subcommand.equals("rank") || subcommand.equals("ranking") || subcommand.equals("top") || subcommand.equals("leaderboard") || subcommand.equals("랭킹")) {
             if (args.length > 1) {
                 boolean reviewRanking = reviewRankingArg(args[1]);
                 if (reviewRanking) {
@@ -118,7 +118,7 @@ final class IslandProgressionCommandHandler {
             listUpgrades(player);
             return true;
         }
-        if (subcommand.equals("buyupgrade") || subcommand.equals("upgrade-buy") || subcommand.equals("업그레이드구매")) {
+        if (subcommand.equals("buyupgrade") || subcommand.equals("upgrade-buy") || subcommand.equals("rankup") || subcommand.equals("업그레이드구매")) {
             if (args.length < 2) {
                 runtime.message(player, runtime.routeMessage("input-upgrade-key-required", "구매할 업그레이드 키를 입력해주세요."));
                 return true;

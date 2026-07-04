@@ -37,7 +37,7 @@ final class IslandHomeWarpCommandHandler {
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
-        if (subcommand.equals("sethome") || subcommand.equals("셋홈")) {
+        if (subcommand.equals("sethome") || subcommand.equals("setteleport") || subcommand.equals("setspawnpoint") || subcommand.equals("셋홈")) {
             setHome(player, args.length > 1 ? args[1] : "default");
             return true;
         }

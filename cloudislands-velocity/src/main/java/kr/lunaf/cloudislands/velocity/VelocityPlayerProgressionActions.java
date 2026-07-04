@@ -3,10 +3,17 @@ package kr.lunaf.cloudislands.velocity;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 
 import com.velocitypowered.api.proxy.Player;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailView;
+import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailsView;
+import kr.lunaf.cloudislands.coreclient.ReviewListView;
+import kr.lunaf.cloudislands.coreclient.ReviewView;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityPlayerProgressionActions extends VelocityActionSupport {
@@ -20,6 +27,22 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
 
     public void showWorthRanking(Player player, int limit) {
         sendTextResult(player, coreApiClient.progression().topWorth(Math.max(1, Math.min(limit, 100))).thenApply(rankings -> islandMessages.rankingList("가치 랭킹", rankings)), "가치 랭킹을 불러오지 못했습니다.");
+    }
+
+    public void showBlockDetails(Player player, UUID islandId, int limit) {
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
+        withResolvedIsland(player, islandId, "블록 상세를 확인할 섬을 찾지 못했습니다.", "섬 블록 상세를 불러오지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.progression().blockDetails(resolved, Math.max(1, Math.min(limit, 100))).thenApply(VelocityPlayerProgressionActions::blockDetailsMessage), "섬 블록 상세를 불러오지 못했습니다."));
+    }
+
+    public void listReviews(Player player, UUID islandId, int limit) {
+        if (rejectExplicitIslandLookup(player, islandId)) {
+            return;
+        }
+        withResolvedIsland(player, islandId, "후기를 확인할 섬을 찾지 못했습니다.", "섬 후기를 불러오지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.navigation().listReviews(resolved, Math.max(1, Math.min(limit, 100))).thenApply(VelocityPlayerProgressionActions::reviewListMessage), "섬 후기를 불러오지 못했습니다."));
     }
 
     public void recalculateLevel(Player player, UUID islandId) {
@@ -119,5 +142,47 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
     public void restore(Player player, UUID islandId, long snapshotNo) {
         withResolvedIsland(player, islandId, "복원할 섬을 찾지 못했습니다.", "섬 복원을 요청하지 못했습니다.",
             resolved -> sendTextResult(player, coreApiClient.snapshotCommands().restoreSnapshot(resolved, snapshotNo).thenApply(result -> snapshotMessages.snapshotAction("섬 복원", result)), "섬 복원을 요청하지 못했습니다."));
+    }
+
+    private static String blockDetailsMessage(ProgressionBlockDetailsView details) {
+        if (details == null || details.blocks().isEmpty()) {
+            return "섬 블록 기록이 없습니다.";
+        }
+        List<String> entries = new ArrayList<>();
+        for (ProgressionBlockDetailView block : details.blocks()) {
+            if (entries.size() >= 20) {
+                break;
+            }
+            entries.add(block.materialKey() + " x" + block.count() + " 가치=" + block.totalWorth() + " 점수=" + block.levelPoints());
+        }
+        return entries.isEmpty()
+            ? "섬 블록 기록이 없습니다."
+            : "섬 블록상세: 총가치=" + details.totalWorth() + " 총점수=" + details.totalLevelPoints() + " | " + String.join(" | ", entries);
+    }
+
+    private static String reviewListMessage(ReviewListView reviews) {
+        if (reviews == null || reviews.reviews().isEmpty()) {
+            return "섬 후기가 없습니다.";
+        }
+        String average = String.format(Locale.ROOT, "%.2f", reviews.average());
+        List<String> entries = reviews.reviews().stream()
+            .limit(10)
+            .filter(review -> !review.reviewerUuid().isBlank())
+            .map(VelocityPlayerProgressionActions::reviewEntry)
+            .toList();
+        return entries.isEmpty()
+            ? "섬 후기가 없습니다."
+            : "섬 후기: 평균=" + average + " 개수=" + reviews.count() + " | " + String.join(" | ", entries);
+    }
+
+    private static String reviewEntry(ReviewView review) {
+        return compactId(review.reviewerUuid()) + "=" + review.rating() + "/5" + (review.comment().isBlank() ? "" : " " + review.comment());
+    }
+
+    private static String compactId(String value) {
+        if (value == null || value.length() <= 8) {
+            return value == null ? "" : value;
+        }
+        return value.substring(0, 8);
     }
 }

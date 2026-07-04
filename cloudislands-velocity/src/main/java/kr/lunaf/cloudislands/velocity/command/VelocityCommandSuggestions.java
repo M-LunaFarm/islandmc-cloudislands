@@ -19,8 +19,11 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("public-warps") || first.equals("공개워프")) {
                 addLiteralSuggestions(matches, args[1], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
             }
-            if (first.equals("rank") || first.equals("ranking") || first.equals("rank-list") || first.equals("랭킹") || first.equals("랭킹목록")) {
+            if (first.equals("rank") || first.equals("ranking") || first.equals("top") || first.equals("leaderboard") || first.equals("rank-list") || first.equals("랭킹") || first.equals("랭킹목록")) {
                 addLiteralSuggestions(matches, args[1], List.of("worth", "value", "10", "25", "50"));
+            }
+            if (first.equals("values") || first.equals("blocks") || first.equals("block-details") || first.equals("block-counts") || first.equals("ratings") || first.equals("reviews") || first.equals("review-list") || first.equals("블록상세") || first.equals("블록목록")) {
+                addLiteralSuggestions(matches, args[1], List.of("10", "25", "50", "100"));
             }
             if (first.equals("limits") || first.equals("limit") || first.equals("limit-list") || first.equals("setlimit") || first.equals("limit-set") || first.equals("제한") || first.equals("제한목록") || first.equals("제한설정")) {
                 addLiteralSuggestions(matches, args[1], List.of("HOPPER", "SPAWNER", "ENTITY", "REDSTONE"));
@@ -40,7 +43,7 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             if (first.equals("biome") || first.equals("biome-menu") || first.equals("biome-info") || first.equals("바이옴") || first.equals("바이옴정보")) {
                 addLiteralSuggestions(matches, args[1], List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"));
             }
-            if (first.equals("delete") || first.equals("삭제") || first.equals("reset") || first.equals("리셋")) {
+            if (first.equals("delete") || first.equals("삭제") || first.equals("reset") || first.equals("리셋") || first.equals("leave") || first.equals("탈퇴")) {
                 addLiteralSuggestions(matches, args[1], List.of("confirm", "확인"));
             }
             if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("setrole") || first.equals("role-set") || first.equals("역할설정") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {

@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpHandler;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -100,6 +102,14 @@ class IslandMemberRoutesTest {
         assertEquals("BUILDER", member.effectiveRoleKey());
         Map<?, ?> members = SimpleJson.object(SimpleJson.parse(IslandMemberRoutes.membersJson(List.of(member))));
         assertMember(islandId, playerUuid, "BUILDER", SimpleJson.object(SimpleJson.list(members.get("members")).get(0)));
+    }
+
+    @Test
+    void selfLeaveBypassesManageMembersPermissionButOwnerRemainsProtected() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
+
+        assertTrue(source.contains("member.effectiveRoleKey().equals(IslandRole.OWNER.name())"), "owners must remain protected from member removal");
+        assertTrue(source.contains("!actorUuid.equals(playerUuid) && !requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)"), "self-leave must not require MANAGE_MEMBERS");
     }
 
     @Test

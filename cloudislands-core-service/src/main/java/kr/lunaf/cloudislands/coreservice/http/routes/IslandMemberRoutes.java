@@ -190,12 +190,12 @@ public final class IslandMemberRoutes implements RouteGroup {
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
-        if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)) {
-            return;
-        }
         IslandMemberSnapshot member = member(metadataRepository.members(islandId), playerUuid);
         if (member != null && member.effectiveRoleKey().equals(IslandRole.OWNER.name())) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be removed as a member"));
+            return;
+        }
+        if (!actorUuid.equals(playerUuid) && !requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)) {
             return;
         }
         metadataRepository.removeMember(islandId, playerUuid);

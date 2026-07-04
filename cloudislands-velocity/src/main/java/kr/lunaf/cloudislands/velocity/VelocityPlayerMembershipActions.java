@@ -121,6 +121,11 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
         sendTextResult(player, coreApiClient.memberCommands().removeMember(islandId, player.getUniqueId(), targetUuid).thenApply(result -> islandMessages.memberAction("섬 멤버 추방", result)), "섬 멤버를 추방하지 못했습니다.");
     }
 
+    public void leaveIsland(Player player, UUID islandId) {
+        withResolvedIsland(player, islandId, "탈퇴할 섬을 찾지 못했습니다.", "섬 탈퇴를 처리하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.memberCommands().removeMember(resolved, player.getUniqueId(), player.getUniqueId()).thenApply(result -> islandMessages.memberAction("섬 탈퇴", result)), "섬 탈퇴를 처리하지 못했습니다."));
+    }
+
     public void kickMemberTarget(Player player, UUID islandId, String target) {
         targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
             if (targetUuid.equals(new UUID(0L, 0L))) {

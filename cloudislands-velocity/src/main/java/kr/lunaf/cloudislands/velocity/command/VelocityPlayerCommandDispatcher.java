@@ -94,7 +94,7 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerMembership.listHomes(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("sethome") || args[0].equals("셋홈")) {
+        if (args[0].equalsIgnoreCase("sethome") || args[0].equalsIgnoreCase("setteleport") || args[0].equalsIgnoreCase("setspawnpoint") || args[0].equals("셋홈")) {
             boolean hasIslandId = args.length > 1 && isUuid(args[1]);
             UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             String name = args.length > (hasIslandId ? 2 : 1) ? args[hasIslandId ? 2 : 1] : "default";
@@ -192,14 +192,26 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerMembership.withdrawBank(player, islandId, amount);
             return;
         }
-        if (args[0].equalsIgnoreCase("worthrank") || args[0].equalsIgnoreCase("valuerank") || args[0].equals("가치랭킹") || (args.length > 1 && (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equals("랭킹")) && (args[1].equalsIgnoreCase("worth") || args[1].equalsIgnoreCase("value") || args[1].equals("가치")))) {
-            int limit = args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equals("랭킹")
+        if (args[0].equalsIgnoreCase("values") || args[0].equalsIgnoreCase("blocks") || args[0].equalsIgnoreCase("block-details") || args[0].equalsIgnoreCase("block-counts") || args[0].equals("블록상세") || args[0].equals("블록목록")) {
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            int limit = (int) parseLongOrZero(argumentAfterOptionalIsland(args, 1, "10"));
+            playerProgression.showBlockDetails(player, islandId, limit);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("ratings") || args[0].equalsIgnoreCase("reviews") || args[0].equalsIgnoreCase("review-list") || args[0].equals("후기") || args[0].equals("후기목록") || args[0].equals("평가목록")) {
+            UUID islandId = optionalIslandIdArgument(args, 1);
+            int limit = (int) parseLongOrZero(argumentAfterOptionalIsland(args, 1, "10"));
+            playerProgression.listReviews(player, islandId, limit);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("worthrank") || args[0].equalsIgnoreCase("valuerank") || args[0].equals("가치랭킹") || (args.length > 1 && (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("leaderboard") || args[0].equals("랭킹")) && (args[1].equalsIgnoreCase("worth") || args[1].equalsIgnoreCase("value") || args[1].equals("가치")))) {
+            int limit = args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("leaderboard") || args[0].equals("랭킹")
                 ? (args.length > 2 ? (int) parseLongOrZero(args[2]) : 10)
                 : (args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
             playerProgression.showWorthRanking(player, limit);
             return;
         }
-        if (args[0].equalsIgnoreCase("rank") || args[0].equals("ranking") || args[0].equalsIgnoreCase("rank-list") || args[0].equals("랭킹") || args[0].equals("랭킹목록")) {
+        if (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("leaderboard") || args[0].equalsIgnoreCase("rank-list") || args[0].equals("랭킹") || args[0].equals("랭킹목록")) {
             playerProgression.showLevelRanking(player, args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
             return;
         }
@@ -222,7 +234,7 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerProgression.showGenerator(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("buyupgrade") || args[0].equalsIgnoreCase("upgrade-buy") || args[0].equals("업그레이드구매")) {
+        if (args[0].equalsIgnoreCase("buyupgrade") || args[0].equalsIgnoreCase("upgrade-buy") || args[0].equalsIgnoreCase("rankup") || args[0].equals("업그레이드구매")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             String upgradeKey = argumentAfterOptionalIsland(args, 1, "size");
             playerProgression.purchaseUpgrade(player, islandId, upgradeKey);
@@ -357,6 +369,15 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             int end = args.length - 1;
             UUID islandId = end > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerRouting.deleteIsland(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("leave") || args[0].equals("탈퇴")) {
+            if (!destructiveConfirmed(args)) {
+                sendDestructiveConfirmationRequired(player, "섬 탈퇴 confirm");
+                return;
+            }
+            UUID islandId = args.length > 2 && isUuid(args[1]) ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            playerMembership.leaveIsland(player, islandId);
             return;
         }
         sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 command list");
