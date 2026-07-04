@@ -100,6 +100,7 @@ import kr.seungmin.satisskyfactory.runtime.SatisCommandRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisFeatureRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisListenerRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisPlaceholderRuntime;
+import kr.seungmin.satisskyfactory.runtime.SatisRouteEventBridge;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.runtime.SatisStatePublisher;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
@@ -184,13 +185,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private FactoryLifecycleListener lifecycleListener;
     private Map<String, Boolean> effectiveFeatures = Map.of();
     private final Map<UUID, String> coreHydratedIslandActivations = new ConcurrentHashMap<>();
-    private final java.util.concurrent.atomic.AtomicLong routeEventsHandled = new java.util.concurrent.atomic.AtomicLong();
-    private final java.util.concurrent.atomic.AtomicLong routeEventsBlocked = new java.util.concurrent.atomic.AtomicLong();
-    private final java.util.concurrent.atomic.AtomicLong routeEventsPublishFailures = new java.util.concurrent.atomic.AtomicLong();
+    private final SatisRouteEventBridge routeEventBridge = new SatisRouteEventBridge(getLogger());
     private String databaseFallbackReason = "none";
     private String pendingDatabaseConfigFallbackReason = "none";
     private String databaseSettingsFingerprint = "";
-    private volatile String lastRouteEventBlockReason = "";
 
     @Override
     public void onEnable() {
@@ -544,10 +542,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-route-events-gate", "addonRuntimeEnabled&&features.addon-state&&features.route-events&&CloudIslandsApi");
         state.put("runtime-route-events-status", routeEventStateEnabled() ? "enabled" : routeEventBlockReason());
         state.put("runtime-route-events-policy", "disabled-feature-skips-route-diagnostic-state-without-affecting-cloudislands-routing");
-        state.put("runtime-route-events-handled", Long.toString(routeEventsHandled.get()));
-        state.put("runtime-route-events-blocked", Long.toString(routeEventsBlocked.get()));
-        state.put("runtime-route-events-publish-failures", Long.toString(routeEventsPublishFailures.get()));
-        state.put("runtime-route-events-last-block-reason", lastRouteEventBlockReason == null ? "" : lastRouteEventBlockReason);
+        SatisRouteEventBridge.RouteEventCounters routeCounters = routeEventBridge.counters();
+        state.put("runtime-route-events-handled", Long.toString(routeCounters.handled()));
+        state.put("runtime-route-events-blocked", Long.toString(routeCounters.blocked()));
+        state.put("runtime-route-events-publish-failures", Long.toString(routeCounters.publishFailures()));
+        state.put("runtime-route-events-last-block-reason", routeCounters.lastBlockReason());
         state.put("runtime-commands-registered", Boolean.toString(commandsRegistered));
         state.put("runtime-commands-gate", "addonRuntimeEnabled&&features.commands");
         state.put("runtime-commands-status", operationalFeatureEnabled("commands") ? (commandsRegistered ? "registered" : "enabled-not-registered") : "commands-feature-disabled");
@@ -3399,27 +3398,22 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onNodeStateChanged(NodeStateChangedEvent event) {
-        if (!routeEventStateEnabled()) {
-            recordRouteEventBlocked();
-            return;
-        }
-        routeEventsHandled.incrementAndGet();
-        Map<String, String> state = new LinkedHashMap<>();
-        state.put("last-node-id", safeRouteValue(event.nodeId()));
-        state.put("last-node-state", safeRouteValue(event.state()));
-        state.put("last-node-operation", safeRouteValue(event.operation()));
-        state.put("last-node-reason", safeRouteValue(event.reason()));
-        state.put("last-node-recovery-required", Integer.toString(event.recoveryRequired()));
-        state.put("last-node-cleared-sessions", Integer.toString(event.clearedSessions()));
-        state.put("last-node-cleared-tickets", Integer.toString(event.clearedTickets()));
-        state.put("last-node-at", event.occurredAt() == null ? Instant.now().toString() : event.occurredAt().toString());
-        state.put("last-node-policy", "diagnostic-state-only-core-keeps-route-authority");
-        putRouteEventCounters(state);
-        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
-            getLogger().warning("Failed to publish CloudIslands Satis node state: " + error.getMessage());
-            routeEventsPublishFailures.incrementAndGet();
-            return Map.of();
-        });
+        routeEventBridge.publishNodeState(
+                cloudIslandsApi,
+                ADDON_ID,
+                routeEventStateEnabled(),
+                routeEventBlockReason(),
+                new SatisRouteEventBridge.NodeStateSnapshot(
+                        event.nodeId(),
+                        event.state(),
+                        event.operation(),
+                        event.reason(),
+                        event.recoveryRequired(),
+                        event.clearedSessions(),
+                        event.clearedTickets(),
+                        event.occurredAt()
+                )
+        );
     }
 
     @Override
@@ -3448,63 +3442,27 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void publishRouteEventState(String eventName, UUID ticketId, UUID islandId, UUID playerUuid, String action, String targetNode, String targetServerName, String requestedNode, String reason, String detail, Instant occurredAt) {
-        if (!routeEventStateEnabled()) {
-            recordRouteEventBlocked();
-            return;
-        }
-        routeEventsHandled.incrementAndGet();
-        Map<String, String> state = new LinkedHashMap<>();
-        state.put("last-route-event", safeRouteValue(eventName));
-        state.put("last-route-ticket", ticketId == null ? "" : ticketId.toString());
-        state.put("last-route-player", playerUuid == null ? "" : playerUuid.toString());
-        state.put("last-route-action", safeRouteValue(action));
-        state.put("last-route-target-node", safeRouteValue(targetNode));
-        state.put("last-route-target-server", safeRouteValue(targetServerName));
-        if (islandId != null) {
-            state.put("last-route-island", islandId.toString());
-        }
-        if (requestedNode != null && !requestedNode.isBlank()) {
-            state.put("last-route-requested-node", requestedNode);
-        }
-        if (reason != null && !reason.isBlank()) {
-            state.put("last-route-reason", reason);
-        }
-        if (detail != null && !detail.isBlank()) {
-            state.put("last-route-detail", detail);
-        }
-        state.put("last-route-at", occurredAt == null ? Instant.now().toString() : occurredAt.toString());
-        state.put("last-route-policy", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY);
-        state.put("last-route-player-visible-destination", islandId == null ? "logical-island" : "island:" + islandId);
-        state.put("last-route-player-visible-action", safeRouteValue(action).isBlank() ? safeRouteValue(eventName) : safeRouteValue(action));
-        state.put("last-route-player-visible-status", safeRouteValue(eventName));
-        state.put("last-route-player-visible-topology", "hidden");
-        state.put("last-route-ticket-player-visible", "hidden");
-        state.put("last-route-player-visible-policy", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY);
-        putRouteEventCounters(state);
-        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
-            getLogger().warning("Failed to publish CloudIslands Satis route event state: " + error.getMessage());
-            routeEventsPublishFailures.incrementAndGet();
-            return Map.of();
-        });
-        if (islandId != null) {
-            cloudIslandsApi.addons().putIslandState(ADDON_ID, islandId, state).exceptionally(error -> {
-                getLogger().warning("Failed to publish CloudIslands Satis island route event state: " + error.getMessage());
-                routeEventsPublishFailures.incrementAndGet();
-                return Map.of();
-            });
-        }
-    }
-
-    private void recordRouteEventBlocked() {
-        routeEventsBlocked.incrementAndGet();
-        lastRouteEventBlockReason = routeEventBlockReason();
-    }
-
-    private void putRouteEventCounters(Map<String, String> state) {
-        state.put("route-event-handled-count", Long.toString(routeEventsHandled.get()));
-        state.put("route-event-blocked-count", Long.toString(routeEventsBlocked.get()));
-        state.put("route-event-publish-failures", Long.toString(routeEventsPublishFailures.get()));
-        state.put("route-event-last-block-reason", lastRouteEventBlockReason == null ? "" : lastRouteEventBlockReason);
+        routeEventBridge.publish(
+                cloudIslandsApi,
+                ADDON_ID,
+                routeEventStateEnabled(),
+                routeEventBlockReason(),
+                new SatisRouteEventBridge.RouteEventSnapshot(
+                        eventName,
+                        ticketId,
+                        islandId,
+                        playerUuid,
+                        action,
+                        targetNode,
+                        targetServerName,
+                        requestedNode,
+                        reason,
+                        detail,
+                        occurredAt
+                ),
+                SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY,
+                SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY
+        );
     }
 
     private String safeRouteValue(String value) {

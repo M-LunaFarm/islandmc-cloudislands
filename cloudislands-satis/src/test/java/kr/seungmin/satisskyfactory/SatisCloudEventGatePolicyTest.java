@@ -36,13 +36,18 @@ class SatisCloudEventGatePolicyTest {
     @Test
     void routeEventsOnlyPublishDiagnosticStateWhenRouteEventGateIsEnabled() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+        String bridge = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisRouteEventBridge.java"));
 
         assertTrue(source.contains("private boolean routeEventStateEnabled()"));
         assertTrue(source.contains("return cloudIslandsApi != null && operationalFeatureEnabled(\"addon-state\") && operationalFeatureEnabled(\"route-events\");"));
-        assertTrue(source.contains("if (!routeEventStateEnabled()) {\n            recordRouteEventBlocked();\n            return;\n        }"));
-        assertTrue(source.contains("last-route-policy\", SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY"));
-        assertTrue(source.contains("last-route-player-visible-topology\", \"hidden"));
-        assertTrue(source.contains("last-route-ticket-player-visible\", \"hidden"));
-        assertTrue(source.contains("last-route-player-visible-policy\", SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY"));
+        assertTrue(source.contains("routeEventBridge.publish("));
+        assertTrue(source.contains("routeEventStateEnabled()"));
+        assertTrue(source.contains("routeEventBlockReason()"));
+        assertTrue(source.contains("SatisAddonIntegrationPolicy.ROUTE_AUTHORITY_POLICY"));
+        assertTrue(source.contains("SatisAddonIntegrationPolicy.ROUTE_TICKET_PRIVACY_POLICY"));
+        assertTrue(bridge.contains("last-route-policy"));
+        assertTrue(bridge.contains("last-route-player-visible-topology\", \"hidden"));
+        assertTrue(bridge.contains("last-route-ticket-player-visible\", \"hidden"));
+        assertTrue(bridge.contains("last-route-player-visible-policy"));
     }
 }
