@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.time.Instant;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandNodeSnapshot;
 import kr.lunaf.cloudislands.api.model.NodeLevelScanSnapshot;
@@ -32,6 +34,13 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
         return core.postResultBody("/v1/admin/nodes/list", "{}")
             .thenApply(CoreResponseBody::value)
             .thenApply(JdkAdminNodeQueryClient::summary);
+    }
+
+    @Override
+    public CompletableFuture<AdminNodeIntegrationSummaryView> integrationSummary() {
+        return core.postResultBody("/v1/admin/nodes/list", "{}")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkAdminNodeQueryClient::integrationSummary);
     }
 
     @Override
@@ -189,6 +198,33 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
         return new AdminNodeSummaryView(clip(body, 180));
     }
 
+    static AdminNodeIntegrationSummaryView integrationSummary(String body) {
+        Object parsed = CoreJson.value(body);
+        Map<?, ?> root = parsed instanceof Map<?, ?> object ? object : Map.of();
+        List<Map<?, ?>> nodes = root.isEmpty() ? List.of() : CoreJson.objects(root, "nodes");
+        if (nodes.isEmpty()) {
+            return new AdminNodeIntegrationSummaryView("nodes=0 detected=none missing=unknown policy=unreported", 0L, 0L, 0L, "unreported");
+        }
+        Set<String> detected = new LinkedHashSet<>();
+        Set<String> missing = new LinkedHashSet<>();
+        Set<String> policies = new LinkedHashSet<>();
+        for (Map<?, ?> node : nodes) {
+            Map<?, ?> integrations = CoreJson.objectValue(node, "integrations");
+            addCsv(detected, CoreJson.text(integrations, "detected"));
+            addCsv(missing, CoreJson.text(integrations, "missing"));
+            String policy = CoreJson.text(integrations, "policy");
+            if (!policy.isBlank()) {
+                policies.add(policy);
+            }
+        }
+        String policyText = policies.isEmpty() ? "unreported" : String.join(",", policies);
+        String text = "nodes=" + nodes.size()
+            + " detected=" + (detected.isEmpty() ? "none" : String.join(",", detected))
+            + " missing=" + (missing.isEmpty() ? "none" : String.join(",", missing))
+            + " policy=" + policyText;
+        return new AdminNodeIntegrationSummaryView(text, nodes.size(), detected.size(), missing.size(), policyText);
+    }
+
     static CoreGuiViews.NodeSummaryView nodeSummary(String nodeId, String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new CoreGuiViews.NodeSummaryView(
@@ -229,6 +265,18 @@ final class JdkAdminNodeQueryClient implements AdminNodeQueryClient {
             return null;
         }
         return CoreJson.text(object, key);
+    }
+
+    private static void addCsv(Set<String> values, String csv) {
+        if (csv == null || csv.isBlank()) {
+            return;
+        }
+        for (String value : csv.split(",")) {
+            String trimmed = value.trim();
+            if (!trimmed.isBlank()) {
+                values.add(trimmed);
+            }
+        }
     }
 
     private static int intValue(Map<?, ?> object, String key) {

@@ -103,6 +103,8 @@ class IslandCommandCatalogTest {
         for (String command : List.of(
                 "ciadmin",
                 "섬관리",
+                "ciadmin dashboard",
+                "ciadmin doctor",
                 "ciadmin island info <island|player>",
                 "ciadmin island where <island>",
                 "ciadmin island tp <island>",
@@ -131,6 +133,8 @@ class IslandCommandCatalogTest {
                 "ciadmin jobs list",
                 "ciadmin jobs retry <jobId>",
                 "ciadmin jobs cancel <jobId>",
+                "ciadmin integrations",
+                "ciadmin support-bundle create",
                 "ciadmin template seticon <name> <material>",
                 "ciadmin template setcost <name> <amount>",
                 "ciadmin template setpermission <name> <permission>",
@@ -156,6 +160,38 @@ class IslandCommandCatalogTest {
         assertTrue(formatter.contains("view.requiredPermission()"), "Velocity template action output must include template permission state");
         assertTrue(formatter.contains("view.iconMaterial()"), "Velocity template action output must include template icon state");
         assertTrue(formatter.contains("view.creationCost()"), "Velocity template action output must include template cost state");
+    }
+
+    @Test
+    void velocityAdminUxCommandsUseTypedCoreClients() throws Exception {
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/IslandCommandCatalog.java"));
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityAdminCommandDispatcher.java"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityAdminActions.java"));
+        String coreClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/AdminNodeQueryClient.java"));
+        String jdkClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminNodeQueryClient.java"));
+
+        assertTrue(catalog.contains("ciadmin dashboard"), "Velocity admin help must expose dashboard");
+        assertTrue(catalog.contains("ciadmin doctor"), "Velocity admin help must expose doctor");
+        assertTrue(catalog.contains("ciadmin integrations"), "Velocity admin help must expose integration status");
+        assertTrue(catalog.contains("ciadmin support-bundle create"), "Velocity admin help must expose support bundle creation");
+
+        assertTrue(dispatcher.contains("adminActions.dashboard(player)"), "Velocity dashboard command must route explicitly");
+        assertTrue(dispatcher.contains("adminActions.doctor(player)"), "Velocity doctor command must route explicitly");
+        assertTrue(dispatcher.contains("adminActions.integrations(player)"), "Velocity integrations command must route explicitly");
+        assertTrue(dispatcher.contains("adminActions.supportBundle(player)"), "Velocity support-bundle command must route explicitly");
+
+        assertTrue(actions.contains("coreApiClient.adminMetrics().summary()"), "Dashboard/doctor must include typed metrics");
+        assertTrue(actions.contains("coreApiClient.adminNodes().listNodesSummary()"), "Dashboard/doctor must include typed node summary");
+        assertTrue(actions.contains("coreApiClient.jobs().list()"), "Dashboard/doctor must include typed job summary");
+        assertTrue(actions.contains("coreApiClient.adminRoutes().debug(new UUID(0L, 0L))"), "Dashboard/doctor must include typed route context");
+        assertTrue(actions.contains("coreApiClient.adminStorage().status()"), "Dashboard/doctor must include typed storage context");
+        assertTrue(actions.contains("coreApiClient.adminAudit().list(5)"), "Doctor must include recent audit context");
+        assertTrue(actions.contains("coreApiClient.adminSupportBundle().create()"), "Support bundle must use typed Core support-bundle client");
+        assertTrue(actions.contains("doctorSeverity(String body)") && actions.contains("\"PASS\"") && actions.contains("\"WARN\"") && actions.contains("\"FAIL\""), "Doctor must classify sections with PASS/WARN/FAIL");
+
+        assertTrue(coreClient.contains("integrationSummary()"), "Core node client must expose typed integration metadata");
+        assertTrue(jdkClient.contains("AdminNodeIntegrationSummaryView integrationSummary(String body)"), "JDK node client must parse integration metadata from Core node JSON");
+        assertTrue(jdkClient.contains("CoreJson.objectValue(node, \"integrations\")"), "Integration parser must use typed Core JSON object helpers");
     }
 
     @Test

@@ -3,10 +3,9 @@ package kr.lunaf.cloudislands.velocity;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 
 import com.velocitypowered.api.proxy.Player;
+import java.util.List;
 import java.util.UUID;
-import kr.lunaf.cloudislands.api.model.CreateIslandResult;
-import kr.lunaf.cloudislands.api.model.IslandLocation;
-import kr.lunaf.cloudislands.api.model.IslandPermission;
+import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import net.kyori.adventure.text.Component;
 
@@ -16,6 +15,36 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     VelocityAdminActions(VelocityActionContext context, VelocityPlayerProgressionActions snapshots) {
         super(context);
         this.snapshots = snapshots;
+    }
+
+    public void dashboard(Player player) {
+        CompletableFuture<CharSequence> metrics = adminPart(coreApiClient.adminMetrics().summary().thenApply(coreStatusMessages::metrics));
+        CompletableFuture<CharSequence> nodes = adminPart(coreApiClient.adminNodes().listNodesSummary().thenApply(summary -> "Nodes: " + summary.text()));
+        CompletableFuture<CharSequence> jobs = adminPart(coreApiClient.jobs().list().thenApply(nodeJobMessages::jobList));
+        CompletableFuture<CharSequence> routes = adminPart(coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
+        CompletableFuture<CharSequence> storage = adminPart(coreApiClient.adminStorage().status().thenApply(nodeJobMessages::storageStatus));
+        CompletableFuture<CharSequence> integrations = adminPart(coreApiClient.adminNodes().integrationSummary().thenApply(summary -> "Integrations: " + summary.text()));
+        sendComposite(player, "Dashboard", List.of(metrics, nodes, jobs, routes, storage, integrations));
+    }
+
+    public void doctor(Player player) {
+        CompletableFuture<CharSequence> config = doctorPart("core-config", coreApiClient.adminCoreConfig().config().thenApply(coreConfigMessages::format));
+        CompletableFuture<CharSequence> metrics = doctorPart("metrics", coreApiClient.adminMetrics().summary().thenApply(coreStatusMessages::metrics));
+        CompletableFuture<CharSequence> storage = doctorPart("storage", coreApiClient.adminStorage().status().thenApply(nodeJobMessages::storageStatus));
+        CompletableFuture<CharSequence> nodes = doctorPart("nodes", coreApiClient.adminNodes().listNodesSummary().thenApply(summary -> "Nodes: " + summary.text()));
+        CompletableFuture<CharSequence> jobs = doctorPart("jobs", coreApiClient.jobs().list().thenApply(nodeJobMessages::jobList));
+        CompletableFuture<CharSequence> routes = doctorPart("routes", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
+        CompletableFuture<CharSequence> audit = doctorPart("audit", coreApiClient.adminAudit().list(5).thenApply(eventMessages::audit));
+        CompletableFuture<CharSequence> integrations = doctorPart("integrations", coreApiClient.adminNodes().integrationSummary().thenApply(summary -> "Integrations: " + summary.text()));
+        sendComposite(player, "Doctor", List.of(config, metrics, storage, nodes, jobs, routes, audit, integrations));
+    }
+
+    public void integrations(Player player) {
+        sendTextResult(player, coreApiClient.adminNodes().integrationSummary().thenApply(summary -> "Integrations: " + summary.text()), "Integration 상태를 불러오지 못했습니다.");
+    }
+
+    public void supportBundle(Player player) {
+        sendTextResult(player, coreApiClient.adminSupportBundle().create().thenApply(body -> "Support bundle: core payload bytes=" + safeLength(body) + " redacted=true"), "Support bundle을 생성하지 못했습니다.");
     }
 
     public void listJobs(Player player) {
@@ -427,5 +456,38 @@ public final class VelocityAdminActions extends VelocityActionSupport {
             return "";
         }
         return value;
+    }
+
+    private CompletableFuture<CharSequence> adminPart(CompletableFuture<? extends CharSequence> future) {
+        return future.thenApply(value -> value == null || value.toString().isBlank() ? "unavailable" : value)
+            .exceptionally(error -> "unavailable: " + error.getClass().getSimpleName());
+    }
+
+    private CompletableFuture<CharSequence> doctorPart(String label, CompletableFuture<? extends CharSequence> future) {
+        return adminPart(future).thenApply(value -> doctorSeverity(value.toString()) + " " + label + "=" + value);
+    }
+
+    private void sendComposite(Player player, String label, List<CompletableFuture<CharSequence>> parts) {
+        CompletableFuture.allOf(parts.toArray(CompletableFuture[]::new))
+            .thenAccept(_ignored -> player.sendMessage(playerComponent(label + ": " + String.join(" | ", parts.stream().map(CompletableFuture::join).map(CharSequence::toString).toList()))))
+            .exceptionally(error -> {
+                player.sendMessage(playerComponent(label + ": unavailable"));
+                return null;
+            });
+    }
+
+    private static String doctorSeverity(String body) {
+        String value = body == null ? "" : body.toLowerCase(java.util.Locale.ROOT);
+        if (value.isBlank() || value.contains("fail") || value.contains("down") || value.contains("unavailable") || value.contains("exception") || value.contains("error=")) {
+            return "FAIL";
+        }
+        if (value.contains("warn") || value.contains("stale") || value.contains("missing=") || value.contains("degraded") || value.contains("failed=")) {
+            return "WARN";
+        }
+        return "PASS";
+    }
+
+    private static int safeLength(String value) {
+        return value == null ? 0 : value.length();
     }
 }

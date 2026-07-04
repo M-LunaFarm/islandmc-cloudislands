@@ -17,6 +17,26 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             player.sendMessage(Component.text(routingController.statusSummary()));
             return;
         }
+        if (args[0].equalsIgnoreCase("dashboard")) {
+            adminActions.dashboard(player);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("doctor")) {
+            adminActions.doctor(player);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("integrations")) {
+            adminActions.integrations(player);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("support-bundle")) {
+            if (args.length >= 2 && args[1].equalsIgnoreCase("create")) {
+                adminActions.supportBundle(player);
+                return;
+            }
+            player.sendMessage(Component.text("사용법: /ciadmin support-bundle create"));
+            return;
+        }
         if (isCommandListRequest(args)) {
             sendCommandList(player, "CloudIslands 관리자 명령어 목록", adminCommands(), commandListPage(args), "ciadmin command list");
             return;

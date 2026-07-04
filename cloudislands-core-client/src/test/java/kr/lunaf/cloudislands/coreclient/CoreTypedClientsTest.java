@@ -1957,8 +1957,8 @@ class CoreTypedClientsTest {
         String source = assertDoesNotThrow(() -> java.nio.file.Files.readString(java.nio.file.Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkAdminNodeQueryClient.java")));
         String nodesBody = """
             {"nodes":[
-              {"nodeId":"node-a","pool":"default","serverName":"server-a","nodeVersion":"1.0.0","state":"READY","players":5,"softPlayerCap":50,"hardPlayerCap":80,"reservedSlots":2,"activeIslands":2,"maxActiveIslands":10,"mspt":"12.5","activationQueue":1,"maxActivationQueue":5,"chunkLoadPressure":"0.25","heapUsedMb":512,"heapMaxMb":2048,"recentFailurePenalty":3,"storageAvailable":true,"supportedTemplates":"default,nether","lastHeartbeat":"2026-06-21T00:00:00Z","score":"88.5","scoreBreakdown":{"load":"1.5"},"eligibleForNewActivation":true,"allocationBlockReason":"","levelScan":{"running":true,"lastIsland":"island-a","startedAt":10},"storage":{"primaryDegraded":true,"uploadSeconds":"0.4","downloadSeconds":"0.5","healthCheckFailures":1}},
-              {"nodeId":"node-b","state":"DOWN"}
+              {"nodeId":"node-a","pool":"default","serverName":"server-a","nodeVersion":"1.0.0","state":"READY","players":5,"softPlayerCap":50,"hardPlayerCap":80,"reservedSlots":2,"activeIslands":2,"maxActiveIslands":10,"mspt":"12.5","activationQueue":1,"maxActivationQueue":5,"chunkLoadPressure":"0.25","heapUsedMb":512,"heapMaxMb":2048,"recentFailurePenalty":3,"storageAvailable":true,"supportedTemplates":"default,nether","lastHeartbeat":"2026-06-21T00:00:00Z","score":"88.5","scoreBreakdown":{"load":"1.5"},"eligibleForNewActivation":true,"allocationBlockReason":"","levelScan":{"running":true,"lastIsland":"island-a","startedAt":10},"storage":{"primaryDegraded":true,"uploadSeconds":"0.4","downloadSeconds":"0.5","healthCheckFailures":1},"integrations":{"detected":"Vault,LuckPerms,PlaceholderAPI","missing":"WorldEdit,CoreProtect","policy":"adapter-status-from-paper-heartbeat"}},
+              {"nodeId":"node-b","state":"DOWN","integrations":{"detected":"Vault","missing":"CoreProtect","policy":"adapter-status-from-paper-heartbeat"}}
             ]}
             """;
         String nodeInfoBody = """
@@ -1978,6 +1978,13 @@ class CoreTypedClientsTest {
         assertEquals(Map.of("load", 1.5D), nodes.get(0).scoreBreakdown());
         assertTrue(nodes.get(0).levelScan().running());
         assertTrue(nodes.get(0).storage().primaryDegraded());
+        AdminNodeIntegrationSummaryView integrationSummary = JdkAdminNodeQueryClient.integrationSummary(nodesBody);
+        assertEquals(2L, integrationSummary.nodeCount());
+        assertEquals(3L, integrationSummary.detectedCount());
+        assertEquals(2L, integrationSummary.missingCount());
+        assertTrue(integrationSummary.text().contains("detected=Vault,LuckPerms,PlaceholderAPI"));
+        assertTrue(integrationSummary.text().contains("missing=WorldEdit,CoreProtect"));
+        assertEquals("adapter-status-from-paper-heartbeat", integrationSummary.policy());
         CoreGuiViews.NodeSummaryView nodeSummary = JdkAdminNodeQueryClient.nodeSummary("node-a", nodeInfoBody);
         assertEquals("DRAINING", nodeSummary.state());
         assertFalse(nodeSummary.storageAvailable());

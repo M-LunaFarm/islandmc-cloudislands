@@ -17,4 +17,8 @@ public interface AdminNodeQueryClient {
     CompletableFuture<List<AdminIslandRuntimeView>> nodeIslandRuntimes(String nodeId, int limit);
 
     CompletableFuture<AdminNodeSummaryView> nodeIslandsSummary(String nodeId, int limit);
+
+    default CompletableFuture<AdminNodeIntegrationSummaryView> integrationSummary() {
+        return nodes().thenApply(_nodes -> new AdminNodeIntegrationSummaryView("integration metadata unavailable", _nodes.size(), 0L, 0L, ""));
+    }
 }
