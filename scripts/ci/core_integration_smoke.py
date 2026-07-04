@@ -249,6 +249,19 @@ def assert_field(data: dict, key: str, expected) -> None:
         raise RuntimeError(f"expected {key}={expected!r}, got {actual!r} in {data}")
 
 
+def response_code(data: dict) -> str | None:
+    nested = data.get("error") if isinstance(data, dict) else None
+    if isinstance(nested, dict):
+        return nested.get("code")
+    return data.get("code") if isinstance(data, dict) else None
+
+
+def assert_response_code(data: dict, expected: str) -> None:
+    actual = response_code(data)
+    if actual != expected:
+        raise RuntimeError(f"expected code={expected!r}, got {actual!r} in {data}")
+
+
 def assert_contains_event(data: dict, expected_type: str) -> None:
     events = data.get("events", [])
     if not isinstance(events, list):
@@ -314,7 +327,7 @@ def run_player_interaction_smoke(base_url: str, admin_url: str, island_id: str, 
         {"islandId": island_id, "actorUuid": unauthorized_uuid, "amount": "1.00"},
         expect=(403,),
     )
-    assert_field(denied, "code", "ISLAND_PERMISSION_DENIED")
+    assert_response_code(denied, "ISLAND_PERMISSION_DENIED")
 
     invite = request(
         base_url,
@@ -386,7 +399,7 @@ def run_player_interaction_smoke(base_url: str, admin_url: str, island_id: str, 
     return {
         "bankDeposit": deposit.get("balance"),
         "bankWithdraw": withdraw.get("bank", {}).get("balance"),
-        "permissionDeniedCode": denied.get("code"),
+        "permissionDeniedCode": response_code(denied),
         "inviteAccepted": invite_id,
         "memberRemoved": member_uuid,
         "warpRouteTargetNode": warp_route.get("targetNode"),

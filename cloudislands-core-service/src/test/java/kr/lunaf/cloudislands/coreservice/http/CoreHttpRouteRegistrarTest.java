@@ -195,6 +195,25 @@ class CoreHttpRouteRegistrarTest {
         }
     }
 
+    @Test
+    void routeRuntimeFailuresReturnJsonError() throws Exception {
+        try (ServerFixture server = ServerFixture.start()) {
+            server.registrar().routePost("/v1/fails", exchange -> {
+                throw new IllegalStateException("repository failed");
+            });
+
+            HttpResponse<String> response = server.request(
+                server.authorized(HttpRequest.newBuilder(server.uri("/v1/fails")))
+                    .POST(HttpRequest.BodyPublishers.ofString("{}"))
+                    .header("Content-Type", "application/json")
+                    .build()
+            );
+
+            assertEquals(500, response.statusCode());
+            assertTrue(response.body().contains("CORE_ROUTE_FAILED"));
+        }
+    }
+
     private static final class ServerFixture implements AutoCloseable {
         private final HttpServer server;
         private final CoreHttpRouteRegistrar registrar;

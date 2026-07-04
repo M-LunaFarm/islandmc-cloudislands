@@ -136,7 +136,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 statement.setObject(2, islandId);
                 statement.setObject(3, inviterUuid);
                 statement.setObject(4, targetUuid);
-                statement.setObject(5, expiresAt);
+                statement.setObject(5, java.sql.Timestamp.from(expiresAt));
                 statement.executeUpdate();
                 return new IslandInviteSnapshot(inviteId, islandId, inviterUuid, targetUuid, "PENDING", now, expiresAt);
             }

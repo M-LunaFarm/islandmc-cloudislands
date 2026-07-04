@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
@@ -24,6 +26,8 @@ import kr.lunaf.cloudislands.coreservice.security.IpAllowlist;
 import kr.lunaf.cloudislands.coreservice.security.MtlsHeaderGuard;
 
 public final class CoreHttpRouteRegistrar {
+    private static final Logger LOGGER = Logger.getLogger(CoreHttpRouteRegistrar.class.getName());
+
     private final FixedWindowRateLimiter rateLimiter;
     private final CoreApiAuthGuard authGuard;
     private final ForwardedClientIpResolver clientIpResolver;
@@ -172,7 +176,11 @@ public final class CoreHttpRouteRegistrar {
                 CoreHttpResponses.write(exchange, 503, ApiResponses.error("ADDON_STATE_UNAVAILABLE", "Addon state storage is temporarily unavailable"));
                 return;
             }
-            throw exception;
+            LOGGER.log(Level.WARNING, "CloudIslands Core API route failed: " + requestPath, exception);
+            CoreHttpResponses.write(exchange, 500, ApiResponses.error("CORE_ROUTE_FAILED", "Core API route failed"));
+        } catch (RuntimeException exception) {
+            LOGGER.log(Level.WARNING, "CloudIslands Core API route failed: " + requestPath, exception);
+            CoreHttpResponses.write(exchange, 500, ApiResponses.error("CORE_ROUTE_FAILED", "Core API route failed"));
         }
     }
 
