@@ -231,11 +231,11 @@ abstract class VelocityCommandSupport {
             return false;
         }
         String value = args[args.length - 1].toLowerCase(Locale.ROOT);
-        return value.equals("confirm") || value.equals("confirmed") || value.equals("확인");
+        return value.equals("--confirm") || value.equals("confirm") || value.equals("confirmed") || value.equals("확인");
     }
 
     protected void sendDestructiveConfirmationRequired(Player player, String command) {
-        player.sendMessage(Component.text("위험 작업입니다. 실행하려면 '" + command + "' 형식으로 마지막에 confirm 또는 확인을 붙이세요."));
+        player.sendMessage(Component.text("위험 작업입니다. 실행하려면 '" + command + "' 형식으로 마지막에 --confirm 또는 확인을 붙이세요."));
     }
 
     protected List<String> permissionNames() {

@@ -50,7 +50,7 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
                 addLiteralSuggestions(matches, args[1], List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"));
             }
             if (first.equals("delete") || first.equals("삭제") || first.equals("reset") || first.equals("리셋") || first.equals("leave") || first.equals("탈퇴")) {
-                addLiteralSuggestions(matches, args[1], List.of("confirm", "확인"));
+                addLiteralSuggestions(matches, args[1], List.of("--confirm", "confirm", "확인"));
             }
             if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("setrole") || first.equals("role-set") || first.equals("역할설정") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
                 addOnlinePlayerSuggestions(matches, args[1]);
@@ -174,6 +174,9 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("route") && args[1].equalsIgnoreCase("clear")) {
             addOnlinePlayerSuggestions(matches, args[2]);
+        }
+        if (args.length >= 4 && args[0].equalsIgnoreCase("island") && (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("rollback") || args[1].equalsIgnoreCase("delete"))) {
+            addLiteralSuggestions(matches, args[args.length - 1], List.of("--confirm", "confirm", "확인"));
         }
         return matches;
     }

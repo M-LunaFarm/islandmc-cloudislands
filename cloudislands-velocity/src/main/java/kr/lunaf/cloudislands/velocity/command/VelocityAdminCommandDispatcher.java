@@ -47,16 +47,24 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             return;
         }
         if (args.length >= 4 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("rollback")) {
+            if (!destructiveConfirmed(args)) {
+                sendDestructiveConfirmationRequired(player, "ciadmin island rollback <island> <snapshot> --confirm");
+                return;
+            }
             adminActions.restoreTarget(player, args[2], parseLongOrZero(args[3]));
             return;
         }
         if (args.length >= 4 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("restore")) {
+            if (!destructiveConfirmed(args)) {
+                sendDestructiveConfirmationRequired(player, "ciadmin island restore <island> <snapshot> --confirm");
+                return;
+            }
             adminActions.restoreTarget(player, args[2], parseLongOrZero(args[3]));
             return;
         }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("delete")) {
             if (!destructiveConfirmed(args)) {
-                sendDestructiveConfirmationRequired(player, "ciadmin island delete <island> confirm");
+                sendDestructiveConfirmationRequired(player, "ciadmin island delete <island> --confirm");
                 return;
             }
             adminActions.adminDeleteIslandTarget(player, args[2]);

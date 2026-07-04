@@ -111,11 +111,11 @@ class IslandCommandCatalogTest {
                 "ciadmin island migrate <island> <node>",
                 "ciadmin island save <island>",
                 "ciadmin island snapshot <island> [reason]",
-                "ciadmin island rollback <island> <snapshot>",
+                "ciadmin island rollback <island> <snapshot> --confirm",
                 "ciadmin island quarantine <island> [reason]",
                 "ciadmin island repair <island> [reason]",
-                "ciadmin island delete <island> confirm",
-                "ciadmin island restore <island> <snapshot>",
+                "ciadmin island delete <island> --confirm",
+                "ciadmin island restore <island> <snapshot> --confirm",
                 "ciadmin player info <player>",
                 "ciadmin player setisland <player> <islandUuid>",
                 "ciadmin player clearisland <player>",
@@ -166,12 +166,14 @@ class IslandCommandCatalogTest {
         String suggestions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSuggestions.java"));
 
         assertTrue(support.contains("destructiveConfirmed(String[] args)"), "Velocity command support must define a shared destructive confirmation boundary");
-        assertTrue(support.contains("confirm") && support.contains("확인"), "Velocity destructive confirmation must support English and Korean confirmation tokens");
+        assertTrue(support.contains("--confirm") && support.contains("confirm") && support.contains("확인"), "Velocity destructive confirmation must support flag, English, and Korean confirmation tokens");
         assertTrue(indexOf(player, "sendDestructiveConfirmationRequired(player, \"섬 리셋 [reason] confirm\")") < indexOf(player, "playerRouting.resetIsland("), "player reset must require confirmation before Core mutation");
         assertTrue(indexOf(player, "sendDestructiveConfirmationRequired(player, \"섬 삭제 confirm\")") < indexOf(player, "playerRouting.deleteIsland("), "player delete must require confirmation before Core mutation");
         assertTrue(indexOf(player, "sendDestructiveConfirmationRequired(player, \"섬 탈퇴 confirm\")") < indexOf(player, "playerMembership.leaveIsland("), "player leave must require confirmation before Core mutation");
-        assertTrue(indexOf(admin, "sendDestructiveConfirmationRequired(player, \"ciadmin island delete <island> confirm\")") < indexOf(admin, "adminActions.adminDeleteIslandTarget("), "admin delete must require confirmation before Core mutation");
-        assertTrue(suggestions.contains("List.of(\"confirm\", \"확인\")"), "Velocity suggestions must expose destructive confirmation tokens");
+        assertTrue(indexOf(admin, "sendDestructiveConfirmationRequired(player, \"ciadmin island rollback <island> <snapshot> --confirm\")") < indexOf(admin, "adminActions.restoreTarget("), "admin rollback must require confirmation before Core mutation");
+        assertTrue(indexOf(admin, "sendDestructiveConfirmationRequired(player, \"ciadmin island restore <island> <snapshot> --confirm\")") < admin.lastIndexOf("adminActions.restoreTarget("), "admin restore must require confirmation before Core mutation");
+        assertTrue(indexOf(admin, "sendDestructiveConfirmationRequired(player, \"ciadmin island delete <island> --confirm\")") < indexOf(admin, "adminActions.adminDeleteIslandTarget("), "admin delete must require confirmation before Core mutation");
+        assertTrue(suggestions.contains("List.of(\"--confirm\", \"confirm\", \"확인\")"), "Velocity suggestions must expose destructive confirmation tokens");
     }
 
     private int indexOf(String source, String needle) {
