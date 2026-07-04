@@ -9,6 +9,7 @@ import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
+import kr.seungmin.satisskyfactory.runtime.SatisPlaceholderRuntime;
 import kr.seungmin.satisskyfactory.storage.StorageService;
 import kr.seungmin.satisskyfactory.storage.VirtualInventory;
 import kr.seungmin.satisskyfactory.util.NumberFormatter;
@@ -21,7 +22,7 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-public final class PlaceholderHook extends PlaceholderExpansion {
+public final class PlaceholderHook extends PlaceholderExpansion implements SatisPlaceholderRuntime.PlaceholderExpansionHandle {
     private final JavaPlugin plugin;
     private final FactoryIslandService islands;
     private final MachineService machines;
@@ -52,6 +53,16 @@ public final class PlaceholderHook extends PlaceholderExpansion {
     @Override
     public String getIdentifier() {
         return "satisskyfactory";
+    }
+
+    @Override
+    public String identifier() {
+        return getIdentifier();
+    }
+
+    @Override
+    public void unregisterExpansion() {
+        unregister();
     }
 
     @Override

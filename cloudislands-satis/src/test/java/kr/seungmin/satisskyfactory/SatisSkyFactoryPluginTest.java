@@ -208,11 +208,10 @@ class SatisSkyFactoryPluginTest {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
 
         assertTrue(source.contains("private void registerPlaceholders()"));
-        assertTrue(source.contains("if (!placeholderRuntimeEnabled())"));
-        assertTrue(source.contains("placeholderHook.unregister();"));
-        assertTrue(source.contains("placeholderHook = null;"));
+        assertTrue(source.contains("placeholderHook = placeholderRuntime.refresh(placeholderHook, this::newPlaceholderHook, placeholderRuntimeEnabled());"));
+        assertTrue(source.contains("placeholderHook = placeholderRuntime.unregister(placeholderHook);"));
         assertTrue(source.contains("private boolean placeholderRuntimeEnabled()"));
-        assertTrue(source.contains("return operationalFeatureEnabled(\"placeholders\")\n                && operationalFeatureEnabled(\"machines\")\n                && getServer().getPluginManager().isPluginEnabled(\"PlaceholderAPI\");"));
+        assertTrue(source.contains("return placeholderRuntime.runtimeEnabled(operationalFeatureEnabled(\"placeholders\"), operationalFeatureEnabled(\"machines\"));"));
         assertTrue(source.contains("runtime-placeholder-policy\", \"disabled-feature-or-missing-placeholderapi-registers-no-expansion"));
     }
 }

@@ -131,6 +131,42 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void islandPlayerCommandsUseCooldownAndWarmupPolicy() throws Exception {
+        String router = routerSource();
+        String factory = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouterFactory.java"));
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String koMessages = Files.readString(Path.of("src/main/resources/config-v2/ui/messages/ko_kr.yml"));
+        String enMessages = Files.readString(Path.of("src/main/resources/config-v2/ui/messages/en_us.yml"));
+
+        assertTrue(router.contains("private final IslandCommandDelayPolicy delayPolicy = new IslandCommandDelayPolicy();"));
+        assertTrue(router.contains("if (!checkCommandDelay(player, subcommand))"), "command delay policy must run before handlers mutate state");
+        assertTrue(router.contains("runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_COOLDOWN_PERMISSION)"));
+        assertTrue(router.contains("runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_WARMUP_PERMISSION)"));
+        assertTrue(router.contains("player.sendActionBar(Component.text(runtime.playerMessage(message)))"), "warmup state must be visible in the actionbar");
+        assertTrue(router.contains("IslandCommandDelayPolicy.COOLDOWN_MESSAGE_KEY"));
+        assertTrue(router.contains("IslandCommandDelayPolicy.WARMUP_MESSAGE_KEY"));
+        assertTrue(router.contains("void clearPlayerState(Player player)"));
+        assertTrue(factory.contains("public boolean hasPermission(Player player, String permission)"));
+        assertTrue(factory.contains("player.hasPermission(permission)"));
+        assertTrue(factory.contains("public String playerMessage(String message)"));
+        assertTrue(backend.contains("router.clearPlayerState(event.getPlayer())"), "quit/kick cleanup must clear command delay state");
+        assertTrue(plugin.contains("cloudislands.bypass.cooldown:"));
+        assertTrue(plugin.contains("cloudislands.bypass.warmup:"));
+        assertTrue(plugin.contains("cloudislands.island.home.cooldown:"));
+        assertTrue(plugin.contains("cloudislands.island.visit.cooldown:"));
+        assertTrue(plugin.contains("cloudislands.island.create.cooldown:"));
+        assertTrue(plugin.contains("cloudislands.island.delete.cooldown:"));
+        assertTrue(plugin.contains("cloudislands.island.reset.cooldown:"));
+        assertTrue(plugin.contains("cloudislands.island.snapshot.cooldown:"));
+        assertTrue(plugin.contains("cloudislands.island.restore.cooldown:"));
+        assertTrue(koMessages.contains("island-command-cooldown:"));
+        assertTrue(koMessages.contains("island-command-warmup:"));
+        assertTrue(enMessages.contains("island-command-cooldown:"));
+        assertTrue(enMessages.contains("island-command-warmup:"));
+    }
+
+    @Test
     void bankCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String bankHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java"));

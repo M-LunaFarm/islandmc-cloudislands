@@ -111,6 +111,16 @@ final class IslandCommandRouterFactory {
                 public boolean hasCommandPermission(Player player, IslandCommandPermission permission) {
                     return permission == null || permission.allows(player);
                 }
+
+                @Override
+                public boolean hasPermission(Player player, String permission) {
+                    return permission != null && !permission.isBlank() && player.hasPermission(permission);
+                }
+
+                @Override
+                public String playerMessage(String message) {
+                    return messages.playerMessage(message);
+                }
             }
         );
     }

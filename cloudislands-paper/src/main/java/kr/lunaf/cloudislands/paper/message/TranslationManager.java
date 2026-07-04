@@ -289,6 +289,8 @@ public final class TranslationManager {
         values.put("admin-node-menu-direct-required", "직접 입력이 필요한 명령입니다: ");
         values.put("admin-command-no-permission", "권한이 없습니다.");
         values.put("island-command-no-permission", "이 섬 명령을 사용할 권한이 없습니다.");
+        values.put("island-command-cooldown", "잠시 후 다시 시도해주세요. 남은 시간이 표시됩니다.");
+        values.put("island-command-warmup", "섬 이동을 준비하고 있습니다. 움직이면 취소될 수 있습니다.");
         values.put("admin-command-node-menu-player-only", "플레이어만 노드 관리 메뉴를 열 수 있습니다.");
         values.put("admin-command-node-usage", "사용법: /ciadmin command list");
         values.put("admin-command-island-usage", "사용법: /ciadmin command list");

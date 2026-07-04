@@ -5,6 +5,7 @@ import java.util.Locale;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
+import net.kyori.adventure.text.Component;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -26,6 +27,7 @@ final class IslandCommandRouter {
     private final IslandAdminNodeCommandHandler adminCommands;
     private final Runtime runtime;
     private final IslandCommandSuggestionService suggestions = new IslandCommandSuggestionService();
+    private final IslandCommandDelayPolicy delayPolicy = new IslandCommandDelayPolicy();
 
     IslandCommandRouter(
         IslandBankCommandHandler bankCommands,
@@ -88,6 +90,9 @@ final class IslandCommandRouter {
             runtime.message(player, runtime.routeMessage("island-command-no-permission", "이 섬 명령을 사용할 권한이 없습니다."));
             return true;
         }
+        if (!checkCommandDelay(player, subcommand)) {
+            return true;
+        }
         if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
             openMainMenuOrCommandList(player, label);
             return true;
@@ -132,6 +137,12 @@ final class IslandCommandRouter {
             .ifPresent(suggestion -> runtime.message(player, runtime.routeMessage("command-suggestion-prefix", "혹시 /") + label + " " + suggestion + runtime.routeMessage("command-suggestion-suffix", " 를 찾으셨나요?")));
         sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
         return true;
+    }
+
+    void clearPlayerState(Player player) {
+        if (player != null) {
+            delayPolicy.clear(player.getUniqueId());
+        }
     }
 
     void handleGuiAction(Player player, GuiAction action, GuiClick click) {
@@ -222,6 +233,25 @@ final class IslandCommandRouter {
         }
     }
 
+    private boolean checkCommandDelay(Player player, String subcommand) {
+        IslandCommandDelayPolicy.Decision decision = delayPolicy.evaluate(
+            player.getUniqueId(),
+            subcommand,
+            runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_COOLDOWN_PERMISSION),
+            runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_WARMUP_PERMISSION),
+            System.currentTimeMillis()
+        );
+        if (!decision.allowed()) {
+            runtime.message(player, runtime.routeMessage(IslandCommandDelayPolicy.COOLDOWN_MESSAGE_KEY, "잠시 후 다시 시도해주세요. 남은 시간: " + decision.secondsRemaining() + "초"));
+            return false;
+        }
+        if (decision.warmupRequired()) {
+            String message = runtime.routeMessage(IslandCommandDelayPolicy.WARMUP_MESSAGE_KEY, "섬 이동을 준비하고 있습니다. 움직이면 취소될 수 있습니다.");
+            player.sendActionBar(Component.text(runtime.playerMessage(message)));
+        }
+        return true;
+    }
+
     private int helpPage(String[] args, int index) {
         if (args.length <= index) {
             return 1;
@@ -295,6 +325,10 @@ final class IslandCommandRouter {
         boolean openMainMenu(Player player);
 
         boolean hasCommandPermission(Player player, IslandCommandPermission permission);
+
+        boolean hasPermission(Player player, String permission);
+
+        String playerMessage(String message);
     }
 
     private record HelpCategoryRequest(IslandCommandCatalog.HelpCategory category, int page) {

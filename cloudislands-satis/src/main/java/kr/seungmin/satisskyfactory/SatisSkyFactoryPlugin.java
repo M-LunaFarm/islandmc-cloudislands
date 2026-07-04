@@ -98,6 +98,7 @@ import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.runtime.SatisCommandRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisFeatureRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisListenerRuntime;
+import kr.seungmin.satisskyfactory.runtime.SatisPlaceholderRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
 import kr.seungmin.satisskyfactory.storage.SatisRuntimeAuthority;
@@ -169,6 +170,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private final SatisCommandRuntime commandRuntime = new SatisCommandRuntime(this);
     private final SatisFeatureRuntime featureRuntime = new SatisFeatureRuntime();
     private final SatisListenerRuntime listenerRuntime = new SatisListenerRuntime(this);
+    private final SatisPlaceholderRuntime placeholderRuntime = new SatisPlaceholderRuntime(this);
     private boolean machineListenerRegistered;
     private boolean guiListenerRegistered;
     private boolean lifecycleListenerRegistered;
@@ -289,10 +291,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (dirtySaves != null) {
             dirtySaves.stop();
         }
-        if (placeholderHook != null) {
-            placeholderHook.unregister();
-            placeholderHook = null;
-        }
+        unregisterPlaceholders();
         unregisterCloudIslandsAddon();
         stopRuntimeActivity();
         if (database != null) {
@@ -1391,43 +1390,23 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerPlaceholders() {
-        if (!placeholderRuntimeEnabled()) {
-            if (placeholderHook != null) {
-                placeholderHook.unregister();
-                placeholderHook = null;
-            }
-            return;
-        }
-        if (placeholderHook != null) {
-            return;
-        }
-        PlaceholderHook expansion = new PlaceholderHook(this, islands, machines, storage, nodes, power, boosts, research, contracts, this::operationalFeatureEnabled);
-        if (!expansion.register()) {
-            placeholderHook = null;
-            getLogger().warning("PlaceholderAPI refused the satisskyfactory expansion; Satis placeholders remain disabled.");
-            return;
-        }
-        placeholderHook = expansion;
-        getLogger().info("Registered PlaceholderAPI expansion: satisskyfactory");
+        placeholderHook = placeholderRuntime.refresh(placeholderHook, this::newPlaceholderHook, placeholderRuntimeEnabled());
     }
 
     private void refreshPlaceholders() {
-        if (!placeholderRuntimeEnabled()) {
-            if (placeholderHook != null) {
-                placeholderHook.unregister();
-                placeholderHook = null;
-            }
-            return;
-        }
-        if (placeholderHook == null) {
-            registerPlaceholders();
-        }
+        placeholderHook = placeholderRuntime.refresh(placeholderHook, this::newPlaceholderHook, placeholderRuntimeEnabled());
+    }
+
+    private void unregisterPlaceholders() {
+        placeholderHook = placeholderRuntime.unregister(placeholderHook);
+    }
+
+    private PlaceholderHook newPlaceholderHook() {
+        return new PlaceholderHook(this, islands, machines, storage, nodes, power, boosts, research, contracts, this::operationalFeatureEnabled);
     }
 
     private boolean placeholderRuntimeEnabled() {
-        return operationalFeatureEnabled("placeholders")
-                && operationalFeatureEnabled("machines")
-                && getServer().getPluginManager().isPluginEnabled("PlaceholderAPI");
+        return placeholderRuntime.runtimeEnabled(operationalFeatureEnabled("placeholders"), operationalFeatureEnabled("machines"));
     }
 
     private void reloadDatabaseIfNeeded() {
@@ -4289,10 +4268,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         coreApiState = null;
         coreHydratedIslandActivations.clear();
-        if (placeholderHook != null) {
-            placeholderHook.unregister();
-            placeholderHook = null;
-        }
+        unregisterPlaceholders();
         closeOpenFactoryGuis();
         clearRuntimeCaches();
         machineListenerRegistered = listenerRuntime.unregisterListener(machineListener, machineListenerRegistered);
