@@ -203,14 +203,16 @@ tasks.register("verifyRuntimeComponentCoverage") {
     val commandRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisCommandRuntime.java")
     val listenerRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisListenerRuntime.java")
     val placeholderRuntime = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisPlaceholderRuntime.java")
+    val statePublisher = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisStatePublisher.java")
     val componentPlan = layout.projectDirectory.file("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeComponentPlan.java")
     val addonRegistrationTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisAddonRegistrationTest.java")
     val featureRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisFeatureRuntimeTest.java")
     val commandRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisCommandRuntimeTest.java")
     val listenerRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisListenerRuntimeTest.java")
     val placeholderRuntimeTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisPlaceholderRuntimeTest.java")
+    val statePublisherTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisStatePublisherTest.java")
     val componentPlanTest = layout.projectDirectory.file("src/test/java/kr/seungmin/satisskyfactory/runtime/SatisRuntimeComponentPlanTest.java")
-    inputs.files(pluginSource, addonRegistration, featureRuntime, commandRuntime, listenerRuntime, placeholderRuntime, componentPlan, addonRegistrationTest, featureRuntimeTest, commandRuntimeTest, listenerRuntimeTest, placeholderRuntimeTest, componentPlanTest)
+    inputs.files(pluginSource, addonRegistration, featureRuntime, commandRuntime, listenerRuntime, placeholderRuntime, statePublisher, componentPlan, addonRegistrationTest, featureRuntimeTest, commandRuntimeTest, listenerRuntimeTest, placeholderRuntimeTest, statePublisherTest, componentPlanTest)
     doLast {
         val plugin = pluginSource.asFile.readText()
         val addonRegistrationSource = addonRegistration.asFile.readText()
@@ -218,7 +220,8 @@ tasks.register("verifyRuntimeComponentCoverage") {
         val commandRuntimeSource = commandRuntime.asFile.readText()
         val listenerRuntimeSource = listenerRuntime.asFile.readText()
         val placeholderRuntimeSource = placeholderRuntime.asFile.readText()
-        val tests = addonRegistrationTest.asFile.readText() + "\n" + featureRuntimeTest.asFile.readText() + "\n" + commandRuntimeTest.asFile.readText() + "\n" + listenerRuntimeTest.asFile.readText() + "\n" + placeholderRuntimeTest.asFile.readText() + "\n" + componentPlanTest.asFile.readText()
+        val statePublisherSource = statePublisher.asFile.readText()
+        val tests = addonRegistrationTest.asFile.readText() + "\n" + featureRuntimeTest.asFile.readText() + "\n" + commandRuntimeTest.asFile.readText() + "\n" + listenerRuntimeTest.asFile.readText() + "\n" + placeholderRuntimeTest.asFile.readText() + "\n" + statePublisherTest.asFile.readText() + "\n" + componentPlanTest.asFile.readText()
         val missingRuntime = listOf(
             "public final class SatisFeatureRuntime",
             "public SatisRuntimeComponentPlan plan(ComponentSnapshot snapshot)",
@@ -249,6 +252,12 @@ tasks.register("verifyRuntimeComponentCoverage") {
             "public <T extends PlaceholderExpansionHandle> T unregister",
             "public static RuntimeGate gate"
         ).filterNot(placeholderRuntimeSource::contains)
+        val missingStatePublisher = listOf(
+            "public final class SatisStatePublisher",
+            "public void publishStartupHydrationState",
+            "public void publishAddonState",
+            "public static Map<String, String> startupHydrationState"
+        ).filterNot(statePublisherSource::contains)
         val missingPluginWiring = listOf(
             "private final SatisAddonRegistration addonRegistration",
             "cloudIslandsApi = addonRegistration.resolveApi()",
@@ -264,6 +273,8 @@ tasks.register("verifyRuntimeComponentCoverage") {
             "private final SatisPlaceholderRuntime placeholderRuntime",
             "placeholderRuntime.refresh(placeholderHook",
             "placeholderRuntime.unregister(placeholderHook)",
+            "private final SatisStatePublisher statePublisher",
+            "statePublisher.publishStartupHydrationState",
             "featureRuntime.plan(new SatisFeatureRuntime.ComponentSnapshot"
         ).filterNot(plugin::contains)
         val forbiddenPluginCommandMap = listOf(
@@ -281,6 +292,7 @@ tasks.register("verifyRuntimeComponentCoverage") {
             "commandRegistrationResultReportsMissingCommandsAsInactive",
             "listenerStateSeparatesMissingUnregisteredAndRegisteredComponents",
             "placeholderRuntimeGateRequiresFeatureMachinesAndPlaceholderApi",
+            "startupHydrationStateNormalizesReasonCountBackendAndTimestamp",
             "addonDisabledSkipsEveryActiveRuntimeComponent"
         ).filterNot(tests::contains)
         val failures = buildList {
@@ -289,6 +301,7 @@ tasks.register("verifyRuntimeComponentCoverage") {
             if (missingCommandRuntime.isNotEmpty()) add("Satis command runtime component missing: ${missingCommandRuntime.joinToString(", ")}")
             if (missingListenerRuntime.isNotEmpty()) add("Satis listener runtime component missing: ${missingListenerRuntime.joinToString(", ")}")
             if (missingPlaceholderRuntime.isNotEmpty()) add("Satis placeholder runtime component missing: ${missingPlaceholderRuntime.joinToString(", ")}")
+            if (missingStatePublisher.isNotEmpty()) add("Satis state publisher runtime component missing: ${missingStatePublisher.joinToString(", ")}")
             if (missingPluginWiring.isNotEmpty()) add("Satis plugin must delegate runtime component planning: ${missingPluginWiring.joinToString(", ")}")
             if (forbiddenPluginCommandMap.isNotEmpty()) add("Satis plugin still owns Bukkit command map access: ${forbiddenPluginCommandMap.joinToString(", ")}")
             if (forbiddenPluginListenerRuntime.isNotEmpty()) add("Satis plugin still owns Bukkit listener runtime access: ${forbiddenPluginListenerRuntime.joinToString(", ")}")

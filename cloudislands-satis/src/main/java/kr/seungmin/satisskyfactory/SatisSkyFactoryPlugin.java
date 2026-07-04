@@ -101,6 +101,7 @@ import kr.seungmin.satisskyfactory.runtime.SatisFeatureRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisListenerRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisPlaceholderRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
+import kr.seungmin.satisskyfactory.runtime.SatisStatePublisher;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
 import kr.seungmin.satisskyfactory.storage.SatisRuntimeAuthority;
 import kr.seungmin.satisskyfactory.storage.SatisRuntimeTickAuthorityPolicy;
@@ -173,6 +174,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private final SatisFeatureRuntime featureRuntime = new SatisFeatureRuntime();
     private final SatisListenerRuntime listenerRuntime = new SatisListenerRuntime(this);
     private final SatisPlaceholderRuntime placeholderRuntime = new SatisPlaceholderRuntime(this);
+    private final SatisStatePublisher statePublisher = new SatisStatePublisher(getLogger());
     private boolean machineListenerRegistered;
     private boolean guiListenerRegistered;
     private boolean lifecycleListenerRegistered;
@@ -1221,18 +1223,15 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         if (cloudIslandsApi == null || !addonStateReportingWasEnabled || !operationalFeatureEnabled("addon-state")) {
             return;
         }
-        String safeReason = reason == null || reason.isBlank() ? "startup" : reason;
-        Map<String, String> state = new LinkedHashMap<>();
-        state.put("last-startup-hydrate-reason", safeReason);
-        state.put("last-startup-hydrate-islands", Integer.toString(Math.max(0, islandCount)));
-        state.put("last-startup-hydrate-backend", database == null ? "unknown" : database.activeBackend().name());
-        state.put("last-startup-hydrate-policy", SatisStatePortabilityPolicy.TARGET_TICK_START_POLICY);
-        state.put("last-startup-hydrate-state-owner-policy", SatisStatePortabilityPolicy.STATE_OWNER_POLICY);
-        state.put("last-startup-hydrate-at", Instant.now().toString());
-        cloudIslandsApi.addons().putState(ADDON_ID, state).exceptionally(error -> {
-            getLogger().warning("Failed to publish CloudIslands Satis startup hydration state: " + error.getMessage());
-            return Map.of();
-        });
+        statePublisher.publishStartupHydrationState(
+                cloudIslandsApi,
+                ADDON_ID,
+                reason,
+                islandCount,
+                database == null ? "unknown" : database.activeBackend().name(),
+                SatisStatePortabilityPolicy.TARGET_TICK_START_POLICY,
+                SatisStatePortabilityPolicy.STATE_OWNER_POLICY
+        );
     }
 
     private void registerCommands() {
