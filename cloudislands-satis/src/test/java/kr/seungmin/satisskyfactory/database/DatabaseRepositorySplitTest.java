@@ -176,4 +176,33 @@ class DatabaseRepositorySplitTest {
         assertTrue(repository.contains("saveMarketDailySnapshotSql"));
         assertTrue(repository.contains("saveMarketPersonalSnapshotSql"));
     }
+
+    @Test
+    void networkSqlLivesInNetworkRepository() throws Exception {
+        String databaseService = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/DatabaseService.java"));
+        String repository = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/NetworkRepository.java"));
+
+        assertTrue(databaseService.contains("private final NetworkRepository networkRepository"));
+        assertTrue(databaseService.contains("networkRepository.replaceItemNetworks(islandUuid, networks);"));
+        assertTrue(databaseService.contains("return networkRepository.loadItemNetworks(islandUuid);"));
+        assertTrue(databaseService.contains("networkRepository.replacePowerNetworks(islandUuid, networks);"));
+        assertTrue(databaseService.contains("return networkRepository.loadPowerNetworks(islandUuid);"));
+        assertFalse(databaseService.contains("SELECT * FROM item_networks WHERE island_uuid = ? ORDER BY network_id"));
+        assertFalse(databaseService.contains("SELECT * FROM power_networks WHERE island_uuid = ? ORDER BY network_id"));
+        assertFalse(databaseService.contains("INSERT INTO item_networks(network_id, island_uuid, throughput_per_minute, buffer_inventory_id, dirty, updated_at)"));
+        assertFalse(databaseService.contains("INSERT INTO power_networks(network_id, island_uuid, generation_per_second, consumption_per_second"));
+        assertFalse(databaseService.contains("SELECT machine_id FROM machine_network_links WHERE network_id = ? AND network_type = ?"));
+        assertFalse(databaseService.contains("SELECT buffer_inventory_id FROM item_networks WHERE network_id = ?"));
+        assertFalse(databaseService.contains("private List<ItemNetwork.Route> itemRoutes"));
+        assertFalse(databaseService.contains("private Set<UUID> loadNetworkMachineIds"));
+
+        assertTrue(repository.contains("SELECT * FROM item_networks WHERE island_uuid = ? ORDER BY network_id"));
+        assertTrue(repository.contains("SELECT * FROM power_networks WHERE island_uuid = ? ORDER BY network_id"));
+        assertTrue(repository.contains("INSERT INTO item_networks(network_id, island_uuid, throughput_per_minute, buffer_inventory_id, dirty, updated_at)"));
+        assertTrue(repository.contains("INSERT INTO power_networks(network_id, island_uuid, generation_per_second, consumption_per_second"));
+        assertTrue(repository.contains("SELECT machine_id FROM machine_network_links WHERE network_id = ? AND network_type = ?"));
+        assertTrue(repository.contains("SELECT buffer_inventory_id FROM item_networks WHERE network_id = ?"));
+        assertTrue(repository.contains("private List<ItemNetwork.Route> itemRoutes"));
+        assertTrue(repository.contains("private Set<UUID> loadNetworkMachineIds"));
+    }
 }
