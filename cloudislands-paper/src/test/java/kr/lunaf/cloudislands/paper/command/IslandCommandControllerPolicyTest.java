@@ -144,8 +144,11 @@ class IslandCommandControllerPolicyTest {
         assertTrue(router.contains("runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_COOLDOWN_PERMISSION)"));
         assertTrue(router.contains("runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_WARMUP_PERMISSION)"));
         assertTrue(router.contains("player.sendActionBar(Component.text(runtime.playerMessage(message)))"), "warmup state must be visible in the actionbar");
+        assertTrue(router.contains("player.showTitle(Title.title("), "warmup state must also be visible as a title");
         assertTrue(router.contains("IslandCommandDelayPolicy.COOLDOWN_MESSAGE_KEY"));
         assertTrue(router.contains("IslandCommandDelayPolicy.WARMUP_MESSAGE_KEY"));
+        assertTrue(router.contains("IslandCommandDelayPolicy.WARMUP_TITLE_MESSAGE_KEY"));
+        assertTrue(router.contains("IslandCommandDelayPolicy.WARMUP_SUBTITLE_MESSAGE_KEY"));
         assertTrue(router.contains("void clearPlayerState(Player player)"));
         assertTrue(factory.contains("public boolean hasPermission(Player player, String permission)"));
         assertTrue(factory.contains("player.hasPermission(permission)"));
@@ -162,8 +165,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(plugin.contains("cloudislands.island.restore.cooldown:"));
         assertTrue(koMessages.contains("island-command-cooldown:"));
         assertTrue(koMessages.contains("island-command-warmup:"));
+        assertTrue(koMessages.contains("island-command-warmup-title:"));
+        assertTrue(koMessages.contains("island-command-warmup-subtitle:"));
         assertTrue(enMessages.contains("island-command-cooldown:"));
         assertTrue(enMessages.contains("island-command-warmup:"));
+        assertTrue(enMessages.contains("island-command-warmup-title:"));
+        assertTrue(enMessages.contains("island-command-warmup-subtitle:"));
     }
 
     @Test

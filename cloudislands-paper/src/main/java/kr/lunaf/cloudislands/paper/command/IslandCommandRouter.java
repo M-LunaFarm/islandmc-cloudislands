@@ -6,6 +6,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -246,10 +247,20 @@ final class IslandCommandRouter {
             return false;
         }
         if (decision.warmupRequired()) {
-            String message = runtime.routeMessage(IslandCommandDelayPolicy.WARMUP_MESSAGE_KEY, "섬 이동을 준비하고 있습니다. 움직이면 취소될 수 있습니다.");
-            player.sendActionBar(Component.text(runtime.playerMessage(message)));
+            sendWarmupWaitingState(player);
         }
         return true;
+    }
+
+    private void sendWarmupWaitingState(Player player) {
+        String message = runtime.routeMessage(IslandCommandDelayPolicy.WARMUP_MESSAGE_KEY, "섬 이동을 준비하고 있습니다. 움직이면 취소될 수 있습니다.");
+        String title = runtime.routeMessage(IslandCommandDelayPolicy.WARMUP_TITLE_MESSAGE_KEY, "섬 이동 준비 중");
+        String subtitle = runtime.routeMessage(IslandCommandDelayPolicy.WARMUP_SUBTITLE_MESSAGE_KEY, "잠시 후 명령이 실행됩니다.");
+        player.sendActionBar(Component.text(runtime.playerMessage(message)));
+        player.showTitle(Title.title(
+            Component.text(runtime.playerMessage(title)),
+            Component.text(runtime.playerMessage(subtitle))
+        ));
     }
 
     private int helpPage(String[] args, int index) {

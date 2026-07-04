@@ -12,6 +12,8 @@ final class IslandCommandDelayPolicy {
     static final String BYPASS_WARMUP_PERMISSION = "cloudislands.bypass.warmup";
     static final String COOLDOWN_MESSAGE_KEY = "island-command-cooldown";
     static final String WARMUP_MESSAGE_KEY = "island-command-warmup";
+    static final String WARMUP_TITLE_MESSAGE_KEY = "island-command-warmup-title";
+    static final String WARMUP_SUBTITLE_MESSAGE_KEY = "island-command-warmup-subtitle";
 
     private static final Map<DelaySubject, Long> COOLDOWNS_MILLIS = new EnumMap<>(DelaySubject.class);
     private static final Map<DelaySubject, Long> WARMUPS_MILLIS = new EnumMap<>(DelaySubject.class);
