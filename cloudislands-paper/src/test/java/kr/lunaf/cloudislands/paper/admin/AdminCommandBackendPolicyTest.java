@@ -130,6 +130,11 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.jobs().list()"), "Doctor must include typed job queue context");
         assertTrue(source.contains("coreApiClient.adminRoutes().debug(new UUID(0L, 0L))"), "Doctor must include typed route ticket context");
         assertTrue(source.contains("coreApiClient.adminAudit().list(5)"), "Doctor must include recent typed audit context");
+        assertTrue(source.contains("coreApiClient.templates().list().thenApply(this::templateDoctorDiagnosticBody)"), "Doctor must include template bundle validation context");
+        assertTrue(source.contains("doctorSeverity(String body)"), "Doctor output must classify sections with PASS/WARN/FAIL");
+        assertTrue(source.contains("\"PASS\"") && source.contains("\"WARN\"") && source.contains("\"FAIL\""), "Doctor severity labels must be operator-visible");
+        assertTrue(source.contains("WARN_TEMPLATE_CATALOG_EMPTY"), "Doctor must warn when no templates are visible");
+        assertTrue(source.contains("WARN_BUNDLE_MISSING"), "Doctor template diagnostics must warn when enabled templates have no bundle");
         assertTrue(source.contains("integrationStatusMessage()"), "Doctor must include integration state");
         assertTrue(plugin.contains("cloudislands.admin.doctor"), "Doctor command must have a plugin permission");
     }

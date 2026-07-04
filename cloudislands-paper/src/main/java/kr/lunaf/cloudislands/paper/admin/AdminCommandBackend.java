@@ -697,9 +697,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<CharSequence> jobs = doctorPart("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
         CompletableFuture<CharSequence> routes = doctorPart("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
         CompletableFuture<CharSequence> audit = doctorPart("audit", coreApiClient.adminAudit().list(5).thenApply(this::auditListMessage));
+        CompletableFuture<CharSequence> templates = doctorPart("templates", coreApiClient.templates().list().thenApply(this::templateDoctorDiagnosticBody));
         CompletableFuture<CharSequence> integrations = CompletableFuture.completedFuture("integrations=" + integrationStatusMessage());
-        run(sender, "Doctor", CompletableFuture.allOf(config, snapshotPolicy, metrics, storage, nodes, jobs, routes, audit, integrations)
-            .thenApply(_ignored -> doctorMessage(List.of(config.join(), snapshotPolicy.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), integrations.join()))));
+        run(sender, "Doctor", CompletableFuture.allOf(config, snapshotPolicy, metrics, storage, nodes, jobs, routes, audit, templates, integrations)
+            .thenApply(_ignored -> doctorMessage(List.of(config.join(), snapshotPolicy.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), templates.join(), integrations.join()))));
         return true;
     }
 
@@ -718,11 +719,30 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private CompletableFuture<CharSequence> doctorPart(String label, CompletableFuture<? extends CharSequence> future) {
         return future.handle((body, error) -> {
             if (error != null) {
-                return label + "=ERROR(" + error.getClass().getSimpleName() + ")";
+                return "FAIL " + label + "=ERROR(" + error.getClass().getSimpleName() + ")";
             }
             String text = body == null ? "" : body.toString().replace('\n', ' ').trim();
-            return label + "=" + (text.isBlank() ? "empty" : text);
+            String value = text.isBlank() ? "empty" : text;
+            return doctorSeverity(value) + " " + label + "=" + value;
         });
+    }
+
+    private String doctorSeverity(String body) {
+        String normalized = body == null ? "" : body.toUpperCase(Locale.ROOT);
+        if (normalized.contains("ERROR")
+            || normalized.contains("INVALID")
+            || normalized.contains("FAILED")
+            || normalized.contains("DOWN")
+            || normalized.contains("UNAVAILABLE")) {
+            return "FAIL";
+        }
+        if (normalized.contains("WARN")
+            || normalized.contains("MISSING")
+            || normalized.contains("NOT-CERTIFIED")
+            || normalized.contains("DEGRADED")) {
+            return "WARN";
+        }
+        return "PASS";
     }
 
     private CharSequence doctorMessage(List<CharSequence> parts) {
@@ -1917,6 +1937,34 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
         }
         return adminText("admin-command-templates-total-prefix", "Templates: total=") + templates.size() + adminText("admin-command-templates-enabled-prefix", " enabled=") + enabled + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String templateDoctorDiagnosticBody(List<TemplateView> templates) {
+        if (templates.isEmpty()) {
+            return "templates=empty WARN_TEMPLATE_CATALOG_EMPTY";
+        }
+        int ok = 0;
+        int warn = 0;
+        int invalid = 0;
+        List<String> entries = new ArrayList<>();
+        for (TemplateView template : templates) {
+            String status = templateValidationStatus(template);
+            if ("OK".equals(status)) {
+                ok++;
+            } else if (status.startsWith("WARN_")) {
+                warn++;
+            } else {
+                invalid++;
+            }
+            if (entries.size() < 6 && !"OK".equals(status)) {
+                entries.add(template.id() + "=" + status);
+            }
+        }
+        return "templates=" + templates.size()
+            + " ok=" + ok
+            + " warn=" + warn
+            + " invalid=" + invalid
+            + (entries.isEmpty() ? "" : " issues=" + String.join(",", entries));
     }
 
     private String templateActionMessage(String label, String targetId, TemplateView template) {
