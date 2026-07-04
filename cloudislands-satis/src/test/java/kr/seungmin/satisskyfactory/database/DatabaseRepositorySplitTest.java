@@ -205,4 +205,28 @@ class DatabaseRepositorySplitTest {
         assertTrue(repository.contains("private List<ItemNetwork.Route> itemRoutes"));
         assertTrue(repository.contains("private Set<UUID> loadNetworkMachineIds"));
     }
+
+    @Test
+    void machineSqlLivesInMachineRepository() throws Exception {
+        String databaseService = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/DatabaseService.java"));
+        String repository = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/database/MachineRepository.java"));
+
+        assertTrue(databaseService.contains("private final MachineRepository machineRepository"));
+        assertTrue(databaseService.contains("return machineRepository.loadAll();"));
+        assertTrue(databaseService.contains("machineRepository.save(machine);"));
+        assertTrue(databaseService.contains("machineRepository.delete(machineId);"));
+        assertFalse(databaseService.contains("SELECT * FROM machines"));
+        assertFalse(databaseService.contains("INSERT INTO machines(machine_id, island_uuid, owner_uuid, type_id, tier, world, x, y, z, direction, status"));
+        assertFalse(databaseService.contains("DELETE FROM machines WHERE machine_id = ?"));
+        assertFalse(databaseService.contains("DELETE FROM machine_network_links WHERE machine_id = ?"));
+        assertFalse(databaseService.contains("private String saveMachineSql"));
+        assertFalse(databaseService.contains("private String selectedRecipeId("));
+
+        assertTrue(repository.contains("SELECT * FROM machines"));
+        assertTrue(repository.contains("INSERT INTO machines(machine_id, island_uuid, owner_uuid, type_id, tier, world, x, y, z, direction, status"));
+        assertTrue(repository.contains("DELETE FROM machines WHERE machine_id = ?"));
+        assertTrue(repository.contains("DELETE FROM machine_network_links WHERE machine_id = ?"));
+        assertTrue(repository.contains("private String saveMachineSql"));
+        assertTrue(repository.contains("private String selectedRecipeId("));
+    }
 }

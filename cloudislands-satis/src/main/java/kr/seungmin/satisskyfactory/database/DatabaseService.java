@@ -3,16 +3,13 @@ package kr.seungmin.satisskyfactory.database;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import kr.lunaf.cloudislands.api.service.IslandAddonService;
-import kr.seungmin.satisskyfactory.model.BlockKey;
 import kr.seungmin.satisskyfactory.model.FactoryIsland;
 import kr.seungmin.satisskyfactory.model.ItemNetwork;
 import kr.seungmin.satisskyfactory.model.MachineInstance;
-import kr.seungmin.satisskyfactory.model.MachineStatus;
 import kr.seungmin.satisskyfactory.model.PowerNetwork;
 import kr.seungmin.satisskyfactory.model.ResourceNode;
 import kr.seungmin.satisskyfactory.storage.SatisSchemaService;
 import kr.seungmin.satisskyfactory.storage.VirtualInventory;
-import org.bukkit.block.BlockFace;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.sqlite.SQLiteConfig;
 
@@ -111,6 +108,7 @@ public final class DatabaseService {
     private final LedgerRepository ledgerRepository;
     private final MarketRepository marketRepository;
     private final NetworkRepository networkRepository;
+    private final MachineRepository machineRepository;
     private HikariDataSource dataSource;
     private StorageBackend activeBackend = StorageBackend.SQLITE;
     private SqlDialect sqlDialect = SqlDialect.SQLITE;
@@ -174,6 +172,7 @@ public final class DatabaseService {
         this.ledgerRepository = new LedgerRepository(this);
         this.marketRepository = new MarketRepository(this);
         this.networkRepository = new NetworkRepository(this);
+        this.machineRepository = new MachineRepository(this);
     }
 
     public void open() {
@@ -629,137 +628,11 @@ public final class DatabaseService {
     }
 
     public List<MachineInstance> loadMachines() {
-        List<MachineInstance> machines = new ArrayList<>();
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement("SELECT * FROM machines");
-             ResultSet rs = statement.executeQuery()) {
-            while (rs.next()) {
-                MachineInstance machine = new MachineInstance(
-                        UUID.fromString(rs.getString("machine_id")),
-                        UUID.fromString(rs.getString("island_uuid")),
-                        UUID.fromString(rs.getString("owner_uuid")),
-                        rs.getString("type_id"),
-                        rs.getInt("tier"),
-                        new BlockKey(rs.getString("world"), rs.getInt("x"), rs.getInt("y"), rs.getInt("z"))
-                );
-                machine.direction(BlockFace.valueOf(rs.getString("direction")));
-                machine.status(MachineStatus.fromStoredValue(rs.getString("status")));
-                machine.inputInventoryId(uuidOrNull(rs.getString("input_inventory_id")));
-                machine.outputInventoryId(uuidOrNull(rs.getString("output_inventory_id")));
-                machine.powerNetworkId(uuidOrNull(rs.getString("power_network_id")));
-                machine.itemNetworkId(uuidOrNull(rs.getString("item_network_id")));
-                machine.linkedResourceNodeId(uuidOrNull(rs.getString("linked_resource_node_id")));
-                machine.configJson(rs.getString("config_json"));
-                machine.selectedRecipeId(selectedRecipeId(machine.configJson()));
-                machine.lastProcessAt(rs.getLong("last_process_at"));
-                machine.wear(rs.getDouble("wear"));
-                machine.createdAt(rs.getLong("created_at"));
-                machine.updatedAt(rs.getLong("updated_at"));
-                machines.add(machine);
-            }
-            return machines;
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to load machines", exception);
-        }
+        return machineRepository.loadAll();
     }
 
     public void saveMachine(MachineInstance machine) {
-        long now = Instant.now().toEpochMilli();
-        if (machine.createdAt() <= 0) {
-            machine.createdAt(now);
-        }
-        machine.updatedAt(now);
-        try (Connection connection = connection();
-             PreparedStatement statement = connection.prepareStatement(saveMachineSql())) {
-            statement.setString(1, machine.machineId().toString());
-            statement.setString(2, machine.islandUuid().toString());
-            statement.setString(3, machine.ownerUuid().toString());
-            statement.setString(4, machine.typeId());
-            statement.setInt(5, machine.tier());
-            statement.setString(6, machine.location().world());
-            statement.setInt(7, machine.location().x());
-            statement.setInt(8, machine.location().y());
-            statement.setInt(9, machine.location().z());
-            statement.setString(10, machine.direction().name());
-            statement.setString(11, machine.status().name());
-            statement.setString(12, stringOrNull(machine.inputInventoryId()));
-            statement.setString(13, stringOrNull(machine.outputInventoryId()));
-            statement.setString(14, stringOrNull(machine.powerNetworkId()));
-            statement.setString(15, stringOrNull(machine.itemNetworkId()));
-            statement.setString(16, stringOrNull(machine.linkedResourceNodeId()));
-            statement.setLong(17, machine.lastProcessAt());
-            statement.setDouble(18, machine.wear());
-            statement.setString(19, machineConfigJson(machine));
-            statement.setLong(20, machine.createdAt());
-            statement.setLong(21, machine.updatedAt());
-            statement.executeUpdate();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to save machine", exception);
-        }
-    }
-
-    private String saveMachineSql() {
-        if (sqlDialect == SqlDialect.MYSQL) {
-            return """
-                     INSERT INTO machines(machine_id, island_uuid, owner_uuid, type_id, tier, world, x, y, z, direction, status,
-                       input_inventory_id, output_inventory_id, power_network_id, item_network_id, linked_resource_node_id,
-                       last_process_at, wear, config_json, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE world=VALUES(world), x=VALUES(x), y=VALUES(y), z=VALUES(z),
-                       direction=VALUES(direction), status=VALUES(status), input_inventory_id=VALUES(input_inventory_id),
-                       output_inventory_id=VALUES(output_inventory_id), power_network_id=VALUES(power_network_id),
-                       item_network_id=VALUES(item_network_id), linked_resource_node_id=VALUES(linked_resource_node_id),
-                       last_process_at=VALUES(last_process_at), wear=VALUES(wear), config_json=VALUES(config_json),
-                       updated_at=VALUES(updated_at)
-                    """;
-        }
-        return """
-                     INSERT INTO machines(machine_id, island_uuid, owner_uuid, type_id, tier, world, x, y, z, direction, status,
-                       input_inventory_id, output_inventory_id, power_network_id, item_network_id, linked_resource_node_id,
-                       last_process_at, wear, config_json, created_at, updated_at)
-                     VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                     ON CONFLICT(machine_id) DO UPDATE SET world=excluded.world, x=excluded.x, y=excluded.y, z=excluded.z,
-                       direction=excluded.direction, status=excluded.status, input_inventory_id=excluded.input_inventory_id,
-                       output_inventory_id=excluded.output_inventory_id, power_network_id=excluded.power_network_id,
-                       item_network_id=excluded.item_network_id, linked_resource_node_id=excluded.linked_resource_node_id,
-                       last_process_at=excluded.last_process_at, wear=excluded.wear, config_json=excluded.config_json, updated_at=excluded.updated_at
-                    """;
-    }
-
-    private String selectedRecipeId(String json) {
-        if (json == null || json.isBlank()) {
-            return null;
-        }
-        String key = "\"selectedRecipe\"";
-        int keyIndex = json.indexOf(key);
-        if (keyIndex < 0) {
-            return null;
-        }
-        int colon = json.indexOf(':', keyIndex + key.length());
-        if (colon < 0) {
-            return null;
-        }
-        int start = json.indexOf('"', colon + 1);
-        if (start < 0) {
-            return null;
-        }
-        StringBuilder value = new StringBuilder();
-        boolean escaped = false;
-        for (int index = start + 1; index < json.length(); index++) {
-            char current = json.charAt(index);
-            if (escaped) {
-                value.append(current);
-                escaped = false;
-            } else if (current == '\\') {
-                escaped = true;
-            } else if (current == '"') {
-                String parsed = value.toString();
-                return parsed.isBlank() ? null : parsed;
-            } else {
-                value.append(current);
-            }
-        }
-        return null;
+        machineRepository.save(machine);
     }
 
     private String machineConfigJson(MachineInstance machine) {
@@ -839,20 +712,7 @@ public final class DatabaseService {
     }
 
     public void deleteMachine(UUID machineId) {
-        try (Connection connection = connection()) {
-            connection.setAutoCommit(false);
-            try (PreparedStatement links = connection.prepareStatement("DELETE FROM machine_network_links WHERE machine_id = ?")) {
-                links.setString(1, machineId.toString());
-                links.executeUpdate();
-            }
-            try (PreparedStatement statement = connection.prepareStatement("DELETE FROM machines WHERE machine_id = ?")) {
-                statement.setString(1, machineId.toString());
-                statement.executeUpdate();
-            }
-            connection.commit();
-        } catch (SQLException exception) {
-            throw new IllegalStateException("Failed to delete machine", exception);
-        }
+        machineRepository.delete(machineId);
     }
 
     public void replaceItemNetworks(UUID islandUuid, List<ItemNetwork> networks) {
@@ -1297,14 +1157,6 @@ public final class DatabaseService {
 
     private String escape(String value) {
         return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
-
-    private UUID uuidOrNull(String value) {
-        return value == null ? null : UUID.fromString(value);
-    }
-
-    private String stringOrNull(UUID value) {
-        return value == null ? null : value.toString();
     }
 
     public record StoredContract(
