@@ -27,7 +27,53 @@ commands:
 permissions:
   satisskyfactory.use:
     default: true
+  satisskyfactory.command.main:
+    default: true
+  satisskyfactory.command.status:
+    default: true
+  satisskyfactory.command.machines:
+    default: true
+  satisskyfactory.command.storage:
+    default: true
+  satisskyfactory.command.deposit:
+    default: true
+  satisskyfactory.command.withdraw:
+    default: true
+  satisskyfactory.command.market:
+    default: true
+  satisskyfactory.command.sell:
+    default: true
+  satisskyfactory.command.contracts:
+    default: true
+  satisskyfactory.command.research:
+    default: true
+  satisskyfactory.command.node:
+    default: true
+  satisskyfactory.command.repair:
+    default: true
   satisskyfactory.admin:
+    default: op
+  satisskyfactory.admin.reload:
+    default: op
+  satisskyfactory.admin.features:
+    default: op
+  satisskyfactory.admin.integration:
+    default: op
+  satisskyfactory.admin.state:
+    default: op
+  satisskyfactory.admin.migration:
+    default: op
+  satisskyfactory.admin.give:
+    default: op
+  satisskyfactory.admin.giveitem:
+    default: op
+  satisskyfactory.admin.research:
+    default: op
+  satisskyfactory.admin.maintenance:
+    default: op
+  satisskyfactory.admin.nodes:
+    default: op
+  satisskyfactory.admin.debug:
     default: op
   satisskyfactory.debug:
     default: op

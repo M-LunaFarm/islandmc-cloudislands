@@ -13,10 +13,11 @@ class SatisRuntimeWriteGatePolicyTest {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
 
         assertTrue(source.contains("if (dataWritesEnabled()) {\n            dirtySaves.start(dirtySavePeriodTicks(configs.main()));\n        }"));
-        assertTrue(source.contains("return SatisRuntimeTickAuthorityPolicy.writeReady(database.activeBackend(), storageWriteAuthorityReady())\n                && runtimeWriteFeatureEnabled();"));
+        assertTrue(source.contains("return SatisRuntimeTickAuthorityPolicy.writeReady(database.activeBackend(), storageWriteAuthorityReady())\n                && globalRuntimeOwnerFenceReady()\n                && runtimeWriteFeatureEnabled();"));
         assertTrue(source.contains("dirtySaves.writeGates("));
         assertTrue(source.contains("this::dataWritesEnabled"));
         assertTrue(source.contains("dirtySaves.inventoryWriteGate(this::inventoryDataWritesEnabled);"));
+        assertTrue(source.contains("dirtySaves.islandRuntimeAuthority(this::dirtySaveRuntimeAuthorityReady);"));
     }
 
     @Test

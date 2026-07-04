@@ -97,6 +97,7 @@ import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
+import kr.seungmin.satisskyfactory.storage.SatisRuntimeAuthority;
 import kr.seungmin.satisskyfactory.storage.SatisRuntimeTickAuthorityPolicy;
 import kr.seungmin.satisskyfactory.storage.SatisStatePortabilityPolicy;
 import kr.seungmin.satisskyfactory.storage.SatisLegacyMigrationPolicy;
@@ -160,6 +161,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private MaintenanceTickService maintenanceTicker;
     private PlaceholderHook placeholderHook;
     private CloudIslandsApi cloudIslandsApi;
+    private SatisRuntimeAuthority runtimeAuthority;
     private boolean addonRuntimeEnabled;
     private boolean cloudIslandsApiMissing;
     private boolean commandsRegistered;
@@ -185,6 +187,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         configs = new ConfigService(this);
         configs.load();
         messages = new MessageService(configs);
+        runtimeAuthority = new SatisRuntimeAuthority(localRuntimeNodeId());
         addonRuntimeEnabled = false;
         effectiveFeatures = Map.of();
         if (!registerCloudIslandsAddon()) {
@@ -297,6 +300,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     public void reloadPluginConfig() {
         Map<String, Boolean> previousEffectiveFeatures = effectiveFeatures;
         configs.load();
+        runtimeAuthority = new SatisRuntimeAuthority(localRuntimeNodeId());
         if (!registerCloudIslandsAddon()) {
             flushPendingSatisStateBeforeDisable("reload-registration-disabled", previousEffectiveFeatures);
             stopRuntimeActivity();
@@ -384,6 +388,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return false;
         }
         return SatisRuntimeTickAuthorityPolicy.writeReady(database.activeBackend(), storageWriteAuthorityReady())
+                && globalRuntimeOwnerFenceReady()
                 && runtimeWriteFeatureEnabled();
     }
 
@@ -396,7 +401,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 database.activeBackend(),
                 cloudIslandsApi != null,
                 operationalFeatureEnabled("addon-state"),
-                coreHydrated
+                coreHydrated,
+                runtimeOwnerFenceReady(islandId)
         );
     }
 
@@ -422,6 +428,30 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return true;
         }
         return database.activeBackend() == DatabaseService.StorageBackend.CORE_API && coreApiLocalCacheWritesEnabled();
+    }
+
+    private boolean runtimeOwnerFenceReady(UUID islandId) {
+        if (!sharedSqlBackend()) {
+            return true;
+        }
+        return runtimeAuthority != null && runtimeAuthority.canTick(islandId);
+    }
+
+    private boolean globalRuntimeOwnerFenceReady() {
+        if (!sharedSqlBackend()) {
+            return true;
+        }
+        return cloudIslandsApi != null && runtimeAuthority != null && runtimeAuthority.localAuthorityKnown();
+    }
+
+    private boolean sharedSqlBackend() {
+        if (database == null) {
+            return false;
+        }
+        return switch (database.activeBackend()) {
+            case POSTGRESQL, MYSQL, MARIADB -> true;
+            case CORE_API, SQLITE -> false;
+        };
     }
 
     private boolean coreApiLocalCacheWritesEnabled() {
@@ -597,6 +627,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-feature-dependency-blocks", SatisFeatureGateResolver.dependencyBlockSummary(configs == null ? null : configs.main()));
         state.put("runtime-data-writes-enabled", Boolean.toString(dataWritesEnabled()));
         state.put("runtime-data-write-authority-ready", Boolean.toString(storageWriteAuthorityReady()));
+        state.put("runtime-local-node-id", runtimeAuthority == null ? "unknown" : runtimeAuthority.localNodeId());
+        state.put("runtime-owner-fence-ready", Boolean.toString(globalRuntimeOwnerFenceReady()));
+        state.put("runtime-owner-fence-tracked-islands", runtimeAuthority == null ? "0" : Integer.toString(runtimeAuthority.trackedIslands()));
+        state.put("runtime-owner-fence-local-active-islands", runtimeAuthority == null ? "0" : Integer.toString(runtimeAuthority.activeLocalIslands()));
         state.put("runtime-write-feature-enabled", Boolean.toString(runtimeWriteFeatureEnabled()));
         state.put("runtime-lifecycle-state-enabled", Boolean.toString(lifecycleStateEnabled()));
         state.put("runtime-machine-ticker-running", Boolean.toString(ticker != null && ticker.running()));
@@ -737,6 +771,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private void putDataWriteGateState(Map<String, String> state) {
         state.put("data-write-mode", dataWritesEnabled() ? "enabled" : "disabled");
         state.put("data-write-authority-ready", Boolean.toString(storageWriteAuthorityReady()));
+        state.put("data-write-runtime-owner-fence-ready", Boolean.toString(globalRuntimeOwnerFenceReady()));
         state.put("data-write-authority-policy", SatisRuntimeTickAuthorityPolicy.writePolicy(database == null ? null : database.activeBackend()));
         state.put("data-write-feature-ready", Boolean.toString(runtimeWriteFeatureEnabled()));
         state.put("write-gate-machines", Boolean.toString(operationalFeatureEnabled("machines")));
@@ -1020,6 +1055,17 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private String configuredSkyblockProvider() {
         return configs.main().getString("integration.skyblock-provider", "CLOUDISLANDS");
+    }
+
+    private String localRuntimeNodeId() {
+        String env = firstNonBlank(System.getenv("CLOUDISLANDS_NODE_ID"),
+                firstNonBlank(System.getenv("CLOUDISLANDS_PAPER_NODE_ID"), System.getenv("CLOUDISLANDS_RUNTIME_NODE_ID")));
+        return firstNonBlank(env,
+                firstNonBlank(configs.main().getString("cloudislands.node-id", ""),
+                        firstNonBlank(configs.main().getString("cloudislands.node.id", ""),
+                                firstNonBlank(configs.main().getString("runtime.node.id", ""),
+                                        firstNonBlank(configs.main().getString("node.id", ""),
+                                                configs.main().getString("settings.node-id", ""))))));
     }
 
     private int configInt(String primaryPath, String aliasPath, int fallback) {
@@ -1533,6 +1579,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 this::dataWritesEnabled
         );
         dirtySaves.inventoryWriteGate(this::inventoryDataWritesEnabled);
+        dirtySaves.islandRuntimeAuthority(this::dirtySaveRuntimeAuthorityReady);
+    }
+
+    private boolean dirtySaveRuntimeAuthorityReady(UUID islandUuid) {
+        return !sharedSqlBackend() || (runtimeAuthority != null && runtimeAuthority.canWrite(islandUuid));
     }
 
     private void ensureDirtySaveService() {
@@ -3044,6 +3095,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandActivated(IslandActivatedEvent event) {
+        if (runtimeAuthority != null) {
+            runtimeAuthority.activated(event.islandId(), event.nodeId(), event.worldName(), event.cellX(), event.cellZ());
+        }
         String operation = "activated:" + lifecycleNode(event.nodeId()) + lifecycleWorldToken(event.worldName()) + lifecycleCellToken(event.cellX(), event.cellZ()) + lifecyclePlacementToken(event.placementSource());
         runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
@@ -3061,6 +3115,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandDeactivated(IslandDeactivatedEvent event) {
+        if (runtimeAuthority != null) {
+            runtimeAuthority.deactivated(event.islandId());
+        }
         String phase = event.phase() == null || event.phase().isBlank() ? "" : ":" + event.phase();
         String target = event.targetNode() == null || event.targetNode().isBlank() ? "" : "->" + lifecycleNode(event.targetNode());
         String operation = "deactivated:" + lifecycleNode(event.nodeId()) + target + phase + ":snapshot-" + event.snapshotNo();
@@ -3069,6 +3126,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandMigrated(IslandMigratedEvent event) {
+        if (runtimeAuthority != null) {
+            runtimeAuthority.activated(event.islandId(), event.toNode(), event.worldName(), event.cellX(), event.cellZ());
+        }
         String operation = "migrated:" + lifecycleNode(event.fromNode()) + "->" + lifecycleNode(event.toNode()) + lifecycleWorldToken(event.worldName()) + lifecycleCellToken(event.cellX(), event.cellZ()) + lifecyclePlacementToken(event.placementSource());
         runSatisLifecycle(event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
@@ -3125,6 +3185,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandRecoveryRequired(kr.lunaf.cloudislands.api.event.IslandRecoveryRequiredEvent event) {
+        if (runtimeAuthority != null) {
+            runtimeAuthority.suspend(event.islandId(), "RECOVERY_REQUIRED", event.nodeId());
+        }
         runSatisLifecycle(event.islandId(), "recovery-required:" + lifecycleNode(event.nodeId()), () -> suspendRecoveredIsland(event.islandId(), "recovery-required:" + lifecycleNode(event.nodeId())));
     }
 
@@ -3135,6 +3198,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandRuntimeChanged(IslandRuntimeChangeEvent event) {
+        if (runtimeAuthority != null) {
+            runtimeAuthority.runtimeChanged(event.islandId(), event.state(), event.targetNode());
+        }
         String state = event.state() == null ? "" : event.state();
         if (state.equalsIgnoreCase("RECOVERY_REQUIRED") || state.equalsIgnoreCase("QUARANTINED")) {
             String operation = runtimeOperation(state, event.targetNode());

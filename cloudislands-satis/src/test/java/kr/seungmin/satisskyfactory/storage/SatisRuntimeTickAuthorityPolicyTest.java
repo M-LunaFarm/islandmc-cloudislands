@@ -20,9 +20,11 @@ class SatisRuntimeTickAuthorityPolicyTest {
 
     @Test
     void sharedSqlBackendsCanTickUnderCloudIslandsRuntimeFence() {
-        assertTrue(SatisRuntimeTickAuthorityPolicy.tickReady(DatabaseService.StorageBackend.POSTGRESQL, false, false, false));
-        assertTrue(SatisRuntimeTickAuthorityPolicy.tickReady(DatabaseService.StorageBackend.MYSQL, false, false, false));
-        assertTrue(SatisRuntimeTickAuthorityPolicy.tickReady(DatabaseService.StorageBackend.MARIADB, false, false, false));
+        assertFalse(SatisRuntimeTickAuthorityPolicy.tickReady(DatabaseService.StorageBackend.POSTGRESQL, false, false, false, true));
+        assertFalse(SatisRuntimeTickAuthorityPolicy.tickReady(DatabaseService.StorageBackend.POSTGRESQL, true, false, false, false));
+        assertTrue(SatisRuntimeTickAuthorityPolicy.tickReady(DatabaseService.StorageBackend.POSTGRESQL, true, false, false, true));
+        assertTrue(SatisRuntimeTickAuthorityPolicy.tickReady(DatabaseService.StorageBackend.MYSQL, true, false, false, true));
+        assertTrue(SatisRuntimeTickAuthorityPolicy.tickReady(DatabaseService.StorageBackend.MARIADB, true, false, false, true));
         assertEquals("shared-sql-backend-uses-cloudislands-runtime-owner-fence",
                 SatisRuntimeTickAuthorityPolicy.tickPolicy(DatabaseService.StorageBackend.POSTGRESQL));
     }
@@ -38,7 +40,8 @@ class SatisRuntimeTickAuthorityPolicyTest {
     @Test
     void localSqliteFallbackDoesNotRunDistributedRuntimeWrites() {
         assertTrue(SatisRuntimeTickAuthorityPolicy.writeReady(DatabaseService.StorageBackend.CORE_API, true));
-        assertTrue(SatisRuntimeTickAuthorityPolicy.writeReady(DatabaseService.StorageBackend.POSTGRESQL, true));
+        assertFalse(SatisRuntimeTickAuthorityPolicy.writeReady(DatabaseService.StorageBackend.POSTGRESQL, true, false));
+        assertTrue(SatisRuntimeTickAuthorityPolicy.writeReady(DatabaseService.StorageBackend.POSTGRESQL, true, true));
         assertFalse(SatisRuntimeTickAuthorityPolicy.writeReady(DatabaseService.StorageBackend.CORE_API, false));
         assertFalse(SatisRuntimeTickAuthorityPolicy.writeReady(DatabaseService.StorageBackend.SQLITE, true));
         assertFalse(SatisRuntimeTickAuthorityPolicy.writeReady(null, true));

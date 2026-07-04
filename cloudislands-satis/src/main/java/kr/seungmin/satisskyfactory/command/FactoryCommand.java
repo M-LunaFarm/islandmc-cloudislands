@@ -151,6 +151,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
             help(player, label, helpPage(args));
             return true;
         }
+        if (!hasCommandPermission(player, sub, args)) {
+            messages.send(player, "no-permission");
+            return true;
+        }
         boolean readOnly = readOnlyCommand(sub);
         Optional<FactoryContext> context = readOnly ? islands.existingContext(player) : islands.context(player);
         if (context.isEmpty()) {
@@ -598,7 +602,77 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
                 || command.contains(" research") && !enabled("research")
                 || command.contains(" node") && !enabled("resource-nodes")
                 || command.contains(" repair") && (!enabled("maintenance") || !enabled("storage"))
-                || command.contains(" admin ") && (viewer == null || !viewer.hasPermission("satisskyfactory.admin"));
+                || command.contains(" admin ") && (viewer == null || !viewer.hasPermission("satisskyfactory.admin"))
+                || viewer != null && !viewer.hasPermission(permissionForHelp(command));
+    }
+
+    private boolean hasCommandPermission(CommandSender sender, String subcommand, String[] args) {
+        if (sender == null) {
+            return false;
+        }
+        String permission = permissionFor(subcommand, args);
+        return permission == null || sender.hasPermission(permission);
+    }
+
+    private String permissionForHelp(String command) {
+        if (command.contains(" status")) {
+            return "satisskyfactory.command.status";
+        }
+        if (command.contains(" machines")) {
+            return "satisskyfactory.command.machines";
+        }
+        if (command.contains(" storage")) {
+            return "satisskyfactory.command.storage";
+        }
+        if (command.contains(" deposit")) {
+            return "satisskyfactory.command.deposit";
+        }
+        if (command.contains(" withdraw")) {
+            return "satisskyfactory.command.withdraw";
+        }
+        if (command.endsWith(" market")) {
+            return "satisskyfactory.command.market";
+        }
+        if (command.contains(" sell")) {
+            return "satisskyfactory.command.sell";
+        }
+        if (command.contains(" contracts")) {
+            return "satisskyfactory.command.contracts";
+        }
+        if (command.contains(" emergency")) {
+            return "satisskyfactory.command.contracts";
+        }
+        if (command.contains(" research")) {
+            return "satisskyfactory.command.research";
+        }
+        if (command.contains(" node")) {
+            return "satisskyfactory.command.node";
+        }
+        if (command.contains(" repair")) {
+            return "satisskyfactory.command.repair";
+        }
+        if (command.contains(" main")) {
+            return "satisskyfactory.command.main";
+        }
+        return "satisskyfactory.use";
+    }
+
+    private String permissionFor(String subcommand, String[] args) {
+        return switch (subcommand) {
+            case "main" -> "satisskyfactory.command.main";
+            case "status" -> "satisskyfactory.command.status";
+            case "machines" -> "satisskyfactory.command.machines";
+            case "storage" -> "satisskyfactory.command.storage";
+            case "deposit" -> "satisskyfactory.command.deposit";
+            case "withdraw" -> "satisskyfactory.command.withdraw";
+            case "market" -> "satisskyfactory.command.market";
+            case "sell" -> "satisskyfactory.command.sell";
+            case "contracts", "emergency" -> "satisskyfactory.command.contracts";
+            case "research" -> "satisskyfactory.command.research";
+            case "node" -> "satisskyfactory.command.node";
+            case "repair" -> "satisskyfactory.command.repair";
+            default -> "satisskyfactory.use";
+        };
     }
 
     private boolean isHelpRequest(String[] args) {

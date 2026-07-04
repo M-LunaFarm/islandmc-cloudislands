@@ -15,12 +15,17 @@ public final class SatisRuntimeTickAuthorityPolicy {
 
     public static boolean tickReady(DatabaseService.StorageBackend backend, boolean cloudIslandsApiAvailable,
                                     boolean addonStateEnabled, boolean coreHydrated) {
+        return tickReady(backend, cloudIslandsApiAvailable, addonStateEnabled, coreHydrated, true);
+    }
+
+    public static boolean tickReady(DatabaseService.StorageBackend backend, boolean cloudIslandsApiAvailable,
+                                    boolean addonStateEnabled, boolean coreHydrated, boolean runtimeOwnerFenceReady) {
         if (backend == null) {
             return false;
         }
         return switch (backend) {
             case CORE_API -> cloudIslandsApiAvailable && addonStateEnabled && coreHydrated;
-            case POSTGRESQL, MYSQL, MARIADB -> true;
+            case POSTGRESQL, MYSQL, MARIADB -> cloudIslandsApiAvailable && runtimeOwnerFenceReady;
             case SQLITE -> false;
         };
     }
@@ -37,11 +42,17 @@ public final class SatisRuntimeTickAuthorityPolicy {
     }
 
     public static boolean writeReady(DatabaseService.StorageBackend backend, boolean storageWriteAuthorityReady) {
+        return writeReady(backend, storageWriteAuthorityReady, true);
+    }
+
+    public static boolean writeReady(DatabaseService.StorageBackend backend, boolean storageWriteAuthorityReady,
+                                     boolean runtimeOwnerFenceReady) {
         if (backend == null || !storageWriteAuthorityReady) {
             return false;
         }
         return switch (backend) {
-            case CORE_API, POSTGRESQL, MYSQL, MARIADB -> true;
+            case CORE_API -> true;
+            case POSTGRESQL, MYSQL, MARIADB -> runtimeOwnerFenceReady;
             case SQLITE -> false;
         };
     }

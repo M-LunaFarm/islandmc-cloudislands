@@ -11,15 +11,26 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.Map;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
+    private static final long OFF_THREAD_CORE_WAIT_MS = 250L;
     private final JavaPlugin plugin;
+    private final Map<LocationKey, IslandRef> islandAtCache = new ConcurrentHashMap<>();
+    private final Map<UUID, IslandRef> playerIslandCache = new ConcurrentHashMap<>();
+    private final Map<UUID, IslandRef> islandCache = new ConcurrentHashMap<>();
+    private final Map<UUID, Location> islandCenterCache = new ConcurrentHashMap<>();
+    private final Map<PermissionKey, Boolean> buildPermissionCache = new ConcurrentHashMap<>();
+    private final Map<MemberKey, Boolean> memberCache = new ConcurrentHashMap<>();
     private CloudIslandsApi api;
     private boolean available;
 
@@ -57,8 +68,8 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (!available || location == null || location.getWorld() == null) {
             return Optional.empty();
         }
-        return joinOptional(() -> api.islands().getIslandAt(location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ()))
-                .flatMap(this::ref);
+        LocationKey key = LocationKey.of(location);
+        return cached(key, islandAtCache, () -> api.islands().getIslandAt(key.world(), key.x(), key.y(), key.z()), this::ref);
     }
 
     @Override
@@ -66,13 +77,14 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (!available || player == null) {
             return Optional.empty();
         }
-        Optional<IslandSnapshot> ownedIsland = joinOptional(() -> api.islands().getIslandByOwner(player.getUniqueId()));
-        if (ownedIsland.isPresent()) {
-            return ownedIsland.flatMap(this::ref);
+        UUID playerId = player.getUniqueId();
+        IslandRef cached = playerIslandCache.get(playerId);
+        if (cached != null) {
+            refreshPlayerIsland(playerId);
+            return Optional.of(cached);
         }
-        return join(() -> api.players().getJoinedIslands(player.getUniqueId()))
-                .flatMap(islands -> islands.stream().findFirst())
-                .flatMap(this::ref);
+        refreshPlayerIsland(playerId);
+        return Optional.empty();
     }
 
     @Override
@@ -80,7 +92,7 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (!available || islandUuid == null) {
             return Optional.empty();
         }
-        return joinOptional(() -> api.islands().getIsland(islandUuid)).flatMap(this::ref);
+        return cached(islandUuid, islandCache, () -> api.islands().getIsland(islandUuid), this::ref);
     }
 
     @Override
@@ -88,20 +100,20 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (!available || island == null || plugin == null) {
             return Optional.empty();
         }
-        return joinOptional(() -> api.islands().getRegion(island.islandUuid()))
-                .flatMap(region -> {
-                    if (region.islandId() == null || !region.islandId().equals(island.islandUuid())) {
-                        return Optional.empty();
-                    }
-                    if (region.worldName() == null || region.worldName().isBlank()) {
-                        return Optional.empty();
-                    }
-                    World world = plugin.getServer().getWorld(region.worldName());
-                    if (world == null) {
-                        return Optional.empty();
-                    }
-                    return Optional.of(center(region, world));
-                });
+        UUID islandId = island.islandUuid();
+        return cached(islandId, islandCenterCache, () -> api.islands().getRegion(islandId), region -> {
+            if (region.islandId() == null || !region.islandId().equals(islandId)) {
+                return Optional.empty();
+            }
+            if (region.worldName() == null || region.worldName().isBlank()) {
+                return Optional.empty();
+            }
+            World world = plugin.getServer().getWorld(region.worldName());
+            if (world == null) {
+                return Optional.empty();
+            }
+            return Optional.of(center(region, world));
+        });
     }
 
     @Override
@@ -122,9 +134,10 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (player.hasPermission("satisskyfactory.admin")) {
             return true;
         }
-        return join(() -> api.permissions().checkAt(player.getUniqueId(), location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ(), IslandPermission.BUILD))
-                .map(result -> result.allowed())
-                .orElse(false);
+        PermissionKey key = PermissionKey.of(player.getUniqueId(), location);
+        Boolean cached = buildPermissionCache.get(key);
+        refreshBuildPermission(key);
+        return Boolean.TRUE.equals(cached);
     }
 
     @Override
@@ -144,9 +157,44 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         if (player.hasPermission("satisskyfactory.admin") || player.getUniqueId().equals(island.ownerUuid())) {
             return true;
         }
-        return join(() -> api.islands().getMembers(island.islandUuid()))
-                .map(members -> member(members, player.getUniqueId()))
-                .orElse(false);
+        MemberKey key = new MemberKey(island.islandUuid(), player.getUniqueId());
+        Boolean cached = memberCache.get(key);
+        refreshMembers(key);
+        return Boolean.TRUE.equals(cached);
+    }
+
+    private void refreshPlayerIsland(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        CompletableFuture<Optional<IslandSnapshot>> owned = api.islands().getIslandByOwner(playerId);
+        owned.thenCompose(ownedIsland -> {
+            if (ownedIsland.isPresent()) {
+                return CompletableFuture.completedFuture(ownedIsland);
+            }
+            return api.players().getJoinedIslands(playerId).thenApply(islands -> islands.stream().findFirst());
+        }).thenAccept(island -> island.flatMap(this::ref).ifPresent(ref -> {
+            playerIslandCache.put(playerId, ref);
+            islandCache.put(ref.islandUuid(), ref);
+        })).exceptionally(_error -> null);
+    }
+
+    private void refreshBuildPermission(PermissionKey key) {
+        if (key == null) {
+            return;
+        }
+        api.permissions().checkAt(key.playerId(), key.world(), key.x(), key.y(), key.z(), IslandPermission.BUILD)
+                .thenAccept(result -> buildPermissionCache.put(key, result != null && result.allowed()))
+                .exceptionally(_error -> null);
+    }
+
+    private void refreshMembers(MemberKey key) {
+        if (key == null) {
+            return;
+        }
+        api.islands().getMembers(key.islandId())
+                .thenAccept(members -> memberCache.put(key, member(members, key.playerId())))
+                .exceptionally(_error -> null);
     }
 
     private Optional<IslandRef> ref(IslandSnapshot island) {
@@ -168,31 +216,56 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
         return new Location(world, region.originX() + 0.5D, 100.0D, region.originZ() + 0.5D);
     }
 
-    private <T> Optional<T> join(Supplier<CompletableFuture<T>> futureSupplier) {
+    private <K, T, R> Optional<R> cached(K key, Map<K, R> cache, Supplier<CompletableFuture<Optional<T>>> futureSupplier,
+                                         java.util.function.Function<T, Optional<R>> mapper) {
+        R cached = cache.get(key);
+        CompletableFuture<Optional<T>> future;
         try {
-            CompletableFuture<T> future = futureSupplier.get();
+            future = futureSupplier.get();
+        } catch (RuntimeException exception) {
+            return Optional.ofNullable(cached);
+        }
+        if (future == null) {
+            return Optional.ofNullable(cached);
+        }
+        future.thenAccept(value -> value.flatMap(mapper).ifPresent(mapped -> cache.put(key, mapped))).exceptionally(_error -> null);
+        if (cached != null) {
+            return Optional.of(cached);
+        }
+        if (plugin != null && plugin.getServer().isPrimaryThread()) {
+            return Optional.empty();
+        }
+        return waitOptional(future).flatMap(mapper);
+    }
+
+    private <T> Optional<T> waitOptional(CompletableFuture<Optional<T>> future) {
+        try {
             if (future == null) {
                 return Optional.empty();
             }
-            return Optional.ofNullable(future.join());
-        } catch (CompletionException exception) {
+            return Optional.ofNullable(future.get(OFF_THREAD_CORE_WAIT_MS, TimeUnit.MILLISECONDS)).orElse(Optional.empty());
+        } catch (CompletionException | TimeoutException exception) {
             return Optional.empty();
-        } catch (RuntimeException exception) {
+        } catch (RuntimeException | InterruptedException | java.util.concurrent.ExecutionException exception) {
+            if (exception instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             return Optional.empty();
         }
     }
 
-    private <T> Optional<T> joinOptional(Supplier<CompletableFuture<Optional<T>>> futureSupplier) {
-        try {
-            CompletableFuture<Optional<T>> future = futureSupplier.get();
-            if (future == null) {
-                return Optional.empty();
-            }
-            return Optional.ofNullable(future.join()).orElse(Optional.empty());
-        } catch (CompletionException exception) {
-            return Optional.empty();
-        } catch (RuntimeException exception) {
-            return Optional.empty();
+    private record LocationKey(String world, int x, int y, int z) {
+        private static LocationKey of(Location location) {
+            return new LocationKey(location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
         }
+    }
+
+    private record PermissionKey(UUID playerId, String world, int x, int y, int z) {
+        private static PermissionKey of(UUID playerId, Location location) {
+            return new PermissionKey(playerId, location.getWorld().getName(), location.getBlockX(), location.getBlockY(), location.getBlockZ());
+        }
+    }
+
+    private record MemberKey(UUID islandId, UUID playerId) {
     }
 }

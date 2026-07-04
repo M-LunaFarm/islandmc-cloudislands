@@ -146,11 +146,11 @@ public final class AdminFactoryCommand {
         }
         String subcommand = args[1].toLowerCase(Locale.ROOT);
         if (subcommand.equals("debug")) {
-            if (!sender.hasPermission("satisskyfactory.debug") && !sender.hasPermission("satisskyfactory.admin")) {
+            if (!sender.hasPermission("satisskyfactory.admin.debug") && !sender.hasPermission("satisskyfactory.debug") && !sender.hasPermission("satisskyfactory.admin")) {
                 messages.send(sender, "no-permission");
                 return true;
             }
-        } else if (!sender.hasPermission("satisskyfactory.admin")) {
+        } else if (!hasAdminPermission(sender, subcommand)) {
             messages.send(sender, "no-permission");
             return true;
         }
@@ -262,6 +262,33 @@ public final class AdminFactoryCommand {
             default -> messages.send(sender, "unknown-admin-command");
         }
         return true;
+    }
+
+    private boolean hasAdminPermission(CommandSender sender, String subcommand) {
+        if (sender == null) {
+            return false;
+        }
+        if (sender.hasPermission("satisskyfactory.admin")) {
+            return true;
+        }
+        return sender.hasPermission(adminPermission(subcommand));
+    }
+
+    private String adminPermission(String subcommand) {
+        return switch (subcommand) {
+            case "reload" -> "satisskyfactory.admin.reload";
+            case "features" -> "satisskyfactory.admin.features";
+            case "integration" -> "satisskyfactory.admin.integration";
+            case "state" -> "satisskyfactory.admin.state";
+            case "migration", "migrate-superiorskyblock2", "migrate-ss2" -> "satisskyfactory.admin.migration";
+            case "give" -> "satisskyfactory.admin.give";
+            case "giveitem" -> "satisskyfactory.admin.giveitem";
+            case "addresearch" -> "satisskyfactory.admin.research";
+            case "setdebt", "charge", "repairhere" -> "satisskyfactory.admin.maintenance";
+            case "gennodes" -> "satisskyfactory.admin.nodes";
+            case "debug" -> "satisskyfactory.admin.debug";
+            default -> "satisskyfactory.admin";
+        };
     }
 
     private String disabledFeatureFor(String subcommand) {
