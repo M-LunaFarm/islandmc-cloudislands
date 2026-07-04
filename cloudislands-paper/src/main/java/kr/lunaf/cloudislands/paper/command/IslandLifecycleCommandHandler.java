@@ -1,9 +1,12 @@
 package kr.lunaf.cloudislands.paper.command;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import kr.lunaf.cloudislands.api.economy.EconomyBridge;
+import kr.lunaf.cloudislands.api.economy.EconomyProviderState;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
@@ -22,12 +25,18 @@ import org.bukkit.plugin.Plugin;
 final class IslandLifecycleCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final EconomyBridge economyBridge;
     private final IslandCreationUseCase creationUseCase;
     private final Runtime runtime;
 
     IslandLifecycleCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
+        this(plugin, coreApiClient, null, runtime);
+    }
+
+    IslandLifecycleCommandHandler(Plugin plugin, CoreApiClient coreApiClient, EconomyBridge economyBridge, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.economyBridge = economyBridge;
         this.creationUseCase = new IslandCreationUseCase(coreApiClient);
         this.runtime = runtime;
     }
@@ -127,7 +136,7 @@ final class IslandLifecycleCommandHandler {
         String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
         coreApiClient.templates().get(normalizedTemplateId)
             .thenCompose(template -> canUseTemplate(player, template)
-                ? creationUseCase.create(player.getUniqueId(), normalizedTemplateId, runtime::mutate)
+                ? createWithTemplateCost(player, normalizedTemplateId, template)
                 : CompletableFuture.completedFuture(new CreateIslandResult(false, "TEMPLATE_PERMISSION_DENIED", null, null)))
             .thenAccept(result -> {
                 if (!result.accepted()) {
@@ -147,8 +156,42 @@ final class IslandLifecycleCommandHandler {
             });
     }
 
+    private CompletableFuture<CreateIslandResult> createWithTemplateCost(Player player, String templateId, TemplateView template) {
+        BigDecimal creationCost = creationCost(template);
+        if (creationCost.signum() <= 0) {
+            return creationUseCase.create(player.getUniqueId(), templateId, runtime::mutate);
+        }
+        if (economyBridge == null || economyBridge.providerState() != EconomyProviderState.ACTIVE) {
+            return CompletableFuture.completedFuture(new CreateIslandResult(false, "ECONOMY_UNAVAILABLE", null, null));
+        }
+        return economyBridge.withdraw(player.getUniqueId(), creationCost, "CloudIslands island creation " + template.id())
+            .thenCompose(charged -> {
+                if (!charged) {
+                    return CompletableFuture.completedFuture(new CreateIslandResult(false, "ECONOMY_CHARGE_FAILED", null, null));
+                }
+                return creationUseCase.create(player.getUniqueId(), templateId, runtime::mutate)
+                    .thenCompose(result -> result.accepted()
+                        ? CompletableFuture.completedFuture(result)
+                        : refundCreateCost(player, creationCost, template.id()).thenApply(_ignored -> result)
+                            .exceptionally(_refundError -> new CreateIslandResult(false, "ECONOMY_REFUND_FAILED", result.island(), result.ticket())))
+                    .exceptionallyCompose(error -> refundCreateCost(player, creationCost, template.id()).thenCompose(_ignored -> CompletableFuture.failedFuture(error)));
+            });
+    }
+
+    private CompletableFuture<Void> refundCreateCost(Player player, BigDecimal creationCost, String templateId) {
+        return economyBridge.deposit(player.getUniqueId(), creationCost, "CloudIslands island creation rollback " + templateId);
+    }
+
     private static boolean canUseTemplate(Player player, TemplateView template) {
         return template.requiredPermission().isBlank() || player.hasPermission(template.requiredPermission());
+    }
+
+    private static BigDecimal creationCost(TemplateView template) {
+        try {
+            return new BigDecimal(template.creationCost()).stripTrailingZeros();
+        } catch (RuntimeException exception) {
+            return BigDecimal.ZERO;
+        }
     }
 
     private void deleteIsland(Player player) {

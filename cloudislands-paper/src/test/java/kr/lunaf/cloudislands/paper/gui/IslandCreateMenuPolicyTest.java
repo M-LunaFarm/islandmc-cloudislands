@@ -47,12 +47,29 @@ class IslandCreateMenuPolicyTest {
     @Test
     void directCreateCommandHonorsTemplatePermission() throws IOException {
         String handler = read("src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java");
+        String backend = read("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java");
         String messages = read("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandMessages.java");
 
         assertTrue(handler.contains("coreApiClient.templates().get(normalizedTemplateId)"), "Direct /is create <template> must load template metadata before mutation");
         assertTrue(handler.contains("canUseTemplate(player, template)"), "Direct create must check template requiredPermission");
         assertTrue(handler.contains("TEMPLATE_PERMISSION_DENIED"), "Direct create must reject locked templates without calling Core create");
+        assertTrue(backend.contains("new IslandLifecycleCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices)"), "Lifecycle create handler must receive the economy bridge");
         assertTrue(messages.contains("TEMPLATE_PERMISSION_DENIED"), "Template permission denial must have a player-safe message");
+    }
+
+    @Test
+    void paidTemplatesChargeAndRefundAroundCreateMutation() throws IOException {
+        String handler = read("src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java");
+        String messages = read("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandMessages.java");
+
+        assertTrue(handler.contains("creationCost(template)"), "Create flow must parse template creationCost");
+        assertTrue(handler.contains("economyBridge.withdraw(player.getUniqueId(), creationCost"), "Paid templates must charge before Core create");
+        assertTrue(handler.contains("creationUseCase.create(player.getUniqueId(), templateId, runtime::mutate)"), "Core create must happen after the cost preflight");
+        assertTrue(handler.contains("refundCreateCost(player, creationCost, template.id())"), "Failed Core create must refund the player");
+        assertTrue(handler.contains("ECONOMY_CHARGE_FAILED"), "Charge failures must be user-visible");
+        assertTrue(handler.contains("ECONOMY_REFUND_FAILED"), "Refund failures must be user-visible");
+        assertTrue(messages.contains("ECONOMY_CHARGE_FAILED"), "Charge failure must have a player-safe message");
+        assertTrue(messages.contains("ECONOMY_REFUND_FAILED"), "Refund failure must have a player-safe message");
     }
 
     private static String read(String relative) throws IOException {
