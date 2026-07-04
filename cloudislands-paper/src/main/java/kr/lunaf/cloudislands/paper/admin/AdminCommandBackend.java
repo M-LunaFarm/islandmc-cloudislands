@@ -990,6 +990,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 sender.sendMessage(adminText("admin-command-snapshot-required", "스냅샷 번호를 입력해주세요."));
                 return true;
             }
+            if (!confirmed(args)) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin island restore <islandUuid|islandName> <snapshotNo> --confirm",
+                    "/ciadmin island rollback <islandUuid|islandName> <snapshotNo> --confirm"
+                ));
+                return true;
+            }
             long snapshotNo = number(args[3], 0L);
             if (snapshotNo <= 0L) {
                 sender.sendMessage(adminText("admin-command-snapshot-invalid", "스냅샷 번호가 올바르지 않습니다: ") + args[3]);
@@ -1012,6 +1019,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("delete")) {
+            if (!confirmed(args)) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin island delete <islandUuid|islandName> --confirm"
+                ));
+                return true;
+            }
             run(sender, "Island delete", coreApiClient.lifecycle().adminDeleteIsland(islandId).thenApply(action -> islandLifecycleActionMessage("Island delete", islandId, action)));
             return true;
         }
@@ -1020,8 +1033,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleBulkRestore(CommandSender sender, String[] args) {
-        if (args.length < 4) {
-            sender.sendMessage(adminText("admin-command-bulk-restore-usage", "사용법: /ciadmin island bulk-restore <snapshotNo> <islandUuid|islandName>..."));
+        if (args.length < 5) {
+            sender.sendMessage(adminText("admin-command-bulk-restore-usage", "사용법: /ciadmin island bulk-restore <snapshotNo> <islandUuid|islandName>... --confirm"));
+            return true;
+        }
+        if (!confirmed(args)) {
+            sender.sendMessage(adminText("admin-command-bulk-restore-usage", "사용법: /ciadmin island bulk-restore <snapshotNo> <islandUuid|islandName>... --confirm"));
             return true;
         }
         long snapshotNo = number(args[2], 0L);
@@ -1030,7 +1047,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         List<CompletableFuture<BulkRestoreEntry>> restores = new ArrayList<>();
-        for (int index = 3; index < args.length; index++) {
+        for (int index = 3; index < args.length - 1; index++) {
             String target = args[index];
             restores.add(resolveIslandUuid(sender, target).thenCompose(islandId -> {
                 if (islandId == null) {
@@ -1412,13 +1429,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island save <islandUuid|islandName> [reason]",
             "/ciadmin island snapshot <islandUuid|islandName> [reason]",
             "/ciadmin island snapshots <islandUuid|islandName> [limit]",
-            "/ciadmin island restore <islandUuid|islandName> <snapshotNo>",
-            "/ciadmin island rollback <islandUuid|islandName> <snapshotNo>",
-            "/ciadmin island bulk-restore <snapshotNo> <islandUuid|islandName>...",
+            "/ciadmin island restore <islandUuid|islandName> <snapshotNo> --confirm",
+            "/ciadmin island rollback <islandUuid|islandName> <snapshotNo> --confirm",
+            "/ciadmin island bulk-restore <snapshotNo> <islandUuid|islandName>... --confirm",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
             "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
-            "/ciadmin island delete <islandUuid|islandName>"
+            "/ciadmin island delete <islandUuid|islandName> --confirm"
         ));
     }
 
@@ -2948,6 +2965,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return false;
         }
         return fallback;
+    }
+
+    private boolean confirmed(String[] args) {
+        if (args == null || args.length == 0) {
+            return false;
+        }
+        String value = args[args.length - 1];
+        return value.equalsIgnoreCase("--confirm") || value.equalsIgnoreCase("confirm") || booleanArgument(value, false);
     }
 
     private String joined(String[] args, int start) {

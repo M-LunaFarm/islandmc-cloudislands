@@ -247,7 +247,7 @@ class AdminCommandBackendPolicyTest {
         String adminSurface = source + "\n" + catalog;
 
         assertTrue(adminSurface.contains("\"bulk-restore\""), "Bulk restore must be registered as an island admin subcommand");
-        assertTrue(adminSurface.contains("ciadmin island bulk-restore <snapshot"), "Bulk restore must be listed in admin help");
+        assertTrue(adminSurface.contains("ciadmin island bulk-restore <snapshot") && adminSurface.contains("bulk-restore <snapshot> <island...> --confirm"), "Bulk restore must be listed in admin help with confirmation");
         assertTrue(source.contains("handleBulkRestore"), "Bulk restore must have a dedicated handler before island uuid resolution");
         assertTrue(source.contains("coreApiClient.lifecycle().restoreIslandSnapshot(islandId, snapshotNo)"), "Bulk restore must use the typed lifecycle restore API");
         assertTrue(source.contains("bulkRestoreMessage"), "Bulk restore must summarize accepted and rejected restores for operators");
@@ -284,6 +284,22 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.playerProfiles().profile"), "Island where must resolve player primary islands through the typed player profile API");
         assertTrue(source.contains("profile.primaryIslandId()"), "Island where must use the player's primary island as the runtime target");
         assertTrue(source.contains("runtimeInfoMessage(AdminIslandRuntimeView"), "Island runtime command must render a typed runtime view");
+    }
+
+    @Test
+    void destructiveIslandAdminCommandsRequireExplicitConfirmation() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin island restore <island> <snapshot> --confirm"), "Restore help must advertise explicit confirmation");
+        assertTrue(adminSurface.contains("ciadmin island rollback <island> <snapshot> --confirm"), "Rollback help must advertise explicit confirmation");
+        assertTrue(adminSurface.contains("ciadmin island bulk-restore <snapshot> <island...> --confirm"), "Bulk restore help must advertise explicit confirmation");
+        assertTrue(adminSurface.contains("ciadmin island delete <island> --confirm"), "Delete help must advertise explicit confirmation");
+        assertTrue(source.contains("if (!confirmed(args))"), "Destructive island admin commands must check confirmation before mutation");
+        assertTrue(source.contains("private boolean confirmed(String[] args)"), "Confirmation parsing must be centralized");
+        assertTrue(source.contains("args.length - 1"), "Bulk restore must treat the final argument as the confirmation marker");
+        assertTrue(source.contains("for (int index = 3; index < args.length - 1; index++)"), "Bulk restore must not treat --confirm as an island target");
     }
 
     @Test
