@@ -97,6 +97,7 @@ import kr.seungmin.satisskyfactory.recipe.RecipeService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.runtime.SatisCommandRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisFeatureRuntime;
+import kr.seungmin.satisskyfactory.runtime.SatisListenerRuntime;
 import kr.seungmin.satisskyfactory.runtime.SatisRuntimeComponentPlan;
 import kr.seungmin.satisskyfactory.storage.CoreApiSatisStateService;
 import kr.seungmin.satisskyfactory.storage.SatisRuntimeAuthority;
@@ -110,7 +111,6 @@ import kr.seungmin.satisskyfactory.task.MachineTickService;
 import kr.seungmin.satisskyfactory.task.MaintenanceTickService;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
-import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -168,6 +168,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private boolean commandsRegistered;
     private final SatisCommandRuntime commandRuntime = new SatisCommandRuntime(this);
     private final SatisFeatureRuntime featureRuntime = new SatisFeatureRuntime();
+    private final SatisListenerRuntime listenerRuntime = new SatisListenerRuntime(this);
     private boolean machineListenerRegistered;
     private boolean guiListenerRegistered;
     private boolean lifecycleListenerRegistered;
@@ -1293,7 +1294,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void registerListeners() {
         if (!operationalFeatureEnabled("machines")) {
-            machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);
+            machineListenerRegistered = listenerRuntime.unregisterListener(machineListener, machineListenerRegistered);
             machineListener = null;
         } else if (!machineListenerRegistered) {
             machineListener = new MachineListener(
@@ -1319,12 +1320,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     configs.file("maintenance.yml"),
                     boosts
             );
-            getServer().getPluginManager().registerEvents(machineListener, this);
-            machineListenerRegistered = true;
+            machineListenerRegistered = listenerRuntime.registerListener(machineListener, machineListenerRegistered);
         }
         if (!operationalFeatureEnabled("gui")) {
             closeOpenFactoryGuis();
-            guiListenerRegistered = unregisterListener(guiListener, guiListenerRegistered);
+            guiListenerRegistered = listenerRuntime.unregisterListener(guiListener, guiListenerRegistered);
             guiListener = null;
         } else if (!guiListenerRegistered) {
             guiListener = new FactoryGuiListener(
@@ -1348,11 +1348,10 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     boosts,
                     this::reloadPluginConfig
             );
-            getServer().getPluginManager().registerEvents(guiListener, this);
-            guiListenerRegistered = true;
+            guiListenerRegistered = listenerRuntime.registerListener(guiListener, guiListenerRegistered);
         }
         if (!lifecycleListenerNeeded()) {
-            lifecycleListenerRegistered = unregisterListener(lifecycleListener, lifecycleListenerRegistered);
+            lifecycleListenerRegistered = listenerRuntime.unregisterListener(lifecycleListener, lifecycleListenerRegistered);
             lifecycleListener = null;
         } else if (!lifecycleListenerRegistered) {
             lifecycleListener = new FactoryLifecycleListener(
@@ -1369,16 +1368,8 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                     power,
                     maintenance
             );
-            getServer().getPluginManager().registerEvents(lifecycleListener, this);
-            lifecycleListenerRegistered = true;
+            lifecycleListenerRegistered = listenerRuntime.registerListener(lifecycleListener, lifecycleListenerRegistered);
         }
-    }
-
-    private boolean unregisterListener(Listener listener, boolean registered) {
-        if (listener != null && registered) {
-            HandlerList.unregisterAll(listener);
-        }
-        return false;
     }
 
     private void closeOpenFactoryGuis() {
@@ -1463,11 +1454,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             dirtySaves.discard();
         }
         closeOpenFactoryGuis();
-        machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);
+        machineListenerRegistered = listenerRuntime.unregisterListener(machineListener, machineListenerRegistered);
         machineListener = null;
-        guiListenerRegistered = unregisterListener(guiListener, guiListenerRegistered);
+        guiListenerRegistered = listenerRuntime.unregisterListener(guiListener, guiListenerRegistered);
         guiListener = null;
-        lifecycleListenerRegistered = unregisterListener(lifecycleListener, lifecycleListenerRegistered);
+        lifecycleListenerRegistered = listenerRuntime.unregisterListener(lifecycleListener, lifecycleListenerRegistered);
         lifecycleListener = null;
         commandsRegistered = false;
         if (database != null) {
@@ -4304,11 +4295,11 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         }
         closeOpenFactoryGuis();
         clearRuntimeCaches();
-        machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);
+        machineListenerRegistered = listenerRuntime.unregisterListener(machineListener, machineListenerRegistered);
         machineListener = null;
-        guiListenerRegistered = unregisterListener(guiListener, guiListenerRegistered);
+        guiListenerRegistered = listenerRuntime.unregisterListener(guiListener, guiListenerRegistered);
         guiListener = null;
-        lifecycleListenerRegistered = unregisterListener(lifecycleListener, lifecycleListenerRegistered);
+        lifecycleListenerRegistered = listenerRuntime.unregisterListener(lifecycleListener, lifecycleListenerRegistered);
         lifecycleListener = null;
     }
 

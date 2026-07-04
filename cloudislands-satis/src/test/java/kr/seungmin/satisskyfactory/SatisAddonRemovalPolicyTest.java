@@ -40,9 +40,9 @@ class SatisAddonRemovalPolicyTest {
         assertTrue(source.contains("database.coreGlobalBulkWriter(null);"));
         assertTrue(source.contains("coreHydratedIslandActivations.clear();"));
         assertTrue(source.contains("placeholderHook.unregister();"));
-        assertTrue(source.contains("machineListenerRegistered = unregisterListener(machineListener, machineListenerRegistered);"));
-        assertTrue(source.contains("guiListenerRegistered = unregisterListener(guiListener, guiListenerRegistered);"));
-        assertTrue(source.contains("lifecycleListenerRegistered = unregisterListener(lifecycleListener, lifecycleListenerRegistered);"));
+        assertTrue(source.contains("machineListenerRegistered = listenerRuntime.unregisterListener(machineListener, machineListenerRegistered);"));
+        assertTrue(source.contains("guiListenerRegistered = listenerRuntime.unregisterListener(guiListener, guiListenerRegistered);"));
+        assertTrue(source.contains("lifecycleListenerRegistered = listenerRuntime.unregisterListener(lifecycleListener, lifecycleListenerRegistered);"));
     }
 
     @Test
