@@ -16,14 +16,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
-    private static final long OFF_THREAD_CORE_WAIT_MS = 250L;
     private final JavaPlugin plugin;
     private final Map<LocationKey, IslandRef> islandAtCache = new ConcurrentHashMap<>();
     private final Map<UUID, IslandRef> playerIslandCache = new ConcurrentHashMap<>();
@@ -229,29 +225,7 @@ public final class CloudIslandsSkyblockProvider implements SkyblockProvider {
             return Optional.ofNullable(cached);
         }
         future.thenAccept(value -> value.flatMap(mapper).ifPresent(mapped -> cache.put(key, mapped))).exceptionally(_error -> null);
-        if (cached != null) {
-            return Optional.of(cached);
-        }
-        if (plugin != null && plugin.getServer().isPrimaryThread()) {
-            return Optional.empty();
-        }
-        return waitOptional(future).flatMap(mapper);
-    }
-
-    private <T> Optional<T> waitOptional(CompletableFuture<Optional<T>> future) {
-        try {
-            if (future == null) {
-                return Optional.empty();
-            }
-            return Optional.ofNullable(future.get(OFF_THREAD_CORE_WAIT_MS, TimeUnit.MILLISECONDS)).orElse(Optional.empty());
-        } catch (CompletionException | TimeoutException exception) {
-            return Optional.empty();
-        } catch (RuntimeException | InterruptedException | java.util.concurrent.ExecutionException exception) {
-            if (exception instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            return Optional.empty();
-        }
+        return Optional.ofNullable(cached);
     }
 
     private record LocationKey(String world, int x, int y, int z) {

@@ -10,12 +10,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CloudIslandsSkyblockProviderPolicyTest {
     @Test
-    void providerDoesNotJoinCoreApiFuturesOnBukkitCallPaths() throws Exception {
+    void providerUsesCacheOnlySyncApiAndNeverWaitsForCoreApiFutures() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/hook/CloudIslandsSkyblockProvider.java"));
 
         assertFalse(source.contains(".join()"));
-        assertTrue(source.contains("OFF_THREAD_CORE_WAIT_MS"));
-        assertTrue(source.contains("plugin.getServer().isPrimaryThread()"));
+        assertFalse(source.contains("future.get("));
+        assertFalse(source.contains(".get(OFF_THREAD_CORE_WAIT_MS"));
+        assertFalse(source.contains("OFF_THREAD_CORE_WAIT_MS"));
+        assertFalse(source.contains("TimeUnit.MILLISECONDS"));
+        assertFalse(source.contains("TimeoutException"));
+        assertFalse(source.contains("waitOptional"));
+        assertTrue(source.contains("future.thenAccept"));
         assertTrue(source.contains("return Optional.empty();"));
+        assertTrue(source.contains("return Optional.ofNullable(cached);"));
     }
 }
