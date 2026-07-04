@@ -207,7 +207,10 @@ public final class IslandActivationJobHandler {
     private BundleRestorePlan stageBundle(IslandJob job, UUID islandId, ShardWorldManager.CellAssignment cell, long snapshotNo, String storagePath) throws IOException {
         if (job.type() == IslandJobType.CREATE_ISLAND && !job.payload().getOrDefault("templateBundlePath", "").isBlank()) {
             if (worldRestorer == null) {
-                return null;
+                throw new IOException("template bundle restore is unavailable: " + islandId);
+            }
+            if (cellTransfer == null) {
+                throw new IOException("template bundle placement is unavailable: " + islandId);
             }
             return worldRestorer.stageTemplateBundle(islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), longValue(job.payload().get("fencingToken")), job.payload().getOrDefault("templateBundlePath", ""), job.payload().getOrDefault("templateBundleChecksum", ""));
         }
