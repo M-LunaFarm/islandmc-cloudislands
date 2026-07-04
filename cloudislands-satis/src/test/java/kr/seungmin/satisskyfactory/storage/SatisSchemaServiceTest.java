@@ -14,16 +14,16 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class MigrationServiceTest {
+class SatisSchemaServiceTest {
     @TempDir
     Path tempDir;
 
     @Test
     void createsGoalSchemaAndCanRunAgain() throws Exception {
         try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" + tempDir.resolve("migration.db"))) {
-            MigrationService migrations = new MigrationService();
-            migrations.migrate(connection);
-            migrations.migrate(connection);
+            SatisSchemaService schema = new SatisSchemaService();
+            schema.initializeOrUpgradeSchema(connection);
+            schema.initializeOrUpgradeSchema(connection);
 
             Set<String> tables = new HashSet<>();
             try (Statement statement = connection.createStatement();

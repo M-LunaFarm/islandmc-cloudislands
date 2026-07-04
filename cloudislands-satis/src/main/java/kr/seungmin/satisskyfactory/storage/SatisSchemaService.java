@@ -7,7 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-public final class MigrationService {
+public final class SatisSchemaService {
     public enum Dialect {
         SQLITE,
         POSTGRESQL,
@@ -15,11 +15,11 @@ public final class MigrationService {
         MARIADB
     }
 
-    public void migrate(Connection connection) throws SQLException {
-        migrate(connection, Dialect.SQLITE);
+    public void initializeOrUpgradeSchema(Connection connection) throws SQLException {
+        initializeOrUpgradeSchema(connection, Dialect.SQLITE);
     }
 
-    public void migrate(Connection connection, Dialect dialect) throws SQLException {
+    public void initializeOrUpgradeSchema(Connection connection, Dialect dialect) throws SQLException {
         try (Statement statement = connection.createStatement()) {
             statement.executeUpdate(ddl("CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL)", dialect));
             try (ResultSet rs = statement.executeQuery("SELECT COUNT(*) AS count FROM schema_version")) {

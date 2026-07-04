@@ -541,7 +541,7 @@ tasks.register("verifySatisEconomyLedgerCoverage") {
     description = "Verifies Satis economy idempotency ledger schema, service usage, and retry tests remain present."
     dependsOn(project(":cloudislands-satis").tasks.named("test"))
     val database = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/database/DatabaseService.java")
-    val migration = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/storage/MigrationService.java")
+    val schema = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/storage/SatisSchemaService.java")
     val market = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/market/MarketService.java")
     val contracts = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/contract/ContractService.java")
     val research = layout.projectDirectory.file("cloudislands-satis/src/main/java/kr/seungmin/satisskyfactory/research/ResearchService.java")
@@ -549,14 +549,14 @@ tasks.register("verifySatisEconomyLedgerCoverage") {
     val databaseTest = layout.projectDirectory.file("cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/database/DatabaseServiceTest.java")
     val economyTest = layout.projectDirectory.file("cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/database/EconomyFlowServiceTest.java")
     val contractTest = layout.projectDirectory.file("cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/database/ContractFlowServiceTest.java")
-    inputs.files(database, migration, market, contracts, research, maintenance, databaseTest, economyTest, contractTest)
+    inputs.files(database, schema, market, contracts, research, maintenance, databaseTest, economyTest, contractTest)
     doLast {
-        val schema = migration.asFile.readText()
+        val schemaSource = schema.asFile.readText()
         val databaseSource = database.asFile.readText()
         val serviceSources = listOf(market, contracts, research, maintenance).joinToString("\n") { it.asFile.readText() }
         val tests = listOf(databaseTest, economyTest, contractTest).joinToString("\n") { it.asFile.readText() }
         val missingSchema = listOf("satis_economy_ledger", "satis_reward_ledger", "satis_command_idempotency", "idempotency_key")
-            .filterNot(schema::contains)
+            .filterNot(schemaSource::contains)
         val missingDatabase = listOf("beginEconomyLedger", "completeEconomyLedger", "compensateEconomyLedger", "EconomyLedgerClaim")
             .filterNot(databaseSource::contains)
         val missingServices = listOf("MARKET_SELL", "CONTRACT_REWARD", "RESEARCH_UNLOCK", "ADMIN_MAINTENANCE_CHARGE")

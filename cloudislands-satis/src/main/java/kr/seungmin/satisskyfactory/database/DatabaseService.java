@@ -12,7 +12,7 @@ import kr.seungmin.satisskyfactory.model.MaintenanceStatus;
 import kr.seungmin.satisskyfactory.model.PowerNetwork;
 import kr.seungmin.satisskyfactory.model.ResourceNode;
 import kr.seungmin.satisskyfactory.storage.SatisLegacyMigrationPolicy;
-import kr.seungmin.satisskyfactory.storage.MigrationService;
+import kr.seungmin.satisskyfactory.storage.SatisSchemaService;
 import kr.seungmin.satisskyfactory.storage.VirtualInventory;
 import org.bukkit.block.BlockFace;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -268,7 +268,7 @@ public final class DatabaseService {
         poolConfig.setDataSourceProperties(sqliteConfig.toProperties());
         dataSource = new HikariDataSource(poolConfig);
         try (Connection connection = connection()) {
-            new MigrationService().migrate(connection, MigrationService.Dialect.SQLITE);
+            new SatisSchemaService().initializeOrUpgradeSchema(connection, SatisSchemaService.Dialect.SQLITE);
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to migrate SQLite database", exception);
         }
@@ -296,14 +296,14 @@ public final class DatabaseService {
         poolConfig.setConnectionTimeout(Math.max(1000L, connectionTimeoutMillis));
         poolConfig.setPoolName("SatisSkyFactory-" + backend.name());
         dataSource = new HikariDataSource(poolConfig);
-        MigrationService.Dialect migrationDialect = switch (backend) {
-            case POSTGRESQL -> MigrationService.Dialect.POSTGRESQL;
-            case MARIADB -> MigrationService.Dialect.MARIADB;
-            case MYSQL -> MigrationService.Dialect.MYSQL;
+        SatisSchemaService.Dialect migrationDialect = switch (backend) {
+            case POSTGRESQL -> SatisSchemaService.Dialect.POSTGRESQL;
+            case MARIADB -> SatisSchemaService.Dialect.MARIADB;
+            case MYSQL -> SatisSchemaService.Dialect.MYSQL;
             default -> throw new IllegalArgumentException("Unsupported JDBC backend: " + backend);
         };
         try (Connection connection = connection()) {
-            new MigrationService().migrate(connection, migrationDialect);
+            new SatisSchemaService().initializeOrUpgradeSchema(connection, migrationDialect);
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to migrate " + backend + " database", exception);
         }
@@ -682,7 +682,7 @@ public final class DatabaseService {
             return backup.getAbsolutePath();
         }
         try (Connection backupConnection = legacyConnection(backup)) {
-            new MigrationService().migrate(backupConnection, MigrationService.Dialect.SQLITE);
+            new SatisSchemaService().initializeOrUpgradeSchema(backupConnection, SatisSchemaService.Dialect.SQLITE);
             for (String table : legacyImportTables()) {
                 copyTableRows(backupConnection, target, table, SqlDialect.SQLITE, sqlDialect);
             }
