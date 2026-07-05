@@ -84,6 +84,29 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
     }
 
     @Override
+    public CompletableFuture<PermissionActionView> adminSetPermission(UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
+        requireId(islandId, "islandId");
+        requirePermission(permission);
+        return core.postResultBody(
+                "/v1/admin/islands/permissions/set",
+                CoreJsonPayload.object("islandId", islandId, "roleKey", normalizeRoleKey(roleKey), "permission", permission.name(), "allowed", allowed)
+            )
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> permissionAction(body, "PERMISSION_SET"));
+    }
+
+    @Override
+    public CompletableFuture<PermissionActionView> adminResetPermissions(UUID islandId, String roleKey) {
+        requireId(islandId, "islandId");
+        return core.postResultBody(
+                "/v1/admin/islands/permissions/reset",
+                CoreJsonPayload.object("islandId", islandId, "roleKey", normalizeRoleKey(roleKey))
+            )
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> permissionAction(body, "PERMISSION_RESET"));
+    }
+
+    @Override
     public CompletableFuture<PermissionActionView> setPermissionOverride(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");

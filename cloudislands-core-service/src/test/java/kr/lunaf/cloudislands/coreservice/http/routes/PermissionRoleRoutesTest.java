@@ -46,10 +46,12 @@ class PermissionRoleRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(6, paths.size());
+        assertEquals(8, paths.size());
         assertTrue(paths.contains("/v1/islands/permissions"));
         assertTrue(paths.contains("/v1/islands/permissions/set"));
         assertTrue(paths.contains("/v1/islands/permissions/overrides/set"));
+        assertTrue(paths.contains("/v1/admin/islands/permissions/set"));
+        assertTrue(paths.contains("/v1/admin/islands/permissions/reset"));
         assertTrue(paths.contains("/v1/islands/roles"));
         assertTrue(paths.contains("/v1/islands/roles/upsert"));
         assertTrue(paths.contains("/v1/islands/roles/reset"));
@@ -64,6 +66,8 @@ class PermissionRoleRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/permissions"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/permissions/set"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/permissions/overrides/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/permissions/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/permissions/reset"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/roles"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/roles/upsert"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/roles/reset"));
@@ -126,6 +130,39 @@ class PermissionRoleRoutesTest {
         assertEquals(409, stale.status());
         assertTrue(stale.body().contains("\"code\":\"PERMISSION_VERSION_CONFLICT\""));
         assertTrue(permissions.allowedRoleKey(islandId, ownerUuid, "BUILDER", IslandPermission.BUILD));
+    }
+
+    @Test
+    void adminPermissionRoutesSetAndResetRoleRulesWithoutPlayerActor() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000201");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000202");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandPermissionRuleRepository permissions = new InMemoryIslandPermissionRuleRepository();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "owner-island");
+        PermissionRoleRoutes routes = new PermissionRoleRoutes(
+            islands,
+            metadata,
+            permissions,
+            new InMemoryIslandRoleRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryAuditLogger(),
+            (_eventType, _fields) -> {
+            }
+        );
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        routes.register(handlers::put);
+
+        TestExchange set = exchange("{\"islandId\":\"" + islandId + "\",\"roleKey\":\"BUILDER\",\"permission\":\"BUILD\",\"allowed\":true}");
+        handlers.get("/v1/admin/islands/permissions/set").handle(set);
+        TestExchange reset = exchange("{\"islandId\":\"" + islandId + "\",\"roleKey\":\"BUILDER\"}");
+        handlers.get("/v1/admin/islands/permissions/reset").handle(reset);
+
+        assertEquals(202, set.status());
+        assertTrue(set.body().contains("\"code\":\"PERMISSION_SET\""));
+        assertEquals(202, reset.status());
+        assertTrue(reset.body().contains("\"code\":\"PERMISSION_RESET\""));
+        assertTrue(permissions.list(islandId).isEmpty());
     }
 
     private TestExchange exchange(String body) {

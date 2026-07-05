@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
 import kr.lunaf.cloudislands.coreclient.AdminAuditEntryView;
@@ -51,6 +52,7 @@ import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.coreclient.JobRecoveryView;
 import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.coreclient.MemberActionView;
+import kr.lunaf.cloudislands.coreclient.PermissionActionView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.SettingsActionView;
@@ -1379,6 +1381,24 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, label, coreApiClient.progressionCommands().setRankingIgnored(islandId, ignored).thenApply(result -> rankingIgnoreMessage(label, result)));
             return true;
         }
+        if (args[1].equalsIgnoreCase("setpermission")) {
+            if (args.length < 6) {
+                sendCommandUsage(sender, List.of("/ciadmin island setpermission <islandUuid|islandName> <role> <permission> <true|false>"));
+                return true;
+            }
+            IslandPermission permission = islandPermission(args[4]);
+            boolean allowed = booleanArgument(args[5], false);
+            run(sender, "Island setpermission", coreApiClient.permissions().adminSetPermission(islandId, args[3], permission, allowed).thenApply(result -> permissionActionMessage("Island setpermission", result)));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("resetpermissions")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of("/ciadmin island resetpermissions <islandUuid|islandName> <role>"));
+                return true;
+            }
+            run(sender, "Island resetpermissions", coreApiClient.permissions().adminResetPermissions(islandId, args[3]).thenApply(result -> permissionActionMessage("Island resetpermissions", result)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("tp")) {
             if (sender instanceof Player player) {
                 routeAdminTeleport(player, islandId);
@@ -2081,6 +2101,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island addsize <islandUuid|islandName> <delta>",
             "/ciadmin island ignore <islandUuid|islandName>",
             "/ciadmin island unignore <islandUuid|islandName>",
+            "/ciadmin island setpermission <islandUuid|islandName> <role> <permission> <true|false>",
+            "/ciadmin island resetpermissions <islandUuid|islandName> <role>",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
             "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
@@ -2579,6 +2601,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + shortId(result.islandId())
             + adminText("admin-command-ranking-ignore-state-prefix", " ignored=")
             + result.ignored();
+    }
+
+    private String permissionActionMessage(String label, PermissionActionView result) {
+        return label
+            + adminText("admin-command-action-result-accepted-prefix", ": accepted=")
+            + result.accepted()
+            + adminText("admin-command-action-result-code-prefix", " code=")
+            + result.code();
     }
 
     private String blockValueListMessage(List<BlockValueView> values) {
@@ -3680,6 +3710,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private String normalizeGameplayKey(String value) {
         String normalized = value == null ? "" : value.trim().toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9_.:-]+", "_");
         return normalized.isBlank() ? "UNKNOWN" : normalized;
+    }
+
+    private IslandPermission islandPermission(String value) {
+        try {
+            return IslandPermission.valueOf(normalizeGameplayKey(value));
+        } catch (IllegalArgumentException exception) {
+            return IslandPermission.BUILD;
+        }
     }
 
     private UUID uuid(CommandSender sender, String value) {

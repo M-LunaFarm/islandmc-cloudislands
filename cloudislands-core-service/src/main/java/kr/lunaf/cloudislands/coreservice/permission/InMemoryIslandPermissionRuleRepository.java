@@ -22,6 +22,18 @@ public final class InMemoryIslandPermissionRuleRepository implements IslandPermi
     }
 
     @Override
+    public boolean resetRoleKey(UUID islandId, String roleKey) {
+        String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
+        Map<String, IslandPermissionRuleSnapshot> current = rules.get(islandId);
+        if (current == null) {
+            return false;
+        }
+        int before = current.size();
+        current.keySet().removeIf(key -> key.startsWith(normalizedRoleKey + ":"));
+        return current.size() != before;
+    }
+
+    @Override
     public List<IslandPermissionRuleSnapshot> list(UUID islandId) {
         List<IslandPermissionRuleSnapshot> snapshots = new ArrayList<>(rules.getOrDefault(islandId, Map.of()).values());
         snapshots.sort(Comparator.comparing(IslandPermissionRuleSnapshot::effectiveRoleKey).thenComparing(rule -> rule.permission().name()));

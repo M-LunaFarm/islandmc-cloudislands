@@ -32,6 +32,13 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
     }
 
     @Override
+    public boolean resetRoleKey(UUID islandId, String roleKey) {
+        boolean removed = delegate.resetRoleKey(islandId, roleKey);
+        cache(islandId, delegate.list(islandId), delegate.listPlayerOverrides(islandId));
+        return removed;
+    }
+
+    @Override
     public List<IslandPermissionRuleSnapshot> list(UUID islandId) {
         Optional<CachedRules> cached = cachedRules(islandId);
         if (cached.isPresent()) {

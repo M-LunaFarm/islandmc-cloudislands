@@ -13,5 +13,9 @@ public interface PermissionCommandClient {
 
     CompletableFuture<PermissionActionView> setPermission(UUID islandId, UUID actorUuid, String roleKey, IslandPermission permission, boolean allowed);
 
+    CompletableFuture<PermissionActionView> adminSetPermission(UUID islandId, String roleKey, IslandPermission permission, boolean allowed);
+
+    CompletableFuture<PermissionActionView> adminResetPermissions(UUID islandId, String roleKey);
+
     CompletableFuture<PermissionActionView> setPermissionOverride(UUID islandId, UUID actorUuid, UUID targetUuid, IslandPermission permission, boolean allowed);
 }

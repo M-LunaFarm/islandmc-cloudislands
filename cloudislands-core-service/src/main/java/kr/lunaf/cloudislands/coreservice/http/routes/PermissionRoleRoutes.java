@@ -61,6 +61,8 @@ public final class PermissionRoleRoutes implements RouteGroup {
         registry.routePost("/v1/islands/permissions", this::permissions);
         registry.routePost("/v1/islands/permissions/set", this::setPermission);
         registry.routePost("/v1/islands/permissions/overrides/set", this::setPermissionOverride);
+        registry.routePost("/v1/admin/islands/permissions/set", this::adminSetPermission);
+        registry.routePost("/v1/admin/islands/permissions/reset", this::adminResetPermissions);
         registry.routePost("/v1/islands/roles", this::roles);
         registry.routePost("/v1/islands/roles/upsert", this::upsertRole);
         registry.routePost("/v1/islands/roles/reset", this::resetRole);
@@ -90,6 +92,38 @@ public final class PermissionRoleRoutes implements RouteGroup {
         islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_SET", Map.of("role", roleKey, "roleKey", roleKey, "permission", permission.name(), "allowed", Boolean.toString(allowed)));
         events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", roleKey, "roleKey", roleKey, "permission", permission.name(), "allowed", Boolean.toString(allowed)));
         CoreHttpResponses.write(exchange, 202, permissionSetJson(permissionVersion(islandId)));
+    }
+
+    private void adminSetPermission(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        if (!requireIsland(exchange, islandId)) {
+            return;
+        }
+        String roleKey = roleKey(body, IslandRole.MEMBER.name());
+        IslandPermission permission = JsonFields.enumValue(IslandPermission.class, body, "permission", IslandPermission.BUILD);
+        boolean allowed = JsonFields.bool(body, "allowed", false);
+        permissionRules.putRoleKey(islandId, roleKey, permission, allowed);
+        Map<String, String> fields = Map.of("role", roleKey, "roleKey", roleKey, "permission", permission.name(), "allowed", Boolean.toString(allowed));
+        audit.log(EMPTY_UUID, "ADMIN", "ISLAND_PERMISSION_ADMIN_SET", "ISLAND", islandId.toString(), fields);
+        islandLogs.append(islandId, EMPTY_UUID, "ISLAND_PERMISSION_ADMIN_SET", fields);
+        events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", roleKey, "roleKey", roleKey, "permission", permission.name(), "allowed", Boolean.toString(allowed), "actorType", "ADMIN"));
+        CoreHttpResponses.write(exchange, 202, permissionActionJson("PERMISSION_SET", permissionVersion(islandId)));
+    }
+
+    private void adminResetPermissions(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        if (!requireIsland(exchange, islandId)) {
+            return;
+        }
+        String roleKey = roleKey(body, DEFAULT_CUSTOM_ROLE_KEY);
+        boolean removed = permissionRules.resetRoleKey(islandId, roleKey);
+        Map<String, String> fields = Map.of("role", roleKey, "roleKey", roleKey, "removed", Boolean.toString(removed));
+        audit.log(EMPTY_UUID, "ADMIN", "ISLAND_PERMISSION_ADMIN_RESET", "ISLAND", islandId.toString(), fields);
+        islandLogs.append(islandId, EMPTY_UUID, "ISLAND_PERMISSION_ADMIN_RESET", fields);
+        events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "role", roleKey, "roleKey", roleKey, "operation", "PERMISSIONS_RESET", "actorType", "ADMIN"));
+        CoreHttpResponses.write(exchange, 202, permissionActionJson("PERMISSION_RESET", permissionVersion(islandId)));
     }
 
     private void setPermissionOverride(HttpExchange exchange) throws IOException {
@@ -177,6 +211,14 @@ public final class PermissionRoleRoutes implements RouteGroup {
         return false;
     }
 
+    private boolean requireIsland(HttpExchange exchange, UUID islandId) throws IOException {
+        if (islandRepository != null && islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return false;
+        }
+        return true;
+    }
+
     private boolean requirePermissionVersion(HttpExchange exchange, String body, UUID islandId) throws IOException {
         String expectedVersion = JsonFields.text(body, "expectedVersion", "");
         if (expectedVersion.isBlank()) {
@@ -241,6 +283,14 @@ public final class PermissionRoleRoutes implements RouteGroup {
     private static String permissionSetJson(String version) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("accepted", true);
+        values.put("version", version);
+        return SimpleJson.stringify(values);
+    }
+
+    private static String permissionActionJson(String code, String version) {
+        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+        values.put("accepted", true);
+        values.put("code", code);
         values.put("version", version);
         return SimpleJson.stringify(values);
     }

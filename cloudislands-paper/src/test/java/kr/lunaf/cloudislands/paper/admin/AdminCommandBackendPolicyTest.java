@@ -325,6 +325,36 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminPermissionMutationsAreFirstClassIslandCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String permissionClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/PermissionCommandClient.java"));
+        String jdkPermissionClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkPermissionCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/PermissionRoleRoutes.java"));
+        String permissionRepository = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/permission/IslandPermissionRuleRepository.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin island setpermission <island>"), "Admin setpermission must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin island resetpermissions <island>"), "Admin resetpermissions must be listed in help");
+        assertTrue(catalog.contains("\"setpermission\""), "Admin setpermission must be cataloged for completion");
+        assertTrue(catalog.contains("\"resetpermissions\""), "Admin resetpermissions must be cataloged for completion");
+        assertTrue(source.contains("coreApiClient.permissions().adminSetPermission(islandId, args[3], permission, allowed)"), "Admin setpermission must use typed permission client");
+        assertTrue(source.contains("coreApiClient.permissions().adminResetPermissions(islandId, args[3])"), "Admin resetpermissions must use typed permission client");
+        assertTrue(permissionClient.contains("adminSetPermission(UUID islandId, String roleKey, IslandPermission permission, boolean allowed)"), "Permission client must expose admin setpermission");
+        assertTrue(permissionClient.contains("adminResetPermissions(UUID islandId, String roleKey)"), "Permission client must expose admin resetpermissions");
+        assertTrue(jdkPermissionClient.contains("\"/v1/admin/islands/permissions/set\""), "JDK permission client must call admin setpermission endpoint");
+        assertTrue(jdkPermissionClient.contains("\"/v1/admin/islands/permissions/reset\""), "JDK permission client must call admin resetpermissions endpoint");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/permissions/set"), "Core permission routes must register admin setpermission");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/permissions/reset"), "Core permission routes must register admin resetpermissions");
+        assertTrue(coreRoutes.contains("ISLAND_PERMISSION_ADMIN_SET"), "Core route must audit admin permission set");
+        assertTrue(coreRoutes.contains("ISLAND_PERMISSION_ADMIN_RESET"), "Core route must audit admin permission reset");
+        assertTrue(permissionRepository.contains("resetRoleKey(UUID islandId, String roleKey)"), "Permission repository must support real role permission reset");
+        assertTrue(parity.contains("\"superior.admin.setpermission\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark superior.admin.setpermission verified");
+        assertTrue(parity.contains("\"superior.admin.resetpermissions\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark superior.admin.resetpermissions verified");
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

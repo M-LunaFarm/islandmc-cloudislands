@@ -809,6 +809,8 @@ class CoreMutationContextTest {
         ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/v1/islands/permissions/set", exchange -> respond(exchange, requestBodies, "permissionSet", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/permissions/set", exchange -> respond(exchange, requestBodies, "adminPermissionSet", "{\"accepted\":true,\"code\":\"PERMISSION_SET\"}"));
+        server.createContext("/v1/admin/islands/permissions/reset", exchange -> respond(exchange, requestBodies, "adminPermissionReset", "{\"accepted\":true,\"code\":\"PERMISSION_RESET\"}"));
         server.createContext("/v1/islands/permissions/overrides/set", exchange -> respond(exchange, requestBodies, "permissionOverride", "{\"accepted\":true}"));
         server.createContext("/v1/islands/roles/upsert", exchange -> respond(exchange, requestBodies, "roleUpsert", "{\"accepted\":true}"));
         server.createContext("/v1/islands/roles/reset", exchange -> respond(exchange, requestBodies, "roleReset", "{\"accepted\":true}"));
@@ -821,11 +823,15 @@ class CoreMutationContextTest {
                 actorUuid,
                 java.util.List.of(new UpdatePermissionsRequest.Change("builder-role", IslandPermission.BUILD, true, "v\"2"))
             )).join();
+            client.permissions().adminSetPermission(islandId, "builder-role", IslandPermission.OPEN_CONTAINER, false).join();
+            client.permissions().adminResetPermissions(islandId, "builder-role").join();
             client.permissions().setPermissionOverride(islandId, actorUuid, playerUuid, IslandPermission.BREAK, false).join();
             client.permissions().upsertRole(islandId, actorUuid, "builder-role", 42, "Builder \"Role\"").join();
             client.permissions().resetRole(islandId, actorUuid, "builder-role").join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER_ROLE\",\"roleKey\":\"BUILDER_ROLE\",\"permission\":\"BUILD\",\"allowed\":true,\"expectedVersion\":\"v\\\"2\"}", requestBodies.get("permissionSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"roleKey\":\"BUILDER_ROLE\",\"permission\":\"OPEN_CONTAINER\",\"allowed\":false}", requestBodies.get("adminPermissionSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"roleKey\":\"BUILDER_ROLE\"}", requestBodies.get("adminPermissionReset"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"permission\":\"BREAK\",\"allowed\":false}", requestBodies.get("permissionOverride"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER_ROLE\",\"roleKey\":\"BUILDER_ROLE\",\"weight\":42,\"displayName\":\"Builder \\\"Role\\\"\"}", requestBodies.get("roleUpsert"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER_ROLE\",\"roleKey\":\"BUILDER_ROLE\"}", requestBodies.get("roleReset"));

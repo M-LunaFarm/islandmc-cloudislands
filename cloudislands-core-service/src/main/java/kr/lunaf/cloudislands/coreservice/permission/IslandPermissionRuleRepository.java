@@ -12,6 +12,9 @@ import kr.lunaf.cloudislands.common.permission.defaults.DefaultIslandPermissions
 
 public interface IslandPermissionRuleRepository {
     void putRoleKey(UUID islandId, String roleKey, IslandPermission permission, boolean allowed);
+    default boolean resetRoleKey(UUID islandId, String roleKey) {
+        return false;
+    }
     List<IslandPermissionRuleSnapshot> list(UUID islandId);
     void putPlayerOverride(UUID islandId, UUID playerUuid, IslandPermission permission, boolean allowed);
     List<IslandPermissionOverrideSnapshot> listPlayerOverrides(UUID islandId);

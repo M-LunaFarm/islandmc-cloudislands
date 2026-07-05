@@ -35,6 +35,19 @@ public final class JdbcIslandPermissionRuleRepository implements IslandPermissio
     }
 
     @Override
+    public boolean resetRoleKey(UUID islandId, String roleKey) {
+        String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM island_permissions WHERE island_id = ? AND role = ?")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, normalizedRoleKey);
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to reset island role permissions", exception);
+        }
+    }
+
+    @Override
     public List<IslandPermissionRuleSnapshot> list(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT island_id, role, permission_key, value FROM island_permissions WHERE island_id = ? ORDER BY role, permission_key")) {
