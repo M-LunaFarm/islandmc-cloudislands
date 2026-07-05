@@ -43,6 +43,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import kr.lunaf.cloudislands.coreclient.EnvironmentActionView;
+import kr.lunaf.cloudislands.coreclient.HomeWarpActionView;
 import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
@@ -1426,6 +1427,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Island setbiome", coreApiClient.environmentCommands().adminSetBiome(islandId, args[3]).thenApply(result -> gameplayModifierMessage("Island setbiome", result)));
             return true;
         }
+        if (args[1].equalsIgnoreCase("delwarp") || args[1].equalsIgnoreCase("deletewarp")) {
+            if (args.length < 4) {
+                sender.sendMessage(adminText("admin-command-island-warp-required", "워프 이름을 입력해주세요."));
+                return true;
+            }
+            run(sender, "Island delwarp", coreApiClient.homeWarpCommands().adminDeleteWarp(islandId, args[3]).thenApply(result -> homeWarpActionMessage("Island delwarp", islandId, args[3], result)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("rollback")) {
             if (args.length < 4) {
                 sender.sendMessage(adminText("admin-command-snapshot-required", "스냅샷 번호를 입력해주세요."));
@@ -2013,6 +2022,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island member setleader <islandUuid|islandName> <playerUuid|playerName>",
             "/ciadmin island rename <islandUuid|islandName> <name>",
             "/ciadmin island setbiome <islandUuid|islandName> <biomeKey>",
+            "/ciadmin island delwarp <islandUuid|islandName> <warp>",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
             "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
@@ -2557,6 +2567,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + " accepted=" + result.accepted()
             + " code=" + result.code()
             + " island=" + shortId(islandId.toString());
+    }
+
+    private String homeWarpActionMessage(String label, UUID islandId, String name, HomeWarpActionView result) {
+        return label
+            + " accepted=" + result.accepted()
+            + " code=" + result.code()
+            + " island=" + shortId(islandId.toString())
+            + " name=" + name;
     }
 
     private String templateListMessage(List<TemplateView> templates) {

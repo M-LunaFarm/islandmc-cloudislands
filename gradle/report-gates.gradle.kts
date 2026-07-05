@@ -551,7 +551,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.count", "cloudislands.admin.block-values", "COVERED_BY", "", "block value/count inspection is covered by block-value and island info surfaces"),
     permissionParity("admin", "superior.admin.data", "cloudislands.admin.support-bundle", "COVERED_BY", "", "diagnostic data export maps to support bundles"),
     permissionParity("admin", "superior.admin.debug", "cloudislands.admin.diagnostics", "COVERED_BY", "", "debug output maps to diagnostics/export commands"),
-    permissionParity("admin", "superior.admin.delwarp", "PLANNED:admin-warp-mutations", "PLANNED", "P1", "direct admin warp deletion is not yet exposed"),
+    permissionParity("admin", "superior.admin.delwarp", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct admin warp deletion is exposed by /ciadmin island delwarp with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.demote", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P0", "direct admin member demotion is exposed by /ciadmin island member demote with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.deposit", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P0", "direct admin bank deposit is exposed by /ciadmin island bank deposit with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.disband", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "", "guarded island delete/repair/recover commands cover destructive lifecycle control"),

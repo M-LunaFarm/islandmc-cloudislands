@@ -690,6 +690,7 @@ class CoreMutationContextTest {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/v1/islands/warps/set", exchange -> respond(exchange, requestBodies, "warpSet", "{\"accepted\":true}"));
         server.createContext("/v1/islands/warps/delete", exchange -> respond(exchange, requestBodies, "warpDelete", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/warps/delete", exchange -> respond(exchange, requestBodies, "adminWarpDelete", "{\"accepted\":true}"));
         server.createContext("/v1/islands/warps/access", exchange -> respond(exchange, requestBodies, "warpAccess", "{\"accepted\":true}"));
         server.createContext("/v1/islands/access", exchange -> respond(exchange, requestBodies, "publicAccess", "{\"accepted\":true}"));
         server.createContext("/v1/islands/lock", exchange -> respond(exchange, requestBodies, "locked", "{\"accepted\":true}"));
@@ -699,12 +700,14 @@ class CoreMutationContextTest {
 
             client.homeWarpCommands().setWarp(islandId, actorUuid, "spawn\"main", location, true, "market").join();
             client.homeWarpCommands().deleteWarp(islandId, actorUuid, "spawn\"main").join();
+            client.homeWarpCommands().adminDeleteWarp(islandId, "spawn\"admin").join();
             client.homeWarpCommands().setWarpPublicAccess(islandId, actorUuid, "spawn\"main", false).join();
             client.settingsCommands().setPublicAccess(islandId, actorUuid, true).join();
             client.settingsCommands().setLocked(islandId, actorUuid, false).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\\\"main\",\"category\":\"market\",\"worldName\":\"world\\\"nether\",\"localX\":1.25,\"localY\":64.0,\"localZ\":-3.5,\"yaw\":90.0,\"pitch\":12.5,\"publicAccess\":true}", requestBodies.get("warpSet"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\\\"main\"}", requestBodies.get("warpDelete"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"name\":\"spawn\\\"admin\"}", requestBodies.get("adminWarpDelete"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\\\"main\",\"publicAccess\":false}", requestBodies.get("warpAccess"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"publicAccess\":true}", requestBodies.get("publicAccess"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"locked\":false}", requestBodies.get("locked"));

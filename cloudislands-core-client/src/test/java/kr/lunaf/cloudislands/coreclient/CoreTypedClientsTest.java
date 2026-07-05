@@ -1454,6 +1454,7 @@ class CoreTypedClientsTest {
             server.createContext("/v1/islands/homes/set", exchange -> respondMemberTest(exchange, calls, "home", "{\"accepted\":true,\"code\":\"HOME_SET\"}"));
             server.createContext("/v1/islands/warps/set", exchange -> respondMemberTest(exchange, calls, "warp", "{\"accepted\":true,\"code\":\"WARP_SET\"}"));
             server.createContext("/v1/islands/warps/delete", exchange -> respondMemberTest(exchange, calls, "delete", "{\"accepted\":true,\"code\":\"WARP_DELETED\"}"));
+            server.createContext("/v1/admin/islands/warps/delete", exchange -> respondMemberTest(exchange, calls, "adminDelete", "{\"accepted\":true,\"code\":\"WARP_DELETED\"}"));
             server.createContext("/v1/islands/warps/access", exchange -> respondMemberTest(exchange, calls, "access", "plain-success"));
             server.start();
             HomeWarpCommandClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).homeWarpCommands();
@@ -1461,11 +1462,13 @@ class CoreTypedClientsTest {
             assertEquals("HOME_SET", client.setHome(islandId, actorUuid, "home", location).join().code());
             assertEquals("WARP_SET", client.setWarp(islandId, actorUuid, "spawn", location, true).join().code());
             assertEquals("WARP_DELETED", client.deleteWarp(islandId, actorUuid, "spawn").join().code());
+            assertEquals("WARP_DELETED", client.adminDeleteWarp(islandId, "spawn").join().code());
             assertEquals("WARP_PUBLIC", client.setWarpPublicAccess(islandId, actorUuid, "spawn", true).join().code());
             assertEquals(List.of(
                 "home:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"home\",\"worldName\":\"world\",\"localX\":1.0,\"localY\":2.0,\"localZ\":3.0,\"yaw\":0.0,\"pitch\":0.0}",
                 "warp:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\",\"worldName\":\"world\",\"localX\":1.0,\"localY\":2.0,\"localZ\":3.0,\"yaw\":0.0,\"pitch\":0.0,\"publicAccess\":true}",
                 "delete:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\"}",
+                "adminDelete:{\"islandId\":\"" + islandId + "\",\"name\":\"spawn\"}",
                 "access:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"name\":\"spawn\",\"publicAccess\":true}"
             ), calls);
         } finally {

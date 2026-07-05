@@ -15,5 +15,7 @@ public interface HomeWarpCommandClient {
 
     CompletableFuture<HomeWarpActionView> deleteWarp(UUID islandId, UUID actorUuid, String name);
 
+    CompletableFuture<HomeWarpActionView> adminDeleteWarp(UUID islandId, String name);
+
     CompletableFuture<HomeWarpActionView> setWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess);
 }

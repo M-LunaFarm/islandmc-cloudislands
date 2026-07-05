@@ -45,6 +45,14 @@ public final class JdkHomeWarpCommandClient implements HomeWarpCommandClient {
     }
 
     @Override
+    public CompletableFuture<HomeWarpActionView> adminDeleteWarp(UUID islandId, String name) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/islands/warps/delete", CoreJsonPayload.object("islandId", islandId, "name", normalizeName(name)))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> actionResult(body, "WARP_DELETED"));
+    }
+
+    @Override
     public CompletableFuture<HomeWarpActionView> setWarpPublicAccess(UUID islandId, UUID actorUuid, String name, boolean publicAccess) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");

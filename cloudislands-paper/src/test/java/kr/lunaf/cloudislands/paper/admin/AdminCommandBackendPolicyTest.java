@@ -213,6 +213,26 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminWarpDeletionIsAFirstClassIslandCommand() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String homeWarpClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/HomeWarpCommandClient.java"));
+        String jdkHomeWarpClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkHomeWarpCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandWarpRoutes.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin island delwarp <island> <warp>"), "Admin warp deletion must be listed in help");
+        assertTrue(catalog.contains("\"delwarp\""), "Admin warp deletion must be cataloged for completion");
+        assertTrue(source.contains("coreApiClient.homeWarpCommands().adminDeleteWarp(islandId, args[3])"), "Admin warp deletion must use the typed home/warp client");
+        assertTrue(homeWarpClient.contains("adminDeleteWarp(UUID islandId, String name)"), "Home/warp client must expose admin delete");
+        assertTrue(jdkHomeWarpClient.contains("postResultBody(\"/v1/admin/islands/warps/delete\""), "JDK home/warp client must call admin delete endpoint");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/warps/delete"), "Core warp routes must register admin delete");
+        assertTrue(coreRoutes.contains("ISLAND_WARP_ADMIN_DELETE"), "Core admin delete route must audit operator mutation");
+        assertTrue(parity.contains("\"superior.admin.delwarp\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark admin delwarp verified");
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

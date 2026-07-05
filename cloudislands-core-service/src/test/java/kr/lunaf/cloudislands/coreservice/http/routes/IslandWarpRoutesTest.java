@@ -4,7 +4,18 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpContext;
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpPrincipal;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,8 +27,16 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
+import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
+import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
+import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
+import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandWarpRoutesTest {
@@ -28,13 +47,14 @@ class IslandWarpRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(7, paths.size());
+        assertEquals(8, paths.size());
         assertTrue(paths.contains("/v1/islands/warps"));
         assertTrue(paths.contains("/v1/islands/public-warps"));
         assertTrue(paths.contains("/v1/islands/homes"));
         assertTrue(paths.contains("/v1/islands/homes/set"));
         assertTrue(paths.contains("/v1/islands/warps/set"));
         assertTrue(paths.contains("/v1/islands/warps/delete"));
+        assertTrue(paths.contains("/v1/admin/islands/warps/delete"));
         assertTrue(paths.contains("/v1/islands/warps/access"));
     }
 
@@ -50,6 +70,7 @@ class IslandWarpRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/homes/set"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/warps/set"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/warps/delete"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/warps/delete"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/warps/access"));
     }
 
@@ -99,6 +120,45 @@ class IslandWarpRoutesTest {
         assertEquals("public-market", IslandWarpSnapshot.normalizeCategory("Public Market"));
     }
 
+    @Test
+    void adminDeleteWarpBypassesPlayerPermissionAndEmitsOperatorAudit() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000301");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000302");
+        UUID creatorUuid = UUID.fromString("00000000-0000-0000-0000-000000000303");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Admin Warp Test");
+        metadata.upsertWarp(islandId, "market", new IslandLocation("world", 1.0D, 65.0D, 2.0D, 90.0F, 0.0F), true, creatorUuid, "shop");
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandWarpRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            logs,
+            audit,
+            events
+        ).register(handlers::put);
+
+        TestExchange accepted = exchange("{\"islandId\":\"" + islandId + "\",\"name\":\"market\"}");
+        handlers.get("/v1/admin/islands/warps/delete").handle(accepted);
+
+        assertEquals(202, accepted.status());
+        assertTrue(accepted.body().contains("\"accepted\":true"));
+        assertTrue(metadata.warp(islandId, "market").isEmpty());
+        assertTrue(audit.toJson().contains("ISLAND_WARP_ADMIN_DELETE"));
+        assertEquals("ISLAND_WARP_ADMIN_DELETE", logs.list(islandId, 10).get(0).action());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_WARP_DELETED.name()));
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_WARP_CHANGED.name()));
+    }
+
+    private TestExchange exchange(String body) {
+        return new TestExchange(body);
+    }
+
     private static void assertLocation(Map<?, ?> value) {
         assertEquals(1.0D, ((Number) value.get("localX")).doubleValue());
         assertEquals(65.5D, ((Number) value.get("localY")).doubleValue());
@@ -126,6 +186,108 @@ class IslandWarpRoutesTest {
 
         Set<String> methods(String path) {
             return methods.getOrDefault(path, Set.of());
+        }
+    }
+
+    private static final class TestExchange extends HttpExchange {
+        private final Headers requestHeaders = new Headers();
+        private final Headers responseHeaders = new Headers();
+        private final ByteArrayInputStream requestBody;
+        private final ByteArrayOutputStream responseBody = new ByteArrayOutputStream();
+        private int status;
+
+        private TestExchange(String body) {
+            this.requestBody = new ByteArrayInputStream(body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+
+        @Override
+        public Headers getRequestHeaders() {
+            return requestHeaders;
+        }
+
+        @Override
+        public Headers getResponseHeaders() {
+            return responseHeaders;
+        }
+
+        @Override
+        public URI getRequestURI() {
+            return URI.create("/test");
+        }
+
+        @Override
+        public String getRequestMethod() {
+            return "POST";
+        }
+
+        @Override
+        public HttpContext getHttpContext() {
+            return null;
+        }
+
+        @Override
+        public void close() {
+        }
+
+        @Override
+        public InputStream getRequestBody() {
+            return requestBody;
+        }
+
+        @Override
+        public OutputStream getResponseBody() {
+            return responseBody;
+        }
+
+        @Override
+        public void sendResponseHeaders(int rCode, long responseLength) throws IOException {
+            this.status = rCode;
+        }
+
+        @Override
+        public InetSocketAddress getRemoteAddress() {
+            return new InetSocketAddress("127.0.0.1", 25565);
+        }
+
+        @Override
+        public int getResponseCode() {
+            return status;
+        }
+
+        @Override
+        public InetSocketAddress getLocalAddress() {
+            return new InetSocketAddress("127.0.0.1", 8080);
+        }
+
+        @Override
+        public String getProtocol() {
+            return "HTTP/1.1";
+        }
+
+        @Override
+        public Object getAttribute(String name) {
+            return null;
+        }
+
+        @Override
+        public void setAttribute(String name, Object value) {
+        }
+
+        @Override
+        public void setStreams(InputStream i, OutputStream o) {
+        }
+
+        @Override
+        public HttpPrincipal getPrincipal() {
+            return null;
+        }
+
+        private int status() {
+            return status;
+        }
+
+        private String body() {
+            return responseBody.toString(java.nio.charset.StandardCharsets.UTF_8);
         }
     }
 }

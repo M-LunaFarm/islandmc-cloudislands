@@ -65,6 +65,7 @@ public final class IslandWarpRoutes implements RouteGroup {
         registry.routePost("/v1/islands/homes/set", this::setHome);
         registry.routePost("/v1/islands/warps/set", this::setWarp);
         registry.routePost("/v1/islands/warps/delete", this::deleteWarp);
+        registry.routePost("/v1/admin/islands/warps/delete", this::adminDeleteWarp);
         registry.routePost("/v1/islands/warps/access", this::setWarpAccess);
     }
 
@@ -156,6 +157,26 @@ public final class IslandWarpRoutes implements RouteGroup {
         islandLogs.append(islandId, actorUuid, "ISLAND_WARP_DELETE", Map.of("name", name));
         events.publish(CloudIslandEventType.ISLAND_WARP_DELETED.name(), Map.of("islandId", islandId.toString(), "name", name));
         events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", "WARP_DELETE"));
+        CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+    }
+
+    private void adminDeleteWarp(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        String name = JsonFields.text(body, "name", "default").toLowerCase();
+        if (islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        if (metadataRepository.warp(islandId, name).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
+            return;
+        }
+        metadataRepository.deleteWarp(islandId, name);
+        audit.log(EMPTY_UUID, "ADMIN", "ISLAND_WARP_ADMIN_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
+        islandLogs.append(islandId, EMPTY_UUID, "ISLAND_WARP_ADMIN_DELETE", Map.of("name", name));
+        events.publish(CloudIslandEventType.ISLAND_WARP_DELETED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "name", name));
+        events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "name", name, "operation", "WARP_ADMIN_DELETE"));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
 
