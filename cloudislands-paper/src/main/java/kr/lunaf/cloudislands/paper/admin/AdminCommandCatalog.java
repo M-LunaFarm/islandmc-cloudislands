@@ -29,6 +29,8 @@ final class AdminCommandCatalog {
         "ciadmin status",
         "ciadmin dashboard",
         "ciadmin doctor",
+        "ciadmin doctor --json",
+        "ciadmin doctor --markdown",
         "ciadmin setup start",
         "ciadmin setup core",
         "ciadmin setup redis",

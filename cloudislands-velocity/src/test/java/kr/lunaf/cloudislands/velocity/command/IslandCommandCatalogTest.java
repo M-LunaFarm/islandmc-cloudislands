@@ -216,7 +216,8 @@ class IslandCommandCatalogTest {
         assertTrue(actions.contains("dataDirectory.resolve(\"support-bundles\")"), "Velocity support bundle must write under the plugin data directory");
         assertTrue(actionContext.contains("Path dataDirectory"), "Velocity admin actions must receive the plugin data directory");
         assertTrue(runtimeFactory.contains("dataDirectory"), "Velocity runtime factory must pass the real plugin data directory into actions");
-        assertTrue(actions.contains("doctorSeverity(String body)") && actions.contains("\"PASS\"") && actions.contains("\"WARN\"") && actions.contains("\"FAIL\""), "Doctor must classify sections with PASS/WARN/FAIL");
+        assertTrue(actions.contains("doctorSeverity(String body)") && actions.contains("\"CRITICAL\"") && actions.contains("\"WARN\"") && actions.contains("\"INFO\""), "Doctor must classify sections with CRITICAL/WARN/INFO");
+        assertTrue(actions.contains("doctorRecommendation(String label, String severity, String body)"), "Doctor must recommend operator remediation commands");
         assertTrue(actions.contains("coreConfigMessages::format"), "Velocity doctor must render Core config-doctor details");
         assertTrue(coreConfigFormatter.contains("configDoctorChecks"), "Velocity Core config output must include the P8 config-doctor risk checklist");
         assertTrue(coreConfigFormatter.contains("gameplayParityContract"), "Velocity Core config output must include the P5 gameplay parity contract");

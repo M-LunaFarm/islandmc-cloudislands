@@ -121,6 +121,8 @@ class AdminCommandBackendPolicyTest {
 
         assertTrue(adminSurface.contains("\"doctor\""), "Doctor root command must be registered");
         assertTrue(adminSurface.contains("ciadmin doctor"), "Doctor command must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin doctor --json"), "Doctor JSON export must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin doctor --markdown"), "Doctor Markdown export must be listed in help");
         assertTrue(source.contains("handleDoctor"), "Doctor command must have a handler");
         assertTrue(source.contains("coreApiClient.adminCoreConfig().config()"), "Doctor must include Core config/API reachability");
         assertTrue(source.contains("snapshotPolicyDiagnosticBody"), "Doctor must include snapshot policy status");
@@ -132,8 +134,15 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.adminRoutes().debug(new UUID(0L, 0L))"), "Doctor must include typed route ticket context");
         assertTrue(source.contains("coreApiClient.adminAudit().list(5)"), "Doctor must include recent typed audit context");
         assertTrue(source.contains("coreApiClient.templates().list().thenApply(this::templateDoctorDiagnosticBody)"), "Doctor must include template bundle validation context");
-        assertTrue(source.contains("doctorSeverity(String body)"), "Doctor output must classify sections with PASS/WARN/FAIL");
-        assertTrue(source.contains("\"PASS\"") && source.contains("\"WARN\"") && source.contains("\"FAIL\""), "Doctor severity labels must be operator-visible");
+        assertTrue(source.contains("doctorSeverity(String body)"), "Doctor output must classify sections with CRITICAL/WARN/INFO");
+        assertTrue(source.contains("\"CRITICAL\"") && source.contains("\"WARN\"") && source.contains("\"INFO\""), "Doctor severity labels must be operator-visible");
+        assertTrue(source.contains("doctorRecommendation(String label, String severity, String body)"), "Doctor must recommend operator remediation commands");
+        assertTrue(source.contains("recommendedCommand"), "Doctor JSON/Markdown export must include remediation commands");
+        assertTrue(source.contains("hasOption(args, \"--json\")"), "Doctor must support JSON export");
+        assertTrue(source.contains("hasOption(args, \"--markdown\")"), "Doctor must support Markdown export");
+        assertTrue(source.contains("doctorJson(DoctorReport report)"), "Doctor must render a structured JSON export");
+        assertTrue(source.contains("doctorMarkdown(DoctorReport report)"), "Doctor must render a Markdown export");
+        assertTrue(source.contains("/ciadmin support-bundle create"), "Doctor must recommend support bundle creation for unknown failures");
         assertTrue(source.contains("configDoctorChecks"), "Doctor must render the P8 config-doctor risk checklist from Core config");
         assertTrue(source.contains("WARN_TEMPLATE_CATALOG_EMPTY"), "Doctor must warn when no templates are visible");
         assertTrue(source.contains("WARN_BUNDLE_MISSING"), "Doctor template diagnostics must warn when enabled templates have no bundle");
@@ -163,7 +172,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(catalog.contains("\"setup\""), "Setup root command must be registered");
         assertTrue(catalog.contains("SETUP_COMMANDS"), "Setup subcommands must be cataloged for tab completion");
         assertTrue(source.contains("handleSetup"), "Setup command must have a handler");
-        assertTrue(source.contains("return handleDoctor(sender)"), "Setup verify must delegate to doctor checks");
+        assertTrue(source.contains("return handleDoctor(sender, new String[] {\"doctor\"})"), "Setup verify must delegate to doctor checks");
         assertTrue(source.contains("args.length == 2 && args[0].equalsIgnoreCase(\"setup\")"), "Setup tab completion must use setup subcommands");
         assertTrue(source.contains("\"setup\"") && source.contains("cloudislands.admin.\" + root"), "Setup must be a first-class admin permission root");
         assertTrue(plugin.contains("cloudislands.admin.setup"), "Setup command must have a plugin permission");

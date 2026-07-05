@@ -159,7 +159,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return handleDashboard(sender);
         }
         if (args[0].equalsIgnoreCase("doctor")) {
-            return handleDoctor(sender);
+            return handleDoctor(sender, args);
         }
         if (args[0].equalsIgnoreCase("setup")) {
             return handleSetup(sender, args);
@@ -713,29 +713,29 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return new DiagnosticSection("## runtime-compatibility\npaperAdapterId=unavailable\n");
     }
 
-    private boolean handleDoctor(CommandSender sender) {
+    private boolean handleDoctor(CommandSender sender, String[] args) {
         CompletableFuture<AdminCoreConfigView> coreConfig = coreApiClient.adminCoreConfig().config();
-        CompletableFuture<CharSequence> config = doctorPart("core-config", coreConfig.thenApply(this::coreConfigMessage));
-        CompletableFuture<CharSequence> snapshotPolicy = doctorPart("snapshot-policy", coreConfig.thenApply(this::snapshotPolicyDiagnosticBody));
-        CompletableFuture<CharSequence> metrics = doctorPart("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
-        CompletableFuture<CharSequence> storage = doctorPart("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
-        CompletableFuture<CharSequence> nodes = doctorPart("nodes", coreApiClient.adminNodes().listNodesSummary().thenApply(summary ->
+        CompletableFuture<DoctorPart> config = doctorPart("core-config", coreConfig.thenApply(this::coreConfigMessage));
+        CompletableFuture<DoctorPart> snapshotPolicy = doctorPart("snapshot-policy", coreConfig.thenApply(this::snapshotPolicyDiagnosticBody));
+        CompletableFuture<DoctorPart> metrics = doctorPart("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
+        CompletableFuture<DoctorPart> storage = doctorPart("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
+        CompletableFuture<DoctorPart> nodes = doctorPart("nodes", coreApiClient.adminNodes().listNodesSummary().thenApply(summary ->
             adminNodeSummaryMessage("Nodes", summary) + " / " + heartbeatLagDiagnosticBody(summary).replace('\n', ' ').trim()));
-        CompletableFuture<CharSequence> jobs = doctorPart("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
-        CompletableFuture<CharSequence> routes = doctorPart("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
-        CompletableFuture<CharSequence> audit = doctorPart("audit", coreApiClient.adminAudit().list(5).thenApply(this::auditListMessage));
-        CompletableFuture<CharSequence> templates = doctorPart("templates", coreApiClient.templates().list().thenApply(this::templateDoctorDiagnosticBody));
-        CompletableFuture<CharSequence> integrations = CompletableFuture.completedFuture("integrations=" + integrationStatusMessage());
+        CompletableFuture<DoctorPart> jobs = doctorPart("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
+        CompletableFuture<DoctorPart> routes = doctorPart("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
+        CompletableFuture<DoctorPart> audit = doctorPart("audit", coreApiClient.adminAudit().list(5).thenApply(this::auditListMessage));
+        CompletableFuture<DoctorPart> templates = doctorPart("templates", coreApiClient.templates().list().thenApply(this::templateDoctorDiagnosticBody));
+        CompletableFuture<DoctorPart> integrations = CompletableFuture.completedFuture(doctorPart("integrations", integrationStatusMessage()));
         run(sender, "Doctor", CompletableFuture.allOf(config, snapshotPolicy, metrics, storage, nodes, jobs, routes, audit, templates, integrations)
-            .thenApply(_ignored -> doctorMessage(List.of(config.join(), snapshotPolicy.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), templates.join(), integrations.join()))));
+            .thenApply(_ignored -> doctorMessage(args, List.of(config.join(), snapshotPolicy.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), templates.join(), integrations.join()))));
         return true;
     }
 
     private boolean handleSetup(CommandSender sender, String[] args) {
         String section = args.length > 1 ? args[1].toLowerCase(Locale.ROOT) : "start";
         if (section.equals("verify")) {
-            sender.sendMessage(adminText("admin-command-setup-verify-prefix", "Setup verify delegates to /ciadmin doctor for live PASS/WARN/FAIL checks."));
-            return handleDoctor(sender);
+            sender.sendMessage(adminText("admin-command-setup-verify-prefix", "Setup verify delegates to /ciadmin doctor for live CRITICAL/WARN/INFO checks."));
+            return handleDoctor(sender, new String[] {"doctor"});
         }
         if (!SETUP_COMMANDS.contains(section)) {
             sendCommandUsage(sender, List.of(
@@ -767,26 +767,31 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleDashboard(CommandSender sender) {
-        CompletableFuture<CharSequence> metrics = doctorPart("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
-        CompletableFuture<CharSequence> nodes = doctorPart("nodes", coreApiClient.adminNodes().listNodesSummary().thenApply(summary -> adminNodeSummaryMessage("Nodes", summary)));
-        CompletableFuture<CharSequence> jobs = doctorPart("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
-        CompletableFuture<CharSequence> routes = doctorPart("routes", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
-        CompletableFuture<CharSequence> storage = doctorPart("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
+        CompletableFuture<CharSequence> metrics = doctorPart("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage)).thenApply(DoctorPart::text);
+        CompletableFuture<CharSequence> nodes = doctorPart("nodes", coreApiClient.adminNodes().listNodesSummary().thenApply(summary -> adminNodeSummaryMessage("Nodes", summary))).thenApply(DoctorPart::text);
+        CompletableFuture<CharSequence> jobs = doctorPart("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage)).thenApply(DoctorPart::text);
+        CompletableFuture<CharSequence> routes = doctorPart("routes", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage)).thenApply(DoctorPart::text);
+        CompletableFuture<CharSequence> storage = doctorPart("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage)).thenApply(DoctorPart::text);
         CompletableFuture<CharSequence> integrations = CompletableFuture.completedFuture("integrations=" + integrationStatusMessage());
         run(sender, "Dashboard", CompletableFuture.allOf(metrics, nodes, jobs, routes, storage, integrations)
             .thenApply(_ignored -> dashboardMessage(List.of(metrics.join(), nodes.join(), jobs.join(), routes.join(), storage.join(), integrations.join()))));
         return true;
     }
 
-    private CompletableFuture<CharSequence> doctorPart(String label, CompletableFuture<? extends CharSequence> future) {
+    private CompletableFuture<DoctorPart> doctorPart(String label, CompletableFuture<? extends CharSequence> future) {
         return future.handle((body, error) -> {
             if (error != null) {
-                return "FAIL " + label + "=ERROR(" + error.getClass().getSimpleName() + ")";
+                return doctorPart(label, "ERROR(" + error.getClass().getSimpleName() + ")");
             }
             String text = body == null ? "" : body.toString().replace('\n', ' ').trim();
             String value = text.isBlank() ? "empty" : text;
-            return doctorSeverity(value) + " " + label + "=" + value;
+            return doctorPart(label, value);
         });
+    }
+
+    private DoctorPart doctorPart(String label, String value) {
+        String severity = doctorSeverity(value);
+        return new DoctorPart(label, severity, value, doctorRecommendation(label, severity, value));
     }
 
     private String doctorSeverity(String body) {
@@ -796,7 +801,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             || normalized.contains("FAILED")
             || normalized.contains("DOWN")
             || normalized.contains("UNAVAILABLE")) {
-            return "FAIL";
+            return "CRITICAL";
         }
         if (normalized.contains("WARN")
             || normalized.contains("MISSING")
@@ -804,16 +809,128 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             || normalized.contains("DEGRADED")) {
             return "WARN";
         }
-        return "PASS";
+        return "INFO";
     }
 
-    private CharSequence doctorMessage(List<CharSequence> parts) {
-        List<String> renderedParts = parts.stream().map(CharSequence::toString).toList();
-        return "Doctor: role=" + agent.role()
-            + " node=" + nodeId
-            + " online=" + agent.plugin().getServer().getOnlinePlayers().size()
-            + " routeWaitSeconds=" + routeWaitSeconds
+    private String doctorRecommendation(String label, String severity, String body) {
+        if (severity.equals("INFO")) {
+            return "none";
+        }
+        String normalized = body == null ? "" : body.toUpperCase(Locale.ROOT);
+        if (label.equals("core-config")) {
+            return "/ciadmin config validate";
+        }
+        if (label.equals("storage") || normalized.contains("STORAGE")) {
+            return "/ciadmin storage";
+        }
+        if (label.equals("nodes") || normalized.contains("HEARTBEAT") || normalized.contains("NODE")) {
+            return "/ciadmin node list";
+        }
+        if (label.equals("route-debug") || normalized.contains("ROUTE") || normalized.contains("TICKET")) {
+            return "/ciadmin route debug all";
+        }
+        if (label.equals("templates") || normalized.contains("TEMPLATE") || normalized.contains("BUNDLE")) {
+            return "/ciadmin template list";
+        }
+        if (label.equals("jobs") || normalized.contains("JOB")) {
+            return "/ciadmin jobs list";
+        }
+        if (label.equals("integrations") || normalized.contains("INTEGRATION") || normalized.contains("NOT-CERTIFIED")) {
+            return "/ciadmin integrations report";
+        }
+        return "/ciadmin support-bundle create";
+    }
+
+    private CharSequence doctorMessage(String[] args, List<DoctorPart> parts) {
+        DoctorReport report = new DoctorReport(agent.role().name(), nodeId, agent.plugin().getServer().getOnlinePlayers().size(), routeWaitSeconds, parts);
+        if (hasOption(args, "--json")) {
+            return doctorJson(report);
+        }
+        if (hasOption(args, "--markdown")) {
+            return doctorMarkdown(report);
+        }
+        return doctorText(report);
+    }
+
+    private boolean hasOption(String[] args, String option) {
+        for (String arg : args) {
+            if (arg.equalsIgnoreCase(option)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private CharSequence doctorText(DoctorReport report) {
+        List<String> renderedParts = report.parts().stream().map(DoctorPart::text).toList();
+        return "Doctor: role=" + report.role()
+            + " node=" + report.nodeId()
+            + " online=" + report.onlinePlayers()
+            + " routeWaitSeconds=" + report.routeWaitSeconds()
+            + " summary=" + report.summary()
             + (renderedParts.isEmpty() ? "" : " | " + String.join(" | ", renderedParts));
+    }
+
+    private CharSequence doctorJson(DoctorReport report) {
+        String parts = report.parts().stream()
+            .map(part -> "{\"label\":\"" + jsonEscape(part.label()) + "\",\"severity\":\"" + part.severity() + "\",\"message\":\"" + jsonEscape(part.message()) + "\",\"recommendedCommand\":\"" + jsonEscape(part.recommendedCommand()) + "\"}")
+            .collect(java.util.stream.Collectors.joining(","));
+        return "{\"doctor\":{\"role\":\"" + jsonEscape(report.role())
+            + "\",\"nodeId\":\"" + jsonEscape(report.nodeId())
+            + "\",\"onlinePlayers\":" + report.onlinePlayers()
+            + ",\"routeWaitSeconds\":" + report.routeWaitSeconds()
+            + ",\"summary\":\"" + report.summary()
+            + "\",\"sections\":[" + parts + "]}}";
+    }
+
+    private CharSequence doctorMarkdown(DoctorReport report) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("# CloudIslands doctor").append('\n');
+        builder.append("role=").append(report.role())
+            .append(" node=").append(report.nodeId())
+            .append(" online=").append(report.onlinePlayers())
+            .append(" routeWaitSeconds=").append(report.routeWaitSeconds())
+            .append(" summary=").append(report.summary())
+            .append('\n');
+        builder.append('\n').append("| Severity | Section | Recommended command | Detail |").append('\n');
+        builder.append("|---|---|---|---|").append('\n');
+        for (DoctorPart part : report.parts()) {
+            builder.append("| ").append(part.severity())
+                .append(" | ").append(markdownCell(part.label()))
+                .append(" | `").append(markdownCell(part.recommendedCommand())).append("`")
+                .append(" | ").append(markdownCell(part.message()))
+                .append(" |").append('\n');
+        }
+        return builder.toString().trim();
+    }
+
+    private String jsonEscape(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "");
+    }
+
+    private String markdownCell(String value) {
+        if (value == null || value.isBlank()) {
+            return "-";
+        }
+        return value.replace("|", "\\|").replace('\n', ' ');
+    }
+
+    private record DoctorPart(String label, String severity, String message, String recommendedCommand) {
+        String text() {
+            return "[" + severity + "] " + label + "=" + message + " recommend=" + recommendedCommand;
+        }
+    }
+
+    private record DoctorReport(String role, String nodeId, int onlinePlayers, int routeWaitSeconds, List<DoctorPart> parts) {
+        String summary() {
+            long critical = parts.stream().filter(part -> part.severity().equals("CRITICAL")).count();
+            long warn = parts.stream().filter(part -> part.severity().equals("WARN")).count();
+            long info = parts.stream().filter(part -> part.severity().equals("INFO")).count();
+            return "CRITICAL=" + critical + ",WARN=" + warn + ",INFO=" + info;
+        }
     }
 
     private String snapshotPolicyDiagnosticBody(AdminCoreConfigView body) {

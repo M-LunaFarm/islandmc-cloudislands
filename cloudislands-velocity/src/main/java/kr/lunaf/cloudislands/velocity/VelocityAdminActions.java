@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
@@ -49,7 +50,7 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     public void setup(Player player, String section) {
         String normalized = section == null || section.isBlank() ? "start" : section.toLowerCase(java.util.Locale.ROOT);
         if (normalized.equals("verify")) {
-            player.sendMessage(playerComponent("Setup verify delegates to /ciadmin doctor for live PASS/WARN/FAIL checks."));
+            player.sendMessage(playerComponent("Setup verify delegates to /ciadmin doctor for live CRITICAL/WARN/INFO checks."));
             doctor(player);
             return;
         }
@@ -513,7 +514,11 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     }
 
     private CompletableFuture<CharSequence> doctorPart(String label, CompletableFuture<? extends CharSequence> future) {
-        return adminPart(future).thenApply(value -> doctorSeverity(value.toString()) + " " + label + "=" + value);
+        return adminPart(future).thenApply(value -> {
+            String body = value.toString();
+            String severity = doctorSeverity(body);
+            return "[" + severity + "] " + label + "=" + body + " recommend=" + doctorRecommendation(label, severity, body);
+        });
     }
 
     private void sendComposite(Player player, String label, List<CompletableFuture<CharSequence>> parts) {
@@ -528,12 +533,38 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     private static String doctorSeverity(String body) {
         String value = body == null ? "" : body.toLowerCase(java.util.Locale.ROOT);
         if (value.isBlank() || value.contains("fail") || value.contains("down") || value.contains("unavailable") || value.contains("exception") || value.contains("error=")) {
-            return "FAIL";
+            return "CRITICAL";
         }
         if (value.contains("warn") || value.contains("stale") || value.contains("missing=") || value.contains("degraded") || value.contains("failed=")) {
             return "WARN";
         }
-        return "PASS";
+        return "INFO";
+    }
+
+    private static String doctorRecommendation(String label, String severity, String body) {
+        if (severity.equals("INFO")) {
+            return "none";
+        }
+        String normalized = body == null ? "" : body.toUpperCase(Locale.ROOT);
+        if (label.equals("core-config")) {
+            return "/ciadmin config validate";
+        }
+        if (label.equals("storage") || normalized.contains("STORAGE")) {
+            return "/ciadmin storage";
+        }
+        if (label.equals("nodes") || normalized.contains("HEARTBEAT") || normalized.contains("NODE")) {
+            return "/ciadmin node list";
+        }
+        if (label.equals("routes") || normalized.contains("ROUTE") || normalized.contains("TICKET")) {
+            return "/ciadmin route debug all";
+        }
+        if (label.equals("jobs") || normalized.contains("JOB")) {
+            return "/ciadmin jobs list";
+        }
+        if (label.equals("integrations") || normalized.contains("INTEGRATION") || normalized.contains("NOT-CERTIFIED")) {
+            return "/ciadmin integrations report";
+        }
+        return "/ciadmin support-bundle create";
     }
 
     private String writeSupportBundle(String coreBundleJson) {
