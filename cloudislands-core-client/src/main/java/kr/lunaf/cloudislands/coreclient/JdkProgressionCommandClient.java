@@ -38,6 +38,14 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
     }
 
     @Override
+    public CompletableFuture<ProgressionUpgradePurchaseView> adminPurchaseUpgrade(UUID islandId, String upgradeKey) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/islands/upgrades/purchase", CoreJsonPayload.object("islandId", islandId, "upgradeKey", upgradeKey == null ? "" : upgradeKey))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> upgradePurchaseResult(body, upgradeKey));
+    }
+
+    @Override
     public CompletableFuture<ProgressionMissionCompletionView> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");

@@ -357,6 +357,11 @@ class BankUseCaseTest {
         }
 
         @Override
+        public CompletableFuture<ProgressionUpgradePurchaseView> adminPurchaseUpgrade(UUID islandId, String upgradeKey) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public CompletableFuture<ProgressionMissionCompletionView> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
             throw new UnsupportedOperationException();
         }

@@ -1832,6 +1832,12 @@ class CoreTypedClientsTest {
                         {"accepted":true,"code":"UPGRADED","cost":"10.00","upgrade":{"islandId":"%s","upgradeKey":"generator:ore","type":"GENERATOR","level":3,"updatedAt":"2026-01-02T03:04:05Z"}}
                         """.formatted(islandId), (String) args[2]));
                 }
+                case "adminPurchaseUpgrade" -> {
+                    calls.add("adminPurchase:" + args[1]);
+                    yield CompletableFuture.completedFuture(JdkProgressionCommandClient.upgradePurchaseResult("""
+                        {"accepted":true,"code":"UPGRADED","cost":"0","upgrade":{"islandId":"%s","upgradeKey":"size","type":"ISLAND_SIZE","level":4,"updatedAt":"2026-01-02T03:04:05Z"}}
+                        """.formatted(islandId), (String) args[1]));
+                }
                 case "progressMission" -> {
                     calls.add("progress:" + args[2] + ":" + args[3] + ":" + args[4]);
                     yield CompletableFuture.completedFuture(JdkProgressionCommandClient.missionCompletionResult("""
@@ -1892,6 +1898,7 @@ class CoreTypedClientsTest {
 
         LevelView level = client.recalculateLevel(islandId, actorUuid).join();
         ProgressionUpgradePurchaseView upgrade = client.purchaseUpgrade(islandId, actorUuid, "generator").join();
+        ProgressionUpgradePurchaseView adminUpgrade = client.adminPurchaseUpgrade(islandId, "size").join();
         ProgressionMissionCompletionView progress = client.progressMission(islandId, actorUuid, "starter", "CHALLENGE", 1L).join();
         ProgressionMissionCompletionView mission = client.completeMission(islandId, actorUuid, "starter", "CHALLENGE").join();
         ProgressionMissionCompletionView adminProgress = client.adminProgressMission(islandId, actorUuid, "admin", "DAILY", 3L).join();
@@ -1906,6 +1913,9 @@ class CoreTypedClientsTest {
         assertEquals("GENERATOR", upgrade.type());
         assertEquals(3L, upgrade.level());
         assertEquals("2026-01-02T03:04:05Z", upgrade.updatedAt());
+        assertEquals("size", adminUpgrade.upgradeKey());
+        assertEquals("ISLAND_SIZE", adminUpgrade.type());
+        assertEquals(4L, adminUpgrade.level());
         assertEquals(1L, progress.progress());
         assertFalse(progress.completed());
         assertEquals(islandId.toString(), mission.islandId());
@@ -1940,6 +1950,7 @@ class CoreTypedClientsTest {
         assertEquals(List.of(
             "recalculate",
             "purchase:generator",
+            "adminPurchase:size",
             "progress:starter:CHALLENGE:1",
             "mission:starter:CHALLENGE",
             "adminProgress:admin:DAILY:3",

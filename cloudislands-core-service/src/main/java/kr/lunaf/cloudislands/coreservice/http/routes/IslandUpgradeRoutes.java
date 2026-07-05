@@ -93,6 +93,7 @@ public final class IslandUpgradeRoutes implements RouteGroup {
     public void register(CoreRouteRegistry registry) {
         registry.routePost("/v1/islands/upgrades", this::upgrades);
         registry.routePost("/v1/islands/upgrades/purchase", this::purchase);
+        registry.routePost("/v1/admin/islands/upgrades/purchase", this::adminPurchase);
         registry.routePost("/v1/islands/upgrades/recalculate", this::recalculate);
     }
 
@@ -109,15 +110,30 @@ public final class IslandUpgradeRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_UPGRADES)) {
             return;
         }
+        writePurchase(exchange, islandId, actorUuid, "PLAYER", "ISLAND_UPGRADE_PURCHASE", upgradeKey);
+    }
+
+    private void adminPurchase(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        String upgradeKey = JsonFields.text(body, "upgradeKey", "size").toLowerCase();
+        if (!requireIsland(exchange, islandId)) {
+            return;
+        }
+        writePurchase(exchange, islandId, EMPTY_UUID, "ADMIN", "ISLAND_UPGRADE_ADMIN_PURCHASE", upgradeKey);
+    }
+
+    private void writePurchase(HttpExchange exchange, UUID islandId, UUID actorUuid, String actorType, String action, String upgradeKey) throws IOException {
         UpgradePurchaseResult result = upgradeService.purchase(islandId, upgradeKey);
-        audit.log(actorUuid, "PLAYER", "ISLAND_UPGRADE_PURCHASE", "ISLAND", islandId.toString(), Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
-        islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_PURCHASE", Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString()));
+        Map<String, String> fields = Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString());
+        audit.log(actorUuid, actorType, action, "ISLAND", islandId.toString(), fields);
+        islandLogs.append(islandId, actorUuid, action, fields);
         if (result.accepted()) {
-            events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level())));
+            events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of("islandId", islandId.toString(), "upgradeKey", upgradeKey, "level", Integer.toString(result.snapshot().level()), "actorType", actorType));
             effectApplier.apply(islandId, actorUuid, upgradePolicy.rule(upgradeKey), result.snapshot().type(), result.snapshot().level());
             if (result.cost().signum() > 0) {
                 String balance = bankRepository.balance(islandId).balance();
-                events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "operation", "UPGRADE_PURCHASE", "amount", result.cost().toPlainString(), "balance", balance));
+                events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", actorUuid.toString(), "actorType", actorType, "operation", "UPGRADE_PURCHASE", "amount", result.cost().toPlainString(), "balance", balance));
             }
         }
         CoreHttpResponses.write(exchange, result.accepted() ? 202 : 409, upgradePurchaseJson(result));
@@ -166,6 +182,14 @@ public final class IslandUpgradeRoutes implements RouteGroup {
         }
         CoreHttpResponses.write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island permission " + permission.name() + " is required"));
         return false;
+    }
+
+    private boolean requireIsland(HttpExchange exchange, UUID islandId) throws IOException {
+        if (islandRepository != null && islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return false;
+        }
+        return true;
     }
 
     static String upgradesJson(List<IslandUpgradeSnapshot> upgrades) {

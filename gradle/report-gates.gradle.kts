@@ -569,7 +569,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.openmenu", "PLANNED:admin-menu-proxy", "PLANNED", "P2", "remote menu opening is a compatibility convenience backlog item"),
     permissionParity("admin", "superior.admin.promote", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P0", "direct admin member promotion is exposed by /ciadmin island member promote with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.purge", "cloudislands.admin.storage", "COVERED_BY", "", "storage and recovery tooling covers destructive data maintenance paths"),
-    permissionParity("admin", "superior.admin.rankup", "PLANNED:admin-upgrade-mutations", "PLANNED", "P1", "direct admin rankup mutation is not yet exposed"),
+    permissionParity("admin", "superior.admin.rankup", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct admin upgrade purchase/rankup is exposed by /ciadmin island rankup through the typed admin progression client"),
     permissionParity("admin", "superior.admin.recalc", "cloudislands.admin.rankings", "COVERED_BY", "", "ranking recalculation and inspection map to ranking administration"),
     permissionParity("admin", "superior.admin.reload", "cloudislands.admin.reload", "SUPPORTED_VERIFIED", "", "reload maps directly"),
     permissionParity("admin", "superior.admin.removeblocklimit", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct block-limit removal is exposed by /ciadmin island removeblocklimit using shared BLOCK_AMOUNT limit keys"),

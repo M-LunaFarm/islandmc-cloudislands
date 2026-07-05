@@ -56,6 +56,7 @@ import kr.lunaf.cloudislands.coreclient.MemberActionView;
 import kr.lunaf.cloudislands.coreclient.PermissionActionView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
+import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import kr.lunaf.cloudislands.coreclient.ReviewActionView;
 import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
@@ -1386,6 +1387,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[1].equalsIgnoreCase("mission")) {
             return handleIslandMission(sender, args, islandId);
         }
+        if (args[1].equalsIgnoreCase("rankup")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of("/ciadmin island rankup <islandUuid|islandName> <upgradeKey>"));
+                return true;
+            }
+            run(sender, "Island rankup", coreApiClient.progressionCommands().adminPurchaseUpgrade(islandId, args[3]).thenApply(result -> upgradePurchaseMessage("Island rankup", result)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("join")) {
             return handleIslandJoin(sender, args, islandId);
         }
@@ -2218,6 +2227,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island member demote <islandUuid|islandName> <playerUuid|playerName>",
             "/ciadmin island member setleader <islandUuid|islandName> <playerUuid|playerName>",
             "/ciadmin island join <islandUuid|islandName> [role]",
+            "/ciadmin island rankup <islandUuid|islandName> <upgradeKey>",
             "/ciadmin island setchestrow <islandUuid|islandName> <rows>",
             "/ciadmin island rename <islandUuid|islandName> <name>",
             "/ciadmin island setbiome <islandUuid|islandName> <biomeKey>",
@@ -2764,6 +2774,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + result.progress()
             + "/"
             + result.goal();
+    }
+
+    private String upgradePurchaseMessage(String label, ProgressionUpgradePurchaseView result) {
+        return label
+            + adminText("admin-command-action-result-accepted-prefix", ": accepted=")
+            + result.accepted()
+            + adminText("admin-command-action-result-code-prefix", " code=")
+            + result.code()
+            + adminText("admin-command-upgrade-key-prefix", " upgrade=")
+            + result.upgradeKey()
+            + adminText("admin-command-upgrade-level-prefix", " level=")
+            + result.level()
+            + adminText("admin-command-upgrade-cost-prefix", " cost=")
+            + result.cost();
     }
 
     private String reviewActionMessage(String label, ReviewActionView result) {

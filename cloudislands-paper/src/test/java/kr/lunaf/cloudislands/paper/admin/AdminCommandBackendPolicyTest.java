@@ -409,6 +409,28 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminRankupMutationIsFirstClassIslandCommand() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String progressionClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/ProgressionCommandClient.java"));
+        String jdkProgressionClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkProgressionCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandUpgradeRoutes.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin island rankup <island> <upgradeKey>"), "Admin rankup must be listed in help");
+        assertTrue(catalog.contains("\"rankup\""), "Admin rankup command must be cataloged for completion");
+        assertTrue(source.contains("coreApiClient.progressionCommands().adminPurchaseUpgrade(islandId, args[3])"), "Admin rankup must use the typed progression command client");
+        assertTrue(source.contains("upgradePurchaseMessage(\"Island rankup\", result)"), "Admin rankup must render typed purchase results");
+        assertTrue(progressionClient.contains("adminPurchaseUpgrade(UUID islandId, String upgradeKey)"), "Progression client must expose admin rankup");
+        assertTrue(jdkProgressionClient.contains("postResultBody(\"/v1/admin/islands/upgrades/purchase\""), "JDK progression client must call admin rankup endpoint");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/upgrades/purchase"), "Core upgrade routes must register admin rankup");
+        assertTrue(coreRoutes.contains("ISLAND_UPGRADE_ADMIN_PURCHASE"), "Core admin rankup route must audit operator mutation");
+        assertTrue(coreRoutes.contains("actorType\", actorType"), "Core admin rankup event must identify admin mutation");
+        assertTrue(parity.contains("\"superior.admin.rankup\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark superior.admin.rankup verified");
+    }
+
+    @Test
     void adminPermissionMutationsAreFirstClassIslandCommands() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

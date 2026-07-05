@@ -265,6 +265,7 @@ class CoreMutationContextTest {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/v1/islands/upgrades", exchange -> respond(exchange, requestBodies, "upgrades", "{\"upgrades\":[]}"));
         server.createContext("/v1/islands/upgrades/purchase", exchange -> respond(exchange, requestBodies, "upgradePurchase", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/upgrades/purchase", exchange -> respond(exchange, requestBodies, "adminUpgradePurchase", "{\"accepted\":true}"));
         server.createContext("/v1/islands/missions", exchange -> respond(exchange, requestBodies, "missions", "{\"missions\":[]}"));
         server.createContext("/v1/islands/missions/complete", exchange -> respond(exchange, requestBodies, "missionComplete", "{\"accepted\":true}"));
         server.createContext("/v1/islands/missions/progress", exchange -> respond(exchange, requestBodies, "missionProgress", "{\"accepted\":true}"));
@@ -290,6 +291,7 @@ class CoreMutationContextTest {
 
             client.progression().upgrades(islandId).join();
             client.progressionCommands().purchaseUpgrade(islandId, actorUuid, "generator\"speed").join();
+            client.progressionCommands().adminPurchaseUpgrade(islandId, "size\"rank").join();
             client.progression().missions(islandId, "MISSION\"DAILY").join();
             client.progressionCommands().completeMission(islandId, actorUuid, "starter\"mission", "CHALLENGE").join();
             client.progressionCommands().progressMission(islandId, actorUuid, "starter\"mission", "CHALLENGE", -5L).join();
@@ -321,6 +323,7 @@ class CoreMutationContextTest {
 
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("upgrades"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"upgradeKey\":\"generator\\\"speed\"}", requestBodies.get("upgradePurchase"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"upgradeKey\":\"size\\\"rank\"}", requestBodies.get("adminUpgradePurchase"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"kind\":\"MISSION\\\"DAILY\"}", requestBodies.get("missions"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\"}", requestBodies.get("missionComplete"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\",\"amount\":0}", requestBodies.get("missionProgress"));
