@@ -64,7 +64,7 @@ final class IslandVisitReviewCommandHandler {
         }
         if (subcommand.equals("rate") || subcommand.equals("review") || subcommand.equals("평가")) {
             if (args.length < 3) {
-                runtime.message(player, runtime.routeMessage("input-review-required", "평가할 섬과 1~5점 평점을 입력해주세요."));
+                runtime.message(player, message("input-review-required", "평가할 섬과 1~5점 평점을 입력해주세요."));
                 return true;
             }
             rateIslandReview(player, args[1], integer(args[2], 0), args.length > 3 ? joined(args, 3) : "");
@@ -119,47 +119,47 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void openReviewMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 후기 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandReviewMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("review-menu-island-required", "섬 안에서만 후기 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandReviewMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void openVisitorStatsMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 방문 통계 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandVisitorStatsMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("visitor-stats-menu-island-required", "섬 안에서만 방문 통계 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandVisitorStatsMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void routeVisitTarget(Player player, String target) {
-        runtime.routeTicket(player, navigationUseCase.resolveVisitTarget(player.getUniqueId(), target, runtime::mutate), "해당 섬에 방문할 수 없습니다.");
+        runtime.routeTicket(player, navigationUseCase.resolveVisitTarget(player.getUniqueId(), target, runtime::mutate), message("visit-target-failed", "해당 섬에 방문할 수 없습니다."));
     }
 
     private void routeRandomVisit(Player player) {
-        runtime.routeTicket(player, navigationUseCase.createRandomVisitTicket(player.getUniqueId(), runtime::mutate), "방문 가능한 공개 섬을 찾지 못했습니다.");
+        runtime.routeTicket(player, navigationUseCase.createRandomVisitTicket(player.getUniqueId(), runtime::mutate), message("visit-random-failed", "방문 가능한 공개 섬을 찾지 못했습니다."));
     }
 
     private void listPublicIslands(Player player, int limit) {
         navigationUseCase.publicIslandViews(limit)
             .thenAccept(islands -> runtime.message(player, publicIslandListMessage(islands)))
             .exceptionally(error -> {
-                runtime.message(player, "공개 섬 목록을 불러오지 못했습니다.");
+                runtime.message(player, message("public-island-list-load-failed", "공개 섬 목록을 불러오지 못했습니다."));
                 return null;
             });
     }
 
     private void listIslandReviews(Player player, int limit) {
-        runtime.currentIsland(player, "섬 안에서만 후기를 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("review-list-island-required", "섬 안에서만 후기를 확인할 수 있습니다.")).ifPresent(islandId -> {
             navigationUseCase.reviewViews(islandId, limit)
                 .thenAccept(reviews -> runtime.message(player, reviewListMessage(reviews)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 후기를 불러오지 못했습니다.");
+                    runtime.message(player, message("review-list-load-failed", "섬 후기를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void listVisitorStats(Player player, int limit) {
-        runtime.currentIsland(player, "섬 안에서만 방문 통계를 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("visitor-stats-island-required", "섬 안에서만 방문 통계를 확인할 수 있습니다.")).ifPresent(islandId -> {
             navigationUseCase.visitorStats(islandId, limit)
                 .thenAccept(stats -> runtime.message(player, visitorStatsMessage(stats)))
                 .exceptionally(error -> {
-                    runtime.message(player, "방문 통계를 불러오지 못했습니다.");
+                    runtime.message(player, message("visitor-stats-load-failed", "방문 통계를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -167,16 +167,16 @@ final class IslandVisitReviewCommandHandler {
 
     private void rateIslandReview(Player player, String target, int rating, String comment) {
         if (rating < 1 || rating > 5) {
-            runtime.message(player, runtime.routeMessage("input-review-rating-invalid", "평점은 1~5 사이여야 합니다."));
+            runtime.message(player, message("input-review-rating-invalid", "평점은 1~5 사이여야 합니다."));
             return;
         }
         UUID islandId = uuid(target);
         if (islandId == null && (target.equalsIgnoreCase("current") || target.equals("현재"))) {
-            runtime.currentIsland(player, "섬 안에서만 현재 섬을 평가할 수 있습니다.").ifPresent(current -> submitIslandReview(player, current, rating, comment));
+            runtime.currentIsland(player, message("review-current-island-required", "섬 안에서만 현재 섬을 평가할 수 있습니다.")).ifPresent(current -> submitIslandReview(player, current, rating, comment));
             return;
         }
         if (islandId == null) {
-            runtime.message(player, runtime.routeMessage("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다."));
+            runtime.message(player, message("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다."));
             return;
         }
         submitIslandReview(player, islandId, rating, comment);
@@ -189,10 +189,10 @@ final class IslandVisitReviewCommandHandler {
                     runtime.message(player, reviewFailureMessage(result));
                     return;
                 }
-                runtime.message(player, "섬 평가 저장 완료: " + rating + "/5");
+                runtime.message(player, message("review-save-success-prefix", "섬 평가 저장 완료: ") + rating + "/5");
             })
             .exceptionally(error -> {
-                runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 평가를 저장하지 못했습니다."));
+                runtime.message(player, runtime.coreWriteFailureMessage(error, message("review-save-failed", "섬 평가를 저장하지 못했습니다.")));
                 return null;
             });
     }
@@ -200,11 +200,11 @@ final class IslandVisitReviewCommandHandler {
     private void deleteIslandReview(Player player, String target) {
         UUID islandId = uuid(target);
         if (islandId == null && (target == null || target.isBlank() || target.equalsIgnoreCase("current") || target.equals("현재"))) {
-            runtime.currentIsland(player, "섬 안에서만 현재 섬 후기를 삭제할 수 있습니다.").ifPresent(current -> submitReviewDelete(player, current));
+            runtime.currentIsland(player, message("review-delete-current-island-required", "섬 안에서만 현재 섬 후기를 삭제할 수 있습니다.")).ifPresent(current -> submitReviewDelete(player, current));
             return;
         }
         if (islandId == null) {
-            runtime.message(player, runtime.routeMessage("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다."));
+            runtime.message(player, message("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다."));
             return;
         }
         submitReviewDelete(player, islandId);
@@ -215,25 +215,25 @@ final class IslandVisitReviewCommandHandler {
             .thenAccept(result -> {
                 if (!result.accepted()) {
                     runtime.message(player, result.code().equals("REVIEW_NOT_FOUND")
-                        ? "삭제할 섬 후기가 없습니다."
-                        : runtime.playerCodeMessage(result.code(), "섬 후기를 삭제하지 못했습니다."));
+                        ? message("review-delete-not-found", "삭제할 섬 후기가 없습니다.")
+                        : runtime.playerCodeMessage(result.code(), message("review-delete-failed", "섬 후기를 삭제하지 못했습니다.")));
                     return;
                 }
-                runtime.message(player, "섬 후기 삭제 완료");
+                runtime.message(player, message("review-delete-success", "섬 후기 삭제 완료"));
             })
             .exceptionally(error -> {
-                runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 후기를 삭제하지 못했습니다."));
+                runtime.message(player, runtime.coreWriteFailureMessage(error, message("review-delete-failed", "섬 후기를 삭제하지 못했습니다.")));
                 return null;
             });
     }
 
     private String reviewFailureMessage(ReviewActionResult result) {
         return result.code().isBlank()
-            ? "섬 평가를 저장하지 못했습니다."
-            : runtime.playerCodeMessage(result.code(), "섬 평가를 저장하지 못했습니다.");
+            ? message("review-save-failed", "섬 평가를 저장하지 못했습니다.")
+            : runtime.playerCodeMessage(result.code(), message("review-save-failed", "섬 평가를 저장하지 못했습니다."));
     }
 
-    private static String publicIslandListMessage(List<PublicIslandView> islands) {
+    private String publicIslandListMessage(List<PublicIslandView> islands) {
         List<PublicIslandView> safeIslands = islands == null ? List.of() : islands;
         java.util.ArrayList<String> entries = new java.util.ArrayList<>();
         for (PublicIslandView island : safeIslands) {
@@ -243,16 +243,19 @@ final class IslandVisitReviewCommandHandler {
             if (island.islandId().isBlank()) {
                 continue;
             }
-            String name = island.name().isBlank() ? "이름 없는 섬" : island.name();
+            String name = island.name().isBlank() ? message("public-island-unnamed", "이름 없는 섬") : island.name();
             String worth = island.worth().isBlank() ? "0" : island.worth();
-            entries.add((entries.size() + 1) + ". " + name + " (ID=" + compactId(island.islandId()) + ", 레벨=" + island.level() + ", 가치=" + worth + ")");
+            entries.add((entries.size() + 1) + ". " + name
+                + " (" + message("public-island-id-label", "ID=") + compactId(island.islandId())
+                + ", " + message("public-island-level-label", "레벨=") + island.level()
+                + ", " + message("public-island-worth-label", "가치=") + worth + ")");
         }
-        return entries.isEmpty() ? "공개 섬이 없습니다." : "공개 섬: " + String.join(" | ", entries);
+        return entries.isEmpty() ? message("public-island-list-empty", "공개 섬이 없습니다.") : message("public-island-list-prefix", "공개 섬: ") + String.join(" | ", entries);
     }
 
-    private static String reviewListMessage(ReviewListView reviews) {
+    private String reviewListMessage(ReviewListView reviews) {
         if (reviews == null || reviews.reviews().isEmpty()) {
-            return "섬 후기가 없습니다.";
+            return message("review-list-empty", "섬 후기가 없습니다.");
         }
         String average = String.format(Locale.ROOT, "%.2f", reviews.average());
         List<String> entries = reviews.reviews().stream()
@@ -261,27 +264,31 @@ final class IslandVisitReviewCommandHandler {
             .map(IslandVisitReviewCommandHandler::reviewEntry)
             .toList();
         if (entries.isEmpty()) {
-            return "섬 후기가 없습니다.";
+            return message("review-list-empty", "섬 후기가 없습니다.");
         }
-        return "섬 후기: 평균=" + average + " 개수=" + reviews.count() + " | " + String.join(" | ", entries);
+        return message("review-list-prefix", "섬 후기: ")
+            + message("review-list-average-label", "평균=") + average + " "
+            + message("review-list-count-label", "개수=") + reviews.count()
+            + " | " + String.join(" | ", entries);
     }
 
     private static String reviewEntry(ReviewView review) {
         return compactId(review.reviewerUuid()) + "=" + review.rating() + "/5" + (review.comment().isBlank() ? "" : " " + review.comment());
     }
 
-    private static String visitorStatsMessage(IslandVisitorStatsView stats) {
+    private String visitorStatsMessage(IslandVisitorStatsView stats) {
         if (stats == null) {
-            return "방문 통계를 불러오지 못했습니다.";
+            return message("visitor-stats-load-failed", "방문 통계를 불러오지 못했습니다.");
         }
         List<String> recent = stats.recentVisitors().stream()
             .limit(10)
             .filter(visitor -> !visitor.visitorUuid().isBlank())
             .map(IslandVisitReviewCommandHandler::visitorEntry)
             .toList();
-        return "방문 통계: 전체=" + stats.totalVisits()
-            + " 고유=" + stats.uniqueVisitors()
-            + (recent.isEmpty() ? "" : " 최근=" + String.join(", ", recent));
+        return message("visitor-stats-prefix", "방문 통계: ")
+            + message("visitor-stats-total-label", "전체=") + stats.totalVisits()
+            + " " + message("visitor-stats-unique-label", "고유=") + stats.uniqueVisitors()
+            + (recent.isEmpty() ? "" : " " + message("visitor-stats-recent-label", "최근=") + String.join(", ", recent));
     }
 
     private static String visitorEntry(IslandVisitorStatsView.RecentVisitorView visitor) {
@@ -297,6 +304,10 @@ final class IslandVisitReviewCommandHandler {
             builder.append(args[index]);
         }
         return builder.toString();
+    }
+
+    private String message(String key, String fallback) {
+        return runtime.routeMessage(key, fallback);
     }
 
     private static int integer(String value, int fallback) {
