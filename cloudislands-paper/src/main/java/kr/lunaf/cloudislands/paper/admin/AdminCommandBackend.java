@@ -3766,7 +3766,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return switch (command.toLowerCase(Locale.ROOT)) {
             case "setbanklimit", "addbanklimit" -> "BANK";
             case "setentitylimit", "addentitylimit" -> "ENTITY";
-            case "setteamlimit", "addteamlimit" -> "MEMBERS";
+            case "setteamlimit", "addteamlimit", "setcooplimit", "addcooplimit" -> "MEMBERS";
             case "setwarpslimit", "addwarpslimit" -> "WARPS";
             case "setsize", "addsize" -> "SIZE";
             default -> "";
