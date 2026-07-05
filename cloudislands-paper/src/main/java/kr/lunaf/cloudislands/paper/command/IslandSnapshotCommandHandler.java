@@ -102,37 +102,37 @@ final class IslandSnapshotCommandHandler {
     }
 
     private void listSnapshots(Player player, int limit) {
-        runtime.currentIsland(player, "섬 안에서만 스냅샷을 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("snapshot-list-island-required", "섬 안에서만 스냅샷을 확인할 수 있습니다.")).ifPresent(islandId -> {
             snapshotUseCase.snapshotViews(islandId, limit)
                 .thenAccept(snapshots -> runtime.message(player, snapshotListMessage(snapshots)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 스냅샷을 불러오지 못했습니다.");
+                    runtime.message(player, message("snapshot-list-load-failed", "섬 스냅샷을 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void openSnapshotMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 스냅샷 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSnapshotMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player), retentionPolicy));
+        runtime.currentIsland(player, message("snapshot-menu-island-required", "섬 안에서만 스냅샷 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandSnapshotMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player), retentionPolicy));
     }
 
     private void requestSnapshot(Player player, String reason) {
-        runtime.currentIsland(player, "섬 안에서만 스냅샷을 생성할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("snapshot-create-island-required", "섬 안에서만 스냅샷을 생성할 수 있습니다.")).ifPresent(islandId -> {
             if (!player.isOp()) {
                 runtime.message(player, runtime.routeMessage("snapshot-create-denied", "섬 스냅샷을 생성할 관리자 권한이 없습니다."));
                 return;
             }
             snapshotUseCase.requestSnapshotAction(islandId, reason, runtime::mutate)
-                .thenAccept(result -> runtime.message(player, snapshotActionMessage("섬 스냅샷 생성 요청", islandId, result)))
+                .thenAccept(result -> runtime.message(player, snapshotActionMessage(message("snapshot-create-request-label", "섬 스냅샷 생성 요청"), islandId, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 스냅샷 생성을 요청하지 못했습니다.");
+                    runtime.message(player, message("snapshot-create-request-failed", "섬 스냅샷 생성을 요청하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void restoreSnapshot(Player player, long snapshotNo) {
-        runtime.currentIsland(player, "섬 안에서만 스냅샷을 복원할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("snapshot-restore-island-required", "섬 안에서만 스냅샷을 복원할 수 있습니다.")).ifPresent(islandId -> {
             if (!player.isOp()) {
                 runtime.message(player, runtime.routeMessage("snapshot-restore-denied", "섬 스냅샷을 복원할 관리자 권한이 없습니다."));
                 return;
@@ -142,9 +142,9 @@ final class IslandSnapshotCommandHandler {
                 return;
             }
             snapshotUseCase.restoreSnapshotAction(islandId, snapshotNo, runtime::mutateIdempotent)
-                .thenAccept(result -> runtime.message(player, snapshotActionMessage("섬 스냅샷 복원 요청 #" + snapshotNo, islandId, result)))
+                .thenAccept(result -> runtime.message(player, snapshotActionMessage(message("snapshot-restore-request-label", "섬 스냅샷 복원 요청") + " #" + snapshotNo, islandId, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 스냅샷 복원을 요청하지 못했습니다.");
+                    runtime.message(player, message("snapshot-restore-request-failed", "섬 스냅샷 복원을 요청하지 못했습니다."));
                     return null;
                 });
         });
@@ -197,25 +197,30 @@ final class IslandSnapshotCommandHandler {
 
     private String snapshotActionMessage(String label, UUID islandId, SnapshotActionResult result) {
         StringBuilder builder = new StringBuilder(label)
-            .append(result.accepted() ? " 완료" : " 실패");
+            .append(' ')
+            .append(result.accepted() ? message("snapshot-action-complete", "완료") : message("snapshot-action-failed", "실패"));
         if (islandId != null) {
-            builder.append(": 대상=").append(islandId.toString(), 0, 8);
+            builder.append(message("snapshot-action-target-prefix", ": 대상=")).append(islandId.toString(), 0, 8);
         }
         if (!result.accepted() && !result.code().isBlank()) {
-            builder.append(" 사유=").append(result.code());
+            builder.append(message("snapshot-action-reason-prefix", " 사유=")).append(result.code());
         }
         return builder.toString();
     }
 
-    private static String snapshotListMessage(List<SnapshotView> snapshots) {
+    private String snapshotListMessage(List<SnapshotView> snapshots) {
         List<String> entries = snapshots.stream()
             .map(snapshot -> "#" + snapshot.snapshotNo()
-                + (snapshot.reason().isBlank() ? "" : " 사유=" + snapshot.reason())
-                + (snapshot.sizeBytes() <= 0L ? "" : " 크기=" + snapshot.sizeBytes())
+                + (snapshot.reason().isBlank() ? "" : " " + message("snapshot-list-reason-label", "사유=") + snapshot.reason())
+                + (snapshot.sizeBytes() <= 0L ? "" : " " + message("snapshot-list-size-label", "크기=") + snapshot.sizeBytes())
                 + (snapshot.nodeId().isBlank() ? "" : " node=" + snapshot.nodeId())
                 + (snapshot.checksum().isBlank() ? "" : " checksum=" + shortChecksum(snapshot.checksum())))
             .toList();
-        return entries.isEmpty() ? "섬 스냅샷이 없습니다." : "섬 스냅샷: " + String.join(", ", entries);
+        return entries.isEmpty() ? message("snapshot-list-empty", "섬 스냅샷이 없습니다.") : message("snapshot-list-prefix", "섬 스냅샷: ") + String.join(", ", entries);
+    }
+
+    private String message(String key, String fallback) {
+        return runtime.routeMessage(key, fallback);
     }
 
     private static String joined(String[] args, int start) {
