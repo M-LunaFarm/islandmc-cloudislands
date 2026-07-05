@@ -174,6 +174,13 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public boolean resetFlags(UUID islandId) {
+        boolean removed = delegate.resetFlags(islandId);
+        cacheFlags(delegate.flags(islandId));
+        return removed;
+    }
+
+    @Override
     public IslandBiomeSnapshot biome(UUID islandId) {
         return delegate.biome(islandId);
     }

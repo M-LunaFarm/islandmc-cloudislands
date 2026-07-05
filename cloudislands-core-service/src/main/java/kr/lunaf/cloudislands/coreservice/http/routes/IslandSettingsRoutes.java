@@ -61,6 +61,8 @@ public final class IslandSettingsRoutes implements RouteGroup {
         registry.routePost("/v1/islands/biome/set", this::setBiome);
         registry.routePost("/v1/admin/islands/biome/set", this::adminSetBiome);
         registry.routePost("/v1/islands/flags/set", this::setFlag);
+        registry.routePost("/v1/admin/islands/flags/set", this::adminSetFlag);
+        registry.routePost("/v1/admin/islands/flags/reset", this::adminResetFlags);
         registry.routePost("/v1/islands/access", this::setAccess);
     }
 
@@ -206,6 +208,36 @@ public final class IslandSettingsRoutes implements RouteGroup {
         audit.log(actorUuid, "PLAYER", "ISLAND_FLAG_SET", "ISLAND", islandId.toString(), Map.of("flag", flag.name(), "value", value));
         islandLogs.append(islandId, actorUuid, "ISLAND_FLAG_SET", Map.of("flag", flag.name(), "value", value));
         events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "flag", flag.name(), "value", value));
+        CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+    }
+
+    private void adminSetFlag(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        IslandFlag flag = JsonFields.enumValue(IslandFlag.class, body, "flag", IslandFlag.VISITOR_INTERACT);
+        String value = JsonFields.text(body, "value", "false");
+        if (islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        metadataRepository.setFlag(islandId, flag, value);
+        audit.log(EMPTY_UUID, "ADMIN", "ISLAND_FLAG_ADMIN_SET", "ISLAND", islandId.toString(), Map.of("flag", flag.name(), "value", value));
+        islandLogs.append(islandId, EMPTY_UUID, "ISLAND_FLAG_ADMIN_SET", Map.of("flag", flag.name(), "value", value));
+        events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "flag", flag.name(), "value", value));
+        CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+    }
+
+    private void adminResetFlags(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        if (islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        boolean removed = metadataRepository.resetFlags(islandId);
+        audit.log(EMPTY_UUID, "ADMIN", "ISLAND_FLAGS_ADMIN_RESET", "ISLAND", islandId.toString(), Map.of("removed", Boolean.toString(removed)));
+        islandLogs.append(islandId, EMPTY_UUID, "ISLAND_FLAGS_ADMIN_RESET", Map.of("removed", Boolean.toString(removed)));
+        events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "operation", "FLAGS_RESET", "removed", Boolean.toString(removed)));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
 

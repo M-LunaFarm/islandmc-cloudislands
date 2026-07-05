@@ -60,6 +60,23 @@ public final class JdkIslandSettingsCommandClient implements IslandSettingsComma
             .thenApply(body -> actionResult(body, "FLAG_SET"));
     }
 
+    @Override
+    public CompletableFuture<SettingsActionView> adminSetFlag(UUID islandId, IslandFlag flag, String value) {
+        requireId(islandId, "islandId");
+        requireFlag(flag);
+        return core.postResultBody("/v1/admin/islands/flags/set", CoreJsonPayload.object("islandId", islandId, "flag", flag.name(), "value", value == null ? "" : value))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> actionResult(body, "FLAG_SET"));
+    }
+
+    @Override
+    public CompletableFuture<SettingsActionView> adminResetFlags(UUID islandId) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/islands/flags/reset", CoreJsonPayload.object("islandId", islandId))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> actionResult(body, "FLAGS_RESET"));
+    }
+
     private static SettingsActionView actionResult(String body, String successCode) {
         Map<?, ?> root = CoreJson.object(body);
         return new SettingsActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));

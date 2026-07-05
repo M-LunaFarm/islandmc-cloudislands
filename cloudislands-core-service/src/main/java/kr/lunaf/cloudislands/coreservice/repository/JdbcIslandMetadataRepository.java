@@ -327,6 +327,17 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public boolean resetFlags(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM island_flags WHERE island_id = ?")) {
+            statement.setObject(1, islandId);
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to reset island flags", exception);
+        }
+    }
+
+    @Override
     public IslandBiomeSnapshot biome(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT island_id, biome_key, updated_by, updated_at FROM island_biomes WHERE island_id = ?")) {

@@ -47,7 +47,7 @@ class IslandSettingsRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(9, paths.size());
+        assertEquals(11, paths.size());
         assertTrue(paths.contains("/v1/islands/lock"));
         assertTrue(paths.contains("/v1/islands/name"));
         assertTrue(paths.contains("/v1/admin/islands/name"));
@@ -56,6 +56,8 @@ class IslandSettingsRoutesTest {
         assertTrue(paths.contains("/v1/islands/biome/set"));
         assertTrue(paths.contains("/v1/admin/islands/biome/set"));
         assertTrue(paths.contains("/v1/islands/flags/set"));
+        assertTrue(paths.contains("/v1/admin/islands/flags/set"));
+        assertTrue(paths.contains("/v1/admin/islands/flags/reset"));
         assertTrue(paths.contains("/v1/islands/access"));
     }
 
@@ -73,6 +75,8 @@ class IslandSettingsRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/biome/set"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/biome/set"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/flags/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/flags/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/flags/reset"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/access"));
     }
 

@@ -213,6 +213,36 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminSettingsMutationsAreFirstClassIslandCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String settingsClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/IslandSettingsCommandClient.java"));
+        String jdkSettingsClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkIslandSettingsCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutes.java"));
+        String metadataRepository = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/repository/IslandMetadataRepository.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin island setsettings <island> <flag> <value>"), "Admin setsettings must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin island resetsettings <island>"), "Admin resetsettings must be listed in help");
+        assertTrue(catalog.contains("\"setsettings\""), "Admin setsettings must be cataloged for completion");
+        assertTrue(catalog.contains("\"resetsettings\""), "Admin resetsettings must be cataloged for completion");
+        assertTrue(source.contains("coreApiClient.settingsCommands().adminSetFlag(islandId, flag, args[4])"), "Admin setsettings must use typed settings client");
+        assertTrue(source.contains("coreApiClient.settingsCommands().adminResetFlags(islandId)"), "Admin resetsettings must use typed settings client");
+        assertTrue(settingsClient.contains("adminSetFlag(UUID islandId, IslandFlag flag, String value)"), "Settings client must expose admin flag mutation");
+        assertTrue(settingsClient.contains("adminResetFlags(UUID islandId)"), "Settings client must expose admin flag reset");
+        assertTrue(jdkSettingsClient.contains("postResultBody(\"/v1/admin/islands/flags/set\""), "JDK settings client must call admin flag set endpoint");
+        assertTrue(jdkSettingsClient.contains("postResultBody(\"/v1/admin/islands/flags/reset\""), "JDK settings client must call admin flag reset endpoint");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/flags/set"), "Core settings routes must register admin flag set");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/flags/reset"), "Core settings routes must register admin flag reset");
+        assertTrue(coreRoutes.contains("ISLAND_FLAG_ADMIN_SET"), "Core admin flag set route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ISLAND_FLAGS_ADMIN_RESET"), "Core admin flag reset route must audit operator mutation");
+        assertTrue(metadataRepository.contains("resetFlags(UUID islandId)"), "Metadata repository must support real flag reset");
+        assertTrue(parity.contains("\"superior.admin.setsettings\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark superior.admin.setsettings verified");
+        assertTrue(parity.contains("\"superior.admin.resetsettings\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark superior.admin.resetsettings verified");
+    }
+
+    @Test
     void adminWarpDeletionIsAFirstClassIslandCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

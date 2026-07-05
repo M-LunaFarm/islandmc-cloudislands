@@ -170,6 +170,11 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public boolean resetFlags(UUID islandId) {
+        return flags.remove(islandId) != null;
+    }
+
+    @Override
     public IslandBiomeSnapshot biome(UUID islandId) {
         return biomes.getOrDefault(islandId, new IslandBiomeSnapshot(islandId, "minecraft:plains", new UUID(0L, 0L), Instant.EPOCH));
     }

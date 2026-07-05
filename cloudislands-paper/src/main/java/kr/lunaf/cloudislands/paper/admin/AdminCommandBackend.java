@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
@@ -1530,6 +1531,19 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 }
                 run(sender, "Island removeratings", coreApiClient.navigationCommands().deleteReview(islandId, reviewerUuid).thenApply(result -> reviewActionMessage("Island removeratings", result)));
             });
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("setsettings")) {
+            if (args.length < 5) {
+                sendCommandUsage(sender, List.of("/ciadmin island setsettings <islandUuid|islandName> <flag> <value>"));
+                return true;
+            }
+            IslandFlag flag = islandFlag(args[3]);
+            run(sender, "Island setsettings", coreApiClient.settingsCommands().adminSetFlag(islandId, flag, args[4]).thenApply(result -> settingsActionMessage("Island setsettings", islandId, result)));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("resetsettings")) {
+            run(sender, "Island resetsettings", coreApiClient.settingsCommands().adminResetFlags(islandId).thenApply(result -> settingsActionMessage("Island resetsettings", islandId, result)));
             return true;
         }
         if (args[1].equalsIgnoreCase("removeentitylimit")) {
@@ -3782,6 +3796,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return IslandPermission.valueOf(normalizeGameplayKey(value));
         } catch (IllegalArgumentException exception) {
             return IslandPermission.BUILD;
+        }
+    }
+
+    private IslandFlag islandFlag(String value) {
+        try {
+            return IslandFlag.valueOf(normalizeGameplayKey(value));
+        } catch (IllegalArgumentException exception) {
+            return IslandFlag.VISITOR_INTERACT;
         }
     }
 

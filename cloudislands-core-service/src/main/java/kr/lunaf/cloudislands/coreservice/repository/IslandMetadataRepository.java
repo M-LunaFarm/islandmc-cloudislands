@@ -39,6 +39,7 @@ public interface IslandMetadataRepository {
     void setLocked(UUID islandId, boolean locked);
     IslandFlagsSnapshot flags(UUID islandId);
     void setFlag(UUID islandId, IslandFlag flag, String value);
+    boolean resetFlags(UUID islandId);
     IslandBiomeSnapshot biome(UUID islandId);
     void setBiome(UUID islandId, String biomeKey, UUID updatedBy);
     List<IslandHomeSnapshot> homes(UUID islandId);
