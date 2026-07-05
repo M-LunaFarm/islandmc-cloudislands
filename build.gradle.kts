@@ -1820,6 +1820,115 @@ tasks.register("verifyPermissionMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifyProgressionMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 progression command output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandProgressionCommandHandler.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handler, koMessages, enMessages)
+    doLast {
+        val source = handler.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val requiredKeys = listOf(
+            "block-details-empty",
+            "block-details-island-required",
+            "block-details-load-failed",
+            "block-details-points-label",
+            "block-details-prefix",
+            "block-details-total-points-label",
+            "block-details-total-worth-label",
+            "block-details-worth-label",
+            "generator-empty",
+            "generator-key-label",
+            "generator-level-label",
+            "generator-load-failed",
+            "generator-prefix",
+            "generator-show-island-required",
+            "generator-upgrade-hint",
+            "growth-target-level-prefix",
+            "growth-target-none",
+            "growth-target-worth-prefix",
+            "input-upgrade-key-required",
+            "level-label",
+            "level-load-failed",
+            "level-recalculate-denied",
+            "level-recalculate-failed",
+            "level-recalculate-island-required",
+            "level-recalculate-started",
+            "level-recalculate-success-prefix",
+            "level-show-island-required",
+            "level-show-prefix",
+            "mission-complete-failed-suffix",
+            "mission-complete-island-required-prefix",
+            "mission-complete-island-required-suffix",
+            "mission-complete-success-suffix",
+            "mission-completed-label",
+            "mission-list-empty-suffix",
+            "mission-list-island-required-prefix",
+            "mission-list-island-required-suffix",
+            "mission-list-load-failed-suffix",
+            "mission-menu-island-required",
+            "mission-reward-label",
+            "progression-challenge-label",
+            "progression-mission-label",
+            "ranking-empty-suffix",
+            "ranking-id-label",
+            "ranking-level-label",
+            "ranking-level-load-failed",
+            "ranking-level-title",
+            "ranking-review-count-label",
+            "ranking-review-load-failed",
+            "ranking-review-rating-label",
+            "ranking-review-title",
+            "ranking-title-suffix",
+            "ranking-worth-label",
+            "ranking-worth-load-failed",
+            "ranking-worth-title",
+            "upgrade-cost-label",
+            "upgrade-list-empty",
+            "upgrade-list-island-required",
+            "upgrade-list-load-failed",
+            "upgrade-list-prefix",
+            "upgrade-menu-island-required",
+            "upgrade-purchase-denied",
+            "upgrade-purchase-failed",
+            "upgrade-purchase-island-required",
+            "upgrade-purchase-success-prefix",
+            "worth-load-failed",
+            "worth-separator-label",
+            "worth-show-island-required",
+            "worth-show-prefix"
+        )
+        val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directPlayerCodeFallback = Regex("""playerCodeMessage\([^,\n]+,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val failures = buildList {
+            directRuntimeMessage.find(source)?.let { add("IslandProgressionCommandHandler directly sends Korean runtime.message output: ${it.value}") }
+            directCurrentIsland.find(source)?.let { add("IslandProgressionCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            directPlayerCodeFallback.find(source)?.let { add("IslandProgressionCommandHandler directly passes playerCodeMessage Korean fallback: ${it.value}") }
+            if (!source.contains("private String message(String key, String fallback)")) add("IslandProgressionCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            if (!source.contains("rankingMessage(rankings, message(\"ranking-worth-title\"") ||
+                !source.contains("blockDetailsMessage(details)") ||
+                !source.contains("generatorInfoMessage(view)") ||
+                !source.contains("upgradePurchaseMessage(result, upgradeKey)") ||
+                !source.contains("missionCompletionMessage(result, missionKey, label)") ||
+                !source.contains("message(\"mission-list-island-required-prefix\"")
+            ) {
+                add("Progression list/action output must stay behind keyed helper methods")
+            }
+            requiredKeys.filterNot { source.contains("\"$it\"") }.forEach { add("IslandProgressionCommandHandler missing message key usage: $it") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing progression message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing progression message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
@@ -1835,6 +1944,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyVisitReviewMessageKeyCoverage"))
     dependsOn(tasks.named("verifyBankMessageKeyCoverage"))
     dependsOn(tasks.named("verifyPermissionMessageKeyCoverage"))
+    dependsOn(tasks.named("verifyProgressionMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))

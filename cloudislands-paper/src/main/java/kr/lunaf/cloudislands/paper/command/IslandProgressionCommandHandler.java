@@ -120,7 +120,7 @@ final class IslandProgressionCommandHandler {
         }
         if (subcommand.equals("buyupgrade") || subcommand.equals("upgrade-buy") || subcommand.equals("rankup") || subcommand.equals("업그레이드구매")) {
             if (args.length < 2) {
-                runtime.message(player, runtime.routeMessage("input-upgrade-key-required", "구매할 업그레이드 키를 입력해주세요."));
+                runtime.message(player, message("input-upgrade-key-required", "구매할 업그레이드 키를 입력해주세요."));
                 return true;
             }
             purchaseUpgrade(player, args[1]);
@@ -143,7 +143,7 @@ final class IslandProgressionCommandHandler {
             return true;
         }
         if (subcommand.equals("mission-list") || subcommand.equals("미션목록")) {
-            listMissions(player, "MISSION", "섬 미션");
+            listMissions(player, "MISSION", "progression-mission-label", "섬 미션");
             return true;
         }
         if (subcommand.equals("challenge") || subcommand.equals("challenges") || subcommand.equals("챌린지")) {
@@ -159,7 +159,7 @@ final class IslandProgressionCommandHandler {
             return true;
         }
         if (subcommand.equals("challenge-list") || subcommand.equals("챌린지목록")) {
-            listMissions(player, "CHALLENGE", "섬 챌린지");
+            listMissions(player, "CHALLENGE", "progression-challenge-label", "섬 챌린지");
             return true;
         }
         return false;
@@ -167,7 +167,7 @@ final class IslandProgressionCommandHandler {
 
     boolean handleGuiAction(Player player, GuiAction action) {
         if (action instanceof GuiAction.MissionComplete missionComplete) {
-            completeTask(player, missionComplete.missionKey(), missionComplete.kind(), missionComplete.label());
+            completeTaskWithLabel(player, missionComplete.missionKey(), missionComplete.kind(), missionComplete.label());
             return true;
         }
         if (action instanceof GuiAction.UpgradePurchase upgradePurchase) {
@@ -215,35 +215,35 @@ final class IslandProgressionCommandHandler {
     }
 
     private void showLevel(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 레벨을 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("level-show-island-required", "섬 안에서만 레벨을 확인할 수 있습니다.")).ifPresent(islandId -> {
             progressionUseCase.islandLevel(islandId)
-                .thenCombine(progressionUseCase.topLevelViews(100), (level, rankings) -> "섬 레벨: " + level.level() + growthTargetSuffix(islandId, level.level(), level.worth(), rankings, "level"))
+                .thenCombine(progressionUseCase.topLevelViews(100), (level, rankings) -> message("level-show-prefix", "섬 레벨: ") + level.level() + growthTargetSuffix(islandId, level.level(), level.worth(), rankings, "level"))
                 .thenAccept(message -> runtime.message(player, message))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 레벨을 불러오지 못했습니다.");
+                    runtime.message(player, message("level-load-failed", "섬 레벨을 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void showWorth(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 가치를 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("worth-show-island-required", "섬 안에서만 가치를 확인할 수 있습니다.")).ifPresent(islandId -> {
             progressionUseCase.islandLevel(islandId)
-                .thenCombine(progressionUseCase.topWorthViews(100), (level, rankings) -> "섬 가치: " + level.worth() + growthTargetSuffix(islandId, level.level(), level.worth(), rankings, "worth"))
+                .thenCombine(progressionUseCase.topWorthViews(100), (level, rankings) -> message("worth-show-prefix", "섬 가치: ") + level.worth() + growthTargetSuffix(islandId, level.level(), level.worth(), rankings, "worth"))
                 .thenAccept(message -> runtime.message(player, message))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 가치를 불러오지 못했습니다.");
+                    runtime.message(player, message("worth-load-failed", "섬 가치를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void showBlockDetails(Player player, int limit) {
-        runtime.currentIsland(player, "섬 안에서만 블록 상세를 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("block-details-island-required", "섬 안에서만 블록 상세를 확인할 수 있습니다.")).ifPresent(islandId -> {
             progressionUseCase.blockDetailsView(islandId, limit)
                 .thenAccept(details -> runtime.message(player, blockDetailsMessage(details)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 블록 상세를 불러오지 못했습니다.");
+                    runtime.message(player, message("block-details-load-failed", "섬 블록 상세를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -257,17 +257,17 @@ final class IslandProgressionCommandHandler {
         int cappedLimit = Math.max(1, Math.min(limit, 100));
         if (worthRanking) {
             progressionUseCase.topWorthViews(cappedLimit)
-                .thenAccept(rankings -> runtime.message(player, rankingMessage(rankings, "섬 가치 랭킹", "worth")))
+                .thenAccept(rankings -> runtime.message(player, rankingMessage(rankings, message("ranking-worth-title", "섬 가치 랭킹"), "worth")))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 가치 랭킹을 불러오지 못했습니다.");
+                    runtime.message(player, message("ranking-worth-load-failed", "섬 가치 랭킹을 불러오지 못했습니다."));
                     return null;
                 });
             return;
         }
         progressionUseCase.topLevelViews(cappedLimit)
-            .thenAccept(rankings -> runtime.message(player, rankingMessage(rankings, "섬 레벨 랭킹", "level")))
+            .thenAccept(rankings -> runtime.message(player, rankingMessage(rankings, message("ranking-level-title", "섬 레벨 랭킹"), "level")))
             .exceptionally(error -> {
-                runtime.message(player, "섬 레벨 랭킹을 불러오지 못했습니다.");
+                runtime.message(player, message("ranking-level-load-failed", "섬 레벨 랭킹을 불러오지 못했습니다."));
                 return null;
             });
     }
@@ -277,110 +277,118 @@ final class IslandProgressionCommandHandler {
         progressionUseCase.topReviewViews(cappedLimit)
             .thenAccept(rankings -> runtime.message(player, reviewRankingMessage(rankings)))
             .exceptionally(error -> {
-                runtime.message(player, "섬 후기 랭킹을 불러오지 못했습니다.");
+                runtime.message(player, message("ranking-review-load-failed", "섬 후기 랭킹을 불러오지 못했습니다."));
                 return null;
             });
     }
 
     private void recalculateLevel(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 레벨을 계산할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("level-recalculate-island-required", "섬 안에서만 레벨을 계산할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.START_LEVEL_CALC)) {
-                runtime.message(player, runtime.routeMessage("level-recalculate-denied", "섬 레벨을 계산할 권한이 없습니다."));
+                runtime.message(player, message("level-recalculate-denied", "섬 레벨을 계산할 권한이 없습니다."));
                 return;
             }
-            player.sendActionBar(Component.text(runtime.routeMessage("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.")));
+            player.sendActionBar(Component.text(message("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.")));
             CompletableFuture<Void> rescan = levelScanService == null ? CompletableFuture.completedFuture(null) : levelScanService.rescanIsland(islandId);
             rescan.thenCompose(_ignored -> progressionUseCase.recalculateLevelView(islandId, player.getUniqueId()))
-                .thenAccept(level -> runtime.message(player, "섬 레벨 계산 완료: 레벨 " + level.level() + " / 가치 " + level.worth()))
+                .thenAccept(level -> runtime.message(player, message("level-recalculate-success-prefix", "섬 레벨 계산 완료: ")
+                    + message("level-label", "레벨 ") + level.level()
+                    + message("worth-separator-label", " / 가치 ") + level.worth()))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 레벨을 계산하지 못했습니다.");
+                    runtime.message(player, message("level-recalculate-failed", "섬 레벨을 계산하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void listUpgrades(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 업그레이드를 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("upgrade-list-island-required", "섬 안에서만 업그레이드를 확인할 수 있습니다.")).ifPresent(islandId -> {
             progressionUseCase.upgradeViews(islandId)
                 .thenAccept(upgrades -> runtime.message(player, upgradeListMessage(upgrades)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 업그레이드를 불러오지 못했습니다.");
+                    runtime.message(player, message("upgrade-list-load-failed", "섬 업그레이드를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void showGenerator(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 생성기를 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("generator-show-island-required", "섬 안에서만 생성기를 확인할 수 있습니다.")).ifPresent(islandId -> {
             generatorInfoUseCase.view(islandId)
                 .thenAccept(view -> runtime.message(player, generatorInfoMessage(view)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 생성기를 불러오지 못했습니다.");
+                    runtime.message(player, message("generator-load-failed", "섬 생성기를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void openUpgradeMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 업그레이드 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandUpgradeMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("upgrade-menu-island-required", "섬 안에서만 업그레이드 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandUpgradeMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void purchaseUpgrade(Player player, String upgradeKey) {
-        runtime.currentIsland(player, "섬 안에서만 업그레이드를 구매할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("upgrade-purchase-island-required", "섬 안에서만 업그레이드를 구매할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_UPGRADES)) {
-                runtime.message(player, runtime.routeMessage("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다."));
+                runtime.message(player, message("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다."));
                 return;
             }
             progressionUseCase.purchaseUpgradeResult(islandId, player.getUniqueId(), upgradeKey, runtime::mutateIdempotent)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        runtime.message(player, runtime.playerCodeMessage(result.code(), "섬 업그레이드를 구매하지 못했습니다."));
+                        runtime.message(player, runtime.playerCodeMessage(result.code(), message("upgrade-purchase-failed", "섬 업그레이드를 구매하지 못했습니다.")));
                         return;
                     }
                     runtime.message(player, upgradePurchaseMessage(result, upgradeKey));
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 업그레이드를 구매하지 못했습니다.");
+                    runtime.message(player, message("upgrade-purchase-failed", "섬 업그레이드를 구매하지 못했습니다."));
                     return null;
                 });
         });
     }
 
-    private void listMissions(Player player, String kind, String label) {
-        runtime.currentIsland(player, "섬 안에서만 " + label + "을 확인할 수 있습니다.").ifPresent(islandId -> {
+    private void listMissions(Player player, String kind, String labelKey, String labelFallback) {
+        String label = message(labelKey, labelFallback);
+        runtime.currentIsland(player, message("mission-list-island-required-prefix", "섬 안에서만 ") + label + message("mission-list-island-required-suffix", "을 확인할 수 있습니다.")).ifPresent(islandId -> {
             progressionUseCase.missionViews(islandId, kind)
                 .thenAccept(missions -> runtime.message(player, missionListMessage(missions, label)))
                 .exceptionally(error -> {
-                    runtime.message(player, label + "을 불러오지 못했습니다.");
+                    runtime.message(player, label + message("mission-list-load-failed-suffix", "을 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void openMissionMenu(Player player, String kind) {
-        runtime.currentIsland(player, "섬 안에서만 과제 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandMissionMenu.open(plugin, coreApiClient, player, islandId, kind, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("mission-menu-island-required", "섬 안에서만 과제 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandMissionMenu.open(plugin, coreApiClient, player, islandId, kind, runtime.messagesFor(player)));
     }
 
     private void completeMission(Player player, String missionKey) {
-        completeTask(player, missionKey, "MISSION", "섬 미션");
+        completeTask(player, missionKey, "MISSION", "progression-mission-label", "섬 미션");
     }
 
     private void completeChallenge(Player player, String missionKey) {
-        completeTask(player, missionKey, "CHALLENGE", "섬 챌린지");
+        completeTask(player, missionKey, "CHALLENGE", "progression-challenge-label", "섬 챌린지");
     }
 
-    private void completeTask(Player player, String missionKey, String kind, String label) {
-        runtime.currentIsland(player, "섬 안에서만 " + label + "을 완료할 수 있습니다.").ifPresent(islandId -> {
+    private void completeTask(Player player, String missionKey, String kind, String labelKey, String labelFallback) {
+        String label = message(labelKey, labelFallback);
+        completeTaskWithLabel(player, missionKey, kind, label);
+    }
+
+    private void completeTaskWithLabel(Player player, String missionKey, String kind, String label) {
+        runtime.currentIsland(player, message("mission-complete-island-required-prefix", "섬 안에서만 ") + label + message("mission-complete-island-required-suffix", "을 완료할 수 있습니다.")).ifPresent(islandId -> {
             progressionUseCase.completeMissionResult(islandId, player.getUniqueId(), missionKey, kind, runtime::mutateIdempotent)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        runtime.message(player, runtime.playerCodeMessage(result.code(), label + "을 완료하지 못했습니다."));
+                        runtime.message(player, runtime.playerCodeMessage(result.code(), label + message("mission-complete-failed-suffix", "을 완료하지 못했습니다.")));
                         return;
                     }
                     runtime.message(player, missionCompletionMessage(result, missionKey, label));
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, label + "을 완료하지 못했습니다.");
+                    runtime.message(player, label + message("mission-complete-failed-suffix", "을 완료하지 못했습니다."));
                     return null;
                 });
         });
@@ -397,30 +405,30 @@ final class IslandProgressionCommandHandler {
         return (int) longValue(args[index], 10L);
     }
 
-    private static String rankingMessage(List<RankingEntryView> rankings, String label, String valueKey) {
+    private String rankingMessage(List<RankingEntryView> rankings, String label, String valueKey) {
         List<String> entries = new java.util.ArrayList<>();
         for (RankingEntryView ranking : rankings == null ? List.<RankingEntryView>of() : rankings) {
             if (entries.size() >= 10) {
                 break;
             }
             String value = valueKey.equals("worth") ? ranking.worth() : Long.toString(ranking.level());
-            String valueLabel = valueKey.equals("worth") ? "가치" : "레벨";
-            entries.add((entries.size() + 1) + ". " + ranking.name() + " (ID=" + compactId(ranking.islandId()) + ", " + valueLabel + "=" + value + ")");
+            String valueLabel = valueKey.equals("worth") ? message("ranking-worth-label", "가치") : message("ranking-level-label", "레벨");
+            entries.add((entries.size() + 1) + ". " + ranking.name() + " (" + message("ranking-id-label", "ID=") + compactId(ranking.islandId()) + ", " + valueLabel + "=" + value + ")");
         }
-        return entries.isEmpty() ? label + ": 기록이 없습니다." : label + ": " + String.join(" | ", entries);
+        return entries.isEmpty() ? label + message("ranking-empty-suffix", ": 기록이 없습니다.") : label + message("ranking-title-suffix", ": ") + String.join(" | ", entries);
     }
 
-    private static String growthTargetSuffix(UUID islandId, long currentLevel, String currentWorth, List<RankingEntryView> rankings, String valueKey) {
+    private String growthTargetSuffix(UUID islandId, long currentLevel, String currentWorth, List<RankingEntryView> rankings, String valueKey) {
         RankingEntryView target = nextGrowthTarget(islandId, currentLevel, currentWorth, rankings, valueKey);
         if (target == null) {
-            return " / 다음 목표: TOP100 기준 상위 목표 없음";
+            return message("growth-target-none", " / 다음 목표: TOP100 기준 상위 목표 없음");
         }
         if ("worth".equals(valueKey)) {
             BigDecimal remaining = decimal(target.worth()).subtract(decimal(currentWorth)).max(BigDecimal.ZERO);
-            return " / 다음 목표: 가치 +" + remaining.stripTrailingZeros().toPlainString() + " (" + target.name() + ")";
+            return message("growth-target-worth-prefix", " / 다음 목표: 가치 +") + remaining.stripTrailingZeros().toPlainString() + " (" + target.name() + ")";
         }
         long remaining = Math.max(0L, target.level() - currentLevel);
-        return " / 다음 목표: 레벨 +" + remaining + " (" + target.name() + ")";
+        return message("growth-target-level-prefix", " / 다음 목표: 레벨 +") + remaining + " (" + target.name() + ")";
     }
 
     private static RankingEntryView nextGrowthTarget(UUID islandId, long currentLevel, String currentWorth, List<RankingEntryView> rankings, String valueKey) {
@@ -441,37 +449,44 @@ final class IslandProgressionCommandHandler {
         return null;
     }
 
-    private static String reviewRankingMessage(List<ReviewRankingEntryView> rankings) {
+    private String reviewRankingMessage(List<ReviewRankingEntryView> rankings) {
         List<String> entries = new java.util.ArrayList<>();
         for (ReviewRankingEntryView ranking : rankings == null ? List.<ReviewRankingEntryView>of() : rankings) {
             if (entries.size() >= 10) {
                 break;
             }
             String rating = String.format(Locale.ROOT, "%.2f", ranking.averageRating());
-            entries.add((entries.size() + 1) + ". ID=" + compactId(ranking.islandId()) + " 평점=" + rating + "/5 후기=" + ranking.reviewCount());
+            entries.add((entries.size() + 1) + ". " + message("ranking-id-label", "ID=") + compactId(ranking.islandId())
+                + " " + message("ranking-review-rating-label", "평점=") + rating + "/5 "
+                + message("ranking-review-count-label", "후기=") + ranking.reviewCount());
         }
-        return entries.isEmpty() ? "섬 후기 랭킹: 기록이 없습니다." : "섬 후기 랭킹: " + String.join(" | ", entries);
+        return entries.isEmpty() ? message("ranking-review-title", "섬 후기 랭킹") + message("ranking-empty-suffix", ": 기록이 없습니다.") : message("ranking-review-title", "섬 후기 랭킹") + message("ranking-title-suffix", ": ") + String.join(" | ", entries);
     }
 
-    private static String blockDetailsMessage(BlockDetailsView details) {
+    private String blockDetailsMessage(BlockDetailsView details) {
         if (details == null || details.blocks().isEmpty()) {
-            return "섬 블록 기록이 없습니다.";
+            return message("block-details-empty", "섬 블록 기록이 없습니다.");
         }
         List<String> entries = new java.util.ArrayList<>();
         for (BlockDetailView block : details.blocks()) {
             if (entries.size() >= 20) {
                 break;
             }
-            entries.add(block.materialKey() + " x" + block.count() + " 가치=" + block.totalWorth() + " 점수=" + block.levelPoints());
+            entries.add(block.materialKey() + " x" + block.count() + " "
+                + message("block-details-worth-label", "가치=") + block.totalWorth() + " "
+                + message("block-details-points-label", "점수=") + block.levelPoints());
         }
         return entries.isEmpty()
-            ? "섬 블록 기록이 없습니다."
-            : "섬 블록상세: 총가치=" + details.totalWorth() + " 총점수=" + details.totalLevelPoints() + " | " + String.join(" | ", entries);
+            ? message("block-details-empty", "섬 블록 기록이 없습니다.")
+            : message("block-details-prefix", "섬 블록상세: ")
+                + message("block-details-total-worth-label", "총가치=") + details.totalWorth() + " "
+                + message("block-details-total-points-label", "총점수=") + details.totalLevelPoints()
+                + " | " + String.join(" | ", entries);
     }
 
-    private static String generatorInfoMessage(GeneratorInfoView view) {
+    private String generatorInfoMessage(GeneratorInfoView view) {
         if (view == null || view.materials().isEmpty()) {
-            return "섬 생성기: 규칙이 없습니다. / 업그레이드: /섬 업그레이드구매 generator";
+            return message("generator-empty", "섬 생성기: 규칙이 없습니다. / 업그레이드: /섬 업그레이드구매 generator");
         }
         List<String> entries = new java.util.ArrayList<>();
         int total = Math.max(1, view.totalWeight());
@@ -482,31 +497,39 @@ final class IslandProgressionCommandHandler {
             long percent = Math.round((material.weight() * 100.0D) / total);
             entries.add(material.materialKey() + "=" + percent + "%");
         }
-        return "섬 생성기: key=" + view.generatorKey() + " level=" + view.level() + " | " + String.join(", ", entries) + " / 업그레이드: /섬 업그레이드구매 generator";
+        return message("generator-prefix", "섬 생성기: ")
+            + message("generator-key-label", "key=") + view.generatorKey() + " "
+            + message("generator-level-label", "level=") + view.level()
+            + " | " + String.join(", ", entries)
+            + message("generator-upgrade-hint", " / 업그레이드: /섬 업그레이드구매 generator");
     }
 
-    private static String upgradeListMessage(List<UpgradeView> upgrades) {
+    private String upgradeListMessage(List<UpgradeView> upgrades) {
         List<String> entries = (upgrades == null ? List.<UpgradeView>of() : upgrades).stream()
             .map(upgrade -> upgrade.key() + " Lv." + upgrade.level())
             .toList();
-        return entries.isEmpty() ? "섬 업그레이드가 없습니다." : "섬 업그레이드: " + String.join(", ", entries);
+        return entries.isEmpty() ? message("upgrade-list-empty", "섬 업그레이드가 없습니다.") : message("upgrade-list-prefix", "섬 업그레이드: ") + String.join(", ", entries);
     }
 
-    private static String missionListMessage(List<MissionView> missions, String label) {
+    private String missionListMessage(List<MissionView> missions, String label) {
         List<String> entries = (missions == null ? List.<MissionView>of() : missions).stream()
-            .map(mission -> mission.key() + "(" + (mission.title().isBlank() ? mission.key() : mission.title()) + ", " + (mission.completed() ? "완료" : mission.progress() + "/" + mission.goal()) + ")")
+            .map(mission -> mission.key() + "(" + (mission.title().isBlank() ? mission.key() : mission.title()) + ", " + (mission.completed() ? message("mission-completed-label", "완료") : mission.progress() + "/" + mission.goal()) + ")")
             .toList();
-        return entries.isEmpty() ? label + "이 없습니다." : label + ": " + String.join(", ", entries);
+        return entries.isEmpty() ? label + message("mission-list-empty-suffix", "이 없습니다.") : label + message("ranking-title-suffix", ": ") + String.join(", ", entries);
     }
 
-    private static String upgradePurchaseMessage(UpgradePurchaseResult result, String fallbackKey) {
+    private String upgradePurchaseMessage(UpgradePurchaseResult result, String fallbackKey) {
         String key = result.upgradeKey().isBlank() ? fallbackKey : result.upgradeKey();
-        return "섬 업그레이드 구매 완료: " + key + " Lv." + result.level() + " / 비용 " + result.cost();
+        return message("upgrade-purchase-success-prefix", "섬 업그레이드 구매 완료: ") + key + " Lv." + result.level() + message("upgrade-cost-label", " / 비용 ") + result.cost();
     }
 
-    private static String missionCompletionMessage(MissionCompletionResult result, String fallbackKey, String label) {
+    private String missionCompletionMessage(MissionCompletionResult result, String fallbackKey, String label) {
         String title = result.title().isBlank() ? fallbackKey : result.title();
-        return label + " 완료: " + title + (result.reward().isBlank() ? "" : " / 보상 " + result.reward());
+        return label + message("mission-complete-success-suffix", " 완료: ") + title + (result.reward().isBlank() ? "" : message("mission-reward-label", " / 보상 ") + result.reward());
+    }
+
+    private String message(String key, String fallback) {
+        return runtime.routeMessage(key, fallback);
     }
 
     private static int integer(String value, int fallback) {
