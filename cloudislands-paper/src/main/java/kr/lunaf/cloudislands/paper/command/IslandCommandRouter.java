@@ -8,6 +8,8 @@ import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Location;
 import org.bukkit.command.Command;
@@ -194,7 +196,7 @@ final class IslandCommandRouter {
             return true;
         }
         suggestions.suggest(subcommand, IslandCommandCatalog.SUBCOMMANDS)
-            .ifPresent(suggestion -> runtime.message(player, runtime.routeMessage("command-suggestion-prefix", "혹시 /") + label + " " + suggestion + runtime.routeMessage("command-suggestion-suffix", " 를 찾으셨나요?")));
+            .ifPresent(suggestion -> sendCommandSuggestion(player, label, suggestion));
         sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
         return true;
     }
@@ -299,16 +301,100 @@ final class IslandCommandRouter {
         CommandListPolicy.Page commandPage = CommandListPolicy.page(labelledCommands, page, label + " command list");
         String headerTitle = runtime.routeMessage("command-list-title", title + " ");
         String headerSuffix = runtime.routeMessage("command-list-suffix", CommandListPolicy.HEADER_SUFFIX);
-        player.sendMessage(headerTitle + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + headerSuffix);
+        player.sendMessage(Component.text(runtime.playerMessage(headerTitle + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + headerSuffix), NamedTextColor.GOLD)
+            .hoverEvent(Component.text(runtime.playerMessage(runtime.routeMessage("command-list-hover-instruction", "명령어 위에 마우스를 올리면 설명과 권한을 볼 수 있습니다.")), NamedTextColor.GRAY)));
         for (String command : commandPage.entries()) {
-            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + command);
+            player.sendMessage(commandEntryComponent(player, label, command));
         }
         if (commandPage.previousCommand() != null) {
-            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.previousCommand());
+            player.sendMessage(navigationEntryComponent(commandPage.previousCommand(), runtime.routeMessage("command-list-previous-hover", "이전 명령어 페이지를 엽니다.")));
         }
         if (commandPage.nextCommand() != null) {
-            player.sendMessage(CommandListPolicy.ENTRY_PREFIX + commandPage.nextCommand());
+            player.sendMessage(navigationEntryComponent(commandPage.nextCommand(), runtime.routeMessage("command-list-next-hover", "다음 명령어 페이지를 엽니다.")));
         }
+    }
+
+    private void sendCommandSuggestion(Player player, String label, String suggestion) {
+        String command = label + " " + suggestion;
+        String message = runtime.routeMessage("command-suggestion-prefix", "혹시 /")
+            + command
+            + runtime.routeMessage("command-suggestion-suffix", " 를 찾으셨나요?");
+        player.sendMessage(Component.text(runtime.playerMessage(message), NamedTextColor.YELLOW)
+            .clickEvent(ClickEvent.suggestCommand("/" + command))
+            .hoverEvent(Component.text(runtime.playerMessage(runtime.routeMessage("command-suggestion-hover", "클릭하면 추천 명령어를 입력합니다.")), NamedTextColor.GRAY)));
+    }
+
+    private Component commandEntryComponent(Player player, String label, String command) {
+        String canonicalCommand = canonicalCommand(label, command);
+        IslandCommandPermission permission = permissionForCommand(canonicalCommand);
+        IslandCommandCatalog.IslandCommandDescriptor descriptor = descriptorForCommand(canonicalCommand);
+        boolean allowed = permission == null || runtime.hasCommandPermission(player, permission);
+        NamedTextColor commandColor = allowed ? NamedTextColor.AQUA : NamedTextColor.DARK_GRAY;
+        Component component = Component.text(CommandListPolicy.ENTRY_PREFIX, NamedTextColor.DARK_GRAY)
+            .append(Component.text(command, commandColor))
+            .hoverEvent(commandHoverComponent(canonicalCommand, descriptor, permission, allowed));
+        if (allowed) {
+            return component.clickEvent(ClickEvent.suggestCommand("/" + command));
+        }
+        return component;
+    }
+
+    private Component navigationEntryComponent(String command, String hover) {
+        return Component.text(CommandListPolicy.ENTRY_PREFIX, NamedTextColor.DARK_GRAY)
+            .append(Component.text(command, NamedTextColor.GREEN))
+            .clickEvent(ClickEvent.runCommand("/" + command))
+            .hoverEvent(Component.text(runtime.playerMessage(hover), NamedTextColor.GRAY));
+    }
+
+    private Component commandHoverComponent(String command, IslandCommandCatalog.IslandCommandDescriptor descriptor, IslandCommandPermission permission, boolean allowed) {
+        String description = descriptor == null
+            ? runtime.routeMessage("command-list-hover-description", "섬 명령어")
+            : runtime.routeMessage(descriptor.descriptionKey(), descriptor.id());
+        String permissionText = permission == null
+            ? runtime.routeMessage("command-list-hover-no-permission", "권한: 필요 없음")
+            : runtime.routeMessage("command-list-hover-permission", "권한: ") + permission.node();
+        String clickText = allowed
+            ? runtime.routeMessage("command-list-hover-click", "클릭: 명령어 입력")
+            : runtime.routeMessage("command-list-hover-locked", "권한이 없어 비활성화되었습니다.");
+        return Component.text(runtime.playerMessage(description), NamedTextColor.WHITE)
+            .append(Component.text("\n" + runtime.playerMessage(permissionText), NamedTextColor.GRAY))
+            .append(Component.text("\n" + runtime.playerMessage("예시: /" + command), NamedTextColor.GRAY))
+            .append(Component.text("\n" + runtime.playerMessage(clickText), allowed ? NamedTextColor.GREEN : NamedTextColor.RED));
+    }
+
+    private IslandCommandCatalog.IslandCommandDescriptor descriptorForCommand(String command) {
+        for (IslandCommandCatalog.IslandCommandDescriptor descriptor : IslandCommandCatalog.DESCRIPTORS) {
+            if (descriptor.helpCommands().contains(command)) {
+                return descriptor;
+            }
+        }
+        String subcommand = subcommandFor(command);
+        for (IslandCommandCatalog.IslandCommandDescriptor descriptor : IslandCommandCatalog.DESCRIPTORS) {
+            if (descriptor.aliases().contains(subcommand)) {
+                return descriptor;
+            }
+        }
+        return null;
+    }
+
+    private IslandCommandPermission permissionForCommand(String command) {
+        return IslandCommandPermission.fromSubcommand(subcommandFor(command));
+    }
+
+    private String subcommandFor(String command) {
+        String[] parts = CommandListPolicy.oneLine(command).split("\\s+");
+        return parts.length > 1 ? parts[1].toLowerCase(Locale.ROOT) : "";
+    }
+
+    private String canonicalCommand(String label, String command) {
+        String normalized = CommandListPolicy.oneLine(command);
+        if (normalized.equals(label)) {
+            return "섬";
+        }
+        if (normalized.startsWith(label + " ")) {
+            return "섬" + normalized.substring(label.length());
+        }
+        return normalized;
     }
 
     private void openMainMenuOrCommandList(Player player, String label) {

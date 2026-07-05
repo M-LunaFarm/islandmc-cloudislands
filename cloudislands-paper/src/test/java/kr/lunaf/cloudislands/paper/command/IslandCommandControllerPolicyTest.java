@@ -64,6 +64,24 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void commandHelpUsesClickableAdventureComponents() throws Exception {
+        String router = routerSource();
+        String koMessages = Files.readString(Path.of("src/main/resources/config-v2/ui/messages/ko_kr.yml"));
+        String enMessages = Files.readString(Path.of("src/main/resources/config-v2/ui/messages/en_us.yml"));
+
+        assertTrue(router.contains("ClickEvent.suggestCommand(\"/\" + command)"), "command help entries must let players insert commands from the help list");
+        assertTrue(router.contains("ClickEvent.runCommand(\"/\" + command)"), "command help pagination must be clickable");
+        assertTrue(router.contains("hoverEvent(commandHoverComponent"), "command help entries must expose hover details");
+        assertTrue(router.contains("permission.node()"), "command help hover must expose the permission node");
+        assertTrue(router.contains("runtime.hasCommandPermission(player, permission)"), "command help must disable entries the player cannot use");
+        assertTrue(router.contains("sendCommandSuggestion(Player player, String label, String suggestion)"), "unknown command suggestions must use the same clickable UX");
+        assertTrue(koMessages.contains("command-suggestion-hover:"));
+        assertTrue(enMessages.contains("command-suggestion-hover:"));
+        assertTrue(koMessages.contains("command-list-hover-permission:"));
+        assertTrue(enMessages.contains("command-list-hover-permission:"));
+    }
+
+    @Test
     void rootIslandCommandsOpenMainMenuBeforeCommandListFallback() throws Exception {
         String router = routerSource();
         String factory = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouterFactory.java"));

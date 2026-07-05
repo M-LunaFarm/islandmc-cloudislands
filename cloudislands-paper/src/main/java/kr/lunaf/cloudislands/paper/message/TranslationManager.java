@@ -242,6 +242,15 @@ public final class TranslationManager {
         values.put("main-menu-title", "섬 메뉴");
         values.put("command-list-title", "섬 명령어 목록 ");
         values.put("command-list-suffix", " - 1 line > 1 command");
+        values.put("command-list-hover-click", "클릭: 명령어 입력");
+        values.put("command-list-hover-description", "섬 명령어");
+        values.put("command-list-hover-instruction", "명령어 위에 마우스를 올리면 설명과 권한을 볼 수 있습니다.");
+        values.put("command-list-hover-locked", "권한이 없어 비활성화되었습니다.");
+        values.put("command-list-hover-no-permission", "권한: 필요 없음");
+        values.put("command-list-hover-permission", "권한: ");
+        values.put("command-list-next-hover", "다음 명령어 페이지를 엽니다.");
+        values.put("command-list-previous-hover", "이전 명령어 페이지를 엽니다.");
+        values.put("command-suggestion-hover", "클릭하면 추천 명령어를 입력합니다.");
         values.put("admin-node-menu-title", "섬 노드 관리");
         values.put("admin-node-menu-list-name", "노드 목록");
         values.put("admin-node-menu-list-command", "/ciadmin node list");
