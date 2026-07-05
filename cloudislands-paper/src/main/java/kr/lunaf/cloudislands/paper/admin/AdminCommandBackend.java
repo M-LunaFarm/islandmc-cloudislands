@@ -36,6 +36,7 @@ import kr.lunaf.cloudislands.coreclient.AdminRouteDebugView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteSessionView;
 import kr.lunaf.cloudislands.coreclient.AdminRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.AdminStorageStatusView;
+import kr.lunaf.cloudislands.coreclient.BankMutationView;
 import kr.lunaf.cloudislands.coreclient.BlockValueActionView;
 import kr.lunaf.cloudislands.coreclient.BlockValueView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -292,6 +293,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("island")) {
             return matches(ISLAND_COMMANDS, args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("bank")) {
+            return matches(List.of("deposit", "withdraw"), args[2]);
+        }
+        if (args.length == 5 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("bank")) {
+            return matches(List.of("100", "1000", "10000"), args[4]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("player")) {
             return matches(PLAYER_COMMANDS, args[1]);
@@ -1331,6 +1338,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[1].equalsIgnoreCase("bulk-restore")) {
             return handleBulkRestore(sender, args);
         }
+        if (args[1].equalsIgnoreCase("bank")) {
+            return handleIslandBank(sender, args);
+        }
         UUID islandId = uuidOrNull(args[2]);
         if (islandId == null) {
             resolveIslandUuid(sender, args[2]).thenAccept(resolvedIslandId -> {
@@ -1433,6 +1443,37 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         sendIslandCommandUsage(sender);
+        return true;
+    }
+
+    private boolean handleIslandBank(CommandSender sender, String[] args) {
+        if (args.length < 5 || (!args[2].equalsIgnoreCase("deposit") && !args[2].equalsIgnoreCase("withdraw"))) {
+            sendCommandUsage(sender, List.of(
+                "/ciadmin island bank deposit <islandUuid|islandName> <amount>",
+                "/ciadmin island bank withdraw <islandUuid|islandName> <amount>"
+            ));
+            return true;
+        }
+        UUID islandId = uuidOrNull(args[3]);
+        if (islandId == null) {
+            resolveIslandUuid(sender, args[3]).thenAccept(resolvedIslandId -> {
+                if (resolvedIslandId == null) {
+                    return;
+                }
+                String[] resolvedArgs = args.clone();
+                resolvedArgs[3] = resolvedIslandId.toString();
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> handleIslandBank(sender, resolvedArgs));
+            }).exceptionally(error -> {
+                sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[3]);
+                return null;
+            });
+            return true;
+        }
+        String label = args[2].equalsIgnoreCase("deposit") ? "Island bank deposit" : "Island bank withdraw";
+        CompletableFuture<BankMutationView> mutation = args[2].equalsIgnoreCase("deposit")
+            ? coreApiClient.lifecycle().adminBankDeposit(islandId, args[4])
+            : coreApiClient.lifecycle().adminBankWithdraw(islandId, args[4]);
+        run(sender, label, mutation.thenApply(action -> adminBankMutationMessage(label, islandId, action)));
         return true;
     }
 
@@ -1893,6 +1934,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island restore <islandUuid|islandName> <snapshotNo> --confirm",
             "/ciadmin island rollback <islandUuid|islandName> <snapshotNo> --confirm",
             "/ciadmin island bulk-restore <snapshotNo> <islandUuid|islandName>... --confirm",
+            "/ciadmin island bank deposit <islandUuid|islandName> <amount>",
+            "/ciadmin island bank withdraw <islandUuid|islandName> <amount>",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
             "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
@@ -2189,6 +2232,21 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (!error.isBlank()) {
             builder.append(adminText("admin-command-job-error-prefix", " error=")).append(error);
+        }
+        return builder.toString();
+    }
+
+    private String adminBankMutationMessage(String label, UUID requestedIslandId, BankMutationView action) {
+        String targetId = action.islandId().isBlank() ? requestedIslandId.toString() : action.islandId();
+        StringBuilder builder = new StringBuilder(label)
+            .append(": ")
+            .append(action.accepted() ? adminText("admin-command-action-result-accepted", "accepted") : adminText("admin-command-action-result-rejected", "rejected"))
+            .append(adminText("admin-command-action-result-target-prefix", " target="))
+            .append(compactTarget(targetId))
+            .append(adminText("admin-command-bank-result-balance-prefix", " balance="))
+            .append(action.balance());
+        if (!action.code().isBlank()) {
+            builder.append(adminText("admin-command-action-result-code-prefix", " code=")).append(action.code());
         }
         return builder.toString();
     }

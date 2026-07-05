@@ -31,4 +31,8 @@ public interface IslandLifecycleCommandClient {
     CompletableFuture<IslandLifecycleActionView> repairIsland(UUID islandId, String reason);
 
     CompletableFuture<IslandLifecycleActionView> adminDeleteIsland(UUID islandId);
+
+    CompletableFuture<BankMutationView> adminBankDeposit(UUID islandId, String amount);
+
+    CompletableFuture<BankMutationView> adminBankWithdraw(UUID islandId, String amount);
 }

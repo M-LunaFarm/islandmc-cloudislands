@@ -2428,6 +2428,14 @@ class CoreTypedClientsTest {
                     calls.add("adminDelete:" + args[0]);
                     yield CompletableFuture.completedFuture(new IslandLifecycleActionView(true, "DELETED", islandId.toString(), 0L, ""));
                 }
+                case "adminBankDeposit" -> {
+                    calls.add("adminBankDeposit:" + args[0] + ":" + args[1]);
+                    yield CompletableFuture.completedFuture(new BankMutationView(true, "DEPOSITED", islandId.toString(), "150", "2026-01-02T03:04:05Z"));
+                }
+                case "adminBankWithdraw" -> {
+                    calls.add("adminBankWithdraw:" + args[0] + ":" + args[1]);
+                    yield CompletableFuture.completedFuture(new BankMutationView(true, "WITHDRAWN", islandId.toString(), "125", "2026-01-02T03:05:05Z"));
+                }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
@@ -2451,6 +2459,8 @@ class CoreTypedClientsTest {
         assertEquals("QUARANTINED", client.quarantineIsland(islandId, " bad ").join().code());
         assertEquals("REPAIRED", client.repairIsland(islandId, " repair ").join().code());
         assertEquals("DELETED", client.adminDeleteIsland(islandId).join().code());
+        assertEquals("150", client.adminBankDeposit(islandId, "150").join().balance());
+        assertEquals("WITHDRAWN", client.adminBankWithdraw(islandId, "25").join().code());
         assertEquals(List.of(
             "create:default",
             "delete:" + islandId,
@@ -2464,7 +2474,9 @@ class CoreTypedClientsTest {
             "rollback:6",
             "quarantine:bad",
             "repair:repair",
-            "adminDelete:" + islandId
+            "adminDelete:" + islandId,
+            "adminBankDeposit:" + islandId + ":150",
+            "adminBankWithdraw:" + islandId + ":25"
         ), calls);
         assertFalse(source.contains("private static boolean bool("), "lifecycle command parser must use shared CoreJson boolean helpers");
         assertFalse(source.contains("SimpleJson.object(root.get(\"error\"))"), "lifecycle command parser must use shared CoreJson nested object helpers");

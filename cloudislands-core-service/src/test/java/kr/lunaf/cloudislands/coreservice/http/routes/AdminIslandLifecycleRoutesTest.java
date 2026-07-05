@@ -28,6 +28,7 @@ import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.coreservice.InMemoryNodeRegistry;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
+import kr.lunaf.cloudislands.coreservice.bank.InMemoryIslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
@@ -50,7 +51,7 @@ class AdminIslandLifecycleRoutesTest {
         RecordingRegistry routes = new RecordingRegistry();
         RecordingRegistry prefixes = new RecordingRegistry();
 
-        new AdminIslandLifecycleRoutes(null, null, null, null, null, null, null).register(routes, prefixes);
+        new AdminIslandLifecycleRoutes(null, null, null, null, null, null, null, null).register(routes, prefixes);
 
         assertEquals(Set.of("POST"), routes.methods("/v1/admin/islands/activate"));
         assertEquals(Set.of("POST"), routes.methods("/v1/admin/islands/deactivate"));
@@ -64,7 +65,44 @@ class AdminIslandLifecycleRoutesTest {
         assertEquals(Set.of("POST"), routes.methods("/v1/admin/islands/where"));
         assertEquals(Set.of("POST"), routes.methods("/v1/admin/islands/delete"));
         assertEquals(Set.of("POST"), routes.methods("/v1/admin/islands/repair"));
+        assertEquals(Set.of("POST"), routes.methods("/v1/admin/islands/bank/deposit"));
+        assertEquals(Set.of("POST"), routes.methods("/v1/admin/islands/bank/withdraw"));
         assertEquals(Set.of("POST"), prefixes.methods("/v1/admin/islands/"));
+    }
+
+    @Test
+    void adminBankRoutesMutateIslandBankWithoutMemberPermission() throws Exception {
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        InMemoryIslandBankRepository bank = new InMemoryIslandBankRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "admin bank target");
+        IslandLifecycleWorkflow lifecycle = lifecycle(islands, runtimes, new InMemoryIslandJobPublisher(), events);
+        new AdminIslandLifecycleRoutes(lifecycle, islands, runtimes, snapshots, bank, audit, events, null).register(handlers::put);
+
+        TestExchange deposit = new TestExchange("{\"islandId\":\"" + ISLAND + "\",\"amount\":\"125.50\"}");
+        handlers.get("/v1/admin/islands/bank/deposit").handle(deposit);
+
+        assertEquals(202, deposit.status());
+        Map<?, ?> depositResponse = SimpleJson.object(SimpleJson.parse(deposit.body()));
+        assertEquals(true, depositResponse.get("accepted"));
+        assertEquals("DEPOSITED", SimpleJson.text(depositResponse.get("code")));
+        assertEquals("125.50", SimpleJson.text(SimpleJson.object(depositResponse.get("bank")).get("balance")));
+
+        TestExchange withdraw = new TestExchange("{\"islandId\":\"" + ISLAND + "\",\"amount\":\"25.50\"}");
+        handlers.get("/v1/admin/islands/bank/withdraw").handle(withdraw);
+
+        assertEquals(202, withdraw.status());
+        Map<?, ?> withdrawResponse = SimpleJson.object(SimpleJson.parse(withdraw.body()));
+        assertEquals(true, withdrawResponse.get("accepted"));
+        assertEquals("WITHDRAWN", SimpleJson.text(withdrawResponse.get("code")));
+        assertEquals("100.00", SimpleJson.text(SimpleJson.object(withdrawResponse.get("bank")).get("balance")));
+        assertTrue(audit.toJson().contains("ISLAND_BANK_ADMIN_DEPOSIT"));
+        assertTrue(audit.toJson().contains("ISLAND_BANK_ADMIN_WITHDRAW"));
+        assertEquals(2L, events.countByType("ISLAND_BANK_CHANGED"));
     }
 
     @Test
@@ -160,16 +198,25 @@ class AdminIslandLifecycleRoutesTest {
         InMemoryIslandSnapshotRepository snapshots,
         IslandJobPublisher jobs
     ) {
-        IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(
+        IslandLifecycleWorkflow lifecycle = lifecycle(islands, runtimes, jobs, new InMemoryGlobalEventPublisher());
+        return new AdminIslandLifecycleRoutes(lifecycle, islands, runtimes, snapshots, new InMemoryIslandBankRepository(), new InMemoryAuditLogger(), new InMemoryGlobalEventPublisher(), null);
+    }
+
+    private static IslandLifecycleWorkflow lifecycle(
+        InMemoryIslandRepository islands,
+        InMemoryIslandRuntimeRepository runtimes,
+        IslandJobPublisher jobs,
+        InMemoryGlobalEventPublisher events
+    ) {
+        return new IslandLifecycleWorkflow(
             runtimes,
             islands,
             new InMemoryIslandTemplateRepository(),
             new InMemoryNodeRegistry(3),
             new NodeAllocator(Duration.ofSeconds(5)),
             jobs,
-            new InMemoryGlobalEventPublisher()
+            events
         );
-        return new AdminIslandLifecycleRoutes(lifecycle, islands, runtimes, snapshots, new InMemoryAuditLogger(), new InMemoryGlobalEventPublisher(), null);
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

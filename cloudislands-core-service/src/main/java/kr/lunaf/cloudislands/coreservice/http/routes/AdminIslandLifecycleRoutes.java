@@ -2,10 +2,12 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import com.sun.net.httpserver.HttpExchange;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.model.IslandBankChangeSnapshot;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
@@ -13,6 +15,7 @@ import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
+import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
@@ -32,6 +35,7 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
     private final IslandRepository islandRepository;
     private final IslandRuntimeRepository runtimeRepository;
     private final IslandSnapshotRepository snapshotRepository;
+    private final IslandBankRepository bankRepository;
     private final AuditLogger audit;
     private final GlobalEventPublisher events;
     private final IslandQueryRoutes.IslandDeleteRequester deleteRequester;
@@ -41,6 +45,7 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
             IslandRepository islandRepository,
             IslandRuntimeRepository runtimeRepository,
             IslandSnapshotRepository snapshotRepository,
+            IslandBankRepository bankRepository,
             AuditLogger audit,
             GlobalEventPublisher events,
             IslandQueryRoutes.IslandDeleteRequester deleteRequester) {
@@ -48,6 +53,7 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
         this.islandRepository = islandRepository;
         this.runtimeRepository = runtimeRepository;
         this.snapshotRepository = snapshotRepository;
+        this.bankRepository = bankRepository;
         this.audit = audit;
         this.events = events;
         this.deleteRequester = deleteRequester;
@@ -67,6 +73,8 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
         registry.routePost("/v1/admin/islands/where", this::where);
         registry.routePost("/v1/admin/islands/delete", this::delete);
         registry.routePost("/v1/admin/islands/repair", this::repair);
+        registry.routePost("/v1/admin/islands/bank/deposit", this::adminBankDeposit);
+        registry.routePost("/v1/admin/islands/bank/withdraw", this::adminBankWithdraw);
     }
 
     public void register(CoreRouteRegistry registry, CoreRouteRegistry prefixRegistry) {
@@ -132,6 +140,16 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
         if (tail.endsWith("/repair")) {
             String body = CoreHttpResponses.readBody(exchange);
             repair(exchange, uuidPath(tail.substring(0, tail.length() - "/repair".length())), JsonFields.text(body, "reason", "admin"));
+            return;
+        }
+        if (tail.endsWith("/bank/deposit")) {
+            String body = CoreHttpResponses.readBody(exchange);
+            adminBank(exchange, uuidPath(tail.substring(0, tail.length() - "/bank/deposit".length())), JsonFields.text(body, "amount", "0"), "deposit");
+            return;
+        }
+        if (tail.endsWith("/bank/withdraw")) {
+            String body = CoreHttpResponses.readBody(exchange);
+            adminBank(exchange, uuidPath(tail.substring(0, tail.length() - "/bank/withdraw".length())), JsonFields.text(body, "amount", "0"), "withdraw");
             return;
         }
         CoreHttpResponses.write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
@@ -251,6 +269,45 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
         CoreHttpResponses.write(exchange, 202, IslandQueryRoutes.runtimeJson(runtime));
     }
 
+    private void adminBankDeposit(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        adminBank(exchange, JsonFields.uuid(body, "islandId", SYSTEM_ACTOR), JsonFields.text(body, "amount", "0"), "deposit");
+    }
+
+    private void adminBankWithdraw(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        adminBank(exchange, JsonFields.uuid(body, "islandId", SYSTEM_ACTOR), JsonFields.text(body, "amount", "0"), "withdraw");
+    }
+
+    private void adminBank(HttpExchange exchange, UUID islandId, String amountText, String operation) throws IOException {
+        if (islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        BigDecimal amount = bankAmount(amountText);
+        IslandBankRepository.BankChangeResult result = operation.equals("deposit")
+            ? bankRepository.deposit(islandId, amount, null)
+            : bankRepository.withdraw(islandId, amount);
+        String auditAction = operation.equals("deposit") ? "ISLAND_BANK_ADMIN_DEPOSIT" : "ISLAND_BANK_ADMIN_WITHDRAW";
+        String eventOperation = operation.equals("deposit") ? "ADMIN_DEPOSIT" : "ADMIN_WITHDRAW";
+        audit.log(SYSTEM_ACTOR, "ADMIN", auditAction, "ISLAND", islandId.toString(), Map.of(
+            "accepted", Boolean.toString(result.accepted()),
+            "code", result.code(),
+            "amount", amount.toPlainString(),
+            "balance", result.snapshot().balance()
+        ));
+        if (result.accepted()) {
+            events.publish(CloudIslandEventType.ISLAND_BANK_CHANGED.name(), Map.of(
+                "islandId", islandId.toString(),
+                "actorUuid", SYSTEM_ACTOR.toString(),
+                "operation", eventOperation,
+                "amount", amount.toPlainString(),
+                "balance", result.snapshot().balance()
+            ));
+        }
+        CoreHttpResponses.write(exchange, result.accepted() ? 202 : 409, IslandBankRoutes.bankChangeJson(new IslandBankChangeSnapshot(result.accepted(), result.code(), result.snapshot())));
+    }
+
     private void restoreSnapshot(HttpExchange exchange, UUID islandId, long snapshotNo, String auditAction) throws IOException {
         Optional<IslandSnapshotRecord> snapshot = snapshotRepository.find(islandId, snapshotNo);
         if (snapshotNo <= 0L || snapshot.isEmpty()) {
@@ -305,6 +362,14 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
             return UUID.fromString(value);
         } catch (IllegalArgumentException exception) {
             return SYSTEM_ACTOR;
+        }
+    }
+
+    private static BigDecimal bankAmount(String value) {
+        try {
+            return new BigDecimal(value == null ? "0" : value);
+        } catch (NumberFormatException exception) {
+            return BigDecimal.ZERO;
         }
     }
 

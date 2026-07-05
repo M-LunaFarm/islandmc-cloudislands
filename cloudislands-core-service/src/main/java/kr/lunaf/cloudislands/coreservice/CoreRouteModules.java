@@ -121,6 +121,7 @@ public final class CoreRouteModules {
             repositories.islandRepository(),
             repositories.runtimeRepository(),
             repositories.snapshotRepository(),
+            repositories.bankRepository(),
             repositories.audit(),
             events,
             domainServices.islandDeleteService()::requestIslandDelete

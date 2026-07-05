@@ -123,6 +123,22 @@ final class JdkIslandLifecycleCommandClient implements IslandLifecycleCommandCli
             .thenApply(body -> lifecycleAction(body, "DELETED", islandId));
     }
 
+    @Override
+    public CompletableFuture<BankMutationView> adminBankDeposit(UUID islandId, String amount) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/islands/bank/deposit", CoreJsonPayload.object("islandId", islandId, "amount", amount == null ? "0" : amount.trim()))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreBankJson::mutationView);
+    }
+
+    @Override
+    public CompletableFuture<BankMutationView> adminBankWithdraw(UUID islandId, String amount) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/islands/bank/withdraw", CoreJsonPayload.object("islandId", islandId, "amount", amount == null ? "0" : amount.trim()))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreBankJson::mutationView);
+    }
+
     private static String lifecycleReason(String reason, String fallback) {
         return reason == null || reason.isBlank() ? fallback : reason.trim();
     }

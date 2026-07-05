@@ -114,6 +114,33 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminBankDepositAndWithdrawAreFirstClassIslandCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String lifecycleClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/IslandLifecycleCommandClient.java"));
+        String jdkLifecycleClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkIslandLifecycleCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/AdminIslandLifecycleRoutes.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("\"bank\""), "Island bank must be cataloged for admin completion");
+        assertTrue(adminSurface.contains("ciadmin island bank deposit <island> <amount>"), "Admin bank deposit must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin island bank withdraw <island> <amount>"), "Admin bank withdraw must be listed in help");
+        assertTrue(source.contains("handleIslandBank"), "Admin bank commands must have a dedicated handler before island id resolution");
+        assertTrue(source.contains("coreApiClient.lifecycle().adminBankDeposit(islandId, args[4])"), "Admin bank deposit must use the typed lifecycle client");
+        assertTrue(source.contains("coreApiClient.lifecycle().adminBankWithdraw(islandId, args[4])"), "Admin bank withdraw must use the typed lifecycle client");
+        assertTrue(lifecycleClient.contains("adminBankDeposit(UUID islandId, String amount)"), "Lifecycle client must expose admin bank deposit");
+        assertTrue(lifecycleClient.contains("adminBankWithdraw(UUID islandId, String amount)"), "Lifecycle client must expose admin bank withdraw");
+        assertTrue(jdkLifecycleClient.contains("postResultBody(\"/v1/admin/islands/bank/deposit\""), "JDK lifecycle client must call admin deposit endpoint");
+        assertTrue(jdkLifecycleClient.contains("postResultBody(\"/v1/admin/islands/bank/withdraw\""), "JDK lifecycle client must call admin withdraw endpoint");
+        assertTrue(coreRoutes.contains("ISLAND_BANK_ADMIN_DEPOSIT"), "Core admin deposit route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ISLAND_BANK_ADMIN_WITHDRAW"), "Core admin withdraw route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ADMIN_DEPOSIT") && coreRoutes.contains("ADMIN_WITHDRAW"), "Core admin bank routes must emit admin bank event operations");
+        assertTrue(parity.contains("\"superior.admin.deposit\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark admin deposit verified");
+        assertTrue(parity.contains("\"superior.admin.withdraw\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark admin withdraw verified");
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
