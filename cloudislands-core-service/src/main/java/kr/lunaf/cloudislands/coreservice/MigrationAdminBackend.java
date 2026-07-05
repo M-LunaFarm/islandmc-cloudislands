@@ -57,7 +57,7 @@ final class MigrationAdminBackend {
     static final String MIGRATION_SNAPSHOT_REASON = "BEFORE_MIGRATION:SUPERIORSKYBLOCK2_IMPORT";
     static final String MIGRATION_TARGET_FIELDS = "island-id,owner-uuid,members,roles,permissions,island-location,island-size,homes,warps,banned-visitors,level,worth,bank-balance,upgrades,missions,ratings,generators,limits,schematics,templates,stacked-blocks,custom-data,unsupported-data,flags,block-values,rollback-plan,downtime-estimate";
     static final String MIGRATION_PIPELINE_STEPS = "read-only-scan,manifest-generate,dry-run,conflict-report,admin-approval,db-import,world-cell-extract,island-bundle-create,checksum-verify,cloudislands-activation-test";
-    static final String MIGRATION_COMMAND_SET = "scan,dryrun,report,import,verify,compare,rollback";
+    static final String MIGRATION_COMMAND_SET = "scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback";
     static final String MIGRATION_DATA_CATEGORY_CLASSIFICATIONS = "island-metadata=SUPPORTED,owners=SUPPORTED,members=SUPPORTED,roles=PARTIAL,permissions=SUPPORTED,island-location=SUPPORTED,island-size=SUPPORTED,homes=SUPPORTED,warps=SUPPORTED,banned-visitors=SUPPORTED,level=SUPPORTED,worth=SUPPORTED,bank-balance=SUPPORTED,flags=PARTIAL,upgrades=SUPPORTED,limits=SUPPORTED,missions=PARTIAL,block-values=SUPPORTED,block-counts=SUPPORTED,warehouse=SUPPORTED,biomes=SUPPORTED,world-bundles=MANUAL,schematics=MANUAL,templates=MANUAL,ratings=UNSUPPORTED,generators=PARTIAL,stacked-blocks=PARTIAL,custom-data=UNSUPPORTED,unsafe-admin-actions=DANGEROUS";
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
@@ -149,9 +149,10 @@ final class MigrationAdminBackend {
         issues.addAll(targetConflictIssues(lastScan.manifests()));
         issues.addAll(sourceWorldIssues(lastScan.manifests()));
         lastPlan = new MigrationImportPlan(lastScan.manifests(), issues);
-        MigrationRunState state = lastPlan.canImport() ? MigrationRunState.DRY_RUN_PASSED : MigrationRunState.DRY_RUN_FAILED;
-        lastApprovalToken = lastPlan.canImport() ? java.util.UUID.randomUUID().toString() : "";
-        lastDryRunFingerprint = lastPlan.canImport() ? lastScanFingerprint : "";
+        boolean dryRunCanImport = lastPlan.report().canImport();
+        MigrationRunState state = dryRunCanImport ? MigrationRunState.DRY_RUN_PASSED : MigrationRunState.DRY_RUN_FAILED;
+        lastApprovalToken = dryRunCanImport ? java.util.UUID.randomUUID().toString() : "";
+        lastDryRunFingerprint = dryRunCanImport ? lastScanFingerprint : "";
         Path reportPath = migrationReportPath("dryrun");
         try {
             writeMigrationReportFile(state.name(), reportPath, lastPlan.report());
@@ -162,7 +163,7 @@ final class MigrationAdminBackend {
             lastApprovalToken = "";
             lastDryRunFingerprint = "";
         }
-        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"sourceFingerprint\":\"" + escape(lastDryRunFingerprint) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + lastPlan.canImport() + ",\"approvalRequired\":" + lastPlan.canImport() + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+        return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"reportPath\":\"" + escape(reportPath.toString()) + "\",\"sourceFingerprint\":\"" + escape(lastDryRunFingerprint) + "\",\"manifests\":" + lastPlan.manifests().size() + ",\"canImport\":" + dryRunCanImport + ",\"approvalRequired\":" + dryRunCanImport + (lastApprovalToken.isBlank() ? "" : ",\"approvalToken\":\"" + lastApprovalToken + "\"") + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
     }
 
     public synchronized String status() {
@@ -174,8 +175,8 @@ final class MigrationAdminBackend {
             + migrationSafetyStatusFields()
             + ",\"scanManifests\":" + lastScan.manifests().size()
             + ",\"planManifests\":" + lastPlan.manifests().size()
-            + ",\"canImport\":" + lastPlan.canImport()
-            + ",\"approvalRequired\":" + (lastPlan.canImport() && !lastApprovalToken.isBlank())
+            + ",\"canImport\":" + lastPlan.report().canImport()
+            + ",\"approvalRequired\":" + (lastPlan.report().canImport() && !lastApprovalToken.isBlank())
             + ",\"approvalTokenAvailable\":" + !lastApprovalToken.isBlank()
             + ",\"lastScanSource\":\"" + escape(lastScanSourcePath) + "\""
             + ",\"lastScanFingerprint\":\"" + escape(lastScanFingerprint) + "\""
@@ -194,6 +195,33 @@ final class MigrationAdminBackend {
 
     public synchronized String report() {
         return status();
+    }
+
+    public synchronized String approveLastPlan(String approvalToken) {
+        MigrationImportPlan approvedPlan = approvedPlanOrNull(approvalToken);
+        if (approvedPlan == null) {
+            return approvalFailure(approvalToken, false);
+        }
+        String currentFingerprint = sourceFingerprint(Path.of(lastScanSourcePath));
+        if (lastDryRunFingerprint.isBlank() || !lastDryRunFingerprint.equals(currentFingerprint)) {
+            List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_SOURCE_CHANGED_AFTER_DRYRUN", "rerun scan and dryrun before import", true));
+            return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"approved\":false,\"approvalRequired\":true,\"sourceFingerprint\":\"" + escape(currentFingerprint) + "\",\"dryRunFingerprint\":\"" + escape(lastDryRunFingerprint) + "\"" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        }
+        lastPlan = approvedPlan;
+        lastApprovalToken = "";
+        return "{\"state\":\"APPROVED\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"approved\":true,\"approvalRequired\":false,\"approvalTokenAvailable\":false,\"sourceFingerprint\":\"" + escape(currentFingerprint) + "\",\"manifests\":" + lastPlan.manifests().size() + reportFields(lastPlan.report()) + ",\"issues\":" + issuesJson(lastPlan.issues()) + "}";
+    }
+
+    public synchronized String rollbackPlan() {
+        boolean rollbackPlanAvailable = lastRollbackPlan != null;
+        return "{\"state\":\"ROLLBACK_PLAN\""
+            + migrationBoundaryFields()
+            + migrationCoverageFields()
+            + rollbackSafetyFields(rollbackPlanAvailable)
+            + ",\"rollbackPlanAvailable\":" + rollbackPlanAvailable
+            + ",\"rollbackPlan\":" + rollbackPlanJson(lastRollbackPlan)
+            + ",\"issues\":[]"
+            + "}";
     }
 
     public synchronized String compare(String islandKey) {
@@ -424,9 +452,9 @@ final class MigrationAdminBackend {
             List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_PLAN_EMPTY", "run scan and dryrun before import", true));
             return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0" + reportFields(MigrationReportBuilder.build(List.of(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
         }
-        if (lastApprovalToken.isBlank() || approvalToken == null || !lastApprovalToken.equals(approvalToken.trim())) {
-            List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_APPROVAL_REQUIRED", "run dryrun and pass the returned approval token to import", true));
-            return "{\"state\":\"" + MigrationRunState.DRY_RUN_PASSED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0,\"approvalRequired\":true" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        MigrationImportPlan approvedPlan = lastPlan.approved() ? lastPlan : approvedPlanOrNull(approvalToken);
+        if (approvedPlan == null) {
+            return approvalFailure(approvalToken, true);
         }
         String currentFingerprint = sourceFingerprint(Path.of(lastScanSourcePath));
         if (lastDryRunFingerprint.isBlank() || !lastDryRunFingerprint.equals(currentFingerprint)) {
@@ -439,7 +467,8 @@ final class MigrationAdminBackend {
             return "{\"state\":\"" + MigrationRunState.DRY_RUN_FAILED + "\"" + migrationBoundaryFields() + ",\"imported\":false,\"importedIslands\":0,\"extractedBundles\":0,\"extractedManifests\":0,\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\",\"extractedFiles\":0,\"extractedBytes\":0" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), preflight.issues())) + ",\"issues\":" + issuesJson(preflight.issues()) + "}";
         }
         Map<java.util.UUID, MigrationWorldBundle> preflightBundles = preflight.bundles();
-        CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(lastPlan, manifest -> {
+        lastPlan = approvedPlan;
+        CloudIslandsMigrationImporter.ImportResult result = importer.importPlan(approvedPlan, manifest -> {
             MigrationWorldBundle bundle = preflightBundles.get(manifest.islandId());
             if (bundle == null) {
                 throw new IllegalStateException("migration bundle preflight missing for " + manifest.islandId());
@@ -522,6 +551,39 @@ final class MigrationAdminBackend {
         lastRollbackPlan = result.rollbackPlan();
         MigrationRunState state = result.imported() ? MigrationRunState.IMPORTED : MigrationRunState.DRY_RUN_FAILED;
         return "{\"state\":\"" + state + "\"" + migrationBoundaryFields() + ",\"imported\":" + result.imported() + ",\"importedIslands\":" + result.importedIslands() + ",\"sourceFingerprint\":\"" + escape(currentFingerprint) + "\",\"extractedBundles\":" + extractedStats[0] + ",\"extractedManifests\":" + extractedStats[3] + ",\"bundleManifestPolicy\":\"cloudislands-portable-manifest-json-required\",\"extractedFiles\":" + extractedStats[1] + ",\"extractedBytes\":" + extractedStats[2] + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), result.issues())) + ",\"issues\":" + issuesJson(result.issues()) + ",\"rollbackPlan\":" + rollbackPlanJson(result.rollbackPlan()) + "}";
+    }
+
+    private MigrationImportPlan approvedPlanOrNull(String approvalToken) {
+        if (lastPlan.manifests().isEmpty()) {
+            return null;
+        }
+        String token = approvalToken == null ? "" : approvalToken.trim();
+        if (!lastApprovalToken.isBlank() && lastApprovalToken.equals(token)) {
+            return lastPlan.approve(lastPlan.requiredApprovalToken());
+        }
+        if (lastPlan.requiredApprovalToken().equals(token)) {
+            return lastPlan.approve(token);
+        }
+        return null;
+    }
+
+    private String approvalFailure(String approvalToken, boolean importAttempt) {
+        String token = approvalToken == null ? "" : approvalToken.trim();
+        List<MigrationIssue> issues = lastPlan.manifests().isEmpty()
+            ? List.of(new MigrationIssue("MIGRATION_PLAN_EMPTY", "run scan and dryrun before approval", true))
+            : List.of(new MigrationIssue("MIGRATION_APPROVAL_REQUIRED", "run dryrun and pass the returned approval token to " + (importAttempt ? "import" : "approve"), true));
+        String state = lastPlan.manifests().isEmpty() ? MigrationRunState.DRY_RUN_FAILED.name() : MigrationRunState.DRY_RUN_PASSED.name();
+        return "{\"state\":\"" + state + "\""
+            + migrationBoundaryFields()
+            + migrationCoverageFields()
+            + ",\"imported\":false"
+            + ",\"importedIslands\":0"
+            + ",\"approved\":false"
+            + ",\"approvalRequired\":true"
+            + ",\"approvalTokenProvided\":" + !token.isBlank()
+            + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues))
+            + ",\"issues\":" + issuesJson(issues)
+            + "}";
     }
 
     private String sourceFingerprint(Path source) {

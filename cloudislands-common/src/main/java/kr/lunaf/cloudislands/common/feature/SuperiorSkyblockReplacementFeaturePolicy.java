@@ -41,9 +41,11 @@ public final class SuperiorSkyblockReplacementFeaturePolicy {
         "/ciadmin migrate-superiorskyblock2 scan",
         "/ciadmin migrate-superiorskyblock2 dryrun",
         "/ciadmin migrate-superiorskyblock2 report",
+        "/ciadmin migrate-superiorskyblock2 approve",
         "/ciadmin migrate-superiorskyblock2 import",
         "/ciadmin migrate-superiorskyblock2 verify",
         "/ciadmin migrate-superiorskyblock2 compare",
+        "/ciadmin migrate-superiorskyblock2 rollback-plan",
         "/ciadmin migrate-superiorskyblock2 rollback"
     );
     private static final List<String> FORBIDDEN_RUNTIME_PROVIDERS = List.of(

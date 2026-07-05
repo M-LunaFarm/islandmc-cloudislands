@@ -27,9 +27,12 @@ class MigrationSafetyPolicyTest {
         assertTrue(MigrationSafetyPolicy.readOnly("scan"));
         assertTrue(MigrationSafetyPolicy.readOnly(" dry-run "));
         assertTrue(MigrationSafetyPolicy.readOnly("VERIFY"));
+        assertTrue(MigrationSafetyPolicy.readOnly("approve"));
+        assertTrue(MigrationSafetyPolicy.readOnly("rollback-plan"));
         assertTrue(MigrationSafetyPolicy.writeAction("extract"));
         assertTrue(MigrationSafetyPolicy.writeAction("import"));
         assertTrue(MigrationSafetyPolicy.writeAction("rollback"));
+        assertTrue(MigrationSafetyPolicy.approvalRequired("approve"));
         assertTrue(MigrationSafetyPolicy.approvalRequired("import"));
         assertFalse(MigrationSafetyPolicy.approvalRequired("extract"));
     }
@@ -104,15 +107,19 @@ class MigrationSafetyPolicyTest {
                 "/ciadmin migrate-superiorskyblock2 scan",
                 "/ciadmin migrate-superiorskyblock2 dryrun",
                 "/ciadmin migrate-superiorskyblock2 report",
+                "/ciadmin migrate-superiorskyblock2 approve",
                 "/ciadmin migrate-superiorskyblock2 import",
                 "/ciadmin migrate-superiorskyblock2 verify",
                 "/ciadmin migrate-superiorskyblock2 compare",
+                "/ciadmin migrate-superiorskyblock2 rollback-plan",
                 "/ciadmin migrate-superiorskyblock2 rollback"
             ),
             MigrationSafetyPolicy.REQUIRED_ADMIN_COMMANDS
         );
         assertTrue(MigrationSafetyPolicy.requiredAdminCommand("/ciadmin migrate-superiorskyblock2 scan"));
+        assertTrue(MigrationSafetyPolicy.requiredAdminCommand("/ciadmin migrate-superiorskyblock2 approve"));
         assertTrue(MigrationSafetyPolicy.requiredAdminCommand("/ciadmin migrate-superiorskyblock2 report"));
+        assertTrue(MigrationSafetyPolicy.requiredAdminCommand("/ciadmin migrate-superiorskyblock2 rollback-plan"));
         assertTrue(MigrationSafetyPolicy.requiredAdminCommand(" /ciadmin migrate-superiorskyblock2 verify "));
         assertFalse(MigrationSafetyPolicy.requiredAdminCommand("/ciadmin migrate-superiorskyblock2 mutate-live"));
     }

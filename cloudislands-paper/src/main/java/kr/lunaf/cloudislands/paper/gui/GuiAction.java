@@ -197,8 +197,10 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         MIGRATION_WIZARD("admin.migration.wizard"),
         MIGRATION_SCAN("admin.migration.scan"),
         MIGRATION_DRYRUN("admin.migration.dryrun"),
+        MIGRATION_APPROVE_PROMPT("admin.migration.approve.prompt"),
         MIGRATION_IMPORT_PROMPT("admin.migration.import.prompt"),
         MIGRATION_VERIFY("admin.migration.verify"),
+        MIGRATION_ROLLBACK_PLAN("admin.migration.rollback-plan"),
         MIGRATION_ROLLBACK_PROMPT("admin.migration.rollback.prompt");
 
         private final String actionId;

@@ -219,15 +219,15 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
                 return;
             }
             String action = args.length > 1 ? args[1] : "scan";
-            if (action.equalsIgnoreCase("import") && args.length < 3) {
-                player.sendMessage(Component.text("사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>"));
+            if ((action.equalsIgnoreCase("approve") || action.equalsIgnoreCase("import")) && args.length < 3) {
+                player.sendMessage(Component.text("사용법: /ciadmin migrate-superiorskyblock2 " + action.toLowerCase(java.util.Locale.ROOT) + " <approvalToken>"));
                 return;
             }
             if (action.equalsIgnoreCase("compare") && args.length < 3) {
                 player.sendMessage(Component.text("사용법: /ciadmin migrate-superiorskyblock2 compare <island>"));
                 return;
             }
-            String value = action.equalsIgnoreCase("report") || action.equalsIgnoreCase("status") || action.equalsIgnoreCase("rollback")
+            String value = action.equalsIgnoreCase("report") || action.equalsIgnoreCase("status") || action.equalsIgnoreCase("rollback-plan") || action.equalsIgnoreCase("rollbackplan") || action.equalsIgnoreCase("rollback")
                 ? ""
                 : args.length > 2 ? joinArgs(args, 2) : "";
             adminActions.migrateSuperiorSkyblock2(player, action, value);

@@ -132,14 +132,18 @@ class SuperiorSkyblockReplacementFeaturePolicyTest {
                 "/ciadmin migrate-superiorskyblock2 scan",
                 "/ciadmin migrate-superiorskyblock2 dryrun",
                 "/ciadmin migrate-superiorskyblock2 report",
+                "/ciadmin migrate-superiorskyblock2 approve",
                 "/ciadmin migrate-superiorskyblock2 import",
                 "/ciadmin migrate-superiorskyblock2 verify",
                 "/ciadmin migrate-superiorskyblock2 compare",
+                "/ciadmin migrate-superiorskyblock2 rollback-plan",
                 "/ciadmin migrate-superiorskyblock2 rollback"
             ),
             SuperiorSkyblockReplacementFeaturePolicy.migrationCommands()
         );
         assertTrue(SuperiorSkyblockReplacementFeaturePolicy.migrationCommandSummary().contains("migrate-superiorskyblock2 report"));
+        assertTrue(SuperiorSkyblockReplacementFeaturePolicy.migrationCommandSummary().contains("migrate-superiorskyblock2 approve"));
         assertTrue(SuperiorSkyblockReplacementFeaturePolicy.migrationCommandSummary().contains("migrate-superiorskyblock2 compare"));
+        assertTrue(SuperiorSkyblockReplacementFeaturePolicy.migrationCommandSummary().contains("migrate-superiorskyblock2 rollback-plan"));
     }
 }

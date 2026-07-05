@@ -17,9 +17,11 @@ public final class GuiActionParser {
         "admin.jobs.list",
         "admin.jobs.open",
         "admin.jobs.retry.prompt",
+        "admin.migration.approve.prompt",
         "admin.migration.dryrun",
         "admin.migration.import.prompt",
         "admin.migration.open",
+        "admin.migration.rollback-plan",
         "admin.migration.rollback.prompt",
         "admin.migration.scan",
         "admin.migration.verify",
@@ -245,8 +247,10 @@ public final class GuiActionParser {
                 case "admin.migration.wizard" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_WIZARD));
                 case "admin.migration.scan" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_SCAN));
                 case "admin.migration.dryrun" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_DRYRUN));
+                case "admin.migration.approve.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_APPROVE_PROMPT));
                 case "admin.migration.import.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_IMPORT_PROMPT));
                 case "admin.migration.verify" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_VERIFY));
+                case "admin.migration.rollback-plan" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_ROLLBACK_PLAN));
                 case "admin.migration.rollback.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_ROLLBACK_PROMPT));
                 case "island.bank.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BANK_OPEN));
                 case "island.snapshots.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.SNAPSHOTS_OPEN));

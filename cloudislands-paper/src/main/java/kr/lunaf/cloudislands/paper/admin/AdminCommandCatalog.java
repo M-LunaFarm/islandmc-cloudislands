@@ -22,7 +22,7 @@ final class AdminCommandCatalog {
     static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "search", "set", "reload");
     static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     static final List<String> TEMPLATE_COMMANDS = List.of("list", "import", "import-bundle", "upsert", "seticon", "setcost", "setpermission", "enable", "disable", "preview", "validate", "verify-bundle", "verify", "delete", "reorder");
-    static final List<String> MIGRATION_COMMANDS = List.of("wizard", "scan", "status", "dryrun", "dry-run", "report", "extract", "extract-worlds", "world-extract", "import", "verify", "compare", "verify-no-legacy-provider", "rollback");
+    static final List<String> MIGRATION_COMMANDS = List.of("wizard", "scan", "status", "dryrun", "dry-run", "report", "extract", "extract-worlds", "world-extract", "approve", "import", "verify", "compare", "verify-no-legacy-provider", "rollback-plan", "rollbackplan", "rollback");
     static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProviders();
     static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     static final List<String> HELP_COMMANDS = List.of(
@@ -205,10 +205,12 @@ final class AdminCommandCatalog {
         "ciadmin migrate-superiorskyblock2 dry-run [path]",
         "ciadmin migrate-superiorskyblock2 report",
         "ciadmin migrate-superiorskyblock2 extract [outputPath]",
+        "ciadmin migrate-superiorskyblock2 approve <approvalToken>",
         "ciadmin migrate-superiorskyblock2 import <approvalToken>",
         "ciadmin migrate-superiorskyblock2 verify [path]",
         "ciadmin migrate-superiorskyblock2 compare <island>",
         "ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
+        "ciadmin migrate-superiorskyblock2 rollback-plan",
         "ciadmin migrate-superiorskyblock2 rollback"
     );
 

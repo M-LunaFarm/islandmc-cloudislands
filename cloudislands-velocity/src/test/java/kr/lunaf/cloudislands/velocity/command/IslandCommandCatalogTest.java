@@ -143,7 +143,9 @@ class IslandCommandCatalogTest {
                 "ciadmin reload",
                 "ciadmin migrate-superiorskyblock2 scan [path]",
                 "ciadmin migrate-superiorskyblock2 report",
-                "ciadmin migrate-superiorskyblock2 compare <island>"
+                "ciadmin migrate-superiorskyblock2 approve <approvalToken>",
+                "ciadmin migrate-superiorskyblock2 compare <island>",
+                "ciadmin migrate-superiorskyblock2 rollback-plan"
         )) {
             assertTrue(commands.contains(command), command);
         }

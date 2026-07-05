@@ -73,6 +73,10 @@ public final class MigrationAdminService {
         return backend.importLastPlan(approvalToken);
     }
 
+    public synchronized String approveLastPlan(String approvalToken) {
+        return backend.approveLastPlan(approvalToken);
+    }
+
     public synchronized String verify() {
         return backend.verify();
     }
@@ -87,5 +91,9 @@ public final class MigrationAdminService {
 
     public synchronized String rollbackLastImport() {
         return backend.rollbackLastImport();
+    }
+
+    public synchronized String rollbackPlan() {
+        return backend.rollbackPlan();
     }
 }

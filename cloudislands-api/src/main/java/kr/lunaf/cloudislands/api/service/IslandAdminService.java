@@ -118,7 +118,13 @@ public interface IslandAdminService {
     default CompletableFuture<MigrationRunSnapshot> importSuperiorSkyblock2WithApproval(String approvalToken) {
         return importSuperiorSkyblock2(approvalToken);
     }
+    default CompletableFuture<MigrationRunSnapshot> approveSuperiorSkyblock2(String approvalToken) {
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("SuperiorSkyblock2 approval is not implemented by this admin service"));
+    }
     CompletableFuture<MigrationRunSnapshot> verifySuperiorSkyblock2(String path);
+    default CompletableFuture<MigrationRunSnapshot> rollbackPlanSuperiorSkyblock2() {
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("SuperiorSkyblock2 rollback-plan is not implemented by this admin service"));
+    }
     CompletableFuture<MigrationRunSnapshot> rollbackSuperiorSkyblock2(String path);
 
     private static GlobalEventBatchSnapshot batch(List<GlobalEventSnapshot> events) {

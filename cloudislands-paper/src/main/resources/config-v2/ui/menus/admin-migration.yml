@@ -3,7 +3,7 @@ rows: 3
 title-key: admin-migration-menu-title
 layout:
   - "........."
-  - ".S.D.I.V."
+  - ".SDAIVP.."
   - ".R......X"
 items:
   S:
@@ -20,6 +20,13 @@ items:
     fallback-lore:
       - "/ciadmin migrate-superiorskyblock2 dryrun"
     action: dryrun
+  A:
+    material: LIME_DYE
+    name-key: admin-migration-menu-approve-name
+    fallback-name: 승인
+    fallback-lore:
+      - "/ciadmin migrate-superiorskyblock2 approve <approvalToken>"
+    action: approve
   I:
     material: MINECART
     name-key: admin-migration-menu-import-name
@@ -34,6 +41,13 @@ items:
     fallback-lore:
       - "/ciadmin migrate-superiorskyblock2 verify"
     action: verify
+  P:
+    material: BOOK
+    name-key: admin-migration-menu-rollback-plan-name
+    fallback-name: 롤백 계획
+    fallback-lore:
+      - "/ciadmin migrate-superiorskyblock2 rollback-plan"
+    action: rollback-plan
   R:
     material: REDSTONE_BLOCK
     name-key: admin-migration-menu-rollback-name
@@ -49,7 +63,9 @@ items:
 actions:
   scan: admin.migration.scan
   dryrun: admin.migration.dryrun
+  approve: admin.migration.approve.prompt
   import: admin.migration.import.prompt
   verify: admin.migration.verify
+  rollback-plan: admin.migration.rollback-plan
   rollback: admin.migration.rollback.prompt
   close: gui.close

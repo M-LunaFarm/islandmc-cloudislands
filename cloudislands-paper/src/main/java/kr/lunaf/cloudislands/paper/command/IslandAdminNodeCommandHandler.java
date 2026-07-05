@@ -123,6 +123,16 @@ final class IslandAdminNodeCommandHandler {
                 prompt(player, "/ciadmin migrate-superiorskyblock2 import <approvalToken>");
                 yield true;
             }
+            case MIGRATION_APPROVE_PROMPT -> {
+                prompt(player, "/ciadmin migrate-superiorskyblock2 approve <approvalToken>");
+                yield true;
+            }
+            case MIGRATION_ROLLBACK_PLAN -> {
+                runtime.mutateIdempotent("admin.migration.superiorskyblock2.rollback-plan", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("rollback-plan", ""))
+                    .thenAccept(snapshot -> runtime.message(player, "Migration rollback-plan: state=" + snapshot.state() + " available=" + snapshot.rollbackPlanAvailable()))
+                    .exceptionally(error -> adminNodeFailure(player, "admin-migration-rollback-plan-failed", "마이그레이션 롤백 계획을 불러오지 못했습니다.", error));
+                yield true;
+            }
             case MIGRATION_ROLLBACK_PROMPT -> {
                 prompt(player, "/ciadmin migrate-superiorskyblock2 rollback");
                 yield true;

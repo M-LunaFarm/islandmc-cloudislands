@@ -116,6 +116,7 @@ public record MigrationReport(
         return List.of(
             "Run /ciadmin migrate-superiorskyblock2 report and confirm rollbackPossible=true",
             "Run /ciadmin migrate-superiorskyblock2 compare <island> for failed imported islands",
+            "Run /ciadmin migrate-superiorskyblock2 rollback-plan before rollback",
             "Run /ciadmin migrate-superiorskyblock2 rollback to remove only CloudIslands imported state",
             "Run /ciadmin migrate-superiorskyblock2 verify after rollback",
             "Run /ciadmin migrate-superiorskyblock2 verify-no-legacy-provider before retrying import"

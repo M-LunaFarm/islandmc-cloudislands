@@ -335,6 +335,7 @@ public final class TranslationManager {
         values.put("admin-command-template-id-required", "템플릿 ID를 입력해주세요.");
         values.put("admin-command-template-usage", "사용법: /ciadmin command list");
         values.put("admin-command-migration-usage", "사용법: /ciadmin command list");
+        values.put("admin-command-migration-approval-usage", "사용법: /ciadmin migrate-superiorskyblock2 <approve|import> <approvalToken>");
         values.put("admin-command-migration-import-usage", "사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>");
         values.put("admin-command-migration-disabled", "SuperiorSkyblock2 migration is disabled by config.");
         values.put("admin-command-migration-wizard-opened", "SuperiorSkyblock2 migration wizard opened.");

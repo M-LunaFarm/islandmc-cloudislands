@@ -16,8 +16,10 @@ public final class AdminMigrationMenu implements Listener {
         new GuiMenuDefinition("admin.migration", 3, TITLE_KEY, Map.ofEntries(
             Map.entry("scan", "admin.migration.scan"),
             Map.entry("dryrun", "admin.migration.dryrun"),
+            Map.entry("approve", "admin.migration.approve.prompt"),
             Map.entry("import", "admin.migration.import.prompt"),
             Map.entry("verify", "admin.migration.verify"),
+            Map.entry("rollback-plan", "admin.migration.rollback-plan"),
             Map.entry("rollback", "admin.migration.rollback.prompt"),
             Map.entry("close", "gui.close")
         ))

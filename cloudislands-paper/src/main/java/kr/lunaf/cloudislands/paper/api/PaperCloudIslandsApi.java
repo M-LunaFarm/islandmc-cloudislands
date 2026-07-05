@@ -2383,8 +2383,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         }
 
         @Override
+        public CompletableFuture<MigrationRunSnapshot> approveSuperiorSkyblock2(String approvalToken) {
+            return migrateSuperiorSkyblock2("approve", approvalToken);
+        }
+
+        @Override
         public CompletableFuture<MigrationRunSnapshot> verifySuperiorSkyblock2(String path) {
             return migrateSuperiorSkyblock2("verify", path);
+        }
+
+        @Override
+        public CompletableFuture<MigrationRunSnapshot> rollbackPlanSuperiorSkyblock2() {
+            return migrateSuperiorSkyblock2("rollback-plan", "");
         }
 
         @Override

@@ -58,10 +58,12 @@ final class AdminMigrationCommandHandler {
                 "/ciadmin migrate-superiorskyblock2 dry-run [path]",
                 "/ciadmin migrate-superiorskyblock2 report",
                 "/ciadmin migrate-superiorskyblock2 extract [path]",
+                "/ciadmin migrate-superiorskyblock2 approve <approvalToken>",
                 "/ciadmin migrate-superiorskyblock2 import <approvalToken>",
                 "/ciadmin migrate-superiorskyblock2 verify [path]",
                 "/ciadmin migrate-superiorskyblock2 compare <island>",
                 "/ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
+                "/ciadmin migrate-superiorskyblock2 rollback-plan",
                 "/ciadmin migrate-superiorskyblock2 rollback"
             ));
             return true;
@@ -74,15 +76,15 @@ final class AdminMigrationCommandHandler {
             sender.sendMessage(legacyProviderRuntimeMessage());
             return true;
         }
-        if (action.equalsIgnoreCase("import") && args.length < 3) {
-            sender.sendMessage(text.get("admin-command-migration-import-usage", "사용법: /ciadmin migrate-superiorskyblock2 import <approvalToken>"));
+        if ((action.equalsIgnoreCase("approve") || action.equalsIgnoreCase("import")) && args.length < 3) {
+            sender.sendMessage(text.get("admin-command-migration-approval-usage", "사용법: /ciadmin migrate-superiorskyblock2 " + action.toLowerCase(Locale.ROOT) + " <approvalToken>"));
             return true;
         }
         if (action.equalsIgnoreCase("compare") && args.length < 3) {
             sender.sendMessage(text.get("admin-command-migration-compare-usage", "사용법: /ciadmin migrate-superiorskyblock2 compare <island>"));
             return true;
         }
-        String value = action.equalsIgnoreCase("report") || action.equalsIgnoreCase("status") || action.equalsIgnoreCase("rollback")
+        String value = noValueAction(action)
             ? ""
             : args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
         runner.run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrations().migrateSuperiorSkyblock2(action, value).thenApply(formatter::format));
@@ -130,6 +132,14 @@ final class AdminMigrationCommandHandler {
             builder.append(args[index]);
         }
         return builder.toString();
+    }
+
+    private static boolean noValueAction(String action) {
+        return action.equalsIgnoreCase("report")
+            || action.equalsIgnoreCase("status")
+            || action.equalsIgnoreCase("rollback-plan")
+            || action.equalsIgnoreCase("rollbackplan")
+            || action.equalsIgnoreCase("rollback");
     }
 
     @FunctionalInterface

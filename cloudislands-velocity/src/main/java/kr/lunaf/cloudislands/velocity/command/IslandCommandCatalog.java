@@ -120,9 +120,11 @@ public final class IslandCommandCatalog {
             "ciadmin migrate-superiorskyblock2 dry-run [path]",
             "ciadmin migrate-superiorskyblock2 report",
             "ciadmin migrate-superiorskyblock2 extract [outputPath]",
+            "ciadmin migrate-superiorskyblock2 approve <approvalToken>",
             "ciadmin migrate-superiorskyblock2 import <approvalToken>",
             "ciadmin migrate-superiorskyblock2 verify [path]",
             "ciadmin migrate-superiorskyblock2 compare <island>",
+            "ciadmin migrate-superiorskyblock2 rollback-plan",
             "ciadmin migrate-superiorskyblock2 rollback"
         ));
         return List.copyOf(commands);

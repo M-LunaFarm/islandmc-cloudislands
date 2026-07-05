@@ -562,7 +562,7 @@ class GuiSystemPolicyTest {
                 new String[] {"AdminJobMenu", "admin-jobs.yml", "admin.jobs.list", "admin.jobs.retry.prompt", "admin.jobs.cancel.prompt"},
                 new String[] {"AdminRouteMenu", "admin-route.yml", "admin.route.debug", "admin.route.clear.prompt", "admin.route.open"},
                 new String[] {"AdminStorageMenu", "admin-storage.yml", "admin.storage.status", "admin.storage.verify.prompt", "admin.storage.open"},
-                new String[] {"AdminMigrationMenu", "admin-migration.yml", "admin.migration.scan", "admin.migration.dryrun", "admin.migration.rollback.prompt"}
+                new String[] {"AdminMigrationMenu", "admin-migration.yml", "admin.migration.scan", "admin.migration.dryrun", "admin.migration.approve.prompt", "admin.migration.rollback-plan", "admin.migration.rollback.prompt"}
         )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuCase[0] + ".java"));
             String definition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/" + menuCase[1]));

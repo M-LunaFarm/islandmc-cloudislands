@@ -30,9 +30,11 @@ public final class SuperiorSkyblock2MigrationRoutes implements RouteGroup {
         registry.routePost("/v1/admin/migrations/superiorskyblock2/dryrun", this::dryRun);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/report", this::report);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/extract", this::extract);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/approve", this::approve);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/import", this::importPlan);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/verify", this::verify);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/compare", this::compare);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/rollback-plan", this::rollbackPlan);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/rollback", this::rollback);
     }
 
@@ -92,6 +94,15 @@ public final class SuperiorSkyblock2MigrationRoutes implements RouteGroup {
         CoreHttpResponses.write(exchange, 202, migrationAdmin.importLastPlan(JsonFields.text(body, "approval", "")));
     }
 
+    private void approve(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        if (!enabled(exchange)) {
+            return;
+        }
+        String body = CoreHttpResponses.readBody(exchange);
+        audit("MIGRATION_APPROVE", Map.of());
+        CoreHttpResponses.write(exchange, 202, migrationAdmin.approveLastPlan(JsonFields.text(body, "approval", "")));
+    }
+
     private void verify(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         if (!enabled(exchange)) {
             return;
@@ -118,6 +129,14 @@ public final class SuperiorSkyblock2MigrationRoutes implements RouteGroup {
         }
         audit("MIGRATION_ROLLBACK", Map.of());
         CoreHttpResponses.write(exchange, 202, migrationAdmin.rollbackLastImport());
+    }
+
+    private void rollbackPlan(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        if (!enabled(exchange)) {
+            return;
+        }
+        audit("MIGRATION_ROLLBACK_PLAN", Map.of());
+        CoreHttpResponses.write(exchange, 200, migrationAdmin.rollbackPlan());
     }
 
     private boolean enabled(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
