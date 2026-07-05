@@ -1677,6 +1677,69 @@ tasks.register("verifyVisitReviewMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifyBankMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 bank command output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handler, koMessages, enMessages)
+    doLast {
+        val source = handler.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val requiredKeys = listOf(
+            "bank-balance-island-required",
+            "bank-balance-prefix",
+            "bank-deposit-denied",
+            "bank-deposit-failed",
+            "bank-deposit-island-required",
+            "bank-deposit-refund-failed",
+            "bank-deposit-success-prefix",
+            "bank-insufficient-balance",
+            "bank-load-failed",
+            "bank-menu-island-required",
+            "bank-operation-refund-failed",
+            "bank-withdraw-denied",
+            "bank-withdraw-economy-rollback",
+            "bank-withdraw-failed",
+            "bank-withdraw-island-required",
+            "bank-withdraw-rollback-failed",
+            "bank-withdraw-success-prefix",
+            "economy-operation-failed",
+            "economy-unavailable",
+            "input-amount-invalid",
+            "input-deposit-amount-required",
+            "input-withdraw-amount-required"
+        )
+        val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directPlayerCodeFallback = Regex("""playerCodeMessage\([^,\n]+,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val failures = buildList {
+            directRuntimeMessage.find(source)?.let { add("IslandBankCommandHandler directly sends Korean runtime.message output: ${it.value}") }
+            directCurrentIsland.find(source)?.let { add("IslandBankCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            directPlayerCodeFallback.find(source)?.let { add("IslandBankCommandHandler directly passes playerCodeMessage Korean fallback: ${it.value}") }
+            if (source.contains("player.sendMessage(runtime.playerCodeMessage")) add("IslandBankCommandHandler must route playerCodeMessage output through runtime.message")
+            if (!source.contains("private String message(String key, String fallback)")) add("IslandBankCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            if (!source.contains("message(\"bank-balance-prefix\"") ||
+                !source.contains("message(\"bank-deposit-success-prefix\"") ||
+                !source.contains("message(\"bank-withdraw-success-prefix\"") ||
+                !source.contains("message(\"bank-deposit-refund-failed\"") ||
+                !source.contains("message(\"bank-withdraw-rollback-failed\"")
+            ) {
+                add("Bank balance/result output must stay behind keyed helper methods")
+            }
+            requiredKeys.filterNot { source.contains("\"$it\"") }.forEach { add("IslandBankCommandHandler missing message key usage: $it") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing bank message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing bank message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
@@ -1690,6 +1753,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyWarehouseMessageKeyCoverage"))
     dependsOn(tasks.named("verifySettingsMessageKeyCoverage"))
     dependsOn(tasks.named("verifyVisitReviewMessageKeyCoverage"))
+    dependsOn(tasks.named("verifyBankMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))
