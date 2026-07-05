@@ -72,6 +72,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(router.contains("ClickEvent.suggestCommand(\"/\" + command)"), "command help entries must let players insert commands from the help list");
         assertTrue(router.contains("ClickEvent.runCommand(\"/\" + command)"), "command help pagination must be clickable");
         assertTrue(router.contains("hoverEvent(commandHoverComponent"), "command help entries must expose hover details");
+        assertTrue(router.contains("commandListGuiButton(label)"), "command help must include a GUI open button");
+        assertTrue(router.contains("command-list-gui-button"), "command help GUI button must be localized");
         assertTrue(router.contains("permission.node()"), "command help hover must expose the permission node");
         assertTrue(router.contains("runtime.hasCommandPermission(player, permission)"), "command help must disable entries the player cannot use");
         assertTrue(router.contains("sendCommandSuggestion(Player player, String label, String suggestion)"), "unknown command suggestions must use the same clickable UX");
@@ -79,6 +81,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(enMessages.contains("command-suggestion-hover:"));
         assertTrue(koMessages.contains("command-list-hover-permission:"));
         assertTrue(enMessages.contains("command-list-hover-permission:"));
+        assertTrue(koMessages.contains("command-list-gui-hover:"));
+        assertTrue(enMessages.contains("command-list-gui-hover:"));
     }
 
     @Test
@@ -370,6 +374,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adapter.contains("Map.entry(\"close\", new Mapping(\"private\", \"비공개\"))"), "SS2 close must route to island private access");
         assertTrue(adapter.contains("Map.entry(\"open\", new Mapping(\"public\", \"공개\"))"), "SS2 open must route to island public access");
         assertTrue(adapter.contains("Map.entry(\"uncoop\", new Mapping(\"untrust\", \"신뢰해제\"))"), "SS2 uncoop must route to the CloudIslands untrust command");
+        assertTrue(adapter.contains("AdminAliasGuidance"), "SS2 admin aliases must be guidance-only, not player command translations");
+        assertTrue(adapter.contains("admin(\"purge\", \"island delete <island> --confirm\", true)"), "dangerous SS2 admin aliases must point at ciadmin confirmation flows");
+        assertTrue(router.contains("sendLegacyAdminAliasGuidance(player, adminGuidance);"), "legacy admin aliases must get ciadmin guidance before normal player routing");
+        assertTrue(router.contains("ClickEvent.suggestCommand(\"/\" + command)"), "legacy admin alias guidance must suggest the ciadmin command without running it");
         assertTrue(adapter.contains("USAGE.computeIfAbsent(alias"), "legacy alias usage must be counted for admin metrics");
         assertTrue(adminBackend.contains("SuperiorSkyblock2CommandAliasAdapter.metricsLine()"), "admin metrics must include local legacy alias usage");
         assertTrue(migrationConfig.contains("legacy-aliases:\n  superiorskyblock2:\n    enabled: false"), "legacy SS2 aliases must be disabled by default");

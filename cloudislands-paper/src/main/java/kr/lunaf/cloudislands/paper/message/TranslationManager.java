@@ -244,6 +244,8 @@ public final class TranslationManager {
         values.put("command-list-suffix", " - 1 line > 1 command");
         values.put("command-list-hover-click", "클릭: 명령어 입력");
         values.put("command-list-hover-description", "섬 명령어");
+        values.put("command-list-gui-button", "[GUI 열기]");
+        values.put("command-list-gui-hover", "클릭하면 섬 GUI를 엽니다.");
         values.put("command-list-hover-instruction", "명령어 위에 마우스를 올리면 설명과 권한을 볼 수 있습니다.");
         values.put("command-list-hover-locked", "권한이 없어 비활성화되었습니다.");
         values.put("command-list-hover-no-permission", "권한: 필요 없음");
@@ -251,6 +253,10 @@ public final class TranslationManager {
         values.put("command-list-next-hover", "다음 명령어 페이지를 엽니다.");
         values.put("command-list-previous-hover", "이전 명령어 페이지를 엽니다.");
         values.put("command-suggestion-hover", "클릭하면 추천 명령어를 입력합니다.");
+        values.put("legacy-ss2-admin-alias-hover", "클릭하면 안전한 /ciadmin 안내 명령을 입력합니다.");
+        values.put("legacy-ss2-admin-alias-middle", " 은(는) 플레이어 명령으로 실행하지 않습니다. /");
+        values.put("legacy-ss2-admin-alias-prefix", "이전 관리자 명령 /is ");
+        values.put("legacy-ss2-admin-alias-suffix", " 를 확인하세요.");
         values.put("admin-node-menu-title", "섬 노드 관리");
         values.put("admin-node-menu-list-name", "노드 목록");
         values.put("admin-node-menu-list-command", "/ciadmin node list");

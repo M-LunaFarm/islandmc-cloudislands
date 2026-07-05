@@ -18,6 +18,7 @@ class SuperiorSkyblock2CommandAliasAdapterTest {
         SuperiorSkyblock2CommandAliasAdapter adapter = new SuperiorSkyblock2CommandAliasAdapter(false, true);
 
         assertTrue(adapter.translate(new String[] {"recalc"}).isEmpty());
+        assertTrue(adapter.adminGuidance("purge").isEmpty());
         assertEquals("legacySs2Aliases=0", SuperiorSkyblock2CommandAliasAdapter.metricsLine());
     }
 
@@ -47,5 +48,21 @@ class SuperiorSkyblock2CommandAliasAdapterTest {
         for (String alias : java.util.List.of("top", "values", "value", "counts", "recalc", "missions", "ratings", "setwarp", "delwarp", "teleport", "chest", "team", "panel", "disband", "rankup", "close", "open", "uncoop", "permissions", "border")) {
             assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAlias(alias), alias);
         }
+    }
+
+    @Test
+    void adminAliasesReturnCiadminGuidanceInsteadOfPlayerTranslations() {
+        SuperiorSkyblock2CommandAliasAdapter adapter = new SuperiorSkyblock2CommandAliasAdapter(true, true);
+
+        SuperiorSkyblock2CommandAliasAdapter.AdminAliasGuidance purge = adapter.adminGuidance("purge").orElseThrow();
+        SuperiorSkyblock2CommandAliasAdapter.AdminAliasGuidance debug = adapter.adminGuidance("debug").orElseThrow();
+
+        assertEquals("purge", purge.alias());
+        assertEquals("island delete <island> --confirm", purge.ciadminCommand());
+        assertTrue(purge.dangerous());
+        assertEquals("doctor", debug.ciadminCommand());
+        assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAdminAlias("cmdall"));
+        assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAdminAlias("resetworld"));
+        assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAdminAlias("setpermission"));
     }
 }

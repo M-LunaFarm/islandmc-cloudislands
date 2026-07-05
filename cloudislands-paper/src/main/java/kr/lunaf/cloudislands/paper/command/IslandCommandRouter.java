@@ -120,6 +120,12 @@ final class IslandCommandRouter {
         if (legacyAlias != null) {
             effectiveArgs = legacyAlias.args();
             sendLegacyAliasAdvice(player, legacyAlias);
+        } else {
+            SuperiorSkyblock2CommandAliasAdapter.AdminAliasGuidance adminGuidance = legacyAliases.adminGuidance(args[0]).orElse(null);
+            if (adminGuidance != null) {
+                sendLegacyAdminAliasGuidance(player, adminGuidance);
+                return true;
+            }
         }
         String subcommand = effectiveArgs[0].toLowerCase(Locale.ROOT);
         if (isGuiHelpRequest(effectiveArgs)) {
@@ -152,6 +158,18 @@ final class IslandCommandRouter {
         if (alias.migrationMode()) {
             runtime.message(player, runtime.routeMessage("legacy-ss2-alias-migration-mode", "SuperiorSkyblock2 migration mode: legacy /is aliases are being translated to CloudIslands commands."));
         }
+    }
+
+    private void sendLegacyAdminAliasGuidance(Player player, SuperiorSkyblock2CommandAliasAdapter.AdminAliasGuidance guidance) {
+        String command = "ciadmin " + guidance.ciadminCommand();
+        String message = runtime.routeMessage("legacy-ss2-admin-alias-prefix", "이전 관리자 명령 /is ")
+            + guidance.alias()
+            + runtime.routeMessage("legacy-ss2-admin-alias-middle", " 은(는) 플레이어 명령으로 실행하지 않습니다. /")
+            + command
+            + runtime.routeMessage("legacy-ss2-admin-alias-suffix", " 를 확인하세요.");
+        player.sendMessage(Component.text(runtime.playerMessage(message), guidance.dangerous() ? NamedTextColor.RED : NamedTextColor.YELLOW)
+            .clickEvent(ClickEvent.suggestCommand("/" + command))
+            .hoverEvent(Component.text(runtime.playerMessage(runtime.routeMessage("legacy-ss2-admin-alias-hover", "클릭하면 안전한 /ciadmin 안내 명령을 입력합니다.")), NamedTextColor.GRAY)));
     }
 
     private boolean runIslandAction(Player player, String label, String subcommand, String[] args) {
@@ -303,6 +321,7 @@ final class IslandCommandRouter {
         String headerSuffix = runtime.routeMessage("command-list-suffix", CommandListPolicy.HEADER_SUFFIX);
         player.sendMessage(Component.text(runtime.playerMessage(headerTitle + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + headerSuffix), NamedTextColor.GOLD)
             .hoverEvent(Component.text(runtime.playerMessage(runtime.routeMessage("command-list-hover-instruction", "명령어 위에 마우스를 올리면 설명과 권한을 볼 수 있습니다.")), NamedTextColor.GRAY)));
+        player.sendMessage(commandListGuiButton(label));
         for (String command : commandPage.entries()) {
             player.sendMessage(commandEntryComponent(player, label, command));
         }
@@ -312,6 +331,13 @@ final class IslandCommandRouter {
         if (commandPage.nextCommand() != null) {
             player.sendMessage(navigationEntryComponent(commandPage.nextCommand(), runtime.routeMessage("command-list-next-hover", "다음 명령어 페이지를 엽니다.")));
         }
+    }
+
+    private Component commandListGuiButton(String label) {
+        String command = label + " menu";
+        return Component.text(runtime.playerMessage(runtime.routeMessage("command-list-gui-button", "[GUI 열기]")), NamedTextColor.GREEN)
+            .clickEvent(ClickEvent.runCommand("/" + command))
+            .hoverEvent(Component.text(runtime.playerMessage(runtime.routeMessage("command-list-gui-hover", "클릭하면 섬 GUI를 엽니다.")), NamedTextColor.GRAY));
     }
 
     private void sendCommandSuggestion(Player player, String label, String suggestion) {

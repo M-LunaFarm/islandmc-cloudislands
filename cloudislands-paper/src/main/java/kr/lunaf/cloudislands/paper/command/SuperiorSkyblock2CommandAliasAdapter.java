@@ -8,6 +8,27 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 
 public final class SuperiorSkyblock2CommandAliasAdapter {
+    private static final Map<String, AdminAliasGuidance> ADMIN_GUIDANCE = Map.ofEntries(
+        admin("add", "island member add <island> <player> [role]", false),
+        admin("remove", "island member remove <island> <player>", false),
+        admin("join", "island join <island|player>", false),
+        admin("purge", "island delete <island> --confirm", true),
+        admin("schematic", "template verify-bundle <id>", false),
+        admin("cmdall", "help command list", true),
+        admin("msgall", "help command list", true),
+        admin("titleall", "help command list", true),
+        admin("debug", "doctor", false),
+        admin("modules", "integrations", false),
+        admin("resetworld", "island reset <island> --confirm", true),
+        admin("setlimit", "island setblockamount <island> <materialKey> <amount>", false),
+        admin("setsize", "island setsize <island> <size>", false),
+        admin("setteamlimit", "island setteamlimit <island> <limit>", false),
+        admin("setwarpslimit", "island setwarpslimit <island> <limit>", false),
+        admin("setgenerator", "island setgenerator <island> <generatorKey>", false),
+        admin("setpermission", "island setpermission <island> <permission> <true|false>", false),
+        admin("resetpermissions", "island resetpermissions <island>", true),
+        admin("bypass", "help command list", false)
+    );
     private static final Map<String, Mapping> MAPPINGS = Map.ofEntries(
         Map.entry("top", new Mapping("top", "랭킹")),
         Map.entry("values", new Mapping("values", "values")),
@@ -59,8 +80,19 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         return Optional.of(new ResolvedAlias(alias, mapping.subcommand(), mapping.displayCommand(), translated, migrationMode));
     }
 
+    Optional<AdminAliasGuidance> adminGuidance(String alias) {
+        if (!enabled) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(ADMIN_GUIDANCE.get(normalize(alias)));
+    }
+
     static boolean knownAlias(String alias) {
         return MAPPINGS.containsKey(normalize(alias));
+    }
+
+    static boolean knownAdminAlias(String alias) {
+        return ADMIN_GUIDANCE.containsKey(normalize(alias));
     }
 
     public static Map<String, Long> usageSnapshot() {
@@ -95,9 +127,16 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
+    private static Map.Entry<String, AdminAliasGuidance> admin(String alias, String ciadminCommand, boolean dangerous) {
+        return Map.entry(alias, new AdminAliasGuidance(alias, ciadminCommand, dangerous));
+    }
+
     private record Mapping(String subcommand, String displayCommand) {
     }
 
     record ResolvedAlias(String alias, String subcommand, String displayCommand, String[] args, boolean migrationMode) {
+    }
+
+    record AdminAliasGuidance(String alias, String ciadminCommand, boolean dangerous) {
     }
 }
