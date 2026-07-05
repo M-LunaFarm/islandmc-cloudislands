@@ -1383,6 +1383,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, label, coreApiClient.progressionCommands().setRankingIgnored(islandId, ignored).thenApply(result -> rankingIgnoreMessage(label, result)));
             return true;
         }
+        if (args[1].equalsIgnoreCase("mission")) {
+            return handleIslandMission(sender, args, islandId);
+        }
         if (args[1].equalsIgnoreCase("setpermission")) {
             if (args.length < 6) {
                 sendCommandUsage(sender, List.of("/ciadmin island setpermission <islandUuid|islandName> <role> <permission> <true|false>"));
@@ -1651,6 +1654,35 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }).exceptionally(error -> {
             sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[3]);
             return null;
+        });
+        return true;
+    }
+
+    private boolean handleIslandMission(CommandSender sender, String[] args, UUID islandId) {
+        if (args.length < 6 || !(args[3].equalsIgnoreCase("complete") || args[3].equalsIgnoreCase("progress"))) {
+            sendCommandUsage(sender, List.of(
+                "/ciadmin island mission complete <islandUuid|islandName> <playerUuid|playerName> <missionKey> [kind]",
+                "/ciadmin island mission progress <islandUuid|islandName> <playerUuid|playerName> <missionKey> <amount> [kind]"
+            ));
+            return true;
+        }
+        String action = args[3].toLowerCase(Locale.ROOT);
+        if (action.equals("progress") && args.length < 7) {
+            sendCommandUsage(sender, List.of("/ciadmin island mission progress <islandUuid|islandName> <playerUuid|playerName> <missionKey> <amount> [kind]"));
+            return true;
+        }
+        resolvePlayerUuid(sender, args[4]).thenAccept(actorUuid -> {
+            if (actorUuid == null) {
+                return;
+            }
+            String missionKey = args[5];
+            String kind = action.equals("progress") && args.length > 7 ? args[7] : action.equals("complete") && args.length > 6 ? args[6] : "MISSION";
+            String label = "Island mission " + action;
+            if (action.equals("progress")) {
+                run(sender, label, coreApiClient.progressionCommands().adminProgressMission(islandId, actorUuid, missionKey, kind, number(args[6], 1L)).thenApply(result -> missionActionMessage(label, result)));
+            } else {
+                run(sender, label, coreApiClient.progressionCommands().adminCompleteMission(islandId, actorUuid, missionKey, kind).thenApply(result -> missionActionMessage(label, result)));
+            }
         });
         return true;
     }
@@ -2680,6 +2712,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + result.accepted()
             + adminText("admin-command-action-result-code-prefix", " code=")
             + result.code();
+    }
+
+    private String missionActionMessage(String label, kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView result) {
+        return label
+            + adminText("admin-command-action-result-accepted-prefix", ": accepted=")
+            + result.accepted()
+            + adminText("admin-command-action-result-code-prefix", " code=")
+            + result.code()
+            + adminText("admin-command-mission-key-prefix", " mission=")
+            + result.missionKey()
+            + adminText("admin-command-mission-progress-prefix", " progress=")
+            + result.progress()
+            + "/"
+            + result.goal();
     }
 
     private String reviewActionMessage(String label, ReviewActionView result) {

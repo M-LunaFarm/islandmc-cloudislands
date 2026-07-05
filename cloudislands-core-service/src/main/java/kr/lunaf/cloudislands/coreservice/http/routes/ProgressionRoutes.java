@@ -184,6 +184,61 @@ public final class ProgressionRoutes implements RouteGroup {
             });
             CoreHttpResponses.write(exchange, progressed.isPresent() ? 202 : 404, progressed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
+        registry.routePost("/v1/admin/islands/missions/complete", exchange -> {
+            String body = CoreHttpResponses.readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            String missionKey = JsonFields.text(body, "missionKey", "");
+            String kind = JsonFields.text(body, "kind", "MISSION");
+            if (!requireIsland(exchange, islandId)) {
+                return;
+            }
+            if (actorUuid.equals(new UUID(0L, 0L))) {
+                CoreHttpResponses.write(exchange, 400, ApiResponses.error("ACTOR_REQUIRED", "Actor UUID is required"));
+                return;
+            }
+            java.util.Optional<IslandMissionSnapshot> completed = missionRepository.complete(islandId, actorUuid, missionKey, kind);
+            completed.ifPresent(snapshot -> {
+                MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
+                audit.log(actorUuid, "ADMIN", "ISLAND_MISSION_ADMIN_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward, actorUuid));
+                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_ADMIN_COMPLETE", missionCompleteFields(snapshot, reward, actorUuid));
+                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward, actorUuid, "ADMIN"));
+            });
+            CoreHttpResponses.write(exchange, completed.isPresent() ? 202 : 404, completed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
+        });
+        registry.routePost("/v1/admin/islands/missions/progress", exchange -> {
+            String body = CoreHttpResponses.readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            UUID actorUuid = JsonFields.uuid(body, "actorUuid", new UUID(0L, 0L));
+            String missionKey = JsonFields.text(body, "missionKey", "");
+            String kind = JsonFields.text(body, "kind", "MISSION");
+            long amount = Math.max(0L, JsonFields.longValue(body, "amount", 1L));
+            if (!requireIsland(exchange, islandId)) {
+                return;
+            }
+            if (actorUuid.equals(new UUID(0L, 0L))) {
+                CoreHttpResponses.write(exchange, 400, ApiResponses.error("ACTOR_REQUIRED", "Actor UUID is required"));
+                return;
+            }
+            java.util.Optional<IslandMissionSnapshot> progressed = missionRepository.progress(islandId, actorUuid, missionKey, kind, amount);
+            progressed.ifPresent(snapshot -> events.publish(CloudIslandEventType.ISLAND_MISSION_PROGRESS.name(), Map.of(
+                "islandId", islandId.toString(),
+                "missionKey", snapshot.missionKey(),
+                "kind", snapshot.kind(),
+                "progress", Long.toString(snapshot.progress()),
+                "goal", Long.toString(snapshot.goal()),
+                "amount", Long.toString(amount),
+                "actorType", "ADMIN",
+                "completed", Boolean.toString(snapshot.completed())
+            )));
+            progressed.filter(IslandMissionSnapshot::completed).ifPresent(snapshot -> {
+                MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
+                audit.log(actorUuid, "ADMIN", "ISLAND_MISSION_ADMIN_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward, actorUuid));
+                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_ADMIN_COMPLETE", missionCompleteFields(snapshot, reward, actorUuid));
+                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward, actorUuid, "ADMIN"));
+            });
+            CoreHttpResponses.write(exchange, progressed.isPresent() ? 202 : 404, progressed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
+        });
         registry.routePost("/v1/islands/limits", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             CoreHttpResponses.write(exchange, 200, limitsJson(limitRepository.list(JsonFields.uuid(body, "islandId", new UUID(0L, 0L)))));
@@ -276,6 +331,12 @@ public final class ProgressionRoutes implements RouteGroup {
     private static Map<String, String> missionCompleteEventFields(IslandMissionSnapshot snapshot, MissionRewardApplication reward, UUID actorUuid) {
         LinkedHashMap<String, String> fields = new LinkedHashMap<>(missionCompleteFields(snapshot, reward, actorUuid));
         fields.put("islandId", snapshot.islandId().toString());
+        return fields;
+    }
+
+    private static Map<String, String> missionCompleteEventFields(IslandMissionSnapshot snapshot, MissionRewardApplication reward, UUID actorUuid, String actorType) {
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>(missionCompleteEventFields(snapshot, reward, actorUuid));
+        fields.put("actorType", actorType);
         return fields;
     }
 

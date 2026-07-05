@@ -375,6 +375,32 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminMissionMutationsAreFirstClassIslandCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String progressionClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/ProgressionCommandClient.java"));
+        String jdkProgressionClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkProgressionCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/ProgressionRoutes.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin island mission complete <island>"), "Admin mission complete must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin island mission progress <island>"), "Admin mission progress must be listed in help");
+        assertTrue(catalog.contains("\"mission\""), "Admin mission command must be cataloged for completion");
+        assertTrue(source.contains("coreApiClient.progressionCommands().adminCompleteMission(islandId, actorUuid, missionKey, kind)"), "Admin mission complete must use typed progression client");
+        assertTrue(source.contains("coreApiClient.progressionCommands().adminProgressMission(islandId, actorUuid, missionKey, kind, number(args[6], 1L))"), "Admin mission progress must use typed progression client");
+        assertTrue(progressionClient.contains("adminCompleteMission(UUID islandId, UUID actorUuid, String missionKey, String kind)"), "Progression client must expose admin mission complete");
+        assertTrue(progressionClient.contains("adminProgressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount)"), "Progression client must expose admin mission progress");
+        assertTrue(jdkProgressionClient.contains("postResultBody(\"/v1/admin/islands/missions/complete\""), "JDK progression client must call admin mission complete endpoint");
+        assertTrue(jdkProgressionClient.contains("postResultBody(\"/v1/admin/islands/missions/progress\""), "JDK progression client must call admin mission progress endpoint");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/missions/complete"), "Core progression routes must register admin mission complete");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/missions/progress"), "Core progression routes must register admin mission progress");
+        assertTrue(coreRoutes.contains("ISLAND_MISSION_ADMIN_COMPLETE"), "Core admin mission route must audit operator mutation");
+        assertTrue(coreRoutes.contains("actorType\", \"ADMIN\""), "Core admin mission progress event must identify admin mutation");
+        assertTrue(parity.contains("\"superior.admin.mission\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark superior.admin.mission verified");
+    }
+
+    @Test
     void adminPermissionMutationsAreFirstClassIslandCommands() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

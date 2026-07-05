@@ -368,6 +368,16 @@ class BankUseCaseTest {
         }
 
         @Override
+        public CompletableFuture<ProgressionMissionCompletionView> adminCompleteMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public CompletableFuture<ProgressionMissionCompletionView> adminProgressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public CompletableFuture<ProgressionRankingIgnoreView> setRankingIgnored(UUID islandId, boolean ignored) {
             throw new UnsupportedOperationException();
         }

@@ -560,7 +560,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.ignore", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "ranking ignore state is exposed by /ciadmin island ignore with typed Core audit and cache-invalidation coverage"),
     permissionParity("admin", "superior.admin.join", "PLANNED:admin-member-join", "PLANNED", "P1", "forced admin join is not exposed; teleport/inspection exists separately"),
     permissionParity("admin", "superior.admin.kick", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P0", "direct admin member kick is exposed by /ciadmin island member kick with typed Core audit and event coverage"),
-    permissionParity("admin", "superior.admin.mission", "PLANNED:admin-mission-mutations", "PLANNED", "P1", "direct mission completion/reset mutation is not yet exposed"),
+    permissionParity("admin", "superior.admin.mission", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct mission completion/progress mutation is exposed by /ciadmin island mission with typed Core audit, event, and reward coverage"),
     permissionParity("admin", "superior.admin.modules", "cloudislands.admin.addons", "COVERED_BY", "", "module/addon status maps to addon administration"),
     permissionParity("admin", "superior.admin.msg", "PLANNED:admin-island-messaging", "PLANNED", "P2", "direct message-to-island command is not part of the core admin surface"),
     permissionParity("admin", "superior.admin.msgall", "PLANNED:admin-island-messaging", "PLANNED", "P2", "bulk island messaging is not part of the core admin surface"),

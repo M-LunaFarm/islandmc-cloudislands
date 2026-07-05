@@ -1844,6 +1844,18 @@ class CoreTypedClientsTest {
                         {"accepted":true,"code":"MISSION_COMPLETED","islandId":"%s","missionKey":"starter","kind":"CHALLENGE","title":"Starter","progress":2,"goal":2,"completed":true,"reward":"10","updatedAt":"2026-01-02T03:04:05Z"}
                         """.formatted(islandId), islandId, (String) args[2], (String) args[3]));
                 }
+                case "adminProgressMission" -> {
+                    calls.add("adminProgress:" + args[2] + ":" + args[3] + ":" + args[4]);
+                    yield CompletableFuture.completedFuture(JdkProgressionCommandClient.missionCompletionResult("""
+                        {"accepted":true,"code":"MISSION_PROGRESS","islandId":"%s","missionKey":"admin","kind":"DAILY","title":"Admin","progress":3,"goal":5,"completed":false,"reward":"25","updatedAt":"2026-01-02T03:04:05Z"}
+                        """.formatted(islandId), islandId, (String) args[2], (String) args[3]));
+                }
+                case "adminCompleteMission" -> {
+                    calls.add("adminMission:" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture(JdkProgressionCommandClient.missionCompletionResult("""
+                        {"accepted":true,"code":"MISSION_COMPLETED","islandId":"%s","missionKey":"admin","kind":"DAILY","title":"Admin","progress":5,"goal":5,"completed":true,"reward":"25","updatedAt":"2026-01-02T03:04:05Z"}
+                        """.formatted(islandId), islandId, (String) args[2], (String) args[3]));
+                }
                 case "setRankingIgnored" -> {
                     calls.add("rankingIgnored:" + args[1]);
                     yield CompletableFuture.completedFuture(JdkProgressionCommandClient.rankingIgnoreResult("""
@@ -1882,6 +1894,8 @@ class CoreTypedClientsTest {
         ProgressionUpgradePurchaseView upgrade = client.purchaseUpgrade(islandId, actorUuid, "generator").join();
         ProgressionMissionCompletionView progress = client.progressMission(islandId, actorUuid, "starter", "CHALLENGE", 1L).join();
         ProgressionMissionCompletionView mission = client.completeMission(islandId, actorUuid, "starter", "CHALLENGE").join();
+        ProgressionMissionCompletionView adminProgress = client.adminProgressMission(islandId, actorUuid, "admin", "DAILY", 3L).join();
+        ProgressionMissionCompletionView adminMission = client.adminCompleteMission(islandId, actorUuid, "admin", "DAILY").join();
         ProgressionRankingIgnoreView ignored = client.setRankingIgnored(islandId, true).join();
         List<MissionProviderDefinitionSnapshot> registered = client.registerMissionProvider("addon-one", definitions).join();
 
@@ -1900,6 +1914,12 @@ class CoreTypedClientsTest {
         assertEquals(2L, mission.goal());
         assertTrue(mission.completed());
         assertEquals("Starter", mission.title());
+        assertEquals(3L, adminProgress.progress());
+        assertFalse(adminProgress.completed());
+        assertEquals("DAILY", adminMission.kind());
+        assertEquals(5L, adminMission.progress());
+        assertEquals(5L, adminMission.goal());
+        assertTrue(adminMission.completed());
         assertTrue(ignored.ignored());
         assertEquals(islandId.toString(), ignored.islandId());
         assertEquals("addon-one", registered.getFirst().providerId());
@@ -1922,6 +1942,8 @@ class CoreTypedClientsTest {
             "purchase:generator",
             "progress:starter:CHALLENGE:1",
             "mission:starter:CHALLENGE",
+            "adminProgress:admin:DAILY:3",
+            "adminMission:admin:DAILY",
             "rankingIgnored:true",
             "register:addon-one:[{\"missionKey\":\"starter\",\"kind\":\"MISSION\",\"category\":\"building\",\"title\":\"Starter \\\"Mission\\\"\",\"description\":\"Place starter blocks\",\"triggerType\":\"BLOCK_PLACE\",\"targetKey\":\"minecraft:oak_planks\",\"goal\":3,\"rewardType\":\"BANK_DEPOSIT\",\"reward\":\"money:5\",\"repeatable\":false,\"dailyReset\":false,\"enabled\":true}]"
         ), calls);

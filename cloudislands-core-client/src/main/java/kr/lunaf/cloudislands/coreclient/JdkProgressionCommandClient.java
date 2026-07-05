@@ -58,6 +58,26 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
     }
 
     @Override
+    public CompletableFuture<ProgressionMissionCompletionView> adminCompleteMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
+        return core.postResultBody("/v1/admin/islands/missions/complete", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "missionKey", missionKey == null ? "" : missionKey, "kind", normalizedKind))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> missionCompletionResult(body, islandId, missionKey, normalizedKind));
+    }
+
+    @Override
+    public CompletableFuture<ProgressionMissionCompletionView> adminProgressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
+        return core.postResultBody("/v1/admin/islands/missions/progress", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "missionKey", missionKey == null ? "" : missionKey, "kind", normalizedKind, "amount", Math.max(0L, amount)))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> missionCompletionResult(body, islandId, missionKey, normalizedKind));
+    }
+
+    @Override
     public CompletableFuture<ProgressionRankingIgnoreView> setRankingIgnored(UUID islandId, boolean ignored) {
         requireId(islandId, "islandId");
         return core.postResultBody("/v1/admin/rankings/ignore", CoreJsonPayload.object("islandId", islandId, "ignored", ignored))
