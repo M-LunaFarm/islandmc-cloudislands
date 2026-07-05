@@ -558,7 +558,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.fly", "PLANNED:admin-fly-mutation", "PLANNED", "P2", "direct admin fly toggle remains a convenience backlog item"),
     permissionParity("admin", "superior.admin.givedisbands", "PLANNED:disband-quota-compatibility", "PLANNED", "P2", "legacy disband quota commands are tracked as compatibility-only backlog"),
     permissionParity("admin", "superior.admin.ignore", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "ranking ignore state is exposed by /ciadmin island ignore with typed Core audit and cache-invalidation coverage"),
-    permissionParity("admin", "superior.admin.join", "PLANNED:admin-member-join", "PLANNED", "P1", "forced admin join is not exposed; teleport/inspection exists separately"),
+    permissionParity("admin", "superior.admin.join", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "forced admin self-join is exposed by /ciadmin island join with typed Core member-add audit and event coverage"),
     permissionParity("admin", "superior.admin.kick", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P0", "direct admin member kick is exposed by /ciadmin island member kick with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.mission", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct mission completion/progress mutation is exposed by /ciadmin island mission with typed Core audit, event, and reward coverage"),
     permissionParity("admin", "superior.admin.modules", "cloudislands.admin.addons", "COVERED_BY", "", "module/addon status maps to addon administration"),

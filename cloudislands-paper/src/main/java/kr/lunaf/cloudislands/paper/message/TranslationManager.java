@@ -301,6 +301,7 @@ public final class TranslationManager {
         values.put("admin-command-island-usage", "사용법: /ciadmin command list");
         values.put("admin-command-island-not-found", "섬을 찾지 못했습니다: ");
         values.put("admin-command-island-tp-player-only", "플레이어만 섬으로 이동할 수 있습니다.");
+        values.put("admin-command-island-join-player-only", "플레이어만 섬에 강제 가입할 수 있습니다.");
         values.put("admin-command-target-node-required", "대상 노드를 입력해주세요.");
         values.put("admin-command-snapshot-required", "스냅샷 번호를 입력해주세요.");
         values.put("admin-command-snapshot-invalid", "스냅샷 번호가 올바르지 않습니다: ");

@@ -1386,6 +1386,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[1].equalsIgnoreCase("mission")) {
             return handleIslandMission(sender, args, islandId);
         }
+        if (args[1].equalsIgnoreCase("join")) {
+            return handleIslandJoin(sender, args, islandId);
+        }
         if (args[1].equalsIgnoreCase("setpermission")) {
             if (args.length < 6) {
                 sendCommandUsage(sender, List.of("/ciadmin island setpermission <islandUuid|islandName> <role> <permission> <true|false>"));
@@ -1666,6 +1669,17 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[3]);
             return null;
         });
+        return true;
+    }
+
+    private boolean handleIslandJoin(CommandSender sender, String[] args, UUID islandId) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(adminText("admin-command-island-join-player-only", "플레이어만 섬에 강제 가입할 수 있습니다."));
+            return true;
+        }
+        String roleKey = args.length > 3 ? args[3] : "MEMBER";
+        String label = "Island join";
+        run(sender, label, coreApiClient.memberCommands().adminAddMember(islandId, player.getUniqueId(), roleKey).thenApply(result -> memberActionMessage(label, result)));
         return true;
     }
 
@@ -2193,6 +2207,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island member promote <islandUuid|islandName> <playerUuid|playerName>",
             "/ciadmin island member demote <islandUuid|islandName> <playerUuid|playerName>",
             "/ciadmin island member setleader <islandUuid|islandName> <playerUuid|playerName>",
+            "/ciadmin island join <islandUuid|islandName> [role]",
             "/ciadmin island rename <islandUuid|islandName> <name>",
             "/ciadmin island setbiome <islandUuid|islandName> <biomeKey>",
             "/ciadmin island delwarp <islandUuid|islandName> <warp>",

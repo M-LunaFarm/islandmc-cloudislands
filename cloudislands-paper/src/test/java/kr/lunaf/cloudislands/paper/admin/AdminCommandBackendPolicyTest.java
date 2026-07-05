@@ -155,13 +155,17 @@ class AdminCommandBackendPolicyTest {
             "ciadmin island member kick <island> <player>",
             "ciadmin island member promote <island> <player>",
             "ciadmin island member demote <island> <player>",
-            "ciadmin island member setleader <island> <player>"
+            "ciadmin island member setleader <island> <player>",
+            "ciadmin island join <island> [role]"
         )) {
             assertTrue(adminSurface.contains(command), command);
         }
         assertTrue(adminSurface.contains("\"member\""), "Island member must be cataloged for admin completion");
+        assertTrue(adminSurface.contains("\"join\""), "Island join must be cataloged for admin completion");
         assertTrue(source.contains("handleIslandMember"), "Admin member commands must have a dedicated handler before island id resolution");
+        assertTrue(source.contains("handleIslandJoin"), "Admin self-join command must have a dedicated handler after island id resolution");
         assertTrue(source.contains("coreApiClient.memberCommands().adminAddMember(islandId, playerUuid"), "Admin member add must use the typed member client");
+        assertTrue(source.contains("coreApiClient.memberCommands().adminAddMember(islandId, player.getUniqueId(), roleKey)"), "Admin join must add the command sender through the typed member client");
         assertTrue(source.contains("coreApiClient.memberCommands().adminKickMember(islandId, playerUuid)"), "Admin member kick must use the typed member client");
         assertTrue(source.contains("coreApiClient.memberCommands().adminPromoteMember(islandId, playerUuid)"), "Admin member promote must use the typed member client");
         assertTrue(source.contains("coreApiClient.memberCommands().adminDemoteMember(islandId, playerUuid)"), "Admin member demote must use the typed member client");
@@ -178,7 +182,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(coreRoutes.contains("ISLAND_MEMBER_ADMIN_PROMOTE"), "Core admin promote route must audit operator mutation");
         assertTrue(coreRoutes.contains("ISLAND_MEMBER_ADMIN_DEMOTE"), "Core admin demote route must audit operator mutation");
         assertTrue(coreRoutes.contains("ISLAND_MEMBER_ADMIN_SETLEADER"), "Core admin setleader route must audit operator mutation");
-        for (String permission : List.of("superior.admin.add", "superior.admin.kick", "superior.admin.promote", "superior.admin.demote", "superior.admin.setleader")) {
+        for (String permission : List.of("superior.admin.add", "superior.admin.join", "superior.admin.kick", "superior.admin.promote", "superior.admin.demote", "superior.admin.setleader")) {
             assertTrue(parity.contains("\"" + permission + "\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark " + permission + " verified");
         }
     }
