@@ -48,6 +48,7 @@ import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.coreclient.JobRecoveryView;
 import kr.lunaf.cloudislands.coreclient.JobView;
+import kr.lunaf.cloudislands.coreclient.MemberActionView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
@@ -299,6 +300,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 5 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("bank")) {
             return matches(List.of("100", "1000", "10000"), args[4]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("member")) {
+            return matches(List.of("add", "kick", "promote", "demote", "setleader"), args[2]);
+        }
+        if (args.length == 6 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("member") && args[2].equalsIgnoreCase("add")) {
+            return matches(List.of("MEMBER", "MODERATOR", "CO_OWNER", "TRUSTED"), args[5]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("player")) {
             return matches(PLAYER_COMMANDS, args[1]);
@@ -1341,6 +1348,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[1].equalsIgnoreCase("bank")) {
             return handleIslandBank(sender, args);
         }
+        if (args[1].equalsIgnoreCase("member")) {
+            return handleIslandMember(sender, args);
+        }
         UUID islandId = uuidOrNull(args[2]);
         if (islandId == null) {
             resolveIslandUuid(sender, args[2]).thenAccept(resolvedIslandId -> {
@@ -1443,6 +1453,49 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         sendIslandCommandUsage(sender);
+        return true;
+    }
+
+    private boolean handleIslandMember(CommandSender sender, String[] args) {
+        if (args.length < 5 || !List.of("add", "kick", "promote", "demote", "setleader").contains(args[2].toLowerCase(Locale.ROOT))) {
+            sendCommandUsage(sender, List.of(
+                "/ciadmin island member add <islandUuid|islandName> <playerUuid|playerName> [role]",
+                "/ciadmin island member kick <islandUuid|islandName> <playerUuid|playerName>",
+                "/ciadmin island member promote <islandUuid|islandName> <playerUuid|playerName>",
+                "/ciadmin island member demote <islandUuid|islandName> <playerUuid|playerName>",
+                "/ciadmin island member setleader <islandUuid|islandName> <playerUuid|playerName>"
+            ));
+            return true;
+        }
+        resolveIslandUuid(sender, args[3]).thenAccept(islandId -> {
+            if (islandId == null) {
+                return;
+            }
+            resolvePlayerUuid(sender, args[4]).thenAccept(playerUuid -> {
+                if (playerUuid == null) {
+                    return;
+                }
+                String operation = args[2].toLowerCase(Locale.ROOT);
+                String label = switch (operation) {
+                    case "add" -> "Island member add";
+                    case "kick" -> "Island member kick";
+                    case "promote" -> "Island member promote";
+                    case "demote" -> "Island member demote";
+                    default -> "Island member setleader";
+                };
+                CompletableFuture<MemberActionView> action = switch (operation) {
+                    case "add" -> coreApiClient.memberCommands().adminAddMember(islandId, playerUuid, args.length > 5 ? args[5] : "MEMBER");
+                    case "kick" -> coreApiClient.memberCommands().adminKickMember(islandId, playerUuid);
+                    case "promote" -> coreApiClient.memberCommands().adminPromoteMember(islandId, playerUuid);
+                    case "demote" -> coreApiClient.memberCommands().adminDemoteMember(islandId, playerUuid);
+                    default -> coreApiClient.memberCommands().adminSetLeader(islandId, playerUuid);
+                };
+                run(sender, label, action.thenApply(result -> memberActionMessage(label, result)));
+            });
+        }).exceptionally(error -> {
+            sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[3]);
+            return null;
+        });
         return true;
     }
 
@@ -1936,6 +1989,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island bulk-restore <snapshotNo> <islandUuid|islandName>... --confirm",
             "/ciadmin island bank deposit <islandUuid|islandName> <amount>",
             "/ciadmin island bank withdraw <islandUuid|islandName> <amount>",
+            "/ciadmin island member add <islandUuid|islandName> <playerUuid|playerName> [role]",
+            "/ciadmin island member kick <islandUuid|islandName> <playerUuid|playerName>",
+            "/ciadmin island member promote <islandUuid|islandName> <playerUuid|playerName>",
+            "/ciadmin island member demote <islandUuid|islandName> <playerUuid|playerName>",
+            "/ciadmin island member setleader <islandUuid|islandName> <playerUuid|playerName>",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
             "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
@@ -2247,6 +2305,19 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             .append(action.balance());
         if (!action.code().isBlank()) {
             builder.append(adminText("admin-command-action-result-code-prefix", " code=")).append(action.code());
+        }
+        return builder.toString();
+    }
+
+    private String memberActionMessage(String label, MemberActionView action) {
+        StringBuilder builder = new StringBuilder(label)
+            .append(": ")
+            .append(action.accepted() ? adminText("admin-command-action-result-accepted", "accepted") : adminText("admin-command-action-result-rejected", "rejected"));
+        if (!action.code().isBlank()) {
+            builder.append(adminText("admin-command-action-result-code-prefix", " code=")).append(action.code());
+        }
+        if (!action.expiresAt().isBlank()) {
+            builder.append(adminText("admin-command-action-result-expires-prefix", " expires=")).append(action.expiresAt());
         }
         return builder.toString();
     }

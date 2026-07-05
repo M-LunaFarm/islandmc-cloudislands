@@ -836,6 +836,11 @@ class CoreMutationContextTest {
         server.createContext("/v1/islands/members/trust-temporary", exchange -> respond(exchange, requestBodies, "memberTrust", "{\"accepted\":true}"));
         server.createContext("/v1/islands/transfer", exchange -> respond(exchange, requestBodies, "transfer", "{\"accepted\":true}"));
         server.createContext("/v1/islands/members/remove", exchange -> respond(exchange, requestBodies, "memberRemove", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/members/add", exchange -> respond(exchange, requestBodies, "adminMemberAdd", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/members/kick", exchange -> respond(exchange, requestBodies, "adminMemberKick", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/members/promote", exchange -> respond(exchange, requestBodies, "adminMemberPromote", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/members/demote", exchange -> respond(exchange, requestBodies, "adminMemberDemote", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/members/setleader", exchange -> respond(exchange, requestBodies, "adminMemberSetleader", "{\"accepted\":true}"));
         server.createContext("/v1/islands/invites", exchange -> respond(exchange, requestBodies, "inviteCreate", "{\"inviteId\":\"" + inviteId + "\"}"));
         server.createContext("/v1/players/invites", exchange -> respond(exchange, requestBodies, "inviteList", "{\"invites\":[]}"));
         server.createContext("/v1/players/islands", exchange -> respond(exchange, requestBodies, "playerIslands", "{\"islands\":[]}"));
@@ -857,6 +862,11 @@ class CoreMutationContextTest {
             client.memberCommands().trustTemporarily(islandId, actorUuid, playerUuid, 30L).join();
             client.memberCommands().transferOwnership(islandId, actorUuid, playerUuid).join();
             client.memberCommands().removeMember(islandId, actorUuid, playerUuid).join();
+            client.memberCommands().adminAddMember(islandId, playerUuid, "moderator").join();
+            client.memberCommands().adminKickMember(islandId, playerUuid).join();
+            client.memberCommands().adminPromoteMember(islandId, playerUuid).join();
+            client.memberCommands().adminDemoteMember(islandId, playerUuid).join();
+            client.memberCommands().adminSetLeader(islandId, playerUuid).join();
             client.memberCommands().createInvite(islandId, actorUuid, playerUuid).join();
             client.members().inviteSnapshots(playerUuid).join();
             client.navigation().playerIslands(playerUuid).join();
@@ -875,6 +885,11 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"durationSeconds\":30}", requestBodies.get("memberTrust"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + playerUuid + "\"}", requestBodies.get("transfer"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("memberRemove"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\",\"role\":\"MODERATOR\",\"roleKey\":\"MODERATOR\"}", requestBodies.get("adminMemberAdd"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("adminMemberKick"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("adminMemberPromote"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("adminMemberDemote"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\",\"targetUuid\":\"" + playerUuid + "\"}", requestBodies.get("adminMemberSetleader"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + playerUuid + "\"}", requestBodies.get("inviteCreate"));
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("inviteList"));
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("playerIslands"));

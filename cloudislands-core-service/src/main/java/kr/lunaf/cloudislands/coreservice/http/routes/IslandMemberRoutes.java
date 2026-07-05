@@ -69,6 +69,11 @@ public final class IslandMemberRoutes implements RouteGroup {
         registry.routePost("/v1/islands/members/trust-temporary", this::trustTemporary);
         registry.routePost("/v1/islands/transfer", this::transferOwnership);
         registry.routePost("/v1/islands/members/remove", this::removeMember);
+        registry.routePost("/v1/admin/islands/members/add", this::adminAddMember);
+        registry.routePost("/v1/admin/islands/members/kick", this::adminKickMember);
+        registry.routePost("/v1/admin/islands/members/promote", this::adminPromoteMember);
+        registry.routePost("/v1/admin/islands/members/demote", this::adminDemoteMember);
+        registry.routePost("/v1/admin/islands/members/setleader", this::adminSetLeader);
     }
 
     private void members(HttpExchange exchange) throws IOException {
@@ -206,6 +211,128 @@ public final class IslandMemberRoutes implements RouteGroup {
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
 
+    private void adminAddMember(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        String roleKey = roleKey(body, IslandRole.MEMBER.name());
+        if (islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        if (roleKey.equals(IslandRole.OWNER.name()) || !IslandRoleRepository.editableRoleKey(roleKey)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_ROLE_UNAVAILABLE", "Admin member add requires an editable island role"));
+            return;
+        }
+        IslandMemberSnapshot current = member(metadataRepository.members(islandId), playerUuid);
+        String oldRoleKey = current == null ? "" : current.effectiveRoleKey();
+        if (oldRoleKey.equals(IslandRole.OWNER.name())) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner role is protected"));
+            return;
+        }
+        metadataRepository.upsertMemberKey(islandId, playerUuid, roleKey);
+        adminMemberAudit(islandId, playerUuid, "ISLAND_MEMBER_ADMIN_ADD", Map.of("oldRoleKey", oldRoleKey, "newRoleKey", roleKey));
+        publishAdminMemberSet(islandId, playerUuid, oldRoleKey, roleKey, current != null);
+        CoreHttpResponses.write(exchange, 202, memberActionJson("MEMBER_ADDED"));
+    }
+
+    private void adminKickMember(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        if (islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        IslandMemberSnapshot current = member(metadataRepository.members(islandId), playerUuid);
+        if (current != null && current.effectiveRoleKey().equals(IslandRole.OWNER.name())) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be removed as a member"));
+            return;
+        }
+        metadataRepository.removeMember(islandId, playerUuid);
+        adminMemberAudit(islandId, playerUuid, "ISLAND_MEMBER_ADMIN_KICK", Map.of("oldRoleKey", current == null ? "" : current.effectiveRoleKey()));
+        events.publish(CloudIslandEventType.ISLAND_MEMBER_LEFT.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
+        events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
+        CoreHttpResponses.write(exchange, 202, memberActionJson("MEMBER_KICKED"));
+    }
+
+    private void adminPromoteMember(HttpExchange exchange) throws IOException {
+        adminShiftMemberRole(exchange, "promote");
+    }
+
+    private void adminDemoteMember(HttpExchange exchange) throws IOException {
+        adminShiftMemberRole(exchange, "demote");
+    }
+
+    private void adminShiftMemberRole(HttpExchange exchange, String direction) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        if (islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        IslandMemberSnapshot current = member(metadataRepository.members(islandId), playerUuid);
+        if (current == null) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("MEMBER_NOT_FOUND", "Island member was not found"));
+            return;
+        }
+        String oldRoleKey = current.effectiveRoleKey();
+        if (oldRoleKey.equals(IslandRole.OWNER.name())) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner role is protected"));
+            return;
+        }
+        String newRoleKey = direction.equals("promote") ? promotedRole(oldRoleKey) : demotedRole(oldRoleKey);
+        if (newRoleKey.isBlank()) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_ROLE_UNAVAILABLE", "No legacy admin role step is available"));
+            return;
+        }
+        metadataRepository.upsertMemberKey(islandId, playerUuid, newRoleKey);
+        adminMemberAudit(islandId, playerUuid, direction.equals("promote") ? "ISLAND_MEMBER_ADMIN_PROMOTE" : "ISLAND_MEMBER_ADMIN_DEMOTE", Map.of("oldRoleKey", oldRoleKey, "newRoleKey", newRoleKey));
+        publishAdminMemberSet(islandId, playerUuid, oldRoleKey, newRoleKey, true);
+        CoreHttpResponses.write(exchange, 202, memberActionJson(direction.equals("promote") ? "MEMBER_PROMOTED" : "MEMBER_DEMOTED"));
+    }
+
+    private void adminSetLeader(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        UUID targetUuid = JsonFields.uuid(body, "playerUuid", JsonFields.uuid(body, "targetUuid", EMPTY_UUID));
+        IslandSnapshot island = islandRepository.findById(islandId).orElse(null);
+        if (island == null) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        UUID oldOwner = island.ownerUuid();
+        boolean transferred = islandRepository.transferOwnership(islandId, oldOwner, targetUuid);
+        if (transferred) {
+            metadataRepository.upsertMember(islandId, oldOwner, IslandRole.CO_OWNER);
+            metadataRepository.upsertMember(islandId, targetUuid, IslandRole.OWNER);
+            playerProfiles.clearPrimaryIsland(oldOwner);
+            playerProfiles.setPrimaryIsland(targetUuid, islandId);
+        }
+        adminMemberAudit(islandId, targetUuid, "ISLAND_MEMBER_ADMIN_SETLEADER", Map.of("oldOwnerUuid", oldOwner.toString(), "transferred", Boolean.toString(transferred)));
+        if (transferred) {
+            events.publish(CloudIslandEventType.ISLAND_OWNERSHIP_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", EMPTY_UUID.toString(), "targetUuid", targetUuid.toString()));
+            events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorUuid", EMPTY_UUID.toString(), "targetUuid", targetUuid.toString()));
+        }
+        CoreHttpResponses.write(exchange, transferred ? 202 : 409, transferred ? memberActionJson("LEADER_SET") : ApiResponses.error("OWNERSHIP_TRANSFER_DENIED", "Target player already owns an island or transfer was denied"));
+    }
+
+    private void adminMemberAudit(UUID islandId, UUID playerUuid, String action, Map<String, String> payload) {
+        LinkedHashMap<String, String> fields = new LinkedHashMap<>();
+        fields.put("playerUuid", playerUuid.toString());
+        fields.putAll(payload);
+        audit.log(EMPTY_UUID, "ADMIN", action, "ISLAND", islandId.toString(), fields);
+        islandLogs.append(islandId, EMPTY_UUID, action, fields);
+    }
+
+    private void publishAdminMemberSet(UUID islandId, UUID playerUuid, String oldRoleKey, String newRoleKey, boolean existingMember) {
+        events.publish(existingMember ? CloudIslandEventType.ISLAND_MEMBER_ROLE_CHANGED.name() : CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), existingMember
+            ? Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "oldRole", oldRoleKey, "oldRoleKey", oldRoleKey, "newRole", newRoleKey, "newRoleKey", newRoleKey)
+            : Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", newRoleKey, "roleKey", newRoleKey));
+        events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", newRoleKey, "roleKey", newRoleKey));
+    }
+
     private boolean requireIslandPermission(HttpExchange exchange, UUID islandId, UUID actorUuid, IslandPermission permission) throws IOException {
         boolean owner = islandRepository.findById(islandId)
             .map(island -> island.ownerUuid().equals(actorUuid))
@@ -329,5 +456,27 @@ public final class IslandMemberRoutes implements RouteGroup {
             value = JsonFields.text(body, "role", fallback);
         }
         return IslandRoleRepository.normalizeRoleKey(value);
+    }
+
+    private static String memberActionJson(String code) {
+        return SimpleJson.stringify(Map.of("accepted", true, "code", code));
+    }
+
+    private static String promotedRole(String roleKey) {
+        return switch (IslandRoleRepository.normalizeRoleKey(roleKey)) {
+            case "TRUSTED" -> "MEMBER";
+            case "MEMBER" -> "MODERATOR";
+            case "MODERATOR" -> "CO_OWNER";
+            default -> "";
+        };
+    }
+
+    private static String demotedRole(String roleKey) {
+        return switch (IslandRoleRepository.normalizeRoleKey(roleKey)) {
+            case "CO_OWNER" -> "MODERATOR";
+            case "MODERATOR" -> "MEMBER";
+            case "MEMBER" -> "TRUSTED";
+            default -> "";
+        };
     }
 }

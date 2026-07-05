@@ -24,4 +24,14 @@ public interface MemberCommandClient {
     CompletableFuture<MemberActionView> pardonVisitor(UUID islandId, UUID actorUuid, UUID targetUuid);
 
     CompletableFuture<MemberActionView> kickVisitor(UUID islandId, UUID actorUuid, UUID targetUuid);
+
+    CompletableFuture<MemberActionView> adminAddMember(UUID islandId, UUID targetUuid, String roleKey);
+
+    CompletableFuture<MemberActionView> adminKickMember(UUID islandId, UUID targetUuid);
+
+    CompletableFuture<MemberActionView> adminPromoteMember(UUID islandId, UUID targetUuid);
+
+    CompletableFuture<MemberActionView> adminDemoteMember(UUID islandId, UUID targetUuid);
+
+    CompletableFuture<MemberActionView> adminSetLeader(UUID islandId, UUID targetUuid);
 }

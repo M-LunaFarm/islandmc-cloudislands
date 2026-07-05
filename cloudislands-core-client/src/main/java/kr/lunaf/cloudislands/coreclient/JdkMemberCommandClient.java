@@ -102,6 +102,47 @@ public final class JdkMemberCommandClient implements MemberCommandClient {
             .thenApply(body -> memberAction(body, "VISITOR_KICKED"));
     }
 
+    @Override
+    public CompletableFuture<MemberActionView> adminAddMember(UUID islandId, UUID targetUuid, String roleKey) {
+        requireAdminIds(islandId, targetUuid);
+        String normalizedRoleKey = normalizeRoleKey(roleKey == null || roleKey.isBlank() ? "MEMBER" : roleKey);
+        return core.postResultBody("/v1/admin/islands/members/add", CoreJsonPayload.object("islandId", islandId, "playerUuid", targetUuid, "role", normalizedRoleKey, "roleKey", normalizedRoleKey))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> memberAction(body, "MEMBER_ADDED"));
+    }
+
+    @Override
+    public CompletableFuture<MemberActionView> adminKickMember(UUID islandId, UUID targetUuid) {
+        requireAdminIds(islandId, targetUuid);
+        return core.postResultBody("/v1/admin/islands/members/kick", CoreJsonPayload.object("islandId", islandId, "playerUuid", targetUuid))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> memberAction(body, "MEMBER_KICKED"));
+    }
+
+    @Override
+    public CompletableFuture<MemberActionView> adminPromoteMember(UUID islandId, UUID targetUuid) {
+        requireAdminIds(islandId, targetUuid);
+        return core.postResultBody("/v1/admin/islands/members/promote", CoreJsonPayload.object("islandId", islandId, "playerUuid", targetUuid))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> memberAction(body, "MEMBER_PROMOTED"));
+    }
+
+    @Override
+    public CompletableFuture<MemberActionView> adminDemoteMember(UUID islandId, UUID targetUuid) {
+        requireAdminIds(islandId, targetUuid);
+        return core.postResultBody("/v1/admin/islands/members/demote", CoreJsonPayload.object("islandId", islandId, "playerUuid", targetUuid))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> memberAction(body, "MEMBER_DEMOTED"));
+    }
+
+    @Override
+    public CompletableFuture<MemberActionView> adminSetLeader(UUID islandId, UUID targetUuid) {
+        requireAdminIds(islandId, targetUuid);
+        return core.postResultBody("/v1/admin/islands/members/setleader", CoreJsonPayload.object("islandId", islandId, "playerUuid", targetUuid, "targetUuid", targetUuid))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> memberAction(body, "LEADER_SET"));
+    }
+
     static IslandInviteActionResult inviteAction(String body, String successCode) {
         Map<?, ?> root = CoreJson.object(body);
         boolean accepted = CoreJson.bool(root, "accepted");
@@ -123,6 +164,11 @@ public final class JdkMemberCommandClient implements MemberCommandClient {
     private static void requireIds(UUID islandId, UUID actorUuid, UUID targetUuid) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
+        requireId(targetUuid, "targetUuid");
+    }
+
+    private static void requireAdminIds(UUID islandId, UUID targetUuid) {
+        requireId(islandId, "islandId");
         requireId(targetUuid, "targetUuid");
     }
 

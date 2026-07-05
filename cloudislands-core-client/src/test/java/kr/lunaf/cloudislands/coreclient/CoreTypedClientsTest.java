@@ -1927,6 +1927,11 @@ class CoreTypedClientsTest {
             server.createContext("/v1/islands/members/set", exchange -> respondMemberTest(exchange, calls, "role", "{\"accepted\":true,\"code\":\"MEMBER_ROLE_SET\"}"));
             server.createContext("/v1/islands/members/trust-temporary", exchange -> respondMemberTest(exchange, calls, "trust", "{\"accepted\":true,\"code\":\"TEMP_TRUST_SET\",\"expiresAt\":\"later\"}"));
             server.createContext("/v1/islands/transfer", exchange -> respondMemberTest(exchange, calls, "transfer", "{\"accepted\":true,\"code\":\"OWNERSHIP_TRANSFERRED\"}"));
+            server.createContext("/v1/admin/islands/members/add", exchange -> respondMemberTest(exchange, calls, "adminAdd", "{\"accepted\":true,\"code\":\"MEMBER_ADDED\"}"));
+            server.createContext("/v1/admin/islands/members/kick", exchange -> respondMemberTest(exchange, calls, "adminKick", "{\"accepted\":true,\"code\":\"MEMBER_KICKED\"}"));
+            server.createContext("/v1/admin/islands/members/promote", exchange -> respondMemberTest(exchange, calls, "adminPromote", "{\"accepted\":true,\"code\":\"MEMBER_PROMOTED\"}"));
+            server.createContext("/v1/admin/islands/members/demote", exchange -> respondMemberTest(exchange, calls, "adminDemote", "{\"accepted\":true,\"code\":\"MEMBER_DEMOTED\"}"));
+            server.createContext("/v1/admin/islands/members/setleader", exchange -> respondMemberTest(exchange, calls, "adminSetleader", "{\"accepted\":true,\"code\":\"LEADER_SET\"}"));
             server.createContext("/v1/islands/bans/set", exchange -> respondMemberTest(exchange, calls, "ban", "{\"accepted\":false,\"code\":\"VISITOR_BAN_DENIED\"}"));
             server.createContext("/v1/islands/bans/remove", exchange -> respondMemberTest(exchange, calls, "pardon", "{\"accepted\":true,\"code\":\"VISITOR_PARDONED\"}"));
             server.createContext("/v1/islands/visitors/kick", exchange -> respondMemberTest(exchange, calls, "kick", "{\"accepted\":true,\"code\":\"VISITOR_KICKED\"}"));
@@ -1940,6 +1945,11 @@ class CoreTypedClientsTest {
             assertEquals("MEMBER_ROLE_SET", client.setRole(islandId, actorUuid, targetUuid, "co-owner").join().code());
             assertEquals("later", client.trustTemporarily(islandId, actorUuid, targetUuid, 60L).join().expiresAt());
             assertEquals("OWNERSHIP_TRANSFERRED", client.transferOwnership(islandId, actorUuid, targetUuid).join().code());
+            assertEquals("MEMBER_ADDED", client.adminAddMember(islandId, targetUuid, "member").join().code());
+            assertEquals("MEMBER_KICKED", client.adminKickMember(islandId, targetUuid).join().code());
+            assertEquals("MEMBER_PROMOTED", client.adminPromoteMember(islandId, targetUuid).join().code());
+            assertEquals("MEMBER_DEMOTED", client.adminDemoteMember(islandId, targetUuid).join().code());
+            assertEquals("LEADER_SET", client.adminSetLeader(islandId, targetUuid).join().code());
             assertFalse(client.banVisitor(islandId, actorUuid, targetUuid, "reason").join().accepted());
             assertEquals("VISITOR_PARDONED", client.pardonVisitor(islandId, actorUuid, targetUuid).join().code());
             assertEquals("VISITOR_KICKED", client.kickVisitor(islandId, actorUuid, targetUuid).join().code());
@@ -1951,6 +1961,11 @@ class CoreTypedClientsTest {
                 "role:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\",\"role\":\"CO_OWNER\",\"roleKey\":\"CO_OWNER\"}",
                 "trust:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\",\"durationSeconds\":60}",
                 "transfer:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}",
+                "adminAdd:{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + targetUuid + "\",\"role\":\"MEMBER\",\"roleKey\":\"MEMBER\"}",
+                "adminKick:{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + targetUuid + "\"}",
+                "adminPromote:{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + targetUuid + "\"}",
+                "adminDemote:{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + targetUuid + "\"}",
+                "adminSetleader:{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + targetUuid + "\",\"targetUuid\":\"" + targetUuid + "\"}",
                 "ban:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\",\"reason\":\"reason\"}",
                 "pardon:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\"}",
                 "kick:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + targetUuid + "\"}"

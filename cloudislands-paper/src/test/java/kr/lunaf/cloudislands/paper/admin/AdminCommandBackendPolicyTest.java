@@ -141,6 +141,49 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminMemberMutationsAreFirstClassIslandCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String memberClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/MemberCommandClient.java"));
+        String jdkMemberClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkMemberCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        for (String command : List.of(
+            "ciadmin island member add <island> <player> [role]",
+            "ciadmin island member kick <island> <player>",
+            "ciadmin island member promote <island> <player>",
+            "ciadmin island member demote <island> <player>",
+            "ciadmin island member setleader <island> <player>"
+        )) {
+            assertTrue(adminSurface.contains(command), command);
+        }
+        assertTrue(adminSurface.contains("\"member\""), "Island member must be cataloged for admin completion");
+        assertTrue(source.contains("handleIslandMember"), "Admin member commands must have a dedicated handler before island id resolution");
+        assertTrue(source.contains("coreApiClient.memberCommands().adminAddMember(islandId, playerUuid"), "Admin member add must use the typed member client");
+        assertTrue(source.contains("coreApiClient.memberCommands().adminKickMember(islandId, playerUuid)"), "Admin member kick must use the typed member client");
+        assertTrue(source.contains("coreApiClient.memberCommands().adminPromoteMember(islandId, playerUuid)"), "Admin member promote must use the typed member client");
+        assertTrue(source.contains("coreApiClient.memberCommands().adminDemoteMember(islandId, playerUuid)"), "Admin member demote must use the typed member client");
+        assertTrue(source.contains("coreApiClient.memberCommands().adminSetLeader(islandId, playerUuid)"), "Admin member setleader must use the typed member client");
+        assertTrue(memberClient.contains("adminAddMember(UUID islandId, UUID targetUuid, String roleKey)"), "Member client must expose admin add");
+        assertTrue(memberClient.contains("adminKickMember(UUID islandId, UUID targetUuid)"), "Member client must expose admin kick");
+        assertTrue(memberClient.contains("adminPromoteMember(UUID islandId, UUID targetUuid)"), "Member client must expose admin promote");
+        assertTrue(memberClient.contains("adminDemoteMember(UUID islandId, UUID targetUuid)"), "Member client must expose admin demote");
+        assertTrue(memberClient.contains("adminSetLeader(UUID islandId, UUID targetUuid)"), "Member client must expose admin setleader");
+        assertTrue(jdkMemberClient.contains("postResultBody(\"/v1/admin/islands/members/add\""), "JDK member client must call admin add endpoint");
+        assertTrue(jdkMemberClient.contains("postResultBody(\"/v1/admin/islands/members/setleader\""), "JDK member client must call admin setleader endpoint");
+        assertTrue(coreRoutes.contains("ISLAND_MEMBER_ADMIN_ADD"), "Core admin add route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ISLAND_MEMBER_ADMIN_KICK"), "Core admin kick route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ISLAND_MEMBER_ADMIN_PROMOTE"), "Core admin promote route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ISLAND_MEMBER_ADMIN_DEMOTE"), "Core admin demote route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ISLAND_MEMBER_ADMIN_SETLEADER"), "Core admin setleader route must audit operator mutation");
+        for (String permission : List.of("superior.admin.add", "superior.admin.kick", "superior.admin.promote", "superior.admin.demote", "superior.admin.setleader")) {
+            assertTrue(parity.contains("\"" + permission + "\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark " + permission + " verified");
+        }
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

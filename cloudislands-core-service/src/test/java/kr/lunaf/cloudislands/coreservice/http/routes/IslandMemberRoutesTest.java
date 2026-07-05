@@ -5,7 +5,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.sun.net.httpserver.Headers;
+import com.sun.net.httpserver.HttpContext;
+import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpPrincipal;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -21,8 +31,15 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
+import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
+import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
+import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
+import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandMemberRoutesTest {
@@ -33,13 +50,18 @@ class IslandMemberRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(6, paths.size());
+        assertEquals(11, paths.size());
         assertTrue(paths.contains("/v1/islands/members"));
         assertTrue(paths.contains("/v1/players/islands"));
         assertTrue(paths.contains("/v1/islands/members/set"));
         assertTrue(paths.contains("/v1/islands/members/trust-temporary"));
         assertTrue(paths.contains("/v1/islands/transfer"));
         assertTrue(paths.contains("/v1/islands/members/remove"));
+        assertTrue(paths.contains("/v1/admin/islands/members/add"));
+        assertTrue(paths.contains("/v1/admin/islands/members/kick"));
+        assertTrue(paths.contains("/v1/admin/islands/members/promote"));
+        assertTrue(paths.contains("/v1/admin/islands/members/demote"));
+        assertTrue(paths.contains("/v1/admin/islands/members/setleader"));
     }
 
     @Test
@@ -54,6 +76,51 @@ class IslandMemberRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/members/trust-temporary"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/transfer"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/members/remove"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/members/add"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/members/kick"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/members/promote"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/members/demote"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/members/setleader"));
+    }
+
+    @Test
+    void adminMemberRoutesMutateMembersWithoutIslandPermission() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000101");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000102");
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000103");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "member-admin");
+
+        new IslandMemberRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            profiles,
+            new InMemoryIslandLogRepository(),
+            audit,
+            events
+        ).register(handlers::put);
+
+        handle(handlers, "/v1/admin/islands/members/add", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\",\"roleKey\":\"MEMBER\"}", 202, "MEMBER_ADDED");
+        assertEquals("MEMBER", metadata.members(islandId).get(0).effectiveRoleKey());
+        handle(handlers, "/v1/admin/islands/members/promote", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "MEMBER_PROMOTED");
+        assertEquals("MODERATOR", metadata.members(islandId).get(0).effectiveRoleKey());
+        handle(handlers, "/v1/admin/islands/members/demote", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "MEMBER_DEMOTED");
+        assertEquals("MEMBER", metadata.members(islandId).get(0).effectiveRoleKey());
+        handle(handlers, "/v1/admin/islands/members/kick", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "MEMBER_KICKED");
+        assertTrue(metadata.members(islandId).isEmpty());
+        handle(handlers, "/v1/admin/islands/members/setleader", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "LEADER_SET");
+        assertEquals(playerUuid, islands.findById(islandId).orElseThrow().ownerUuid());
+        assertEquals(1L, events.countByType("ISLAND_OWNERSHIP_CHANGED"));
+        assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_ADD"));
+        assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_KICK"));
+        assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_SETLEADER"));
     }
 
     @Test
@@ -150,6 +217,15 @@ class IslandMemberRoutesTest {
         assertTrue(!SimpleJson.text(member.get("joinedAt")).isBlank());
     }
 
+    private static void handle(Map<String, HttpHandler> handlers, String path, String body, int expectedStatus, String expectedCode) throws Exception {
+        TestExchange exchange = new TestExchange(path, body);
+        handlers.get(path).handle(exchange);
+        assertEquals(expectedStatus, exchange.status());
+        Map<?, ?> response = SimpleJson.object(SimpleJson.parse(exchange.body()));
+        assertEquals(true, response.get("accepted"));
+        assertEquals(expectedCode, SimpleJson.text(response.get("code")));
+    }
+
     private static final class RecordingRegistry implements CoreRouteRegistry {
         private final Map<String, Set<String>> methods = new HashMap<>();
 
@@ -169,6 +245,110 @@ class IslandMemberRoutesTest {
 
         Set<String> methods(String path) {
             return methods.getOrDefault(path, Set.of());
+        }
+    }
+
+    private static final class TestExchange extends HttpExchange {
+        private final Headers requestHeaders = new Headers();
+        private final Headers responseHeaders = new Headers();
+        private final ByteArrayInputStream requestBody;
+        private final ByteArrayOutputStream responseBody = new ByteArrayOutputStream();
+        private final URI uri;
+        private int status;
+
+        private TestExchange(String path, String body) {
+            this.uri = URI.create(path);
+            this.requestBody = new ByteArrayInputStream(body.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        }
+
+        @Override
+        public Headers getRequestHeaders() {
+            return requestHeaders;
+        }
+
+        @Override
+        public Headers getResponseHeaders() {
+            return responseHeaders;
+        }
+
+        @Override
+        public URI getRequestURI() {
+            return uri;
+        }
+
+        @Override
+        public String getRequestMethod() {
+            return "POST";
+        }
+
+        @Override
+        public HttpContext getHttpContext() {
+            return null;
+        }
+
+        @Override
+        public void close() {
+        }
+
+        @Override
+        public InputStream getRequestBody() {
+            return requestBody;
+        }
+
+        @Override
+        public OutputStream getResponseBody() {
+            return responseBody;
+        }
+
+        @Override
+        public void sendResponseHeaders(int status, long responseLength) {
+            this.status = status;
+        }
+
+        @Override
+        public InetSocketAddress getRemoteAddress() {
+            return null;
+        }
+
+        @Override
+        public int getResponseCode() {
+            return status;
+        }
+
+        @Override
+        public InetSocketAddress getLocalAddress() {
+            return null;
+        }
+
+        @Override
+        public String getProtocol() {
+            return "HTTP/1.1";
+        }
+
+        @Override
+        public Object getAttribute(String name) {
+            return null;
+        }
+
+        @Override
+        public void setAttribute(String name, Object value) {
+        }
+
+        @Override
+        public void setStreams(InputStream input, OutputStream output) {
+        }
+
+        @Override
+        public HttpPrincipal getPrincipal() {
+            return null;
+        }
+
+        int status() {
+            return status;
+        }
+
+        String body() {
+            return responseBody.toString(java.nio.charset.StandardCharsets.UTF_8);
         }
     }
 }
