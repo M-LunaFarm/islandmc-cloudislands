@@ -619,7 +619,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + "agentRole=" + agent.role() + '\n'
             + "pluginVersion=" + agent.plugin().getPluginMeta().getVersion() + '\n'
             + "onlinePlayers=" + agent.plugin().getServer().getOnlinePlayers().size() + '\n'
-            + "routeWaitSeconds=" + routeWaitSeconds + '\n';
+            + "routeWaitSeconds=" + routeWaitSeconds + '\n'
+            + "islandInspectCommand=/ciadmin island inspect <player|island> --json\n";
     }
 
     private static void writeZipEntry(ZipOutputStream zip, String name, String content) throws IOException {
@@ -933,6 +934,26 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
     }
 
+    private record IslandInspectReport(
+        String target,
+        CoreGuiViews.IslandInfoView info,
+        AdminIslandRuntimeView runtime,
+        CoreGuiViews.BankView bank,
+        List<CoreGuiViews.SnapshotView> snapshots,
+        IslandVisitorStatsView visitors,
+        List<JobView> jobs,
+        List<AdminAuditEntryView> audit,
+        AdminRouteDebugView routes,
+        AdminStorageStatusView storage
+    ) {
+        private IslandInspectReport {
+            target = target == null ? "" : target;
+            snapshots = snapshots == null ? List.of() : List.copyOf(snapshots);
+            jobs = jobs == null ? List.of() : List.copyOf(jobs);
+            audit = audit == null ? List.of() : List.copyOf(audit);
+        }
+    }
+
     private String snapshotPolicyDiagnosticBody(AdminCoreConfigView body) {
         return "snapshotLatest=" + longValue(body, "snapshotKeepLatest")
             + " snapshotRetention=" + longValue(body, "snapshotKeepHourly") + "/" + longValue(body, "snapshotKeepDaily") + "/" + longValue(body, "snapshotKeepWeekly") + "/" + longValue(body, "snapshotKeepManual")
@@ -1049,6 +1070,206 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             .exceptionally(_error -> fallback);
     }
 
+    private CompletableFuture<CharSequence> islandInspectMessage(String target, boolean json) {
+        return islandInspectInfo(target).thenCompose(info -> {
+            UUID islandId = uuidOrNull(info.islandId());
+            if (islandId == null) {
+                IslandInspectReport report = new IslandInspectReport(target, info, missingRuntime(), new CoreGuiViews.BankView("0", ""), List.of(), new IslandVisitorStatsView("", 0L, 0L, List.of()), List.of(), List.of(), new AdminRouteDebugView(List.of(), List.of()), new AdminStorageStatusView(List.of()));
+                return CompletableFuture.completedFuture(json ? islandInspectJson(report) : islandInspectText(report));
+            }
+            CompletableFuture<AdminIslandRuntimeView> runtime = withFallback(coreApiClient.adminIslands().runtime(islandId), missingRuntime());
+            CompletableFuture<CoreGuiViews.BankView> bank = withFallback(coreApiClient.bank().islandBank(islandId), new CoreGuiViews.BankView("ERROR", ""));
+            CompletableFuture<List<CoreGuiViews.SnapshotView>> snapshots = withFallback(coreApiClient.snapshots().listSnapshots(islandId, 5), List.of());
+            CompletableFuture<IslandVisitorStatsView> visitors = withFallback(coreApiClient.visitorStats().stats(islandId, 10), new IslandVisitorStatsView(islandId.toString(), 0L, 0L, List.of()));
+            CompletableFuture<List<JobView>> jobs = withFallback(coreApiClient.jobs().list(), List.of());
+            CompletableFuture<List<AdminAuditEntryView>> audit = withFallback(coreApiClient.adminAudit().list(10), List.of());
+            CompletableFuture<AdminRouteDebugView> routes = withFallback(coreApiClient.adminRoutes().debug(new UUID(0L, 0L)), new AdminRouteDebugView(List.of(), List.of()));
+            CompletableFuture<AdminStorageStatusView> storage = withFallback(coreApiClient.adminStorage().status(), new AdminStorageStatusView(List.of()));
+            return CompletableFuture.allOf(runtime, bank, snapshots, visitors, jobs, audit, routes, storage)
+                .thenApply(_ignored -> {
+                    IslandInspectReport report = new IslandInspectReport(target, info, runtime.join(), bank.join(), snapshots.join(), visitors.join(), jobs.join(), audit.join(), routes.join(), storage.join());
+                    return json ? islandInspectJson(report) : islandInspectText(report);
+                });
+        });
+    }
+
+    private CompletableFuture<CoreGuiViews.IslandInfoView> islandInspectInfo(String target) {
+        UUID parsed = uuidOrNull(target);
+        if (parsed != null) {
+            return coreApiClient.adminIslands().info(parsed)
+                .handle((info, error) -> validIslandInfo(info) ? CompletableFuture.completedFuture(info) : playerPrimaryIslandInfo(parsed))
+                .thenCompose(future -> future);
+        }
+        return coreApiClient.adminIslands().infoByName(target)
+            .handle((info, error) -> validIslandInfo(info) ? CompletableFuture.completedFuture(info) : findPlayerUuid(target).thenCompose(playerUuid -> playerUuid == null ? CompletableFuture.completedFuture(missingIslandInfo()) : playerPrimaryIslandInfo(playerUuid)))
+            .thenCompose(future -> future)
+            .exceptionally(_error -> missingIslandInfo());
+    }
+
+    private CompletableFuture<CoreGuiViews.IslandInfoView> playerPrimaryIslandInfo(UUID playerUuid) {
+        return coreApiClient.playerProfiles().profile(playerUuid)
+            .thenCompose(profile -> {
+                UUID islandId = uuidOrNull(profile.primaryIslandId());
+                return islandId == null ? CompletableFuture.completedFuture(missingIslandInfo()) : coreApiClient.adminIslands().info(islandId);
+            })
+            .exceptionally(_error -> missingIslandInfo());
+    }
+
+    private boolean validIslandInfo(CoreGuiViews.IslandInfoView info) {
+        return info != null && !info.islandId().isBlank() && uuidOrNull(info.islandId()) != null;
+    }
+
+    private CoreGuiViews.IslandInfoView missingIslandInfo() {
+        return new CoreGuiViews.IslandInfoView("", "NOT_FOUND", "", 0L, "0", false, false, 0L, 0L, "");
+    }
+
+    private AdminIslandRuntimeView missingRuntime() {
+        return new AdminIslandRuntimeView("", "", "", "", null, null, "", 0L, "", "", "UNAVAILABLE");
+    }
+
+    private <T> CompletableFuture<T> withFallback(CompletableFuture<T> future, T fallback) {
+        return future.exceptionally(_error -> fallback);
+    }
+
+    private String islandInspectText(IslandInspectReport report) {
+        if (!validIslandInfo(report.info())) {
+            return adminText("admin-command-island-inspect-not-found", "Island inspect: target not found=") + report.target();
+        }
+        String islandId = report.info().islandId();
+        List<JobView> islandJobs = islandJobs(report);
+        List<AdminAuditEntryView> islandAudit = islandAudit(report);
+        List<AdminRouteTicketView> islandTickets = islandRouteTickets(report);
+        CoreGuiViews.SnapshotView latest = latestSnapshot(report.snapshots());
+        return adminText("admin-command-island-inspect-prefix", "Island inspect: target=") + report.target()
+            + adminText("admin-command-island-inspect-island-prefix", " island=") + shortId(islandId)
+            + adminText("admin-command-island-info-owner-prefix", " owner=") + shortId(report.info().ownerUuid())
+            + (report.info().name().isBlank() ? "" : adminText("admin-command-island-info-name-prefix", " name=") + report.info().name())
+            + adminText("admin-command-island-info-state-prefix", " state=") + (report.info().state().isBlank() ? "UNKNOWN" : report.info().state())
+            + adminText("admin-command-island-info-level-prefix", " level=") + report.info().level()
+            + adminText("admin-command-island-info-worth-prefix", " worth=") + report.info().worth()
+            + adminText("admin-command-island-inspect-bank-prefix", " bank=") + report.bank().balance()
+            + " | " + runtimeInfoMessage(report.runtime())
+            + " | " + islandInspectRouteSummary(islandTickets)
+            + " | " + islandInspectVisitorSummary(report.visitors())
+            + " | " + islandInspectSnapshotSummary(latest, report.snapshots().size())
+            + " | " + islandInspectJobSummary(islandJobs)
+            + " | " + islandInspectAuditSummary(islandAudit)
+            + " | storage=" + storageStatusMessage(report.storage())
+            + " | recommend=" + islandInspectRecommendation(report, islandJobs, islandTickets);
+    }
+
+    private String islandInspectJson(IslandInspectReport report) {
+        List<JobView> islandJobs = islandJobs(report);
+        List<AdminAuditEntryView> islandAudit = islandAudit(report);
+        List<AdminRouteTicketView> islandTickets = islandRouteTickets(report);
+        CoreGuiViews.SnapshotView latest = latestSnapshot(report.snapshots());
+        return "{\"islandInspect\":{"
+            + "\"target\":\"" + jsonEscape(report.target()) + "\","
+            + "\"islandId\":\"" + jsonEscape(report.info().islandId()) + "\","
+            + "\"name\":\"" + jsonEscape(report.info().name()) + "\","
+            + "\"ownerUuid\":\"" + jsonEscape(report.info().ownerUuid()) + "\","
+            + "\"state\":\"" + jsonEscape(report.info().state()) + "\","
+            + "\"level\":" + report.info().level() + ","
+            + "\"worth\":\"" + jsonEscape(report.info().worth()) + "\","
+            + "\"activeNode\":\"" + jsonEscape(report.runtime().activeNode()) + "\","
+            + "\"activeWorld\":\"" + jsonEscape(report.runtime().activeWorld()) + "\","
+            + "\"runtimeCode\":\"" + jsonEscape(report.runtime().code()) + "\","
+            + "\"bankBalance\":\"" + jsonEscape(report.bank().balance()) + "\","
+            + "\"visits\":" + report.visitors().totalVisits() + ","
+            + "\"uniqueVisitors\":" + report.visitors().uniqueVisitors() + ","
+            + "\"latestSnapshot\":" + (latest.snapshotNo() <= 0L ? "null" : "{\"snapshotNo\":" + latest.snapshotNo() + ",\"checksum\":\"" + jsonEscape(shortChecksum(latest.checksum())) + "\",\"storagePath\":\"" + jsonEscape(latest.storagePath()) + "\"}") + ","
+            + "\"snapshotCount\":" + report.snapshots().size() + ","
+            + "\"pendingJobs\":" + islandJobs.size() + ","
+            + "\"auditEvents\":" + islandAudit.size() + ","
+            + "\"routeTickets\":" + islandTickets.size() + ","
+            + "\"storageUnavailable\":" + report.storage().unavailableCount() + ","
+            + "\"recommendedCommand\":\"" + jsonEscape(islandInspectRecommendation(report, islandJobs, islandTickets)) + "\""
+            + "}}";
+    }
+
+    private List<JobView> islandJobs(IslandInspectReport report) {
+        String islandId = report.info().islandId();
+        return report.jobs().stream()
+            .filter(job -> job.islandId().equalsIgnoreCase(islandId) || job.payload().values().stream().anyMatch(islandId::equalsIgnoreCase))
+            .limit(10)
+            .toList();
+    }
+
+    private List<AdminAuditEntryView> islandAudit(IslandInspectReport report) {
+        String islandId = report.info().islandId();
+        return report.audit().stream()
+            .filter(entry -> entry.targetId().equalsIgnoreCase(islandId) || entry.payload().values().stream().anyMatch(islandId::equalsIgnoreCase))
+            .limit(10)
+            .toList();
+    }
+
+    private List<AdminRouteTicketView> islandRouteTickets(IslandInspectReport report) {
+        String islandId = report.info().islandId();
+        return report.routes().tickets().stream()
+            .filter(ticket -> ticket.islandId().equalsIgnoreCase(islandId))
+            .limit(10)
+            .toList();
+    }
+
+    private CoreGuiViews.SnapshotView latestSnapshot(List<CoreGuiViews.SnapshotView> snapshots) {
+        return snapshots.stream()
+            .max((left, right) -> Long.compare(left.snapshotNo(), right.snapshotNo()))
+            .orElse(new CoreGuiViews.SnapshotView(0L, "", 0L, ""));
+    }
+
+    private String islandInspectRouteSummary(List<AdminRouteTicketView> tickets) {
+        if (tickets.isEmpty()) {
+            return "routes=tickets=0";
+        }
+        String entries = tickets.stream().limit(3).map(this::ticketSummary).collect(java.util.stream.Collectors.joining(", "));
+        return "routes=tickets=" + tickets.size() + " [" + entries + "]";
+    }
+
+    private String islandInspectVisitorSummary(IslandVisitorStatsView visitors) {
+        return "visitors=total:" + visitors.totalVisits() + ",unique:" + visitors.uniqueVisitors();
+    }
+
+    private String islandInspectSnapshotSummary(CoreGuiViews.SnapshotView latest, int count) {
+        if (latest.snapshotNo() <= 0L) {
+            return "snapshot=none checked=" + count;
+        }
+        return "snapshot=#" + latest.snapshotNo()
+            + (latest.storagePath().isBlank() ? " path=missing" : " path=" + latest.storagePath())
+            + (latest.checksum().isBlank() ? " checksum=missing" : " checksum=" + shortChecksum(latest.checksum()))
+            + " checked=" + count;
+    }
+
+    private String islandInspectJobSummary(List<JobView> jobs) {
+        long failed = jobs.stream().filter(job -> job.state().equalsIgnoreCase("FAILED")).count();
+        long pending = jobs.stream().filter(job -> job.state().equalsIgnoreCase("PENDING")).count();
+        long claimed = jobs.stream().filter(job -> job.state().equalsIgnoreCase("CLAIMED")).count();
+        return "jobs=total:" + jobs.size() + ",pending:" + pending + ",claimed:" + claimed + ",failed:" + failed;
+    }
+
+    private String islandInspectAuditSummary(List<AdminAuditEntryView> audit) {
+        if (audit.isEmpty()) {
+            return "audit=0";
+        }
+        String latest = audit.get(0).action().isBlank() ? "UNKNOWN_ACTION" : audit.get(0).action();
+        return "audit=" + audit.size() + " latest=" + latest;
+    }
+
+    private String islandInspectRecommendation(IslandInspectReport report, List<JobView> jobs, List<AdminRouteTicketView> tickets) {
+        if (!report.runtime().code().isBlank()) {
+            return "/ciadmin doctor";
+        }
+        if (report.storage().unavailableCount() > 0L || latestSnapshot(report.snapshots()).storagePath().isBlank()) {
+            return "/ciadmin storage verify " + report.info().islandId();
+        }
+        if (jobs.stream().anyMatch(job -> job.state().equalsIgnoreCase("FAILED"))) {
+            return "/ciadmin jobs recover";
+        }
+        if (!tickets.isEmpty()) {
+            return "/ciadmin route debug all";
+        }
+        return "none";
+    }
+
     private boolean handleStorage(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("status")) {
             run(sender, "Storage status", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
@@ -1099,8 +1320,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
             return true;
         }
-        if (args[1].equalsIgnoreCase("where") || args[1].equalsIgnoreCase("inspect")) {
+        if (args[1].equalsIgnoreCase("where")) {
             run(sender, "Island where", islandWhereMessage(args[2]));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("inspect")) {
+            run(sender, "Island inspect", islandInspectMessage(args[2], hasOption(args, "--json")));
             return true;
         }
         if (args[1].equalsIgnoreCase("bulk-restore")) {

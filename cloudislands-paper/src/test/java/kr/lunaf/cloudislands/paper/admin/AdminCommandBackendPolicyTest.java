@@ -321,7 +321,16 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.adminIslands().runtime"), "Island runtime command must use the typed Core admin island API");
         assertTrue(source.contains("args[1].equalsIgnoreCase(\"recover\") || args[1].equalsIgnoreCase(\"repair\")"), "Island recover must be an explicit repair alias");
         assertTrue(source.contains("coreApiClient.lifecycle().repairIsland"), "Island recover must use the typed lifecycle repair API");
-        assertTrue(source.contains("args[1].equalsIgnoreCase(\"where\") || args[1].equalsIgnoreCase(\"inspect\")"), "Island inspect must reuse the unified player-aware island resolver");
+        assertTrue(source.contains("run(sender, \"Island inspect\", islandInspectMessage(args[2], hasOption(args, \"--json\")))"), "Island inspect must be a first-class handler with JSON support");
+        assertTrue(source.contains("coreApiClient.bank().islandBank(islandId)"), "Island inspect must include bank state");
+        assertTrue(source.contains("coreApiClient.snapshots().listSnapshots(islandId, 5)"), "Island inspect must include latest snapshot state");
+        assertTrue(source.contains("coreApiClient.visitorStats().stats(islandId, 10)"), "Island inspect must include visitor state");
+        assertTrue(source.contains("coreApiClient.jobs().list()"), "Island inspect must include pending job state");
+        assertTrue(source.contains("coreApiClient.adminAudit().list(10)"), "Island inspect must include audit state");
+        assertTrue(source.contains("coreApiClient.adminRoutes().debug(new UUID(0L, 0L))"), "Island inspect must include route state");
+        assertTrue(source.contains("coreApiClient.adminStorage().status()"), "Island inspect must include storage state");
+        assertTrue(source.contains("islandInspectJson(IslandInspectReport report)"), "Island inspect must expose JSON output");
+        assertTrue(source.contains("islandInspectCommand=/ciadmin island inspect <player|island> --json"), "Support bundle runtime manifest must advertise the inspect JSON command");
         assertTrue(source.contains("islandWhereMessage"), "Island where must route through a player-aware resolver");
         assertTrue(source.contains("coreApiClient.playerProfiles().profile"), "Island where must resolve player primary islands through the typed player profile API");
         assertTrue(source.contains("profile.primaryIslandId()"), "Island where must use the player's primary island as the runtime target");
