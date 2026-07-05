@@ -557,7 +557,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.disband", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "", "guarded island delete/repair/recover commands cover destructive lifecycle control"),
     permissionParity("admin", "superior.admin.fly", "PLANNED:admin-fly-mutation", "PLANNED", "P2", "direct admin fly toggle remains a convenience backlog item"),
     permissionParity("admin", "superior.admin.givedisbands", "PLANNED:disband-quota-compatibility", "PLANNED", "P2", "legacy disband quota commands are tracked as compatibility-only backlog"),
-    permissionParity("admin", "superior.admin.ignore", "PLANNED:ranking-ignore", "PLANNED", "P1", "ranking ignore state is not yet exposed as an admin command"),
+    permissionParity("admin", "superior.admin.ignore", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "ranking ignore state is exposed by /ciadmin island ignore with typed Core audit and cache-invalidation coverage"),
     permissionParity("admin", "superior.admin.join", "PLANNED:admin-member-join", "PLANNED", "P1", "forced admin join is not exposed; teleport/inspection exists separately"),
     permissionParity("admin", "superior.admin.kick", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P0", "direct admin member kick is exposed by /ciadmin island member kick with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.mission", "PLANNED:admin-mission-mutations", "PLANNED", "P1", "direct mission completion/reset mutation is not yet exposed"),
@@ -613,7 +613,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.teleport", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "", "admin island teleport maps to admin island commands"),
     permissionParity("admin", "superior.admin.title", "PLANNED:admin-island-messaging", "PLANNED", "P2", "title messaging is not part of the core admin surface"),
     permissionParity("admin", "superior.admin.titleall", "PLANNED:admin-island-messaging", "PLANNED", "P2", "bulk title messaging is not part of the core admin surface"),
-    permissionParity("admin", "superior.admin.unignore", "PLANNED:ranking-ignore", "PLANNED", "P1", "ranking unignore state is not yet exposed as an admin command"),
+    permissionParity("admin", "superior.admin.unignore", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "ranking unignore state is exposed by /ciadmin island unignore with typed Core audit and cache-invalidation coverage"),
     permissionParity("admin", "superior.admin.withdraw", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P0", "direct admin bank withdrawal is exposed by /ciadmin island bank withdraw with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.world", "cloudislands.admin.storage", "COVERED_BY", "", "world/storage verification maps to admin storage commands")
 )

@@ -105,6 +105,21 @@ public final class ProgressionRoutes implements RouteGroup {
             String body = CoreHttpResponses.readBody(exchange);
             CoreHttpResponses.write(exchange, 200, rankingsJson(rankingRepository.topByWorth(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));
         });
+        registry.routePost("/v1/admin/rankings/ignore", exchange -> {
+            String body = CoreHttpResponses.readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            if (!requireIsland(exchange, islandId)) {
+                return;
+            }
+            boolean ignored = JsonFields.bool(body, "ignored", true);
+            rankingRepository.setIgnored(islandId, ignored);
+            String action = ignored ? "ISLAND_RANKING_IGNORE" : "ISLAND_RANKING_UNIGNORE";
+            Map<String, String> fields = Map.of("ignored", Boolean.toString(ignored));
+            audit.log(new UUID(0L, 0L), "ADMIN", action, "ISLAND", islandId.toString(), fields);
+            islandLogs.append(islandId, new UUID(0L, 0L), action, fields);
+            events.publish(CloudIslandEventType.CORE_CACHE_CLEARED.name(), Map.of("cacheTargets", "RANKINGS", "islandId", islandId.toString(), "ignored", Boolean.toString(ignored)));
+            CoreHttpResponses.write(exchange, 202, rankingIgnoreJson(islandId, ignored));
+        });
         registry.routePost("/v1/upgrades/rules", exchange -> CoreHttpResponses.write(exchange, 200, upgradeRulesJson(upgradePolicy.list())));
         registry.routePost("/v1/islands/missions", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
@@ -373,6 +388,15 @@ public final class ProgressionRoutes implements RouteGroup {
             renderedRankings.add(levelMap(ranking));
         }
         return SimpleJson.stringify(Map.of("rankings", renderedRankings));
+    }
+
+    static String rankingIgnoreJson(UUID islandId, boolean ignored) {
+        return SimpleJson.stringify(Map.of(
+            "accepted", true,
+            "code", ignored ? "ISLAND_RANKING_IGNORE" : "ISLAND_RANKING_UNIGNORE",
+            "islandId", islandId.toString(),
+            "ignored", ignored
+        ));
     }
 
     private static String upgradeRulesJson(java.util.List<UpgradeRule> rules) {

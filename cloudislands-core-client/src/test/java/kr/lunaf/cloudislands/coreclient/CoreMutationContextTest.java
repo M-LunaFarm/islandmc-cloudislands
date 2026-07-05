@@ -269,6 +269,7 @@ class CoreMutationContextTest {
         server.createContext("/v1/islands/missions/complete", exchange -> respond(exchange, requestBodies, "missionComplete", "{\"accepted\":true}"));
         server.createContext("/v1/islands/missions/progress", exchange -> respond(exchange, requestBodies, "missionProgress", "{\"accepted\":true}"));
         server.createContext("/v1/addons/missions/register", exchange -> respond(exchange, requestBodies, "missionRegister", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/rankings/ignore", exchange -> respond(exchange, requestBodies, "rankingIgnore", "{\"accepted\":true,\"code\":\"ISLAND_RANKING_IGNORE\",\"islandId\":\"%s\",\"ignored\":true}".formatted(islandId)));
         server.createContext("/v1/islands/limits", exchange -> respond(exchange, requestBodies, "limits", "{\"limits\":[]}"));
         server.createContext("/v1/islands/limits/set", exchange -> respond(exchange, requestBodies, "limitSet", "{\"accepted\":true}"));
         server.createContext("/v1/admin/islands/limits/set", exchange -> respond(exchange, requestBodies, "adminLimitSet", "{\"accepted\":true}"));
@@ -290,6 +291,7 @@ class CoreMutationContextTest {
             client.progression().missions(islandId, "MISSION\"DAILY").join();
             client.progressionCommands().completeMission(islandId, actorUuid, "starter\"mission", "CHALLENGE").join();
             client.progressionCommands().progressMission(islandId, actorUuid, "starter\"mission", "CHALLENGE", -5L).join();
+            client.progressionCommands().setRankingIgnored(islandId, true).join();
             client.progressionCommands().registerMissionProvider("provider\"one", List.of(new MissionProviderDefinitionSnapshot(
                 "provider\"one",
                 "starter",
@@ -318,6 +320,7 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\",\"kind\":\"MISSION\\\"DAILY\"}", requestBodies.get("missions"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\"}", requestBodies.get("missionComplete"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\",\"amount\":0}", requestBodies.get("missionProgress"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"ignored\":true}", requestBodies.get("rankingIgnore"));
             assertEquals("{\"providerId\":\"provider\\\"one\",\"missions\":[{\"missionKey\":\"starter\",\"kind\":\"MISSION\",\"category\":\"general\",\"title\":\"starter\",\"description\":\"\",\"triggerType\":\"\",\"targetKey\":\"\",\"goal\":1,\"rewardType\":\"\",\"reward\":\"\",\"repeatable\":false,\"dailyReset\":false,\"enabled\":true}]}", requestBodies.get("missionRegister"));
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("limits"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"limitKey\":\"HOPPER\\\"LIMIT\",\"value\":64}", requestBodies.get("limitSet"));

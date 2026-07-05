@@ -300,6 +300,31 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminRankingIgnoreIsFirstClassIslandCommand() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String progressionClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/ProgressionCommandClient.java"));
+        String jdkProgressionClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkProgressionCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/ProgressionRoutes.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        for (String command : List.of("ignore", "unignore")) {
+            assertTrue(adminSurface.contains("ciadmin island " + command + " <island>"), "Admin ranking command must be listed in help: " + command);
+            assertTrue(catalog.contains("\"" + command + "\""), "Admin ranking command must be cataloged for completion: " + command);
+        }
+        assertTrue(source.contains("coreApiClient.progressionCommands().setRankingIgnored(islandId, ignored)"), "Admin ranking ignore must use typed progression client");
+        assertTrue(progressionClient.contains("setRankingIgnored(UUID islandId, boolean ignored)"), "Progression client must expose ranking ignore mutation");
+        assertTrue(jdkProgressionClient.contains("postResultBody(\"/v1/admin/rankings/ignore\""), "JDK progression client must call ranking ignore endpoint");
+        assertTrue(coreRoutes.contains("/v1/admin/rankings/ignore"), "Core progression routes must register ranking ignore");
+        assertTrue(coreRoutes.contains("rankingRepository.setIgnored(islandId, ignored)"), "Core route must mutate ranking ignore state");
+        assertTrue(coreRoutes.contains("ISLAND_RANKING_IGNORE"), "Core route must audit ranking ignore");
+        assertTrue(coreRoutes.contains("ISLAND_RANKING_UNIGNORE"), "Core route must audit ranking unignore");
+        assertTrue(parity.contains("\"superior.admin.ignore\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark superior.admin.ignore verified");
+        assertTrue(parity.contains("\"superior.admin.unignore\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark superior.admin.unignore verified");
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

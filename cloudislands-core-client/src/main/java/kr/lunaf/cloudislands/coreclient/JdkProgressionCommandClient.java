@@ -58,6 +58,14 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
     }
 
     @Override
+    public CompletableFuture<ProgressionRankingIgnoreView> setRankingIgnored(UUID islandId, boolean ignored) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/rankings/ignore", CoreJsonPayload.object("islandId", islandId, "ignored", ignored))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> rankingIgnoreResult(body, islandId, ignored));
+    }
+
+    @Override
     public CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions) {
         String normalizedProviderId = providerId == null || providerId.isBlank() ? "cloudislands" : providerId.trim();
         return core.postResultBody("/v1/addons/missions/register", CoreJsonPayload.object("providerId", normalizedProviderId, "missions", missionDefinitionsPayload(definitions)))
@@ -86,6 +94,20 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
             CoreJson.number(upgrade, "level"),
             CoreJson.text(root, "cost"),
             CoreJson.text(upgrade, "updatedAt")
+        );
+    }
+
+    static ProgressionRankingIgnoreView rankingIgnoreResult(String body, UUID fallbackIslandId, boolean fallbackIgnored) {
+        Map<?, ?> root = CoreJson.actionObject(body, fallbackIgnored ? "ISLAND_RANKING_IGNORE" : "ISLAND_RANKING_UNIGNORE");
+        String islandId = CoreJson.text(root, "islandId");
+        if (islandId.isBlank() && fallbackIslandId != null) {
+            islandId = fallbackIslandId.toString();
+        }
+        return new ProgressionRankingIgnoreView(
+            CoreJson.accepted(root),
+            CoreJson.code(root, fallbackIgnored ? "ISLAND_RANKING_IGNORE" : "ISLAND_RANKING_UNIGNORE"),
+            islandId,
+            CoreJson.bool(root, "ignored", fallbackIgnored)
         );
     }
 

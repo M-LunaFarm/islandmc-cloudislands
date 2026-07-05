@@ -25,6 +25,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.LevelView;
 import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
 import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
+import kr.lunaf.cloudislands.coreclient.ProgressionRankingIgnoreView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import org.junit.jupiter.api.Test;
 
@@ -364,6 +365,11 @@ class BankUseCaseTest {
         public CompletableFuture<ProgressionMissionCompletionView> progressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
             calls.add(missionKey + ":" + kind + ":" + amount);
             return CompletableFuture.completedFuture(new ProgressionMissionCompletionView(true, "", missionKey, missionKey, ""));
+        }
+
+        @Override
+        public CompletableFuture<ProgressionRankingIgnoreView> setRankingIgnored(UUID islandId, boolean ignored) {
+            throw new UnsupportedOperationException();
         }
 
         @Override

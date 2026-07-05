@@ -1373,6 +1373,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Island visitor stats", coreApiClient.visitorStats().stats(islandId, 10).thenApply(this::visitorStatsMessage));
             return true;
         }
+        if (args[1].equalsIgnoreCase("ignore") || args[1].equalsIgnoreCase("unignore")) {
+            boolean ignored = args[1].equalsIgnoreCase("ignore");
+            String label = ignored ? "Island ignore" : "Island unignore";
+            run(sender, label, coreApiClient.progressionCommands().setRankingIgnored(islandId, ignored).thenApply(result -> rankingIgnoreMessage(label, result)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("tp")) {
             if (sender instanceof Player player) {
                 routeAdminTeleport(player, islandId);
@@ -2073,6 +2079,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island addwarpslimit <islandUuid|islandName> <delta>",
             "/ciadmin island setsize <islandUuid|islandName> <value>",
             "/ciadmin island addsize <islandUuid|islandName> <delta>",
+            "/ciadmin island ignore <islandUuid|islandName>",
+            "/ciadmin island unignore <islandUuid|islandName>",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
             "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
@@ -2559,6 +2567,18 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
         }
         return label + adminText("admin-command-ranking-total-prefix", ": total=") + total + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String rankingIgnoreMessage(String label, kr.lunaf.cloudislands.coreclient.ProgressionRankingIgnoreView result) {
+        return label
+            + adminText("admin-command-action-result-accepted-prefix", ": accepted=")
+            + result.accepted()
+            + adminText("admin-command-action-result-code-prefix", " code=")
+            + result.code()
+            + adminText("admin-command-action-result-target-prefix", " target=")
+            + shortId(result.islandId())
+            + adminText("admin-command-ranking-ignore-state-prefix", " ignored=")
+            + result.ignored();
     }
 
     private String blockValueListMessage(List<BlockValueView> values) {

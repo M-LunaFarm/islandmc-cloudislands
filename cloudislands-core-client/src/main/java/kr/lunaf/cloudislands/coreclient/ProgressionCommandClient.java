@@ -14,5 +14,7 @@ public interface ProgressionCommandClient {
 
     CompletableFuture<ProgressionMissionCompletionView> progressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount);
 
+    CompletableFuture<ProgressionRankingIgnoreView> setRankingIgnored(UUID islandId, boolean ignored);
+
     CompletableFuture<List<MissionProviderDefinitionSnapshot>> registerMissionProvider(String providerId, List<MissionProviderDefinitionSnapshot> definitions);
 }

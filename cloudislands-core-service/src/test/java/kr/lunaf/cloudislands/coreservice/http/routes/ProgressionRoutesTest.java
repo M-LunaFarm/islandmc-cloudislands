@@ -29,9 +29,10 @@ class ProgressionRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(11, paths.size());
+        assertEquals(12, paths.size());
         assertTrue(paths.contains("/v1/rankings/level"));
         assertTrue(paths.contains("/v1/rankings/worth"));
+        assertTrue(paths.contains("/v1/admin/rankings/ignore"));
         assertTrue(paths.contains("/v1/upgrades/rules"));
         assertTrue(paths.contains("/v1/addons/missions/register"));
         assertTrue(paths.contains("/v1/islands/missions/complete"));
@@ -48,6 +49,7 @@ class ProgressionRoutesTest {
 
         assertEquals(Set.of("POST"), registry.methods("/v1/rankings/level"));
         assertEquals(Set.of("POST"), registry.methods("/v1/rankings/worth"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/rankings/ignore"));
         assertEquals(Set.of("POST"), registry.methods("/v1/upgrades/rules"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/missions"));
         assertEquals(Set.of("POST"), registry.methods("/v1/addons/missions/register"));
@@ -108,6 +110,7 @@ class ProgressionRoutesTest {
         Map<?, ?> limits = SimpleJson.object(SimpleJson.parse(ProgressionRoutes.limitsJson(List.of(limit))));
         Map<?, ?> renderedLimit = SimpleJson.object(SimpleJson.list(limits.get("limits")).get(0));
         Map<?, ?> singleLimit = SimpleJson.object(SimpleJson.parse(ProgressionRoutes.limitJson(limit)));
+        Map<?, ?> ignored = SimpleJson.object(SimpleJson.parse(ProgressionRoutes.rankingIgnoreJson(islandId, true)));
 
         assertMission(islandId, renderedMission);
         assertMission(islandId, singleMission);
@@ -125,6 +128,8 @@ class ProgressionRoutesTest {
         assertEquals(true, renderedDefinition.get("enabled"));
         assertLimit(islandId, actorUuid, renderedLimit);
         assertLimit(islandId, actorUuid, singleLimit);
+        assertEquals(Boolean.TRUE, ignored.get("ignored"));
+        assertEquals("ISLAND_RANKING_IGNORE", SimpleJson.text(ignored.get("code")));
     }
 
     @Test
