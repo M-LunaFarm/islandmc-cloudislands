@@ -25,6 +25,14 @@ public final class JdkIslandEnvironmentCommandClient implements IslandEnvironmen
     }
 
     @Override
+    public CompletableFuture<EnvironmentActionView> adminSetBiome(UUID islandId, String biomeKey) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/islands/biome/set", CoreJsonPayload.object("islandId", islandId, "biomeKey", biomeKey == null ? "" : biomeKey))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> actionResult(body, "BIOME_SET"));
+    }
+
+    @Override
     public CompletableFuture<EnvironmentActionView> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");

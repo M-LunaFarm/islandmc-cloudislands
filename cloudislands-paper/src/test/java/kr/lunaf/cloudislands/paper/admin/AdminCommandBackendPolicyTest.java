@@ -184,6 +184,35 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminRenameAndBiomeAreFirstClassIslandCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String settingsClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/IslandSettingsCommandClient.java"));
+        String jdkSettingsClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkIslandSettingsCommandClient.java"));
+        String environmentClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/IslandEnvironmentCommandClient.java"));
+        String jdkEnvironmentClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkIslandEnvironmentCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutes.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin island rename <island> <name>"), "Admin rename must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin island setbiome <island> <biomeKey>"), "Admin biome mutation must be listed in help");
+        assertTrue(catalog.contains("\"rename\"") && catalog.contains("\"setbiome\""), "Admin rename and biome commands must be cataloged for completion");
+        assertTrue(source.contains("coreApiClient.settingsCommands().adminSetName(islandId, joined(args, 3))"), "Admin rename must use the typed settings client");
+        assertTrue(source.contains("coreApiClient.environmentCommands().adminSetBiome(islandId, args[3])"), "Admin biome mutation must use the typed environment client");
+        assertTrue(settingsClient.contains("adminSetName(UUID islandId, String name)"), "Settings client must expose admin rename");
+        assertTrue(jdkSettingsClient.contains("postResultBody(\"/v1/admin/islands/name\""), "JDK settings client must call admin rename endpoint");
+        assertTrue(environmentClient.contains("adminSetBiome(UUID islandId, String biomeKey)"), "Environment client must expose admin biome mutation");
+        assertTrue(jdkEnvironmentClient.contains("postResultBody(\"/v1/admin/islands/biome/set\""), "JDK environment client must call admin biome endpoint");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/name"), "Core settings routes must register admin rename");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/biome/set"), "Core settings routes must register admin biome mutation");
+        assertTrue(coreRoutes.contains("ISLAND_ADMIN_RENAME"), "Core admin rename route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ISLAND_BIOME_ADMIN_SET"), "Core admin biome route must audit operator mutation");
+        assertTrue(parity.contains("\"superior.admin.name\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark admin rename verified");
+        assertTrue(parity.contains("\"superior.admin.setbiome\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark admin biome verified");
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

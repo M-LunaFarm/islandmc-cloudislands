@@ -11,5 +11,7 @@ public interface IslandSettingsCommandClient {
 
     CompletableFuture<SettingsActionView> setName(UUID islandId, UUID actorUuid, String name);
 
+    CompletableFuture<SettingsActionView> adminSetName(UUID islandId, String name);
+
     CompletableFuture<SettingsActionView> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
 }

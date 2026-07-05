@@ -43,6 +43,14 @@ public final class JdkIslandSettingsCommandClient implements IslandSettingsComma
     }
 
     @Override
+    public CompletableFuture<SettingsActionView> adminSetName(UUID islandId, String name) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/islands/name", CoreJsonPayload.object("islandId", islandId, "name", name == null ? "" : name))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> actionResult(body, "ISLAND_RENAMED"));
+    }
+
+    @Override
     public CompletableFuture<SettingsActionView> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");

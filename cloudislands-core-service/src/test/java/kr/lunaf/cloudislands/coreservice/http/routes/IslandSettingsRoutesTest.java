@@ -47,12 +47,14 @@ class IslandSettingsRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(7, paths.size());
+        assertEquals(9, paths.size());
         assertTrue(paths.contains("/v1/islands/lock"));
         assertTrue(paths.contains("/v1/islands/name"));
+        assertTrue(paths.contains("/v1/admin/islands/name"));
         assertTrue(paths.contains("/v1/islands/flags"));
         assertTrue(paths.contains("/v1/islands/biome"));
         assertTrue(paths.contains("/v1/islands/biome/set"));
+        assertTrue(paths.contains("/v1/admin/islands/biome/set"));
         assertTrue(paths.contains("/v1/islands/flags/set"));
         assertTrue(paths.contains("/v1/islands/access"));
     }
@@ -65,9 +67,11 @@ class IslandSettingsRoutesTest {
 
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/lock"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/name"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/name"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/flags"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/biome"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/biome/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/biome/set"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/flags/set"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/access"));
     }
@@ -166,6 +170,70 @@ class IslandSettingsRoutesTest {
         assertEquals(0L, events.countByType(CloudIslandEventType.ISLAND_BIOME_CHANGED.name()));
         assertTrue(logs.list(islandId, 10).isEmpty());
         assertTrue(!audit.toJson().contains("ISLAND_BIOME_SET"));
+    }
+
+    @Test
+    void adminRenameBypassesPlayerPermissionAndEmitsOperatorAudit() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000201");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000202");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Admin Rename Test");
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandSettingsRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandPermissionRuleRepository(),
+            logs,
+            audit,
+            events
+        ).register(handlers::put);
+
+        TestExchange accepted = exchange("{\"islandId\":\"" + islandId + "\",\"name\":\"Renamed By Admin\"}");
+        handlers.get("/v1/admin/islands/name").handle(accepted);
+
+        assertEquals(202, accepted.status());
+        assertTrue(accepted.body().contains("\"accepted\":true"));
+        assertTrue(accepted.body().contains("\"name\":\"Renamed By Admin\""));
+        assertEquals("Renamed By Admin", islands.findById(islandId).orElseThrow().name());
+        assertTrue(audit.toJson().contains("ISLAND_ADMIN_RENAME"));
+        assertEquals("ISLAND_ADMIN_RENAME", logs.list(islandId, 10).get(0).action());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RENAMED.name()));
+    }
+
+    @Test
+    void adminSetBiomeNormalizesKeyAndEmitsOperatorAudit() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000203");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000204");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Admin Biome Test");
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandSettingsRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandPermissionRuleRepository(),
+            logs,
+            audit,
+            events
+        ).register(handlers::put);
+
+        TestExchange accepted = exchange("{\"islandId\":\"" + islandId + "\",\"biomeKey\":\"desert\"}");
+        handlers.get("/v1/admin/islands/biome/set").handle(accepted);
+
+        assertEquals(202, accepted.status());
+        assertTrue(accepted.body().contains("\"code\":\"BIOME_SET\""));
+        assertTrue(accepted.body().contains("\"biomeKey\":\"minecraft:desert\""));
+        assertEquals("minecraft:desert", metadata.biome(islandId).biomeKey());
+        assertTrue(audit.toJson().contains("ISLAND_BIOME_ADMIN_SET"));
+        assertEquals("ISLAND_BIOME_ADMIN_SET", logs.list(islandId, 10).get(0).action());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_BIOME_CHANGED.name()));
     }
 
     private TestExchange exchange(String body) {

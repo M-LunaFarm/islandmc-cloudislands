@@ -55,9 +55,11 @@ public final class IslandSettingsRoutes implements RouteGroup {
     public void register(CoreRouteRegistry registry) {
         registry.routePost("/v1/islands/lock", this::setLock);
         registry.routePost("/v1/islands/name", this::rename);
+        registry.routePost("/v1/admin/islands/name", this::adminRename);
         registry.routePost("/v1/islands/flags", this::flags);
         registry.routePost("/v1/islands/biome", this::biome);
         registry.routePost("/v1/islands/biome/set", this::setBiome);
+        registry.routePost("/v1/admin/islands/biome/set", this::adminSetBiome);
         registry.routePost("/v1/islands/flags/set", this::setFlag);
         registry.routePost("/v1/islands/access", this::setAccess);
     }
@@ -105,6 +107,34 @@ public final class IslandSettingsRoutes implements RouteGroup {
         CoreHttpResponses.write(exchange, 202, renameJson(islandId, name));
     }
 
+    private void adminRename(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        String name = JsonFields.text(body, "name", "").trim();
+        if (islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        if (name.length() < 2 || name.length() > 32 || name.chars().anyMatch(Character::isISOControl)) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ISLAND_NAME", "Island name must be 2-32 visible characters"));
+            return;
+        }
+        Optional<IslandSnapshot> duplicate = islandRepository.findByName(name);
+        if (duplicate.isPresent() && !duplicate.get().islandId().equals(islandId)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ISLAND_NAME_TAKEN", "Island name is already used"));
+            return;
+        }
+        boolean renamed = islandRepository.rename(islandId, name);
+        if (!renamed) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ISLAND_RENAME_DENIED", "Island was not renamed"));
+            return;
+        }
+        audit.log(EMPTY_UUID, "ADMIN", "ISLAND_ADMIN_RENAME", "ISLAND", islandId.toString(), Map.of("name", name));
+        islandLogs.append(islandId, EMPTY_UUID, "ISLAND_ADMIN_RENAME", Map.of("name", name));
+        events.publish(CloudIslandEventType.ISLAND_RENAMED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "name", name));
+        CoreHttpResponses.write(exchange, 202, renameJson(islandId, name));
+    }
+
     private void flags(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         CoreHttpResponses.write(exchange, 200, flagsJson(metadataRepository.flags(JsonFields.uuid(body, "islandId", EMPTY_UUID))));
@@ -137,6 +167,30 @@ public final class IslandSettingsRoutes implements RouteGroup {
         islandLogs.append(islandId, actorUuid, "ISLAND_BIOME_SET", Map.of("biomeKey", biomeKey.get()));
         events.publish(CloudIslandEventType.ISLAND_BIOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "biomeKey", biomeKey.get()));
         CoreHttpResponses.write(exchange, 202, biomeSetJson(islandId, actorUuid, biomeKey.get(), "BIOME_SET"));
+    }
+
+    private void adminSetBiome(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        Optional<String> biomeKey = IslandBiomePolicy.normalize(JsonFields.text(body, "biomeKey", "minecraft:plains"));
+        if (biomeKey.isEmpty()) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_BIOME_KEY", "Unsupported island biome"));
+            return;
+        }
+        if (islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        String currentBiomeKey = metadataRepository.biome(islandId).biomeKey();
+        if (currentBiomeKey.equals(biomeKey.get())) {
+            CoreHttpResponses.write(exchange, 202, biomeSetJson(islandId, EMPTY_UUID, biomeKey.get(), "BIOME_UNCHANGED"));
+            return;
+        }
+        metadataRepository.setBiome(islandId, biomeKey.get(), EMPTY_UUID);
+        audit.log(EMPTY_UUID, "ADMIN", "ISLAND_BIOME_ADMIN_SET", "ISLAND", islandId.toString(), Map.of("biomeKey", biomeKey.get()));
+        islandLogs.append(islandId, EMPTY_UUID, "ISLAND_BIOME_ADMIN_SET", Map.of("biomeKey", biomeKey.get()));
+        events.publish(CloudIslandEventType.ISLAND_BIOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "biomeKey", biomeKey.get()));
+        CoreHttpResponses.write(exchange, 202, biomeSetJson(islandId, EMPTY_UUID, biomeKey.get(), "BIOME_SET"));
     }
 
     private void setFlag(HttpExchange exchange) throws IOException {

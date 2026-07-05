@@ -850,6 +850,10 @@ class CoreTypedClientsTest {
                     calls.add("biome:" + args[2]);
                     yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "BIOME_SET", "PLAINS", 0L));
                 }
+                case "adminSetBiome" -> {
+                    calls.add("adminBiome:" + args[1]);
+                    yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "BIOME_SET", "minecraft:desert", 0L));
+                }
                 case "setFlag" -> {
                     calls.add("flag:" + args[2] + ":" + args[3]);
                     yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "FLAG_SET", "BORDER_VISIBLE", 0L));
@@ -864,17 +868,19 @@ class CoreTypedClientsTest {
         IslandEnvironmentCommandClient client = (IslandEnvironmentCommandClient) raw;
 
         EnvironmentActionView biome = client.setBiome(islandId, actorUuid, "PLAINS").join();
+        EnvironmentActionView adminBiome = client.adminSetBiome(islandId, "minecraft:desert").join();
         EnvironmentActionView flag = client.setFlag(islandId, actorUuid, IslandFlag.BORDER_VISIBLE, "true").join();
         EnvironmentActionView limit = client.setLimit(islandId, actorUuid, "HOPPER", 64L).join();
 
         assertEquals("PLAINS", biome.key());
+        assertEquals("minecraft:desert", adminBiome.key());
         assertEquals("BORDER_VISIBLE", flag.key());
         assertEquals("HOPPER", limit.key());
         assertEquals(64L, limit.value());
         assertEquals(islandId.toString(), limit.islandId());
         assertEquals(actorUuid.toString(), limit.updatedBy());
         assertEquals("2026-06-21T00:00:00Z", limit.updatedAt());
-        assertEquals(List.of("biome:PLAINS", "flag:BORDER_VISIBLE:true", "limit:HOPPER:64"), calls);
+        assertEquals(List.of("biome:PLAINS", "adminBiome:minecraft:desert", "flag:BORDER_VISIBLE:true", "limit:HOPPER:64"), calls);
     }
 
     @Test
@@ -898,6 +904,10 @@ class CoreTypedClientsTest {
                     calls.add("name:" + args[2]);
                     yield CompletableFuture.completedFuture(new SettingsActionView(true, "ISLAND_RENAMED"));
                 }
+                case "adminSetName" -> {
+                    calls.add("adminName:" + args[1]);
+                    yield CompletableFuture.completedFuture(new SettingsActionView(true, "ISLAND_RENAMED"));
+                }
                 case "setFlag" -> {
                     calls.add("flag:" + args[2] + ":" + args[3]);
                     yield CompletableFuture.completedFuture(new SettingsActionView(true, "FLAG_SET"));
@@ -910,8 +920,9 @@ class CoreTypedClientsTest {
         assertEquals("PUBLIC_ACCESS_ENABLED", client.setPublicAccess(islandId, actorUuid, true).join().code());
         assertEquals("ISLAND_UNLOCKED", client.setLocked(islandId, actorUuid, false).join().code());
         assertEquals("ISLAND_RENAMED", client.setName(islandId, actorUuid, "My Island").join().code());
+        assertEquals("ISLAND_RENAMED", client.adminSetName(islandId, "Admin Island").join().code());
         assertEquals("FLAG_SET", client.setFlag(islandId, actorUuid, IslandFlag.PVP, "false").join().code());
-        assertEquals(List.of("public:true", "locked:false", "name:My Island", "flag:PVP:false"), calls);
+        assertEquals(List.of("public:true", "locked:false", "name:My Island", "adminName:Admin Island", "flag:PVP:false"), calls);
     }
 
     @Test

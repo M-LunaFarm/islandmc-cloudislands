@@ -51,6 +51,7 @@ import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.coreclient.MemberActionView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
+import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.TemplateBundleVerificationView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
@@ -1409,6 +1410,22 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Island snapshots", coreApiClient.snapshots().listSnapshots(islandId, Math.max(1, Math.min(limit, 50))).thenApply(this::snapshotListMessage));
             return true;
         }
+        if (args[1].equalsIgnoreCase("rename")) {
+            if (args.length < 4) {
+                sender.sendMessage(adminText("admin-command-island-name-required", "새 섬 이름을 입력해주세요."));
+                return true;
+            }
+            run(sender, "Island rename", coreApiClient.settingsCommands().adminSetName(islandId, joined(args, 3)).thenApply(result -> settingsActionMessage("Island rename", islandId, result)));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("setbiome") || args[1].equalsIgnoreCase("biome")) {
+            if (args.length < 4) {
+                sender.sendMessage(adminText("admin-command-island-biome-required", "바이옴 키를 입력해주세요."));
+                return true;
+            }
+            run(sender, "Island setbiome", coreApiClient.environmentCommands().adminSetBiome(islandId, args[3]).thenApply(result -> gameplayModifierMessage("Island setbiome", result)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("rollback")) {
             if (args.length < 4) {
                 sender.sendMessage(adminText("admin-command-snapshot-required", "스냅샷 번호를 입력해주세요."));
@@ -1994,6 +2011,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island member promote <islandUuid|islandName> <playerUuid|playerName>",
             "/ciadmin island member demote <islandUuid|islandName> <playerUuid|playerName>",
             "/ciadmin island member setleader <islandUuid|islandName> <playerUuid|playerName>",
+            "/ciadmin island rename <islandUuid|islandName> <name>",
+            "/ciadmin island setbiome <islandUuid|islandName> <biomeKey>",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
             "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
@@ -2531,6 +2550,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + " key=" + result.key()
             + " value=" + result.value()
             + " island=" + shortId(result.islandId());
+    }
+
+    private String settingsActionMessage(String label, UUID islandId, SettingsActionView result) {
+        return label
+            + " accepted=" + result.accepted()
+            + " code=" + result.code()
+            + " island=" + shortId(islandId.toString());
     }
 
     private String templateListMessage(List<TemplateView> templates) {
