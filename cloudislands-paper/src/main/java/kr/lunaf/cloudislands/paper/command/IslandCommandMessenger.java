@@ -33,7 +33,7 @@ final class IslandCommandMessenger {
     }
 
     String playerCodeMessage(String code, String fallback) {
-        return IslandCommandMessages.playerCodeMessage(code, fallback);
+        return IslandCommandMessages.playerCodeMessage(code, fallback, this::routeMessage);
     }
 
     String playerMessage(String message) {

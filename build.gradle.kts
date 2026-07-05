@@ -1301,6 +1301,59 @@ tasks.register("verifyHomeWarpMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifyFailureCodeMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 player failure-code messages use localized keys and recovery hints."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val sourceFile = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandMessages.java")
+    val messengerFile = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandMessenger.java")
+    val testFile = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandMessagesTest.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(sourceFile, messengerFile, testFile, koMessages, enMessages)
+    doLast {
+        val source = sourceFile.asFile.readText()
+        val messenger = messengerFile.asFile.readText()
+        val test = testFile.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val requiredCodes = listOf(
+            "OWNER_ROLE_PROTECTED",
+            "MEMBER_ROLE_UNAVAILABLE",
+            "VISITOR_BAN_DENIED",
+            "REVIEW_OWNER_DENIED",
+            "REVIEW_RATING_INVALID",
+            "INSUFFICIENT_ITEMS",
+            "ECONOMY_CHARGE_FAILED",
+            "ECONOMY_REFUND_FAILED",
+            "TEMPLATE_PERMISSION_DENIED"
+        )
+        fun keyFor(code: String) = "failure-code-" + code.lowercase().replace('_', '-')
+        val requiredKeys = requiredCodes.flatMap { listOf(keyFor(it), keyFor(it) + "-hint") } + listOf(
+            "failure-code-capacity-hint",
+            "failure-code-maintenance-hint",
+            "failure-code-permission-hint",
+            "failure-code-rate-limit-hint",
+            "failure-code-transient-hint"
+        )
+        val koreanLiteral = Regex(""""[^"]*[\uAC00-\uD7AF][^"]*"""")
+        val failures = buildList {
+            requiredCodes.filterNot(source::contains).forEach { add("IslandCommandMessages missing failure code mapping: $it") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing failure code message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing failure code message key: $it") }
+            if (!source.contains("CODE_MESSAGE_KEYS")) add("IslandCommandMessages must keep code-to-message-key mapping explicit")
+            if (!source.contains("codeHint(")) add("IslandCommandMessages must attach recovery hints for player-safe failure codes")
+            if (!source.contains("MessageLookup")) add("IslandCommandMessages must lookup localized message keys instead of hardcoded text")
+            if (!messenger.contains("IslandCommandMessages.playerCodeMessage(code, fallback, this::routeMessage)")) add("IslandCommandMessenger must route failure code messages through message keys")
+            if (!test.contains("playerCodeMessagesUseLocalizedFailureKeysAndHints")) add("IslandCommandMessagesTest must cover localized failure code hints")
+            koreanLiteral.find(source)?.let { add("IslandCommandMessages must not contain hardcoded Korean player output: ${it.value}") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register("verifySnapshotMessageKeyCoverage") {
     group = "verification"
     description = "Verifies CI-002 snapshot command output uses message keys with ko_kr/en_us coverage."
@@ -2029,6 +2082,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyRankingWorthCertification"))
     dependsOn(tasks.named("verifySnapshotRestoreCoverage"))
     dependsOn(tasks.named("verifyHomeWarpLocationCoverage"))
+    dependsOn(tasks.named("verifyFailureCodeMessageKeyCoverage"))
     dependsOn(tasks.named("verifyHomeWarpMessageKeyCoverage"))
     dependsOn(tasks.named("verifySnapshotMessageKeyCoverage"))
     dependsOn(tasks.named("verifyChatLogMessageKeyCoverage"))
