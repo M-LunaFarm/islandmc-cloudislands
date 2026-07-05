@@ -49,6 +49,8 @@ fun cloudIslandsIsMarkdownDocPath(path: String): Boolean =
 fun cloudIslandsIsMarkdownDocElement(element: FileTreeElement): Boolean =
     cloudIslandsIsMarkdownDocPath(element.path)
 
+val cloudIslandsDistChangelogFile = layout.buildDirectory.file("dist/CHANGELOG.txt")
+
 tasks.register<Copy>("distPlugins") {
     group = "distribution"
     description = "Collects required CloudIslands plugin jars."
@@ -201,10 +203,78 @@ tasks.register<Copy>("distDeveloperKit") {
     into(layout.buildDirectory.dir("dist/devkit"))
 }
 
+tasks.register("verifyOperatorReleaseDocumentation") {
+    group = "verification"
+    description = "Verifies README-owned operator setup, migration, troubleshooting, and release artifact documentation for CI-010."
+    inputs.file(layout.projectDirectory.file("README.md"))
+    doLast {
+        val readme = layout.projectDirectory.file("README.md").asFile.readText()
+        val startMarker = "<!-- operator-release-docs:start -->"
+        val endMarker = "<!-- operator-release-docs:end -->"
+        val start = readme.indexOf(startMarker)
+        val end = readme.indexOf(endMarker)
+        if (start < 0 || end <= start) {
+            throw GradleException("README operator release documentation markers are missing")
+        }
+        val section = readme.substring(start, end)
+        val requiredSignals = listOf(
+            "### Production setup",
+            "### Local dev stack",
+            "### Migration procedure",
+            "### Troubleshooting",
+            "### Release artifacts and changelog",
+            "/ciadmin setup verify",
+            "/ciadmin doctor",
+            "releaseClusterSmokeGate",
+            "SuperiorSkyblock2 migration",
+            "checksums-sha256.txt",
+            "cloudislands-sbom.cdx.json",
+            "provenance.json",
+            "CHANGELOG.txt"
+        )
+        val missing = requiredSignals.filterNot(section::contains)
+        if (missing.isNotEmpty()) {
+            throw GradleException("README operator release documentation missing signals: ${missing.joinToString(", ")}")
+        }
+    }
+}
+
+tasks.register("distChangelog") {
+    group = "distribution"
+    description = "Writes a plain-text release changelog from the README release notes."
+    dependsOn(tasks.named("verifyOperatorReleaseDocumentation"))
+    inputs.file(layout.projectDirectory.file("README.md"))
+    outputs.file(cloudIslandsDistChangelogFile)
+    doLast {
+        val readme = layout.projectDirectory.file("README.md").asFile.readText()
+        val releaseMarker = "Release notes for `v${project.version}`:"
+        val start = readme.indexOf(releaseMarker)
+        if (start < 0) {
+            throw GradleException("README release notes missing marker: $releaseMarker")
+        }
+        val nextSection = readme.indexOf("\n## Project status", start)
+        val releaseNotes = readme.substring(
+            start + releaseMarker.length,
+            if (nextSection > start) nextSection else readme.length
+        ).trim()
+        val output = cloudIslandsDistChangelogFile.get().asFile
+        output.parentFile.mkdirs()
+        output.writeText(
+            buildString {
+                appendLine("CloudIslands ${project.version} changelog")
+                appendLine()
+                appendLine(releaseNotes)
+                appendLine()
+            }
+        )
+    }
+}
+
 tasks.register<Zip>("distBundle") {
     group = "distribution"
     description = "Packages the CloudIslands plugins, optional addons, Core API service runtime, migration support jars, and developer artifacts."
     dependsOn(tasks.named("verifyMarkdownDocsExcludedFromArtifacts"))
+    dependsOn(tasks.named("distChangelog"))
     dependsOn(tasks.named("distPlugins"))
     dependsOn(tasks.named("distAddons"))
     dependsOn(tasks.named("distAddonDescriptors"))
@@ -236,6 +306,7 @@ tasks.register<Zip>("distBundle") {
     from(layout.buildDirectory.dir("dist/devkit")) {
         into("devkit")
     }
+    from(cloudIslandsDistChangelogFile)
     destinationDirectory.set(layout.buildDirectory.dir("dist"))
 }
 
@@ -264,12 +335,14 @@ tasks.register<Zip>("distAddonBundle") {
 tasks.register("distChecksums") {
     group = "distribution"
     description = "Writes SHA-256 checksums for distribution archives and plugin jars."
+    dependsOn(tasks.named("distChangelog"))
     dependsOn(tasks.named("distBundle"))
     dependsOn(tasks.named("distAddonBundle"))
     doLast {
         val files = fileTree(layout.buildDirectory.dir("dist")) {
             include("**/*.zip")
             include("**/*.jar")
+            include("CHANGELOG.txt")
         }.files.sortedBy { it.relativeTo(layout.buildDirectory.dir("dist").get().asFile).path }
         val digest = MessageDigest.getInstance("SHA-256")
         val distDir = layout.buildDirectory.dir("dist").get().asFile
@@ -350,6 +423,7 @@ tasks.register("distSbom") {
 tasks.register("distProvenance") {
     group = "distribution"
     description = "Writes release provenance for distribution artifacts and security manifests."
+    dependsOn(tasks.named("distChangelog"))
     dependsOn(tasks.named("distChecksums"))
     dependsOn(tasks.named("distSbom"))
     inputs.file(layout.buildDirectory.file("dist/checksums-sha256.txt"))
@@ -408,6 +482,10 @@ tasks.register("distProvenance") {
             """.trimMargin()
         )
     }
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("verifyOperatorReleaseDocumentation"))
 }
 
 tasks.register("verifyReleaseSecurityGate") {

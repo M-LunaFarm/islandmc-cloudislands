@@ -30,8 +30,10 @@ tasks.register("verifyGradleGateSplit") {
             "tasks.register(\"releaseClusterSmokeGate\")",
             "tasks.register<Zip>(\"distBundle\")",
             "tasks.register(\"distChecksums\")",
+            "tasks.register(\"distChangelog\")",
             "tasks.register(\"distSbom\")",
-            "tasks.register(\"distProvenance\")"
+            "tasks.register(\"distProvenance\")",
+            "tasks.register(\"verifyOperatorReleaseDocumentation\")"
         ).filter(rootSource::contains)
         val requiredTasks = listOf(
             "verifyMinecraftVersionMatrix",
@@ -49,8 +51,10 @@ tasks.register("verifyGradleGateSplit") {
             "verifyIntegrationRuntimeSmoke",
             "distBundle",
             "distChecksums",
+            "distChangelog",
             "distSbom",
             "distProvenance",
+            "verifyOperatorReleaseDocumentation",
             "verifyFeatureParityEvidence"
         )
         val missingTasks = requiredTasks.filterNot(tasks.names::contains)

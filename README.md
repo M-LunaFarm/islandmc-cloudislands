@@ -62,6 +62,58 @@ This repository keeps operator documentation in this README because the result
 publication policy excludes committed markdown documents other than the root
 README.
 
+<!-- operator-release-docs:start -->
+## Operator release documentation
+
+CloudIslands publishes operator documentation through this README and release
+artifacts through `build/dist`. Do not add committed Markdown runbooks outside
+this file.
+
+### Production setup
+
+Production networks need private Core API, Redis, SQL, object storage,
+Velocity, lobby Paper, and island Paper nodes on a trusted internal network.
+Run at least two Core instances behind an internal load balancer, keep SQL and
+object storage durable, disable in-memory production fallback, and scope
+`cloudislands.admin.*` permissions to operators. Before public traffic, run
+`./gradlew ciIntegrationSmoke`, then rehearse backup, restore, route handoff,
+and audit evidence with `releaseClusterSmokeGate`.
+
+### Local dev stack
+
+For local development, start Redis, SQL, MinIO-compatible object storage, and
+Core API first. Start Velocity after Core health is ready, then start one lobby
+Paper server and at least one island Paper node with unique `node.id` values,
+matching Velocity backend names, `/ciadmin setup verify`, `/ciadmin doctor`, and
+a create-route-consume smoke path.
+
+### Migration procedure
+
+SuperiorSkyblock2 migration is ordered: scan, dry-run, backup, approval token,
+import, verify, compare, and rollback planning. Dry-run output must make owner,
+world, economy, home, warp, mission, permission, and unsupported-feature losses
+visible before import. Rollback must verify both Core state and storage bundle
+state before the legacy provider is removed.
+
+### Troubleshooting
+
+Use `/ciadmin doctor` first for Core, Redis, DB, storage, Velocity, Paper node,
+route ticket, template checksum, integration, and migration-lock health. Use
+`/ciadmin route debug`, `/ciadmin island inspect`, `/ciadmin storage verify`,
+and support bundles for targeted failures. Player-facing messages must avoid
+internal node IDs, storage keys, and database errors; operator views carry the
+failure code and recovery command.
+
+### Release artifacts and changelog
+
+Release builds attach `cloudislands-<version>.zip`, optional addon bundle,
+plugin jars, Core service runtime, developer kit, `checksums-sha256.txt`,
+`cloudislands-sbom.cdx.json`, `provenance.json`, and generated `CHANGELOG.txt`.
+The release gate is `./gradlew build distBundle distChecksums distSbom
+distProvenance`; `distProvenance` records the commit, dirty state, artifact
+paths, and SHA-256 digests.
+<!-- operator-release-docs:end -->
+
 Quickstart, single node:
 
 - run one Core API, one Redis, one SQL database, one object storage endpoint,
