@@ -12,6 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
+import kr.lunaf.cloudislands.protocol.command.IslandPlayerCommandRegistry;
 import org.junit.jupiter.api.Test;
 
 class IslandCommandCatalogTest {
@@ -82,6 +83,7 @@ class IslandCommandCatalogTest {
 
         assertEquals(descriptorAliases, IslandCommandCatalog.SUBCOMMANDS, "Subcommand aliases must be generated from descriptors");
         assertEquals(descriptorHelp, IslandCommandCatalog.HELP_COMMANDS, "Help output must be generated from descriptors");
+        assertEquals(IslandPlayerCommandRegistry.playerCommands(), IslandCommandCatalog.HELP_COMMANDS, "Paper help output must consume the shared Paper/Velocity player command registry");
         for (IslandCommandCatalog.IslandCommandDescriptor descriptor : IslandCommandCatalog.DESCRIPTORS) {
             assertFalse(descriptor.id().equals("island.command.registry"), "Descriptor registry must not collapse every command into one catch-all descriptor");
             assertTrue(descriptor.aliases().size() < IslandCommandCatalog.SUBCOMMANDS.size(), "No descriptor may own the full command alias list");

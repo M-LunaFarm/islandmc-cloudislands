@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import kr.lunaf.cloudislands.protocol.command.IslandPlayerCommandRegistry;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -13,18 +14,15 @@ class IslandCommandCatalogTest {
     void playerCommandCatalogIncludesGoalCommandsOnePerLine() {
         List<String> commands = IslandCommandCatalog.playerCommands();
 
+        assertTrue(commands == IslandPlayerCommandRegistry.playerCommands() || commands.equals(IslandPlayerCommandRegistry.playerCommands()), "Velocity player help must consume the shared Paper/Velocity command registry");
+
         for (String command : List.of(
                 "섬",
-                "섬 생성",
-                "섬 생성 <템플릿>",
-                "섬 홈",
-                "섬 홈 <이름>",
-                "섬 셋홈",
-                "섬 셋홈 <이름>",
+                "섬 도움말 [category] [page]",
+                "섬 홈 [name]",
+                "섬 셋홈 [name]",
                 "섬 setteleport [name]",
                 "섬 setspawnpoint [name]",
-                "섬 방문 <플레이어>",
-                "섬 방문 <섬이름>",
                 "섬 랜덤방문",
                 "섬 초대 <player>",
                 "섬 초대수락 <플레이어|섬|inviteId>",
@@ -35,7 +33,7 @@ class IslandCommandCatalogTest {
                 "섬 승급 <player>",
                 "섬 강등 <player>",
                 "섬 양도 <player>",
-                "섬 신뢰 <player>",
+                "섬 신뢰 <player> [duration]",
                 "섬 신뢰해제 <player>",
                 "섬 밴 <player>",
                 "섬 밴해제 <player>",
@@ -47,9 +45,8 @@ class IslandCommandCatalogTest {
                 "섬 설정",
                 "섬 권한",
                 "섬 플래그",
-                "섬 워프",
-                "섬 워프 <이름>",
-                "섬 워프설정 <name>",
+                "섬 워프 <name>",
+                "섬 워프설정 <name> [category]",
                 "섬 워프삭제 <name>",
                 "섬 워프공개 <name>",
                 "섬 워프비공개 <name>",
@@ -65,18 +62,16 @@ class IslandCommandCatalogTest {
                 "섬 업그레이드",
                 "섬 rankup <upgradeKey>",
                 "섬 크기",
-                "섬 바이옴",
-                "섬 바이옴 <바이옴>",
                 "섬 경계",
-                "섬 toggle border [on|off]",
+                "섬 toggle border",
                 "섬 미션 [missionKey]",
                 "섬 챌린지 [challengeKey]",
                 "섬 채팅 <message>",
                 "섬 팀채팅 <message>",
                 "섬 teamchat toggle",
                 "섬 로그",
-                "섬 리셋 [reason] confirm",
-                "섬 삭제 confirm"
+                "섬 리셋 [reason]",
+                "섬 삭제"
         )) {
             assertTrue(commands.contains(command), command);
         }

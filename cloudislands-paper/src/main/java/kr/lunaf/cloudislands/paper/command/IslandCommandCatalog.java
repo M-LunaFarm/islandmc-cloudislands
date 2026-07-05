@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import java.util.List;
+import kr.lunaf.cloudislands.protocol.command.IslandPlayerCommandRegistry;
 
 final class IslandCommandCatalog {
     static final List<String> UPGRADE_KEYS = List.of(
@@ -345,10 +346,7 @@ final class IslandCommandCatalog {
         .distinct()
         .toList();
 
-    static final List<String> HELP_COMMANDS = DESCRIPTORS.stream()
-        .flatMap(descriptor -> descriptor.helpCommands().stream())
-        .distinct()
-        .toList();
+    static final List<String> HELP_COMMANDS = IslandPlayerCommandRegistry.playerCommands();
 
     static List<String> helpCategoryNames() {
         return HELP_CATEGORIES.stream()
