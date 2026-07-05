@@ -126,13 +126,13 @@ final class IslandLifecycleCommandHandler {
         if (DangerousGuiActionPolicy.confirmed(actionOperation, actionToken, click, operation, token)) {
             return true;
         }
-        runtime.message(player, runtime.routeMessage("danger-confirm-token-invalid", "위험 작업 확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));
+        runtime.message(player, message("danger-confirm-token-invalid", "위험 작업 확인 토큰이 올바르지 않습니다. 확인 화면을 다시 열어주세요."));
         return false;
     }
 
     private void createIsland(Player player, String templateId) {
         MessageRenderer messages = runtime.messagesFor(player);
-        GuiStateMenus.openSaving(plugin, player, messages, runtime.routeMessage("create-progress-title", "섬 생성 요청 중"));
+        GuiStateMenus.openSaving(plugin, player, messages, message("create-progress-title", "섬 생성 요청 중"));
         String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
         coreApiClient.templates().get(normalizedTemplateId)
             .thenCompose(template -> canUseTemplate(player, template)
@@ -140,17 +140,17 @@ final class IslandLifecycleCommandHandler {
                 : CompletableFuture.completedFuture(new CreateIslandResult(false, "TEMPLATE_PERMISSION_DENIED", null, null)))
             .thenAccept(result -> {
                 if (!result.accepted()) {
-                    String detail = runtime.playerCodeMessage(result.code(), "섬 생성을 시작하지 못했습니다.");
-                    GuiStateMenus.openError(plugin, player, messages, runtime.routeMessage("create-progress-title", "섬 생성 요청 중"), detail, "island.create.open", "island.create.open");
+                    String detail = runtime.playerCodeMessage(result.code(), message("create-progress-start-failed", "섬 생성을 시작하지 못했습니다."));
+                    GuiStateMenus.openError(plugin, player, messages, message("create-progress-title", "섬 생성 요청 중"), detail, "island.create.open", "island.create.open");
                     runtime.message(player, detail);
                     return;
                 }
-                GuiStateMenus.openSuccess(plugin, player, messages, runtime.routeMessage("create-progress-title", "섬 생성 요청 중"), runtime.routeMessage("create-progress-started", "섬 생성을 시작했습니다."), "island.main.open");
-                runtime.message(player, runtime.routeMessage("create-progress-started", "섬 생성을 시작했습니다."));
+                GuiStateMenus.openSuccess(plugin, player, messages, message("create-progress-title", "섬 생성 요청 중"), message("create-progress-started", "섬 생성을 시작했습니다."), "island.main.open");
+                runtime.message(player, message("create-progress-started", "섬 생성을 시작했습니다."));
             })
             .exceptionally(error -> {
-                String detail = runtime.coreWriteFailureMessage(error, "섬 생성을 시작하지 못했습니다.");
-                GuiStateMenus.openError(plugin, player, messages, runtime.routeMessage("create-progress-title", "섬 생성 요청 중"), detail, "island.create.open", "island.create.open");
+                String detail = runtime.coreWriteFailureMessage(error, message("create-progress-start-failed", "섬 생성을 시작하지 못했습니다."));
+                GuiStateMenus.openError(plugin, player, messages, message("create-progress-title", "섬 생성 요청 중"), detail, "island.create.open", "island.create.open");
                 runtime.message(player, detail);
                 return null;
             });
@@ -195,43 +195,48 @@ final class IslandLifecycleCommandHandler {
     }
 
     private void deleteIsland(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 섬을 삭제할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("delete-island-required", "섬 안에서만 섬을 삭제할 수 있습니다.")).ifPresent(islandId -> {
             creationUseCase.delete(player.getUniqueId(), islandId, runtime::mutateIdempotent)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        runtime.message(player, runtime.playerCodeMessage(result.code(), "섬을 삭제하지 못했습니다."));
+                        runtime.message(player, runtime.playerCodeMessage(result.code(), message("delete-failed", "섬을 삭제하지 못했습니다.")));
                         return;
                     }
-                    runtime.message(player, "섬 삭제를 요청했습니다.");
+                    runtime.message(player, message("delete-requested", "섬 삭제를 요청했습니다."));
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, runtime.coreWriteFailureMessage(error, "섬을 삭제하지 못했습니다."));
+                    runtime.message(player, runtime.coreWriteFailureMessage(error, message("delete-failed", "섬을 삭제하지 못했습니다.")));
                     return null;
                 });
         });
     }
 
     private void resetIsland(Player player, String reason) {
-        runtime.currentIsland(player, "섬 안에서만 섬을 리셋할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("reset-island-required", "섬 안에서만 섬을 리셋할 수 있습니다.")).ifPresent(islandId -> {
             creationUseCase.resetAction(islandId, player.getUniqueId(), reason, runtime::mutateIdempotent)
-                .thenAccept(result -> runtime.message(player, lifecycleActionMessage("섬 리셋 요청", islandId, result)))
+                .thenAccept(result -> runtime.message(player, lifecycleActionMessage(message("reset-request-label", "섬 리셋 요청"), islandId, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, runtime.coreWriteFailureMessage(error, "섬을 리셋하지 못했습니다."));
+                    runtime.message(player, runtime.coreWriteFailureMessage(error, message("reset-failed", "섬을 리셋하지 못했습니다.")));
                     return null;
                 });
         });
     }
 
-    private static String lifecycleActionMessage(String label, UUID islandId, IslandActionResult result) {
+    private String lifecycleActionMessage(String label, UUID islandId, IslandActionResult result) {
         StringBuilder builder = new StringBuilder(label)
-            .append(result.accepted() ? " 완료" : " 실패");
+            .append(' ')
+            .append(result.accepted() ? message("lifecycle-action-complete", "완료") : message("lifecycle-action-failed", "실패"));
         if (islandId != null) {
-            builder.append(": 대상=").append(islandId.toString(), 0, 8);
+            builder.append(message("lifecycle-action-target-prefix", ": 대상=")).append(islandId.toString(), 0, 8);
         }
         if (!result.accepted() && !result.code().isBlank()) {
-            builder.append(" 사유=").append(result.code());
+            builder.append(message("lifecycle-action-reason-prefix", " 사유=")).append(result.code());
         }
         return builder.toString();
+    }
+
+    private String message(String key, String fallback) {
+        return runtime.routeMessage(key, fallback);
     }
 
     private static String joined(String[] args, int start) {

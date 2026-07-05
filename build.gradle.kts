@@ -1430,6 +1430,52 @@ tasks.register("verifyOverviewMemberMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifyLifecycleMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 lifecycle command output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handler, koMessages, enMessages)
+    doLast {
+        val source = handler.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val requiredKeys = listOf(
+            "create-progress-start-failed",
+            "delete-failed",
+            "delete-island-required",
+            "delete-requested",
+            "lifecycle-action-complete",
+            "lifecycle-action-failed",
+            "lifecycle-action-reason-prefix",
+            "lifecycle-action-target-prefix",
+            "reset-failed",
+            "reset-island-required",
+            "reset-request-label"
+        )
+        val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directPlayerCodeFallback = Regex("""playerCodeMessage\([^,\n]+,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCoreWriteFallback = Regex("""coreWriteFailureMessage\([^,\n]+,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val failures = buildList {
+            directRuntimeMessage.find(source)?.let { add("IslandLifecycleCommandHandler directly sends Korean runtime.message output: ${it.value}") }
+            directCurrentIsland.find(source)?.let { add("IslandLifecycleCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            directPlayerCodeFallback.find(source)?.let { add("IslandLifecycleCommandHandler directly passes playerCodeMessage Korean fallback: ${it.value}") }
+            directCoreWriteFallback.find(source)?.let { add("IslandLifecycleCommandHandler directly passes coreWriteFailureMessage Korean fallback: ${it.value}") }
+            if (!source.contains("private String message(String key, String fallback)")) add("IslandLifecycleCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            if (!source.contains("lifecycleActionMessage(message(\"reset-request-label\"") || !source.contains("message(\"delete-requested\"")) add("Lifecycle delete/reset output must stay behind keyed helper methods")
+            requiredKeys.filterNot { source.contains("\"$it\"") }.forEach { add("IslandLifecycleCommandHandler missing message key usage: $it") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing lifecycle message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing lifecycle message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
@@ -1439,6 +1485,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifySnapshotMessageKeyCoverage"))
     dependsOn(tasks.named("verifyChatLogMessageKeyCoverage"))
     dependsOn(tasks.named("verifyOverviewMemberMessageKeyCoverage"))
+    dependsOn(tasks.named("verifyLifecycleMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))
