@@ -267,6 +267,39 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminLimitMutationsAreFirstClassIslandCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String environmentClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/IslandEnvironmentCommandClient.java"));
+        String jdkEnvironmentClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkIslandEnvironmentCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/ProgressionRoutes.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        for (String command : List.of("setbanklimit", "addbanklimit", "setentitylimit", "addentitylimit", "setteamlimit", "addteamlimit", "setwarpslimit", "addwarpslimit", "setsize", "addsize")) {
+            assertTrue(adminSurface.contains("ciadmin island " + command + " <island>"), "Admin limit command must be listed in help: " + command);
+            assertTrue(catalog.contains("\"" + command + "\""), "Admin limit command must be cataloged for completion: " + command);
+        }
+        assertTrue(source.contains("coreApiClient.environmentCommands().adminSetLimit(islandId, adminLimitKey, value)"), "Admin absolute limit mutations must use the typed environment client");
+        assertTrue(source.contains("coreApiClient.environmentCommands().adminAddLimit(islandId, adminLimitKey, value)"), "Admin additive limit mutations must use the typed environment client");
+        assertTrue(source.contains("case \"setbanklimit\", \"addbanklimit\" -> \"BANK\""), "Bank limit commands must map to the BANK limit key");
+        assertTrue(source.contains("case \"setteamlimit\", \"addteamlimit\" -> \"MEMBERS\""), "Team limit commands must map to the enforced MEMBERS limit key");
+        assertTrue(source.contains("case \"setwarpslimit\", \"addwarpslimit\" -> \"WARPS\""), "Warp limit commands must map to the enforced WARPS limit key");
+        assertTrue(source.contains("case \"setsize\", \"addsize\" -> \"SIZE\""), "Size commands must map to the SIZE limit key");
+        assertTrue(environmentClient.contains("adminSetLimit(UUID islandId, String limitKey, long value)"), "Environment client must expose admin set limit");
+        assertTrue(environmentClient.contains("adminAddLimit(UUID islandId, String limitKey, long delta)"), "Environment client must expose admin add limit");
+        assertTrue(jdkEnvironmentClient.contains("postResultBody(\"/v1/admin/islands/limits/set\""), "JDK environment client must call admin set limit endpoint");
+        assertTrue(jdkEnvironmentClient.contains("postResultBody(\"/v1/admin/islands/limits/add\""), "JDK environment client must call admin add limit endpoint");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/limits/set"), "Core progression routes must register admin limit set");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/limits/add"), "Core progression routes must register admin limit add");
+        assertTrue(coreRoutes.contains("ISLAND_LIMIT_ADMIN_SET"), "Core admin limit set route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ISLAND_LIMIT_ADMIN_ADD"), "Core admin limit add route must audit operator mutation");
+        for (String permission : List.of("superior.admin.setbanklimit", "superior.admin.addbanklimit", "superior.admin.setentitylimit", "superior.admin.addentitylimit", "superior.admin.setteamlimit", "superior.admin.addteamlimit", "superior.admin.setwarpslimit", "superior.admin.addwarpslimit", "superior.admin.setsize", "superior.admin.addsize")) {
+            assertTrue(parity.contains("\"" + permission + "\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark " + permission + " verified");
+        }
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

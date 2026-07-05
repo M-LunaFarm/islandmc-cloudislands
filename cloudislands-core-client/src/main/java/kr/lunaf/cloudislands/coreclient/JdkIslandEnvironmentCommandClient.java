@@ -51,6 +51,22 @@ public final class JdkIslandEnvironmentCommandClient implements IslandEnvironmen
             .thenApply(body -> actionResult(body, "LIMIT_SET"));
     }
 
+    @Override
+    public CompletableFuture<EnvironmentActionView> adminSetLimit(UUID islandId, String limitKey, long value) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/islands/limits/set", CoreJsonPayload.object("islandId", islandId, "limitKey", limitKey == null ? "" : limitKey, "value", value))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> actionResult(body, "LIMIT_SET"));
+    }
+
+    @Override
+    public CompletableFuture<EnvironmentActionView> adminAddLimit(UUID islandId, String limitKey, long delta) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/islands/limits/add", CoreJsonPayload.object("islandId", islandId, "limitKey", limitKey == null ? "" : limitKey, "delta", delta))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> actionResult(body, "LIMIT_SET"));
+    }
+
     private static EnvironmentActionView actionResult(String body, String successCode) {
         Map<?, ?> root = CoreJson.object(body);
         return new EnvironmentActionView(

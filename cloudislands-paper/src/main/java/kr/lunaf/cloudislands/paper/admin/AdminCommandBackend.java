@@ -1457,6 +1457,21 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Island cleargenerator", coreApiClient.generatorCommands().adminClearGenerator(islandId).thenApply(result -> generatorActionMessage("Island cleargenerator", result)));
             return true;
         }
+        String adminLimitKey = adminLimitKey(args[1]);
+        if (!adminLimitKey.isBlank()) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of("/ciadmin island " + args[1].toLowerCase(Locale.ROOT) + " <islandUuid|islandName> <value>"));
+                return true;
+            }
+            long value = number(args[3], 0L);
+            String label = "Island " + args[1].toLowerCase(Locale.ROOT);
+            if (args[1].toLowerCase(Locale.ROOT).startsWith("add")) {
+                run(sender, label, coreApiClient.environmentCommands().adminAddLimit(islandId, adminLimitKey, value).thenApply(result -> gameplayModifierMessage(label, result)));
+            } else {
+                run(sender, label, coreApiClient.environmentCommands().adminSetLimit(islandId, adminLimitKey, value).thenApply(result -> gameplayModifierMessage(label, result)));
+            }
+            return true;
+        }
         if (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("rollback")) {
             if (args.length < 4) {
                 sender.sendMessage(adminText("admin-command-snapshot-required", "스냅샷 번호를 입력해주세요."));
@@ -2048,6 +2063,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island setgenerator <islandUuid|islandName> <generatorKey> <level>",
             "/ciadmin island addgenerator <islandUuid|islandName> <levels> [generatorKey]",
             "/ciadmin island cleargenerator <islandUuid|islandName>",
+            "/ciadmin island setbanklimit <islandUuid|islandName> <value>",
+            "/ciadmin island addbanklimit <islandUuid|islandName> <delta>",
+            "/ciadmin island setentitylimit <islandUuid|islandName> <value>",
+            "/ciadmin island addentitylimit <islandUuid|islandName> <delta>",
+            "/ciadmin island setteamlimit <islandUuid|islandName> <value>",
+            "/ciadmin island addteamlimit <islandUuid|islandName> <delta>",
+            "/ciadmin island setwarpslimit <islandUuid|islandName> <value>",
+            "/ciadmin island addwarpslimit <islandUuid|islandName> <delta>",
+            "/ciadmin island setsize <islandUuid|islandName> <value>",
+            "/ciadmin island addsize <islandUuid|islandName> <delta>",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
             "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
@@ -3606,6 +3631,17 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "RATE:SPAWNER_RATES";
         }
         return "RATE:UNKNOWN";
+    }
+
+    private String adminLimitKey(String command) {
+        return switch (command.toLowerCase(Locale.ROOT)) {
+            case "setbanklimit", "addbanklimit" -> "BANK";
+            case "setentitylimit", "addentitylimit" -> "ENTITY";
+            case "setteamlimit", "addteamlimit" -> "MEMBERS";
+            case "setwarpslimit", "addwarpslimit" -> "WARPS";
+            case "setsize", "addsize" -> "SIZE";
+            default -> "";
+        };
     }
 
     private String gameplayModifierLabel(String command) {

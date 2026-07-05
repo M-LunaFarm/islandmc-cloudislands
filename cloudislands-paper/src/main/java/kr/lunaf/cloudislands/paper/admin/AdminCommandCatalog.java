@@ -11,7 +11,7 @@ final class AdminCommandCatalog {
     static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary", "endpoints");
     static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "migration", "addon-state", "route-events");
     static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
-    static final List<String> ISLAND_COMMANDS = List.of("info", "where", "inspect", "visitor-stats", "visitors", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "bulk-restore", "bank", "member", "rename", "setbiome", "biome", "delwarp", "deletewarp", "setgenerator", "addgenerator", "cleargenerator", "quarantine", "recover", "repair", "delete");
+    static final List<String> ISLAND_COMMANDS = List.of("info", "where", "inspect", "visitor-stats", "visitors", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "bulk-restore", "bank", "member", "rename", "setbiome", "biome", "delwarp", "deletewarp", "setgenerator", "addgenerator", "cleargenerator", "setbanklimit", "addbanklimit", "setentitylimit", "addentitylimit", "setteamlimit", "addteamlimit", "setwarpslimit", "addwarpslimit", "setsize", "addsize", "quarantine", "recover", "repair", "delete");
     static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
     static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "tickets", "clear");
@@ -97,6 +97,16 @@ final class AdminCommandCatalog {
         "ciadmin island setgenerator <island> <generatorKey> <level>",
         "ciadmin island addgenerator <island> <levels> [generatorKey]",
         "ciadmin island cleargenerator <island>",
+        "ciadmin island setbanklimit <island> <value>",
+        "ciadmin island addbanklimit <island> <delta>",
+        "ciadmin island setentitylimit <island> <value>",
+        "ciadmin island addentitylimit <island> <delta>",
+        "ciadmin island setteamlimit <island> <value>",
+        "ciadmin island addteamlimit <island> <delta>",
+        "ciadmin island setwarpslimit <island> <value>",
+        "ciadmin island addwarpslimit <island> <delta>",
+        "ciadmin island setsize <island> <value>",
+        "ciadmin island addsize <island> <delta>",
         "ciadmin island quarantine <island> [reason]",
         "ciadmin island recover <island> [reason]",
         "ciadmin island repair <island> [reason]",

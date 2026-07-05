@@ -188,6 +188,26 @@ public final class ProgressionRoutes implements RouteGroup {
             events.publish(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name(), Map.of("islandId", islandId.toString(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
             CoreHttpResponses.write(exchange, 202, limitJson(snapshot));
         });
+        registry.routePost("/v1/admin/islands/limits/set", exchange -> {
+            String body = CoreHttpResponses.readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            if (!requireIsland(exchange, islandId)) {
+                return;
+            }
+            var snapshot = setAdminLimit(islandId, JsonFields.text(body, "limitKey", "HOPPER"), JsonFields.longValue(body, "value", 0L), "SET");
+            CoreHttpResponses.write(exchange, 202, limitJson(snapshot));
+        });
+        registry.routePost("/v1/admin/islands/limits/add", exchange -> {
+            String body = CoreHttpResponses.readBody(exchange);
+            UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
+            if (!requireIsland(exchange, islandId)) {
+                return;
+            }
+            String limitKey = JsonFields.text(body, "limitKey", "HOPPER");
+            long delta = JsonFields.longValue(body, "delta", JsonFields.longValue(body, "value", 0L));
+            var snapshot = setAdminLimit(islandId, limitKey, Math.max(0L, currentLimitValue(islandId, limitKey) + delta), "ADD");
+            CoreHttpResponses.write(exchange, 202, limitJson(snapshot));
+        });
     }
 
     private static int queryInteger(HttpExchange exchange, String key, int fallback, int min, int max) {
@@ -242,6 +262,55 @@ public final class ProgressionRoutes implements RouteGroup {
         LinkedHashMap<String, String> fields = new LinkedHashMap<>(missionCompleteFields(snapshot, reward, actorUuid));
         fields.put("islandId", snapshot.islandId().toString());
         return fields;
+    }
+
+    private boolean requireIsland(HttpExchange exchange, UUID islandId) throws IOException {
+        if (islandRepository != null && islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return false;
+        }
+        return true;
+    }
+
+    private kr.lunaf.cloudislands.api.model.IslandLimitSnapshot setAdminLimit(UUID islandId, String limitKey, long value, String operation) {
+        UUID systemActor = new UUID(0L, 0L);
+        var snapshot = limitRepository.set(islandId, limitKey, Math.max(0L, value), systemActor);
+        if (snapshot.limitKey().equals("SIZE")) {
+            applyIslandSize(islandId, snapshot.value());
+        }
+        String auditAction = operation.equals("ADD") ? "ISLAND_LIMIT_ADMIN_ADD" : "ISLAND_LIMIT_ADMIN_SET";
+        Map<String, String> fields = Map.of("limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value()), "operation", operation);
+        audit.log(systemActor, "ADMIN", auditAction, "ISLAND", islandId.toString(), fields);
+        islandLogs.append(islandId, systemActor, auditAction, fields);
+        events.publish(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name(), Map.of(
+            "islandId", islandId.toString(),
+            "actorType", "ADMIN",
+            "limitKey", snapshot.limitKey(),
+            "value", Long.toString(snapshot.value()),
+            "operation", operation
+        ));
+        return snapshot;
+    }
+
+    private long currentLimitValue(UUID islandId, String limitKey) {
+        String normalized = kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.normalizeIslandLimitKey(limitKey);
+        return limitRepository.list(islandId).stream()
+            .filter(limit -> limit.limitKey().equalsIgnoreCase(normalized))
+            .findFirst()
+            .map(kr.lunaf.cloudislands.api.model.IslandLimitSnapshot::value)
+            .orElse(0L);
+    }
+
+    private void applyIslandSize(UUID islandId, long size) {
+        if (islandRepository == null) {
+            return;
+        }
+        islandRepository.findById(islandId).ifPresent(island -> islandRepository.updateStats(
+            islandId,
+            (int) Math.min(Integer.MAX_VALUE, Math.max(1L, size)),
+            island.level(),
+            island.worth()
+        ));
     }
 
     record MissionRewardApplication(boolean applied, String code, String balance, Map<String, String> details) {

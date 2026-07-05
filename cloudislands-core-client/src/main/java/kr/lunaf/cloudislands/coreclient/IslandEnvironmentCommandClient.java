@@ -12,4 +12,8 @@ public interface IslandEnvironmentCommandClient {
     CompletableFuture<EnvironmentActionView> setFlag(UUID islandId, UUID actorUuid, IslandFlag flag, String value);
 
     CompletableFuture<EnvironmentActionView> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value);
+
+    CompletableFuture<EnvironmentActionView> adminSetLimit(UUID islandId, String limitKey, long value);
+
+    CompletableFuture<EnvironmentActionView> adminAddLimit(UUID islandId, String limitKey, long delta);
 }

@@ -862,6 +862,14 @@ class CoreTypedClientsTest {
                     calls.add("limit:" + args[2] + ":" + args[3]);
                     yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "LIMIT_SET", "HOPPER", 64L, islandId.toString(), actorUuid.toString(), "2026-06-21T00:00:00Z"));
                 }
+                case "adminSetLimit" -> {
+                    calls.add("adminSetLimit:" + args[1] + ":" + args[2]);
+                    yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "LIMIT_SET", "BANK", 1000L, islandId.toString(), "", "2026-06-21T00:00:00Z"));
+                }
+                case "adminAddLimit" -> {
+                    calls.add("adminAddLimit:" + args[1] + ":" + args[2]);
+                    yield CompletableFuture.completedFuture(new EnvironmentActionView(true, "LIMIT_SET", "WARPS", 4L, islandId.toString(), "", "2026-06-21T00:00:00Z"));
+                }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
@@ -871,16 +879,20 @@ class CoreTypedClientsTest {
         EnvironmentActionView adminBiome = client.adminSetBiome(islandId, "minecraft:desert").join();
         EnvironmentActionView flag = client.setFlag(islandId, actorUuid, IslandFlag.BORDER_VISIBLE, "true").join();
         EnvironmentActionView limit = client.setLimit(islandId, actorUuid, "HOPPER", 64L).join();
+        EnvironmentActionView adminSetLimit = client.adminSetLimit(islandId, "BANK", 1000L).join();
+        EnvironmentActionView adminAddLimit = client.adminAddLimit(islandId, "WARPS", 3L).join();
 
         assertEquals("PLAINS", biome.key());
         assertEquals("minecraft:desert", adminBiome.key());
         assertEquals("BORDER_VISIBLE", flag.key());
         assertEquals("HOPPER", limit.key());
+        assertEquals("BANK", adminSetLimit.key());
+        assertEquals("WARPS", adminAddLimit.key());
         assertEquals(64L, limit.value());
         assertEquals(islandId.toString(), limit.islandId());
         assertEquals(actorUuid.toString(), limit.updatedBy());
         assertEquals("2026-06-21T00:00:00Z", limit.updatedAt());
-        assertEquals(List.of("biome:PLAINS", "adminBiome:minecraft:desert", "flag:BORDER_VISIBLE:true", "limit:HOPPER:64"), calls);
+        assertEquals(List.of("biome:PLAINS", "adminBiome:minecraft:desert", "flag:BORDER_VISIBLE:true", "limit:HOPPER:64", "adminSetLimit:BANK:1000", "adminAddLimit:WARPS:3"), calls);
     }
 
     @Test

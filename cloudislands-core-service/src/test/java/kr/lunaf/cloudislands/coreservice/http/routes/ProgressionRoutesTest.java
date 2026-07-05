@@ -29,13 +29,15 @@ class ProgressionRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(9, paths.size());
+        assertEquals(11, paths.size());
         assertTrue(paths.contains("/v1/rankings/level"));
         assertTrue(paths.contains("/v1/rankings/worth"));
         assertTrue(paths.contains("/v1/upgrades/rules"));
         assertTrue(paths.contains("/v1/addons/missions/register"));
         assertTrue(paths.contains("/v1/islands/missions/complete"));
         assertTrue(paths.contains("/v1/islands/limits/set"));
+        assertTrue(paths.contains("/v1/admin/islands/limits/set"));
+        assertTrue(paths.contains("/v1/admin/islands/limits/add"));
     }
 
     @Test
@@ -53,6 +55,8 @@ class ProgressionRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/missions/progress"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/limits"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/limits/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/limits/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/limits/add"));
     }
 
     @Test

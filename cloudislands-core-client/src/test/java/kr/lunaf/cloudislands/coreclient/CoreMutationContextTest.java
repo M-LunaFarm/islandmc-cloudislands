@@ -271,6 +271,8 @@ class CoreMutationContextTest {
         server.createContext("/v1/addons/missions/register", exchange -> respond(exchange, requestBodies, "missionRegister", "{\"accepted\":true}"));
         server.createContext("/v1/islands/limits", exchange -> respond(exchange, requestBodies, "limits", "{\"limits\":[]}"));
         server.createContext("/v1/islands/limits/set", exchange -> respond(exchange, requestBodies, "limitSet", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/limits/set", exchange -> respond(exchange, requestBodies, "adminLimitSet", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/limits/add", exchange -> respond(exchange, requestBodies, "adminLimitAdd", "{\"accepted\":true}"));
         server.createContext("/v1/islands/chat", exchange -> respond(exchange, requestBodies, "chat", "{\"accepted\":true}"));
         server.createContext("/v1/islands/snapshots", exchange -> respond(exchange, requestBodies, "snapshots", "{\"snapshots\":[]}"));
         server.createContext("/v1/islands/snapshots/record", exchange -> respond(exchange, requestBodies, "snapshotRecord", "{\"accepted\":true}"));
@@ -298,6 +300,8 @@ class CoreMutationContextTest {
             ))).join();
             client.environment().limits(islandId).join();
             client.environmentCommands().setLimit(islandId, actorUuid, "HOPPER\"LIMIT", 64L).join();
+            client.environmentCommands().adminSetLimit(islandId, "BANK\"LIMIT", 1000L).join();
+            client.environmentCommands().adminAddLimit(islandId, "WARPS\"LIMIT", 3L).join();
             client.communicationCommands().sendChat(islandId, actorUuid, "team\"chat", "hello \"team\"").join();
             client.snapshots().records(islandId, 15).join();
             client.snapshotCommands().recordSnapshot(islandId, 7L, "snapshots/base\"one.tar", "manual \"save\"", "abc\"123", 4096L, "node\"a").join();
@@ -317,6 +321,8 @@ class CoreMutationContextTest {
             assertEquals("{\"providerId\":\"provider\\\"one\",\"missions\":[{\"missionKey\":\"starter\",\"kind\":\"MISSION\",\"category\":\"general\",\"title\":\"starter\",\"description\":\"\",\"triggerType\":\"\",\"targetKey\":\"\",\"goal\":1,\"rewardType\":\"\",\"reward\":\"\",\"repeatable\":false,\"dailyReset\":false,\"enabled\":true}]}", requestBodies.get("missionRegister"));
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("limits"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"limitKey\":\"HOPPER\\\"LIMIT\",\"value\":64}", requestBodies.get("limitSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"limitKey\":\"BANK\\\"LIMIT\",\"value\":1000}", requestBodies.get("adminLimitSet"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"limitKey\":\"WARPS\\\"LIMIT\",\"delta\":3}", requestBodies.get("adminLimitAdd"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"channel\":\"TEAM\\\"CHAT\",\"message\":\"hello \\\"team\\\"\"}", requestBodies.get("chat"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":15}", requestBodies.get("snapshots"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"snapshotNo\":8,\"storagePath\":\"snapshots/base\\\"two.tar\",\"reason\":\"auto \\\"save\\\"\",\"checksum\":\"def\\\"456\",\"sizeBytes\":8192,\"nodeId\":\"node\\\"b\",\"fencingToken\":123}", requestBodies.get("snapshotRecord"));
