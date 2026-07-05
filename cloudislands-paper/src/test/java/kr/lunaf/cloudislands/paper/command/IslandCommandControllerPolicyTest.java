@@ -495,6 +495,7 @@ class IslandCommandControllerPolicyTest {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String homeWarpHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
         String homeWarpUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandHomeWarpUseCase.java"));
+        String localTeleports = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandLocalTeleports.java"));
 
         assertTrue(backend.contains("private final IslandHomeWarpCommandHandler homeWarpCommands;"));
         assertTrue(routerSource().contains("homeWarpCommands.handleCommand(player, subcommand, args)"));
@@ -521,6 +522,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpHandler.contains("warpPoint(warps, name)"), "warp teleport must not fall back to the player's current world");
         assertTrue(homeWarpHandler.contains("new Point(home.worldName(), home.x(), home.y(), home.z(), home.yaw(), home.pitch(), false)"), "home teleport point must preserve world and facing");
         assertTrue(homeWarpHandler.contains("new Point(warp.worldName(), warp.x(), warp.y(), warp.z(), warp.yaw(), warp.pitch(), warp.publicAccess())"), "warp teleport point must preserve world and facing");
+        assertTrue(localTeleports.contains("if (point.worldName().isBlank())"), "local teleport must reject missing stored worlds");
+        assertFalse(localTeleports.contains("point.worldName().isBlank() ?"), "local teleport must not substitute the player's current world for stored home/warp worlds");
         assertFalse(homeWarpHandler.contains("coreApiClient.setIslandHomeResult"));
         assertFalse(homeWarpHandler.contains("coreApiClient.setIslandWarpResult"));
         assertFalse(homeWarpHandler.contains("coreApiClient.deleteIslandWarpResult"));

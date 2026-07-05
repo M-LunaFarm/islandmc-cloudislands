@@ -39,13 +39,16 @@ final class IslandCommandLocalTeleports {
                 player.sendMessage(missingMessage);
                 return;
             }
-            Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
-            String worldName = point.worldName().isBlank() ? region.map(IslandRegion::world).orElse("") : point.worldName();
-            World world = worlds.world(worldName);
+            if (point.worldName().isBlank()) {
+                messages.message(player, messages.routeMessage("route-target-world-missing", "대상 월드를 찾을 수 없습니다."));
+                return;
+            }
+            World world = worlds.world(point.worldName());
             if (world == null) {
                 messages.message(player, messages.routeMessage("route-target-world-missing", "대상 월드를 찾을 수 없습니다."));
                 return;
             }
+            Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
             double targetX = region.map(value -> value.originX() + point.x()).orElse(point.x());
             double targetZ = region.map(value -> value.originZ() + point.z()).orElse(point.z());
             players.teleport(player, new Location(world, targetX, point.y(), targetZ, point.yaw(), point.pitch()));
