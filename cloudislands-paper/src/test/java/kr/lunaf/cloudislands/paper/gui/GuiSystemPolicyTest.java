@@ -381,6 +381,17 @@ class GuiSystemPolicyTest {
     }
 
     @Test
+    void warehouseMenuUsesAdminConfiguredRowLimit() throws Exception {
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandWarehouseMenu.java"));
+
+        assertTrue(menu.contains("client.environment().limits(islandId)"), "warehouse menu must read island limits before listing items");
+        assertTrue(menu.contains("GameplayParityPolicy.WAREHOUSE_ROWS_LIMIT_KEY"), "warehouse menu must use the shared warehouse rows limit key");
+        assertTrue(menu.contains("listItems(islandId, rows * 9)"), "warehouse item query must scale with configured rows");
+        assertTrue(menu.contains("Math.max(1, Math.min(rows, 6))"), "warehouse rows must be clamped to valid inventory rows");
+        assertFalse(menu.contains("listItems(islandId, 36)"), "warehouse menu must not hard-code six rows");
+    }
+
+    @Test
     void listItemMaterialsRenderFromMenuDefinitions() throws Exception {
         for (String[] menuCase : List.of(
                 new String[] {"IslandHomeMenu", "homes.yml", "GREEN_BED"},

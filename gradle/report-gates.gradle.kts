@@ -583,7 +583,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.setbiome", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct admin biome mutation is exposed by /ciadmin island setbiome with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.setblockamount", "cloudislands.admin.setblockamount", "SUPPORTED_VERIFIED", "", "block amount mutation maps directly"),
     permissionParity("admin", "superior.admin.setblocklimit", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct block-limit mutation is exposed by /ciadmin island setblocklimit using shared BLOCK_AMOUNT limit keys"),
-    permissionParity("admin", "superior.admin.setchestrow", "PLANNED:admin-warehouse-size", "PLANNED", "P1", "direct warehouse row mutation is not yet exposed"),
+    permissionParity("admin", "superior.admin.setchestrow", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct warehouse row mutation is exposed by /ciadmin island setchestrow through the WAREHOUSE_ROWS limit consumed by the warehouse menu"),
     permissionParity("admin", "superior.admin.setcooplimit", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "co-op/member capacity mutation is exposed by /ciadmin island setcooplimit through the enforced MEMBERS limit key"),
     permissionParity("admin", "superior.admin.setcropgrowth", "cloudislands.admin.setcropgrowth", "SUPPORTED_VERIFIED", "", "crop growth mutation maps directly"),
     permissionParity("admin", "superior.admin.setdisbands", "PLANNED:disband-quota-compatibility", "PLANNED", "P2", "legacy disband quota mutation is tracked as compatibility-only backlog"),

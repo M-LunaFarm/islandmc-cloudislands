@@ -10,6 +10,7 @@ public final class GameplayParityPolicy {
     public static final String BLOCK_AMOUNT_LIMIT_PREFIX = "BLOCK_AMOUNT:";
     public static final String ROLE_LIMIT_PREFIX = "ROLE_LIMIT:";
     public static final String STACKED_BLOCKS_VISIBLE_LIMIT_KEY = "STACKED_BLOCKS_VISIBLE";
+    public static final String WAREHOUSE_ROWS_LIMIT_KEY = "WAREHOUSE_ROWS";
 
     private static final List<String> REQUIRED_PLAYER_SURFACES = List.of(
         "island-toggle-blocks",

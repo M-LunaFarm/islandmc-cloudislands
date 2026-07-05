@@ -3,6 +3,9 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase.WarehouseItemView;
@@ -45,7 +48,8 @@ public final class IslandWarehouseMenu implements Listener {
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
-        new IslandWarehouseUseCase(client).listItems(islandId, 36)
+        warehouseRows(client, islandId)
+            .thenCompose(rows -> new IslandWarehouseUseCase(client).listItems(islandId, rows * 9))
             .thenAccept(items -> openSync(plugin, player, session, items, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "warehouse-menu-load-failed", "섬 창고를 불러오지 못했습니다."), "island.warehouse.open", "island.settings.open");
@@ -92,6 +96,22 @@ public final class IslandWarehouseMenu implements Listener {
             message(messages, "warehouse-menu-material", "재료: ") + item.materialKey(),
             message(messages, "warehouse-menu-amount", "수량: ") + item.amount()
         );
+    }
+
+    private static CompletableFuture<Integer> warehouseRows(CoreApiClient client, UUID islandId) {
+        return client.environment().limits(islandId)
+            .thenApply(IslandWarehouseMenu::warehouseRows)
+            .exceptionally(_error -> 6);
+    }
+
+    private static int warehouseRows(List<IslandLimitSnapshot> limits) {
+        return limits.stream()
+            .filter(limit -> GameplayParityPolicy.WAREHOUSE_ROWS_LIMIT_KEY.equalsIgnoreCase(limit.limitKey()))
+            .findFirst()
+            .map(IslandLimitSnapshot::value)
+            .map(Long::intValue)
+            .map(rows -> Math.max(1, Math.min(rows, 6)))
+            .orElse(6);
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

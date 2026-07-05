@@ -14,6 +14,7 @@ class GameplayParityPolicyTest {
         assertEquals("MINECRAFT:DIAMOND_BLOCK", GameplayParityPolicy.blockAmountMaterialKey("block_amount:minecraft:diamond_block"));
         assertEquals("", GameplayParityPolicy.blockAmountMaterialKey("HOPPER"));
         assertEquals("STACKED_BLOCKS_VISIBLE", GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY);
+        assertEquals("WAREHOUSE_ROWS", GameplayParityPolicy.WAREHOUSE_ROWS_LIMIT_KEY);
         assertEquals("HOPPER", GameplayParityPolicy.normalizeIslandLimitKey(" "));
         assertFalse(GameplayParityPolicy.blockAmountLimit(null));
     }

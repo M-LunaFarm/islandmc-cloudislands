@@ -1567,6 +1567,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, label, coreApiClient.environmentCommands().adminSetLimit(islandId, limitKey, number(args[4], 0L)).thenApply(result -> gameplayModifierMessage(label, result)));
             return true;
         }
+        if (args[1].equalsIgnoreCase("setchestrow")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of("/ciadmin island setchestrow <islandUuid|islandName> <rows>"));
+                return true;
+            }
+            long rows = Math.max(1L, Math.min(number(args[3], 6L), 6L));
+            String label = "Island setchestrow";
+            run(sender, label, coreApiClient.environmentCommands().adminSetLimit(islandId, GameplayParityPolicy.WAREHOUSE_ROWS_LIMIT_KEY, rows).thenApply(result -> gameplayModifierMessage(label, result)));
+            return true;
+        }
         String adminLimitKey = adminLimitKey(args[1]);
         if (!adminLimitKey.isBlank()) {
             if (args.length < 4) {
@@ -2208,6 +2218,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island member demote <islandUuid|islandName> <playerUuid|playerName>",
             "/ciadmin island member setleader <islandUuid|islandName> <playerUuid|playerName>",
             "/ciadmin island join <islandUuid|islandName> [role]",
+            "/ciadmin island setchestrow <islandUuid|islandName> <rows>",
             "/ciadmin island rename <islandUuid|islandName> <name>",
             "/ciadmin island setbiome <islandUuid|islandName> <biomeKey>",
             "/ciadmin island delwarp <islandUuid|islandName> <warp>",

@@ -16,6 +16,8 @@ class InMemoryIslandLimitRepositoryTest {
 
         assertTrue(repository.list(islandId).stream()
             .anyMatch(limit -> limit.limitKey().equals(GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY) && limit.value() == 1L));
+        assertTrue(repository.list(islandId).stream()
+            .anyMatch(limit -> limit.limitKey().equals(GameplayParityPolicy.WAREHOUSE_ROWS_LIMIT_KEY) && limit.value() == 6L));
 
         var amount = repository.set(islandId, GameplayParityPolicy.blockAmountLimitKey("minecraft:diamond block"), 128L, actorUuid);
         var hidden = repository.set(islandId, GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY, 0L, actorUuid);

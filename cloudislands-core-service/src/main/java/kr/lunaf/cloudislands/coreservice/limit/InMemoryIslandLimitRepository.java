@@ -39,6 +39,7 @@ public final class InMemoryIslandLimitRepository implements IslandLimitRepositor
         putDefault(islandLimits, islandId, "REDSTONE", 512L);
         putDefault(islandLimits, islandId, "BANK", 100000L);
         putDefault(islandLimits, islandId, GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY, 1L);
+        putDefault(islandLimits, islandId, GameplayParityPolicy.WAREHOUSE_ROWS_LIMIT_KEY, 6L);
     }
 
     private void putDefault(Map<String, IslandLimitSnapshot> islandLimits, UUID islandId, String key, long value) {
