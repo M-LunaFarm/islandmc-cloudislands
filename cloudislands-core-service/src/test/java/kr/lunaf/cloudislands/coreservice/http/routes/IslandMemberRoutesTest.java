@@ -30,6 +30,7 @@ import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
@@ -121,6 +122,39 @@ class IslandMemberRoutesTest {
         assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_ADD"));
         assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_KICK"));
         assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_SETLEADER"));
+    }
+
+    @Test
+    void roleLimitBlocksAdminAddAndPromotionIntoLimitedRole() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000111");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000112");
+        UUID firstUuid = UUID.fromString("00000000-0000-0000-0000-000000000113");
+        UUID secondUuid = UUID.fromString("00000000-0000-0000-0000-000000000114");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "role-limit");
+        limits.set(islandId, GameplayParityPolicy.roleLimitKey("MODERATOR"), 1L, ownerUuid);
+
+        new IslandMemberRoutes(
+            islands,
+            metadata,
+            limits,
+            new InMemoryIslandPermissionRuleRepository(),
+            new InMemoryPlayerProfileRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryAuditLogger(),
+            new InMemoryGlobalEventPublisher()
+        ).register(handlers::put);
+
+        handle(handlers, "/v1/admin/islands/members/add", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + firstUuid + "\",\"roleKey\":\"MODERATOR\"}", 202, "MEMBER_ADDED");
+        handleError(handlers, "/v1/admin/islands/members/add", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + secondUuid + "\",\"roleKey\":\"MODERATOR\"}", 409, "ROLE_LIMIT");
+        handle(handlers, "/v1/admin/islands/members/add", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + secondUuid + "\",\"roleKey\":\"MEMBER\"}", 202, "MEMBER_ADDED");
+        handleError(handlers, "/v1/admin/islands/members/promote", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + secondUuid + "\"}", 409, "ROLE_LIMIT");
+
+        assertEquals("MODERATOR", metadata.members(islandId).stream().filter(member -> member.playerUuid().equals(firstUuid)).findFirst().orElseThrow().effectiveRoleKey());
+        assertEquals("MEMBER", metadata.members(islandId).stream().filter(member -> member.playerUuid().equals(secondUuid)).findFirst().orElseThrow().effectiveRoleKey());
     }
 
     @Test
@@ -224,6 +258,15 @@ class IslandMemberRoutesTest {
         Map<?, ?> response = SimpleJson.object(SimpleJson.parse(exchange.body()));
         assertEquals(true, response.get("accepted"));
         assertEquals(expectedCode, SimpleJson.text(response.get("code")));
+    }
+
+    private static void handleError(Map<String, HttpHandler> handlers, String path, String body, int expectedStatus, String expectedCode) throws Exception {
+        TestExchange exchange = new TestExchange(path, body);
+        handlers.get(path).handle(exchange);
+        assertEquals(expectedStatus, exchange.status());
+        Map<?, ?> response = SimpleJson.object(SimpleJson.parse(exchange.body()));
+        Map<?, ?> error = SimpleJson.object(response.get("error"));
+        assertEquals(expectedCode, SimpleJson.text(error.get("code")));
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

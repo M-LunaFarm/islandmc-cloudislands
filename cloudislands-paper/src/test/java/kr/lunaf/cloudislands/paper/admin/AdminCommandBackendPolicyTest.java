@@ -306,12 +306,14 @@ class AdminCommandBackendPolicyTest {
         String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
         String adminSurface = source + "\n" + catalog;
 
-        for (String command : List.of("setbanklimit", "addbanklimit", "setentitylimit", "addentitylimit", "setteamlimit", "addteamlimit", "setcooplimit", "addcooplimit", "setwarpslimit", "addwarpslimit", "setsize", "addsize")) {
+        for (String command : List.of("setbanklimit", "addbanklimit", "setentitylimit", "addentitylimit", "setteamlimit", "addteamlimit", "setcooplimit", "addcooplimit", "setrolelimit", "setwarpslimit", "addwarpslimit", "setsize", "addsize")) {
             assertTrue(adminSurface.contains("ciadmin island " + command + " <island>"), "Admin limit command must be listed in help: " + command);
             assertTrue(catalog.contains("\"" + command + "\""), "Admin limit command must be cataloged for completion: " + command);
         }
         assertTrue(source.contains("coreApiClient.environmentCommands().adminSetLimit(islandId, adminLimitKey, value)"), "Admin absolute limit mutations must use the typed environment client");
         assertTrue(source.contains("coreApiClient.environmentCommands().adminAddLimit(islandId, adminLimitKey, value)"), "Admin additive limit mutations must use the typed environment client");
+        assertTrue(source.contains("GameplayParityPolicy.roleLimitKey(roleKey)"), "Role limit command must use the shared role-limit key");
+        assertTrue(source.contains("coreApiClient.environmentCommands().adminSetLimit(islandId, limitKey, number(args[4], 0L))"), "Admin role limits must use the typed environment client");
         assertTrue(source.contains("case \"setbanklimit\", \"addbanklimit\" -> \"BANK\""), "Bank limit commands must map to the BANK limit key");
         assertTrue(source.contains("case \"setteamlimit\", \"addteamlimit\", \"setcooplimit\", \"addcooplimit\" -> \"MEMBERS\""), "Team/co-op limit commands must map to the enforced MEMBERS limit key");
         assertTrue(source.contains("case \"setwarpslimit\", \"addwarpslimit\" -> \"WARPS\""), "Warp limit commands must map to the enforced WARPS limit key");
@@ -324,7 +326,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(coreRoutes.contains("/v1/admin/islands/limits/add"), "Core progression routes must register admin limit add");
         assertTrue(coreRoutes.contains("ISLAND_LIMIT_ADMIN_SET"), "Core admin limit set route must audit operator mutation");
         assertTrue(coreRoutes.contains("ISLAND_LIMIT_ADMIN_ADD"), "Core admin limit add route must audit operator mutation");
-        for (String permission : List.of("superior.admin.setbanklimit", "superior.admin.addbanklimit", "superior.admin.setentitylimit", "superior.admin.addentitylimit", "superior.admin.setteamlimit", "superior.admin.addteamlimit", "superior.admin.setcooplimit", "superior.admin.addcooplimit", "superior.admin.setwarpslimit", "superior.admin.addwarpslimit", "superior.admin.setsize", "superior.admin.addsize")) {
+        for (String permission : List.of("superior.admin.setbanklimit", "superior.admin.addbanklimit", "superior.admin.setentitylimit", "superior.admin.addentitylimit", "superior.admin.setteamlimit", "superior.admin.addteamlimit", "superior.admin.setcooplimit", "superior.admin.addcooplimit", "superior.admin.setrolelimit", "superior.admin.setwarpslimit", "superior.admin.addwarpslimit", "superior.admin.setsize", "superior.admin.addsize")) {
             assertTrue(parity.contains("\"" + permission + "\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark " + permission + " verified");
         }
     }

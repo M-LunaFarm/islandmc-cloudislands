@@ -595,7 +595,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.setmobdrops", "cloudislands.admin.setmobdrops", "SUPPORTED_VERIFIED", "", "mob drop mutation maps directly"),
     permissionParity("admin", "superior.admin.setpermission", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct admin permission mutation is exposed by /ciadmin island setpermission with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.setrate", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct reviewer rating mutation is exposed by /ciadmin island setrate through typed review mutation"),
-    permissionParity("admin", "superior.admin.setrolelimit", "PLANNED:admin-limit-mutations", "PLANNED", "P1", "direct role-limit mutation is not yet exposed"),
+    permissionParity("admin", "superior.admin.setrolelimit", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct role-limit mutation is exposed by /ciadmin island setrolelimit through the enforced ROLE_LIMIT:<role> limit key"),
     permissionParity("admin", "superior.admin.setsettings", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct island flag mutation is exposed by /ciadmin island setsettings with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.setsize", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct island size mutation is exposed by /ciadmin island setsize with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.setspawn", "PLANNED:admin-spawn-mutation", "PLANNED", "P2", "server spawn mutation is outside current island admin scope"),

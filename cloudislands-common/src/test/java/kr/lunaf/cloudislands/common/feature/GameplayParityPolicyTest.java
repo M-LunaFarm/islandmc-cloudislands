@@ -17,4 +17,13 @@ class GameplayParityPolicyTest {
         assertEquals("HOPPER", GameplayParityPolicy.normalizeIslandLimitKey(" "));
         assertFalse(GameplayParityPolicy.blockAmountLimit(null));
     }
+
+    @Test
+    void exposesRoleLimitKeysAsStableGameplayContract() {
+        assertEquals("ROLE_LIMIT:MODERATOR", GameplayParityPolicy.roleLimitKey("moderator"));
+        assertTrue(GameplayParityPolicy.roleLimit("role_limit:trusted"));
+        assertEquals("TRUSTED", GameplayParityPolicy.roleLimitRoleKey("role_limit:trusted"));
+        assertEquals("", GameplayParityPolicy.roleLimitRoleKey("MEMBERS"));
+        assertFalse(GameplayParityPolicy.roleLimit(null));
+    }
 }

@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -115,6 +116,10 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
             return;
         }
+        if (roleLimitReached(islandId, members, currentRoleKey, roleKey)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
+            return;
+        }
         metadataRepository.upsertMemberKey(islandId, playerUuid, roleKey);
         audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "role", roleKey, "roleKey", roleKey));
         islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_SET", Map.of("playerUuid", playerUuid.toString(), "role", roleKey, "roleKey", roleKey));
@@ -144,6 +149,10 @@ public final class IslandMemberRoutes implements RouteGroup {
         boolean existingMember = currentMember != null;
         if (!existingMember && members.size() >= limitValue(islandId, "MEMBERS", 3L)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
+            return;
+        }
+        if (roleLimitReached(islandId, members, currentRoleKey, IslandRole.TRUSTED.name())) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
             return;
         }
         Instant expiresAt = Instant.now().plusSeconds(seconds);
@@ -224,10 +233,15 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_ROLE_UNAVAILABLE", "Admin member add requires an editable island role"));
             return;
         }
-        IslandMemberSnapshot current = member(metadataRepository.members(islandId), playerUuid);
+        List<IslandMemberSnapshot> members = metadataRepository.members(islandId);
+        IslandMemberSnapshot current = member(members, playerUuid);
         String oldRoleKey = current == null ? "" : current.effectiveRoleKey();
         if (oldRoleKey.equals(IslandRole.OWNER.name())) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner role is protected"));
+            return;
+        }
+        if (roleLimitReached(islandId, members, oldRoleKey, roleKey)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
             return;
         }
         metadataRepository.upsertMemberKey(islandId, playerUuid, roleKey);
@@ -272,7 +286,8 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
             return;
         }
-        IslandMemberSnapshot current = member(metadataRepository.members(islandId), playerUuid);
+        List<IslandMemberSnapshot> members = metadataRepository.members(islandId);
+        IslandMemberSnapshot current = member(members, playerUuid);
         if (current == null) {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("MEMBER_NOT_FOUND", "Island member was not found"));
             return;
@@ -285,6 +300,10 @@ public final class IslandMemberRoutes implements RouteGroup {
         String newRoleKey = direction.equals("promote") ? promotedRole(oldRoleKey) : demotedRole(oldRoleKey);
         if (newRoleKey.isBlank()) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_ROLE_UNAVAILABLE", "No legacy admin role step is available"));
+            return;
+        }
+        if (roleLimitReached(islandId, members, oldRoleKey, newRoleKey)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
             return;
         }
         metadataRepository.upsertMemberKey(islandId, playerUuid, newRoleKey);
@@ -375,6 +394,20 @@ public final class IslandMemberRoutes implements RouteGroup {
             .findFirst()
             .map(kr.lunaf.cloudislands.api.model.IslandLimitSnapshot::value)
             .orElse(fallback);
+    }
+
+    private boolean roleLimitReached(UUID islandId, List<IslandMemberSnapshot> members, String currentRoleKey, String newRoleKey) {
+        if (newRoleKey.equals(currentRoleKey)) {
+            return false;
+        }
+        long limit = limitValue(islandId, GameplayParityPolicy.roleLimitKey(newRoleKey), Long.MAX_VALUE);
+        if (limit == Long.MAX_VALUE) {
+            return false;
+        }
+        long count = members.stream()
+            .filter(member -> member.effectiveRoleKey().equals(newRoleKey))
+            .count();
+        return count >= limit;
     }
 
     static String membersJson(List<IslandMemberSnapshot> members) {

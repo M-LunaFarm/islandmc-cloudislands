@@ -8,6 +8,7 @@ public final class GameplayParityPolicy {
     public static final String EFFECT_RATE_POLICY = "island-effects-crop-growth-mob-drops-and-spawner-rates-are-core-visible-admin-controlled-runtime-modifiers";
     public static final String BLOCK_VALUE_POLICY = "block-values-drive-level-worth-gui-search-admin-set-and-ranking-recalculation";
     public static final String BLOCK_AMOUNT_LIMIT_PREFIX = "BLOCK_AMOUNT:";
+    public static final String ROLE_LIMIT_PREFIX = "ROLE_LIMIT:";
     public static final String STACKED_BLOCKS_VISIBLE_LIMIT_KEY = "STACKED_BLOCKS_VISIBLE";
 
     private static final List<String> REQUIRED_PLAYER_SURFACES = List.of(
@@ -71,6 +72,22 @@ public final class GameplayParityPolicy {
             return "";
         }
         return normalized.substring(BLOCK_AMOUNT_LIMIT_PREFIX.length());
+    }
+
+    public static String roleLimitKey(String roleKey) {
+        return ROLE_LIMIT_PREFIX + normalizeGameplayKey(roleKey, "MEMBER");
+    }
+
+    public static boolean roleLimit(String limitKey) {
+        return normalizeIslandLimitKey(limitKey).startsWith(ROLE_LIMIT_PREFIX);
+    }
+
+    public static String roleLimitRoleKey(String limitKey) {
+        String normalized = normalizeIslandLimitKey(limitKey);
+        if (!normalized.startsWith(ROLE_LIMIT_PREFIX)) {
+            return "";
+        }
+        return normalized.substring(ROLE_LIMIT_PREFIX.length());
     }
 
     public static String normalizeIslandLimitKey(String limitKey) {

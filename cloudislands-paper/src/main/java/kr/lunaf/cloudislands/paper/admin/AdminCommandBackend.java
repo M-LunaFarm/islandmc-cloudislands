@@ -1553,6 +1553,17 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Island removeentitylimit", coreApiClient.environmentCommands().adminSetLimit(islandId, "ENTITY", Long.MAX_VALUE).thenApply(result -> gameplayModifierMessage("Island removeentitylimit", result)));
             return true;
         }
+        if (args[1].equalsIgnoreCase("setrolelimit")) {
+            if (args.length < 5) {
+                sendCommandUsage(sender, List.of("/ciadmin island setrolelimit <islandUuid|islandName> <role> <value>"));
+                return true;
+            }
+            String roleKey = GameplayParityPolicy.normalizeGameplayKey(args[3], "MEMBER");
+            String limitKey = GameplayParityPolicy.roleLimitKey(roleKey);
+            String label = "Island setrolelimit";
+            run(sender, label, coreApiClient.environmentCommands().adminSetLimit(islandId, limitKey, number(args[4], 0L)).thenApply(result -> gameplayModifierMessage(label, result)));
+            return true;
+        }
         String adminLimitKey = adminLimitKey(args[1]);
         if (!adminLimitKey.isBlank()) {
             if (args.length < 4) {
@@ -2195,6 +2206,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island removeentitylimit <islandUuid|islandName>",
             "/ciadmin island setteamlimit <islandUuid|islandName> <value>",
             "/ciadmin island addteamlimit <islandUuid|islandName> <delta>",
+            "/ciadmin island setrolelimit <islandUuid|islandName> <role> <value>",
             "/ciadmin island setwarpslimit <islandUuid|islandName> <value>",
             "/ciadmin island addwarpslimit <islandUuid|islandName> <delta>",
             "/ciadmin island setsize <islandUuid|islandName> <value>",
