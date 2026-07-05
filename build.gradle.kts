@@ -1226,11 +1226,87 @@ tasks.register("verifyHomeWarpLocationCoverage") {
     }
 }
 
+tasks.register("verifyHomeWarpMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 home/warp command output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handler, koMessages, enMessages)
+    doLast {
+        val source = handler.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val requiredKeys = listOf(
+            "home-list-empty",
+            "home-list-island-required",
+            "home-list-prefix",
+            "home-load-failed",
+            "home-menu-island-required",
+            "home-not-found",
+            "home-set-action-label",
+            "home-set-failed",
+            "home-set-island-required",
+            "home-teleport-island-required",
+            "home-teleport-success",
+            "home-warp-action-complete",
+            "home-warp-action-failed",
+            "home-warp-action-reason-prefix",
+            "home-warp-action-target-prefix",
+            "island-info-load-failed",
+            "public-warp-list-category-label",
+            "public-warp-list-empty",
+            "public-warp-list-island-label",
+            "public-warp-list-load-failed",
+            "public-warp-list-prefix",
+            "warp-access-failed",
+            "warp-access-island-required",
+            "warp-delete-action-label",
+            "warp-delete-failed",
+            "warp-delete-island-required",
+            "warp-list-empty",
+            "warp-list-island-required",
+            "warp-list-prefix",
+            "warp-load-failed",
+            "warp-menu-island-required",
+            "warp-not-found",
+            "warp-private-action-label",
+            "warp-public-action-label",
+            "warp-set-action-label",
+            "warp-set-failed",
+            "warp-set-island-required",
+            "warp-teleport-island-required",
+            "warp-teleport-success"
+        )
+        val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val failures = buildList {
+            directRuntimeMessage.find(source)?.let { add("IslandHomeWarpCommandHandler directly sends Korean runtime.message output: ${it.value}") }
+            directCurrentIsland.find(source)?.let { add("IslandHomeWarpCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            listOf(
+                "runtime.moveToPoint(player, homePoint(homes, name), \"",
+                "runtime.moveToPoint(player, null, \"",
+                "runtime.moveToPoint(player, point, \""
+            ).filter(source::contains).forEach { add("IslandHomeWarpCommandHandler directly passes moveToPoint text output: $it") }
+            if (!source.contains("private String message(String key, String fallback)")) add("IslandHomeWarpCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            if (!source.contains("homeListMessage(homes)") || !source.contains("warpListMessage(warps)") || !source.contains("publicWarpListMessage(warps, category, query)")) add("Home/warp list output must stay behind keyed helper methods")
+            requiredKeys.filterNot { source.contains("\"$it\"") }.forEach { add("IslandHomeWarpCommandHandler missing message key usage: $it") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing home/warp message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing home/warp message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
     dependsOn(tasks.named("verifySnapshotRestoreCoverage"))
     dependsOn(tasks.named("verifyHomeWarpLocationCoverage"))
+    dependsOn(tasks.named("verifyHomeWarpMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))

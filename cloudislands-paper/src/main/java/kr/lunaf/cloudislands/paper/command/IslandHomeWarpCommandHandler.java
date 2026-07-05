@@ -210,90 +210,90 @@ final class IslandHomeWarpCommandHandler {
     }
 
     private void setHome(Player player, String name) {
-        runtime.currentIsland(player, "섬 안에서만 홈을 설정할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("home-set-island-required", "섬 안에서만 홈을 설정할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.SET_HOME)) {
                 runtime.message(player, runtime.routeMessage("home-set-denied", "섬 홈을 설정할 권한이 없습니다."));
                 return;
             }
             homeWarpUseCase.setHomeAction(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), runtime::mutate)
-                .thenAccept(result -> runtime.message(player, homeWarpActionMessage("섬 홈 설정 " + name, name, result)))
+                .thenAccept(result -> runtime.message(player, homeWarpActionMessage("home-set-action-label", "섬 홈 설정", name, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 홈을 설정하지 못했습니다.");
+                    runtime.message(player, message("home-set-failed", "섬 홈을 설정하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void setWarp(Player player, String name, String category) {
-        runtime.currentIsland(player, "섬 안에서만 워프를 설정할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("warp-set-island-required", "섬 안에서만 워프를 설정할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_WARPS)) {
                 runtime.message(player, runtime.routeMessage("warp-set-denied", "섬 워프를 설정할 권한이 없습니다."));
                 return;
             }
             homeWarpUseCase.setWarpAction(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), false, category, runtime::mutate)
-                .thenAccept(result -> runtime.message(player, homeWarpActionMessage("섬 워프 설정 " + name, name, result)))
+                .thenAccept(result -> runtime.message(player, homeWarpActionMessage("warp-set-action-label", "섬 워프 설정", name, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 워프를 설정하지 못했습니다.");
+                    runtime.message(player, message("warp-set-failed", "섬 워프를 설정하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void listHomes(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 홈 목록을 볼 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("home-list-island-required", "섬 안에서만 홈 목록을 볼 수 있습니다.")).ifPresent(islandId -> {
             homeWarpUseCase.homeViews(islandId)
                 .thenAccept(homes -> runtime.message(player, homeListMessage(homes)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 홈을 불러오지 못했습니다.");
+                    runtime.message(player, message("home-load-failed", "섬 홈을 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void listWarps(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 워프 목록을 볼 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("warp-list-island-required", "섬 안에서만 워프 목록을 볼 수 있습니다.")).ifPresent(islandId -> {
             homeWarpUseCase.warpViews(islandId)
                 .thenAccept(warps -> runtime.message(player, warpListMessage(warps)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 워프를 불러오지 못했습니다.");
+                    runtime.message(player, message("warp-load-failed", "섬 워프를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void openHomeMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 홈 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandHomeMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("home-menu-island-required", "섬 안에서만 홈 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandHomeMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void openWarpMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 워프 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandWarpMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("warp-menu-island-required", "섬 안에서만 워프 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandWarpMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void teleportHome(Player player, String name) {
-        runtime.currentIsland(player, "섬 안에서만 홈으로 이동할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("home-teleport-island-required", "섬 안에서만 홈으로 이동할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.INTERACT)) {
                 runtime.message(player, runtime.routeMessage("home-teleport-denied", "섬 홈으로 이동할 권한이 없습니다."));
                 return;
             }
             homeWarpUseCase.homeViews(islandId)
-                .thenAccept(homes -> runtime.moveToPoint(player, homePoint(homes, name), "홈을 찾을 수 없습니다.", "섬 홈으로 이동했습니다."))
+                .thenAccept(homes -> runtime.moveToPoint(player, homePoint(homes, name), message("home-not-found", "홈을 찾을 수 없습니다."), message("home-teleport-success", "섬 홈으로 이동했습니다.")))
                 .exceptionally(error -> {
                     if (runtime.coreUnavailable(error) && runtime.teleportLocalDefaultHome(player)) {
                         return null;
                     }
-                    runtime.message(player, "섬 홈을 불러오지 못했습니다.");
+                    runtime.message(player, message("home-load-failed", "섬 홈을 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void teleportWarp(Player player, String name) {
-        runtime.currentIsland(player, "섬 안에서만 워프로 이동할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("warp-teleport-island-required", "섬 안에서만 워프로 이동할 수 있습니다.")).ifPresent(islandId -> {
             homeWarpUseCase.warpViews(islandId)
                 .thenAccept(warps -> {
                     Point point = warpPoint(warps, name);
                     if (point == null) {
-                        runtime.moveToPoint(player, null, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
+                        runtime.moveToPoint(player, null, message("warp-not-found", "워프를 찾을 수 없습니다."), message("warp-teleport-success", "섬 워프로 이동했습니다."));
                         return;
                     }
                     homeWarpUseCase.islandInfoView(islandId).thenAccept(info -> {
@@ -301,44 +301,44 @@ final class IslandHomeWarpCommandHandler {
                             runtime.message(player, runtime.routeMessage("warp-teleport-denied", "섬 워프로 이동할 권한이 없습니다."));
                             return;
                         }
-                        runtime.moveToPoint(player, point, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
+                        runtime.moveToPoint(player, point, message("warp-not-found", "워프를 찾을 수 없습니다."), message("warp-teleport-success", "섬 워프로 이동했습니다."));
                     }).exceptionally(error -> {
-                        runtime.message(player, "섬 정보를 불러오지 못했습니다.");
+                        runtime.message(player, message("island-info-load-failed", "섬 정보를 불러오지 못했습니다."));
                         return null;
                     });
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 워프를 불러오지 못했습니다.");
+                    runtime.message(player, message("warp-load-failed", "섬 워프를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void deleteWarp(Player player, String name) {
-        runtime.currentIsland(player, "섬 안에서만 워프를 삭제할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("warp-delete-island-required", "섬 안에서만 워프를 삭제할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_WARPS)) {
                 runtime.message(player, runtime.routeMessage("warp-delete-denied", "섬 워프를 삭제할 권한이 없습니다."));
                 return;
             }
             homeWarpUseCase.deleteWarpAction(islandId, player.getUniqueId(), name, runtime::mutateIdempotent)
-                .thenAccept(result -> runtime.message(player, homeWarpActionMessage("섬 워프 삭제 " + name, name, result)))
+                .thenAccept(result -> runtime.message(player, homeWarpActionMessage("warp-delete-action-label", "섬 워프 삭제", name, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 워프를 삭제하지 못했습니다.");
+                    runtime.message(player, message("warp-delete-failed", "섬 워프를 삭제하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void setWarpPublicAccess(Player player, String name, boolean publicAccess) {
-        runtime.currentIsland(player, "섬 안에서만 워프 공개 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("warp-access-island-required", "섬 안에서만 워프 공개 상태를 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_WARPS)) {
                 runtime.message(player, runtime.routeMessage("warp-access-denied", "섬 워프 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
             homeWarpUseCase.setWarpPublicAccessAction(islandId, player.getUniqueId(), name, publicAccess, runtime::mutate)
-                .thenAccept(result -> runtime.message(player, homeWarpActionMessage(publicAccess ? "섬 워프 공개 " + name : "섬 워프 비공개 " + name, name, result)))
+                .thenAccept(result -> runtime.message(player, homeWarpActionMessage(publicAccess ? "warp-public-action-label" : "warp-private-action-label", publicAccess ? "섬 워프 공개" : "섬 워프 비공개", name, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 워프 공개 상태를 변경하지 못했습니다.");
+                    runtime.message(player, message("warp-access-failed", "섬 워프 공개 상태를 변경하지 못했습니다."));
                     return null;
                 });
         });
@@ -348,12 +348,12 @@ final class IslandHomeWarpCommandHandler {
         homeWarpUseCase.publicWarpViews(20, category, query)
             .thenAccept(warps -> runtime.message(player, publicWarpListMessage(warps, category, query)))
             .exceptionally(error -> {
-                runtime.message(player, "공개 워프 목록을 불러오지 못했습니다.");
+                runtime.message(player, message("public-warp-list-load-failed", "공개 워프 목록을 불러오지 못했습니다."));
                 return null;
         });
     }
 
-    private static String homeListMessage(List<HomeView> homes) {
+    private String homeListMessage(List<HomeView> homes) {
         StringBuilder message = new StringBuilder();
         for (HomeView home : homes == null ? List.<HomeView>of() : homes) {
             if (home.name().isBlank()) {
@@ -364,10 +364,10 @@ final class IslandHomeWarpCommandHandler {
             }
             message.append(home.name());
         }
-        return message.isEmpty() ? "섬 홈이 없습니다." : "섬 홈: " + message;
+        return message.isEmpty() ? message("home-list-empty", "섬 홈이 없습니다.") : message("home-list-prefix", "섬 홈: ") + message;
     }
 
-    private static String warpListMessage(List<WarpView> warps) {
+    private String warpListMessage(List<WarpView> warps) {
         StringBuilder message = new StringBuilder();
         for (WarpView warp : warps == null ? List.<WarpView>of() : warps) {
             if (warp.name().isBlank()) {
@@ -378,7 +378,7 @@ final class IslandHomeWarpCommandHandler {
             }
             message.append(warp.name());
         }
-        return message.isEmpty() ? "섬 워프가 없습니다." : "섬 워프: " + message;
+        return message.isEmpty() ? message("warp-list-empty", "섬 워프가 없습니다.") : message("warp-list-prefix", "섬 워프: ") + message;
     }
 
     private static Point homePoint(List<HomeView> homes, String requestedName) {
@@ -405,7 +405,7 @@ final class IslandHomeWarpCommandHandler {
         return name == null || name.isBlank() ? "default" : name;
     }
 
-    private static String publicWarpListMessage(java.util.List<WarpView> warps, String category, String query) {
+    private String publicWarpListMessage(java.util.List<WarpView> warps, String category, String query) {
         StringBuilder message = new StringBuilder();
         int count = 0;
         for (WarpView warp : warps == null ? java.util.List.<WarpView>of() : warps) {
@@ -421,27 +421,34 @@ final class IslandHomeWarpCommandHandler {
             message.append(++count)
                 .append(". ")
                 .append(warp.name())
-                .append(" (섬=")
+                .append(" (")
+                .append(message("public-warp-list-island-label", "섬="))
                 .append(compactId(warp.islandId()))
-                .append(", 카테고리=")
+                .append(", ")
+                .append(message("public-warp-list-category-label", "카테고리="))
                 .append(warp.category().isBlank() ? "default" : warp.category())
                 .append(')');
         }
         String suffix = (category == null || category.isBlank() ? "" : " category=" + category)
             + (query == null || query.isBlank() ? "" : " query=" + query);
-        return message.length() == 0 ? "공개 워프가 없습니다." + suffix : "공개 워프" + suffix + ": " + message;
+        return message.length() == 0 ? message("public-warp-list-empty", "공개 워프가 없습니다.") + suffix : message("public-warp-list-prefix", "공개 워프") + suffix + ": " + message;
     }
 
-    private static String homeWarpActionMessage(String label, String targetId, HomeWarpActionResult result) {
-        StringBuilder builder = new StringBuilder(label)
-            .append(result.accepted() ? " 완료" : " 실패");
+    private String homeWarpActionMessage(String labelKey, String labelFallback, String targetId, HomeWarpActionResult result) {
+        StringBuilder builder = new StringBuilder(message(labelKey, labelFallback))
+            .append(' ')
+            .append(result.accepted() ? message("home-warp-action-complete", "완료") : message("home-warp-action-failed", "실패"));
         if (targetId != null && !targetId.isBlank()) {
-            builder.append(": 대상=").append(targetId);
+            builder.append(message("home-warp-action-target-prefix", ": 대상=")).append(targetId);
         }
         if (!result.accepted() && !result.code().isBlank()) {
-            builder.append(" 사유=").append(result.code());
+            builder.append(message("home-warp-action-reason-prefix", " 사유=")).append(result.code());
         }
         return builder.toString();
+    }
+
+    private String message(String key, String fallback) {
+        return runtime.routeMessage(key, fallback);
     }
 
     private static String joined(String[] args, int start) {
