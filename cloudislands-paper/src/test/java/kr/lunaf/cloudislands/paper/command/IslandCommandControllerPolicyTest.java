@@ -26,12 +26,14 @@ class IslandCommandControllerPolicyTest {
         String controller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));
         String completer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandCatalog.java"));
+        String registry = Files.readString(Path.of("../cloudislands-protocol/src/main/java/kr/lunaf/cloudislands/protocol/command/IslandPlayerCommandRegistry.java"));
 
         assertFalse(backend.contains("implements CommandExecutor, TabCompleter"), "command execution backend must not own tab completion");
         assertFalse(backend.contains("onTabComplete("), "tab completion belongs in IslandCommandTabCompleter");
         assertTrue(backend.contains("static final List<String> SUBCOMMANDS = IslandCommandCatalog.SUBCOMMANDS;"), "command keyword catalog must live outside the backend");
         assertTrue(backend.contains("static final List<String> HELP_COMMANDS = IslandCommandCatalog.HELP_COMMANDS;"), "help command catalog must live outside the backend");
         assertTrue(catalog.contains("final class IslandCommandCatalog"), "command catalog must be isolated in its own class");
+        assertTrue(registry.contains("public final class IslandPlayerCommandRegistry"), "Paper and Velocity command descriptors must live in the shared protocol registry");
         assertTrue(controller.contains("private final IslandCommandTabCompleter tabCompleter;"));
         assertTrue(controller.contains("return tabCompleter.onTabComplete(sender, command, alias, args);"));
         assertTrue(completer.contains("implements TabCompleter"));
@@ -300,7 +302,7 @@ class IslandCommandControllerPolicyTest {
 
     @Test
     void warehouseChestAliasesUseViewPermissionAndCatalogCoverage() throws Exception {
-        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandCatalog.java"));
+        String catalog = Files.readString(Path.of("../cloudislands-protocol/src/main/java/kr/lunaf/cloudislands/protocol/command/IslandPlayerCommandRegistry.java"));
         String permissions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandPermission.java"));
         String completer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
         String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
