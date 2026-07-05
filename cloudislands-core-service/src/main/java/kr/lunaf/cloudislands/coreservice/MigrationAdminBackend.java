@@ -57,7 +57,7 @@ final class MigrationAdminBackend {
     static final String MIGRATION_SNAPSHOT_REASON = "BEFORE_MIGRATION:SUPERIORSKYBLOCK2_IMPORT";
     static final String MIGRATION_TARGET_FIELDS = "island-id,owner-uuid,members,roles,permissions,island-location,island-size,homes,warps,banned-visitors,level,worth,bank-balance,upgrades,missions,ratings,generators,limits,schematics,templates,stacked-blocks,custom-data,unsupported-data,flags,block-values,rollback-plan,downtime-estimate";
     static final String MIGRATION_PIPELINE_STEPS = "read-only-scan,manifest-generate,dry-run,conflict-report,admin-approval,db-import,world-cell-extract,island-bundle-create,checksum-verify,cloudislands-activation-test";
-    static final String MIGRATION_COMMAND_SET = "scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback";
+    static final String MIGRATION_COMMAND_SET = "scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback,unlock";
     static final String MIGRATION_DATA_CATEGORY_CLASSIFICATIONS = "island-metadata=SUPPORTED,owners=SUPPORTED,members=SUPPORTED,roles=PARTIAL,permissions=SUPPORTED,island-location=SUPPORTED,island-size=SUPPORTED,homes=SUPPORTED,warps=SUPPORTED,banned-visitors=SUPPORTED,level=SUPPORTED,worth=SUPPORTED,bank-balance=SUPPORTED,flags=PARTIAL,upgrades=SUPPORTED,limits=SUPPORTED,missions=PARTIAL,block-values=SUPPORTED,block-counts=SUPPORTED,warehouse=SUPPORTED,biomes=SUPPORTED,world-bundles=MANUAL,schematics=MANUAL,templates=MANUAL,ratings=UNSUPPORTED,generators=PARTIAL,stacked-blocks=PARTIAL,custom-data=UNSUPPORTED,unsafe-admin-actions=DANGEROUS";
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
@@ -222,6 +222,20 @@ final class MigrationAdminBackend {
             + ",\"rollbackPlan\":" + rollbackPlanJson(lastRollbackPlan)
             + ",\"issues\":[]"
             + "}";
+    }
+
+    public synchronized String unlock(String confirmationToken) {
+        String token = confirmationToken == null ? "" : confirmationToken.trim();
+        if (lastApprovalToken.isBlank()) {
+            return "{\"state\":\"UNLOCKED\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"unlocked\":true,\"approvalTokenAvailable\":false,\"message\":\"no pending migration approval lock\",\"issues\":[]}";
+        }
+        if (!lastApprovalToken.equals(token)) {
+            List<MigrationIssue> issues = List.of(new MigrationIssue("MIGRATION_UNLOCK_CONFIRMATION_REQUIRED", "pass --confirm with the current migration approval token", true));
+            return "{\"state\":\"UNLOCK_FAILED\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"unlocked\":false,\"approvalTokenAvailable\":true" + reportFields(MigrationReportBuilder.build(lastPlan.manifests(), issues)) + ",\"issues\":" + issuesJson(issues) + "}";
+        }
+        lastApprovalToken = "";
+        lastDryRunFingerprint = "";
+        return "{\"state\":\"UNLOCKED\"" + migrationBoundaryFields() + migrationCoverageFields() + ",\"unlocked\":true,\"approvalTokenAvailable\":false,\"message\":\"pending migration approval token cleared\",\"issues\":[]}";
     }
 
     public synchronized String compare(String islandKey) {

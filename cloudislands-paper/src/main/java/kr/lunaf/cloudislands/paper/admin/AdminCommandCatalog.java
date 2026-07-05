@@ -4,7 +4,7 @@ import java.util.List;
 import kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy;
 
 final class AdminCommandCatalog {
-    static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "template", "templates", "migrate-superiorskyblock2", "reload");
+    static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "template", "templates", "migrate", "migrate-superiorskyblock2", "reload");
     static final List<String> SETUP_COMMANDS = List.of("start", "wizard", "core", "redis", "database", "storage", "velocity", "paper-node", "verify", "explain", "export-redacted");
     static final List<String> CONFIG_COMMANDS = List.of("show", "validate", "diff", "reload", "effective", "sources");
     static final List<String> CACHE_COMMANDS = List.of("clear");
@@ -22,7 +22,7 @@ final class AdminCommandCatalog {
     static final List<String> BLOCK_VALUE_COMMANDS = List.of("list", "search", "set", "reload");
     static final List<String> BLOCK_VALUE_MATERIALS = List.of("minecraft:stone", "minecraft:diamond_block", "minecraft:emerald_block", "minecraft:spawner");
     static final List<String> TEMPLATE_COMMANDS = List.of("list", "import", "import-bundle", "upsert", "seticon", "setcost", "setpermission", "enable", "disable", "preview", "validate", "verify-bundle", "verify", "delete", "reorder");
-    static final List<String> MIGRATION_COMMANDS = List.of("wizard", "scan", "status", "dryrun", "dry-run", "report", "extract", "extract-worlds", "world-extract", "approve", "import", "verify", "compare", "verify-no-legacy-provider", "rollback-plan", "rollbackplan", "rollback");
+    static final List<String> MIGRATION_COMMANDS = List.of("wizard", "scan", "status", "dryrun", "dry-run", "report", "extract", "extract-worlds", "world-extract", "approve", "import", "verify", "compare", "verify-no-legacy-provider", "rollback-plan", "rollbackplan", "rollback", "unlock");
     static final List<String> FORBIDDEN_LEGACY_SKYBLOCK_PROVIDERS = SuperiorSkyblockReplacementFeaturePolicy.forbiddenRuntimeProviders();
     static final List<String> NODE_DANGER_REASONS = List.of("maintenance", "restart", "drain");
     static final List<String> HELP_COMMANDS = List.of(
@@ -211,7 +211,17 @@ final class AdminCommandCatalog {
         "ciadmin migrate-superiorskyblock2 compare <island>",
         "ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
         "ciadmin migrate-superiorskyblock2 rollback-plan",
-        "ciadmin migrate-superiorskyblock2 rollback"
+        "ciadmin migrate-superiorskyblock2 rollback",
+        "ciadmin migrate superiorskyblock2 scan",
+        "ciadmin migrate superiorskyblock2 dry-run",
+        "ciadmin migrate superiorskyblock2 status",
+        "ciadmin migrate superiorskyblock2 approve <dryRunId>",
+        "ciadmin migrate superiorskyblock2 import <approvalToken>",
+        "ciadmin migrate superiorskyblock2 verify <batchId>",
+        "ciadmin migrate superiorskyblock2 compare <batchId>",
+        "ciadmin migrate superiorskyblock2 rollback-plan <batchId>",
+        "ciadmin migrate superiorskyblock2 report <id>",
+        "ciadmin migrate superiorskyblock2 unlock --confirm <token>"
     );
 
     private AdminCommandCatalog() {

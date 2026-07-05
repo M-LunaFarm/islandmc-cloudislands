@@ -36,6 +36,7 @@ public final class SuperiorSkyblock2MigrationRoutes implements RouteGroup {
         registry.routePost("/v1/admin/migrations/superiorskyblock2/compare", this::compare);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/rollback-plan", this::rollbackPlan);
         registry.routePost("/v1/admin/migrations/superiorskyblock2/rollback", this::rollback);
+        registry.routePost("/v1/admin/migrations/superiorskyblock2/unlock", this::unlock);
     }
 
     private void scan(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
@@ -137,6 +138,15 @@ public final class SuperiorSkyblock2MigrationRoutes implements RouteGroup {
         }
         audit("MIGRATION_ROLLBACK_PLAN", Map.of());
         CoreHttpResponses.write(exchange, 200, migrationAdmin.rollbackPlan());
+    }
+
+    private void unlock(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        if (!enabled(exchange)) {
+            return;
+        }
+        String body = CoreHttpResponses.readBody(exchange);
+        audit("MIGRATION_UNLOCK", Map.of());
+        CoreHttpResponses.write(exchange, 202, migrationAdmin.unlock(JsonFields.text(body, "confirmation", JsonFields.text(body, "token", ""))));
     }
 
     private boolean enabled(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

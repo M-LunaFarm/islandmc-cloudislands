@@ -49,8 +49,9 @@ class MigrationReportBuilderTest {
         assertEquals("BLOCKED", report.dryRunSeverity());
         assertTrue(report.lossSummary().contains("owner-missing=1"));
         assertTrue(report.lossSummary().contains("unsupported-field=1"));
-        assertTrue(report.rollbackRunbookText().contains("/ciadmin migrate-superiorskyblock2 rollback-plan"));
-        assertTrue(report.rollbackRunbookText().contains("/ciadmin migrate-superiorskyblock2 rollback"));
+        assertTrue(report.rollbackRunbookText().contains("/ciadmin migrate superiorskyblock2 rollback-plan"));
+        assertTrue(report.rollbackRunbookText().contains("/ciadmin migrate superiorskyblock2 rollback"));
+        assertTrue(report.rollbackRunbookText().contains("/ciadmin migrate superiorskyblock2 unlock --confirm <token>"));
         assertTrue(report.toJson().contains("\"totalIslands\":1"));
         assertTrue(report.toJson().contains("\"ownerMissing\":1"));
         assertTrue(report.toJson().contains("\"rollbackPossible\":true"));

@@ -126,6 +126,9 @@ public interface IslandAdminService {
         return CompletableFuture.failedFuture(new UnsupportedOperationException("SuperiorSkyblock2 rollback-plan is not implemented by this admin service"));
     }
     CompletableFuture<MigrationRunSnapshot> rollbackSuperiorSkyblock2(String path);
+    default CompletableFuture<MigrationRunSnapshot> unlockSuperiorSkyblock2(String confirmationToken) {
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("SuperiorSkyblock2 unlock is not implemented by this admin service"));
+    }
 
     private static GlobalEventBatchSnapshot batch(List<GlobalEventSnapshot> events) {
         long oldestSequence = events.stream().mapToLong(GlobalEventSnapshot::sequence).filter(sequence -> sequence > 0L).min().orElse(0L);

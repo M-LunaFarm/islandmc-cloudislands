@@ -252,8 +252,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) {
             return handleTemplate(sender, args);
         }
-        if (args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
-            return migrationHandler.handle(sender, args);
+        if (args[0].equalsIgnoreCase("migrate-superiorskyblock2") || migrationAlias(args)) {
+            return migrationHandler.handle(sender, migrationArgs(args));
         }
         usage(sender, label, 1);
         return true;
@@ -417,17 +417,30 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args.length == 6 && (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) && args[1].equalsIgnoreCase("upsert")) {
             return matches(List.of("1.0.0", "1.21.0", "1.21.4"), args[5]);
         }
-        if (args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
-            if (!superiorSkyblock2MigrationEnabled()) {
-                return List.of();
-            }
-            return matches(MIGRATION_COMMANDS, args[1]);
+        if (args.length == 2 && args[0].equalsIgnoreCase("migrate")) {
+            return matches(List.of("superiorskyblock2"), args[1]);
         }
-        if (args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+        if ((args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) || (args.length == 3 && migrationAlias(args))) {
             if (!superiorSkyblock2MigrationEnabled()) {
                 return List.of();
             }
-            return matches(List.of("plugins/SuperiorSkyblock2"), args[2]);
+            return matches(MIGRATION_COMMANDS, migrationAlias(args) ? args[2] : args[1]);
+        }
+        if ((args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) || (args.length == 4 && migrationAlias(args))) {
+            if (!superiorSkyblock2MigrationEnabled()) {
+                return List.of();
+            }
+            String action = migrationAlias(args) ? args[2] : args[1];
+            if (action.equalsIgnoreCase("approve") || action.equalsIgnoreCase("import")) {
+                return matches(List.of("<approvalToken>"), migrationAlias(args) ? args[3] : args[2]);
+            }
+            if (action.equalsIgnoreCase("unlock")) {
+                return matches(List.of("--confirm"), migrationAlias(args) ? args[3] : args[2]);
+            }
+            return matches(List.of("plugins/SuperiorSkyblock2"), migrationAlias(args) ? args[3] : args[2]);
+        }
+        if (args.length == 5 && migrationAlias(args) && args[2].equalsIgnoreCase("unlock")) {
+            return matches(List.of("<token>"), args[4]);
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("node")) {
             return matches(List.of(nodeId), args[2]);
@@ -3874,7 +3887,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (root.equals("template")) {
             root = "templates";
         }
-        if (root.equals("migrate-superiorskyblock2") && !superiorSkyblock2MigrationEnabled()) {
+        if (root.equals("migrate")) {
+            return superiorSkyblock2MigrationEnabled() ? "cloudislands.admin.migrate-superiorskyblock2" : "";
+        }
+        if ((root.equals("migrate-superiorskyblock2") || root.equals("migrate")) && !superiorSkyblock2MigrationEnabled()) {
             return "";
         }
         if (root.equals("island") && args.length > 1 && args[1].equalsIgnoreCase("inspect")) {
@@ -3884,6 +3900,22 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
+    }
+
+    private static boolean migrationAlias(String[] args) {
+        return args != null && args.length >= 2 && args[0].equalsIgnoreCase("migrate") && args[1].equalsIgnoreCase("superiorskyblock2");
+    }
+
+    private static String[] migrationArgs(String[] args) {
+        if (!migrationAlias(args)) {
+            return args;
+        }
+        String[] normalized = new String[Math.max(1, args.length - 1)];
+        normalized[0] = "migrate-superiorskyblock2";
+        if (args.length > 2) {
+            System.arraycopy(args, 2, normalized, 1, args.length - 2);
+        }
+        return normalized;
     }
 
     private List<String> adminPermissionFallbacks(String[] args) {

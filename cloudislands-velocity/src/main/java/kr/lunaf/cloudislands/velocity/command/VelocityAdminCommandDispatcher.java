@@ -213,23 +213,28 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             adminActions.reload(player);
             return;
         }
-        if (args.length >= 1 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
+        if (args.length >= 1 && (args[0].equalsIgnoreCase("migrate-superiorskyblock2") || migrationAlias(args))) {
             if (!config.superiorSkyblock2MigrationEnabled()) {
                 player.sendMessage(Component.text("SuperiorSkyblock2 migration is disabled by config."));
                 return;
             }
-            String action = args.length > 1 ? args[1] : "scan";
-            if ((action.equalsIgnoreCase("approve") || action.equalsIgnoreCase("import")) && args.length < 3) {
+            String[] migrationArgs = migrationArgs(args);
+            String action = migrationArgs.length > 1 ? migrationArgs[1] : "scan";
+            if ((action.equalsIgnoreCase("approve") || action.equalsIgnoreCase("import")) && migrationArgs.length < 3) {
                 player.sendMessage(Component.text("사용법: /ciadmin migrate-superiorskyblock2 " + action.toLowerCase(java.util.Locale.ROOT) + " <approvalToken>"));
                 return;
             }
-            if (action.equalsIgnoreCase("compare") && args.length < 3) {
+            if (action.equalsIgnoreCase("compare") && migrationArgs.length < 3) {
                 player.sendMessage(Component.text("사용법: /ciadmin migrate-superiorskyblock2 compare <island>"));
+                return;
+            }
+            if (action.equalsIgnoreCase("unlock") && (migrationArgs.length < 4 || !migrationArgs[2].equalsIgnoreCase("--confirm"))) {
+                player.sendMessage(Component.text("사용법: /ciadmin migrate superiorskyblock2 unlock --confirm <token>"));
                 return;
             }
             String value = action.equalsIgnoreCase("report") || action.equalsIgnoreCase("status") || action.equalsIgnoreCase("rollback-plan") || action.equalsIgnoreCase("rollbackplan") || action.equalsIgnoreCase("rollback")
                 ? ""
-                : args.length > 2 ? joinArgs(args, 2) : "";
+                : action.equalsIgnoreCase("unlock") ? migrationArgs[3] : migrationArgs.length > 2 ? joinArgs(migrationArgs, 2) : "";
             adminActions.migrateSuperiorSkyblock2(player, action, value);
             return;
         }
@@ -337,5 +342,20 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             sendCommandList(player, "CloudIslands 관리자 명령어 목록", adminCommands(), 1, "ciadmin command list");
     }
 
+    private static boolean migrationAlias(String[] args) {
+        return args != null && args.length >= 2 && args[0].equalsIgnoreCase("migrate") && args[1].equalsIgnoreCase("superiorskyblock2");
+    }
+
+    private static String[] migrationArgs(String[] args) {
+        if (!migrationAlias(args)) {
+            return args;
+        }
+        String[] normalized = new String[Math.max(1, args.length - 1)];
+        normalized[0] = "migrate-superiorskyblock2";
+        if (args.length > 2) {
+            System.arraycopy(args, 2, normalized, 1, args.length - 2);
+        }
+        return normalized;
+    }
 
 }

@@ -162,20 +162,29 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
         if (args.length == 5 && args[0].equalsIgnoreCase("jobs") && args[1].equalsIgnoreCase("recover")) {
             addLiteralSuggestions(matches, args[4], List.of("16", "32", "64"));
         }
-        if (config.superiorSkyblock2MigrationEnabled() && args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
-            addLiteralSuggestions(matches, args[1], List.of("scan", "status", "dryrun", "report", "extract", "approve", "import", "verify", "compare", "rollback-plan", "rollback"));
+        if (config.superiorSkyblock2MigrationEnabled() && args.length == 2 && args[0].equalsIgnoreCase("migrate")) {
+            addLiteralSuggestions(matches, args[1], List.of("superiorskyblock2"));
         }
-        if (config.superiorSkyblock2MigrationEnabled() && args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) {
-            String action = args[1].toLowerCase(Locale.ROOT);
+        if (config.superiorSkyblock2MigrationEnabled() && ((args.length == 2 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) || (args.length == 3 && migrationAlias(args)))) {
+            addLiteralSuggestions(matches, migrationAlias(args) ? args[2] : args[1], List.of("scan", "status", "dryrun", "dry-run", "report", "extract", "approve", "import", "verify", "compare", "rollback-plan", "rollback", "unlock"));
+        }
+        if (config.superiorSkyblock2MigrationEnabled() && ((args.length == 3 && args[0].equalsIgnoreCase("migrate-superiorskyblock2")) || (args.length == 4 && migrationAlias(args)))) {
+            String[] migrationArgs = migrationArgs(args);
+            String action = migrationArgs[1].toLowerCase(Locale.ROOT);
             if (action.equals("scan") || action.equals("dryrun") || action.equals("dry-run")) {
-                addLiteralSuggestions(matches, args[2], List.of("plugins/SuperiorSkyblock2"));
+                addLiteralSuggestions(matches, migrationAlias(args) ? args[3] : args[2], List.of("plugins/SuperiorSkyblock2"));
             } else if (action.equals("extract") || action.equals("verify")) {
-                addLiteralSuggestions(matches, args[2], List.of("cloudislands-storage", "migration-bundles"));
+                addLiteralSuggestions(matches, migrationAlias(args) ? args[3] : args[2], List.of("cloudislands-storage", "migration-bundles"));
             } else if (action.equals("approve") || action.equals("import")) {
-                addLiteralSuggestions(matches, args[2], List.of("<approvalToken>"));
+                addLiteralSuggestions(matches, migrationAlias(args) ? args[3] : args[2], List.of("<approvalToken>"));
             } else if (action.equals("compare")) {
-                addLiteralSuggestions(matches, args[2], List.of("<islandUuid>", "<ownerUuid>"));
+                addLiteralSuggestions(matches, migrationAlias(args) ? args[3] : args[2], List.of("<islandUuid>", "<ownerUuid>"));
+            } else if (action.equals("unlock")) {
+                addLiteralSuggestions(matches, migrationAlias(args) ? args[3] : args[2], List.of("--confirm"));
             }
+        }
+        if (config.superiorSkyblock2MigrationEnabled() && args.length == 5 && migrationAlias(args) && args[2].equalsIgnoreCase("unlock")) {
+            addLiteralSuggestions(matches, args[4], List.of("<token>"));
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("rankings")) {
             addLiteralSuggestions(matches, args[1], List.of("level", "worth"));
@@ -220,13 +229,32 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
         if (root.equals("template")) {
             root = "templates";
         }
-        if (root.equals("migrate-superiorskyblock2") && !config.superiorSkyblock2MigrationEnabled()) {
+        if (root.equals("migrate")) {
+            return config.superiorSkyblock2MigrationEnabled() ? "cloudislands.admin.migrate-superiorskyblock2" : "";
+        }
+        if ((root.equals("migrate-superiorskyblock2") || root.equals("migrate")) && !config.superiorSkyblock2MigrationEnabled()) {
             return "";
         }
         return switch (root) {
             case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
+    }
+
+    private static boolean migrationAlias(String[] args) {
+        return args != null && args.length >= 2 && args[0].equalsIgnoreCase("migrate") && args[1].equalsIgnoreCase("superiorskyblock2");
+    }
+
+    private static String[] migrationArgs(String[] args) {
+        if (!migrationAlias(args)) {
+            return args;
+        }
+        String[] normalized = new String[Math.max(1, args.length - 1)];
+        normalized[0] = "migrate-superiorskyblock2";
+        if (args.length > 2) {
+            System.arraycopy(args, 2, normalized, 1, args.length - 2);
+        }
+        return normalized;
     }
 
 

@@ -705,19 +705,22 @@ tasks.register("verifySatisMigrationReportCoverage") {
             .joinToString("\n") { it.asFile.readText() }
         val tests = listOf(serviceTest, routesTest, paperTest, velocityTest).joinToString("\n") { it.asFile.readText() }
         val missingCore = listOf(
-            "scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback",
+            "scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback,unlock",
             "public synchronized String report()",
             "public synchronized String approveLastPlan(String approvalToken)",
             "public synchronized String compare(String islandKey)",
             "public synchronized String rollbackPlan()",
+            "public synchronized String unlock(String confirmationToken)",
             "compareImportedManifest(MigrationManifest manifest)",
             "backend.report()",
             "backend.approveLastPlan(approvalToken)",
             "backend.compare(islandKey)",
             "backend.rollbackPlan()",
+            "backend.unlock(confirmationToken)",
             "/v1/admin/migrations/superiorskyblock2/report",
             "/v1/admin/migrations/superiorskyblock2/approve",
             "/v1/admin/migrations/superiorskyblock2/rollback-plan",
+            "/v1/admin/migrations/superiorskyblock2/unlock",
             "/v1/admin/migrations/superiorskyblock2/compare"
         ).filterNot { signal ->
             backendSource.contains(signal) || serviceSource.contains(signal) || routeSource.contains(signal)
@@ -728,20 +731,24 @@ tasks.register("verifySatisMigrationReportCoverage") {
             "AdminPermission.MIGRATION_MANAGE"
         ).filterNot(guardSource::contains)
         val missingPolicy = listOf(
-            "superiorSkyblock2MigrationEndpoints\", \"scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback",
+            "superiorSkyblock2MigrationEndpoints\", \"scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback,unlock",
             "/ciadmin migrate-superiorskyblock2 report",
             "/ciadmin migrate-superiorskyblock2 approve",
             "/ciadmin migrate-superiorskyblock2 rollback-plan",
-            "/ciadmin migrate-superiorskyblock2 compare"
+            "/ciadmin migrate-superiorskyblock2 compare",
+            "/ciadmin migrate superiorskyblock2 unlock"
         ).filterNot { signal -> configSource.contains(signal) || policySource.contains(signal) }
-        val missingClient = listOf("case \"report\"", "case \"approve\"", "case \"compare\"", "case \"rollback-plan\", \"rollbackplan\"", "SUPERIOR_SKYBLOCK2_REPORT", "SUPERIOR_SKYBLOCK2_APPROVE", "SUPERIOR_SKYBLOCK2_COMPARE", "SUPERIOR_SKYBLOCK2_ROLLBACK_PLAN")
+        val missingClient = listOf("case \"report\"", "case \"approve\"", "case \"compare\"", "case \"rollback-plan\", \"rollbackplan\"", "case \"unlock\"", "SUPERIOR_SKYBLOCK2_REPORT", "SUPERIOR_SKYBLOCK2_APPROVE", "SUPERIOR_SKYBLOCK2_COMPARE", "SUPERIOR_SKYBLOCK2_ROLLBACK_PLAN", "SUPERIOR_SKYBLOCK2_UNLOCK")
             .filterNot(clientSource::contains)
         val missingCommands = listOf(
             "migrate-superiorskyblock2 report",
             "migrate-superiorskyblock2 approve <approvalToken>",
             "migrate-superiorskyblock2 compare <island>",
             "migrate-superiorskyblock2 rollback-plan",
+            "migrate superiorskyblock2 unlock --confirm <token>",
+            "migrationArgs(args)",
             "action.equalsIgnoreCase(\"approve\") || action.equalsIgnoreCase(\"import\")",
+            "action.equalsIgnoreCase(\"unlock\")",
             "action.equalsIgnoreCase(\"compare\") && args.length < 3",
             "<islandUuid>",
             "<ownerUuid>"
@@ -751,10 +758,12 @@ tasks.register("verifySatisMigrationReportCoverage") {
             "/v1/admin/migrations/superiorskyblock2/report",
             "/v1/admin/migrations/superiorskyblock2/approve",
             "/v1/admin/migrations/superiorskyblock2/rollback-plan",
+            "/v1/admin/migrations/superiorskyblock2/unlock",
             "/v1/admin/migrations/superiorskyblock2/compare",
             "Migration report must be a first-class migration subcommand",
             "Migration approve must be a first-class migration subcommand",
             "Migration rollback-plan must be a first-class migration subcommand",
+            "Migration unlock must be a first-class migration subcommand",
             "ciadmin migrate-superiorskyblock2 compare <island>"
         ).filterNot(tests::contains)
         val failures = buildList {

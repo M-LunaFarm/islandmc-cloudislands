@@ -409,7 +409,7 @@ public final class CoreConfigRoutes implements RouteGroup {
         summary.put("superiorSkyblock2MigrationTargets", kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.migrationTargetSummary());
         summary.put("superiorSkyblock2MigrationFlow", kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.migrationStepSummary());
         summary.put("superiorSkyblock2MigrationCommands", kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy.migrationCommandSummary());
-        summary.put("superiorSkyblock2MigrationEndpoints", "scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback");
+        summary.put("superiorSkyblock2MigrationEndpoints", "scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback,unlock");
         summary.put("superiorSkyblock2MigrationStatusEndpoint", "/v1/admin/migrations/superiorskyblock2/status");
         summary.put("superiorSkyblock2MigrationRollbackPolicy", "last-successful-import-only-consume-plan-after-success");
         summary.put("routeTicketTtlSeconds", config.routeTicketTtl().toSeconds());

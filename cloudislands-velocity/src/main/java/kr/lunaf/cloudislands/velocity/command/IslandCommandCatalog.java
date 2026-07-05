@@ -125,7 +125,17 @@ public final class IslandCommandCatalog {
             "ciadmin migrate-superiorskyblock2 verify [path]",
             "ciadmin migrate-superiorskyblock2 compare <island>",
             "ciadmin migrate-superiorskyblock2 rollback-plan",
-            "ciadmin migrate-superiorskyblock2 rollback"
+            "ciadmin migrate-superiorskyblock2 rollback",
+            "ciadmin migrate superiorskyblock2 scan",
+            "ciadmin migrate superiorskyblock2 dry-run",
+            "ciadmin migrate superiorskyblock2 status",
+            "ciadmin migrate superiorskyblock2 approve <dryRunId>",
+            "ciadmin migrate superiorskyblock2 import <approvalToken>",
+            "ciadmin migrate superiorskyblock2 verify <batchId>",
+            "ciadmin migrate superiorskyblock2 compare <batchId>",
+            "ciadmin migrate superiorskyblock2 rollback-plan <batchId>",
+            "ciadmin migrate superiorskyblock2 report <id>",
+            "ciadmin migrate superiorskyblock2 unlock --confirm <token>"
         ));
         return List.copyOf(commands);
     }

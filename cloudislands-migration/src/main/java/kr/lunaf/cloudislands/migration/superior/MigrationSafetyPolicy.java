@@ -13,8 +13,8 @@ public final class MigrationSafetyPolicy {
     public static final String RUNTIME_POLICY = "migration-input-only-no-runtime-hooks";
     public static final String LEGACY_CLASSPATH_POLICY = "no-superiorskyblock2-compileonly-runtimeonly-or-service-binding";
     public static final Set<String> READ_ONLY_ACTIONS = Set.of("scan", "dryrun", "dry-run", "verify", "status", "report", "approve", "compare", "rollback-plan", "rollbackplan");
-    public static final Set<String> WRITE_ACTIONS = Set.of("extract", "import", "rollback");
-    public static final String OPERATIONS = "scan,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback,status";
+    public static final Set<String> WRITE_ACTIONS = Set.of("extract", "import", "rollback", "unlock");
+    public static final String OPERATIONS = "scan,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback,status,unlock";
     public static final String PIPELINE = "read-only-scan,manifest,dry-run,conflict-report,approval,db-import,world-cell-extract,bundle-checksum,cloudislands-activate-test,rollback-plan";
     public static final List<String> REQUIRED_TARGET_FIELDS = List.of(
         "island-id",
@@ -66,7 +66,17 @@ public final class MigrationSafetyPolicy {
         "/ciadmin migrate-superiorskyblock2 verify",
         "/ciadmin migrate-superiorskyblock2 compare",
         "/ciadmin migrate-superiorskyblock2 rollback-plan",
-        "/ciadmin migrate-superiorskyblock2 rollback"
+        "/ciadmin migrate-superiorskyblock2 rollback",
+        "/ciadmin migrate superiorskyblock2 scan",
+        "/ciadmin migrate superiorskyblock2 dry-run",
+        "/ciadmin migrate superiorskyblock2 status",
+        "/ciadmin migrate superiorskyblock2 approve",
+        "/ciadmin migrate superiorskyblock2 import",
+        "/ciadmin migrate superiorskyblock2 verify",
+        "/ciadmin migrate superiorskyblock2 compare",
+        "/ciadmin migrate superiorskyblock2 rollback-plan",
+        "/ciadmin migrate superiorskyblock2 report",
+        "/ciadmin migrate superiorskyblock2 unlock"
     );
     public static final String CHECKSUM_POLICY = "sha256-every-extracted-world-bundle-and-verify-against-imported-snapshot";
     public static final String ACTIVATION_TEST_POLICY = "verify-can-run-cloudislands-activation-test-without-superiorskyblock2-runtime-dependency";

@@ -36,7 +36,7 @@ class MigrationAdminServiceTest {
         String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/SuperiorSkyblock2MigrationRoutes.java"));
         String client = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkMigrationCommandClient.java"));
 
-        assertTrue(backend.contains("scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback"));
+        assertTrue(backend.contains("scan,status,dryrun,report,extract,approve,import,verify,compare,rollback-plan,rollback,unlock"));
         assertTrue(backend.contains("bank-balance,upgrades,missions,ratings,generators,limits,schematics,templates,stacked-blocks,custom-data,unsupported-data"), "migration target field contract must cover the full edit.md report surface");
         assertTrue(backend.contains("unsupportedFieldCount"), "migration JSON reports must expose unsupported field count");
         assertTrue(backend.contains("migrationDowntimeEstimatePolicy"), "migration reports must expose downtime planning evidence");
@@ -55,18 +55,22 @@ class MigrationAdminServiceTest {
         assertTrue(backend.contains("lastPlan = approvedPlan;"));
         assertTrue(backend.contains("public synchronized String compare(String islandKey)"));
         assertTrue(backend.contains("public synchronized String rollbackPlan()"));
+        assertTrue(backend.contains("public synchronized String unlock(String confirmationToken)"));
         assertTrue(backend.contains("compareImportedManifest(MigrationManifest manifest)"));
         assertTrue(service.contains("backend.report()"));
         assertTrue(service.contains("backend.approveLastPlan(approvalToken)"));
         assertTrue(service.contains("backend.compare(islandKey)"));
         assertTrue(service.contains("backend.rollbackPlan()"));
+        assertTrue(service.contains("backend.unlock(confirmationToken)"));
         assertTrue(routes.contains("/v1/admin/migrations/superiorskyblock2/report"));
         assertTrue(routes.contains("/v1/admin/migrations/superiorskyblock2/approve"));
         assertTrue(routes.contains("/v1/admin/migrations/superiorskyblock2/compare"));
         assertTrue(routes.contains("/v1/admin/migrations/superiorskyblock2/rollback-plan"));
+        assertTrue(routes.contains("/v1/admin/migrations/superiorskyblock2/unlock"));
         assertTrue(client.contains("case \"report\""));
         assertTrue(client.contains("case \"approve\""));
         assertTrue(client.contains("case \"compare\""));
         assertTrue(client.contains("case \"rollback-plan\", \"rollbackplan\""));
+        assertTrue(client.contains("case \"unlock\""));
     }
 }

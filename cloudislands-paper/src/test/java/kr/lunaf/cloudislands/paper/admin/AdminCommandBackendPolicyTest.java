@@ -900,7 +900,7 @@ class AdminCommandBackendPolicyTest {
         String formatter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminMigrationMessageFormatter.java"));
 
         assertTrue(backend.contains("AdminMigrationCommandHandler"), "Admin backend must delegate migration commands to a focused handler");
-        assertTrue(backend.contains("migrationHandler.handle(sender, args)"), "Admin backend command routing must stay thin for migration");
+        assertTrue(backend.contains("migrationHandler.handle(sender, migrationArgs(args))"), "Admin backend command routing must stay thin for migration");
         assertTrue(!backend.contains("private String migrationMessage("), "Migration response formatting must not live in AdminCommandBackend");
         assertTrue(handler.contains("coreApiClient.migrations().migrateSuperiorSkyblock2"), "Migration handler must use the typed migration client");
         assertTrue(formatter.contains("String format(MigrationRunSnapshot snapshot)"), "Migration formatter must accept typed migration snapshots");
@@ -910,14 +910,20 @@ class AdminCommandBackendPolicyTest {
         assertTrue(catalog.contains("\"approve\""), "Migration approve must be a first-class migration subcommand");
         assertTrue(catalog.contains("\"compare\""), "Migration compare must be a first-class migration subcommand");
         assertTrue(catalog.contains("\"rollback-plan\""), "Migration rollback-plan must be a first-class migration subcommand");
+        assertTrue(catalog.contains("\"unlock\""), "Migration unlock must be a first-class migration subcommand");
+        assertTrue(catalog.contains("\"migrate\", \"migrate-superiorskyblock2\""), "Spaced migration alias must be a first-class admin root command");
         assertTrue(catalog.contains("ciadmin migrate-superiorskyblock2 wizard"), "Migration wizard must be listed in admin help");
         assertTrue(catalog.contains("ciadmin migrate-superiorskyblock2 report"), "Migration report must be listed in admin help");
         assertTrue(catalog.contains("ciadmin migrate-superiorskyblock2 approve <approvalToken>"), "Migration approve must be listed in admin help");
         assertTrue(catalog.contains("ciadmin migrate-superiorskyblock2 compare <island>"), "Migration compare must be listed in admin help");
         assertTrue(catalog.contains("ciadmin migrate-superiorskyblock2 rollback-plan"), "Migration rollback-plan must be listed in admin help");
+        assertTrue(catalog.contains("ciadmin migrate superiorskyblock2 unlock --confirm <token>"), "Spaced migration unlock must be listed in admin help");
+        assertTrue(backend.contains("migrationArgs(args)"), "Spaced migration alias must normalize into the focused migration handler");
+        assertTrue(backend.contains("cloudislands.admin.migrate-superiorskyblock2"), "Spaced migration alias must reuse the existing migration permission");
         assertTrue(handler.contains("action.equalsIgnoreCase(\"approve\") || action.equalsIgnoreCase(\"import\")"), "Migration approve/import must require an approval token");
         assertTrue(handler.contains("action.equalsIgnoreCase(\"compare\") && args.length < 3"), "Migration compare must require an island selector");
         assertTrue(handler.contains("action.equalsIgnoreCase(\"rollback-plan\")"), "Migration rollback-plan must not receive a default source path");
+        assertTrue(handler.contains("action.equalsIgnoreCase(\"unlock\") && (args.length < 4 || !args[2].equalsIgnoreCase(\"--confirm\"))"), "Migration unlock must require explicit confirmation");
         assertTrue(handler.contains("AdminMigrationMenu.open(player, messageProvider.messagesFor(player))"), "Migration wizard must open the existing GUI for player operators");
         assertTrue(handler.contains("AdminCommandCatalog.MIGRATION_HELP_COMMANDS"), "Migration wizard console fallback must reuse the migration command catalog");
         assertTrue(backend.contains("this::messagesFor"), "Admin backend must pass localized messages into the migration wizard handler");

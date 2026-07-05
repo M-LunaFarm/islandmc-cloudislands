@@ -96,4 +96,8 @@ public final class MigrationAdminService {
     public synchronized String rollbackPlan() {
         return backend.rollbackPlan();
     }
+
+    public synchronized String unlock(String confirmationToken) {
+        return backend.unlock(confirmationToken);
+    }
 }

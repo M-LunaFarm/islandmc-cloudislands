@@ -17,6 +17,7 @@ public final class JdkMigrationCommandClient implements MigrationCommandClient {
     private static final String SUPERIOR_SKYBLOCK2_COMPARE = "/v1/admin/migrations/superiorskyblock2/compare";
     private static final String SUPERIOR_SKYBLOCK2_ROLLBACK_PLAN = "/v1/admin/migrations/superiorskyblock2/rollback-plan";
     private static final String SUPERIOR_SKYBLOCK2_ROLLBACK = "/v1/admin/migrations/superiorskyblock2/rollback";
+    private static final String SUPERIOR_SKYBLOCK2_UNLOCK = "/v1/admin/migrations/superiorskyblock2/unlock";
 
     private final JdkCoreApiClient core;
 
@@ -43,6 +44,7 @@ public final class JdkMigrationCommandClient implements MigrationCommandClient {
             case "compare" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_COMPARE, CoreJsonPayload.object("island", value)));
             case "rollback-plan", "rollbackplan" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_ROLLBACK_PLAN, "{}"));
             case "rollback" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_ROLLBACK, "{}"));
+            case "unlock" -> run(core.postResultBody(SUPERIOR_SKYBLOCK2_UNLOCK, CoreJsonPayload.object("confirmation", value)));
             default -> CompletableFuture.completedFuture(new MigrationRunSnapshot(
                 "INVALID_MIGRATION_ACTION",
                 path == null ? "" : path,

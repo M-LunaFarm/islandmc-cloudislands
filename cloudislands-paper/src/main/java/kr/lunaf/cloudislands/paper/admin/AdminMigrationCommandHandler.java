@@ -64,7 +64,8 @@ final class AdminMigrationCommandHandler {
                 "/ciadmin migrate-superiorskyblock2 compare <island>",
                 "/ciadmin migrate-superiorskyblock2 verify-no-legacy-provider",
                 "/ciadmin migrate-superiorskyblock2 rollback-plan",
-                "/ciadmin migrate-superiorskyblock2 rollback"
+                "/ciadmin migrate-superiorskyblock2 rollback",
+                "/ciadmin migrate superiorskyblock2 unlock --confirm <token>"
             ));
             return true;
         }
@@ -84,9 +85,13 @@ final class AdminMigrationCommandHandler {
             sender.sendMessage(text.get("admin-command-migration-compare-usage", "사용법: /ciadmin migrate-superiorskyblock2 compare <island>"));
             return true;
         }
+        if (action.equalsIgnoreCase("unlock") && (args.length < 4 || !args[2].equalsIgnoreCase("--confirm"))) {
+            sender.sendMessage(text.get("admin-command-migration-unlock-usage", "사용법: /ciadmin migrate superiorskyblock2 unlock --confirm <token>"));
+            return true;
+        }
         String value = noValueAction(action)
             ? ""
-            : args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
+            : action.equalsIgnoreCase("unlock") ? args[3] : args.length > 2 ? joined(args, 2) : "plugins/SuperiorSkyblock2";
         runner.run(sender, "SuperiorSkyblock2 migration " + action, coreApiClient.migrations().migrateSuperiorSkyblock2(action, value).thenApply(formatter::format));
         return true;
     }

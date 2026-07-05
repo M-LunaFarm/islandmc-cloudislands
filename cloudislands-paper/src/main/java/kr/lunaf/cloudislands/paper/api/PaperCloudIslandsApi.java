@@ -2402,6 +2402,11 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             return migrateSuperiorSkyblock2("rollback", path);
         }
 
+        @Override
+        public CompletableFuture<MigrationRunSnapshot> unlockSuperiorSkyblock2(String confirmationToken) {
+            return migrateSuperiorSkyblock2("unlock", confirmationToken);
+        }
+
         private CompletableFuture<MigrationRunSnapshot> migrateSuperiorSkyblock2(String action, String path) {
             if (!superiorSkyblock2MigrationEnabled()) {
                 return CompletableFuture.completedFuture(disabledMigration(path));

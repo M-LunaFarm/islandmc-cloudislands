@@ -114,12 +114,12 @@ public record MigrationReport(
 
     public List<String> rollbackRunbook() {
         return List.of(
-            "Run /ciadmin migrate-superiorskyblock2 report and confirm rollbackPossible=true",
-            "Run /ciadmin migrate-superiorskyblock2 compare <island> for failed imported islands",
-            "Run /ciadmin migrate-superiorskyblock2 rollback-plan before rollback",
-            "Run /ciadmin migrate-superiorskyblock2 rollback to remove only CloudIslands imported state",
-            "Run /ciadmin migrate-superiorskyblock2 verify after rollback",
-            "Run /ciadmin migrate-superiorskyblock2 verify-no-legacy-provider before retrying import"
+            "Run /ciadmin migrate superiorskyblock2 report <id> and confirm rollbackPossible=true",
+            "Run /ciadmin migrate superiorskyblock2 compare <batchId> for failed imported islands",
+            "Run /ciadmin migrate superiorskyblock2 rollback-plan <batchId> before rollback",
+            "Run /ciadmin migrate superiorskyblock2 rollback to remove only CloudIslands imported state",
+            "Run /ciadmin migrate superiorskyblock2 verify <batchId> after rollback",
+            "Run /ciadmin migrate superiorskyblock2 unlock --confirm <token> only to clear a stale approval lock"
         );
     }
 
