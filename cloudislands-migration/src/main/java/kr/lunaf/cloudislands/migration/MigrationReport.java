@@ -78,6 +78,54 @@ public record MigrationReport(
         return issues.stream().anyMatch(issue -> isConflictIssue(issue) && issue.blocking()) ? "BLOCKING" : "WARNING";
     }
 
+    public String dryRunSeverity() {
+        if (blockingIssues() > 0) {
+            return "BLOCKED";
+        }
+        if (warningIssues() > 0 || !lossWarnings().isEmpty()) {
+            return "WARNING";
+        }
+        return "CLEAR";
+    }
+
+    public List<String> lossWarnings() {
+        java.util.ArrayList<String> warnings = new java.util.ArrayList<>();
+        addWarning(warnings, "owner-missing", ownerMissingCount());
+        addWarning(warnings, "world-source-missing", worldPathMissingCount());
+        addWarning(warnings, "home-missing-or-empty", homeMissingCount());
+        addWarning(warnings, "warp-missing-or-empty", warpMissingCount());
+        addWarning(warnings, "home-conversion-failed", homeConversionFailureCount());
+        addWarning(warnings, "warp-conversion-failed", warpConversionFailureCount());
+        addWarning(warnings, "permission-conversion-failed", permissionConversionFailureCount());
+        addWarning(warnings, "unknown-flag", unknownFlagCount());
+        addWarning(warnings, "block-value-conversion-failed", blockValueConversionFailureCount());
+        addWarning(warnings, "bank-economy-conversion-failed", bankEconomyConversionFailureCount());
+        addWarning(warnings, "world-bundle-checksum-failed", worldBundleChecksumFailureCount());
+        addWarning(warnings, "post-import-difference", cloudIslandsPostImportDifferenceCount());
+        addWarning(warnings, "unsupported-field", unsupportedFieldCount());
+        addWarning(warnings, "duplicate-or-conflict", conflictIssues());
+        return List.copyOf(warnings);
+    }
+
+    public String lossSummary() {
+        List<String> warnings = lossWarnings();
+        return warnings.isEmpty() ? "no-loss-risk-detected" : String.join("; ", warnings);
+    }
+
+    public List<String> rollbackRunbook() {
+        return List.of(
+            "Run /ciadmin migrate-superiorskyblock2 report and confirm rollbackPossible=true",
+            "Run /ciadmin migrate-superiorskyblock2 compare <island> for failed imported islands",
+            "Run /ciadmin migrate-superiorskyblock2 rollback to remove only CloudIslands imported state",
+            "Run /ciadmin migrate-superiorskyblock2 verify after rollback",
+            "Run /ciadmin migrate-superiorskyblock2 verify-no-legacy-provider before retrying import"
+        );
+    }
+
+    public String rollbackRunbookText() {
+        return String.join(" -> ", rollbackRunbook());
+    }
+
     private static boolean isConflictIssue(MigrationIssue issue) {
         if (issue == null || issue.code() == null) {
             return false;
@@ -121,6 +169,10 @@ public record MigrationReport(
         appendNumber(builder, "roleMappings", memberRoles()).append(',');
         appendNumber(builder, "unsupportedFields", unsupportedFieldCount()).append(',');
         builder.append("\"rollbackPossible\":").append(rollbackPossible()).append(',');
+        appendString(builder, "dryRunSeverity", dryRunSeverity()).append(',');
+        appendString(builder, "lossSummary", lossSummary()).append(',');
+        appendStringArray(builder, "lossWarnings", lossWarnings()).append(',');
+        appendStringArray(builder, "rollbackRunbook", rollbackRunbook()).append(',');
         appendString(builder, "manifestStatus", manifestStatus()).append(',');
         appendString(builder, "conflictStatus", conflictStatus()).append(',');
         builder.append("\"issues\":[");
@@ -161,8 +213,22 @@ public record MigrationReport(
         markdownMetric(builder, "Role mappings", memberRoles());
         markdownMetric(builder, "Unsupported fields", unsupportedFieldCount());
         builder.append("| Rollback possible | ").append(rollbackPossible()).append(" |\n");
+        builder.append("| Dry-run severity | ").append(dryRunSeverity()).append(" |\n");
+        builder.append("| Loss summary | ").append(markdownCell(lossSummary())).append(" |\n");
         builder.append("| Manifest status | ").append(manifestStatus()).append(" |\n");
         builder.append("| Conflict status | ").append(conflictStatus()).append(" |\n");
+        builder.append("\n## Loss warnings\n\n");
+        if (lossWarnings().isEmpty()) {
+            builder.append("- no-loss-risk-detected\n");
+        } else {
+            for (String warning : lossWarnings()) {
+                builder.append("- ").append(markdownCell(warning)).append('\n');
+            }
+        }
+        builder.append("\n## Rollback runbook\n\n");
+        for (int index = 0; index < rollbackRunbook().size(); index++) {
+            builder.append(index + 1).append(". ").append(markdownCell(rollbackRunbook().get(index))).append('\n');
+        }
         if (!issues().isEmpty()) {
             builder.append("\n## Issues\n\n");
             builder.append("| Code | Blocking | Message |\n");
@@ -188,8 +254,25 @@ public record MigrationReport(
         return builder.append('"').append(jsonEscape(key)).append("\":\"").append(jsonEscape(value)).append('"');
     }
 
+    private static StringBuilder appendStringArray(StringBuilder builder, String key, List<String> values) {
+        builder.append('"').append(jsonEscape(key)).append("\":[");
+        for (int index = 0; index < values.size(); index++) {
+            if (index > 0) {
+                builder.append(',');
+            }
+            builder.append('"').append(jsonEscape(values.get(index))).append('"');
+        }
+        return builder.append(']');
+    }
+
     private static void markdownMetric(StringBuilder builder, String label, int value) {
         builder.append("| ").append(label).append(" | ").append(value).append(" |\n");
+    }
+
+    private static void addWarning(List<String> warnings, String key, int count) {
+        if (count > 0) {
+            warnings.add(key + "=" + count);
+        }
     }
 
     private static String markdownCell(String value) {

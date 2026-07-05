@@ -242,6 +242,42 @@ class MigrationSafetyPolicyTest {
     }
 
     @Test
+    void dryRunReportPublishesLossFieldsAndRollbackRunbook() {
+        assertEquals(
+            List.of(
+                "dryRunSeverity",
+                "lossSummary",
+                "lossWarnings",
+                "ownerMissingCount",
+                "worldPathMissingCount",
+                "homeMissingCount",
+                "warpMissingCount",
+                "permissionConversionFailureCount",
+                "bankEconomyConversionFailureCount",
+                "blockValueConversionFailureCount",
+                "unsupportedFieldCount",
+                "cloudIslandsPostImportDifferenceCount"
+            ),
+            MigrationSafetyPolicy.DRY_RUN_LOSS_REPORT_FIELDS
+        );
+        assertTrue(MigrationSafetyPolicy.dryRunLossReportField("lossSummary"));
+        assertTrue(MigrationSafetyPolicy.dryRunLossReportField(" unsupportedFieldCount "));
+        assertFalse(MigrationSafetyPolicy.dryRunLossReportField("hiddenLoss"));
+        assertEquals(
+            List.of(
+                "report-rollback-possible",
+                "compare-imported-island",
+                "rollback-last-import",
+                "verify-after-rollback",
+                "verify-no-legacy-provider"
+            ),
+            MigrationSafetyPolicy.ROLLBACK_RUNBOOK_STEPS
+        );
+        assertTrue(MigrationSafetyPolicy.rollbackRunbookStep("rollback-last-import"));
+        assertFalse(MigrationSafetyPolicy.rollbackRunbookStep("delete-source-plugin-data"));
+    }
+
+    @Test
     void boundaryMetadataPublishesRuntimeFence() {
         Map<String, String> metadata = MigrationSafetyPolicy.boundaryMetadata();
 
@@ -259,5 +295,7 @@ class MigrationSafetyPolicyTest {
         assertEquals("rollback-plan-records-imported-islands-and-removes-only-cloudislands-imported-state", metadata.get("rollbackPolicy"));
         assertEquals("rollback-plan-id-present,imported-island-id-list-present,remove-only-cloudislands-imported-state,preserve-source-superiorskyblock2-data,emit-audit-event", metadata.get("rollbackRequirements"));
         assertEquals("storage-target-present,database-target-present,composite-target-present,dry-run-plan-bound", metadata.get("rollbackTargetRequirements"));
+        assertEquals("dryRunSeverity,lossSummary,lossWarnings,ownerMissingCount,worldPathMissingCount,homeMissingCount,warpMissingCount,permissionConversionFailureCount,bankEconomyConversionFailureCount,blockValueConversionFailureCount,unsupportedFieldCount,cloudIslandsPostImportDifferenceCount", metadata.get("dryRunLossReportFields"));
+        assertEquals("report-rollback-possible,compare-imported-island,rollback-last-import,verify-after-rollback,verify-no-legacy-provider", metadata.get("rollbackRunbookSteps"));
     }
 }

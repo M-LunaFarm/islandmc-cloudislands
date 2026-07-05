@@ -98,6 +98,27 @@ public final class MigrationSafetyPolicy {
         "admin-approval-token-present",
         "source-fingerprint-unchanged"
     );
+    public static final List<String> DRY_RUN_LOSS_REPORT_FIELDS = List.of(
+        "dryRunSeverity",
+        "lossSummary",
+        "lossWarnings",
+        "ownerMissingCount",
+        "worldPathMissingCount",
+        "homeMissingCount",
+        "warpMissingCount",
+        "permissionConversionFailureCount",
+        "bankEconomyConversionFailureCount",
+        "blockValueConversionFailureCount",
+        "unsupportedFieldCount",
+        "cloudIslandsPostImportDifferenceCount"
+    );
+    public static final List<String> ROLLBACK_RUNBOOK_STEPS = List.of(
+        "report-rollback-possible",
+        "compare-imported-island",
+        "rollback-last-import",
+        "verify-after-rollback",
+        "verify-no-legacy-provider"
+    );
 
     private MigrationSafetyPolicy() {
     }
@@ -146,6 +167,17 @@ public final class MigrationSafetyPolicy {
         return storageTargetPresent && databaseTargetPresent && compositeTargetPresent && dryRunPlanBound;
     }
 
+    public static boolean dryRunLossReportField(String field) {
+        String normalizedField = normalize(field);
+        return DRY_RUN_LOSS_REPORT_FIELDS.stream()
+            .map(MigrationSafetyPolicy::normalize)
+            .anyMatch(normalizedField::equals);
+    }
+
+    public static boolean rollbackRunbookStep(String step) {
+        return ROLLBACK_RUNBOOK_STEPS.contains(normalize(step));
+    }
+
     public static boolean requiredTargetField(String field) {
         return REQUIRED_TARGET_FIELDS.contains(normalize(field));
     }
@@ -188,6 +220,8 @@ public final class MigrationSafetyPolicy {
         fields.put("rollbackPolicy", ROLLBACK_POLICY);
         fields.put("rollbackRequirements", String.join(",", ROLLBACK_REQUIREMENTS));
         fields.put("rollbackTargetRequirements", String.join(",", ROLLBACK_TARGET_REQUIREMENTS));
+        fields.put("dryRunLossReportFields", String.join(",", DRY_RUN_LOSS_REPORT_FIELDS));
+        fields.put("rollbackRunbookSteps", String.join(",", ROLLBACK_RUNBOOK_STEPS));
         return Map.copyOf(fields);
     }
 

@@ -786,6 +786,9 @@ final class MigrationAdminBackend {
             + ",\"migrationUnsupportedDataPolicy\":\"unsupported-source-fields-are-reported-with-blocking-or-warning-issues-before-import\""
             + ",\"migrationStackedCustomDataPolicy\":\"stacked-blocks-custom-data-ratings-generators-schematics-and-templates-are-explicit-target-fields-or-unsupported-data\""
             + ",\"migrationDowntimeEstimatePolicy\":\"report-scan-dryrun-import-verify-rollback-paths-and-world-bundle-counts-for-operator-downtime-planning\""
+            + ",\"dryRunSeverity\":\"" + escape(report.dryRunSeverity()) + "\""
+            + ",\"lossSummary\":\"" + escape(report.lossSummary()) + "\""
+            + ",\"rollbackRunbook\":\"" + escape(report.rollbackRunbookText()) + "\""
             + ",\"worldBundleChecksumFailureCount\":" + report.worldBundleChecksumFailureCount()
             + ",\"cloudIslandsPostImportDifferenceCount\":" + report.cloudIslandsPostImportDifferenceCount()
             + ",\"rollbackPossible\":" + report.rollbackPossible();
@@ -974,6 +977,10 @@ final class MigrationAdminBackend {
             + "\"unknownFlagCount\":" + report.unknownFlagCount() + ','
             + "\"blockValueConversionFailureCount\":" + report.blockValueConversionFailureCount() + ','
             + "\"bankEconomyConversionFailureCount\":" + report.bankEconomyConversionFailureCount() + ','
+            + "\"dryRunSeverity\":\"" + escape(report.dryRunSeverity()) + "\","
+            + "\"lossSummary\":\"" + escape(report.lossSummary()) + "\","
+            + "\"lossWarnings\":" + stringArrayJson(report.lossWarnings()) + ','
+            + "\"rollbackRunbook\":" + stringArrayJson(report.rollbackRunbook()) + ','
             + "\"worldBundleChecksumFailureCount\":" + report.worldBundleChecksumFailureCount() + ','
             + "\"cloudIslandsPostImportDifferenceCount\":" + report.cloudIslandsPostImportDifferenceCount() + ','
             + "\"rollbackPossible\":" + report.rollbackPossible() + ','
@@ -982,6 +989,18 @@ final class MigrationAdminBackend {
             + ','
             + "\"issues\":" + issuesJson(report.issues())
             + "}";
+    }
+
+    private String stringArrayJson(List<String> values) {
+        StringBuilder builder = new StringBuilder("[");
+        List<String> safeValues = values == null ? List.of() : values;
+        for (int index = 0; index < safeValues.size(); index++) {
+            if (index > 0) {
+                builder.append(',');
+            }
+            builder.append('"').append(escape(safeValues.get(index))).append('"');
+        }
+        return builder.append(']').toString();
     }
 
     private String migrationManifestJson(String sourcePath, List<MigrationManifest> manifests) {

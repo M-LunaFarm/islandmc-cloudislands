@@ -57,6 +57,9 @@ final class CoreMigrationJson {
             (int) CoreJson.number(root, "warehouseItems"),
             (int) CoreJson.number(root, "blockingIssues"),
             (int) CoreJson.number(root, "warningIssues"),
+            CoreJson.text(root, "dryRunSeverity"),
+            CoreJson.text(root, "lossSummary"),
+            CoreJson.text(root, "rollbackRunbook"),
             issues(root)
         );
     }
@@ -101,6 +104,9 @@ final class CoreMigrationJson {
         root.put("warehouseItems", snapshot.warehouseItems());
         root.put("blockingIssues", snapshot.blockingIssues());
         root.put("warningIssues", snapshot.warningIssues());
+        root.put("dryRunSeverity", snapshot.dryRunSeverity());
+        root.put("lossSummary", snapshot.lossSummary());
+        root.put("rollbackRunbook", snapshot.rollbackRunbook());
         root.put("issues", (snapshot.issues() == null ? List.<MigrationIssueSnapshot>of() : snapshot.issues()).stream()
             .map(issue -> Map.of("code", issue.code(), "message", issue.message(), "blocking", issue.blocking()))
             .toList());

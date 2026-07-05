@@ -23,8 +23,11 @@ public final class VelocityMigrationMessageFormatter {
         appendText(builder, " report=", snapshot.reportPath());
         appendText(builder, " approval=", snapshot.approvalToken());
         builder.append(" canImport=").append(snapshot.canImport())
-            .append(" rollbackPlan=").append(snapshot.rollbackPlanAvailable())
-            .append(" imported=").append(snapshot.imported())
+            .append(" rollbackPlan=").append(snapshot.rollbackPlanAvailable());
+        appendText(builder, " severity=", snapshot.dryRunSeverity());
+        appendText(builder, " loss=", snapshot.lossSummary());
+        appendText(builder, " rollbackRunbook=", snapshot.rollbackRunbook());
+        builder.append(" imported=").append(snapshot.imported())
             .append(" islands=").append(snapshot.importedIslands())
             .append(" passed=").append(snapshot.passed())
             .append(" expected=").append(snapshot.expected())

@@ -46,12 +46,21 @@ class MigrationReportBuilderTest {
         assertEquals(3, report.cloudIslandsPostImportDifferenceCount());
         assertEquals(1, report.unsupportedFieldCount());
         assertTrue(report.rollbackPossible());
+        assertEquals("BLOCKED", report.dryRunSeverity());
+        assertTrue(report.lossSummary().contains("owner-missing=1"));
+        assertTrue(report.lossSummary().contains("unsupported-field=1"));
+        assertTrue(report.rollbackRunbookText().contains("/ciadmin migrate-superiorskyblock2 rollback"));
         assertTrue(report.toJson().contains("\"totalIslands\":1"));
         assertTrue(report.toJson().contains("\"ownerMissing\":1"));
         assertTrue(report.toJson().contains("\"rollbackPossible\":true"));
         assertTrue(report.toJson().contains("\"unsupportedFields\":1"));
+        assertTrue(report.toJson().contains("\"dryRunSeverity\":\"BLOCKED\""));
+        assertTrue(report.toJson().contains("\"lossWarnings\""));
+        assertTrue(report.toJson().contains("\"rollbackRunbook\""));
         assertTrue(report.toMarkdown().contains("| Total islands | 1 |"));
         assertTrue(report.toMarkdown().contains("| Owner missing | 1 |"));
+        assertTrue(report.toMarkdown().contains("## Loss warnings"));
+        assertTrue(report.toMarkdown().contains("## Rollback runbook"));
         assertTrue(report.toMarkdown().contains("UNSUPPORTED_FIELD"));
     }
 
@@ -60,6 +69,9 @@ class MigrationReportBuilderTest {
         MigrationReport report = MigrationReportBuilder.build(List.of(manifestWithoutHomeOrWarp()), List.of());
 
         assertEquals(1, report.importableIslandCount());
+        assertEquals("WARNING", report.dryRunSeverity());
+        assertTrue(report.lossSummary().contains("home-missing-or-empty=1"));
+        assertTrue(report.lossSummary().contains("warp-missing-or-empty=1"));
     }
 
     @Test

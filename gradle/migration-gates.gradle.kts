@@ -30,9 +30,17 @@ tasks.register("verifyMigrationFixtures") {
         if (!reportText.contains("toJson()") || !reportText.contains("toMarkdown()")) {
             throw GradleException("SS2 dry-run report must export JSON and Markdown")
         }
+        listOf("dryRunSeverity", "lossSummary", "lossWarnings", "rollbackRunbook")
+            .filterNot(reportText::contains)
+            .takeIf { it.isNotEmpty() }
+            ?.let { missingReportFields -> throw GradleException("SS2 dry-run report loss/runbook fields missing: ${missingReportFields.joinToString(", ")}") }
         if (!safetyText.contains("rollbackTargetVerified")) {
             throw GradleException("SS2 migration safety policy must verify rollback targets")
         }
+        listOf("DRY_RUN_LOSS_REPORT_FIELDS", "ROLLBACK_RUNBOOK_STEPS", "dryRunLossReportField", "rollbackRunbookStep")
+            .filterNot(safetyText::contains)
+            .takeIf { it.isNotEmpty() }
+            ?.let { missingPolicyFields -> throw GradleException("SS2 migration safety policy loss/runbook coverage missing: ${missingPolicyFields.joinToString(", ")}") }
         listOf("ratings", "generators", "schematics", "templates", "stacked-blocks", "custom-data", "unsupported-data", "downtime-estimate")
             .filterNot(safetyText::contains)
             .takeIf { it.isNotEmpty() }
@@ -93,6 +101,10 @@ tasks.register("verifyMigrationFixtures") {
                     "warpMappings",
                     "roleMappings",
                     "rollbackPossible",
+                    "dryRunSeverity",
+                    "lossSummary",
+                    "lossWarnings",
+                    "rollbackRunbook",
                     "downtimeEstimatePolicy"
                 ).forEachIndexed { index, field ->
                     if (index > 0) append(",")
@@ -116,6 +128,7 @@ tasks.register("verifyMigrationFixtures") {
                 }
                 appendLine()
                 appendLine("Report fields include total/success/fail/skip counts, owner/world/warp/bank/block worth/role mappings, unsupported fields, conflicts, and rollback availability.")
+                appendLine("Dry-run loss fields include severity, loss summary/warnings, and an operator rollback runbook.")
             }
         )
     }

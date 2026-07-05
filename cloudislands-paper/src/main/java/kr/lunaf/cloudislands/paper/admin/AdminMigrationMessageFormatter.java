@@ -34,6 +34,7 @@ final class AdminMigrationMessageFormatter {
         appendText(builder, snapshot.reportPath(), "admin-command-migration-report-prefix", " report=");
         appendText(builder, snapshot.approvalToken(), "admin-command-migration-approval-prefix", " approval=");
         appendPlanningStatus(builder, snapshot);
+        appendDryRunRiskStatus(builder, snapshot);
         appendImportStatus(builder, snapshot);
         appendVerifyStatus(builder, snapshot);
         appendRollbackStatus(builder, snapshot);
@@ -48,6 +49,12 @@ final class AdminMigrationMessageFormatter {
     private void appendPlanningStatus(StringBuilder builder, MigrationRunSnapshot snapshot) {
         builder.append(text.get("admin-command-migration-can-import-prefix", " canImport=")).append(snapshot.canImport())
             .append(text.get("admin-command-migration-rollback-plan-prefix", " rollbackPlan=")).append(snapshot.rollbackPlanAvailable());
+    }
+
+    private void appendDryRunRiskStatus(StringBuilder builder, MigrationRunSnapshot snapshot) {
+        appendText(builder, snapshot.dryRunSeverity(), "admin-command-migration-severity-prefix", " severity=");
+        appendText(builder, snapshot.lossSummary(), "admin-command-migration-loss-prefix", " loss=");
+        appendText(builder, snapshot.rollbackRunbook(), "admin-command-migration-runbook-prefix", " rollbackRunbook=");
     }
 
     private void appendImportStatus(StringBuilder builder, MigrationRunSnapshot snapshot) {
