@@ -11,7 +11,7 @@ final class AdminCommandCatalog {
     static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary", "endpoints");
     static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "migration", "addon-state", "route-events");
     static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
-    static final List<String> ISLAND_COMMANDS = List.of("info", "where", "visitor-stats", "visitors", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "bulk-restore", "quarantine", "recover", "repair", "delete");
+    static final List<String> ISLAND_COMMANDS = List.of("info", "where", "inspect", "visitor-stats", "visitors", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "bulk-restore", "quarantine", "recover", "repair", "delete");
     static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
     static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "tickets", "clear");
@@ -71,6 +71,7 @@ final class AdminCommandCatalog {
         "ciadmin node shutdown-safe <node> [reason]",
         "ciadmin island info <island>",
         "ciadmin island where <player|island>",
+        "ciadmin island inspect <player|island>",
         "ciadmin island visitor-stats <island>",
         "ciadmin island tp <island>",
         "ciadmin island activate <island>",

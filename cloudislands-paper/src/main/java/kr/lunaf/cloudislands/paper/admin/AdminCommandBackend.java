@@ -1099,7 +1099,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
             return true;
         }
-        if (args[1].equalsIgnoreCase("where")) {
+        if (args[1].equalsIgnoreCase("where") || args[1].equalsIgnoreCase("inspect")) {
             run(sender, "Island where", islandWhereMessage(args[2]));
             return true;
         }
@@ -1655,6 +1655,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         sendCommandUsage(sender, List.of(
             "/ciadmin island info <islandUuid|islandName>",
             "/ciadmin island where <playerUuid|playerName|islandUuid|islandName>",
+            "/ciadmin island inspect <playerUuid|playerName|islandUuid|islandName>",
             "/ciadmin island visitor-stats <islandUuid|islandName>",
             "/ciadmin island tp <islandUuid|islandName>",
             "/ciadmin island activate <islandUuid|islandName>",
