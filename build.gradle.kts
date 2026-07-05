@@ -1247,8 +1247,10 @@ tasks.register("verifyHomeWarpMessageKeyCoverage") {
             "home-menu-island-required",
             "home-not-found",
             "home-set-action-label",
+            "home-set-denied",
             "home-set-failed",
             "home-set-island-required",
+            "home-teleport-denied",
             "home-teleport-island-required",
             "home-teleport-success",
             "home-warp-action-complete",
@@ -1256,14 +1258,22 @@ tasks.register("verifyHomeWarpMessageKeyCoverage") {
             "home-warp-action-reason-prefix",
             "home-warp-action-target-prefix",
             "island-info-load-failed",
+            "input-island-uuid-invalid",
+            "input-warp-name-required",
             "public-warp-list-category-label",
             "public-warp-list-empty",
             "public-warp-list-island-label",
             "public-warp-list-load-failed",
             "public-warp-list-prefix",
+            "warp-access-denied",
             "warp-access-failed",
             "warp-access-island-required",
             "warp-delete-action-label",
+            "warp-delete-confirm-description",
+            "warp-delete-confirm-lore",
+            "warp-delete-confirm-name",
+            "warp-delete-confirm-title",
+            "warp-delete-denied",
             "warp-delete-failed",
             "warp-delete-island-required",
             "warp-list-empty",
@@ -1274,23 +1284,27 @@ tasks.register("verifyHomeWarpMessageKeyCoverage") {
             "warp-not-found",
             "warp-private-action-label",
             "warp-public-action-label",
+            "warp-set-denied",
             "warp-set-action-label",
             "warp-set-failed",
             "warp-set-island-required",
+            "warp-teleport-denied",
             "warp-teleport-island-required",
             "warp-teleport-success"
         )
         val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
         val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val keyedKoreanFallback = Regex("""(?:message|routeMessage)\("[^"]+",\s*"[^"]*[\uAC00-\uD7AF]""")
         val failures = buildList {
             directRuntimeMessage.find(source)?.let { add("IslandHomeWarpCommandHandler directly sends Korean runtime.message output: ${it.value}") }
             directCurrentIsland.find(source)?.let { add("IslandHomeWarpCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            keyedKoreanFallback.find(source)?.let { add("IslandHomeWarpCommandHandler must not carry Korean keyed fallback output: ${it.value}") }
             listOf(
                 "runtime.moveToPoint(player, homePoint(homes, name), \"",
                 "runtime.moveToPoint(player, null, \"",
                 "runtime.moveToPoint(player, point, \""
             ).filter(source::contains).forEach { add("IslandHomeWarpCommandHandler directly passes moveToPoint text output: $it") }
-            if (!source.contains("private String message(String key, String fallback)")) add("IslandHomeWarpCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            if (!source.contains("private String message(String key)")) add("IslandHomeWarpCommandHandler must centralize routeMessage lookups behind message(key)")
             if (!source.contains("homeListMessage(homes)") || !source.contains("warpListMessage(warps)") || !source.contains("publicWarpListMessage(warps, category, query)")) add("Home/warp list output must stay behind keyed helper methods")
             requiredKeys.filterNot { source.contains("\"$it\"") }.forEach { add("IslandHomeWarpCommandHandler missing message key usage: $it") }
             requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing home/warp message key: $it") }
