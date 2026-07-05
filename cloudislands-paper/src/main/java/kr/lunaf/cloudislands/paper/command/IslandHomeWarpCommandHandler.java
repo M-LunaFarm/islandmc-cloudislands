@@ -119,7 +119,7 @@ final class IslandHomeWarpCommandHandler {
             setWarp(player, args[1], args.length > 2 ? args[2] : "");
             return true;
         }
-        if (subcommand.equals("delwarp") || subcommand.equals("deletewarp") || subcommand.equals("워프삭제")) {
+        if (subcommand.equals("delwarp") || subcommand.equals("deletewarp") || subcommand.equals("warp-delete") || subcommand.equals("워프삭제")) {
             if (args.length < 2) {
                 runtime.message(player, message("input-warp-name-required"));
                 return true;
