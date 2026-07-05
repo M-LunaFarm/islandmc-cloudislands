@@ -1740,6 +1740,86 @@ tasks.register("verifyBankMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifyPermissionMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 permission command output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandPermissionCommandHandler.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handler, koMessages, enMessages)
+    doLast {
+        val source = handler.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val requiredKeys = listOf(
+            "input-permission-set-invalid",
+            "input-role-invalid",
+            "permission-action-reason-prefix",
+            "permission-allowed-label",
+            "permission-change-failed",
+            "permission-change-island-required",
+            "permission-change-success-prefix",
+            "permission-denied-label",
+            "permission-list-empty",
+            "permission-list-island-required",
+            "permission-list-load-failed",
+            "permission-list-overrides-prefix",
+            "permission-list-prefix",
+            "permission-menu-island-required",
+            "permission-override-failed",
+            "permission-override-island-required",
+            "permission-override-success-prefix",
+            "permission-save-failed",
+            "permission-save-success",
+            "permission-save-title",
+            "permission-set-denied",
+            "permission-stage-empty",
+            "permission-stage-reset",
+            "permission-stage-success-prefix",
+            "role-edit-denied",
+            "role-edit-island-required",
+            "role-list-empty",
+            "role-list-island-required",
+            "role-list-load-failed",
+            "role-list-name-label",
+            "role-list-prefix",
+            "role-list-weight-label",
+            "role-menu-island-required",
+            "role-reset-denied",
+            "role-reset-failed",
+            "role-reset-island-required",
+            "role-reset-success-prefix",
+            "role-save-failed",
+            "role-save-success-prefix"
+        )
+        val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCoreWriteFallback = Regex("""coreWriteFailureMessage\([^,\n]+,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val failures = buildList {
+            directRuntimeMessage.find(source)?.let { add("IslandPermissionCommandHandler directly sends Korean runtime.message output: ${it.value}") }
+            directCurrentIsland.find(source)?.let { add("IslandPermissionCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            directCoreWriteFallback.find(source)?.let { add("IslandPermissionCommandHandler directly passes coreWriteFailureMessage Korean fallback: ${it.value}") }
+            if (!source.contains("private String message(String key, String fallback)")) add("IslandPermissionCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            if (!source.contains("permissionListMessage(permissions)") ||
+                !source.contains("roleListMessage(roles)") ||
+                !source.contains("permissionAllowedLabel(permission.allowed())") ||
+                !source.contains("message(\"permission-change-success-prefix\"") ||
+                !source.contains("message(\"permission-override-success-prefix\"") ||
+                !source.contains("message(\"role-save-success-prefix\"")
+            ) {
+                add("Permission list/action output must stay behind keyed helper methods")
+            }
+            requiredKeys.filterNot { source.contains("\"$it\"") }.forEach { add("IslandPermissionCommandHandler missing message key usage: $it") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing permission message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing permission message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
@@ -1754,6 +1834,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifySettingsMessageKeyCoverage"))
     dependsOn(tasks.named("verifyVisitReviewMessageKeyCoverage"))
     dependsOn(tasks.named("verifyBankMessageKeyCoverage"))
+    dependsOn(tasks.named("verifyPermissionMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))

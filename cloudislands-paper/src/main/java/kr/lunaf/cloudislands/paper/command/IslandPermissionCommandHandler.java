@@ -39,22 +39,22 @@ final class IslandPermissionCommandHandler {
     }
 
     void listIslandPermissions(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 권한을 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("permission-list-island-required", "섬 안에서만 권한을 확인할 수 있습니다.")).ifPresent(islandId -> {
             permissionUseCase.listPermissionViews(islandId)
                 .thenAccept(permissions -> runtime.message(player, permissionListMessage(permissions)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 권한을 불러오지 못했습니다.");
+                    runtime.message(player, message("permission-list-load-failed", "섬 권한을 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     void listIslandRoles(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 역할을 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("role-list-island-required", "섬 안에서만 역할을 확인할 수 있습니다.")).ifPresent(islandId -> {
             permissionUseCase.listRoleViews(islandId)
                 .thenAccept(roles -> runtime.message(player, roleListMessage(roles)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 역할을 불러오지 못했습니다.");
+                    runtime.message(player, message("role-list-load-failed", "섬 역할을 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -69,11 +69,11 @@ final class IslandPermissionCommandHandler {
     }
 
     void openIslandPermissionMenu(Player player, int page, int rolePage) {
-        runtime.currentIsland(player, "섬 안에서만 권한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandPermissionMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player), page, rolePage));
+        runtime.currentIsland(player, message("permission-menu-island-required", "섬 안에서만 권한 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandPermissionMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player), page, rolePage));
     }
 
     void openIslandRoleMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 역할 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandRoleMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("role-menu-island-required", "섬 안에서만 역할 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandRoleMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
@@ -81,54 +81,54 @@ final class IslandPermissionCommandHandler {
     }
 
     void stageIslandPermission(Player player, String roleName, String permissionName, String allowedValue, String expectedVersion) {
-        runtime.currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(_islandId -> {
+        runtime.currentIsland(player, message("permission-change-island-required", "섬 안에서만 권한을 변경할 수 있습니다.")).ifPresent(_islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
-                runtime.message(player, runtime.routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
+                runtime.message(player, message("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
                 return;
             }
             String roleKey = roleKey(roleName);
             IslandPermission permission = islandPermission(permissionName);
             if (roleKey.isBlank() || permission == null) {
-                runtime.message(player, runtime.routeMessage("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요."));
+                runtime.message(player, message("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요."));
                 return;
             }
             boolean allowed = booleanValue(allowedValue);
             PermissionManagementUseCase.PermissionChange change = new PermissionManagementUseCase.PermissionChange(roleKey, permission, allowed, expectedVersion);
             stagedPermissionChanges.computeIfAbsent(player.getUniqueId(), _uuid -> new ConcurrentHashMap<>()).put(change.key(), change);
-            runtime.message(player, runtime.routeMessage("permission-stage-success-prefix", "권한 변경을 임시 저장했습니다. 저장 버튼을 눌러 반영하세요: ")
+            runtime.message(player, message("permission-stage-success-prefix", "권한 변경을 임시 저장했습니다. 저장 버튼을 눌러 반영하세요: ")
                 + roleKey + ":" + permission.name() + "=" + allowed);
         });
     }
 
     void resetStagedIslandPermissions(Player player) {
         stagedPermissionChanges.remove(player.getUniqueId());
-        runtime.message(player, runtime.routeMessage("permission-stage-reset", "임시 권한 변경을 취소했습니다."));
+        runtime.message(player, message("permission-stage-reset", "임시 권한 변경을 취소했습니다."));
         openIslandPermissionMenu(player);
     }
 
     void saveStagedIslandPermissions(Player player) {
         Map<String, PermissionManagementUseCase.PermissionChange> staged = stagedPermissionChanges.getOrDefault(player.getUniqueId(), Map.of());
         if (staged.isEmpty()) {
-            runtime.message(player, runtime.routeMessage("permission-stage-empty", "저장할 권한 변경이 없습니다."));
+            runtime.message(player, message("permission-stage-empty", "저장할 권한 변경이 없습니다."));
             return;
         }
-        runtime.currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("permission-change-island-required", "섬 안에서만 권한을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
-                runtime.message(player, runtime.routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
+                runtime.message(player, message("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
                 return;
             }
             List<PermissionManagementUseCase.PermissionChange> changes = new ArrayList<>(staged.values());
-            GuiStateMenus.openSaving(plugin, player, runtime.messagesFor(player), runtime.routeMessage("permission-save-title", "권한 저장"));
+            GuiStateMenus.openSaving(plugin, player, runtime.messagesFor(player), message("permission-save-title", "권한 저장"));
             saveStagedChangesSequentially(islandId, player, changes)
                 .thenAccept(_ignored -> {
                     stagedPermissionChanges.remove(player.getUniqueId());
                     kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                        GuiStateMenus.openSuccess(plugin, player, runtime.messagesFor(player), runtime.routeMessage("permission-save-title", "권한 저장"), runtime.routeMessage("permission-save-success", "권한 변경을 저장했습니다."), "island.permissions.open");
+                        GuiStateMenus.openSuccess(plugin, player, runtime.messagesFor(player), message("permission-save-title", "권한 저장"), message("permission-save-success", "권한 변경을 저장했습니다."), "island.permissions.open");
                     });
                 })
                 .exceptionally(error -> {
                     kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                        GuiStateMenus.openConflict(plugin, player, runtime.messagesFor(player), runtime.routeMessage("permission-save-title", "권한 저장"), runtime.coreWriteFailureMessage(error, runtime.routeMessage("permission-save-failed", "권한 변경을 저장하지 못했습니다.")), "island.permissions.save", "island.permissions.open");
+                        GuiStateMenus.openConflict(plugin, player, runtime.messagesFor(player), message("permission-save-title", "권한 저장"), runtime.coreWriteFailureMessage(error, message("permission-save-failed", "권한 변경을 저장하지 못했습니다.")), "island.permissions.save", "island.permissions.open");
                     });
                     return null;
                 });
@@ -140,15 +140,15 @@ final class IslandPermissionCommandHandler {
     }
 
     void upsertIslandRole(Player player, String roleKey, int weight, String displayName) {
-        runtime.currentIsland(player, "섬 안에서만 역할을 편집할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("role-edit-island-required", "섬 안에서만 역할을 편집할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
-                runtime.message(player, runtime.routeMessage("role-edit-denied", "섬 역할을 편집할 권한이 없습니다."));
+                runtime.message(player, message("role-edit-denied", "섬 역할을 편집할 권한이 없습니다."));
                 return;
             }
             permissionUseCase.upsertRoleTyped(islandId, player.getUniqueId(), roleKey, weight, displayName, runtime::mutate)
                 .thenAccept(result -> runtime.message(player, roleSavedMessage(result.value())))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 역할을 저장하지 못했습니다.");
+                    runtime.message(player, message("role-save-failed", "섬 역할을 저장하지 못했습니다."));
                     return null;
                 });
         });
@@ -157,7 +157,7 @@ final class IslandPermissionCommandHandler {
     void adjustIslandRoleWeight(Player player, String roleName, String weightValue, String displayName, GuiClick click) {
         String roleKey = roleKey(roleName);
         if (!editableRoleKey(roleKey)) {
-            runtime.message(player, runtime.routeMessage("input-role-invalid", "올바른 역할을 입력해주세요."));
+            runtime.message(player, message("input-role-invalid", "올바른 역할을 입력해주세요."));
             return;
         }
         if (click.shift()) {
@@ -170,60 +170,60 @@ final class IslandPermissionCommandHandler {
     }
 
     void resetIslandRole(Player player, String roleKey) {
-        runtime.currentIsland(player, "섬 안에서만 역할을 초기화할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("role-reset-island-required", "섬 안에서만 역할을 초기화할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
-                runtime.message(player, runtime.routeMessage("role-reset-denied", "섬 역할을 초기화할 권한이 없습니다."));
+                runtime.message(player, message("role-reset-denied", "섬 역할을 초기화할 권한이 없습니다."));
                 return;
             }
             permissionUseCase.resetRoleTyped(islandId, player.getUniqueId(), roleKey, runtime::mutateIdempotent)
-                .thenAccept(result -> runtime.message(player, "섬 역할 초기화 완료: " + result.value().role()))
+                .thenAccept(result -> runtime.message(player, message("role-reset-success-prefix", "섬 역할 초기화 완료: ") + result.value().role()))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 역할을 초기화하지 못했습니다.");
+                    runtime.message(player, message("role-reset-failed", "섬 역할을 초기화하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     void setIslandPermission(Player player, String roleName, String permissionName, String allowedValue) {
-        runtime.currentIsland(player, "섬 안에서만 권한을 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("permission-change-island-required", "섬 안에서만 권한을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
-                runtime.message(player, runtime.routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
+                runtime.message(player, message("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
                 return;
             }
             String roleKey = roleKey(roleName);
             IslandPermission permission = islandPermission(permissionName);
             if (roleKey.isBlank() || permission == null) {
-                runtime.message(player, runtime.routeMessage("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요."));
+                runtime.message(player, message("input-permission-set-invalid", "올바른 역할과 권한을 입력해주세요."));
                 return;
             }
             boolean allowed = booleanValue(allowedValue);
             PermissionManagementUseCase.PermissionChange change = new PermissionManagementUseCase.PermissionChange(roleKey, permission, allowed, "");
             permissionUseCase.setPermissionAction(islandId, player.getUniqueId(), change, runtime::mutate)
-                .thenAccept(result -> runtime.message(player, permissionActionMessage(result, "섬 권한 변경 완료: " + roleKey + ":" + permission.name() + "=" + allowed, "섬 권한을 변경하지 못했습니다.")))
+                .thenAccept(result -> runtime.message(player, permissionActionMessage(result, message("permission-change-success-prefix", "섬 권한 변경 완료: ") + roleKey + ":" + permission.name() + "=" + allowed, message("permission-change-failed", "섬 권한을 변경하지 못했습니다."))))
                 .exceptionally(error -> {
-                    runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 권한을 변경하지 못했습니다."));
+                    runtime.message(player, runtime.coreWriteFailureMessage(error, message("permission-change-failed", "섬 권한을 변경하지 못했습니다.")));
                     return null;
                 });
         });
     }
 
     void setIslandPermissionOverride(Player player, String target, String permissionName, String allowedValue) {
-        runtime.currentIsland(player, "섬 안에서만 권한 예외를 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("permission-override-island-required", "섬 안에서만 권한 예외를 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
-                runtime.message(player, runtime.routeMessage("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
+                runtime.message(player, message("permission-set-denied", "섬 권한을 변경할 권한이 없습니다."));
                 return;
             }
             IslandPermission permission = islandPermission(permissionName);
             if (permission == null) {
-                runtime.message(player, runtime.routeMessage("input-permission-set-invalid", "올바른 권한을 입력해주세요."));
+                runtime.message(player, message("input-permission-set-invalid", "올바른 권한을 입력해주세요."));
                 return;
             }
             boolean allowed = booleanValue(allowedValue);
             runtime.resolvePlayerUuid(target).thenAccept(targetUuid -> {
                 permissionUseCase.setPermissionOverrideAction(islandId, player.getUniqueId(), targetUuid, permission, allowed, runtime::mutate)
-                    .thenAccept(result -> runtime.message(player, permissionActionMessage(result, "섬 권한 예외 변경 완료: " + compactId(targetUuid.toString()) + ":" + permission.name() + "=" + allowed, "섬 권한 예외를 변경하지 못했습니다.")))
+                    .thenAccept(result -> runtime.message(player, permissionActionMessage(result, message("permission-override-success-prefix", "섬 권한 예외 변경 완료: ") + compactId(targetUuid.toString()) + ":" + permission.name() + "=" + allowed, message("permission-override-failed", "섬 권한 예외를 변경하지 못했습니다."))))
                     .exceptionally(error -> {
-                        runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 권한 예외를 변경하지 못했습니다."));
+                        runtime.message(player, runtime.coreWriteFailureMessage(error, message("permission-override-failed", "섬 권한 예외를 변경하지 못했습니다.")));
                         return null;
                     });
             });
@@ -271,31 +271,41 @@ final class IslandPermissionCommandHandler {
         List<String> overrides = new ArrayList<>();
         for (PermissionView permission : permissions) {
             if (!permission.role().isBlank()) {
-                entries.add(permission.role() + ":" + permission.permission() + "=" + (permission.allowed() ? "허용" : "거부"));
+                entries.add(permission.role() + ":" + permission.permission() + "=" + permissionAllowedLabel(permission.allowed()));
             } else if (!permission.playerUuid().isBlank()) {
-                overrides.add(compactId(permission.playerUuid()) + ":" + permission.permission() + "=" + (permission.allowed() ? "허용" : "거부"));
+                overrides.add(compactId(permission.playerUuid()) + ":" + permission.permission() + "=" + permissionAllowedLabel(permission.allowed()));
             }
         }
-        String base = entries.isEmpty() ? "섬 권한 규칙이 없습니다." : "섬 권한: " + String.join(", ", entries);
-        return overrides.isEmpty() ? base : base + " / 예외: " + String.join(", ", overrides);
+        String base = entries.isEmpty() ? message("permission-list-empty", "섬 권한 규칙이 없습니다.") : message("permission-list-prefix", "섬 권한: ") + String.join(", ", entries);
+        return overrides.isEmpty() ? base : base + message("permission-list-overrides-prefix", " / 예외: ") + String.join(", ", overrides);
     }
 
     private String roleListMessage(List<RoleView> roles) {
         List<String> entries = roles.stream()
-            .map(role -> role.role() + "(weight=" + role.weight() + ", name=" + role.displayName() + ")")
+            .map(role -> role.role() + "(" + message("role-list-weight-label", "weight=") + role.weight() + ", " + message("role-list-name-label", "name=") + role.displayName() + ")")
             .toList();
-        return entries.isEmpty() ? "섬 커스텀 역할이 없습니다." : "섬 역할: " + String.join(", ", entries);
+        return entries.isEmpty() ? message("role-list-empty", "섬 커스텀 역할이 없습니다.") : message("role-list-prefix", "섬 역할: ") + String.join(", ", entries);
     }
 
     private String roleSavedMessage(RoleView role) {
-        return "섬 역할 저장 완료: " + role.role() + " weight=" + role.weight() + " name=" + role.displayName();
+        return message("role-save-success-prefix", "섬 역할 저장 완료: ") + role.role()
+            + " " + message("role-list-weight-label", "weight=") + role.weight()
+            + " " + message("role-list-name-label", "name=") + role.displayName();
     }
 
     private String permissionActionMessage(PermissionActionResult result, String successMessage, String failureMessage) {
         if (result.accepted()) {
             return successMessage;
         }
-        return result.code().isBlank() ? failureMessage : failureMessage + " 사유=" + result.code();
+        return result.code().isBlank() ? failureMessage : failureMessage + message("permission-action-reason-prefix", " 사유=") + result.code();
+    }
+
+    private String permissionAllowedLabel(boolean allowed) {
+        return allowed ? message("permission-allowed-label", "허용") : message("permission-denied-label", "거부");
+    }
+
+    private String message(String key, String fallback) {
+        return runtime.routeMessage(key, fallback);
     }
 
     private String compactId(String value) {
