@@ -6,6 +6,7 @@ import com.velocitypowered.api.proxy.ConnectionRequestBuilder;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
+import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.nio.file.Files;
@@ -27,6 +28,7 @@ import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
 import kr.lunaf.cloudislands.velocity.message.VelocityMessages;
 import kr.lunaf.cloudislands.velocity.metrics.VelocityRoutingMetrics;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.junit.jupiter.api.Test;
 
 class RouteTicketRouterPolicyTest {
@@ -130,7 +132,65 @@ class RouteTicketRouterPolicyTest {
         assertTrue(calls.indexOf("connectWithIndication:island-velocity-1") > calls.indexOf("connectRequest:island-velocity-1"));
     }
 
+    @Test
+    void terminalPreparingTicketStatesSendPlayerRecoveryMessages() {
+        assertTerminalRecovery(RouteTicketState.EXPIRED, "섬 이동 준비 시간이 만료되었습니다. 다시 시도해주세요.");
+        assertTerminalRecovery(RouteTicketState.CONSUMED, "이미 사용된 섬 이동 요청입니다. 다시 시도해주세요.");
+    }
+
+    @Test
+    void routeStatusCoreDownUsesRecoveryMessageAndFailureMetricCode() {
+        UUID playerUuid = UUID.randomUUID();
+        UUID ticketId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        Player player = player(playerUuid, calls);
+        VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
+        RouteTicketRouter router = new RouteTicketRouter(
+            coreClient(calls, CompletableFuture.failedFuture(new IOException("core down"))),
+            1,
+            VelocityMessages.defaults(),
+            metrics,
+            new RouteFallbackService(proxy(player), "lobby", metrics, Component::text),
+            new RouteProgressPresenter(false, false, Component::text)
+        );
+
+        router.route(player, ticket(playerUuid, ticketId, RouteTicketState.PREPARING), "fallback");
+
+        assertTrue(calls.contains("routeTicketStatus:" + ticketId));
+        assertTrue(calls.contains("sendMessage:현재 섬 서비스 일부 기능이 점검 중입니다."));
+        assertTrue(calls.contains("clearRoute:" + ticketId + ":ROUTE_STATUS_FAILED"));
+        assertTrue(metrics.statusSummary().contains("routeFailures=1"));
+        assertTrue(metrics.statusSummary().contains("routeFailureCodes=CORE_API_IO=1"));
+    }
+
+    private static void assertTerminalRecovery(RouteTicketState state, String message) {
+        UUID playerUuid = UUID.randomUUID();
+        UUID ticketId = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        Player player = player(playerUuid, calls);
+        VelocityRoutingMetrics metrics = new VelocityRoutingMetrics();
+        RouteTicket terminal = ticket(playerUuid, ticketId, state);
+        RouteTicketRouter router = new RouteTicketRouter(
+            coreClient(calls, CompletableFuture.completedFuture(Optional.of(terminal))),
+            1,
+            VelocityMessages.defaults(),
+            metrics,
+            new RouteFallbackService(proxy(player), "lobby", metrics, Component::text),
+            new RouteProgressPresenter(false, false, Component::text)
+        );
+
+        router.route(player, ticket(playerUuid, ticketId, RouteTicketState.PREPARING), "fallback");
+
+        assertTrue(calls.contains("routeTicketStatus:" + ticketId));
+        assertTrue(calls.contains("sendMessage:" + message));
+        assertTrue(metrics.statusSummary().contains("routeFailures=1"));
+    }
+
     private static CoreApiClient coreClient(List<String> calls) {
+        return coreClient(calls, null);
+    }
+
+    private static CoreApiClient coreClient(List<String> calls, CompletableFuture<Optional<RouteTicket>> statusFuture) {
         return (CoreApiClient) Proxy.newProxyInstance(
             CoreApiClient.class.getClassLoader(),
             new Class<?>[] {CoreApiClient.class, RoutingCommandClient.class},
@@ -156,6 +216,11 @@ class RouteTicketRouterPolicyTest {
                 if (method.getName().equals("clearRoute") && args.length == 3) {
                     calls.add("clearRoute:" + args[1] + ":" + args[2]);
                     return CompletableFuture.completedFuture(new RouteClearView(true, "OK"));
+                }
+                if (method.getName().equals("routeTicketStatus")) {
+                    RouteTicket ticket = (RouteTicket) args[0];
+                    calls.add("routeTicketStatus:" + ticket.ticketId());
+                    return statusFuture == null ? CompletableFuture.completedFuture(Optional.empty()) : statusFuture;
                 }
                 throw new UnsupportedOperationException(method.getName());
             }
@@ -193,6 +258,10 @@ class RouteTicketRouterPolicyTest {
                 String serverName = serverName((RegisteredServer) args[0]);
                 calls.add("connectRequest:" + serverName);
                 return connectionRequest((RegisteredServer) args[0], serverName, calls);
+            }
+            if ((method.getName().equals("sendMessage") || method.getName().equals("sendActionBar")) && args != null && args.length > 0 && args[0] instanceof Component component) {
+                calls.add(method.getName() + ":" + PlainTextComponentSerializer.plainText().serialize(component));
+                return null;
             }
             if (method.getName().equals("sendMessage") || method.getName().equals("sendActionBar")) {
                 return null;
@@ -242,6 +311,21 @@ class RouteTicketRouterPolicyTest {
 
     private static String serverName(RegisteredServer server) {
         return server == null ? "" : server.toString();
+    }
+
+    private static RouteTicket ticket(UUID playerUuid, UUID ticketId, RouteTicketState state) {
+        return new RouteTicket(
+            ticketId,
+            playerUuid,
+            RouteAction.HOME,
+            UUID.randomUUID(),
+            "island-node-1",
+            "ci_shard_001",
+            state,
+            Instant.now().plusSeconds(30),
+            "nonce-1",
+            Map.of("targetServerName", "island-velocity-1")
+        );
     }
 
     private static Object defaultValue(Class<?> type) {
