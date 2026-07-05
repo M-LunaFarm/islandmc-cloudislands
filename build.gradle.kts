@@ -1525,6 +1525,80 @@ tasks.register("verifyWarehouseMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifySettingsMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 settings command output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandSettingsCommandHandler.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handler, koMessages, enMessages)
+    doLast {
+        val source = handler.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val requiredKeys = listOf(
+            "access-change-denied",
+            "access-change-failed",
+            "access-change-island-required",
+            "access-private-action-label",
+            "access-public-action-label",
+            "flag-list-empty",
+            "flag-list-island-required",
+            "flag-list-load-failed",
+            "flag-list-prefix",
+            "flag-menu-island-required",
+            "flag-set-action-label",
+            "flag-set-denied",
+            "flag-set-failed",
+            "flag-set-island-required",
+            "input-flag-invalid",
+            "input-flag-value-required",
+            "input-island-name-required",
+            "input-locale-required",
+            "lock-action-label",
+            "lock-change-denied",
+            "lock-change-failed",
+            "lock-change-island-required",
+            "name-change-action-label",
+            "name-change-denied",
+            "name-change-failed",
+            "name-change-island-required",
+            "player-locale-update-failed",
+            "player-locale-updated",
+            "settings-action-complete",
+            "settings-action-failed",
+            "settings-action-reason-prefix",
+            "settings-action-target-prefix",
+            "settings-menu-island-required",
+            "unlock-action-label"
+        )
+        val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCoreWriteFallback = Regex("""coreWriteFailureMessage\([^,\n]+,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val failures = buildList {
+            directRuntimeMessage.find(source)?.let { add("IslandSettingsCommandHandler directly sends Korean runtime.message output: ${it.value}") }
+            directCurrentIsland.find(source)?.let { add("IslandSettingsCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            directCoreWriteFallback.find(source)?.let { add("IslandSettingsCommandHandler directly passes coreWriteFailureMessage Korean fallback: ${it.value}") }
+            if (!source.contains("private String message(String key, String fallback)")) add("IslandSettingsCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            if (!source.contains("flagListMessage(flags)") ||
+                !source.contains("settingsActionMessage(publicAccess ? \"access-public-action-label\"") ||
+                !source.contains("settingsActionMessage(locked ? \"lock-action-label\"") ||
+                !source.contains("settingsActionMessage(\"name-change-action-label\"") ||
+                !source.contains("settingsActionMessage(message(\"flag-set-action-label\"")
+            ) {
+                add("Settings list/action output must stay behind keyed helper methods")
+            }
+            requiredKeys.filterNot { source.contains("\"$it\"") }.forEach { add("IslandSettingsCommandHandler missing message key usage: $it") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing settings message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing settings message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
@@ -1536,6 +1610,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyOverviewMemberMessageKeyCoverage"))
     dependsOn(tasks.named("verifyLifecycleMessageKeyCoverage"))
     dependsOn(tasks.named("verifyWarehouseMessageKeyCoverage"))
+    dependsOn(tasks.named("verifySettingsMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))

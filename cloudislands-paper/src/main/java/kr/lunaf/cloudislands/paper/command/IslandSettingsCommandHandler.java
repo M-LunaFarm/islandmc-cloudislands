@@ -60,7 +60,7 @@ final class IslandSettingsCommandHandler {
         }
         if (subcommand.equals("language") || subcommand.equals("locale") || subcommand.equals("언어")) {
             if (args.length < 2) {
-                runtime.message(player, runtime.routeMessage("input-locale-required", "언어 코드를 입력해주세요. 예: /섬 언어 ko_kr"));
+                runtime.message(player, message("input-locale-required", "언어 코드를 입력해주세요. 예: /섬 언어 ko_kr"));
                 return true;
             }
             setPlayerLocale(player, args[1]);
@@ -68,7 +68,7 @@ final class IslandSettingsCommandHandler {
         }
         if (subcommand.equals("name") || subcommand.equals("setname") || subcommand.equals("rename") || subcommand.equals("이름") || subcommand.equals("이름설정")) {
             if (args.length < 2) {
-                runtime.message(player, runtime.routeMessage("input-island-name-required", "새 섬 이름을 입력해주세요."));
+                runtime.message(player, message("input-island-name-required", "새 섬 이름을 입력해주세요."));
                 return true;
             }
             setName(player, joined(args, 1));
@@ -104,7 +104,7 @@ final class IslandSettingsCommandHandler {
         }
         if (subcommand.equals("setflag") || subcommand.equals("flag-set") || subcommand.equals("플래그설정")) {
             if (args.length < 3) {
-                runtime.message(player, runtime.routeMessage("input-flag-value-required", "플래그와 값을 입력해주세요."));
+                runtime.message(player, message("input-flag-value-required", "플래그와 값을 입력해주세요."));
                 return true;
             }
             setFlag(player, args[1], args[2]);
@@ -147,103 +147,103 @@ final class IslandSettingsCommandHandler {
     }
 
     private void openSettings(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 설정 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandSettingsMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("settings-menu-island-required", "섬 안에서만 설정 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandSettingsMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void setPublicAccess(Player player, boolean publicAccess) {
-        runtime.currentIsland(player, "섬 안에서만 공개 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("access-change-island-required", "섬 안에서만 공개 상태를 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                runtime.message(player, runtime.routeMessage("access-change-denied", "섬 공개 상태를 변경할 권한이 없습니다."));
+                runtime.message(player, message("access-change-denied", "섬 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
             settingsUseCase.setPublicAccessAction(islandId, player.getUniqueId(), publicAccess, runtime::mutate)
                 .thenAccept(result -> {
-                    runtime.message(player, settingsActionMessage(publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId.toString(), result));
+                    runtime.message(player, settingsActionMessage(publicAccess ? "access-public-action-label" : "access-private-action-label", publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId.toString(), result));
                     if (result.accepted()) {
                         PaperSchedulers.run(plugin, () -> openSettings(player));
                     }
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 공개 상태를 변경하지 못했습니다.");
+                    runtime.message(player, message("access-change-failed", "섬 공개 상태를 변경하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void setLocked(Player player, boolean locked) {
-        runtime.currentIsland(player, "섬 안에서만 잠금 상태를 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("lock-change-island-required", "섬 안에서만 잠금 상태를 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                runtime.message(player, runtime.routeMessage("lock-change-denied", "섬 잠금 상태를 변경할 권한이 없습니다."));
+                runtime.message(player, message("lock-change-denied", "섬 잠금 상태를 변경할 권한이 없습니다."));
                 return;
             }
             settingsUseCase.setLockedAction(islandId, player.getUniqueId(), locked, runtime::mutate)
                 .thenAccept(result -> {
-                    runtime.message(player, settingsActionMessage(locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId.toString(), result));
+                    runtime.message(player, settingsActionMessage(locked ? "lock-action-label" : "unlock-action-label", locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId.toString(), result));
                     if (result.accepted()) {
                         PaperSchedulers.run(plugin, () -> openSettings(player));
                     }
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 잠금 상태를 변경하지 못했습니다.");
+                    runtime.message(player, message("lock-change-failed", "섬 잠금 상태를 변경하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void setName(Player player, String name) {
-        runtime.currentIsland(player, "섬 안에서만 이름을 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("name-change-island-required", "섬 안에서만 이름을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                runtime.message(player, runtime.routeMessage("name-change-denied", "섬 이름을 변경할 권한이 없습니다."));
+                runtime.message(player, message("name-change-denied", "섬 이름을 변경할 권한이 없습니다."));
                 return;
             }
             settingsUseCase.setNameAction(islandId, player.getUniqueId(), name, runtime::mutate)
                 .thenAccept(result -> {
-                    runtime.message(player, settingsActionMessage("섬 이름 변경", name, result));
+                    runtime.message(player, settingsActionMessage("name-change-action-label", "섬 이름 변경", name, result));
                     if (result.accepted()) {
                         PaperSchedulers.run(plugin, () -> openSettings(player));
                     }
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 이름을 변경하지 못했습니다.");
+                    runtime.message(player, message("name-change-failed", "섬 이름을 변경하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void listFlags(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 플래그를 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("flag-list-island-required", "섬 안에서만 플래그를 확인할 수 있습니다.")).ifPresent(islandId -> {
             settingsUseCase.flagValues(islandId)
                 .thenAccept(flags -> runtime.message(player, flagListMessage(flags)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 플래그를 불러오지 못했습니다.");
+                    runtime.message(player, message("flag-list-load-failed", "섬 플래그를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void openFlagMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 플래그 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandFlagMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("flag-menu-island-required", "섬 안에서만 플래그 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandFlagMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void setFlag(Player player, String flagName, String value) {
         IslandFlag flag = islandFlag(flagName);
         if (flag == null) {
-            runtime.message(player, runtime.routeMessage("input-flag-invalid", "올바른 섬 플래그를 입력해주세요."));
+            runtime.message(player, message("input-flag-invalid", "올바른 섬 플래그를 입력해주세요."));
             return;
         }
         setFlag(player, flag, value);
     }
 
     private void setFlag(Player player, IslandFlag flag, String value) {
-        runtime.currentIsland(player, "섬 안에서만 플래그를 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("flag-set-island-required", "섬 안에서만 플래그를 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                runtime.message(player, runtime.routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
+                runtime.message(player, message("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
                 return;
             }
             settingsUseCase.setFlagAction(islandId, player.getUniqueId(), flag, value, runtime::mutate)
-                .thenAccept(result -> runtime.message(player, settingsActionMessage("섬 플래그 변경 " + flag.name() + "=" + value, flag.name(), result)))
+                .thenAccept(result -> runtime.message(player, settingsActionMessage(message("flag-set-action-label", "섬 플래그 변경 ") + flag.name() + "=" + value, flag.name(), result)))
                 .exceptionally(error -> {
-                    runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 플래그를 변경하지 못했습니다."));
+                    runtime.message(player, runtime.coreWriteFailureMessage(error, message("flag-set-failed", "섬 플래그를 변경하지 못했습니다.")));
                     return null;
                 });
         });
@@ -257,31 +257,49 @@ final class IslandSettingsCommandHandler {
                 if (locales != null) {
                     locales.remember(player.getUniqueId(), applied);
                 }
-                runtime.message(player, runtime.routeMessage("player-locale-updated", "언어 설정을 변경했습니다.") + " locale=" + applied);
+                runtime.message(player, message("player-locale-updated", "언어 설정을 변경했습니다.") + " locale=" + applied);
             })
             .exceptionally(error -> {
-                runtime.message(player, runtime.coreWriteFailureMessage(error, "언어 설정을 변경하지 못했습니다."));
+                runtime.message(player, runtime.coreWriteFailureMessage(error, message("player-locale-update-failed", "언어 설정을 변경하지 못했습니다.")));
                 return null;
             });
     }
 
-    private static String flagListMessage(Map<IslandFlag, String> flags) {
+    private String flagListMessage(Map<IslandFlag, String> flags) {
         List<String> entries = flags.entrySet().stream()
             .map(entry -> entry.getKey().name() + "=" + entry.getValue())
             .toList();
-        return entries.isEmpty() ? "섬 플래그가 없습니다." : "섬 플래그: " + String.join(", ", entries);
+        return entries.isEmpty() ? message("flag-list-empty", "섬 플래그가 없습니다.") : message("flag-list-prefix", "섬 플래그: ") + String.join(", ", entries);
     }
 
-    private static String settingsActionMessage(String label, String targetId, SettingsActionResult result) {
-        StringBuilder builder = new StringBuilder(label)
-            .append(result.accepted() ? " 완료" : " 실패");
+    private String settingsActionMessage(String labelKey, String labelFallback, String targetId, SettingsActionResult result) {
+        StringBuilder builder = new StringBuilder(message(labelKey, labelFallback))
+            .append(' ')
+            .append(result.accepted() ? message("settings-action-complete", "완료") : message("settings-action-failed", "실패"));
         if (targetId != null && !targetId.isBlank()) {
-            builder.append(": 대상=").append(compactId(targetId));
+            builder.append(message("settings-action-target-prefix", ": 대상=")).append(compactId(targetId));
         }
         if (!result.accepted() && !result.code().isBlank()) {
-            builder.append(" 사유=").append(result.code());
+            builder.append(message("settings-action-reason-prefix", " 사유=")).append(result.code());
         }
         return builder.toString();
+    }
+
+    private String settingsActionMessage(String label, String targetId, SettingsActionResult result) {
+        StringBuilder builder = new StringBuilder(label)
+            .append(' ')
+            .append(result.accepted() ? message("settings-action-complete", "완료") : message("settings-action-failed", "실패"));
+        if (targetId != null && !targetId.isBlank()) {
+            builder.append(message("settings-action-target-prefix", ": 대상=")).append(compactId(targetId));
+        }
+        if (!result.accepted() && !result.code().isBlank()) {
+            builder.append(message("settings-action-reason-prefix", " 사유=")).append(result.code());
+        }
+        return builder.toString();
+    }
+
+    private String message(String key, String fallback) {
+        return runtime.routeMessage(key, fallback);
     }
 
     private static IslandFlag islandFlag(String value) {
