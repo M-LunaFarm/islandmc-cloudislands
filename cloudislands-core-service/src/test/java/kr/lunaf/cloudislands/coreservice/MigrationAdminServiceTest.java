@@ -41,6 +41,13 @@ class MigrationAdminServiceTest {
         assertTrue(backend.contains("unsupportedFieldCount"), "migration JSON reports must expose unsupported field count");
         assertTrue(backend.contains("migrationDowntimeEstimatePolicy"), "migration reports must expose downtime planning evidence");
         assertTrue(backend.contains("migrationStackedCustomDataPolicy"), "migration reports must name stacked/custom/template/schematic coverage policy");
+        assertTrue(backend.contains("migrationDataCategoryClassifications"), "migration reports must expose explicit data category classifications");
+        assertTrue(backend.contains("owners=SUPPORTED"), "migration classifications must mark owner data supported");
+        assertTrue(backend.contains("roles=PARTIAL"), "migration classifications must mark partially mapped role data");
+        assertTrue(backend.contains("world-bundles=MANUAL"), "migration classifications must mark world bundle extraction as manual/operator-visible");
+        assertTrue(backend.contains("ratings=UNSUPPORTED"), "migration classifications must mark unsupported rating data");
+        assertTrue(backend.contains("unsafe-admin-actions=DANGEROUS"), "migration classifications must mark dangerous admin action parity explicitly");
+        assertTrue(service.contains("MIGRATION_DATA_CATEGORY_CLASSIFICATIONS"), "migration service must expose the classification contract");
         assertTrue(backend.contains("public synchronized String report()"));
         assertTrue(backend.contains("public synchronized String compare(String islandKey)"));
         assertTrue(backend.contains("compareImportedManifest(MigrationManifest manifest)"));

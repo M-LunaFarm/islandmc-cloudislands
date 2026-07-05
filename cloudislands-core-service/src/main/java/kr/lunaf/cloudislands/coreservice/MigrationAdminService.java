@@ -21,6 +21,7 @@ public final class MigrationAdminService {
     static final String MIGRATION_TARGET_FIELDS = MigrationAdminBackend.MIGRATION_TARGET_FIELDS;
     static final String MIGRATION_PIPELINE_STEPS = MigrationAdminBackend.MIGRATION_PIPELINE_STEPS;
     static final String MIGRATION_COMMAND_SET = MigrationAdminBackend.MIGRATION_COMMAND_SET;
+    static final String MIGRATION_DATA_CATEGORY_CLASSIFICATIONS = MigrationAdminBackend.MIGRATION_DATA_CATEGORY_CLASSIFICATIONS;
 
     private final MigrationAdminBackend backend;
 

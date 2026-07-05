@@ -58,6 +58,7 @@ final class MigrationAdminBackend {
     static final String MIGRATION_TARGET_FIELDS = "island-id,owner-uuid,members,roles,permissions,island-location,island-size,homes,warps,banned-visitors,level,worth,bank-balance,upgrades,missions,ratings,generators,limits,schematics,templates,stacked-blocks,custom-data,unsupported-data,flags,block-values,rollback-plan,downtime-estimate";
     static final String MIGRATION_PIPELINE_STEPS = "read-only-scan,manifest-generate,dry-run,conflict-report,admin-approval,db-import,world-cell-extract,island-bundle-create,checksum-verify,cloudislands-activation-test";
     static final String MIGRATION_COMMAND_SET = "scan,dryrun,report,import,verify,compare,rollback";
+    static final String MIGRATION_DATA_CATEGORY_CLASSIFICATIONS = "island-metadata=SUPPORTED,owners=SUPPORTED,members=SUPPORTED,roles=PARTIAL,permissions=SUPPORTED,island-location=SUPPORTED,island-size=SUPPORTED,homes=SUPPORTED,warps=SUPPORTED,banned-visitors=SUPPORTED,level=SUPPORTED,worth=SUPPORTED,bank-balance=SUPPORTED,flags=PARTIAL,upgrades=SUPPORTED,limits=SUPPORTED,missions=PARTIAL,block-values=SUPPORTED,block-counts=SUPPORTED,warehouse=SUPPORTED,biomes=SUPPORTED,world-bundles=MANUAL,schematics=MANUAL,templates=MANUAL,ratings=UNSUPPORTED,generators=PARTIAL,stacked-blocks=PARTIAL,custom-data=UNSUPPORTED,unsafe-admin-actions=DANGEROUS";
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
     private final PlayerProfileRepository playerProfiles;
@@ -711,7 +712,8 @@ final class MigrationAdminBackend {
     private String migrationCoverageFields() {
         return ",\"migrationTargetFields\":\"" + MIGRATION_TARGET_FIELDS + "\""
             + ",\"migrationPipelineSteps\":\"" + MIGRATION_PIPELINE_STEPS + "\""
-            + ",\"migrationCommandSet\":\"" + MIGRATION_COMMAND_SET + "\"";
+            + ",\"migrationCommandSet\":\"" + MIGRATION_COMMAND_SET + "\""
+            + ",\"migrationDataCategoryClassifications\":\"" + MIGRATION_DATA_CATEGORY_CLASSIFICATIONS + "\"";
     }
 
     private String rollbackSafetyFields(boolean planAvailable) {
@@ -786,6 +788,7 @@ final class MigrationAdminBackend {
             + ",\"migrationUnsupportedDataPolicy\":\"unsupported-source-fields-are-reported-with-blocking-or-warning-issues-before-import\""
             + ",\"migrationStackedCustomDataPolicy\":\"stacked-blocks-custom-data-ratings-generators-schematics-and-templates-are-explicit-target-fields-or-unsupported-data\""
             + ",\"migrationDowntimeEstimatePolicy\":\"report-scan-dryrun-import-verify-rollback-paths-and-world-bundle-counts-for-operator-downtime-planning\""
+            + ",\"migrationDataCategoryClassifications\":\"" + MIGRATION_DATA_CATEGORY_CLASSIFICATIONS + "\""
             + ",\"dryRunSeverity\":\"" + escape(report.dryRunSeverity()) + "\""
             + ",\"lossSummary\":\"" + escape(report.lossSummary()) + "\""
             + ",\"rollbackRunbook\":\"" + escape(report.rollbackRunbookText()) + "\""
@@ -960,6 +963,7 @@ final class MigrationAdminBackend {
             + "\"blockValues\":" + report.blockValues() + ','
             + "\"blockCounts\":" + report.blockCounts() + ','
             + "\"warehouseItems\":" + report.warehouseItems() + ','
+            + "\"migrationDataCategoryClassifications\":\"" + MIGRATION_DATA_CATEGORY_CLASSIFICATIONS + "\","
             + "\"manifestGenerated\":" + report.manifestGenerated() + ','
             + "\"manifestStatus\":\"" + escape(report.manifestStatus()) + "\","
             + "\"conflictIssues\":" + report.conflictIssues() + ','
