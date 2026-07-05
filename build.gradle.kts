@@ -1866,6 +1866,55 @@ tasks.register("verifyMembershipMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifyEnvironmentMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 environment command output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handler, koMessages, enMessages)
+    doLast {
+        val source = handler.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directPlayerCodeFallback = Regex("""playerCodeMessage\([^,\n]+,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCoreWriteFallback = Regex("""coreWriteFailureMessage\([^,\n]+,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directRouteLookups = Regex("""runtime\.routeMessage\(""").findAll(source).count()
+        val requiredKeys = Regex("""message\("([^"]+)""")
+            .findAll(source)
+            .map { it.groupValues[1] }
+            .toSortedSet()
+        val requiredSignals = listOf(
+            "private String message(String key, String fallback)",
+            "borderSummary",
+            "limitListMessage(limits)",
+            "biomeActionMessage(result, biomeKey)",
+            "environmentActionMessage(result, message(\"border-set-success-prefix\"",
+            "runtime.playerCodeMessage(result.code(), message(\"limit-set-failed\"",
+            "runtime.coreWriteFailureMessage(error, message(\"border-set-failed\"",
+            "message(\"border-summary-prefix\"",
+            "message(\"limit-list-value-label\"",
+            "message(\"stacked-block-enabled\""
+        )
+        val failures = buildList {
+            directRuntimeMessage.find(source)?.let { add("IslandEnvironmentCommandHandler directly sends Korean runtime.message output: ${it.value}") }
+            directCurrentIsland.find(source)?.let { add("IslandEnvironmentCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            directPlayerCodeFallback.find(source)?.let { add("IslandEnvironmentCommandHandler directly passes playerCodeMessage Korean fallback: ${it.value}") }
+            directCoreWriteFallback.find(source)?.let { add("IslandEnvironmentCommandHandler directly passes coreWriteFailureMessage Korean fallback: ${it.value}") }
+            if (directRouteLookups != 1) add("IslandEnvironmentCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            requiredSignals.filterNot(source::contains).forEach { signal -> add("IslandEnvironmentCommandHandler missing keyed output signal: $signal") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing environment message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing environment message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register("verifyProgressionMessageKeyCoverage") {
     group = "verification"
     description = "Verifies CI-002 progression command output uses message keys with ko_kr/en_us coverage."
@@ -1991,6 +2040,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyBankMessageKeyCoverage"))
     dependsOn(tasks.named("verifyPermissionMessageKeyCoverage"))
     dependsOn(tasks.named("verifyMembershipMessageKeyCoverage"))
+    dependsOn(tasks.named("verifyEnvironmentMessageKeyCoverage"))
     dependsOn(tasks.named("verifyProgressionMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))

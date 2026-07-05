@@ -71,7 +71,7 @@ final class IslandEnvironmentCommandHandler {
         }
         if (subcommand.equals("border-color") || subcommand.equals("경계색상")) {
             if (args.length < 2) {
-                runtime.message(player, "경계 색상을 입력해주세요. 예: /섬 경계색상 blue");
+                runtime.message(player, message("input-border-color-required", "경계 색상을 입력해주세요. 예: /is border-color blue"));
                 return true;
             }
             setBorderFlag(player, IslandFlag.BORDER_COLOR, IslandBorderRuntimePolicy.normalizeColor(args[1]), true);
@@ -79,7 +79,7 @@ final class IslandEnvironmentCommandHandler {
         }
         if (subcommand.equals("border-visible") || subcommand.equals("경계표시")) {
             if (args.length < 2) {
-                runtime.message(player, "경계 표시 여부를 입력해주세요. 예: /섬 경계표시 켜기");
+                runtime.message(player, message("input-border-visible-required", "경계 표시 여부를 입력해주세요. 예: /is border-visible on"));
                 return true;
             }
             setBorderFlag(player, IslandFlag.BORDER_VISIBLE, toggleValue(args, 1), true);
@@ -105,7 +105,7 @@ final class IslandEnvironmentCommandHandler {
         }
         if (subcommand.equals("setlimit") || subcommand.equals("limit-set") || subcommand.equals("제한설정")) {
             if (args.length < 3) {
-                runtime.message(player, runtime.routeMessage("input-limit-key-value-required", "제한 키와 값을 입력해주세요."));
+                runtime.message(player, message("input-limit-key-value-required", "제한 키와 값을 입력해주세요."));
                 return true;
             }
             setLimit(player, args[1], longValue(args[2], 0L));
@@ -172,58 +172,58 @@ final class IslandEnvironmentCommandHandler {
     }
 
     private void openBorderMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 보더 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandBorderMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("border-menu-island-required", "섬 안에서만 보더 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandBorderMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void showBiome(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 바이옴을 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("biome-show-island-required", "섬 안에서만 바이옴을 확인할 수 있습니다.")).ifPresent(islandId -> {
             environmentUseCase.islandBiomeValue(islandId)
-                .thenAccept(biome -> runtime.message(player, "섬 바이옴: " + biome.key()))
+                .thenAccept(biome -> runtime.message(player, message("biome-show-prefix", "섬 바이옴: ") + biome.key()))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 바이옴을 불러오지 못했습니다.");
+                    runtime.message(player, message("biome-load-failed", "섬 바이옴을 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void openBiomeMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 바이옴 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandBiomeMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("biome-menu-island-required", "섬 안에서만 바이옴 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandBiomeMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void setBiome(Player player, String biomeKey) {
-        runtime.currentIsland(player, "섬 안에서만 바이옴을 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("biome-set-island-required", "섬 안에서만 바이옴을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.SET_BIOME)) {
-                runtime.message(player, runtime.routeMessage("biome-set-denied", "섬 바이옴을 변경할 권한이 없습니다."));
+                runtime.message(player, message("biome-set-denied", "섬 바이옴을 변경할 권한이 없습니다."));
                 return;
             }
             environmentUseCase.setBiomeAction(islandId, player.getUniqueId(), biomeKey, runtime::mutate)
                 .thenAccept(result -> runtime.message(player, biomeActionMessage(result, biomeKey)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 바이옴을 변경하지 못했습니다.");
+                    runtime.message(player, message("biome-set-failed", "섬 바이옴을 변경하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void showSize(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 크기를 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("size-show-island-required", "섬 안에서만 크기를 확인할 수 있습니다.")).ifPresent(islandId -> {
             environmentUseCase.islandInfoView(islandId)
-                .thenAccept(info -> runtime.message(player, "섬 크기: " + info.size()))
+                .thenAccept(info -> runtime.message(player, message("size-show-prefix", "섬 크기: ") + info.size()))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 크기를 불러오지 못했습니다.");
+                    runtime.message(player, message("size-load-failed", "섬 크기를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void showBorder(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 경계를 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("border-show-island-required", "섬 안에서만 경계를 확인할 수 있습니다.")).ifPresent(islandId -> {
             CompletableFuture<IslandInfoView> info = environmentUseCase.islandInfoView(islandId);
             CompletableFuture<Map<IslandFlag, String>> flags = environmentUseCase.flagValues(islandId);
-            info.thenCombine(flags, IslandEnvironmentCommandHandler::borderSummary)
+            info.thenCombine(flags, this::borderSummary)
                 .thenAccept(summary -> runtime.message(player, summary))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 경계를 불러오지 못했습니다.");
+                    runtime.message(player, message("border-load-failed", "섬 경계를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -251,7 +251,7 @@ final class IslandEnvironmentCommandHandler {
         }
         if (mode.equals("color") || mode.equals("색상")) {
             if (args.length < 3) {
-                runtime.message(player, "경계 색상을 입력해주세요. 예: /섬 경계 색상 blue");
+                runtime.message(player, message("input-border-color-required", "경계 색상을 입력해주세요. 예: /is border color blue"));
                 return;
             }
             setBorderFlag(player, IslandFlag.BORDER_COLOR, IslandBorderRuntimePolicy.normalizeColor(args[2]), true);
@@ -259,7 +259,7 @@ final class IslandEnvironmentCommandHandler {
         }
         if (mode.equals("warning") || mode.equals("경고")) {
             if (args.length < 3) {
-                runtime.message(player, "경계 경고 거리를 입력해주세요. 예: /섬 경계 경고 8");
+                runtime.message(player, message("input-border-warning-required", "경계 경고 거리를 입력해주세요. 예: /is border warning 8"));
                 return;
             }
             setBorderFlag(player, IslandFlag.BORDER_WARNING_BLOCKS, Long.toString(Math.max(0L, longValue(args[2], 0L))), true);
@@ -267,7 +267,7 @@ final class IslandEnvironmentCommandHandler {
         }
         if (mode.equals("policy") || mode.equals("정책")) {
             if (args.length < 3) {
-                runtime.message(player, "경계 정책을 입력해주세요. 예: /섬 경계 정책 visible");
+                runtime.message(player, message("input-border-policy-required", "경계 정책을 입력해주세요. 예: /is border policy visible"));
                 return;
             }
             setBorderFlag(player, IslandFlag.BORDER_POLICY, IslandBorderRuntimePolicy.normalizePolicy(args[2]), true);
@@ -278,7 +278,7 @@ final class IslandEnvironmentCommandHandler {
 
     private void handleToggle(Player player, String[] args) {
         if (args.length < 2) {
-            runtime.message(player, "토글할 항목을 입력해주세요. 예: /섬 toggle border 또는 /섬 toggle blocks");
+            runtime.message(player, message("input-toggle-target-required", "토글할 항목을 입력해주세요. 예: /is toggle border 또는 /is toggle blocks"));
             return;
         }
         String target = args[1].toLowerCase(Locale.ROOT);
@@ -291,7 +291,7 @@ final class IslandEnvironmentCommandHandler {
             return;
         }
         if (!target.equals("border") && !target.equals("border-visible") && !target.equals("경계") && !target.equals("경계표시")) {
-            runtime.message(player, "지원하지 않는 토글 항목입니다. 예: /섬 toggle border 또는 /섬 toggle blocks");
+            runtime.message(player, message("input-toggle-target-invalid", "지원하지 않는 토글 항목입니다. 예: /is toggle border 또는 /is toggle blocks"));
             return;
         }
         if (args.length > 2) {
@@ -302,74 +302,74 @@ final class IslandEnvironmentCommandHandler {
     }
 
     private void toggleStackedBlockVisibility(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 스택 블록 표시를 전환할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("stacked-block-toggle-island-required", "섬 안에서만 스택 블록 표시를 전환할 수 있습니다.")).ifPresent(islandId -> {
             environmentUseCase.limitViews(islandId)
                 .thenAccept(limits -> setStackedBlockVisibility(player, stackedBlockVisible(limits) ? "false" : "true"))
                 .exceptionally(error -> {
-                    runtime.message(player, "스택 블록 표시를 전환하지 못했습니다.");
+                    runtime.message(player, message("stacked-block-toggle-failed", "스택 블록 표시를 전환하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void setStackedBlockVisibility(Player player, String value) {
-        runtime.currentIsland(player, "섬 안에서만 스택 블록 표시를 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("stacked-block-set-island-required", "섬 안에서만 스택 블록 표시를 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_UPGRADES)) {
-                runtime.message(player, runtime.routeMessage("stacked-block-toggle-denied", "스택 블록 표시를 변경할 권한이 없습니다."));
+                runtime.message(player, message("stacked-block-toggle-denied", "스택 블록 표시를 변경할 권한이 없습니다."));
                 return;
             }
             long numericValue = "false".equals(value) ? 0L : 1L;
             environmentUseCase.setLimitAction(islandId, player.getUniqueId(), GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY, numericValue, runtime::mutate)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        runtime.message(player, runtime.playerCodeMessage(result.code(), "스택 블록 표시를 변경하지 못했습니다."));
+                        runtime.message(player, runtime.playerCodeMessage(result.code(), message("stacked-block-set-failed", "스택 블록 표시를 변경하지 못했습니다.")));
                         return;
                     }
-                    runtime.message(player, numericValue == 1L ? "스택 블록 표시를 켰습니다." : "스택 블록 표시를 껐습니다.");
+                    runtime.message(player, numericValue == 1L ? message("stacked-block-enabled", "스택 블록 표시를 켰습니다.") : message("stacked-block-disabled", "스택 블록 표시를 껐습니다."));
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, "스택 블록 표시를 변경하지 못했습니다.");
+                    runtime.message(player, message("stacked-block-set-failed", "스택 블록 표시를 변경하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void toggleBorderVisibility(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 경계 표시를 전환할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("border-toggle-island-required", "섬 안에서만 경계 표시를 전환할 수 있습니다.")).ifPresent(islandId -> {
             environmentUseCase.flagValues(islandId)
                 .thenAccept(flags -> setBorderFlag(player, IslandFlag.BORDER_VISIBLE, IslandBorderRuntimePolicy.visible(flags) ? "false" : "true", true))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 경계 표시를 전환하지 못했습니다.");
+                    runtime.message(player, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void setBorderFlag(Player player, IslandFlag flag, String value, boolean applyAfterSave) {
-        runtime.currentIsland(player, "섬 안에서만 경계 정책을 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("border-set-island-required", "섬 안에서만 경계 정책을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                runtime.message(player, runtime.routeMessage("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
+                runtime.message(player, message("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
                 return;
             }
             environmentUseCase.setFlagAction(islandId, player.getUniqueId(), flag, value, runtime::mutate)
                 .thenAccept(result -> {
-                    runtime.message(player, environmentActionMessage(result, "섬 경계 정책 변경 완료: " + flag.name() + "=" + value, "섬 경계 정책을 변경하지 못했습니다."));
+                    runtime.message(player, environmentActionMessage(result, message("border-set-success-prefix", "섬 경계 정책 변경 완료: ") + flag.name() + "=" + value, message("border-set-failed", "섬 경계 정책을 변경하지 못했습니다.")));
                     if (applyAfterSave && result.accepted()) {
                         applyBorder(player, true);
                     }
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, runtime.coreWriteFailureMessage(error, "섬 경계 정책을 변경하지 못했습니다."));
+                    runtime.message(player, runtime.coreWriteFailureMessage(error, message("border-set-failed", "섬 경계 정책을 변경하지 못했습니다.")));
                     return null;
                 });
         });
     }
 
     private void applyBorder(Player player, boolean announce) {
-        runtime.currentIsland(player, "섬 안에서만 경계를 적용할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("border-apply-island-required", "섬 안에서만 경계를 적용할 수 있습니다.")).ifPresent(islandId -> {
             Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
             if (region.isEmpty()) {
-                runtime.message(player, "섬 경계 위치를 확인하지 못했습니다.");
+                runtime.message(player, message("border-location-missing", "섬 경계 위치를 확인하지 못했습니다."));
                 return;
             }
             CompletableFuture<IslandInfoView> info = environmentUseCase.islandInfoView(islandId);
@@ -377,7 +377,7 @@ final class IslandEnvironmentCommandHandler {
             info.thenCombine(flags, (infoView, flagValues) -> new BorderView(infoView, flagValues, region.get()))
                 .thenAccept(view -> PaperSchedulers.run(plugin, () -> applyBorderSync(player, view, announce)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 경계 UI를 적용하지 못했습니다.");
+                    runtime.message(player, message("border-apply-failed", "섬 경계 UI를 적용하지 못했습니다."));
                     return null;
                 });
         });
@@ -388,7 +388,7 @@ final class IslandEnvironmentCommandHandler {
         if (!settings.visible()) {
             player.setWorldBorder(null);
             if (announce) {
-                runtime.message(player, "섬 경계 UI를 숨겼습니다.");
+                runtime.message(player, message("border-hidden", "섬 경계 UI를 숨겼습니다."));
             }
             return;
         }
@@ -399,50 +399,50 @@ final class IslandEnvironmentCommandHandler {
         border.setWarningTime(5);
         player.setWorldBorder(border);
         if (announce) {
-            runtime.message(player, "섬 경계 UI 적용: 색상=" + settings.color() + ", 정책=" + settings.policy() + ", 크기=" + view.info().border());
+            runtime.message(player, message("border-apply-prefix", "섬 경계 UI 적용: ") + message("border-color-label", "색상=") + settings.color() + message("border-policy-label", ", 정책=") + settings.policy() + message("border-size-label", ", 크기=") + view.info().border());
         }
     }
 
     private void listLimits(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 제한을 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("limit-list-island-required", "섬 안에서만 제한을 확인할 수 있습니다.")).ifPresent(islandId -> {
             environmentUseCase.limitViews(islandId)
                 .thenAccept(limits -> runtime.message(player, limitListMessage(limits)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 제한을 불러오지 못했습니다.");
+                    runtime.message(player, message("limit-list-load-failed", "섬 제한을 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void openLimitMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 제한 메뉴를 열 수 있습니다.").ifPresent(islandId -> IslandLimitMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("limit-menu-island-required", "섬 안에서만 제한 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandLimitMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void setNamedLimit(Player player, String limitKey, String[] args) {
         if (args.length < 2) {
-            runtime.message(player, runtime.routeMessage("input-limit-value-required", "제한 값을 입력해주세요."));
+            runtime.message(player, message("input-limit-value-required", "제한 값을 입력해주세요."));
             return;
         }
         setLimit(player, limitKey, longValue(args[1], 0L));
     }
 
     private void setLimit(Player player, String limitKey, long value) {
-        runtime.currentIsland(player, "섬 안에서만 제한을 변경할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("limit-set-island-required", "섬 안에서만 제한을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_UPGRADES)) {
-                runtime.message(player, runtime.routeMessage("limit-set-denied", "섬 제한을 변경할 권한이 없습니다."));
+                runtime.message(player, message("limit-set-denied", "섬 제한을 변경할 권한이 없습니다."));
                 return;
             }
             environmentUseCase.setLimitAction(islandId, player.getUniqueId(), limitKey, value, runtime::mutate)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        runtime.message(player, runtime.playerCodeMessage(result.code(), "섬 제한을 변경하지 못했습니다."));
+                        runtime.message(player, runtime.playerCodeMessage(result.code(), message("limit-set-failed", "섬 제한을 변경하지 못했습니다.")));
                         return;
                     }
                     String key = result.key().isBlank() ? limitKey : result.key();
-                    runtime.message(player, "섬 제한 변경 완료: " + key + " = " + result.value());
+                    runtime.message(player, message("limit-set-success-prefix", "섬 제한 변경 완료: ") + key + message("limit-set-value-separator", " = ") + result.value());
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 제한을 변경하지 못했습니다.");
+                    runtime.message(player, message("limit-set-failed", "섬 제한을 변경하지 못했습니다."));
                     return null;
                 });
         });
@@ -454,28 +454,33 @@ final class IslandEnvironmentCommandHandler {
 
     private String biomeActionMessage(EnvironmentActionResult result, String requestedBiomeKey) {
         if (!result.accepted()) {
-            return runtime.playerCodeMessage(result.code(), "섬 바이옴을 변경하지 못했습니다.");
+            return runtime.playerCodeMessage(result.code(), message("biome-set-failed", "섬 바이옴을 변경하지 못했습니다."));
         }
         String biomeKey = result.key().isBlank() ? requestedBiomeKey : result.key();
         if (result.code().equals("BIOME_UNCHANGED")) {
-            return "이미 적용된 바이옴입니다: " + biomeKey;
+            return message("biome-unchanged-prefix", "이미 적용된 바이옴입니다: ") + biomeKey;
         }
-        return "섬 바이옴 변경 완료: " + biomeKey;
+        return message("biome-set-success-prefix", "섬 바이옴 변경 완료: ") + biomeKey;
     }
 
-    private static String borderSummary(IslandInfoView info, Map<IslandFlag, String> flags) {
-        return "섬 경계: 크기=" + info.border()
-            + ", 표시=" + (IslandBorderRuntimePolicy.visible(flags) ? "켜짐" : "꺼짐")
-            + ", 색상=" + IslandBorderRuntimePolicy.flagValue(flags, IslandFlag.BORDER_COLOR, "blue")
-            + ", 정책=" + IslandBorderRuntimePolicy.flagValue(flags, IslandFlag.BORDER_POLICY, "visible")
-            + ", 경고거리=" + IslandBorderRuntimePolicy.flagValue(flags, IslandFlag.BORDER_WARNING_BLOCKS, "8");
+    private String borderSummary(IslandInfoView info, Map<IslandFlag, String> flags) {
+        return message("border-summary-prefix", "섬 경계: ")
+            + message("border-summary-size-label", "크기=") + info.border()
+            + message("border-summary-visible-label", ", 표시=") + (IslandBorderRuntimePolicy.visible(flags) ? message("toggle-on-label", "켜짐") : message("toggle-off-label", "꺼짐"))
+            + message("border-summary-color-label", ", 색상=") + IslandBorderRuntimePolicy.flagValue(flags, IslandFlag.BORDER_COLOR, "blue")
+            + message("border-summary-policy-label", ", 정책=") + IslandBorderRuntimePolicy.flagValue(flags, IslandFlag.BORDER_POLICY, "visible")
+            + message("border-summary-warning-label", ", 경고거리=") + IslandBorderRuntimePolicy.flagValue(flags, IslandFlag.BORDER_WARNING_BLOCKS, "8");
     }
 
-    private static String limitListMessage(List<LimitView> limits) {
+    private String limitListMessage(List<LimitView> limits) {
         List<String> entries = limits.stream()
-            .map(limit -> limit.key() + " 값=" + limit.value())
+            .map(limit -> limit.key() + message("limit-list-value-label", " 값=") + limit.value())
             .toList();
-        return entries.isEmpty() ? "섬 제한이 없습니다." : "섬 제한: " + String.join(", ", entries);
+        return entries.isEmpty() ? message("limit-list-empty", "섬 제한이 없습니다.") : message("limit-list-prefix", "섬 제한: ") + String.join(", ", entries);
+    }
+
+    private String message(String key, String fallback) {
+        return runtime.routeMessage(key, fallback);
     }
 
     private static boolean stackedBlockVisible(List<LimitView> limits) {
