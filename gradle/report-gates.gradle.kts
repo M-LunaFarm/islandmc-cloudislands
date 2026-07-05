@@ -813,3 +813,175 @@ tasks.register("verifyFeatureParityMatrix") {
     description = "Compatibility alias for the feature parity evidence gate."
     dependsOn(tasks.named("verifyFeatureParityEvidence"))
 }
+
+private fun editReportEscape(value: String): String = value
+    .replace("\\", "\\\\")
+    .replace("\"", "\\\"")
+    .replace("\n", "\\n")
+
+private fun editReportArray(values: Iterable<String>): String =
+    values.joinToString(prefix = "[", postfix = "]") { "\"${editReportEscape(it)}\"" }
+
+private fun editReportObject(vararg fields: Pair<String, String>): String =
+    fields.joinToString(prefix = "{", postfix = "}") { (key, value) -> "\"$key\":$value" }
+
+private fun editReportString(value: String): String = "\"${editReportEscape(value)}\""
+
+private fun editReportWrite(file: File, text: String) {
+    file.parentFile.mkdirs()
+    file.writeText(text)
+}
+
+private fun editReportFeatureEntries(scope: String): List<FeatureParityEntry> =
+    featureParityEntries().filter {
+        val area = it.area.lowercase()
+        when (scope) {
+            "player" -> !area.contains("admin") && !area.contains("migration")
+            "admin" -> area.contains("admin") || it.evidence.any { evidence -> evidence.contains("admin", ignoreCase = true) }
+            "migration" -> area.contains("migration") || it.evidence.any { evidence -> evidence.contains("migration", ignoreCase = true) }
+            else -> true
+        }
+    }
+
+private fun editReportParityJson(scope: String, entries: List<FeatureParityEntry>): String {
+    val areas = entries.joinToString(",") { entry ->
+        editReportObject(
+            "area" to editReportString(entry.area),
+            "status" to editReportString(
+                when (entry.status) {
+                    "IMPLEMENTED_VERIFIED" -> "SUPPORTED"
+                    "IMPLEMENTED_UNVERIFIED" -> "PARTIAL"
+                    "NOT_APPLICABLE", "INTENTIONALLY_UNSUPPORTED" -> "NOT_A_GOAL"
+                    else -> entry.status
+                }
+            ),
+            "priority" to editReportString(if (entry.status == "PLANNED") "P2" else "P0"),
+            "domain" to editReportString(entry.domain),
+            "paperRuntime" to editReportString(entry.paperRuntime),
+            "adapter" to editReportString(entry.adapter),
+            "integration" to editReportString(entry.integration),
+            "recovery" to editReportString(entry.recovery),
+            "evidence" to editReportArray(entry.evidence),
+            "limitation" to editReportString(entry.limitation)
+        )
+    }
+    return editReportObject(
+        "report" to editReportString("cloudislands-$scope-feature-parity"),
+        "unknownForbidden" to "true",
+        "unknownEntries" to "[]",
+        "entries" to "[$areas]"
+    ) + System.lineSeparator()
+}
+
+tasks.register("generateEditMdRequiredReports") {
+    group = "verification"
+    description = "Generates the build/reports surfaces explicitly required by edit.md."
+    dependsOn(tasks.named("verifyFeatureParityEvidence"))
+    outputs.files(
+        layout.buildDirectory.file("reports/parity/superiorskyblock2-parity.json"),
+        layout.buildDirectory.file("reports/parity/superiorskyblock2-parity.txt"),
+        layout.buildDirectory.file("reports/parity/cloudislands-player-feature-parity.json"),
+        layout.buildDirectory.file("reports/parity/cloudislands-admin-feature-parity.json"),
+        layout.buildDirectory.file("reports/parity/cloudislands-migration-parity.json"),
+        layout.buildDirectory.file("reports/commands/cloudislands-command-surface.json"),
+        layout.buildDirectory.file("reports/commands/cloudislands-permission-surface.json"),
+        layout.buildDirectory.file("reports/commands/cloudislands-gui-action-surface.json"),
+        layout.buildDirectory.file("reports/cloudislands/core-route-surface.json"),
+        layout.buildDirectory.file("reports/cloudislands/typed-client-surface.json"),
+        layout.buildDirectory.file("reports/cloudislands/config-v2-surface.json"),
+        layout.buildDirectory.file("reports/cloudislands/integration-surface.json"),
+        layout.buildDirectory.file("reports/security/redaction-check.json"),
+        layout.buildDirectory.file("reports/migration/superiorskyblock2-migration-capability-map.json")
+    )
+    doLast {
+        val reportRoot = layout.buildDirectory.dir("reports").get().asFile
+        val parityJson = parityJson(reportMinecraftVersionMatrix)
+        val parityText = featureParityMarkdown()
+        val commandSource = layout.projectDirectory.file("cloudislands-protocol/src/main/java/kr/lunaf/cloudislands/protocol/command/IslandPlayerCommandRegistry.java").asFile.readText()
+        val adminCommandSource = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java").asFile.readText()
+        val permissionSource = layout.projectDirectory.file("cloudislands-paper/src/main/resources/plugin.yml").asFile.readText()
+        val guiSource = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiActionParser.java").asFile.readText()
+        val routesSource = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/CoreRouteModules.java").asFile.readText()
+        val clientSource = layout.projectDirectory.file("cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/CoreApiClient.java").asFile.readText()
+        val configSource = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/config/CoreServiceConfig.java").asFile.readText()
+        val integrationReport = layout.buildDirectory.file("reports/cloudislands/integrations.json").get().asFile
+        val redactionPolicyPresent = listOf(
+            "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/config/ConfigV2Validator.java",
+            "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/audit/AuditPayloadRedactor.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminDiagnosticRedactor.java"
+        ).all { layout.projectDirectory.file(it).asFile.isFile }
+        val migrationPolicy = layout.projectDirectory.file("cloudislands-migration/src/main/java/kr/lunaf/cloudislands/migration/superior/MigrationSafetyPolicy.java").asFile.readText()
+        val migrationRoutes = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/SuperiorSkyblock2MigrationRoutes.java").asFile.readText()
+
+        editReportWrite(File(reportRoot, "parity/superiorskyblock2-parity.json"), parityJson)
+        editReportWrite(File(reportRoot, "parity/superiorskyblock2-parity.txt"), parityText)
+        editReportWrite(File(reportRoot, "parity/cloudislands-player-feature-parity.json"), editReportParityJson("player", editReportFeatureEntries("player")))
+        editReportWrite(File(reportRoot, "parity/cloudislands-admin-feature-parity.json"), editReportParityJson("admin", editReportFeatureEntries("admin")))
+        editReportWrite(File(reportRoot, "parity/cloudislands-migration-parity.json"), editReportParityJson("migration", editReportFeatureEntries("migration")))
+
+        editReportWrite(File(reportRoot, "commands/cloudislands-command-surface.json"), editReportObject(
+            "report" to editReportString("cloudislands-command-surface"),
+            "canonicalRegistry" to editReportString("cloudislands-protocol:IslandPlayerCommandRegistry"),
+            "paperAdminCatalog" to "${adminCommandSource.contains("ciadmin migrate superiorskyblock2 unlock --confirm <token>")}",
+            "playerRegistryPresent" to "${commandSource.contains("IslandPlayerCommandRegistry")}",
+            "paperVelocityDriftGate" to editReportString("verifyPaperCommandCoverage,verifyVelocityCommandCoverage")
+        ) + System.lineSeparator())
+        editReportWrite(File(reportRoot, "commands/cloudislands-permission-surface.json"), editReportObject(
+            "report" to editReportString("cloudislands-permission-surface"),
+            "pluginYmlPermissions" to "${permissionSource.contains("cloudislands.admin")}",
+            "coverageGate" to editReportString("verifyPermissionCoverage"),
+            "adminMigrationPermission" to "${permissionSource.contains("cloudislands.admin.migrate-superiorskyblock2")}"
+        ) + System.lineSeparator())
+        editReportWrite(File(reportRoot, "commands/cloudislands-gui-action-surface.json"), editReportObject(
+            "report" to editReportString("cloudislands-gui-action-surface"),
+            "parserPresent" to "${guiSource.contains("GuiActionParser")}",
+            "coverageGate" to editReportString("verifyGuiActionCoverage")
+        ) + System.lineSeparator())
+        editReportWrite(File(reportRoot, "cloudislands/core-route-surface.json"), editReportObject(
+            "report" to editReportString("cloudislands-core-route-surface"),
+            "routeModuleRegistry" to "${routesSource.contains("CoreRouteModules")}",
+            "coverageGate" to editReportString("verifyRouteDomainCoverage")
+        ) + System.lineSeparator())
+        editReportWrite(File(reportRoot, "cloudislands/typed-client-surface.json"), editReportObject(
+            "report" to editReportString("cloudislands-typed-client-surface"),
+            "coreApiClientPresent" to "${clientSource.contains("interface CoreApiClient") || clientSource.contains("class CoreApiClient")}",
+            "coverageGate" to editReportString("verifyApiRouteCoverage")
+        ) + System.lineSeparator())
+        editReportWrite(File(reportRoot, "cloudislands/config-v2-surface.json"), editReportObject(
+            "report" to editReportString("cloudislands-config-v2-surface"),
+            "coreConfigPresent" to "${configSource.contains("CoreServiceConfig")}",
+            "coverageGates" to editReportArray(listOf("verifyCoreConfigCoverage", "verifyPaperConfigCoverage"))
+        ) + System.lineSeparator())
+        editReportWrite(File(reportRoot, "cloudislands/integration-surface.json"), if (integrationReport.isFile) integrationReport.readText() else editReportObject(
+            "report" to editReportString("cloudislands-integration-surface"),
+            "coverageGate" to editReportString("verifyIntegrationMatrix"),
+            "integrationsReportMissing" to "true"
+        ) + System.lineSeparator())
+        editReportWrite(File(reportRoot, "security/redaction-check.json"), editReportObject(
+            "report" to editReportString("cloudislands-redaction-check"),
+            "secretRedactionPolicyPresent" to "$redactionPolicyPresent",
+            "coverageGates" to editReportArray(listOf("verifyReleaseSecurityGate", "verifyPermissionCoverage"))
+        ) + System.lineSeparator())
+        editReportWrite(File(reportRoot, "migration/superiorskyblock2-migration-capability-map.json"), editReportObject(
+            "report" to editReportString("superiorskyblock2-migration-capability-map"),
+            "commands" to editReportArray(listOf("scan", "dry-run", "status", "approve", "import", "verify", "compare", "rollback-plan", "report", "unlock")),
+            "spacedCommandAlias" to "${migrationPolicy.contains("/ciadmin migrate superiorskyblock2 scan")}",
+            "unlockRoute" to "${migrationRoutes.contains("/v1/admin/migrations/superiorskyblock2/unlock")}",
+            "coverageGate" to editReportString("verifySatisMigrationReportCoverage")
+        ) + System.lineSeparator())
+
+        val required = outputs.files.files.toList()
+        val missing = required.filterNot { it.isFile && it.length() > 0L }
+        if (missing.isNotEmpty()) {
+            throw GradleException("edit.md required reports were not generated: ${missing.joinToString { it.path }}")
+        }
+        val unknownReports = required.filter { it.readText().contains("UNKNOWN") }
+        if (unknownReports.isNotEmpty()) {
+            throw GradleException("edit.md required reports must not contain UNKNOWN parity status: ${unknownReports.joinToString { it.path }}")
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("generateEditMdRequiredReports"))
+}
