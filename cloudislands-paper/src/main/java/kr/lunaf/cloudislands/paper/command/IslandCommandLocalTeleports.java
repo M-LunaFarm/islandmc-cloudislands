@@ -40,7 +40,7 @@ final class IslandCommandLocalTeleports {
                 return;
             }
             Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
-            String worldName = region.map(IslandRegion::world).orElse(point.worldName());
+            String worldName = point.worldName().isBlank() ? region.map(IslandRegion::world).orElse("") : point.worldName();
             World world = worlds.world(worldName);
             if (world == null) {
                 messages.message(player, messages.routeMessage("route-target-world-missing", "대상 월드를 찾을 수 없습니다."));

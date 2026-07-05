@@ -127,11 +127,11 @@ public final class IslandHomeWarpUseCase {
     }
 
     private static HomeView homeView(CoreGuiViews.HomeView view) {
-        return new HomeView(view.name(), view.x(), view.y(), view.z(), view.createdAt());
+        return new HomeView(view.name(), view.worldName(), view.x(), view.y(), view.z(), view.yaw(), view.pitch(), view.createdAt());
     }
 
     private static WarpView warpView(CoreGuiViews.WarpView view) {
-        return new WarpView(view.islandId(), view.name(), view.x(), view.y(), view.z(), view.publicAccess(), view.category());
+        return new WarpView(view.islandId(), view.name(), view.worldName(), view.x(), view.y(), view.z(), view.yaw(), view.pitch(), view.publicAccess(), view.category());
     }
 
     private static IslandInfoView islandInfoView(CoreGuiViews.IslandInfoView view) {

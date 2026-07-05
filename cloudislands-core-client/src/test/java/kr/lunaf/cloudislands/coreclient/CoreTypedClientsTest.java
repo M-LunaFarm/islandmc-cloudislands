@@ -1358,7 +1358,7 @@ class CoreTypedClientsTest {
             server.createContext("/v1/islands/" + islandId + "/homes", exchange -> {
                 calls.add("homes");
                 byte[] response = """
-                    {"homes":[{"islandId":"%s","name":"home","location":{"x":1.0,"y":2.0,"z":3.0},"createdBy":"00000000-0000-0000-0000-000000000001","createdAt":"now"}]}
+                    {"homes":[{"islandId":"%s","name":"home","location":{"worldName":"ci_shard_004","x":1.0,"y":2.0,"z":3.0,"yaw":45.0,"pitch":12.5},"createdBy":"00000000-0000-0000-0000-000000000001","createdAt":"now"}]}
                     """.formatted(islandId).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
                 exchange.getResponseBody().write(response);
@@ -1367,7 +1367,7 @@ class CoreTypedClientsTest {
             server.createContext("/v1/islands/" + islandId + "/warps", exchange -> {
                 calls.add("warps");
                 byte[] response = """
-                    {"warps":[{"islandId":"%s","name":"spawn","location":{"x":1.0,"y":2.0,"z":3.0},"publicAccess":true,"createdBy":"00000000-0000-0000-0000-000000000002","createdAt":"2026-01-02T03:04:05Z","category":"default"}]}
+                    {"warps":[{"islandId":"%s","name":"spawn","location":{"worldName":"ci_shard_004","x":1.0,"y":2.0,"z":3.0,"yaw":90.0,"pitch":15.0},"publicAccess":true,"createdBy":"00000000-0000-0000-0000-000000000002","createdAt":"2026-01-02T03:04:05Z","category":"default"}]}
                     """.formatted(islandId).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
                 exchange.getResponseBody().write(response);
@@ -1385,7 +1385,7 @@ class CoreTypedClientsTest {
             server.createContext("/v1/islands/public-warps", exchange -> {
                 calls.add("public:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
                 byte[] response = """
-                    {"warps":[{"islandId":"%s","name":"market","location":{"x":4.0,"y":5.0,"z":6.0},"publicAccess":true,"category":"market"}]}
+                    {"warps":[{"islandId":"%s","name":"market","location":{"worldName":"ci_shard_009","x":4.0,"y":5.0,"z":6.0,"yaw":180.0,"pitch":-5.0},"publicAccess":true,"category":"market"}]}
                     """.formatted(islandId).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
                 exchange.getResponseBody().write(response);
@@ -1401,14 +1401,25 @@ class CoreTypedClientsTest {
             CoreGuiViews.WarpView warp = client.warps(islandId).join().get(0);
             assertEquals(islandId, homeSnapshot.islandId());
             assertEquals("home", homeSnapshot.name());
+            assertEquals("ci_shard_004", homeSnapshot.location().worldName());
             assertEquals(1.0d, homeSnapshot.location().localX());
             assertEquals("spawn", warpSnapshot.name());
+            assertEquals("ci_shard_004", warpSnapshot.location().worldName());
+            assertEquals(90.0F, warpSnapshot.location().yaw());
+            assertEquals(15.0F, warpSnapshot.location().pitch());
             assertEquals("default", warpSnapshot.category());
             assertEquals("market", publicWarpSnapshot.name());
+            assertEquals("ci_shard_009", publicWarpSnapshot.location().worldName());
             assertEquals(islandId.toString(), home.islandId());
             assertEquals("home", home.name());
+            assertEquals("ci_shard_004", home.worldName());
+            assertEquals(45.0F, home.yaw());
+            assertEquals(12.5F, home.pitch());
             assertEquals("00000000-0000-0000-0000-000000000001", home.createdBy());
             assertEquals("spawn", warp.name());
+            assertEquals("ci_shard_004", warp.worldName());
+            assertEquals(90.0F, warp.yaw());
+            assertEquals(15.0F, warp.pitch());
             assertEquals("00000000-0000-0000-0000-000000000002", warp.createdBy());
             assertEquals("2026-01-02T03:04:05Z", warp.createdAt());
             assertEquals("Island", client.islandInfo(islandId).join().name());

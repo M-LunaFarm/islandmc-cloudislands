@@ -517,6 +517,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.homeViews"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.warpViews"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.publicWarpViews"));
+        assertTrue(homeWarpHandler.contains("homePoint(homes, name)"), "home teleport must not fall back to the player's current world");
+        assertTrue(homeWarpHandler.contains("warpPoint(warps, name)"), "warp teleport must not fall back to the player's current world");
+        assertTrue(homeWarpHandler.contains("new Point(home.worldName(), home.x(), home.y(), home.z(), home.yaw(), home.pitch(), false)"), "home teleport point must preserve world and facing");
+        assertTrue(homeWarpHandler.contains("new Point(warp.worldName(), warp.x(), warp.y(), warp.z(), warp.yaw(), warp.pitch(), warp.publicAccess())"), "warp teleport point must preserve world and facing");
         assertFalse(homeWarpHandler.contains("coreApiClient.setIslandHomeResult"));
         assertFalse(homeWarpHandler.contains("coreApiClient.setIslandWarpResult"));
         assertFalse(homeWarpHandler.contains("coreApiClient.deleteIslandWarpResult"));

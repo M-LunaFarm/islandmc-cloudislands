@@ -38,7 +38,7 @@ public final class PostgresSchemaPolicy {
         Map.entry("island_flags", List.of("island_id", "flag_key", "flag_value", "updated_at")),
         Map.entry("island_bans", List.of("island_id", "banned_uuid", "actor_uuid", "reason", "created_at", "expires_at")),
         Map.entry("island_invites", List.of("id", "island_id", "inviter_uuid", "target_uuid", "state", "created_at", "expires_at")),
-        Map.entry("island_warps", List.of("island_id", "name", "local_x", "local_y", "local_z", "yaw", "pitch", "public_access", "created_by", "created_at")),
+        Map.entry("island_warps", List.of("island_id", "name", "world_name", "local_x", "local_y", "local_z", "yaw", "pitch", "public_access", "created_by", "created_at")),
         Map.entry("island_runtime", List.of("island_id", "state", "active_node", "active_world", "cell_x", "cell_z", "lease_owner", "lease_until", "fencing_token", "activated_at", "last_heartbeat", "updated_at")),
         Map.entry("island_snapshots", List.of("id", "island_id", "snapshot_no", "storage_path", "reason", "created_by", "checksum", "size_bytes", "created_at")),
         Map.entry("route_tickets", List.of("id", "player_uuid", "island_id", "action", "target_node", "target_world", "state", "nonce", "payload", "created_at", "expires_at", "consumed_at")),

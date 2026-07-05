@@ -264,6 +264,7 @@ public final class IslandWarpRoutes implements RouteGroup {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("islandId", warp.islandId());
         values.put("name", warp.name());
+        values.put("worldName", location.worldName());
         values.put("localX", location.localX());
         values.put("localY", location.localY());
         values.put("localZ", location.localZ());

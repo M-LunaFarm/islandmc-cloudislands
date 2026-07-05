@@ -155,11 +155,11 @@ public final class PaperGuiViews {
     }
 
     private static HomeView home(CoreGuiViews.HomeView view) {
-        return new HomeView(view.name(), view.x(), view.y(), view.z(), view.createdAt());
+        return new HomeView(view.name(), view.worldName(), view.x(), view.y(), view.z(), view.yaw(), view.pitch(), view.createdAt());
     }
 
     private static WarpView warp(CoreGuiViews.WarpView view) {
-        return new WarpView(view.islandId(), view.name(), view.x(), view.y(), view.z(), view.publicAccess(), view.category());
+        return new WarpView(view.islandId(), view.name(), view.worldName(), view.x(), view.y(), view.z(), view.yaw(), view.pitch(), view.publicAccess(), view.category());
     }
 
     private static PermissionRuleView permissionRule(CoreGuiViews.PermissionRuleView view) {
@@ -235,12 +235,32 @@ public final class PaperGuiViews {
     public record BanView(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt) {
     }
 
-    public record HomeView(String name, double x, double y, double z, String createdAt) {
+    public record HomeView(String name, String worldName, double x, double y, double z, float yaw, float pitch, String createdAt) {
+        public HomeView(String name, double x, double y, double z, String createdAt) {
+            this(name, "", x, y, z, 0.0F, 0.0F, createdAt);
+        }
+
+        public HomeView {
+            name = name == null ? "" : name;
+            worldName = worldName == null ? "" : worldName;
+            createdAt = createdAt == null ? "" : createdAt;
+        }
     }
 
-    public record WarpView(String islandId, String name, double x, double y, double z, boolean publicAccess, String category) {
+    public record WarpView(String islandId, String name, String worldName, double x, double y, double z, float yaw, float pitch, boolean publicAccess, String category) {
         public WarpView(String islandId, String name, double x, double y, double z, boolean publicAccess) {
             this(islandId, name, x, y, z, publicAccess, "default");
+        }
+
+        public WarpView(String islandId, String name, double x, double y, double z, boolean publicAccess, String category) {
+            this(islandId, name, "", x, y, z, 0.0F, 0.0F, publicAccess, category);
+        }
+
+        public WarpView {
+            islandId = islandId == null ? "" : islandId;
+            name = name == null ? "" : name;
+            worldName = worldName == null ? "" : worldName;
+            category = category == null ? "" : category;
         }
     }
 

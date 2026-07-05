@@ -45,6 +45,7 @@ class PostgresSchemaPolicyTest {
         assertTrue(PostgresSchemaPolicy.requiredColumn("island_runtime", "fencing_token"));
         assertTrue(PostgresSchemaPolicy.requiredColumn("route_tickets", "nonce"));
         assertTrue(PostgresSchemaPolicy.requiredColumn("route_tickets", "consumed_at"));
+        assertTrue(PostgresSchemaPolicy.requiredColumn("island_warps", "world_name"));
         assertTrue(PostgresSchemaPolicy.requiredColumn("island_jobs", "request_id"));
         assertTrue(PostgresSchemaPolicy.requiredColumn("server_nodes", "activation_queue"));
         assertFalse(PostgresSchemaPolicy.requiredColumn("islands", "server_name_owner"));

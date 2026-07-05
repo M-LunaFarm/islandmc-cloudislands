@@ -47,7 +47,7 @@ final class IslandCommandIslandContext {
     IslandLocation location(Location location) {
         Optional<IslandRegion> region = protection.regionAt(location.getBlock());
         return new IslandLocation(
-            "",
+            region.map(IslandRegion::world).orElse(location.getWorld().getName()),
             region.map(value -> location.getX() - value.originX()).orElse(location.getX()),
             location.getY(),
             region.map(value -> location.getZ() - value.originZ()).orElse(location.getZ()),

@@ -33,9 +33,12 @@ final class CoreHomeWarpJson {
         return new CoreGuiViews.HomeView(
             home == null || home.islandId() == null || home.islandId().equals(EMPTY_UUID) ? "" : home.islandId().toString(),
             home == null ? "" : home.name(),
+            location == null ? "" : location.worldName(),
             location == null ? 0.0d : location.localX(),
             location == null ? 0.0d : location.localY(),
             location == null ? 0.0d : location.localZ(),
+            location == null ? 0.0f : location.yaw(),
+            location == null ? 0.0f : location.pitch(),
             home == null || home.createdBy() == null || home.createdBy().equals(EMPTY_UUID) ? "" : home.createdBy().toString(),
             home == null || home.createdAt() == null || home.createdAt().equals(Instant.EPOCH) ? "" : home.createdAt().toString()
         );
@@ -46,9 +49,12 @@ final class CoreHomeWarpJson {
         return new CoreGuiViews.WarpView(
             warp == null || warp.islandId() == null || warp.islandId().equals(EMPTY_UUID) ? "" : warp.islandId().toString(),
             warp == null ? "" : warp.name(),
+            location == null ? "" : location.worldName(),
             location == null ? 0.0d : location.localX(),
             location == null ? 0.0d : location.localY(),
             location == null ? 0.0d : location.localZ(),
+            location == null ? 0.0f : location.yaw(),
+            location == null ? 0.0f : location.pitch(),
             warp != null && warp.publicAccess(),
             warp == null || warp.createdBy() == null || warp.createdBy().equals(EMPTY_UUID) ? "" : warp.createdBy().toString(),
             warp == null || warp.createdAt() == null || warp.createdAt().equals(Instant.EPOCH) ? "" : warp.createdAt().toString(),

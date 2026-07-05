@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandWarpSnapshot;
+import kr.lunaf.cloudislands.coreservice.IslandPlacement;
 
 public final class JdbcIslandMetadataRepository implements IslandMetadataRepository {
     private final DataSource dataSource;
@@ -407,13 +408,12 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public List<IslandWarpSnapshot> warps(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, category, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? ORDER BY name")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, category, world_name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? ORDER BY name")) {
             statement.setObject(1, islandId);
             try (ResultSet rs = statement.executeQuery()) {
                 List<IslandWarpSnapshot> result = new ArrayList<>();
                 while (rs.next()) {
-                    IslandLocation location = new IslandLocation("", rs.getDouble("local_x"), rs.getDouble("local_y"), rs.getDouble("local_z"), rs.getFloat("yaw"), rs.getFloat("pitch"));
-                    result.add(warpSnapshot(rs, location));
+                    result.add(warpSnapshot(rs));
                 }
                 return result;
             }
@@ -445,8 +445,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             try (ResultSet rs = statement.executeQuery()) {
                 List<IslandWarpSnapshot> result = new ArrayList<>();
                 while (rs.next()) {
-                    IslandLocation location = new IslandLocation("", rs.getDouble("local_x"), rs.getDouble("local_y"), rs.getDouble("local_z"), rs.getFloat("yaw"), rs.getFloat("pitch"));
-                    result.add(warpSnapshot(rs, location));
+                    result.add(warpSnapshot(rs));
                 }
                 return result;
             }
@@ -458,15 +457,14 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, category, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? AND name = ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, category, world_name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? AND name = ?")) {
             statement.setObject(1, islandId);
             statement.setString(2, name.toLowerCase());
             try (ResultSet rs = statement.executeQuery()) {
                 if (!rs.next()) {
                     return Optional.empty();
                 }
-                IslandLocation location = new IslandLocation("", rs.getDouble("local_x"), rs.getDouble("local_y"), rs.getDouble("local_z"), rs.getFloat("yaw"), rs.getFloat("pitch"));
-                return Optional.of(warpSnapshot(rs, location));
+                return Optional.of(warpSnapshot(rs));
             }
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to read island warp", exception);
@@ -485,13 +483,14 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             statement.setObject(1, islandId);
             statement.setString(2, name.toLowerCase());
             statement.setString(3, IslandWarpSnapshot.normalizeCategory(category));
-            statement.setDouble(4, location.localX());
-            statement.setDouble(5, location.localY());
-            statement.setDouble(6, location.localZ());
-            statement.setFloat(7, location.yaw());
-            statement.setFloat(8, location.pitch());
-            statement.setBoolean(9, publicAccess);
-            statement.setObject(10, createdBy);
+            statement.setString(4, normalizeWorldName(islandId, location.worldName()));
+            statement.setDouble(5, location.localX());
+            statement.setDouble(6, location.localY());
+            statement.setDouble(7, location.localZ());
+            statement.setFloat(8, location.yaw());
+            statement.setFloat(9, location.pitch());
+            statement.setBoolean(10, publicAccess);
+            statement.setObject(11, createdBy);
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to upsert island warp", exception);
@@ -620,13 +619,13 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     private String upsertWarpSql(Connection connection) throws SQLException {
         if (mysqlLike(connection)) {
-            return "INSERT INTO island_warps(island_id, name, category, local_x, local_y, local_z, yaw, pitch, public_access, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE category = VALUES(category), local_x = VALUES(local_x), local_y = VALUES(local_y), local_z = VALUES(local_z), yaw = VALUES(yaw), pitch = VALUES(pitch), public_access = VALUES(public_access)";
+            return "INSERT INTO island_warps(island_id, name, category, world_name, local_x, local_y, local_z, yaw, pitch, public_access, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE category = VALUES(category), world_name = VALUES(world_name), local_x = VALUES(local_x), local_y = VALUES(local_y), local_z = VALUES(local_z), yaw = VALUES(yaw), pitch = VALUES(pitch), public_access = VALUES(public_access)";
         }
-        return "INSERT INTO island_warps(island_id, name, category, local_x, local_y, local_z, yaw, pitch, public_access, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, name) DO UPDATE SET category = EXCLUDED.category, local_x = EXCLUDED.local_x, local_y = EXCLUDED.local_y, local_z = EXCLUDED.local_z, yaw = EXCLUDED.yaw, pitch = EXCLUDED.pitch, public_access = EXCLUDED.public_access";
+        return "INSERT INTO island_warps(island_id, name, category, world_name, local_x, local_y, local_z, yaw, pitch, public_access, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (island_id, name) DO UPDATE SET category = EXCLUDED.category, world_name = EXCLUDED.world_name, local_x = EXCLUDED.local_x, local_y = EXCLUDED.local_y, local_z = EXCLUDED.local_z, yaw = EXCLUDED.yaw, pitch = EXCLUDED.pitch, public_access = EXCLUDED.public_access";
     }
 
     private String publicWarpsSql(Connection connection, String category, String query) {
-        StringBuilder sql = new StringBuilder("SELECT island_id, name, category, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE public_access = true");
+        StringBuilder sql = new StringBuilder("SELECT island_id, name, category, world_name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE public_access = true");
         if (category != null && !category.isBlank()) {
             sql.append(" AND category = ?");
         }
@@ -637,8 +636,14 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         return sql.toString();
     }
 
-    private IslandWarpSnapshot warpSnapshot(ResultSet rs, IslandLocation location) throws SQLException {
-        return new IslandWarpSnapshot((UUID) rs.getObject("island_id"), rs.getString("name"), location, rs.getBoolean("public_access"), (UUID) rs.getObject("created_by"), rs.getTimestamp("created_at").toInstant(), rs.getString("category"));
+    private IslandWarpSnapshot warpSnapshot(ResultSet rs) throws SQLException {
+        UUID islandId = (UUID) rs.getObject("island_id");
+        IslandLocation location = new IslandLocation(normalizeWorldName(islandId, rs.getString("world_name")), rs.getDouble("local_x"), rs.getDouble("local_y"), rs.getDouble("local_z"), rs.getFloat("yaw"), rs.getFloat("pitch"));
+        return new IslandWarpSnapshot(islandId, rs.getString("name"), location, rs.getBoolean("public_access"), (UUID) rs.getObject("created_by"), rs.getTimestamp("created_at").toInstant(), rs.getString("category"));
+    }
+
+    private static String normalizeWorldName(UUID islandId, String worldName) {
+        return worldName == null || worldName.isBlank() ? IslandPlacement.worldName(islandId) : worldName.trim();
     }
 
     private String publicIslandIdsSql(Connection connection) throws SQLException {

@@ -91,7 +91,8 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V70__review_moderation.sql",
         "/db/migration/V71__island_snapshot_node_id.sql",
         "/db/migration/V72__island_rank_ignored.sql",
-        "/db/migration/V73__template_bundle_metadata.sql"
+        "/db/migration/V73__template_bundle_metadata.sql",
+        "/db/migration/V74__island_warp_world_name.sql"
     };
 
     private enum Dialect {

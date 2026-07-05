@@ -276,7 +276,7 @@ final class IslandHomeWarpCommandHandler {
                 return;
             }
             homeWarpUseCase.homeViews(islandId)
-                .thenAccept(homes -> runtime.moveToPoint(player, homePoint(homes, name, player.getWorld().getName()), "홈을 찾을 수 없습니다.", "섬 홈으로 이동했습니다."))
+                .thenAccept(homes -> runtime.moveToPoint(player, homePoint(homes, name), "홈을 찾을 수 없습니다.", "섬 홈으로 이동했습니다."))
                 .exceptionally(error -> {
                     if (runtime.coreUnavailable(error) && runtime.teleportLocalDefaultHome(player)) {
                         return null;
@@ -291,7 +291,7 @@ final class IslandHomeWarpCommandHandler {
         runtime.currentIsland(player, "섬 안에서만 워프로 이동할 수 있습니다.").ifPresent(islandId -> {
             homeWarpUseCase.warpViews(islandId)
                 .thenAccept(warps -> {
-                    Point point = warpPoint(warps, name, player.getWorld().getName());
+                    Point point = warpPoint(warps, name);
                     if (point == null) {
                         runtime.moveToPoint(player, null, "워프를 찾을 수 없습니다.", "섬 워프로 이동했습니다.");
                         return;
@@ -381,21 +381,21 @@ final class IslandHomeWarpCommandHandler {
         return message.isEmpty() ? "섬 워프가 없습니다." : "섬 워프: " + message;
     }
 
-    private static Point homePoint(List<HomeView> homes, String requestedName, String fallbackWorldName) {
+    private static Point homePoint(List<HomeView> homes, String requestedName) {
         String target = normalizeName(requestedName);
         for (HomeView home : homes == null ? List.<HomeView>of() : homes) {
             if (target.equalsIgnoreCase(home.name())) {
-                return new Point(fallbackWorldName, home.x(), home.y(), home.z(), 0.0f, 0.0f, false);
+                return new Point(home.worldName(), home.x(), home.y(), home.z(), home.yaw(), home.pitch(), false);
             }
         }
         return null;
     }
 
-    private static Point warpPoint(List<WarpView> warps, String requestedName, String fallbackWorldName) {
+    private static Point warpPoint(List<WarpView> warps, String requestedName) {
         String target = normalizeName(requestedName);
         for (WarpView warp : warps == null ? List.<WarpView>of() : warps) {
             if (target.equalsIgnoreCase(warp.name())) {
-                return new Point(fallbackWorldName, warp.x(), warp.y(), warp.z(), 0.0f, 0.0f, warp.publicAccess());
+                return new Point(warp.worldName(), warp.x(), warp.y(), warp.z(), warp.yaw(), warp.pitch(), warp.publicAccess());
             }
         }
         return null;

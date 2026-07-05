@@ -1170,10 +1170,67 @@ tasks.register<Test>("verifySnapshotRestoreCoverage") {
     )
 }
 
+tasks.register("verifyHomeWarpLocationCoverage") {
+    group = "verification"
+    description = "Verifies CI-001 home/warp world, yaw, and pitch preservation across Core schema/client and Paper teleport paths."
+    dependsOn(project(":cloudislands-core-client").tasks.named("test"))
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    dependsOn(project(":cloudislands-common").tasks.named("test"))
+    val coreViews = layout.projectDirectory.file("cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/CoreGuiViews.java")
+    val coreJson = layout.projectDirectory.file("cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/CoreHomeWarpJson.java")
+    val paperViews = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/view/PaperGuiViews.java")
+    val homeWarpUseCase = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/IslandHomeWarpUseCase.java")
+    val homeWarpHandler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java")
+    val islandContext = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandIslandContext.java")
+    val localTeleports = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandLocalTeleports.java")
+    val jdbcMetadata = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java")
+    val routes = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandWarpRoutes.java")
+    val bootstrap = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/db/JdbcSchemaBootstrap.java")
+    val migration = layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/migration/V74__island_warp_world_name.sql")
+    val schemaPolicy = layout.projectDirectory.file("cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/schema/PostgresSchemaPolicy.java")
+    inputs.files(coreViews, coreJson, paperViews, homeWarpUseCase, homeWarpHandler, islandContext, localTeleports, jdbcMetadata, routes, bootstrap, migration, schemaPolicy)
+    doLast {
+        val coreViewsSource = coreViews.asFile.readText()
+        val coreJsonSource = coreJson.asFile.readText()
+        val paperViewsSource = paperViews.asFile.readText()
+        val homeWarpUseCaseSource = homeWarpUseCase.asFile.readText()
+        val homeWarpHandlerSource = homeWarpHandler.asFile.readText()
+        val islandContextSource = islandContext.asFile.readText()
+        val localTeleportsSource = localTeleports.asFile.readText()
+        val jdbcMetadataSource = jdbcMetadata.asFile.readText()
+        val routesSource = routes.asFile.readText()
+        val bootstrapSource = bootstrap.asFile.readText()
+        val migrationSource = migration.asFile.readText()
+        val schemaPolicySource = schemaPolicy.asFile.readText()
+        val failures = buildList {
+            if (!coreViewsSource.contains("record HomeView(String islandId, String name, String worldName") || !coreViewsSource.contains("record WarpView(String islandId, String name, String worldName")) add("Core GUI views must expose worldName for homes and warps")
+            if (!coreViewsSource.contains("float yaw, float pitch")) add("Core GUI views must expose yaw/pitch")
+            if (!coreJsonSource.contains("location.worldName()") || !coreJsonSource.contains("location.yaw()") || !coreJsonSource.contains("location.pitch()")) add("Core home/warp JSON mapping must preserve worldName/yaw/pitch")
+            if (!paperViewsSource.contains("record HomeView(String name, String worldName") || !paperViewsSource.contains("record WarpView(String islandId, String name, String worldName")) add("Paper GUI views must expose worldName for homes and warps")
+            if (!homeWarpUseCaseSource.contains("view.worldName(), view.x(), view.y(), view.z(), view.yaw(), view.pitch()")) add("Paper usecase must map Core world/yaw/pitch into Paper views")
+            if (!homeWarpHandlerSource.contains("homePoint(homes, name)") || !homeWarpHandlerSource.contains("warpPoint(warps, name)")) add("Home/warp teleport must not pass the player's current world as a fallback")
+            if (!homeWarpHandlerSource.contains("new Point(home.worldName(), home.x(), home.y(), home.z(), home.yaw(), home.pitch(), false)")) add("Home teleport point must use stored world/yaw/pitch")
+            if (!homeWarpHandlerSource.contains("new Point(warp.worldName(), warp.x(), warp.y(), warp.z(), warp.yaw(), warp.pitch(), warp.publicAccess())")) add("Warp teleport point must use stored world/yaw/pitch")
+            if (!islandContextSource.contains("region.map(IslandRegion::world).orElse(location.getWorld().getName())")) add("sethome/setwarp location capture must store the region or Bukkit world name")
+            if (!localTeleportsSource.contains("point.worldName().isBlank() ? region.map(IslandRegion::world).orElse(\"\") : point.worldName()")) add("Local teleports must prefer stored point world over current player world")
+            if (!jdbcMetadataSource.contains("category, world_name, local_x") || !jdbcMetadataSource.contains("normalizeWorldName(islandId, location.worldName())")) add("JDBC island warps must persist and read world_name")
+            if (!routesSource.contains("values.put(\"worldName\", location.worldName())")) add("Core warp route JSON must render worldName")
+            if (!bootstrapSource.contains("/db/migration/V74__island_warp_world_name.sql")) add("PostgreSQL bootstrap must include the warp world_name migration")
+            if (!migration.asFile.isFile || !migrationSource.contains("ADD COLUMN IF NOT EXISTS world_name")) add("V74 warp world_name migration is missing")
+            if (!schemaPolicySource.contains("\"island_warps\", List.of(\"island_id\", \"name\", \"world_name\"")) add("Schema policy must require island_warps.world_name")
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
     dependsOn(tasks.named("verifySnapshotRestoreCoverage"))
+    dependsOn(tasks.named("verifyHomeWarpLocationCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))

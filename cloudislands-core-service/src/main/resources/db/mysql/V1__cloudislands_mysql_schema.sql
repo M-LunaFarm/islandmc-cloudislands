@@ -256,6 +256,7 @@ CREATE TABLE IF NOT EXISTS island_warps (
     island_id CHAR(36) NOT NULL,
     name VARCHAR(32) NOT NULL,
     category VARCHAR(32) NOT NULL DEFAULT 'default',
+    world_name VARCHAR(64) NOT NULL,
     local_x DOUBLE NOT NULL,
     local_y DOUBLE NOT NULL,
     local_z DOUBLE NOT NULL,
@@ -271,6 +272,8 @@ CREATE TABLE IF NOT EXISTS island_warps (
     CONSTRAINT chk_island_warps_category_not_blank CHECK (trim(category) <> ''),
     CONSTRAINT chk_island_warps_category_trimmed CHECK (category = trim(category)),
     CONSTRAINT chk_island_warps_category_lowercase CHECK (category = lower(category)),
+    CONSTRAINT chk_island_warps_world_not_blank CHECK (trim(world_name) <> ''),
+    CONSTRAINT chk_island_warps_world_trimmed CHECK (world_name = trim(world_name)),
     CONSTRAINT chk_island_warps_y_range CHECK (local_y BETWEEN -2048 AND 2048),
     CONSTRAINT chk_island_warps_yaw_range CHECK (yaw >= -360 AND yaw <= 360),
     CONSTRAINT chk_island_warps_pitch_range CHECK (pitch >= -90 AND pitch <= 90)

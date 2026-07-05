@@ -27,8 +27,16 @@ class IslandHomeWarpUseCaseTest {
         assertEquals("HOME_SET", useCase.setHomeAction(islandId, actorUuid, "home", location, mutationRunner(calls)).join().code());
         assertEquals("WARP_SET", useCase.setWarpAction(islandId, actorUuid, "spawn", location, false, mutationRunner(calls)).join().code());
         assertEquals("WARP_SET", useCase.setWarpAction(islandId, actorUuid, "market-spawn", location, true, "Market", mutationRunner(calls)).join().code());
-        assertEquals("home", useCase.homeViews(islandId).join().getFirst().name());
-        assertEquals("spawn", useCase.warpViews(islandId).join().getFirst().name());
+        var homeView = useCase.homeViews(islandId).join().getFirst();
+        var warpView = useCase.warpViews(islandId).join().getFirst();
+        assertEquals("home", homeView.name());
+        assertEquals("ci_shard_004", homeView.worldName());
+        assertEquals(45.0F, homeView.yaw());
+        assertEquals(12.5F, homeView.pitch());
+        assertEquals("spawn", warpView.name());
+        assertEquals("ci_shard_004", warpView.worldName());
+        assertEquals(90.0F, warpView.yaw());
+        assertEquals(15.0F, warpView.pitch());
         assertEquals("Island", useCase.islandInfoView(islandId).join().name());
         assertEquals("WARP_DELETED", useCase.deleteWarpAction(islandId, actorUuid, "spawn", idempotentMutationRunner(calls)).join().code());
         assertEquals("WARP_PUBLIC", useCase.setWarpPublicAccessAction(islandId, actorUuid, "spawn", true, mutationRunner(calls)).join().code());
@@ -70,11 +78,11 @@ class IslandHomeWarpUseCaseTest {
                 }
                 case "homes" -> {
                     calls.add("listIslandHomes");
-                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.HomeView("", "home", 1.0D, 2.0D, 3.0D, "", "now")));
+                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.HomeView("", "home", "ci_shard_004", 1.0D, 2.0D, 3.0D, 45.0F, 12.5F, "", "now")));
                 }
                 case "warps" -> {
                     calls.add("listIslandWarps");
-                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.WarpView("00000000-0000-0000-0000-000000000060", "spawn", 1.0D, 2.0D, 3.0D, true, "default")));
+                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.WarpView("00000000-0000-0000-0000-000000000060", "spawn", "ci_shard_004", 1.0D, 2.0D, 3.0D, 90.0F, 15.0F, true, "default")));
                 }
                 case "islandInfo" -> {
                     calls.add("islandInfo");
@@ -91,7 +99,7 @@ class IslandHomeWarpUseCaseTest {
                 case "publicWarps" -> {
                     int limit = Math.max(1, Math.min((int) args[0], 100));
                     calls.add("listPublicWarps:" + limit + ":" + (args[1] == null ? "" : args[1]) + ":" + (args[2] == null ? "" : args[2]));
-                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.WarpView("00000000-0000-0000-0000-000000000060", "spawn", 1.0D, 2.0D, 3.0D, true, "market")));
+                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.WarpView("00000000-0000-0000-0000-000000000060", "spawn", "ci_shard_004", 1.0D, 2.0D, 3.0D, 90.0F, 15.0F, true, "market")));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });

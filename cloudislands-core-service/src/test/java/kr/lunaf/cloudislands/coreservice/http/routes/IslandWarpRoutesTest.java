@@ -85,6 +85,7 @@ class IslandWarpRoutesTest {
         assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(home.get("createdAt")));
         assertEquals(islandId.toString(), SimpleJson.text(warp.get("islandId")));
         assertEquals("shop \"warp\"", SimpleJson.text(warp.get("name")));
+        assertEquals("world \"one\"", SimpleJson.text(warp.get("worldName")));
         assertLocation(warp);
         assertEquals(true, warp.get("publicAccess"));
         assertEquals("market", SimpleJson.text(warp.get("category")));

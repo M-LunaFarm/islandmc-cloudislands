@@ -96,6 +96,7 @@ CREATE TABLE island_warps (
     island_id UUID NOT NULL REFERENCES islands(id),
     name VARCHAR(32) NOT NULL,
     category VARCHAR(32) NOT NULL DEFAULT 'default',
+    world_name VARCHAR(64) NOT NULL,
     local_x DOUBLE PRECISION NOT NULL,
     local_y DOUBLE PRECISION NOT NULL,
     local_z DOUBLE PRECISION NOT NULL,

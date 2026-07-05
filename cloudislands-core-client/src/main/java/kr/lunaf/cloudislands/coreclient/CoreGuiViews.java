@@ -252,31 +252,45 @@ public final class CoreGuiViews {
     public record BanView(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt) {
     }
 
-    public record HomeView(String islandId, String name, double x, double y, double z, String createdBy, String createdAt) {
+    public record HomeView(String islandId, String name, String worldName, double x, double y, double z, float yaw, float pitch, String createdBy, String createdAt) {
         public HomeView(String name, double x, double y, double z, String createdAt) {
-            this("", name, x, y, z, "", createdAt);
+            this("", name, "", x, y, z, 0.0F, 0.0F, "", createdAt);
+        }
+
+        public HomeView(String islandId, String name, double x, double y, double z, String createdBy, String createdAt) {
+            this(islandId, name, "", x, y, z, 0.0F, 0.0F, createdBy, createdAt);
         }
 
         public HomeView {
             islandId = islandId == null ? "" : islandId;
             name = name == null ? "" : name;
+            worldName = worldName == null ? "" : worldName;
             createdBy = createdBy == null ? "" : createdBy;
             createdAt = createdAt == null ? "" : createdAt;
         }
     }
 
-    public record WarpView(String islandId, String name, double x, double y, double z, boolean publicAccess, String createdBy, String createdAt, String category) {
+    public record WarpView(String islandId, String name, String worldName, double x, double y, double z, float yaw, float pitch, boolean publicAccess, String createdBy, String createdAt, String category) {
         public WarpView(String islandId, String name, double x, double y, double z, boolean publicAccess) {
             this(islandId, name, x, y, z, publicAccess, "default");
         }
 
         public WarpView(String islandId, String name, double x, double y, double z, boolean publicAccess, String category) {
-            this(islandId, name, x, y, z, publicAccess, "", "", category);
+            this(islandId, name, "", x, y, z, 0.0F, 0.0F, publicAccess, "", "", category);
+        }
+
+        public WarpView(String islandId, String name, String worldName, double x, double y, double z, float yaw, float pitch, boolean publicAccess, String category) {
+            this(islandId, name, worldName, x, y, z, yaw, pitch, publicAccess, "", "", category);
+        }
+
+        public WarpView(String islandId, String name, double x, double y, double z, boolean publicAccess, String createdBy, String createdAt, String category) {
+            this(islandId, name, "", x, y, z, 0.0F, 0.0F, publicAccess, createdBy, createdAt, category);
         }
 
         public WarpView {
             islandId = islandId == null ? "" : islandId;
             name = name == null ? "" : name;
+            worldName = worldName == null ? "" : worldName;
             createdBy = createdBy == null ? "" : createdBy;
             createdAt = createdAt == null ? "" : createdAt;
             category = category == null ? "" : category;
