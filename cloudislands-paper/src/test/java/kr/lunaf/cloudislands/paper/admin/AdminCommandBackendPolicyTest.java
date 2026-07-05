@@ -233,6 +233,40 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminGeneratorMutationsAreFirstClassIslandCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String generatorClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/GeneratorCommandClient.java"));
+        String jdkGeneratorClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkGeneratorCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/AdminGeneratorRoutes.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin island setgenerator <island> <generatorKey> <level>"), "Admin generator set must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin island addgenerator <island> <levels> [generatorKey]"), "Admin generator add must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin island cleargenerator <island>"), "Admin generator clear must be listed in help");
+        assertTrue(catalog.contains("\"setgenerator\"") && catalog.contains("\"addgenerator\"") && catalog.contains("\"cleargenerator\""), "Admin generator commands must be cataloged for completion");
+        assertTrue(source.contains("coreApiClient.generatorCommands().adminSetGenerator(islandId, args[3], (int) number(args[4], 1L))"), "Admin generator set must use the typed generator client");
+        assertTrue(source.contains("coreApiClient.generatorCommands().adminAddGeneratorLevels(islandId, generatorKey, (int) number(args[3], 1L))"), "Admin generator add must use the typed generator client");
+        assertTrue(source.contains("coreApiClient.generatorCommands().adminClearGenerator(islandId)"), "Admin generator clear must use the typed generator client");
+        assertTrue(generatorClient.contains("adminSetGenerator(UUID islandId, String generatorKey, int level)"), "Generator client must expose admin set");
+        assertTrue(generatorClient.contains("adminAddGeneratorLevels(UUID islandId, String generatorKey, int levels)"), "Generator client must expose admin add");
+        assertTrue(generatorClient.contains("adminClearGenerator(UUID islandId)"), "Generator client must expose admin clear");
+        assertTrue(jdkGeneratorClient.contains("postResultBody(\"/v1/admin/islands/generator/set\""), "JDK generator client must call admin set endpoint");
+        assertTrue(jdkGeneratorClient.contains("postResultBody(\"/v1/admin/islands/generator/add\""), "JDK generator client must call admin add endpoint");
+        assertTrue(jdkGeneratorClient.contains("postResultBody(\"/v1/admin/islands/generator/clear\""), "JDK generator client must call admin clear endpoint");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/generator/set"), "Core admin generator routes must register set");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/generator/add"), "Core admin generator routes must register add");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/generator/clear"), "Core admin generator routes must register clear");
+        assertTrue(coreRoutes.contains("ISLAND_GENERATOR_ADMIN_SET"), "Core admin generator set route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ISLAND_GENERATOR_ADMIN_ADD"), "Core admin generator add route must audit operator mutation");
+        assertTrue(coreRoutes.contains("ISLAND_GENERATOR_ADMIN_CLEAR"), "Core admin generator clear route must audit operator mutation");
+        assertTrue(parity.contains("\"superior.admin.setgenerator\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark admin setgenerator verified");
+        assertTrue(parity.contains("\"superior.admin.addgenerator\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark admin addgenerator verified");
+        assertTrue(parity.contains("\"superior.admin.cleargenerator\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark admin cleargenerator verified");
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

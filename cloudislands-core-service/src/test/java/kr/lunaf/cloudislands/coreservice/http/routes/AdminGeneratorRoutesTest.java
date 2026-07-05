@@ -26,9 +26,12 @@ class AdminGeneratorRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(2, paths.size());
+        assertEquals(5, paths.size());
         assertTrue(paths.contains("/v1/admin/generators/reload"));
         assertTrue(paths.contains("/v1/admin/generators/set"));
+        assertTrue(paths.contains("/v1/admin/islands/generator/set"));
+        assertTrue(paths.contains("/v1/admin/islands/generator/add"));
+        assertTrue(paths.contains("/v1/admin/islands/generator/clear"));
     }
 
     @Test
@@ -39,6 +42,9 @@ class AdminGeneratorRoutesTest {
 
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/generators/reload"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/generators/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/generator/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/generator/add"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/generator/clear"));
     }
 
     @Test

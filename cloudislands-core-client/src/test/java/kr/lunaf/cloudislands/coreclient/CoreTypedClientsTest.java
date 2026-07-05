@@ -1759,6 +1759,42 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void generatorCommandClientReturnsTypedAdminProfileMutations() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000062");
+        List<String> calls = new ArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/admin/islands/generator/set", exchange -> respondMemberTest(exchange, calls, "setGenerator", """
+            {"generator":{"islandId":"%s","generatorKey":"nether","level":4,"updatedAt":"2026-01-02T03:04:05Z"}}
+            """.formatted(islandId)));
+        server.createContext("/v1/admin/islands/generator/add", exchange -> respondMemberTest(exchange, calls, "addGenerator", """
+            {"generator":{"islandId":"%s","generatorKey":"nether","level":6,"updatedAt":"2026-01-02T03:04:06Z"}}
+            """.formatted(islandId)));
+        server.createContext("/v1/admin/islands/generator/clear", exchange -> respondMemberTest(exchange, calls, "clearGenerator", """
+            {"generator":{"islandId":"%s","generatorKey":"default","level":1,"updatedAt":"2026-01-02T03:04:07Z"}}
+            """.formatted(islandId)));
+        server.start();
+        try {
+            GeneratorCommandClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).generatorCommands();
+
+            kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot set = client.adminSetGenerator(islandId, "nether", 4).join();
+            kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot added = client.adminAddGeneratorLevels(islandId, "nether", 2).join();
+            kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot cleared = client.adminClearGenerator(islandId).join();
+
+            assertEquals("nether", set.generatorKey());
+            assertEquals(4, set.level());
+            assertEquals(6, added.level());
+            assertEquals("default", cleared.generatorKey());
+            assertEquals(List.of(
+                "setGenerator:{\"islandId\":\"" + islandId + "\",\"generatorKey\":\"nether\",\"level\":4}",
+                "addGenerator:{\"islandId\":\"" + islandId + "\",\"generatorKey\":\"nether\",\"levels\":2}",
+                "clearGenerator:{\"islandId\":\"" + islandId + "\"}"
+            ), calls);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void progressionCommandClientReturnsTypedMutationViews() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

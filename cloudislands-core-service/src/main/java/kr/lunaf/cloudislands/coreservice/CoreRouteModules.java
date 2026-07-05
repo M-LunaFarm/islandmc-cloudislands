@@ -108,7 +108,7 @@ public final class CoreRouteModules {
         ).register(routePrefix);
         new RoutePreparationRoutes(domainServices.routing()).register(route);
         new RouteTicketRoutes(domainServices.routing(), repositories.tickets(), repositories.sessions(), repositories.audit(), events).register(route);
-        new AdminGeneratorRoutes(repositories.generatorRepository(), repositories.audit(), events).register(route);
+        new AdminGeneratorRoutes(repositories.generatorRepository(), repositories.islandRepository(), repositories.audit(), events).register(route);
         new AdminRuntimeRoutes(repositories.sessions(), repositories.tickets(), infrastructure.redisCacheAdmin(), repositories.audit(), events).register(route);
         new AdminSupportBundleRoutes(config, repositories.nodes(), repositories.jobs(), repositories.tickets(), repositories.sessions(), repositories.inMemoryEvents(), infrastructure.redisCacheAdmin(), infrastructure.dataSource(), deleteStorage).register(route);
         new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), domainServices.migrationAdmin(), repositories.audit()).register(route);

@@ -185,6 +185,13 @@ public interface CoreApiClient {
         throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed generator queries");
     }
 
+    default GeneratorCommandClient generatorCommands() {
+        if (this instanceof GeneratorCommandClient commands) {
+            return commands;
+        }
+        throw new UnsupportedOperationException("CoreApiClient implementation does not provide typed generator commands");
+    }
+
     default ProgressionCommandClient progressionCommands() {
         if (this instanceof ProgressionCommandClient commands) {
             return commands;

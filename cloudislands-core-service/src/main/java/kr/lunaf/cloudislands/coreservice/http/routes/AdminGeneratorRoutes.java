@@ -8,27 +8,36 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot;
+import kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
 import kr.lunaf.cloudislands.coreservice.generator.DefaultGeneratorRules;
 import kr.lunaf.cloudislands.coreservice.generator.IslandGeneratorRepository;
+import kr.lunaf.cloudislands.coreservice.http.ApiResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpException;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 
 public final class AdminGeneratorRoutes implements RouteGroup {
     private static final UUID SYSTEM_ACTOR = new UUID(0L, 0L);
 
     private final IslandGeneratorRepository generators;
+    private final IslandRepository islands;
     private final AuditLogger audit;
     private final GlobalEventPublisher events;
 
     public AdminGeneratorRoutes(IslandGeneratorRepository generators, AuditLogger audit, GlobalEventPublisher events) {
+        this(generators, null, audit, events);
+    }
+
+    public AdminGeneratorRoutes(IslandGeneratorRepository generators, IslandRepository islands, AuditLogger audit, GlobalEventPublisher events) {
         this.generators = generators;
+        this.islands = islands;
         this.audit = audit;
         this.events = events;
     }
@@ -37,6 +46,9 @@ public final class AdminGeneratorRoutes implements RouteGroup {
     public void register(CoreRouteRegistry registry) {
         registry.routePost("/v1/admin/generators/reload", this::reload);
         registry.routePost("/v1/admin/generators/set", this::set);
+        registry.routePost("/v1/admin/islands/generator/set", this::setIslandGenerator);
+        registry.routePost("/v1/admin/islands/generator/add", this::addIslandGenerator);
+        registry.routePost("/v1/admin/islands/generator/clear", this::clearIslandGenerator);
     }
 
     private void reload(HttpExchange exchange) throws IOException {
@@ -62,6 +74,44 @@ public final class AdminGeneratorRoutes implements RouteGroup {
         audit.log(SYSTEM_ACTOR, "ADMIN", "GENERATOR_RULES_SET", "CORE", generatorKey, result.auditFields());
         events.publish(CloudIslandEventType.CORE_CACHE_CLEARED.name(), result.eventFields());
         CoreHttpResponses.write(exchange, 202, setJson(generatorKey, stored));
+    }
+
+    private void setIslandGenerator(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", SYSTEM_ACTOR);
+        if (!requireIsland(exchange, islandId)) {
+            return;
+        }
+        String generatorKey = safeGeneratorKey(JsonFields.text(body, "generatorKey", "default"));
+        int level = Math.max(1, JsonFields.integer(body, "level", 1));
+        IslandGeneratorSnapshot snapshot = generators.setProfile(islandId, generatorKey, level);
+        auditIslandGenerator(islandId, snapshot, "ISLAND_GENERATOR_ADMIN_SET", "SET");
+        CoreHttpResponses.write(exchange, 202, GeneratorRoutes.generatorJson(snapshot));
+    }
+
+    private void addIslandGenerator(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", SYSTEM_ACTOR);
+        if (!requireIsland(exchange, islandId)) {
+            return;
+        }
+        IslandGeneratorSnapshot current = generators.profile(islandId);
+        String generatorKey = safeGeneratorKey(JsonFields.text(body, "generatorKey", current.generatorKey()));
+        int delta = Math.max(1, JsonFields.integer(body, "levels", JsonFields.integer(body, "delta", 1)));
+        IslandGeneratorSnapshot snapshot = generators.setProfile(islandId, generatorKey, Math.max(1, current.level() + delta));
+        auditIslandGenerator(islandId, snapshot, "ISLAND_GENERATOR_ADMIN_ADD", "ADD");
+        CoreHttpResponses.write(exchange, 202, GeneratorRoutes.generatorJson(snapshot));
+    }
+
+    private void clearIslandGenerator(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", SYSTEM_ACTOR);
+        if (!requireIsland(exchange, islandId)) {
+            return;
+        }
+        IslandGeneratorSnapshot snapshot = generators.setProfile(islandId, "default", 1);
+        auditIslandGenerator(islandId, snapshot, "ISLAND_GENERATOR_ADMIN_CLEAR", "CLEAR");
+        CoreHttpResponses.write(exchange, 202, GeneratorRoutes.generatorJson(snapshot));
     }
 
     static List<GeneratorRuleSnapshot> rules(String body, String fallbackGeneratorKey) {
@@ -98,6 +148,30 @@ public final class AdminGeneratorRoutes implements RouteGroup {
             .<Object>map(AdminGeneratorRoutes::ruleMap)
             .toList());
         return SimpleJson.stringify(values);
+    }
+
+    private boolean requireIsland(HttpExchange exchange, UUID islandId) throws IOException {
+        if (islands != null && islands.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return false;
+        }
+        return true;
+    }
+
+    private void auditIslandGenerator(UUID islandId, IslandGeneratorSnapshot snapshot, String action, String operation) {
+        Map<String, String> fields = Map.of(
+            "generatorKey", snapshot.generatorKey(),
+            "level", Integer.toString(snapshot.level()),
+            "operation", operation
+        );
+        audit.log(SYSTEM_ACTOR, "ADMIN", action, "ISLAND", islandId.toString(), fields);
+        events.publish(CloudIslandEventType.CORE_CACHE_CLEARED.name(), Map.of(
+            "cacheTargets", "GENERATOR",
+            "islandId", islandId.toString(),
+            "generatorKey", snapshot.generatorKey(),
+            "level", Integer.toString(snapshot.level()),
+            "operation", operation
+        ));
     }
 
     private static Map<String, Object> ruleMap(GeneratorRuleSnapshot rule) {

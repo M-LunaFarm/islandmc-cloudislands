@@ -19,6 +19,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
+import kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
@@ -1435,6 +1436,27 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Island delwarp", coreApiClient.homeWarpCommands().adminDeleteWarp(islandId, args[3]).thenApply(result -> homeWarpActionMessage("Island delwarp", islandId, args[3], result)));
             return true;
         }
+        if (args[1].equalsIgnoreCase("setgenerator")) {
+            if (args.length < 5) {
+                sendCommandUsage(sender, List.of("/ciadmin island setgenerator <islandUuid|islandName> <generatorKey> <level>"));
+                return true;
+            }
+            run(sender, "Island setgenerator", coreApiClient.generatorCommands().adminSetGenerator(islandId, args[3], (int) number(args[4], 1L)).thenApply(result -> generatorActionMessage("Island setgenerator", result)));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("addgenerator")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of("/ciadmin island addgenerator <islandUuid|islandName> <levels> [generatorKey]"));
+                return true;
+            }
+            String generatorKey = args.length > 4 ? args[4] : "";
+            run(sender, "Island addgenerator", coreApiClient.generatorCommands().adminAddGeneratorLevels(islandId, generatorKey, (int) number(args[3], 1L)).thenApply(result -> generatorActionMessage("Island addgenerator", result)));
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("cleargenerator")) {
+            run(sender, "Island cleargenerator", coreApiClient.generatorCommands().adminClearGenerator(islandId).thenApply(result -> generatorActionMessage("Island cleargenerator", result)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("restore") || args[1].equalsIgnoreCase("rollback")) {
             if (args.length < 4) {
                 sender.sendMessage(adminText("admin-command-snapshot-required", "스냅샷 번호를 입력해주세요."));
@@ -2023,6 +2045,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island rename <islandUuid|islandName> <name>",
             "/ciadmin island setbiome <islandUuid|islandName> <biomeKey>",
             "/ciadmin island delwarp <islandUuid|islandName> <warp>",
+            "/ciadmin island setgenerator <islandUuid|islandName> <generatorKey> <level>",
+            "/ciadmin island addgenerator <islandUuid|islandName> <levels> [generatorKey]",
+            "/ciadmin island cleargenerator <islandUuid|islandName>",
             "/ciadmin island quarantine <islandUuid|islandName> [reason]",
             "/ciadmin island recover <islandUuid|islandName> [reason]",
             "/ciadmin island repair <islandUuid|islandName> [reason]",
@@ -2575,6 +2600,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + " code=" + result.code()
             + " island=" + shortId(islandId.toString())
             + " name=" + name;
+    }
+
+    private String generatorActionMessage(String label, IslandGeneratorSnapshot result) {
+        return label
+            + " accepted=true"
+            + " island=" + shortId(result.islandId().toString())
+            + " generator=" + result.generatorKey()
+            + " level=" + result.level();
     }
 
     private String templateListMessage(List<TemplateView> templates) {

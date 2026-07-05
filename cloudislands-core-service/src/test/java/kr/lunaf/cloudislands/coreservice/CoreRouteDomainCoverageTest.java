@@ -93,7 +93,7 @@ class CoreRouteDomainCoverageTest {
     private static Map<String, List<String>> requiredRouteDependencies() {
         return Map.ofEntries(
             entry("AddonRoutes", List.of("repositories.addonStates()", "repositories.audit()", "events")),
-            entry("AdminGeneratorRoutes", List.of("repositories.generatorRepository()", "repositories.audit()", "events")),
+            entry("AdminGeneratorRoutes", List.of("repositories.generatorRepository()", "repositories.islandRepository()", "repositories.audit()", "events")),
             entry("AdminIslandLifecycleRoutes", List.of("domainServices.islandLifecycle()", "domainServices.islandDeleteService()")),
             entry("AdminNodeRoutes", List.of("repositories.nodes()", "nodeFailureMonitor")),
             entry("AdminRuntimeRoutes", List.of("repositories.sessions()", "repositories.tickets()")),
