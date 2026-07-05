@@ -34,7 +34,7 @@ final class IslandChatLogCommandHandler {
                 openChatMenu(player);
                 return true;
             }
-            sendChat(player, "ISLAND", joined(args, 1), "섬 채팅");
+            sendChat(player, "ISLAND", joined(args, 1), "chat-island-label", "섬 채팅", "chat-island-required", "섬 안에서만 섬 채팅을 사용할 수 있습니다.");
             return true;
         }
         if (subcommand.equals("chat-menu")) {
@@ -47,11 +47,11 @@ final class IslandChatLogCommandHandler {
                 return true;
             }
             if (isTeamChatToggle(args[1])) {
-                runtime.message(player, "팀 채팅 모드: /섬 팀채팅 <message>로 팀 채널에 보낼 수 있습니다.");
+                runtime.message(player, message("chat-team-toggle-help", "팀 채팅 모드: /섬 팀채팅 <message>로 팀 채널에 보낼 수 있습니다."));
                 openChatMenu(player);
                 return true;
             }
-            sendChat(player, "TEAM", joined(args, 1), "팀 채팅");
+            sendChat(player, "TEAM", joined(args, 1), "chat-team-label", "팀 채팅", "chat-team-required", "섬 안에서만 팀 채팅을 사용할 수 있습니다.");
             return true;
         }
         if (subcommand.equals("log") || subcommand.equals("log-menu") || subcommand.equals("로그")) {
@@ -97,18 +97,19 @@ final class IslandChatLogCommandHandler {
         IslandChatMenu.open(player, runtime.messagesFor(player));
     }
 
-    private void sendChat(Player player, String channel, String chatMessage, String label) {
-        runtime.currentIsland(player, "섬 안에서만 " + label + "을 사용할 수 있습니다.").ifPresent(islandId -> {
+    private void sendChat(Player player, String channel, String chatMessage, String labelKey, String labelFallback, String missingKey, String missingFallback) {
+        runtime.currentIsland(player, message(missingKey, missingFallback)).ifPresent(islandId -> {
+            String label = message(labelKey, labelFallback);
             communicationUseCase.sendChatAction(islandId, player.getUniqueId(), channel, chatMessage, runtime::mutate)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        runtime.message(player, label + "을 전송하지 못했습니다.");
+                        runtime.message(player, label + message("chat-send-failed-suffix", "을 전송하지 못했습니다."));
                         return;
                     }
-                    runtime.message(player, label + "을 전송했습니다.");
+                    runtime.message(player, label + message("chat-send-success-suffix", "을 전송했습니다."));
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, label + "을 전송하지 못했습니다.");
+                    runtime.message(player, label + message("chat-send-failed-suffix", "을 전송하지 못했습니다."));
                     return null;
                 });
         });
@@ -119,26 +120,30 @@ final class IslandChatLogCommandHandler {
     }
 
     private void listLogs(Player player, int limit) {
-        runtime.currentIsland(player, "섬 안에서만 로그를 확인할 수 있습니다.").ifPresent(islandId -> {
+        runtime.currentIsland(player, message("log-list-island-required", "섬 안에서만 로그를 확인할 수 있습니다.")).ifPresent(islandId -> {
             communicationUseCase.logViews(islandId, limit)
                 .thenAccept(logs -> runtime.message(player, logListMessage(logs)))
                 .exceptionally(error -> {
-                    runtime.message(player, "섬 로그를 불러오지 못했습니다.");
+                    runtime.message(player, message("log-list-load-failed", "섬 로그를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void openLogMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 로그를 확인할 수 있습니다.").ifPresent(islandId -> IslandLogMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("log-menu-island-required", "섬 안에서만 로그를 확인할 수 있습니다.")).ifPresent(islandId -> IslandLogMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
-    private static String logListMessage(List<LogEntryView> logs) {
+    private String logListMessage(List<LogEntryView> logs) {
         List<String> entries = logs.stream()
             .filter(log -> !log.action().isBlank())
-            .map(log -> log.action() + (log.actorUuid().isBlank() ? "" : " by " + log.actorUuid()))
+            .map(log -> log.action() + (log.actorUuid().isBlank() ? "" : message("log-list-actor-prefix", " by ") + log.actorUuid()))
             .toList();
-        return entries.isEmpty() ? "섬 로그가 없습니다." : "섬 로그: " + String.join(" | ", entries);
+        return entries.isEmpty() ? message("log-list-empty", "섬 로그가 없습니다.") : message("log-list-prefix", "섬 로그: ") + String.join(" | ", entries);
+    }
+
+    private String message(String key, String fallback) {
+        return runtime.routeMessage(key, fallback);
     }
 
     private static String joined(String[] args, int start) {

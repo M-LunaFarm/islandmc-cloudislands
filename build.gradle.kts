@@ -1349,6 +1349,50 @@ tasks.register("verifySnapshotMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifyChatLogMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 chat/log command output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandChatLogCommandHandler.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handler, koMessages, enMessages)
+    doLast {
+        val source = handler.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val requiredKeys = listOf(
+            "chat-island-label",
+            "chat-island-required",
+            "chat-send-failed-suffix",
+            "chat-send-success-suffix",
+            "chat-team-label",
+            "chat-team-required",
+            "chat-team-toggle-help",
+            "log-list-actor-prefix",
+            "log-list-empty",
+            "log-list-island-required",
+            "log-list-load-failed",
+            "log-list-prefix",
+            "log-menu-island-required"
+        )
+        val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val failures = buildList {
+            directRuntimeMessage.find(source)?.let { add("IslandChatLogCommandHandler directly sends Korean runtime.message output: ${it.value}") }
+            directCurrentIsland.find(source)?.let { add("IslandChatLogCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            if (!source.contains("private String message(String key, String fallback)")) add("IslandChatLogCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            if (!source.contains("sendChat(player, \"ISLAND\", joined(args, 1), \"chat-island-label\"") || !source.contains("sendChat(player, \"TEAM\", joined(args, 1), \"chat-team-label\"") || !source.contains("logListMessage(logs)")) add("Chat/log list output must stay behind keyed helper methods")
+            requiredKeys.filterNot { source.contains("\"$it\"") }.forEach { add("IslandChatLogCommandHandler missing message key usage: $it") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing chat/log message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing chat/log message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
@@ -1356,6 +1400,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyHomeWarpLocationCoverage"))
     dependsOn(tasks.named("verifyHomeWarpMessageKeyCoverage"))
     dependsOn(tasks.named("verifySnapshotMessageKeyCoverage"))
+    dependsOn(tasks.named("verifyChatLogMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))
