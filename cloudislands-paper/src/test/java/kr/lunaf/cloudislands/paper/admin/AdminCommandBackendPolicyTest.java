@@ -300,6 +300,26 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminBlockAndEntityLimitRemovalCommandsAreFirstClassIslandCommands() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        for (String command : List.of("setblocklimit", "addblocklimit", "removeblocklimit", "removeentitylimit")) {
+            assertTrue(adminSurface.contains("ciadmin island " + command + " <island>"), "Admin block/entity limit command must be listed in help: " + command);
+            assertTrue(catalog.contains("\"" + command + "\""), "Admin block/entity limit command must be cataloged for completion: " + command);
+        }
+        assertTrue(source.contains("GameplayParityPolicy.blockAmountLimitKey(args[3])"), "Block limit commands must write the shared BLOCK_AMOUNT limit key");
+        assertTrue(source.contains("coreApiClient.environmentCommands().adminAddLimit(islandId, limitKey, number(args[4], 0L))"), "Admin additive block limits must use typed environment client");
+        assertTrue(source.contains("coreApiClient.environmentCommands().adminSetLimit(islandId, limitKey, Long.MAX_VALUE)"), "Admin block limit removal must set an unbounded limit");
+        assertTrue(source.contains("coreApiClient.environmentCommands().adminSetLimit(islandId, \"ENTITY\", Long.MAX_VALUE)"), "Admin entity limit removal must set an unbounded entity limit");
+        for (String permission : List.of("superior.admin.setblocklimit", "superior.admin.addblocklimit", "superior.admin.removeblocklimit", "superior.admin.removeentitylimit")) {
+            assertTrue(parity.contains("\"" + permission + "\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark " + permission + " verified");
+        }
+    }
+
+    @Test
     void adminRankingIgnoreIsFirstClassIslandCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
