@@ -1476,6 +1476,55 @@ tasks.register("verifyLifecycleMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifyWarehouseMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 warehouse command output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandWarehouseCommandHandler.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handler, koMessages, enMessages)
+    doLast {
+        val source = handler.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val requiredKeys = listOf(
+            "warehouse-amount-invalid",
+            "warehouse-deposit-failed",
+            "warehouse-deposit-island-required",
+            "warehouse-deposit-success-prefix",
+            "warehouse-inventory-full",
+            "warehouse-list-empty",
+            "warehouse-list-island-required",
+            "warehouse-list-load-failed",
+            "warehouse-list-prefix",
+            "warehouse-menu-island-required",
+            "warehouse-not-enough-items",
+            "warehouse-withdraw-failed",
+            "warehouse-withdraw-island-required",
+            "warehouse-withdraw-success-prefix"
+        )
+        val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directPlayerCodeFallback = Regex("""playerCodeMessage\([^,\n]+,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCoreWriteFallback = Regex("""coreWriteFailureMessage\([^,\n]+,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val failures = buildList {
+            directRuntimeMessage.find(source)?.let { add("IslandWarehouseCommandHandler directly sends Korean runtime.message output: ${it.value}") }
+            directCurrentIsland.find(source)?.let { add("IslandWarehouseCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            directPlayerCodeFallback.find(source)?.let { add("IslandWarehouseCommandHandler directly passes playerCodeMessage Korean fallback: ${it.value}") }
+            directCoreWriteFallback.find(source)?.let { add("IslandWarehouseCommandHandler directly passes coreWriteFailureMessage Korean fallback: ${it.value}") }
+            if (!source.contains("private String message(String key, String fallback)")) add("IslandWarehouseCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            if (!source.contains("warehouseListMessage(items)") || !source.contains("warehouseFailureMessage(deposit)") || !source.contains("warehouseSuccessPrefix(deposit)")) add("Warehouse list/result output must stay behind keyed helper methods")
+            requiredKeys.filterNot { source.contains("\"$it\"") }.forEach { add("IslandWarehouseCommandHandler missing message key usage: $it") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing warehouse message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing warehouse message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
@@ -1486,6 +1535,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyChatLogMessageKeyCoverage"))
     dependsOn(tasks.named("verifyOverviewMemberMessageKeyCoverage"))
     dependsOn(tasks.named("verifyLifecycleMessageKeyCoverage"))
+    dependsOn(tasks.named("verifyWarehouseMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))
