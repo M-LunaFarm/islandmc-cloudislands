@@ -1881,6 +1881,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island info <islandUuid|islandName>",
             "/ciadmin island where <playerUuid|playerName|islandUuid|islandName>",
             "/ciadmin island inspect <playerUuid|playerName|islandUuid|islandName>",
+            "/ciadmin island inspect <playerUuid|playerName|islandUuid|islandName> --json",
             "/ciadmin island visitor-stats <islandUuid|islandName>",
             "/ciadmin island tp <islandUuid|islandName>",
             "/ciadmin island activate <islandUuid|islandName>",
@@ -3312,7 +3313,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         String permission = adminPermission(args);
-        return !permission.isBlank() && sender.hasPermission(permission);
+        return !permission.isBlank() && (sender.hasPermission(permission) || adminPermissionFallbacks(args).stream().anyMatch(sender::hasPermission));
     }
 
     private String adminPermission(String[] args) {
@@ -3329,10 +3330,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (root.equals("migrate-superiorskyblock2") && !superiorSkyblock2MigrationEnabled()) {
             return "";
         }
+        if (root.equals("island") && args.length > 1 && args[1].equalsIgnoreCase("inspect")) {
+            return "cloudislands.admin.island.inspect";
+        }
         return switch (root) {
             case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
+    }
+
+    private List<String> adminPermissionFallbacks(String[] args) {
+        if (args.length > 1 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("inspect")) {
+            return List.of("cloudislands.admin.island");
+        }
+        return List.of();
     }
 
     private boolean isHelpRequest(String[] args) {

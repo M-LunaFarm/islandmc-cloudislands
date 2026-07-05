@@ -72,6 +72,7 @@ final class AdminCommandCatalog {
         "ciadmin island info <island>",
         "ciadmin island where <player|island>",
         "ciadmin island inspect <player|island>",
+        "ciadmin island inspect <player|island> --json",
         "ciadmin island visitor-stats <island>",
         "ciadmin island tp <island>",
         "ciadmin island activate <island>",

@@ -29,12 +29,13 @@ class AdminCommandBackendPolicyTest {
         Set<String> backedPermissions = new TreeSet<>();
         backedPermissions.addAll(commandPermissionNodes(plugin));
         backedPermissions.addAll(explicitHasPermissionNodes(runtimeSources));
+        backedPermissions.addAll(explicitPermissionStringNodes(runtimeSources));
         backedPermissions.addAll(explicitPermissionStringNodes(velocityActionSupport));
         backedPermissions.addAll(mappedAdminPermissionNodes(backend));
         backedPermissions.addAll(mappedIslandPermissionNodes(islandCommandPermissions));
 
         assertTrue(backend.contains("if (!hasAdminAccess(sender, args))"), "Admin commands must pass through the runtime permission gate");
-        assertTrue(backend.contains("return !permission.isBlank() && sender.hasPermission(permission);"), "Admin sub-permissions must be checked before routing");
+        assertTrue(backend.contains("sender.hasPermission(permission)"), "Admin sub-permissions must be checked before routing");
         assertEquals(declaredPermissions, backedPermissions, "Every plugin.yml permission node must be backed by a command descriptor or runtime permission check");
     }
 
@@ -311,11 +312,16 @@ class AdminCommandBackendPolicyTest {
     void adminIslandInfoAndRuntimeUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
-        String adminSurface = source + "\n" + catalog;
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String adminSurface = source + "\n" + catalog + "\n" + plugin;
 
         assertTrue(adminSurface.contains("ciadmin island where <player|island>"), "Island where command must document player and island targets");
         assertTrue(adminSurface.contains("ciadmin island inspect <player|island>"), "Island inspect command must document unified player and island targets");
+        assertTrue(adminSurface.contains("ciadmin island inspect <player|island> --json"), "Island inspect JSON export must be listed for operators");
         assertTrue(catalog.contains("\"inspect\""), "Island inspect must be cataloged for tab completion");
+        assertTrue(source.contains("return \"cloudislands.admin.island.inspect\""), "Island inspect must use its explicit admin permission node");
+        assertTrue(source.contains("adminPermissionFallbacks") && source.contains("cloudislands.admin.island"), "Island inspect must keep root island-admin permission compatibility");
+        assertTrue(plugin.contains("cloudislands.admin.island.inspect:"), "Island inspect explicit permission must be declared in plugin.yml");
         assertTrue(adminSurface.contains("ciadmin island recover <island>"), "Island recover command must be listed for operators");
         assertTrue(source.contains("coreApiClient.adminIslands().info"), "Island info command must use the typed Core admin island API");
         assertTrue(source.contains("coreApiClient.adminIslands().runtime"), "Island runtime command must use the typed Core admin island API");
@@ -539,7 +545,7 @@ class AdminCommandBackendPolicyTest {
     }
 
     private static Set<String> explicitPermissionStringNodes(String source) {
-        Matcher matcher = Pattern.compile("\"(cloudislands\\.(?:bypass|island)\\.[^\"]+)\"").matcher(source);
+        Matcher matcher = Pattern.compile("\"(cloudislands\\.(?:admin|bypass|island)\\.[^\"]+)\"").matcher(source);
         Set<String> permissions = new TreeSet<>();
         while (matcher.find()) {
             permissions.add(matcher.group(1));
