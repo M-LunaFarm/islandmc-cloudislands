@@ -55,6 +55,7 @@ import kr.lunaf.cloudislands.coreclient.MemberActionView;
 import kr.lunaf.cloudislands.coreclient.PermissionActionView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
+import kr.lunaf.cloudislands.coreclient.ReviewActionView;
 import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.TemplateBundleVerificationView;
@@ -1503,6 +1504,34 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
             return true;
         }
+        if (args[1].equalsIgnoreCase("setrate")) {
+            if (args.length < 5) {
+                sendCommandUsage(sender, List.of("/ciadmin island setrate <islandUuid|islandName> <reviewerUuid|reviewerName> <rating> [comment]"));
+                return true;
+            }
+            int rating = (int) number(args[4], 0L);
+            String comment = args.length > 5 ? joined(args, 5) : "";
+            resolvePlayerUuid(sender, args[3]).thenAccept(reviewerUuid -> {
+                if (reviewerUuid == null) {
+                    return;
+                }
+                run(sender, "Island setrate", coreApiClient.navigationCommands().setReview(islandId, reviewerUuid, rating, comment).thenApply(result -> reviewActionMessage("Island setrate", result)));
+            });
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("removeratings")) {
+            if (args.length < 4) {
+                sendCommandUsage(sender, List.of("/ciadmin island removeratings <islandUuid|islandName> <reviewerUuid|reviewerName>"));
+                return true;
+            }
+            resolvePlayerUuid(sender, args[3]).thenAccept(reviewerUuid -> {
+                if (reviewerUuid == null) {
+                    return;
+                }
+                run(sender, "Island removeratings", coreApiClient.navigationCommands().deleteReview(islandId, reviewerUuid).thenApply(result -> reviewActionMessage("Island removeratings", result)));
+            });
+            return true;
+        }
         if (args[1].equalsIgnoreCase("removeentitylimit")) {
             run(sender, "Island removeentitylimit", coreApiClient.environmentCommands().adminSetLimit(islandId, "ENTITY", Long.MAX_VALUE).thenApply(result -> gameplayModifierMessage("Island removeentitylimit", result)));
             return true;
@@ -2632,6 +2661,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private String permissionActionMessage(String label, PermissionActionView result) {
+        return label
+            + adminText("admin-command-action-result-accepted-prefix", ": accepted=")
+            + result.accepted()
+            + adminText("admin-command-action-result-code-prefix", " code=")
+            + result.code();
+    }
+
+    private String reviewActionMessage(String label, ReviewActionView result) {
         return label
             + adminText("admin-command-action-result-accepted-prefix", ": accepted=")
             + result.accepted()
