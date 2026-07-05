@@ -46,11 +46,13 @@ final class IslandOverviewCommandHandler {
     }
 
     private void openInfoMenu(Player player) {
-        runtime.currentIsland(player, "섬 안에서만 정보를 확인할 수 있습니다.").ifPresent(islandId -> IslandInfoMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, runtime.routeMessage("overview-info-island-required", "섬 안에서만 정보를 확인할 수 있습니다.")).ifPresent(islandId -> IslandInfoMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     interface Runtime {
         Optional<UUID> currentIsland(Player player, String missingMessage);
+
+        String routeMessage(String key, String fallback);
 
         MessageRenderer messagesFor(Player player);
     }

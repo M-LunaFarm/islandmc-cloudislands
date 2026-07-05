@@ -1393,6 +1393,43 @@ tasks.register("verifyChatLogMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifyOverviewMemberMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 overview/member presentation output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handlers = files(
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandOverviewCommandHandler.java"),
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandMemberPresentation.java")
+    )
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handlers, koMessages, enMessages)
+    doLast {
+        val sources = handlers.files.associate { it.name to it.readText() }
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val requiredKeys = listOf(
+            "ban-list-island-required",
+            "member-menu-island-required",
+            "overview-info-island-required"
+        )
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val failures = buildList {
+            sources.forEach { (name, source) ->
+                directCurrentIsland.find(source)?.let { add("$name directly passes Korean currentIsland output: ${it.value}") }
+            }
+            if (!sources.getValue("IslandOverviewCommandHandler.java").contains("runtime.routeMessage(\"overview-info-island-required\"")) add("IslandOverviewCommandHandler missing overview-info-island-required usage")
+            if (!sources.getValue("IslandCommandMemberPresentation.java").contains("messages.routeMessage(player, \"member-menu-island-required\"")) add("IslandCommandMemberPresentation missing member-menu-island-required usage")
+            if (!sources.getValue("IslandCommandMemberPresentation.java").contains("messages.routeMessage(player, \"ban-list-island-required\"")) add("IslandCommandMemberPresentation missing ban-list-island-required usage")
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing overview/member message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing overview/member message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.named("check") {
     dependsOn(tasks.named("verifyAddonDeveloperKitCoverage"))
     dependsOn(tasks.named("verifyRankingWorthCertification"))
@@ -1401,6 +1438,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyHomeWarpMessageKeyCoverage"))
     dependsOn(tasks.named("verifySnapshotMessageKeyCoverage"))
     dependsOn(tasks.named("verifyChatLogMessageKeyCoverage"))
+    dependsOn(tasks.named("verifyOverviewMemberMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
     dependsOn(tasks.named("verifyStackedBlockParityCoverage"))

@@ -37,12 +37,12 @@ final class IslandCommandMemberPresentation {
     }
 
     void openMemberMenu(Player player, int page) {
-        islandContext.currentIsland(player, "섬 안에서만 멤버 메뉴를 열 수 있습니다.")
+        islandContext.currentIsland(player, messages.routeMessage(player, "member-menu-island-required", "섬 안에서만 멤버 메뉴를 열 수 있습니다."))
             .ifPresent(islandId -> IslandMemberMenu.open(plugin, coreApiClient, player, islandId, messages.messagesFor(player), page));
     }
 
     void openBanMenu(Player player) {
-        islandContext.currentIsland(player, "섬 안에서만 밴 목록을 확인할 수 있습니다.")
+        islandContext.currentIsland(player, messages.routeMessage(player, "ban-list-island-required", "섬 안에서만 밴 목록을 확인할 수 있습니다."))
             .ifPresent(islandId -> IslandBanMenu.open(plugin, coreApiClient, player, islandId, messages.messagesFor(player)));
     }
 
