@@ -501,6 +501,18 @@ class AdminCommandBackendPolicyTest {
         assertTrue(adminSurface.contains("ciadmin doctor --markdown"), "Doctor Markdown export must be listed in help");
         assertTrue(source.contains("handleDoctor"), "Doctor command must have a handler");
         assertTrue(source.contains("coreApiClient.adminCoreConfig().config()"), "Doctor must include Core config/API reachability");
+        assertTrue(source.contains("setupReadinessDiagnosticBody"), "Doctor must include setup readiness checks");
+        assertTrue(source.contains("\"setup-readiness\""), "Doctor must render setup readiness as a first-class section");
+        assertTrue(source.contains("coreApiReachable=true"), "Setup doctor must explicitly prove Core API reachability");
+        assertTrue(source.contains("redisReachable=policy:"), "Setup doctor must explicitly cover Redis readiness");
+        assertTrue(source.contains("databaseDurable="), "Setup doctor must explicitly cover SQL/durable database readiness");
+        assertTrue(source.contains("storageShared="), "Setup doctor must explicitly cover storage readiness");
+        assertTrue(source.contains("velocityBackendNames=duplicateCount:"), "Setup doctor must explicitly cover Velocity backend name uniqueness");
+        assertTrue(source.contains("nodeIdentity=defaultRiskCount:"), "Setup doctor must explicitly cover node identity uniqueness");
+        assertTrue(source.contains("forwardingSecretCheck=security.forwarding-secret+velocity-modern-forwarding-required"), "Setup doctor must explicitly cover forwarding secret readiness without exposing the secret");
+        assertTrue(source.contains("routeTicketSmoke=ttl:"), "Setup doctor must explicitly cover route ticket smoke readiness");
+        assertTrue(source.contains("templateChecksum="), "Setup doctor must explicitly cover template checksum readiness");
+        assertTrue(source.contains("migrationReadiness=enabled:"), "Setup doctor must explicitly cover migration readiness");
         assertTrue(source.contains("snapshotPolicyDiagnosticBody"), "Doctor must include snapshot policy status");
         assertTrue(source.contains("snapshotLatest="), "Doctor snapshot policy must expose latest snapshot retention");
         assertTrue(source.contains("coreApiClient.adminMetrics().summary()"), "Doctor must include typed metrics");
@@ -541,15 +553,26 @@ class AdminCommandBackendPolicyTest {
             "ciadmin setup storage",
             "ciadmin setup velocity",
             "ciadmin setup paper-node",
-            "ciadmin setup verify"
+            "ciadmin setup verify",
+            "ciadmin setup explain node",
+            "ciadmin setup explain velocity",
+            "ciadmin setup explain storage",
+            "ciadmin setup explain security",
+            "ciadmin setup export-redacted"
         )) {
             assertTrue(adminSurface.contains(command), command);
         }
         assertTrue(catalog.contains("\"setup\""), "Setup root command must be registered");
+        assertTrue(catalog.contains("\"wizard\""), "Setup wizard alias must be cataloged");
+        assertTrue(catalog.contains("\"explain\""), "Setup explain command must be cataloged");
+        assertTrue(catalog.contains("\"export-redacted\""), "Setup redacted export must be cataloged");
         assertTrue(catalog.contains("SETUP_COMMANDS"), "Setup subcommands must be cataloged for tab completion");
         assertTrue(source.contains("handleSetup"), "Setup command must have a handler");
         assertTrue(source.contains("return handleDoctor(sender, new String[] {\"doctor\"})"), "Setup verify must delegate to doctor checks");
+        assertTrue(source.contains("setupExplainMessage"), "Setup explain must have a focused explanation handler");
+        assertTrue(source.contains("configHandler.effectiveConfigDiagnosticSection()"), "Setup export-redacted must reuse redacted effective config output");
         assertTrue(source.contains("args.length == 2 && args[0].equalsIgnoreCase(\"setup\")"), "Setup tab completion must use setup subcommands");
+        assertTrue(source.contains("args.length == 3 && args[0].equalsIgnoreCase(\"setup\") && args[1].equalsIgnoreCase(\"explain\")"), "Setup explain tab completion must suggest setup topics");
         assertTrue(source.contains("\"setup\"") && source.contains("cloudislands.admin.\" + root"), "Setup must be a first-class admin permission root");
         assertTrue(plugin.contains("cloudislands.admin.setup"), "Setup command must have a plugin permission");
     }

@@ -5,7 +5,7 @@ import kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePo
 
 final class AdminCommandCatalog {
     static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "template", "templates", "migrate-superiorskyblock2", "reload");
-    static final List<String> SETUP_COMMANDS = List.of("start", "core", "redis", "database", "storage", "velocity", "paper-node", "verify");
+    static final List<String> SETUP_COMMANDS = List.of("start", "wizard", "core", "redis", "database", "storage", "velocity", "paper-node", "verify", "explain", "export-redacted");
     static final List<String> CONFIG_COMMANDS = List.of("show", "validate", "diff", "reload", "effective", "sources");
     static final List<String> CACHE_COMMANDS = List.of("clear");
     static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary", "endpoints");
@@ -32,6 +32,7 @@ final class AdminCommandCatalog {
         "ciadmin doctor --json",
         "ciadmin doctor --markdown",
         "ciadmin setup start",
+        "ciadmin setup wizard",
         "ciadmin setup core",
         "ciadmin setup redis",
         "ciadmin setup database",
@@ -39,6 +40,11 @@ final class AdminCommandCatalog {
         "ciadmin setup velocity",
         "ciadmin setup paper-node",
         "ciadmin setup verify",
+        "ciadmin setup explain node",
+        "ciadmin setup explain velocity",
+        "ciadmin setup explain storage",
+        "ciadmin setup explain security",
+        "ciadmin setup export-redacted",
         "ciadmin config",
         "ciadmin config validate",
         "ciadmin config diff",

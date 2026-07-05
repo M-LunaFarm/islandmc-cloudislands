@@ -288,6 +288,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args.length == 2 && args[0].equalsIgnoreCase("setup")) {
             return matches(SETUP_COMMANDS, args[1]);
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("setup") && args[1].equalsIgnoreCase("explain")) {
+            return matches(List.of("node", "velocity", "storage", "security"), args[2]);
+        }
         if (args.length == 3 && args[0].equalsIgnoreCase("addons") && (args[1].equalsIgnoreCase("info") || args[1].equalsIgnoreCase("feature") || args[1].equalsIgnoreCase("enable") || args[1].equalsIgnoreCase("disable") || args[1].equalsIgnoreCase("reload"))) {
             return matches(addonIds(), args[2]);
         }
@@ -739,6 +742,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private boolean handleDoctor(CommandSender sender, String[] args) {
         CompletableFuture<AdminCoreConfigView> coreConfig = coreApiClient.adminCoreConfig().config();
         CompletableFuture<DoctorPart> config = doctorPart("core-config", coreConfig.thenApply(this::coreConfigMessage));
+        CompletableFuture<DoctorPart> setupReadiness = doctorPart("setup-readiness", coreConfig.thenApply(this::setupReadinessDiagnosticBody));
         CompletableFuture<DoctorPart> snapshotPolicy = doctorPart("snapshot-policy", coreConfig.thenApply(this::snapshotPolicyDiagnosticBody));
         CompletableFuture<DoctorPart> metrics = doctorPart("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage));
         CompletableFuture<DoctorPart> storage = doctorPart("storage", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
@@ -749,27 +753,50 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<DoctorPart> audit = doctorPart("audit", coreApiClient.adminAudit().list(5).thenApply(this::auditListMessage));
         CompletableFuture<DoctorPart> templates = doctorPart("templates", coreApiClient.templates().list().thenApply(this::templateDoctorDiagnosticBody));
         CompletableFuture<DoctorPart> integrations = CompletableFuture.completedFuture(doctorPart("integrations", integrationStatusMessage()));
-        run(sender, "Doctor", CompletableFuture.allOf(config, snapshotPolicy, metrics, storage, nodes, jobs, routes, audit, templates, integrations)
-            .thenApply(_ignored -> doctorMessage(args, List.of(config.join(), snapshotPolicy.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), templates.join(), integrations.join()))));
+        run(sender, "Doctor", CompletableFuture.allOf(config, setupReadiness, snapshotPolicy, metrics, storage, nodes, jobs, routes, audit, templates, integrations)
+            .thenApply(_ignored -> doctorMessage(args, List.of(config.join(), setupReadiness.join(), snapshotPolicy.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), templates.join(), integrations.join()))));
         return true;
     }
 
     private boolean handleSetup(CommandSender sender, String[] args) {
         String section = args.length > 1 ? args[1].toLowerCase(Locale.ROOT) : "start";
+        if (section.equals("wizard")) {
+            section = "start";
+        }
         if (section.equals("verify")) {
             sender.sendMessage(adminText("admin-command-setup-verify-prefix", "Setup verify delegates to /ciadmin doctor for live CRITICAL/WARN/INFO checks."));
             return handleDoctor(sender, new String[] {"doctor"});
         }
+        if (section.equals("explain")) {
+            if (args.length < 3) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin setup explain node",
+                    "/ciadmin setup explain velocity",
+                    "/ciadmin setup explain storage",
+                    "/ciadmin setup explain security"
+                ));
+                return true;
+            }
+            sender.sendMessage(setupExplainMessage(args[2]));
+            return true;
+        }
+        if (section.equals("export-redacted")) {
+            sender.sendMessage(configHandler.effectiveConfigDiagnosticSection());
+            return true;
+        }
         if (!SETUP_COMMANDS.contains(section)) {
             sendCommandUsage(sender, List.of(
                 "/ciadmin setup start",
+                "/ciadmin setup wizard",
                 "/ciadmin setup core",
                 "/ciadmin setup redis",
                 "/ciadmin setup database",
                 "/ciadmin setup storage",
                 "/ciadmin setup velocity",
                 "/ciadmin setup paper-node",
-                "/ciadmin setup verify"
+                "/ciadmin setup verify",
+                "/ciadmin setup explain <node|velocity|storage|security>",
+                "/ciadmin setup export-redacted"
             ));
             return true;
         }
@@ -786,6 +813,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "velocity" -> "Setup velocity: configure forwarding secret, fallback server, island pool names, route wait seconds, and hide-node-names; verify with /ciadmin status and /ciadmin doctor.";
             case "paper-node" -> "Setup paper-node: configure unique node.id, role, core-api, storage, integrations, and supported templates; verify with /ciadmin node list and /ciadmin doctor.";
             default -> "Setup start: complete /ciadmin setup core, redis, database, storage, velocity, paper-node, then run /ciadmin setup verify.";
+        };
+    }
+
+    private String setupExplainMessage(String section) {
+        return switch (section.toLowerCase(Locale.ROOT)) {
+            case "node", "paper-node" -> "Setup explain node: every island node needs a unique node.id, unique velocity-server-name per pool, fresh heartbeat, shared storage, supported templates, and non-default identity.";
+            case "velocity" -> "Setup explain velocity: Velocity must have the Paper backend name registered, modern forwarding enabled with the same secret, route ticket forwarding intact, and fallback routing that hides physical node names from players.";
+            case "storage" -> "Setup explain storage: production pools should use shared object storage such as S3/MinIO, verify manifest.json plus checksums.sha256, and rehearse latest snapshot restore before opening migration writes.";
+            case "security" -> "Setup explain security: keep Core tokens and forwarding secrets redacted, require proxy source allowlists, avoid direct island-node joins, and use /ciadmin setup export-redacted for support output.";
+            default -> "Setup explain: choose node, velocity, storage, or security.";
         };
     }
 
@@ -842,6 +879,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         String normalized = body == null ? "" : body.toUpperCase(Locale.ROOT);
         if (label.equals("core-config")) {
             return "/ciadmin config validate";
+        }
+        if (label.equals("setup-readiness")) {
+            return "/ciadmin setup verify";
         }
         if (label.equals("storage") || normalized.contains("STORAGE")) {
             return "/ciadmin storage";
@@ -983,6 +1023,43 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + " snapshotChecksum=" + textValue(body, "snapshotChecksumAlgorithm")
             + " snapshotTriggers=" + textValue(body, "snapshotRequiredTriggerReasons")
             + " snapshotRestore=" + textValue(body, "snapshotRestorePipeline");
+    }
+
+    private String setupReadinessDiagnosticBody(AdminCoreConfigView body) {
+        boolean durableDatabase = boolValue(body, "coreSetupDatabaseDurable") || boolValue(body, "coreSetupDatabaseProductionDurable");
+        boolean sharedStorage = boolValue(body, "storageSharedBackend") || boolValue(body, "storageMultiNodeSafe");
+        long duplicateVelocityNames = longValue(body, "islandPoolDuplicateVelocityServerNameNodeCount");
+        long defaultIdentityRisk = longValue(body, "islandPoolDefaultNodeIdentityRiskCount");
+        long routeTicketTtl = longValue(body, "routeTicketTtlSeconds");
+        List<String> warnings = new ArrayList<>();
+        if (!durableDatabase) {
+            warnings.add("WARN_DATABASE_NOT_DURABLE");
+        }
+        if (!sharedStorage) {
+            warnings.add("WARN_STORAGE_NOT_SHARED");
+        }
+        if (duplicateVelocityNames > 0L) {
+            warnings.add("WARN_DUPLICATE_VELOCITY_BACKEND_NAMES");
+        }
+        if (defaultIdentityRisk > 0L) {
+            warnings.add("WARN_DEFAULT_NODE_IDENTITY");
+        }
+        if (routeTicketTtl <= 0L) {
+            warnings.add("WARN_ROUTE_TICKET_TTL_MISSING");
+        }
+        return "coreApiReachable=true"
+            + " redisReachable=policy:" + textValue(body, "redisRolePolicy")
+            + " sqlRepositoryMode=" + textValue(body, "effectiveRepositoryMode")
+            + " databaseDurable=" + durableDatabase
+            + " storageType=" + textValue(body, "storageType")
+            + " storageShared=" + sharedStorage
+            + " velocityBackendNames=duplicateCount:" + duplicateVelocityNames
+            + " nodeIdentity=defaultRiskCount:" + defaultIdentityRisk
+            + " forwardingSecretCheck=security.forwarding-secret+velocity-modern-forwarding-required"
+            + " routeTicketSmoke=ttl:" + routeTicketTtl + "s,debug:/ciadmin route debug all"
+            + " templateChecksum=" + textValue(body, "storageRestoreChecksumPolicy")
+            + " migrationReadiness=enabled:" + boolValue(body, "superiorSkyblock2MigrationEnabled") + ",inputOnly:" + boolValue(body, "superiorSkyblock2MigrationInputOnly")
+            + " setupWarnings=" + (warnings.isEmpty() ? "none" : String.join(",", warnings));
     }
 
     private CharSequence dashboardMessage(List<CharSequence> parts) {
