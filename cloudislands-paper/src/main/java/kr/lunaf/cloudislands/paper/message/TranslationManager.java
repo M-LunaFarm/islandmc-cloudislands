@@ -289,6 +289,9 @@ public final class TranslationManager {
         values.put("admin-node-menu-direct-required", "직접 입력이 필요한 명령입니다: ");
         values.put("admin-command-no-permission", "권한이 없습니다.");
         values.put("island-command-no-permission", "이 섬 명령을 사용할 권한이 없습니다.");
+        values.put("legacy-ss2-alias-advice-prefix", "CloudIslands 명령은 /섬 ");
+        values.put("legacy-ss2-alias-advice-suffix", "입니다.");
+        values.put("legacy-ss2-alias-migration-mode", "SuperiorSkyblock2 migration mode: legacy /is aliases are being translated to CloudIslands commands.");
         values.put("island-command-cooldown", "잠시 후 다시 시도해주세요. 남은 시간이 표시됩니다.");
         values.put("island-command-warmup", "섬 이동을 준비하고 있습니다. 움직이면 취소될 수 있습니다.");
         values.put("island-command-warmup-title", "섬 이동 준비 중");
@@ -421,6 +424,7 @@ public final class TranslationManager {
         values.put("admin-command-metrics-empty", "Core metrics: empty");
         values.put("admin-command-metrics-samples-prefix", "Core metrics: samples=");
         values.put("admin-command-metrics-focus-prefix", " focus=");
+        values.put("admin-command-metrics-legacy-aliases-prefix", " ");
         values.put("admin-command-core-config-failed-prefix", "Core config: failed code=");
         values.put("admin-command-core-config-repo-prefix", "Core config: repo=");
         values.put("admin-command-core-config-jobs-prefix", " jobs=");

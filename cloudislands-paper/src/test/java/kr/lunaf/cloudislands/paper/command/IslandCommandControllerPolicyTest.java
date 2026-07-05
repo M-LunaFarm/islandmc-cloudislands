@@ -57,7 +57,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(router.contains("boolean handleCommand(@NotNull CommandSender sender"));
         assertTrue(router.contains("void handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(router.contains("CommandListPolicy.page"));
-        assertTrue(router.contains("helpCategoryRequest(args)"));
+        assertTrue(router.contains("helpCategoryRequest(effectiveArgs)"));
         assertTrue(router.contains("helpCategoryRequest.category().commands()"));
     }
 
@@ -90,7 +90,7 @@ class IslandCommandControllerPolicyTest {
         String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiAction.java"));
         String menu = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/main.yml"));
 
-        assertTrue(router.contains("isGuiHelpRequest(args)"), "/섬 도움말 gui must route to the GUI entry point");
+        assertTrue(router.contains("isGuiHelpRequest(effectiveArgs)"), "/섬 도움말 gui must route to the GUI entry point");
         assertTrue(router.contains("noPayload.type() == GuiAction.NoPayloadType.HELP_OPEN"), "main menu help button must reuse the command help renderer");
         assertTrue(router.contains("sendCommandList(player, \"섬\", \"섬 명령어 목록\", IslandCommandCatalog.HELP_COMMANDS, 1);"));
         assertTrue(actions.contains("HELP_OPEN(\"island.help.open\")"));
@@ -141,8 +141,8 @@ class IslandCommandControllerPolicyTest {
 
         assertTrue(router.contains("private final IslandCommandDelayPolicy delayPolicy = new IslandCommandDelayPolicy();"));
         assertTrue(router.contains("private final IslandCommandWarmupPolicy warmupPolicy = new IslandCommandWarmupPolicy();"));
-        assertTrue(router.contains("if (!checkCommandDelay(player, label, subcommand, args.clone()))"), "command delay policy must run before handlers mutate state");
-        assertTrue(router.contains("return runIslandAction(player, label, subcommand, args);"), "warmup must split preflight from command execution");
+        assertTrue(router.contains("if (!checkCommandDelay(player, label, subcommand, effectiveArgs.clone()))"), "command delay policy must run before handlers mutate state");
+        assertTrue(router.contains("return runIslandAction(player, label, subcommand, effectiveArgs);"), "warmup must split preflight from command execution");
         assertTrue(router.contains("runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_COOLDOWN_PERMISSION)"));
         assertTrue(router.contains("runtime.hasPermission(player, IslandCommandDelayPolicy.BYPASS_WARMUP_PERMISSION)"));
         assertTrue(router.contains("runtime.scheduleCommandWarmup(player, delayTicks"), "warmup commands must run after the waiting window instead of immediately");
@@ -326,6 +326,34 @@ class IslandCommandControllerPolicyTest {
         assertTrue(completer.contains("first.equals(\"values\")"), "values alias must share block-value suggestions");
         assertTrue(completer.contains("first.equals(\"ratings\")"), "ratings alias must share review-list suggestions");
         assertTrue(completer.contains("first.equals(\"rankup\")"), "rankup alias must share upgrade-key suggestions");
+    }
+
+    @Test
+    void superiorSkyblockLegacyAliasAdapterIsConfigGatedAndKeepsSharedCommandGates() throws Exception {
+        String adapter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/SuperiorSkyblock2CommandAliasAdapter.java"));
+        String router = routerSource();
+        String factory = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouterFactory.java"));
+        String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/PaperCommandRegistrar.java"));
+        String runtimeConfig = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfig.java"));
+        String runtimeLoader = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfigLoader.java"));
+        String migrationConfig = Files.readString(Path.of("src/main/resources/config-v2/migration.yml"));
+        String adminBackend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+
+        assertTrue(adapter.contains("public final class SuperiorSkyblock2CommandAliasAdapter"));
+        assertTrue(adapter.contains("Map.entry(\"recalc\", new Mapping(\"levelcalc\", \"레벨계산\"))"), "SS2 recalc must route to the CloudIslands level calculation command");
+        assertTrue(adapter.contains("Map.entry(\"team\", new Mapping(\"members\", \"멤버\"))"), "SS2 team must route to the CloudIslands member command");
+        assertTrue(adapter.contains("Map.entry(\"value\", new Mapping(\"values\", \"values\"))"), "SS2 value <block> must route to the block-values command path");
+        assertTrue(adapter.contains("USAGE.computeIfAbsent(alias"), "legacy alias usage must be counted for admin metrics");
+        assertTrue(adminBackend.contains("SuperiorSkyblock2CommandAliasAdapter.metricsLine()"), "admin metrics must include local legacy alias usage");
+        assertTrue(migrationConfig.contains("legacy-aliases:\n  superiorskyblock2:\n    enabled: false"), "legacy SS2 aliases must be disabled by default");
+        assertTrue(runtimeConfig.contains("boolean superiorSkyblock2LegacyAliasesEnabled"), "runtime config must expose the legacy alias toggle");
+        assertTrue(runtimeLoader.contains("\"legacy-aliases.superiorskyblock2.enabled\", \"migration.legacy-aliases.superiorskyblock2.enabled\""));
+        assertTrue(runtimeLoader.contains("boolean legacyAliases = booleanValue(config, \"migration.legacy-aliases.superiorskyblock2.enabled\", false);"));
+        assertTrue(registrar.contains("plugin.runtimeConfig().migration().superiorSkyblock2LegacyAliasesEnabled()"));
+        assertTrue(factory.contains("new SuperiorSkyblock2CommandAliasAdapter(superiorSkyblock2LegacyAliasesEnabled, superiorSkyblock2MigrationMode)"));
+        assertTrue(router.contains("SuperiorSkyblock2CommandAliasAdapter.ResolvedAlias legacyAlias = legacyAliases.translate(args).orElse(null);"));
+        assertTrue(router.indexOf("legacyAliases.translate(args)") < router.indexOf("IslandCommandPermission.fromSubcommand(subcommand)"), "alias translation must happen before permission gating");
+        assertTrue(router.indexOf("legacyAliases.translate(args)") < router.indexOf("checkCommandDelay(player, label, subcommand, effectiveArgs.clone())"), "alias translation must happen before cooldown and warmup gating");
     }
 
     @Test

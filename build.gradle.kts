@@ -841,7 +841,7 @@ tasks.register("verifyCommandHelpCoverage") {
         if (missingCategories.isNotEmpty()) {
             throw GradleException("Command help categories missing: ${missingCategories.joinToString(", ")}")
         }
-        if (!router.asFile.readText().contains("helpCategoryRequest(args)")) {
+        if (!router.asFile.readText().contains("helpCategoryRequest(effectiveArgs)")) {
             throw GradleException("IslandCommandRouter no longer routes categorized help")
         }
         if (!completer.asFile.readText().contains("helpRootSuggestions()")) {

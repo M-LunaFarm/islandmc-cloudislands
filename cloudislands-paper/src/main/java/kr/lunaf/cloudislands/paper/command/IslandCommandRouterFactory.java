@@ -70,6 +70,50 @@ final class IslandCommandRouterFactory {
         IslandCommandMessenger messages,
         boolean guiMenusEnabled
     ) {
+        return create(
+            bankCommands,
+            snapshotCommands,
+            warehouseCommands,
+            chatLogCommands,
+            progressionCommands,
+            environmentCommands,
+            settingsCommands,
+            homeWarpCommands,
+            visitReviewCommands,
+            lifecycleCommands,
+            overviewCommands,
+            membershipCommands,
+            adminCommands,
+            plugin,
+            coreApiClient,
+            messages,
+            guiMenusEnabled,
+            false,
+            false
+        );
+    }
+
+    static IslandCommandRouter create(
+        IslandBankCommandHandler bankCommands,
+        IslandSnapshotCommandHandler snapshotCommands,
+        IslandWarehouseCommandHandler warehouseCommands,
+        IslandChatLogCommandHandler chatLogCommands,
+        IslandProgressionCommandHandler progressionCommands,
+        IslandEnvironmentCommandHandler environmentCommands,
+        IslandSettingsCommandHandler settingsCommands,
+        IslandHomeWarpCommandHandler homeWarpCommands,
+        IslandVisitReviewCommandHandler visitReviewCommands,
+        IslandLifecycleCommandHandler lifecycleCommands,
+        IslandOverviewCommandHandler overviewCommands,
+        IslandMembershipCommandHandler membershipCommands,
+        IslandAdminNodeCommandHandler adminCommands,
+        Plugin plugin,
+        CoreApiClient coreApiClient,
+        IslandCommandMessenger messages,
+        boolean guiMenusEnabled,
+        boolean superiorSkyblock2LegacyAliasesEnabled,
+        boolean superiorSkyblock2MigrationMode
+    ) {
         return new IslandCommandRouter(
             bankCommands,
             snapshotCommands,
@@ -128,7 +172,8 @@ final class IslandCommandRouterFactory {
                 public TaskHandle scheduleCommandWarmup(Player player, long delayTicks, Runnable task) {
                     return PaperSchedulers.runLater(plugin, task, delayTicks)::cancel;
                 }
-            }
+            },
+            new SuperiorSkyblock2CommandAliasAdapter(superiorSkyblock2LegacyAliasesEnabled, superiorSkyblock2MigrationMode)
         );
     }
 }

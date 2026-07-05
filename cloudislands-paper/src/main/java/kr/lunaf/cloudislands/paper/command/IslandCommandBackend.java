@@ -101,6 +101,10 @@ final class IslandCommandBackend {
     }
 
     IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players, PaperWorldGateway worlds, String configuredNodeId, String defaultGeneratorKey, boolean guiMenusEnabled, SnapshotRetentionPolicy snapshotRetentionPolicy) {
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, players, worlds, configuredNodeId, defaultGeneratorKey, guiMenusEnabled, snapshotRetentionPolicy, false, false);
+    }
+
+    IslandCommandBackend(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, PaperPlayerGateway players, PaperWorldGateway worlds, String configuredNodeId, String defaultGeneratorKey, boolean guiMenusEnabled, SnapshotRetentionPolicy snapshotRetentionPolicy, boolean superiorSkyblock2LegacyAliasesEnabled, boolean superiorSkyblock2MigrationMode) {
         this.commandMessages = new IslandCommandMessenger(plugin, messages, locales);
         this.islandContext = new IslandCommandIslandContext(protection);
         this.memberManagement = new MemberManagementUseCase(coreApiClient);
@@ -145,7 +149,9 @@ final class IslandCommandBackend {
             plugin,
             coreApiClient,
             commandMessages,
-            guiMenusEnabled
+            guiMenusEnabled,
+            superiorSkyblock2LegacyAliasesEnabled,
+            superiorSkyblock2MigrationMode
         );
     }
 

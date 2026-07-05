@@ -303,6 +303,7 @@ public final class PaperRuntimeConfigLoader {
                 mapGameplayV2(yaml, mapped);
             } else if (name.endsWith("migration.yml")) {
                 setIfPresent(yaml, mapped, "superiorskyblock2.enabled", "migration.superiorskyblock2.enabled");
+                setIfPresent(yaml, mapped, "legacy-aliases.superiorskyblock2.enabled", "migration.legacy-aliases.superiorskyblock2.enabled");
             } else if (name.endsWith("ui/scoreboard.yml")) {
                 setIfPresent(yaml, mapped, "lines", "messages.scoreboard-lines");
             } else if (name.contains("/ui/messages/")) {
@@ -436,7 +437,8 @@ public final class PaperRuntimeConfigLoader {
         if (config.contains("migration.superiorskyblock2-enabled")) {
             enabled = enabled && booleanValue(config, "migration.superiorskyblock2-enabled", false);
         }
-        return new PaperRuntimeConfig.Migration(enabled);
+        boolean legacyAliases = booleanValue(config, "migration.legacy-aliases.superiorskyblock2.enabled", false);
+        return new PaperRuntimeConfig.Migration(enabled, legacyAliases);
     }
 
     private static PaperRuntimeConfig.Messages messages(FileConfiguration config) {

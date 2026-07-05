@@ -3,3 +3,6 @@ superiorskyblock2:
   source-directory: plugins/SuperiorSkyblock2
   dry-run: true
   allow-write: false
+legacy-aliases:
+  superiorskyblock2:
+    enabled: false

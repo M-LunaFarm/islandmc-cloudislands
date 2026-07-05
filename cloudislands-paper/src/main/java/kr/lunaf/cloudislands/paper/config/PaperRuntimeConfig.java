@@ -241,7 +241,11 @@ public record PaperRuntimeConfig(
         }
     }
 
-    public record Migration(boolean superiorSkyblock2Enabled) {
+    public record Migration(boolean superiorSkyblock2Enabled, boolean superiorSkyblock2LegacyAliasesEnabled) {
+        public Migration(boolean superiorSkyblock2Enabled) {
+            this(superiorSkyblock2Enabled, false);
+        }
+
         public static Migration defaults() {
             return new Migration(false);
         }

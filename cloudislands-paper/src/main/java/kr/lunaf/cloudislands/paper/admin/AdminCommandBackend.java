@@ -2778,6 +2778,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         return adminText("admin-command-metrics-samples-prefix", "Core metrics: samples=") + summary.samples()
             + metricsFocusSuffix(summary)
+            + adminText("admin-command-metrics-legacy-aliases-prefix", " ")
+            + kr.lunaf.cloudislands.paper.command.SuperiorSkyblock2CommandAliasAdapter.metricsLine()
             + (summary.names().isEmpty() ? "" : " / " + String.join(", ", summary.names()));
     }
 

@@ -30,6 +30,7 @@ final class IslandCommandRouter {
     private final IslandMembershipCommandHandler membershipCommands;
     private final IslandAdminNodeCommandHandler adminCommands;
     private final Runtime runtime;
+    private final SuperiorSkyblock2CommandAliasAdapter legacyAliases;
     private final IslandCommandSuggestionService suggestions = new IslandCommandSuggestionService();
     private final IslandCommandDelayPolicy delayPolicy = new IslandCommandDelayPolicy();
     private final IslandCommandWarmupPolicy warmupPolicy = new IslandCommandWarmupPolicy();
@@ -50,6 +51,42 @@ final class IslandCommandRouter {
         IslandAdminNodeCommandHandler adminCommands,
         Runtime runtime
     ) {
+        this(
+            bankCommands,
+            snapshotCommands,
+            warehouseCommands,
+            chatLogCommands,
+            progressionCommands,
+            environmentCommands,
+            settingsCommands,
+            homeWarpCommands,
+            visitReviewCommands,
+            lifecycleCommands,
+            overviewCommands,
+            membershipCommands,
+            adminCommands,
+            runtime,
+            SuperiorSkyblock2CommandAliasAdapter.disabled()
+        );
+    }
+
+    IslandCommandRouter(
+        IslandBankCommandHandler bankCommands,
+        IslandSnapshotCommandHandler snapshotCommands,
+        IslandWarehouseCommandHandler warehouseCommands,
+        IslandChatLogCommandHandler chatLogCommands,
+        IslandProgressionCommandHandler progressionCommands,
+        IslandEnvironmentCommandHandler environmentCommands,
+        IslandSettingsCommandHandler settingsCommands,
+        IslandHomeWarpCommandHandler homeWarpCommands,
+        IslandVisitReviewCommandHandler visitReviewCommands,
+        IslandLifecycleCommandHandler lifecycleCommands,
+        IslandOverviewCommandHandler overviewCommands,
+        IslandMembershipCommandHandler membershipCommands,
+        IslandAdminNodeCommandHandler adminCommands,
+        Runtime runtime,
+        SuperiorSkyblock2CommandAliasAdapter legacyAliases
+    ) {
         this.bankCommands = bankCommands;
         this.snapshotCommands = snapshotCommands;
         this.warehouseCommands = warehouseCommands;
@@ -64,6 +101,7 @@ final class IslandCommandRouter {
         this.membershipCommands = membershipCommands;
         this.adminCommands = adminCommands;
         this.runtime = runtime;
+        this.legacyAliases = legacyAliases == null ? SuperiorSkyblock2CommandAliasAdapter.disabled() : legacyAliases;
     }
 
     boolean handleCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
@@ -75,17 +113,23 @@ final class IslandCommandRouter {
             openMainMenuOrCommandList(player, label);
             return true;
         }
-        String subcommand = args[0].toLowerCase(Locale.ROOT);
-        if (isGuiHelpRequest(args)) {
+        String[] effectiveArgs = args;
+        SuperiorSkyblock2CommandAliasAdapter.ResolvedAlias legacyAlias = legacyAliases.translate(args).orElse(null);
+        if (legacyAlias != null) {
+            effectiveArgs = legacyAlias.args();
+            sendLegacyAliasAdvice(player, legacyAlias);
+        }
+        String subcommand = effectiveArgs[0].toLowerCase(Locale.ROOT);
+        if (isGuiHelpRequest(effectiveArgs)) {
             openMainMenuOrCommandList(player, label);
             return true;
         }
-        HelpCategoryRequest helpCategoryRequest = helpCategoryRequest(args);
+        HelpCategoryRequest helpCategoryRequest = helpCategoryRequest(effectiveArgs);
         if (helpCategoryRequest != null) {
             sendCommandList(player, label, helpCategoryRequest.category().title(), helpCategoryRequest.category().commands(), helpCategoryRequest.page());
             return true;
         }
-        int commandListPage = commandListPage(args);
+        int commandListPage = commandListPage(effectiveArgs);
         if (commandListPage > 0) {
             sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, commandListPage);
             return true;
@@ -95,10 +139,17 @@ final class IslandCommandRouter {
             runtime.message(player, runtime.routeMessage("island-command-no-permission", "이 섬 명령을 사용할 권한이 없습니다."));
             return true;
         }
-        if (!checkCommandDelay(player, label, subcommand, args.clone())) {
+        if (!checkCommandDelay(player, label, subcommand, effectiveArgs.clone())) {
             return true;
         }
-        return runIslandAction(player, label, subcommand, args);
+        return runIslandAction(player, label, subcommand, effectiveArgs);
+    }
+
+    private void sendLegacyAliasAdvice(Player player, SuperiorSkyblock2CommandAliasAdapter.ResolvedAlias alias) {
+        runtime.message(player, runtime.routeMessage("legacy-ss2-alias-advice-prefix", "CloudIslands 명령은 /섬 ") + alias.displayCommand() + runtime.routeMessage("legacy-ss2-alias-advice-suffix", "입니다."));
+        if (alias.migrationMode()) {
+            runtime.message(player, runtime.routeMessage("legacy-ss2-alias-migration-mode", "SuperiorSkyblock2 migration mode: legacy /is aliases are being translated to CloudIslands commands."));
+        }
     }
 
     private boolean runIslandAction(Player player, String label, String subcommand, String[] args) {

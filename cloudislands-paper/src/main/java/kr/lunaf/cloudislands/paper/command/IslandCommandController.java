@@ -69,7 +69,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     }
 
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, String nodeId, String defaultGeneratorKey, boolean guiMenusEnabled, SnapshotRetentionPolicy snapshotRetentionPolicy) {
-        this.backend = new IslandCommandBackend(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, new kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway(), new kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway(plugin), nodeId, defaultGeneratorKey, guiMenusEnabled, snapshotRetentionPolicy);
+        this(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, nodeId, defaultGeneratorKey, guiMenusEnabled, snapshotRetentionPolicy, false, false);
+    }
+
+    public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, String nodeId, String defaultGeneratorKey, boolean guiMenusEnabled, SnapshotRetentionPolicy snapshotRetentionPolicy, boolean superiorSkyblock2LegacyAliasesEnabled, boolean superiorSkyblock2MigrationMode) {
+        this.backend = new IslandCommandBackend(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, new kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway(), new kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway(plugin), nodeId, defaultGeneratorKey, guiMenusEnabled, snapshotRetentionPolicy, superiorSkyblock2LegacyAliasesEnabled, superiorSkyblock2MigrationMode);
         this.tabCompleter = new IslandCommandTabCompleter(plugin, protection);
     }
 
