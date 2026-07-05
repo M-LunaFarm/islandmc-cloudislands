@@ -8,11 +8,11 @@ class IslandMembershipCommandHandlerTest {
     @Test
     void permissionExceptionCommandUsesMemberTargetAndPermission() {
         assertEquals(
-            "/섬 권한예외 00000000-0000-0000-0000-000000000001 BUILD 허용",
-            IslandMembershipCommandHandler.permissionExceptionCommand("00000000-0000-0000-0000-000000000001", "BUILD", "허용")
+            "/is permission-exception 00000000-0000-0000-0000-000000000001 BUILD allow",
+            IslandMembershipCommandHandler.permissionExceptionCommand("00000000-0000-0000-0000-000000000001", "BUILD", "allow")
         );
         assertEquals(
-            "/섬 권한예외 <player> <permission> <허용|거부>",
+            "/is permission-exception <player> <permission> <allow|deny>",
             IslandMembershipCommandHandler.permissionExceptionCommand("", "", "")
         );
     }

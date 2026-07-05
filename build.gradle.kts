@@ -1820,6 +1820,52 @@ tasks.register("verifyPermissionMessageKeyCoverage") {
     }
 }
 
+tasks.register("verifyMembershipMessageKeyCoverage") {
+    group = "verification"
+    description = "Verifies CI-002 membership command output uses message keys with ko_kr/en_us coverage."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java")
+    val koMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/ko_kr.yml")
+    val enMessages = layout.projectDirectory.file("cloudislands-paper/src/main/resources/config-v2/ui/messages/en_us.yml")
+    inputs.files(handler, koMessages, enMessages)
+    doLast {
+        val source = handler.asFile.readText()
+        val ko = koMessages.asFile.readText()
+        val en = enMessages.asFile.readText()
+        val directRuntimeMessage = Regex("""runtime\.message\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directCurrentIsland = Regex("""currentIsland\(player,\s*"[^"]*[\uAC00-\uD7AF]""")
+        val directPlayerSend = Regex("""player\.sendMessage\(runtime\.playerMessage\("[^"]*[\uAC00-\uD7AF]""")
+        val directRouteLookups = Regex("""runtime\.routeMessage\(""").findAll(source).count()
+        val requiredKeys = Regex("""message\("([^"]+)""")
+            .findAll(source)
+            .map { it.groupValues[1] }
+            .toSortedSet()
+        val requiredSignals = listOf(
+            "private String message(String key, String fallback)",
+            "memberListMessage(members)",
+            "banListMessage(bans)",
+            "inviteListMessage(invites)",
+            "memberActionMessage(message(\"member-remove-action-label\"",
+            "inviteActionMessage(message(\"invite-accept-action-label\"",
+            "message(\"member-action-target-prefix\"",
+            "message(\"member-action-reason-prefix\"",
+            "message(\"visitor-kick-move-success\""
+        )
+        val failures = buildList {
+            directRuntimeMessage.find(source)?.let { add("IslandMembershipCommandHandler directly sends Korean runtime.message output: ${it.value}") }
+            directCurrentIsland.find(source)?.let { add("IslandMembershipCommandHandler directly passes Korean currentIsland output: ${it.value}") }
+            directPlayerSend.find(source)?.let { add("IslandMembershipCommandHandler directly sends Korean playerMessage output: ${it.value}") }
+            if (directRouteLookups != 1) add("IslandMembershipCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
+            requiredSignals.filterNot(source::contains).forEach { signal -> add("IslandMembershipCommandHandler missing keyed output signal: $signal") }
+            requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing membership message key: $it") }
+            requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing membership message key: $it") }
+        }
+        if (failures.isNotEmpty()) {
+            throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
 tasks.register("verifyProgressionMessageKeyCoverage") {
     group = "verification"
     description = "Verifies CI-002 progression command output uses message keys with ko_kr/en_us coverage."
@@ -1944,6 +1990,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyVisitReviewMessageKeyCoverage"))
     dependsOn(tasks.named("verifyBankMessageKeyCoverage"))
     dependsOn(tasks.named("verifyPermissionMessageKeyCoverage"))
+    dependsOn(tasks.named("verifyMembershipMessageKeyCoverage"))
     dependsOn(tasks.named("verifyProgressionMessageKeyCoverage"))
     dependsOn(tasks.named("verifyTemplateBundleCreateCoverage"))
     dependsOn(tasks.named("verifyGameplayModifierRuntimeCoverage"))
