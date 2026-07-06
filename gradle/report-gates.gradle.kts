@@ -623,6 +623,7 @@ private fun superiorSkyblock2PermissionParityEntries(): List<PermissionParityEnt
 
 private fun superiorSkyblock2PermissionBacklog(): List<PermissionBacklogItem> =
     superiorSkyblock2PermissionParityEntries()
+        .filter { it.status !in setOf("SUPPORTED_VERIFIED", "COVERED_BY") }
         .filter { it.priority in setOf("P0", "P1", "P2") }
         .map { entry ->
             PermissionBacklogItem(
@@ -659,10 +660,20 @@ private fun verifySuperiorSkyblock2PermissionParityMatrix() {
     if (invalidPriorities.isNotEmpty()) {
         throw GradleException("Unsupported SuperiorSkyblock2 permission backlog priorities: ${invalidPriorities.map { it.legacyNode + "=" + it.priority }.joinToString()}")
     }
+    val incompleteHighPriority = entries.filter {
+        it.priority in setOf("P0", "P1") && it.status !in setOf("SUPPORTED_VERIFIED", "COVERED_BY")
+    }
+    if (incompleteHighPriority.isNotEmpty()) {
+        throw GradleException("SuperiorSkyblock2 P0/P1 permission parity must be supported; incomplete=${incompleteHighPriority.map { it.legacyNode + "=" + it.status }.joinToString()}")
+    }
     val backlogPriorities = superiorSkyblock2PermissionBacklog().map { it.priority }.toSet()
-    val missingBacklogPriorities = setOf("P0", "P1", "P2") - backlogPriorities
-    if (missingBacklogPriorities.isNotEmpty()) {
-        throw GradleException("SuperiorSkyblock2 permission backlog must include P0/P1/P2 groups; missing=${missingBacklogPriorities.joinToString()}")
+    val expectedBacklogPriorities = entries
+        .filter { it.status !in setOf("SUPPORTED_VERIFIED", "COVERED_BY") }
+        .map { it.priority }
+        .filter { it in setOf("P0", "P1", "P2") }
+        .toSet()
+    if (backlogPriorities != expectedBacklogPriorities) {
+        throw GradleException("SuperiorSkyblock2 permission backlog priority drift; expected=${expectedBacklogPriorities.joinToString()} actual=${backlogPriorities.joinToString()}")
     }
 }
 

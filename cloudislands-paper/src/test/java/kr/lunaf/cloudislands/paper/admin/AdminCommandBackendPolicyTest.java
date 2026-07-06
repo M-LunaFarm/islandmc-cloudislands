@@ -188,6 +188,17 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void superiorSkyblockPermissionBacklogOnlyContainsIncompleteParityEntries() throws Exception {
+        String gates = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+
+        assertTrue(gates.contains(".filter { it.status !in setOf(\"SUPPORTED_VERIFIED\", \"COVERED_BY\") }"), "Permission backlog must not list shipped or covered parity entries");
+        assertTrue(gates.contains("incompleteHighPriority"), "P0/P1 permission parity must fail fast when not supported");
+        assertTrue(gates.contains("it.priority in setOf(\"P0\", \"P1\") && it.status !in setOf(\"SUPPORTED_VERIFIED\", \"COVERED_BY\")"), "P0/P1 incomplete permission parity must be rejected");
+        assertTrue(!gates.contains("SuperiorSkyblock2 permission backlog must include P0/P1/P2 groups"), "Backlog verification must not force completed P0/P1 entries to remain in generated backlog");
+        assertTrue(gates.contains("SuperiorSkyblock2 permission backlog priority drift"), "Backlog priority validation must compare against actual incomplete entries");
+    }
+
+    @Test
     void adminRenameAndBiomeAreFirstClassIslandCommands() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
