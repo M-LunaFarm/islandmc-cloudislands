@@ -840,6 +840,24 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminOpenMenuIsAFirstClassPaperRuntimeCommand() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin openmenu <player> <menuId>"), "Openmenu help must be listed for operators");
+        assertTrue(source.contains("handleOpenMenu"), "openmenu must route through a focused Paper runtime handler");
+        assertTrue(source.contains("ADMIN_OPEN_MENU_IDS"), "openmenu must use a fixed supported-menu allowlist");
+        assertTrue(source.contains("IslandMainMenu.open(target") && source.contains("AdminNodeMenu.open(target"), "openmenu must open supported player and admin menus");
+        assertTrue(source.contains("getPlayerExact(args[1])"), "openmenu must target an online Paper player by exact name");
+        assertTrue(source.contains("auditAdminOpenMenu"), "openmenu must emit an admin audit log line");
+        assertTrue(plugin.contains("cloudislands.admin.openmenu"), "openmenu must have a plugin permission");
+        assertTrue(parity.contains("\"superior.admin.openmenu\", \"cloudislands.admin.openmenu\", \"SUPPORTED_VERIFIED\", \"P2\""), "Feature parity matrix must mark superior.admin.openmenu verified P2");
+    }
+
+    @Test
     void adminUpgradeRulesUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
 

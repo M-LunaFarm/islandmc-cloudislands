@@ -566,7 +566,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.msgall", "cloudislands.admin.message", "SUPPORTED_VERIFIED", "P1", "/ciadmin message all sends to online Paper recipients with admin runtime audit logging"),
     permissionParity("admin", "superior.admin.name", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct admin island rename is exposed by /ciadmin island rename with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.open", "cloudislands.admin.island", "COVERED_BY", "", "island activation/lifecycle commands cover availability control"),
-    permissionParity("admin", "superior.admin.openmenu", "PLANNED:admin-menu-proxy", "PLANNED", "P2", "remote menu opening is a compatibility convenience backlog item"),
+    permissionParity("admin", "superior.admin.openmenu", "cloudislands.admin.openmenu", "SUPPORTED_VERIFIED", "P2", "remote menu opening is exposed by /ciadmin openmenu <player> <menuId> with a fixed supported-menu allowlist and audit logging"),
     permissionParity("admin", "superior.admin.promote", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P0", "direct admin member promotion is exposed by /ciadmin island member promote with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.purge", "cloudislands.admin.storage", "COVERED_BY", "", "storage and recovery tooling covers destructive data maintenance paths"),
     permissionParity("admin", "superior.admin.rankup", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct admin upgrade purchase/rankup is exposed by /ciadmin island rankup through the typed admin progression client"),

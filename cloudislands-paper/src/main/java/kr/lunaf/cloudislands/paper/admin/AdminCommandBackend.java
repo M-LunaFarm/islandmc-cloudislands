@@ -68,7 +68,16 @@ import kr.lunaf.cloudislands.paper.AdminFlightOverrides;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
+import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminStorageMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandChatMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.integration.IntegrationRuntimeCertification;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.world.AdminWorldSpawnGateway;
@@ -107,6 +116,18 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> HELP_COMMANDS = AdminCommandCatalog.HELP_COMMANDS;
     private static final List<String> MIGRATION_HELP_COMMANDS = AdminCommandCatalog.MIGRATION_HELP_COMMANDS;
     private static final List<String> ADMIN_RUNTIME_TARGETS = List.of("player", "island", "all");
+    private static final List<String> ADMIN_OPEN_MENU_IDS = List.of(
+        "island.main",
+        "island.create",
+        "island.visit",
+        "island.chat",
+        "island.my-islands",
+        "admin.node",
+        "admin.storage",
+        "admin.route",
+        "admin.jobs",
+        "admin.migration"
+    );
     private final CloudIslandsPaperAgent agent;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
@@ -224,6 +245,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args[0].equalsIgnoreCase("fly")) {
             return handleAdminFlyCommand(sender, args);
+        }
+        if (args[0].equalsIgnoreCase("openmenu")) {
+            return handleOpenMenu(sender, args);
         }
         if (args[0].equalsIgnoreCase("jobs")) {
             return handleJobs(sender, args);
@@ -352,6 +376,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if ((args.length == 3 && args[0].equalsIgnoreCase("fly") && args[1].equalsIgnoreCase("all"))
             || (args.length == 4 && args[0].equalsIgnoreCase("fly") && !args[1].equalsIgnoreCase("all"))) {
             return matches(List.of("true", "false", "on", "off", "enabled", "disabled"), args[args.length - 1]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("openmenu")) {
+            return matches(onlinePlayerNames(), args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("openmenu")) {
+            return matches(ADMIN_OPEN_MENU_IDS, args[2]);
         }
         if (args.length >= 4 && args[0].equalsIgnoreCase("cmd")) {
             return matches(List.of("--confirm"), args[args.length - 1]);
@@ -2456,6 +2486,54 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleOpenMenu(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sendCommandUsage(sender, List.of("/ciadmin openmenu <player> <menuId>"));
+            return true;
+        }
+        Player target = agent.plugin().getServer().getPlayerExact(args[1]);
+        if (target == null) {
+            sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[1]);
+            return true;
+        }
+        String menuId = normalizeMenuId(args[2]);
+        if (!ADMIN_OPEN_MENU_IDS.contains(menuId)) {
+            sender.sendMessage(adminText("admin-command-openmenu-unsupported-prefix", "지원하지 않는 메뉴입니다: ")
+                + args[2]
+                + adminText("admin-command-openmenu-supported-prefix", " supported=")
+                + String.join(",", ADMIN_OPEN_MENU_IDS));
+            auditAdminOpenMenu(sender, target, args[2], false);
+            return true;
+        }
+        openAdminRequestedMenu(target, menuId);
+        auditAdminOpenMenu(sender, target, menuId, true);
+        sender.sendMessage(adminText("admin-command-openmenu-opened-prefix", "Admin menu opened: ")
+            + "target=" + target.getName()
+            + " menu=" + menuId);
+        return true;
+    }
+
+    private void openAdminRequestedMenu(Player target, String menuId) {
+        MessageRenderer targetMessages = messagesFor(target);
+        switch (menuId) {
+            case "island.main" -> IslandMainMenu.open(target, targetMessages);
+            case "island.create" -> IslandCreateMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
+            case "island.visit" -> IslandVisitMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
+            case "island.chat" -> IslandChatMenu.open(target, targetMessages);
+            case "island.my-islands" -> IslandMyIslandsMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
+            case "admin.node" -> AdminNodeMenu.open(target, nodeId, targetMessages);
+            case "admin.storage" -> AdminStorageMenu.open(target, targetMessages);
+            case "admin.route" -> AdminRouteMenu.open(target, targetMessages);
+            case "admin.jobs" -> AdminJobMenu.open(target, targetMessages);
+            case "admin.migration" -> AdminMigrationMenu.open(target, targetMessages);
+            default -> throw new IllegalArgumentException("Unsupported menu id: " + menuId);
+        }
+    }
+
+    private String normalizeMenuId(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT).replace('_', '-');
+    }
+
     private boolean handleTemplate(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
             run(sender, "Template list", coreApiClient.templates().list().thenApply(this::templateListMessage));
@@ -4217,7 +4295,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "cloudislands.admin.island.inspect";
         }
         return switch (root) {
-            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "setspawn", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "openmenu", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "setspawn", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }
@@ -4297,6 +4375,18 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 + " z=" + formatCoordinate(result.z())
                 + " yaw=" + formatCoordinate(result.yaw())
                 + " accepted=" + result.accepted()
+        );
+    }
+
+    private void auditAdminOpenMenu(CommandSender sender, Player target, String menuId, boolean opened) {
+        String actor = sender instanceof Player player ? player.getUniqueId().toString() : sender.getName();
+        agent.plugin().getLogger().warning(
+            "CloudIslands admin openmenu"
+                + " actor=" + actor
+                + " target=" + target.getUniqueId()
+                + " targetName=" + target.getName()
+                + " menu=" + menuId
+                + " opened=" + opened
         );
     }
 
