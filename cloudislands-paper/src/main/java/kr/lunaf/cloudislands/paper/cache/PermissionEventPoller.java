@@ -83,6 +83,7 @@ import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketClearedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketCreatedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketFailedEvent;
+import kr.lunaf.cloudislands.paper.AdminChatSpyRegistry;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
@@ -113,6 +114,7 @@ public final class PermissionEventPoller {
     private final GlobalEventCacheInvalidator cacheInvalidator;
     private final MessageRenderer messages;
     private final PaperPlayerGateway players;
+    private final AdminChatSpyRegistry adminChatSpies;
     private final String nodeId;
     private final String fallbackServerName;
     private final Set<String> seen = ConcurrentHashMap.newKeySet();
@@ -138,10 +140,18 @@ public final class PermissionEventPoller {
     }
 
     public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName, MessageRenderer messages, GlobalEventCacheInvalidator cacheInvalidator) {
-        this(plugin, client, permissionSync, generatorLevels, cropGrowthLevels, limits, protection, nodeId, fallbackServerName, messages, cacheInvalidator, new BukkitPlayerGateway());
+        this(plugin, client, permissionSync, generatorLevels, cropGrowthLevels, limits, protection, nodeId, fallbackServerName, messages, cacheInvalidator, (AdminChatSpyRegistry) null);
+    }
+
+    public PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName, MessageRenderer messages, GlobalEventCacheInvalidator cacheInvalidator, AdminChatSpyRegistry adminChatSpies) {
+        this(plugin, client, permissionSync, generatorLevels, cropGrowthLevels, limits, protection, nodeId, fallbackServerName, messages, cacheInvalidator, new BukkitPlayerGateway(), adminChatSpies);
     }
 
     PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName, MessageRenderer messages, GlobalEventCacheInvalidator cacheInvalidator, PaperPlayerGateway players) {
+        this(plugin, client, permissionSync, generatorLevels, cropGrowthLevels, limits, protection, nodeId, fallbackServerName, messages, cacheInvalidator, players, null);
+    }
+
+    PermissionEventPoller(Plugin plugin, CoreApiClient client, PermissionCacheSyncService permissionSync, GeneratorLevelCache generatorLevels, CropGrowthLevelCache cropGrowthLevels, IslandLimitCache limits, ProtectionController protection, String nodeId, String fallbackServerName, MessageRenderer messages, GlobalEventCacheInvalidator cacheInvalidator, PaperPlayerGateway players, AdminChatSpyRegistry adminChatSpies) {
         this.plugin = plugin;
         this.client = client;
         this.permissionSync = permissionSync;
@@ -152,6 +162,7 @@ public final class PermissionEventPoller {
         this.cacheInvalidator = cacheInvalidator;
         this.messages = messages;
         this.players = players;
+        this.adminChatSpies = adminChatSpies;
         this.nodeId = nodeId;
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
     }
@@ -413,6 +424,7 @@ public final class PermissionEventPoller {
                 deliveries++;
             }
         }
+        sendAdminSpyChat(normalizedChannel, actorName, chatMessage);
         chatBroadcasts.incrementAndGet();
         chatDeliveries.addAndGet(deliveries);
         if (deliveries == 0) {
@@ -427,6 +439,32 @@ public final class PermissionEventPoller {
             return fallback;
         }
         String rendered = messages.plain(key, "channel", channelName, "actor", actorName, "message", chatMessage);
+        return rendered.isBlank() ? fallback : rendered;
+    }
+
+    private void sendAdminSpyChat(String channelName, String actorName, String chatMessage) {
+        if (adminChatSpies == null) {
+            return;
+        }
+        String message = adminSpyMessageLine(channelName, actorName, chatMessage);
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (!adminChatSpies.enabled(online)) {
+                continue;
+            }
+            if (!online.hasPermission("cloudislands.admin.spy")) {
+                adminChatSpies.clear(online.getUniqueId());
+                continue;
+            }
+            online.sendMessage(message);
+        }
+    }
+
+    private String adminSpyMessageLine(String channelName, String actorName, String chatMessage) {
+        String fallback = "[Spy:" + channelName + "] " + actorName + ": " + chatMessage;
+        if (messages == null) {
+            return fallback;
+        }
+        String rendered = messages.plain("admin-chat-spy-format", "channel", channelName, "actor", actorName, "message", chatMessage);
         return rendered.isBlank() ? fallback : rendered;
     }
 

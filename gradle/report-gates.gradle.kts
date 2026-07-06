@@ -606,7 +606,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.setwarpslimit", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct warp-limit mutation is exposed by /ciadmin island setwarpslimit with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.show", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "", "island info maps to admin island commands"),
     permissionParity("admin", "superior.admin.spawn", "cloudislands.admin.node", "COVERED_BY", "", "node/world routing covers operational spawn context"),
-    permissionParity("admin", "superior.admin.spy", "PLANNED:admin-chat-spy", "PLANNED", "P2", "chat spy is tracked as moderation convenience backlog"),
+    permissionParity("admin", "superior.admin.spy", "cloudislands.admin.spy", "SUPPORTED_VERIFIED", "P2", "admin chat spy is exposed by /ciadmin spy with Paper global chat and Core-backed island/team chat delivery plus audit logging"),
     permissionParity("admin", "superior.admin.stats", "cloudislands.admin.metrics", "SUPPORTED_VERIFIED", "", "stats maps to metrics"),
     permissionParity("admin", "superior.admin.syncbonus", "PLANNED:bonus-compatibility", "PLANNED", "P2", "legacy bonus sync remains compatibility-only backlog"),
     permissionParity("admin", "superior.admin.syncupgrades", "cloudislands.admin.upgrade-rules", "COVERED_BY", "", "upgrade synchronization maps to upgrade rule administration"),

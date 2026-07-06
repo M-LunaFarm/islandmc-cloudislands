@@ -100,7 +100,8 @@ final class PaperIslandNodeRuntime {
             nodeId,
             fallbackServerName,
             plugin.messages,
-            plugin.agent.cacheInvalidator()
+            plugin.agent.cacheInvalidator(),
+            plugin.adminChatSpies
         );
         plugin.periodicSaveTask = new PeriodicIslandSaveTask(plugin, plugin.activeIslands, saveService, client, nodeId);
         plugin.emptyIslandSaveTask = new EmptyIslandSaveTask(plugin, plugin.activeIslands, plugin.agent.protection(), saveService, client);

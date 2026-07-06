@@ -89,6 +89,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     PaperRuntimeConfig runtimeConfig;
     PaperRuntimeCompatibility.RuntimeSelection runtimeCompatibility;
     AdminFlightOverrides adminFlightOverrides;
+    AdminChatSpyRegistry adminChatSpies;
 
     @Override
     public void onEnable() {
@@ -125,6 +126,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (adminFlightOverrides != null) {
             adminFlightOverrides.clearAll();
             adminFlightOverrides = null;
+        }
+        if (adminChatSpies != null) {
+            adminChatSpies.clearAll();
+            adminChatSpies = null;
         }
         GuiSessions.clear();
         runtimeConfig = null;
@@ -207,6 +212,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             adminFlightOverrides = new AdminFlightOverrides();
         }
         return adminFlightOverrides;
+    }
+
+    public AdminChatSpyRegistry adminChatSpies() {
+        if (adminChatSpies == null) {
+            adminChatSpies = new AdminChatSpyRegistry();
+        }
+        return adminChatSpies;
     }
 
     public PaperRuntimeConfig reloadRuntimeConfig() {

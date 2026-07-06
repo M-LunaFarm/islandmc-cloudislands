@@ -140,6 +140,8 @@ permissions:
     default: op
   cloudislands.admin.fly:
     default: op
+  cloudislands.admin.spy:
+    default: op
   cloudislands.admin.openmenu:
     default: op
   cloudislands.admin.jobs:

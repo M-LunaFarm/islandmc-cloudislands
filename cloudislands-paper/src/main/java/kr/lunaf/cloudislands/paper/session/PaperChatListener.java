@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.session;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
+import kr.lunaf.cloudislands.paper.AdminChatSpyRegistry;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -11,14 +12,20 @@ import org.bukkit.event.Listener;
 public final class PaperChatListener implements Listener {
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
+    private final AdminChatSpyRegistry adminChatSpies;
 
     public PaperChatListener(MessageRenderer messages) {
         this(messages, null);
     }
 
     public PaperChatListener(MessageRenderer messages, PlayerLocaleCache locales) {
+        this(messages, locales, null);
+    }
+
+    public PaperChatListener(MessageRenderer messages, PlayerLocaleCache locales, AdminChatSpyRegistry adminChatSpies) {
         this.messages = messages;
         this.locales = locales;
+        this.adminChatSpies = adminChatSpies;
     }
 
     @EventHandler
@@ -26,6 +33,7 @@ public final class PaperChatListener implements Listener {
         event.renderer((source, sourceDisplayName, message, viewer) ->
             chatLine(viewerLocale(viewer), sourceDisplayName, message)
         );
+        sendAdminSpyLine(event);
     }
 
     private Component chatLine(String locale, Component playerName, Component chatMessage) {
@@ -64,6 +72,37 @@ public final class PaperChatListener implements Listener {
             return "";
         }
         return locales == null ? player.getLocale() : locales.locale(player);
+    }
+
+    private void sendAdminSpyLine(AsyncChatEvent event) {
+        if (adminChatSpies == null) {
+            return;
+        }
+        Player source = event.getPlayer();
+        for (Audience viewer : event.viewers()) {
+            if (!(viewer instanceof Player player) || player.getUniqueId().equals(source.getUniqueId())) {
+                continue;
+            }
+            if (!adminChatSpies.enabled(player)) {
+                continue;
+            }
+            if (!player.hasPermission("cloudislands.admin.spy")) {
+                adminChatSpies.clear(player.getUniqueId());
+                continue;
+            }
+            player.sendMessage(spyLine(viewerLocale(player), source.displayName(), event.message()));
+        }
+    }
+
+    private Component spyLine(String locale, Component playerName, Component chatMessage) {
+        String prefix = messages.plainForLocale(locale, "admin-chat-spy-prefix", "channel", "GLOBAL");
+        if (prefix.isBlank()) {
+            prefix = "[Spy:GLOBAL] ";
+        }
+        return Component.text(prefix)
+            .append(playerName)
+            .append(Component.text(": "))
+            .append(chatMessage);
     }
 
     private int nextToken(int playerToken, int messageToken) {

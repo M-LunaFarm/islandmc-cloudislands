@@ -83,6 +83,7 @@ final class PaperPluginBootstrap {
         plugin.messages = new MessageRenderer(TranslationManager.fromSnapshot(config.messages(), config.serviceName()));
         plugin.playerLocales = new PlayerLocaleCache();
         plugin.adminFlightOverrides = new AdminFlightOverrides();
+        plugin.adminChatSpies = new AdminChatSpyRegistry();
         plugin.agent.routeTickets().setMessages(plugin.messages);
         plugin.redisClient = PaperRedisClient.create(
             config.redis().uri(),
@@ -96,7 +97,7 @@ final class PaperPluginBootstrap {
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(plugin, client);
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperPlayerProfileListener(client, plugin.playerLocales));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperBrandingListener(plugin, plugin.messages, plugin.playerLocales));
-        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperChatListener(plugin.messages, plugin.playerLocales));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperChatListener(plugin.messages, plugin.playerLocales, plugin.adminChatSpies));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperScoreboardListener(plugin, plugin.messages, plugin.playerLocales));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new MissionRewardDeliveryListener(plugin));
         if (role == AgentRole.ISLAND_NODE) {

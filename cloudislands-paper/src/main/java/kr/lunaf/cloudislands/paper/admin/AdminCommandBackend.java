@@ -64,6 +64,7 @@ import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.TemplateBundleVerificationView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
+import kr.lunaf.cloudislands.paper.AdminChatSpyRegistry;
 import kr.lunaf.cloudislands.paper.AdminFlightOverrides;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
@@ -246,6 +247,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[0].equalsIgnoreCase("fly")) {
             return handleAdminFlyCommand(sender, args);
         }
+        if (args[0].equalsIgnoreCase("spy")) {
+            return handleAdminSpyCommand(sender, args);
+        }
         if (args[0].equalsIgnoreCase("openmenu")) {
             return handleOpenMenu(sender, args);
         }
@@ -370,8 +374,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args.length == 2 && (args[0].equalsIgnoreCase("message") || args[0].equalsIgnoreCase("title") || args[0].equalsIgnoreCase("cmd") || args[0].equalsIgnoreCase("fly"))) {
             return matches(ADMIN_RUNTIME_TARGETS, args[1]);
         }
+        if (args.length == 2 && args[0].equalsIgnoreCase("spy")) {
+            List<String> suggestions = new ArrayList<>(onlinePlayerNames());
+            suggestions.addAll(List.of("true", "false", "on", "off", "enabled", "disabled", "toggle"));
+            return matches(suggestions, args[1]);
+        }
         if (args.length == 3 && (args[0].equalsIgnoreCase("message") || args[0].equalsIgnoreCase("title") || args[0].equalsIgnoreCase("cmd") || args[0].equalsIgnoreCase("fly")) && args[1].equalsIgnoreCase("player")) {
             return matches(onlinePlayerNames(), args[2]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("spy")) {
+            return matches(List.of("true", "false", "on", "off", "enabled", "disabled", "toggle"), args[2]);
         }
         if ((args.length == 3 && args[0].equalsIgnoreCase("fly") && args[1].equalsIgnoreCase("all"))
             || (args.length == 4 && args[0].equalsIgnoreCase("fly") && !args[1].equalsIgnoreCase("all"))) {
@@ -2158,6 +2170,52 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleAdminSpyCommand(CommandSender sender, String[] args) {
+        AdminChatSpyRegistry spies = adminChatSpies();
+        if (spies == null) {
+            sender.sendMessage(adminText("admin-command-spy-unavailable", "관리자 채팅 감시 상태를 사용할 수 없습니다."));
+            return true;
+        }
+        Player target;
+        String mode;
+        if (args.length == 1) {
+            if (!(sender instanceof Player player)) {
+                sendAdminRuntimeCommandUsage(sender);
+                return true;
+            }
+            target = player;
+            mode = "toggle";
+        } else if (isSpyModeArgument(args[1])) {
+            if (!(sender instanceof Player player)) {
+                sendAdminRuntimeCommandUsage(sender);
+                return true;
+            }
+            target = player;
+            mode = args[1];
+        } else {
+            target = agent.plugin().getServer().getPlayerExact(args[1]);
+            if (target == null) {
+                sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[1]);
+                return true;
+            }
+            mode = args.length > 2 ? args[2] : "toggle";
+        }
+        if (!isSpyModeArgument(mode)) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        boolean enabled = mode.equalsIgnoreCase("toggle") ? !spies.enabled(target) : booleanArgument(mode, false);
+        spies.set(target.getUniqueId(), enabled);
+        auditAdminSpy(sender, target, enabled);
+        sender.sendMessage(adminText("admin-command-spy-updated-prefix", "Admin chat spy updated: ")
+            + "target=" + target.getName()
+            + " enabled=" + enabled);
+        if (sender != target) {
+            target.sendMessage(adminText("admin-command-spy-target-updated-prefix", "Admin chat spy enabled=") + enabled);
+        }
+        return true;
+    }
+
     private CompletableFuture<List<UUID>> resolveAdminRuntimeTargetUuids(CommandSender sender, String targetMode, String target) {
         if (targetMode.equals("all")) {
             return CompletableFuture.completedFuture(agent.plugin().getServer().getOnlinePlayers().stream()
@@ -2221,6 +2279,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return null;
     }
 
+    private AdminChatSpyRegistry adminChatSpies() {
+        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
+            return plugin.adminChatSpies();
+        }
+        return null;
+    }
+
     private void sendAdminRuntimeCommandUsage(CommandSender sender) {
         sendCommandUsage(sender, List.of(
             "/ciadmin message player <playerUuid|playerName> <message>",
@@ -2234,7 +2299,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin cmd all <command> --confirm",
             "/ciadmin fly player <playerUuid|playerName> <true|false>",
             "/ciadmin fly island <islandUuid|islandName> <true|false>",
-            "/ciadmin fly all <true|false>"
+            "/ciadmin fly all <true|false>",
+            "/ciadmin spy [true|false|toggle]",
+            "/ciadmin spy <player> [true|false|toggle]"
         ));
     }
 
@@ -4295,7 +4362,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "cloudislands.admin.island.inspect";
         }
         return switch (root) {
-            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "openmenu", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "setspawn", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "spy", "openmenu", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "setspawn", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }
@@ -4387,6 +4454,17 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 + " targetName=" + target.getName()
                 + " menu=" + menuId
                 + " opened=" + opened
+        );
+    }
+
+    private void auditAdminSpy(CommandSender sender, Player target, boolean enabled) {
+        String actor = sender instanceof Player player ? player.getUniqueId().toString() : sender.getName();
+        agent.plugin().getLogger().warning(
+            "CloudIslands admin spy"
+                + " actor=" + actor
+                + " target=" + target.getUniqueId()
+                + " targetName=" + target.getName()
+                + " enabled=" + enabled
         );
     }
 
@@ -4559,6 +4637,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             || normalized.equals("disabled")
             || normalized.equals("끄기")
             || normalized.equals("비활성");
+    }
+
+    private boolean isSpyModeArgument(String value) {
+        return value != null && (value.equalsIgnoreCase("toggle") || isBooleanArgument(value));
     }
 
     private boolean confirmed(String[] args) {

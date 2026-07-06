@@ -113,6 +113,8 @@ public final class TranslationManager {
         values.put("server-brand", "{service}");
         values.put("chat-prefix", "[" + name + "] ");
         values.put("chat-format", "{prefix}{player}: {message}");
+        values.put("admin-chat-spy-prefix", "[감시:{channel}] ");
+        values.put("admin-chat-spy-format", "[감시:{channel}] {actor}: {message}");
         values.put("island-chat-format", "[섬] {actor}: {message}");
         values.put("team-chat-format", "[팀] {actor}: {message}");
         values.put("scoreboard-title", "{service}");
@@ -408,6 +410,9 @@ public final class TranslationManager {
         values.put("admin-command-runtime-world-prefix", " world=");
         values.put("admin-command-runtime-cell-prefix", " cell=");
         values.put("admin-command-runtime-fence-prefix", " fence=");
+        values.put("admin-command-spy-unavailable", "관리자 채팅 감시 상태를 사용할 수 없습니다.");
+        values.put("admin-command-spy-updated-prefix", "Admin chat spy updated: ");
+        values.put("admin-command-spy-target-updated-prefix", "Admin chat spy enabled=");
         values.put("admin-command-player-info-failed-prefix", "Player: failed code=");
         values.put("admin-command-player-info-uuid-prefix", "Player: uuid=");
         values.put("admin-command-player-info-name-prefix", " name=");

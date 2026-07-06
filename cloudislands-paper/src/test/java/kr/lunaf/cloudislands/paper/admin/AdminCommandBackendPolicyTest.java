@@ -858,6 +858,37 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminSpyIsAFirstClassModerationRuntimeCommand() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String pluginMain = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/CloudIslandsPaperPlugin.java"));
+        String bootstrap = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"));
+        String chatListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java"));
+        String eventPoller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPoller.java"));
+        String registry = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/AdminChatSpyRegistry.java"));
+        String adminSurface = backend + "\n" + catalog;
+
+        assertTrue(catalog.contains("\"fly\", \"spy\", \"openmenu\""), "Spy must be a root admin command beside runtime moderation commands");
+        assertTrue(adminSurface.contains("ciadmin spy [true|false|toggle]"), "Self spy toggle help must be listed");
+        assertTrue(adminSurface.contains("ciadmin spy <player> [true|false|toggle]"), "Targeted spy toggle help must be listed");
+        assertTrue(backend.contains("handleAdminSpyCommand"), "Spy must route through a focused Paper runtime handler");
+        assertTrue(backend.contains("adminChatSpies()"), "Spy command must mutate the shared Paper spy registry");
+        assertTrue(backend.contains("auditAdminSpy"), "Spy command must emit an admin audit log line");
+        assertTrue(backend.contains("getPlayerExact(args[1])"), "Targeted spy command must resolve online Paper players by exact name");
+        assertTrue(pluginMain.contains("AdminChatSpyRegistry adminChatSpies") && pluginMain.contains("adminChatSpies.clearAll()"), "Spy registry must be owned by the plugin and cleared on shutdown");
+        assertTrue(registry.contains("ConcurrentHashMap.newKeySet()") && registry.contains("enabled(Player player)"), "Spy registry must be thread-safe and player-addressable");
+        assertTrue(bootstrap.contains("plugin.adminChatSpies = new AdminChatSpyRegistry()"), "Bootstrap must create the spy registry");
+        assertTrue(bootstrap.contains("new PaperChatListener(plugin.messages, plugin.playerLocales, plugin.adminChatSpies)"), "Global chat listener must receive the spy registry");
+        assertTrue(chatListener.contains("sendAdminSpyLine(event)") && chatListener.contains("player.hasPermission(\"cloudislands.admin.spy\")"), "Global chat must deliver spy lines only to authorized enabled operators");
+        assertTrue(eventPoller.contains("sendAdminSpyChat(normalizedChannel, actorName, chatMessage)"), "Core-backed island/team chat broadcasts must also be visible to spy operators");
+        assertTrue(eventPoller.contains("adminSpyMessageLine") && eventPoller.contains("messages.plain(\"admin-chat-spy-format\""), "Spy chat delivery must use localizable formatting");
+        assertTrue(plugin.contains("cloudislands.admin.spy"), "Spy command must have a plugin permission");
+        assertTrue(parity.contains("\"superior.admin.spy\", \"cloudislands.admin.spy\", \"SUPPORTED_VERIFIED\", \"P2\""), "Feature parity matrix must mark superior.admin.spy verified P2");
+    }
+
+    @Test
     void adminUpgradeRulesUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
 
