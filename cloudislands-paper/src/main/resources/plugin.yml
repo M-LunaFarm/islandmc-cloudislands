@@ -138,6 +138,8 @@ permissions:
     default: op
   cloudislands.admin.cmd:
     default: op
+  cloudislands.admin.fly:
+    default: op
   cloudislands.admin.jobs:
     default: op
   cloudislands.admin.route:

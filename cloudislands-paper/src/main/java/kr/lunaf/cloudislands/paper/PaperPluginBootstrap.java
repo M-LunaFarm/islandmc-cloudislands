@@ -82,6 +82,7 @@ final class PaperPluginBootstrap {
         plugin.localCaches.registerStats("permissions", plugin.agent.permissionCache()::invalidateAll, plugin.agent.permissionCache()::lookupCount, plugin.agent.permissionCache()::hitRatio);
         plugin.messages = new MessageRenderer(TranslationManager.fromSnapshot(config.messages(), config.serviceName()));
         plugin.playerLocales = new PlayerLocaleCache();
+        plugin.adminFlightOverrides = new AdminFlightOverrides();
         plugin.agent.routeTickets().setMessages(plugin.messages);
         plugin.redisClient = PaperRedisClient.create(
             config.redis().uri(),
@@ -102,7 +103,7 @@ final class PaperPluginBootstrap {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandProtectionListener(plugin.agent.protection(), blockDeltas, config.protection().denyMessageCooldownMs(), config.protection().denyMessages()));
             plugin.boundaryListener = new IslandBoundaryListener(plugin.agent.protection(), plugin.messages);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.boundaryListener);
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages, plugin.playerLocales));
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages, plugin.playerLocales, plugin.adminFlightOverrides));
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandLimitListener(plugin.agent.protection(), limitCache, plugin.messages));
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandEntityLimitListener(plugin.agent.protection(), limitCache, plugin.messages));
             plugin.generatorLevels = new GeneratorLevelCache(client, config.generator().defaultKey());

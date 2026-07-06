@@ -88,6 +88,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     PlayerLocaleCache playerLocales;
     PaperRuntimeConfig runtimeConfig;
     PaperRuntimeCompatibility.RuntimeSelection runtimeCompatibility;
+    AdminFlightOverrides adminFlightOverrides;
 
     @Override
     public void onEnable() {
@@ -120,6 +121,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         if (playerLocales != null) {
             playerLocales.clear();
             playerLocales = null;
+        }
+        if (adminFlightOverrides != null) {
+            adminFlightOverrides.clearAll();
+            adminFlightOverrides = null;
         }
         GuiSessions.clear();
         runtimeConfig = null;
@@ -195,6 +200,13 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public PaperRuntimeCompatibility.RuntimeSelection runtimeCompatibility() {
         return runtimeCompatibility;
+    }
+
+    public AdminFlightOverrides adminFlightOverrides() {
+        if (adminFlightOverrides == null) {
+            adminFlightOverrides = new AdminFlightOverrides();
+        }
+        return adminFlightOverrides;
     }
 
     public PaperRuntimeConfig reloadRuntimeConfig() {

@@ -28,6 +28,7 @@ public final class IslandGameplayFlagListener implements Listener {
     private final ProtectionController protection;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
+    private final AdminFlightOverrides adminFlightOverrides;
 
     public IslandGameplayFlagListener(ProtectionController protection) {
         this(protection, null);
@@ -38,9 +39,14 @@ public final class IslandGameplayFlagListener implements Listener {
     }
 
     public IslandGameplayFlagListener(ProtectionController protection, MessageRenderer messages, PlayerLocaleCache locales) {
+        this(protection, messages, locales, null);
+    }
+
+    public IslandGameplayFlagListener(ProtectionController protection, MessageRenderer messages, PlayerLocaleCache locales, AdminFlightOverrides adminFlightOverrides) {
         this.protection = protection;
         this.messages = messages;
         this.locales = locales;
+        this.adminFlightOverrides = adminFlightOverrides;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -50,7 +56,7 @@ public final class IslandGameplayFlagListener implements Listener {
             return;
         }
         Block block = event.getTo() == null ? player.getLocation().getBlock() : event.getTo().getBlock();
-        boolean allowed = protection.islandAt(block).isPresent() && islandFlagAllowed(block, IslandFlag.FLY);
+        boolean allowed = adminFlightAllowed(player) || (protection.islandAt(block).isPresent() && islandFlagAllowed(block, IslandFlag.FLY));
         player.setAllowFlight(allowed);
         if (!allowed && player.isFlying()) {
             player.setFlying(false);
@@ -63,7 +69,7 @@ public final class IslandGameplayFlagListener implements Listener {
         if (!event.isFlying() || player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
             return;
         }
-        boolean denied = protection.islandAt(player.getLocation().getBlock()).isPresent() && !islandFlagAllowed(player.getLocation().getBlock(), IslandFlag.FLY);
+        boolean denied = protection.islandAt(player.getLocation().getBlock()).isPresent() && !adminFlightAllowed(player) && !islandFlagAllowed(player.getLocation().getBlock(), IslandFlag.FLY);
         event.setCancelled(denied);
         if (denied) {
             player.sendActionBar(Component.text(message(player, "flag-fly-denied", "이 섬에서는 비행할 수 없습니다.")));
@@ -170,7 +176,7 @@ public final class IslandGameplayFlagListener implements Listener {
             return;
         }
         Block block = player.getLocation().getBlock();
-        boolean allowed = protection.islandAt(block).isPresent() && islandFlagAllowed(block, IslandFlag.FLY);
+        boolean allowed = adminFlightAllowed(player) || (protection.islandAt(block).isPresent() && islandFlagAllowed(block, IslandFlag.FLY));
         player.setAllowFlight(allowed);
         if (!allowed && player.isFlying()) {
             player.setFlying(false);
@@ -178,10 +184,17 @@ public final class IslandGameplayFlagListener implements Listener {
     }
 
     private void clearManagedFlight(Player player) {
+        if (adminFlightOverrides != null) {
+            adminFlightOverrides.clear(player.getUniqueId());
+        }
         if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
             return;
         }
         player.setFlying(false);
         player.setAllowFlight(false);
+    }
+
+    private boolean adminFlightAllowed(Player player) {
+        return adminFlightOverrides != null && adminFlightOverrides.enabled(player);
     }
 }

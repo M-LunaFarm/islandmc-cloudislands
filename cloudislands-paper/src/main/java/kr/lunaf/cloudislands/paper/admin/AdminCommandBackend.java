@@ -64,6 +64,7 @@ import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.TemplateBundleVerificationView;
 import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
+import kr.lunaf.cloudislands.paper.AdminFlightOverrides;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
@@ -219,6 +220,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[0].equalsIgnoreCase("cmd")) {
             return handleAdminCmdCommand(sender, args);
         }
+        if (args[0].equalsIgnoreCase("fly")) {
+            return handleAdminFlyCommand(sender, args);
+        }
         if (args[0].equalsIgnoreCase("jobs")) {
             return handleJobs(sender, args);
         }
@@ -334,11 +338,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args.length == 2 && args[0].equalsIgnoreCase("player")) {
             return matches(PLAYER_COMMANDS, args[1]);
         }
-        if (args.length == 2 && (args[0].equalsIgnoreCase("message") || args[0].equalsIgnoreCase("title") || args[0].equalsIgnoreCase("cmd"))) {
+        if (args.length == 2 && (args[0].equalsIgnoreCase("message") || args[0].equalsIgnoreCase("title") || args[0].equalsIgnoreCase("cmd") || args[0].equalsIgnoreCase("fly"))) {
             return matches(ADMIN_RUNTIME_TARGETS, args[1]);
         }
-        if (args.length == 3 && (args[0].equalsIgnoreCase("message") || args[0].equalsIgnoreCase("title") || args[0].equalsIgnoreCase("cmd")) && args[1].equalsIgnoreCase("player")) {
+        if (args.length == 3 && (args[0].equalsIgnoreCase("message") || args[0].equalsIgnoreCase("title") || args[0].equalsIgnoreCase("cmd") || args[0].equalsIgnoreCase("fly")) && args[1].equalsIgnoreCase("player")) {
             return matches(onlinePlayerNames(), args[2]);
+        }
+        if ((args.length == 3 && args[0].equalsIgnoreCase("fly") && args[1].equalsIgnoreCase("all"))
+            || (args.length == 4 && args[0].equalsIgnoreCase("fly") && !args[1].equalsIgnoreCase("all"))) {
+            return matches(List.of("true", "false", "on", "off", "enabled", "disabled"), args[args.length - 1]);
         }
         if (args.length >= 4 && args[0].equalsIgnoreCase("cmd")) {
             return matches(List.of("--confirm"), args[args.length - 1]);
@@ -2070,6 +2078,42 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleAdminFlyCommand(CommandSender sender, String[] args) {
+        if (args.length < 3 || !ADMIN_RUNTIME_TARGETS.contains(args[1].toLowerCase(Locale.ROOT))) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        String targetMode = args[1].toLowerCase(Locale.ROOT);
+        int stateIndex = targetMode.equals("all") ? 2 : 3;
+        if (args.length <= stateIndex || !isBooleanArgument(args[stateIndex])) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        boolean allowFlight = booleanArgument(args[stateIndex], false);
+        resolveAdminRuntimeTargetUuids(sender, targetMode, targetMode.equals("all") ? "all" : args[2]).thenAccept(targetUuids ->
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> {
+                List<Player> recipients = onlinePlayers(targetUuids);
+                if (recipients.isEmpty()) {
+                    sender.sendMessage(adminText("admin-command-runtime-no-online-targets", "온라인 대상 플레이어가 없습니다."));
+                    return;
+                }
+                AdminFlightOverrides overrides = adminFlightOverrides();
+                for (Player player : recipients) {
+                    if (overrides != null) {
+                        overrides.set(player.getUniqueId(), allowFlight);
+                    }
+                    player.setAllowFlight(allowFlight);
+                    if (!allowFlight && player.isFlying()) {
+                        player.setFlying(false);
+                    }
+                }
+                auditAdminRuntimeAction(sender, "fly." + targetMode, targetMode.equals("all") ? "all" : args[2], recipients.size(), false);
+                sender.sendMessage(adminText("admin-command-runtime-fly-updated-prefix", "Admin fly updated recipients=") + recipients.size() + " enabled=" + allowFlight);
+            })
+        );
+        return true;
+    }
+
     private CompletableFuture<List<UUID>> resolveAdminRuntimeTargetUuids(CommandSender sender, String targetMode, String target) {
         if (targetMode.equals("all")) {
             return CompletableFuture.completedFuture(agent.plugin().getServer().getOnlinePlayers().stream()
@@ -2126,6 +2170,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return false;
     }
 
+    private AdminFlightOverrides adminFlightOverrides() {
+        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
+            return plugin.adminFlightOverrides();
+        }
+        return null;
+    }
+
     private void sendAdminRuntimeCommandUsage(CommandSender sender) {
         sendCommandUsage(sender, List.of(
             "/ciadmin message player <playerUuid|playerName> <message>",
@@ -2136,7 +2187,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin title all <title> [subtitle]",
             "/ciadmin cmd player <playerUuid|playerName> <command> --confirm",
             "/ciadmin cmd island <islandUuid|islandName> <command> --confirm",
-            "/ciadmin cmd all <command> --confirm"
+            "/ciadmin cmd all <command> --confirm",
+            "/ciadmin fly player <playerUuid|playerName> <true|false>",
+            "/ciadmin fly island <islandUuid|islandName> <true|false>",
+            "/ciadmin fly all <true|false>"
         ));
     }
 
@@ -4109,7 +4163,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "cloudislands.admin.island.inspect";
         }
         return switch (root) {
-            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }
@@ -4312,6 +4366,29 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return false;
         }
         return fallback;
+    }
+
+    private boolean isBooleanArgument(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        String normalized = value.toLowerCase(Locale.ROOT);
+        return normalized.equals("true")
+            || normalized.equals("yes")
+            || normalized.equals("on")
+            || normalized.equals("1")
+            || normalized.equals("enable")
+            || normalized.equals("enabled")
+            || normalized.equals("켜기")
+            || normalized.equals("활성")
+            || normalized.equals("false")
+            || normalized.equals("no")
+            || normalized.equals("off")
+            || normalized.equals("0")
+            || normalized.equals("disable")
+            || normalized.equals("disabled")
+            || normalized.equals("끄기")
+            || normalized.equals("비활성");
     }
 
     private boolean confirmed(String[] args) {
