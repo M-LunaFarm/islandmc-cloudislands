@@ -554,6 +554,41 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void socialProfileSettingsMapSs2CommandsToTypedCoreFlags() throws Exception {
+        String registry = Files.readString(Path.of("../cloudislands-protocol/src/main/java/kr/lunaf/cloudislands/protocol/command/IslandPlayerCommandRegistry.java"));
+        String permissions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandPermission.java"));
+        String settingsHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSettingsCommandHandler.java"));
+        String completer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
+        String flags = Files.readString(Path.of("../cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/model/IslandFlag.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutes.java"));
+        String koMessages = Files.readString(Path.of("src/main/resources/config-v2/ui/messages/ko_kr.yml"));
+        String enMessages = Files.readString(Path.of("src/main/resources/config-v2/ui/messages/en_us.yml"));
+        String gates = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+
+        assertTrue(registry.contains("\"setdiscord\""));
+        assertTrue(registry.contains("\"setpaypal\""));
+        assertTrue(registry.contains("\"섬 setdiscord <handle|clear>\""));
+        assertTrue(registry.contains("\"섬 setpaypal <value|clear>\""));
+        assertTrue(permissions.contains("\"setdiscord\"") && permissions.contains("\"setpaypal\""));
+        assertTrue(settingsHandler.contains("setSocialFlag(player, IslandFlag.SOCIAL_DISCORD"));
+        assertTrue(settingsHandler.contains("setSocialFlag(player, IslandFlag.SOCIAL_PAYPAL"));
+        assertTrue(settingsHandler.contains("settingsUseCase.setFlagAction(islandId, player.getUniqueId(), flag, value, runtime::mutate)"));
+        assertTrue(settingsHandler.contains("normalizeSocialValue"));
+        assertTrue(settingsHandler.contains("lower.equals(\"clear\")"));
+        assertTrue(flags.contains("SOCIAL_DISCORD"));
+        assertTrue(flags.contains("SOCIAL_PAYPAL"));
+        assertTrue(coreRoutes.contains("metadataRepository.setFlag(islandId, flag, value)"), "social metadata must persist through the audited Core island flag path");
+        assertTrue(completer.contains("first.equals(\"setdiscord\")"));
+        assertTrue(completer.contains("first.equals(\"setpaypal\")"));
+        assertTrue(koMessages.contains("social-discord-action-label:"));
+        assertTrue(koMessages.contains("social-paypal-action-label:"));
+        assertTrue(enMessages.contains("social-discord-action-label:"));
+        assertTrue(enMessages.contains("social-paypal-action-label:"));
+        assertTrue(gates.contains("permissionParity(\"player\", \"superior.island.setdiscord\", \"cloudislands.island.settings\", \"SUPPORTED_VERIFIED\""));
+        assertTrue(gates.contains("permissionParity(\"player\", \"superior.island.setpaypal\", \"cloudislands.island.settings\", \"SUPPORTED_VERIFIED\""));
+    }
+
+    @Test
     void homeWarpCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String homeWarpHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));

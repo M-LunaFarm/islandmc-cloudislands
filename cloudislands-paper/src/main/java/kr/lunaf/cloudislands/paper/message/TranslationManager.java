@@ -208,6 +208,8 @@ public final class TranslationManager {
         values.put("input-pardon-player-required", "밴 해제할 플레이어를 입력해주세요.");
         values.put("input-kick-visitor-required", "추방할 방문자를 입력해주세요.");
         values.put("input-island-name-required", "새 섬 이름을 입력해주세요.");
+        values.put("input-social-value-required", "저장할 소셜 값을 입력해주세요. clear로 비울 수 있습니다.");
+        values.put("input-social-value-invalid", "소셜 값은 128자 이하의 일반 텍스트여야 합니다.");
         values.put("input-flag-value-required", "플래그와 값을 입력해주세요.");
         values.put("input-flag-invalid", "올바른 섬 플래그를 입력해주세요.");
         values.put("input-permission-set-required", "역할, 권한, 허용 여부를 입력해주세요.");
@@ -242,6 +244,12 @@ public final class TranslationManager {
         values.put("main-menu-admin-name", "관리자 메뉴");
         values.put("main-menu-admin-command", "/ciadmin node menu");
         values.put("main-menu-title", "섬 메뉴");
+        values.put("social-discord-action-label", "섬 Discord 설정");
+        values.put("social-paypal-action-label", "섬 PayPal 설정");
+        values.put("social-set-denied", "섬 소셜 정보를 변경할 권한이 없습니다.");
+        values.put("social-set-failed", "섬 소셜 정보를 변경하지 못했습니다.");
+        values.put("social-set-island-required", "섬 안에서만 소셜 정보를 변경할 수 있습니다.");
+        values.put("social-value-cleared", "비움");
         values.put("command-list-title", "섬 명령어 목록 ");
         values.put("command-list-suffix", " - 1 line > 1 command");
         values.put("command-list-hover-click", "클릭: 명령어 입력");

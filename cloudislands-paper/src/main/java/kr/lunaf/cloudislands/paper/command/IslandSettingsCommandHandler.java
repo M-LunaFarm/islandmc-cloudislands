@@ -74,6 +74,22 @@ final class IslandSettingsCommandHandler {
             setName(player, joined(args, 1));
             return true;
         }
+        if (subcommand.equals("setdiscord") || subcommand.equals("discord") || subcommand.equals("디스코드")) {
+            if (args.length < 2) {
+                runtime.message(player, message("input-social-value-required", "저장할 소셜 값을 입력해주세요. clear로 비울 수 있습니다."));
+                return true;
+            }
+            setSocialFlag(player, IslandFlag.SOCIAL_DISCORD, "social-discord-action-label", "섬 Discord 설정", joined(args, 1));
+            return true;
+        }
+        if (subcommand.equals("setpaypal") || subcommand.equals("paypal") || subcommand.equals("페이팔")) {
+            if (args.length < 2) {
+                runtime.message(player, message("input-social-value-required", "저장할 소셜 값을 입력해주세요. clear로 비울 수 있습니다."));
+                return true;
+            }
+            setSocialFlag(player, IslandFlag.SOCIAL_PAYPAL, "social-paypal-action-label", "섬 PayPal 설정", joined(args, 1));
+            return true;
+        }
         if (subcommand.equals("fly") || subcommand.equals("비행")) {
             setFlag(player, "FLY", toggleValue(args, 1));
             return true;
@@ -249,6 +265,26 @@ final class IslandSettingsCommandHandler {
         });
     }
 
+    private void setSocialFlag(Player player, IslandFlag flag, String labelKey, String labelFallback, String rawValue) {
+        String value = normalizeSocialValue(rawValue);
+        if (value == null) {
+            runtime.message(player, message("input-social-value-invalid", "소셜 값은 128자 이하의 일반 텍스트여야 합니다."));
+            return;
+        }
+        runtime.currentIsland(player, message("social-set-island-required", "섬 안에서만 소셜 정보를 변경할 수 있습니다.")).ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
+                runtime.message(player, message("social-set-denied", "섬 소셜 정보를 변경할 권한이 없습니다."));
+                return;
+            }
+            settingsUseCase.setFlagAction(islandId, player.getUniqueId(), flag, value, runtime::mutate)
+                .thenAccept(result -> runtime.message(player, settingsActionMessage(labelKey, labelFallback, socialActionTarget(value), result)))
+                .exceptionally(error -> {
+                    runtime.message(player, runtime.coreWriteFailureMessage(error, message("social-set-failed", "섬 소셜 정보를 변경하지 못했습니다.")));
+                    return null;
+                });
+        });
+    }
+
     private void setPlayerLocale(Player player, String value) {
         String locale = PlayerIslandProfile.normalizeLocale(value);
         runtime.mutate("player.locale.set", () -> coreApiClient.playerProfileCommands().setLocale(player.getUniqueId(), locale))
@@ -333,6 +369,22 @@ final class IslandSettingsCommandHandler {
             builder.append(args[index]);
         }
         return builder.toString();
+    }
+
+    private static String normalizeSocialValue(String value) {
+        String trimmed = value == null ? "" : value.trim();
+        String lower = trimmed.toLowerCase(Locale.ROOT);
+        if (lower.equals("clear") || lower.equals("reset") || lower.equals("remove") || lower.equals("none") || lower.equals("삭제") || lower.equals("초기화")) {
+            return "";
+        }
+        if (trimmed.length() > 128 || trimmed.chars().anyMatch(Character::isISOControl)) {
+            return null;
+        }
+        return trimmed;
+    }
+
+    private String socialActionTarget(String value) {
+        return value == null || value.isBlank() ? message("social-value-cleared", "비움") : value;
     }
 
     private static String compactId(String value) {

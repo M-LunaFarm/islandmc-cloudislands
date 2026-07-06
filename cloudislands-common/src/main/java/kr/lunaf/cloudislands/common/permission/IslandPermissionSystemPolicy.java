@@ -102,7 +102,9 @@ public final class IslandPermissionSystemPolicy {
             IslandFlag.BORDER_VISIBLE,
             IslandFlag.BORDER_COLOR,
             IslandFlag.BORDER_WARNING_BLOCKS,
-            IslandFlag.BORDER_POLICY
+            IslandFlag.BORDER_POLICY,
+            IslandFlag.SOCIAL_DISCORD,
+            IslandFlag.SOCIAL_PAYPAL
     );
 
     private IslandPermissionSystemPolicy() {
