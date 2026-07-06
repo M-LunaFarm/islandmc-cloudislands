@@ -4,7 +4,7 @@ import java.util.List;
 import kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy;
 
 final class AdminCommandCatalog {
-    static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "spy", "openmenu", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "setspawn", "template", "templates", "migrate", "migrate-superiorskyblock2", "reload");
+    static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "spy", "openmenu", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "bonus", "addbonus", "syncbonus", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "setspawn", "template", "templates", "migrate", "migrate-superiorskyblock2", "reload");
     static final List<String> SETUP_COMMANDS = List.of("start", "wizard", "core", "redis", "database", "storage", "velocity", "paper-node", "verify", "explain", "export-redacted");
     static final List<String> CONFIG_COMMANDS = List.of("show", "validate", "diff", "reload", "effective", "sources");
     static final List<String> CACHE_COMMANDS = List.of("clear");
@@ -12,7 +12,7 @@ final class AdminCommandCatalog {
     static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "migration", "addon-state", "route-events");
     static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
     static final List<String> ISLAND_COMMANDS = List.of("info", "where", "inspect", "visitor-stats", "visitors", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "bulk-restore", "bank", "member", "join", "mission", "rankup", "rename", "setbiome", "biome", "delwarp", "deletewarp", "setgenerator", "addgenerator", "cleargenerator", "setbanklimit", "addbanklimit", "setentitylimit", "addentitylimit", "removeentitylimit", "setteamlimit", "addteamlimit", "setcooplimit", "addcooplimit", "setrolelimit", "setchestrow", "setwarpslimit", "addwarpslimit", "setsize", "addsize", "setblocklimit", "addblocklimit", "removeblocklimit", "setrate", "removeratings", "setsettings", "resetsettings", "ignore", "unignore", "setpermission", "resetpermissions", "quarantine", "recover", "repair", "delete");
-    static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland");
+    static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland", "setdisbands", "givedisbands");
     static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "tickets", "clear");
     static final List<String> STORAGE_COMMANDS = List.of("status", "verify");
@@ -140,6 +140,8 @@ final class AdminCommandCatalog {
         "ciadmin player info <player>",
         "ciadmin player setisland <player> <islandUuid>",
         "ciadmin player clearisland <player>",
+        "ciadmin player setdisbands <player> <value>",
+        "ciadmin player givedisbands <player> <delta>",
         "ciadmin message player <player> <message>",
         "ciadmin message island <island> <message>",
         "ciadmin message all <message>",
@@ -177,6 +179,9 @@ final class AdminCommandCatalog {
         "ciadmin block-values set <materialKey> <worth> <levelPoints> <limit>",
         "ciadmin block-values reload",
         "ciadmin upgrade-rules",
+        "ciadmin bonus <island>",
+        "ciadmin addbonus <island> <bonusKey> <delta>",
+        "ciadmin syncbonus <island>",
         "ciadmin setblockamount <island> <materialKey> <amount>",
         "ciadmin seteffect <island> <effectKey> <amplifier>",
         "ciadmin setcropgrowth <island> <percent>",

@@ -68,6 +68,16 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
         return cache(delegate.clearPrimaryIsland(playerUuid));
     }
 
+    @Override
+    public PlayerIslandProfile setDisbandsRemaining(UUID playerUuid, int value) {
+        return cache(delegate.setDisbandsRemaining(playerUuid, value));
+    }
+
+    @Override
+    public PlayerIslandProfile addDisbandsRemaining(UUID playerUuid, int delta) {
+        return cache(delegate.addDisbandsRemaining(playerUuid, delta));
+    }
+
     public long failuresTotal() {
         return failures.get();
     }
@@ -127,12 +137,13 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
             + "|" + encodeText(profile.lastName())
             + "|" + profile.primaryIslandId().map(UUID::toString).orElse("")
             + "|" + profile.lastSeenAt()
-            + "|" + encodeText(profile.locale());
+            + "|" + encodeText(profile.locale())
+            + "|" + profile.disbandsRemaining();
     }
 
     private static PlayerIslandProfile profileFromJson(String value) {
         String[] parts = value.split("\\|", -1);
-        if (parts.length != 4 && parts.length != 5) {
+        if (parts.length != 4 && parts.length != 5 && parts.length != 6) {
             throw new IllegalArgumentException("invalid cached player profile");
         }
         return new PlayerIslandProfile(
@@ -140,7 +151,8 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
             decodeText(parts[1]),
             parts[2].isBlank() ? Optional.empty() : Optional.of(UUID.fromString(parts[2])),
             instant(parts[3]),
-            parts.length == 5 ? decodeText(parts[4]) : "ko_kr"
+            parts.length >= 5 ? decodeText(parts[4]) : "ko_kr",
+            parts.length == 6 ? integer(parts[5]) : 0
         );
     }
 
@@ -157,6 +169,14 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
             return Instant.parse(value);
         } catch (RuntimeException ignored) {
             return Instant.EPOCH;
+        }
+    }
+
+    private static int integer(String value) {
+        try {
+            return Integer.parseInt(value);
+        } catch (RuntimeException ignored) {
+            return 0;
         }
     }
 }

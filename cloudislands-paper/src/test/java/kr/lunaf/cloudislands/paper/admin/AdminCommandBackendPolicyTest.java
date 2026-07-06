@@ -114,6 +114,65 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminPlayerDisbandQuotaCommandsAreBackedByTypedCoreProfileMutations() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String profileClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/PlayerProfileCommandClient.java"));
+        String jdkProfileClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkPlayerProfileCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/PlayerProfileRoutes.java"));
+        String profileModel = Files.readString(Path.of("../cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/model/PlayerIslandProfile.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("\"setdisbands\""), "Admin player command completion must expose setdisbands");
+        assertTrue(adminSurface.contains("\"givedisbands\""), "Admin player command completion must expose givedisbands");
+        assertTrue(adminSurface.contains("ciadmin player setdisbands <player> <value>"), "setdisbands must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin player givedisbands <player> <delta>"), "givedisbands must be listed in help");
+        assertTrue(source.contains("coreApiClient.playerProfileCommands().setDisbandsRemaining(playerUuid, value)"), "setdisbands must call the typed Core profile mutation");
+        assertTrue(source.contains("coreApiClient.playerProfileCommands().addDisbandsRemaining(playerUuid, delta)"), "givedisbands must call the typed Core profile mutation");
+        assertTrue(source.contains("profile.disbandsRemaining()"), "Admin player output must render the remaining disband quota");
+        assertTrue(profileClient.contains("setDisbandsRemaining(UUID playerUuid, int value)"), "Typed profile client must expose absolute disband quota mutation");
+        assertTrue(profileClient.contains("addDisbandsRemaining(UUID playerUuid, int delta)"), "Typed profile client must expose additive disband quota mutation");
+        assertTrue(jdkProfileClient.contains("postResultBody(\"/v1/admin/players/setdisbands\""), "JDK profile client must call the setdisbands route");
+        assertTrue(jdkProfileClient.contains("postResultBody(\"/v1/admin/players/adddisbands\""), "JDK profile client must call the adddisbands route");
+        assertTrue(coreRoutes.contains("PLAYER_SET_DISBANDS"), "Core route must audit absolute disband quota changes");
+        assertTrue(coreRoutes.contains("PLAYER_ADD_DISBANDS"), "Core route must audit additive disband quota changes");
+        assertTrue(profileModel.contains("int disbandsRemaining"), "Player profile model must persist disband quota state");
+        assertTrue(parity.contains("superior.admin.givedisbands\", \"cloudislands.admin.player\", \"SUPPORTED_VERIFIED\""), "givedisbands parity must be supported");
+        assertTrue(parity.contains("superior.admin.setdisbands\", \"cloudislands.admin.player\", \"SUPPORTED_VERIFIED\""), "setdisbands parity must be supported");
+    }
+
+    @Test
+    void adminBonusCompatibilityCommandsUseCoreLimitStateAndUpgradeRecalculation() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String progressionClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/ProgressionCommandClient.java"));
+        String jdkProgressionClient = Files.readString(Path.of("../cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkProgressionCommandClient.java"));
+        String coreRoutes = Files.readString(Path.of("../cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandUpgradeRoutes.java"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("\"bonus\""), "Bonus inspection root command must be cataloged");
+        assertTrue(adminSurface.contains("\"addbonus\""), "Bonus additive root command must be cataloged");
+        assertTrue(adminSurface.contains("\"syncbonus\""), "Bonus sync root command must be cataloged");
+        assertTrue(adminSurface.contains("ciadmin bonus <island>"), "Bonus command must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin addbonus <island> <bonusKey> <delta>"), "Addbonus command must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin syncbonus <island>"), "Syncbonus command must be listed in help");
+        assertTrue(source.contains("BONUS_LIMIT_PREFIX = \"BONUS:\""), "Bonus compatibility state must use explicit Core limit key namespace");
+        assertTrue(source.contains("coreApiClient.environment().limitViews(islandId).thenApply(this::bonusListMessage)"), "Bonus inspection must read typed Core limit state");
+        assertTrue(source.contains("coreApiClient.environmentCommands().adminAddLimit(islandId, bonusLimitKey(args[2]), number(args[3], 0L))"), "Addbonus must mutate typed Core limit state");
+        assertTrue(source.contains("coreApiClient.progressionCommands().adminRecalculateUpgrades(islandId)"), "Syncbonus must recalculate upgrade effects through typed Core");
+        assertTrue(source.contains("return \"cloudislands.admin.upgrade-rules\";"), "Bonus compatibility roots must use upgrade-rules admin permission");
+        assertTrue(progressionClient.contains("adminRecalculateUpgrades(UUID islandId)"), "Progression command client must expose admin recalculation");
+        assertTrue(jdkProgressionClient.contains("postResultBody(\"/v1/admin/islands/upgrades/recalculate\""), "JDK progression client must call admin recalculation route");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/upgrades/recalculate"), "Core upgrade routes must register admin recalculation");
+        assertTrue(coreRoutes.contains("ISLAND_UPGRADE_ADMIN_RECALCULATE"), "Core admin recalculation must be audited");
+        assertTrue(parity.contains("superior.admin.addbonus\", \"cloudislands.admin.upgrade-rules\", \"SUPPORTED_VERIFIED\""), "addbonus parity must be supported");
+        assertTrue(parity.contains("superior.admin.bonus\", \"cloudislands.admin.upgrade-rules\", \"SUPPORTED_VERIFIED\""), "bonus parity must be supported");
+        assertTrue(parity.contains("superior.admin.syncbonus\", \"cloudislands.admin.upgrade-rules\", \"SUPPORTED_VERIFIED\""), "syncbonus parity must be supported");
+    }
+
+    @Test
     void adminBankDepositAndWithdrawAreFirstClassIslandCommands() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

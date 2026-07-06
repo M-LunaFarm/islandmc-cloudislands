@@ -33,6 +33,8 @@ public final class PlayerProfileRoutes implements RouteGroup {
         registry.routePost("/v1/players/locale", this::locale);
         registry.routePost("/v1/admin/players/setisland", this::setIsland);
         registry.routePost("/v1/admin/players/clearisland", this::clearIsland);
+        registry.routePost("/v1/admin/players/setdisbands", this::setDisbands);
+        registry.routePost("/v1/admin/players/adddisbands", this::addDisbands);
     }
 
     private void adminInfo(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
@@ -84,6 +86,22 @@ public final class PlayerProfileRoutes implements RouteGroup {
         CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.clearPrimaryIsland(playerUuid)));
     }
 
+    private void setDisbands(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        int value = JsonFields.integer(body, "value", 0);
+        audit.log(EMPTY_UUID, "ADMIN", "PLAYER_SET_DISBANDS", "PLAYER", playerUuid.toString(), Map.of("value", Integer.toString(Math.max(0, value))));
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setDisbandsRemaining(playerUuid, value)));
+    }
+
+    private void addDisbands(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        int delta = JsonFields.integer(body, "delta", 0);
+        audit.log(EMPTY_UUID, "ADMIN", "PLAYER_ADD_DISBANDS", "PLAYER", playerUuid.toString(), Map.of("delta", Integer.toString(delta)));
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.addDisbandsRemaining(playerUuid, delta)));
+    }
+
     static String playerProfileJson(PlayerIslandProfile profile) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("playerUuid", profile.playerUuid());
@@ -91,6 +109,7 @@ public final class PlayerProfileRoutes implements RouteGroup {
         values.put("primaryIslandId", profile.primaryIslandId().orElse(null));
         values.put("lastSeenAt", profile.lastSeenAt());
         values.put("locale", profile.locale());
+        values.put("disbandsRemaining", profile.disbandsRemaining());
         return SimpleJson.stringify(values);
     }
 }

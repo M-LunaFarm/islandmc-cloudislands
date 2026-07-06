@@ -12,4 +12,6 @@ public interface PlayerProfileRepository {
     PlayerIslandProfile setLocale(UUID playerUuid, String locale);
     PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId);
     PlayerIslandProfile clearPrimaryIsland(UUID playerUuid);
+    PlayerIslandProfile setDisbandsRemaining(UUID playerUuid, int value);
+    PlayerIslandProfile addDisbandsRemaining(UUID playerUuid, int delta);
 }

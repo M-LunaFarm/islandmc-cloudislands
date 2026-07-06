@@ -131,6 +131,22 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void superiorSkyblockStackerPermissionParityIsBackedByEnvironmentAndRuntimeAdapters() throws Exception {
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackerIntegration.java"));
+        String registry = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java"));
+        String environmentHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java"));
+
+        assertTrue(parity.contains("superior.island.stacker.*\", \"cloudislands.island.environment\", \"SUPPORTED_VERIFIED\""), "stacker wildcard permission must map to the environment command surface");
+        assertTrue(parity.contains("superior.island.stacker.<block-type>\", \"cloudislands.island.environment\", \"COVERED_BY\""), "per-block stacker permission must be covered by the same environment and block-limit surface");
+        assertTrue(stacker.contains("IntegrationCapability.RUNTIME_AUTHORITY"), "Stacker adapters must run as runtime-authoritative integrations");
+        assertTrue(stacker.contains("effective-stack-export"), "Stacker adapters must export effective stacked state");
+        assertTrue(stacker.contains("effective-stack-restore"), "Stacker adapters must restore effective stacked state");
+        assertTrue(registry.contains("\"RoseStacker\", \"WildStacker\", \"AdvancedSpawners\""), "Supported stacker plugins must be registered");
+        assertTrue(environmentHandler.contains("STACKED_BLOCKS_VISIBLE_LIMIT_KEY"), "Player stacker visibility must persist through Core environment limits");
+    }
+
+    @Test
     void upgradeKeySuggestionsCoverConfiguredUpgradeEffects() {
         assertEquals(List.of(
             "size",

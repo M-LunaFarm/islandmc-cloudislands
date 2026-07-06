@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS player_profiles (
     last_name VARCHAR(16),
     primary_island_id CHAR(36),
     locale VARCHAR(16) NOT NULL DEFAULT 'ko_kr',
+    disbands_remaining INTEGER NOT NULL DEFAULT 0,
     last_seen_at DATETIME(6),
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
@@ -66,7 +67,8 @@ CREATE TABLE IF NOT EXISTS player_profiles (
     CONSTRAINT chk_player_profiles_last_name_not_blank CHECK (last_name IS NULL OR trim(last_name) <> ''),
     CONSTRAINT chk_player_profiles_locale_trimmed CHECK (locale = trim(locale)),
     CONSTRAINT chk_player_profiles_locale_not_blank CHECK (trim(locale) <> ''),
-    CONSTRAINT chk_player_profiles_locale_lowercase CHECK (locale = lower(locale))
+    CONSTRAINT chk_player_profiles_locale_lowercase CHECK (locale = lower(locale)),
+    CONSTRAINT chk_player_profiles_disbands_remaining_nonnegative CHECK (disbands_remaining >= 0)
 );
 
 CREATE TABLE IF NOT EXISTS islands (

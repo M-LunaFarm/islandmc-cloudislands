@@ -28,7 +28,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     @Override
     public PlayerIslandProfile touch(UUID playerUuid, String lastName) {
         PlayerIslandProfile current = find(playerUuid);
-        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now(), current.locale());
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now(), current.locale(), current.disbandsRemaining());
         profiles.put(playerUuid, updated);
         return updated;
     }
@@ -36,7 +36,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     @Override
     public PlayerIslandProfile touch(UUID playerUuid, String lastName, String locale) {
         PlayerIslandProfile current = find(playerUuid);
-        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now(), locale);
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now(), locale, current.disbandsRemaining());
         profiles.put(playerUuid, updated);
         return updated;
     }
@@ -44,7 +44,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     @Override
     public PlayerIslandProfile setLocale(UUID playerUuid, String locale) {
         PlayerIslandProfile current = find(playerUuid);
-        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), locale);
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), locale, current.disbandsRemaining());
         profiles.put(playerUuid, updated);
         return updated;
     }
@@ -52,7 +52,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     @Override
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         PlayerIslandProfile current = find(playerUuid);
-        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), Optional.of(islandId), current.lastSeenAt(), current.locale());
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), Optional.of(islandId), current.lastSeenAt(), current.locale(), current.disbandsRemaining());
         profiles.put(playerUuid, updated);
         return updated;
     }
@@ -60,7 +60,23 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     @Override
     public PlayerIslandProfile clearPrimaryIsland(UUID playerUuid) {
         PlayerIslandProfile current = find(playerUuid);
-        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), Optional.empty(), current.lastSeenAt(), current.locale());
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), Optional.empty(), current.lastSeenAt(), current.locale(), current.disbandsRemaining());
+        profiles.put(playerUuid, updated);
+        return updated;
+    }
+
+    @Override
+    public PlayerIslandProfile setDisbandsRemaining(UUID playerUuid, int value) {
+        PlayerIslandProfile current = find(playerUuid);
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), value);
+        profiles.put(playerUuid, updated);
+        return updated;
+    }
+
+    @Override
+    public PlayerIslandProfile addDisbandsRemaining(UUID playerUuid, int delta) {
+        PlayerIslandProfile current = find(playerUuid);
+        PlayerIslandProfile updated = new PlayerIslandProfile(playerUuid, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), current.disbandsRemaining() + delta);
         profiles.put(playerUuid, updated);
         return updated;
     }

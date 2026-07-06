@@ -266,6 +266,7 @@ class CoreMutationContextTest {
         server.createContext("/v1/islands/upgrades", exchange -> respond(exchange, requestBodies, "upgrades", "{\"upgrades\":[]}"));
         server.createContext("/v1/islands/upgrades/purchase", exchange -> respond(exchange, requestBodies, "upgradePurchase", "{\"accepted\":true}"));
         server.createContext("/v1/admin/islands/upgrades/purchase", exchange -> respond(exchange, requestBodies, "adminUpgradePurchase", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/islands/upgrades/recalculate", exchange -> respond(exchange, requestBodies, "adminUpgradeRecalculate", "{\"accepted\":true,\"islandId\":\"" + islandId + "\",\"applied\":2}"));
         server.createContext("/v1/islands/missions", exchange -> respond(exchange, requestBodies, "missions", "{\"missions\":[]}"));
         server.createContext("/v1/islands/missions/complete", exchange -> respond(exchange, requestBodies, "missionComplete", "{\"accepted\":true}"));
         server.createContext("/v1/islands/missions/progress", exchange -> respond(exchange, requestBodies, "missionProgress", "{\"accepted\":true}"));
@@ -292,6 +293,7 @@ class CoreMutationContextTest {
             client.progression().upgrades(islandId).join();
             client.progressionCommands().purchaseUpgrade(islandId, actorUuid, "generator\"speed").join();
             client.progressionCommands().adminPurchaseUpgrade(islandId, "size\"rank").join();
+            client.progressionCommands().adminRecalculateUpgrades(islandId).join();
             client.progression().missions(islandId, "MISSION\"DAILY").join();
             client.progressionCommands().completeMission(islandId, actorUuid, "starter\"mission", "CHALLENGE").join();
             client.progressionCommands().progressMission(islandId, actorUuid, "starter\"mission", "CHALLENGE", -5L).join();
@@ -324,6 +326,7 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("upgrades"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"upgradeKey\":\"generator\\\"speed\"}", requestBodies.get("upgradePurchase"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"upgradeKey\":\"size\\\"rank\"}", requestBodies.get("adminUpgradePurchase"));
+            assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("adminUpgradeRecalculate"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"kind\":\"MISSION\\\"DAILY\"}", requestBodies.get("missions"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\"}", requestBodies.get("missionComplete"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"starter\\\"mission\",\"kind\":\"CHALLENGE\",\"amount\":0}", requestBodies.get("missionProgress"));
@@ -449,6 +452,8 @@ class CoreMutationContextTest {
         server.createContext("/v1/players/locale", exchange -> respond(exchange, requestBodies, "playerLocale", "{\"accepted\":true}"));
         server.createContext("/v1/admin/players/setisland", exchange -> respond(exchange, requestBodies, "playerSetIsland", "{\"accepted\":true}"));
         server.createContext("/v1/admin/players/clearisland", exchange -> respond(exchange, requestBodies, "playerClearIsland", "{\"accepted\":true}"));
+        server.createContext("/v1/admin/players/setdisbands", exchange -> respond(exchange, requestBodies, "playerSetDisbands", "{\"playerUuid\":\"" + playerUuid + "\",\"disbandsRemaining\":7}"));
+        server.createContext("/v1/admin/players/adddisbands", exchange -> respond(exchange, requestBodies, "playerAddDisbands", "{\"playerUuid\":\"" + playerUuid + "\",\"disbandsRemaining\":9}"));
         server.createContext("/v1/admin/templates/get", exchange -> respond(exchange, requestBodies, "templateGet", "{\"id\":\"template\\\"one\",\"displayName\":\"Template One\",\"enabled\":true}"));
         server.createContext("/v1/admin/templates/upsert", exchange -> respond(exchange, requestBodies, "templateUpsert", "{\"accepted\":true}"));
         server.createContext("/v1/admin/templates/import-bundle", exchange -> respond(exchange, requestBodies, "templateImportBundle", "{\"id\":\"bundle\\\"one\",\"displayName\":\"Bundle One\",\"enabled\":false,\"bundleStoragePath\":\"templates/bundle.tar\",\"bundleChecksum\":\"sha256:abc\",\"bundleSizeBytes\":4096}"));
@@ -476,6 +481,8 @@ class CoreMutationContextTest {
             client.playerProfileCommands().setLocale(playerUuid, "en\"US").join();
             client.playerProfileCommands().setPrimaryIsland(playerUuid, islandId).join();
             client.playerProfileCommands().clearPrimaryIsland(playerUuid).join();
+            client.playerProfileCommands().setDisbandsRemaining(playerUuid, 7).join();
+            client.playerProfileCommands().addDisbandsRemaining(playerUuid, 2).join();
             client.templates().get("template\"one").join();
             client.templateCommands().upsert("template\"one", "Template \"One\"", true, "1.21\"11").join();
             client.templateCommands().importBundle(new TemplateView("bundle\"one", "Bundle \"One\"", "Desc", "premium", false, "1.21", "cloudislands.template.bundle", "CHEST", 12, "preview/bundle.png", "templates/bundle.tar", "sha256:abc", 4096L, 3, 256, 1.5D, 80.0D, -1.5D, 90.0F, 10.0F, "spawn", "void", "minecraft:the_void", "CYAN", "25", "100", 5, List.of("starter", "paid"))).join();
@@ -520,6 +527,8 @@ class CoreMutationContextTest {
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"locale\":\"en\\\"US\"}", requestBodies.get("playerLocale"));
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}", requestBodies.get("playerSetIsland"));
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("playerClearIsland"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"value\":7}", requestBodies.get("playerSetDisbands"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"delta\":2}", requestBodies.get("playerAddDisbands"));
             assertEquals("{\"templateId\":\"template\\\"one\"}", requestBodies.get("templateGet"));
             assertEquals("{\"templateId\":\"template\\\"one\",\"displayName\":\"Template \\\"One\\\"\",\"enabled\":true,\"minNodeVersion\":\"1.21\\\"11\"}", requestBodies.get("templateUpsert"));
             assertEquals("{\"templateId\":\"bundle\\\"one\",\"displayName\":\"Bundle \\\"One\\\"\",\"description\":\"Desc\",\"category\":\"premium\",\"enabled\":false,\"minNodeVersion\":\"1.21\",\"requiredPermission\":\"cloudislands.template.bundle\",\"iconMaterial\":\"CHEST\",\"iconCustomModelData\":12,\"previewImageKey\":\"preview/bundle.png\",\"bundleStoragePath\":\"templates/bundle.tar\",\"bundleChecksum\":\"sha256:abc\",\"bundleSizeBytes\":4096,\"schemaVersion\":3,\"defaultIslandSize\":256,\"spawnWorldOffsetX\":1.5,\"spawnWorldOffsetY\":80.0,\"spawnWorldOffsetZ\":-1.5,\"spawnYaw\":90.0,\"spawnPitch\":10.0,\"homeName\":\"spawn\",\"environmentPreset\":\"void\",\"biomeKey\":\"minecraft:the_void\",\"borderColor\":\"CYAN\",\"bankInitialBalance\":\"25\",\"creationCost\":\"100\",\"sortOrder\":5,\"tags\":\"starter,paid\"}", requestBodies.get("templateImportBundle"));

@@ -21,7 +21,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     public PlayerIslandProfile find(UUID playerUuid) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale FROM player_profiles WHERE uuid = ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale, disbands_remaining FROM player_profiles WHERE uuid = ?")) {
             statement.setObject(1, playerUuid);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? profile(rs) : new PlayerIslandProfile(playerUuid, "", Optional.empty(), Instant.EPOCH);
@@ -37,7 +37,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             return Optional.empty();
         }
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY CASE WHEN last_seen_at IS NULL THEN 1 ELSE 0 END, last_seen_at DESC LIMIT 1")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale, disbands_remaining FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY CASE WHEN last_seen_at IS NULL THEN 1 ELSE 0 END, last_seen_at DESC LIMIT 1")) {
             statement.setString(1, lastName);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? Optional.of(profile(rs)) : Optional.empty();
@@ -115,6 +115,34 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
         }
     }
 
+    @Override
+    public PlayerIslandProfile setDisbandsRemaining(UUID playerUuid, int value) {
+        ensure(playerUuid);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET disbands_remaining = ?, updated_at = now() WHERE uuid = ?")) {
+            statement.setInt(1, Math.max(0, value));
+            statement.setObject(2, playerUuid);
+            statement.executeUpdate();
+            return find(playerUuid);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to set player disbands remaining", exception);
+        }
+    }
+
+    @Override
+    public PlayerIslandProfile addDisbandsRemaining(UUID playerUuid, int delta) {
+        ensure(playerUuid);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET disbands_remaining = GREATEST(0, disbands_remaining + ?), updated_at = now() WHERE uuid = ?")) {
+            statement.setInt(1, delta);
+            statement.setObject(2, playerUuid);
+            statement.executeUpdate();
+            return find(playerUuid);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to add player disbands remaining", exception);
+        }
+    }
+
     private void ensure(UUID playerUuid) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(ensureSql(connection))) {
@@ -159,7 +187,8 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             rs.getString("last_name") == null ? "" : rs.getString("last_name"),
             Optional.ofNullable(primaryIslandId),
             rs.getTimestamp("last_seen_at") == null ? Instant.EPOCH : rs.getTimestamp("last_seen_at").toInstant(),
-            rs.getString("locale")
+            rs.getString("locale"),
+            rs.getInt("disbands_remaining")
         );
     }
 }

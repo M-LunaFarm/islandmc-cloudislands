@@ -3,6 +3,7 @@ CREATE TABLE player_profiles (
     last_name VARCHAR(16),
     primary_island_id UUID,
     locale VARCHAR(16) NOT NULL DEFAULT 'ko_kr',
+    disbands_remaining INTEGER NOT NULL DEFAULT 0,
     last_seen_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

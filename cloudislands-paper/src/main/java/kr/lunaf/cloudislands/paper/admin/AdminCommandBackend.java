@@ -58,6 +58,7 @@ import kr.lunaf.cloudislands.coreclient.PermissionActionView;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
+import kr.lunaf.cloudislands.coreclient.ProgressionUpgradeRecalculationView;
 import kr.lunaf.cloudislands.coreclient.ReviewActionView;
 import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
@@ -116,6 +117,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> NODE_DANGER_REASONS = AdminCommandCatalog.NODE_DANGER_REASONS;
     private static final List<String> HELP_COMMANDS = AdminCommandCatalog.HELP_COMMANDS;
     private static final List<String> MIGRATION_HELP_COMMANDS = AdminCommandCatalog.MIGRATION_HELP_COMMANDS;
+    private static final String BONUS_LIMIT_PREFIX = "BONUS:";
     private static final List<String> ADMIN_RUNTIME_TARGETS = List.of("player", "island", "all");
     private static final List<String> ADMIN_OPEN_MENU_IDS = List.of(
         "island.main",
@@ -292,6 +294,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[0].equalsIgnoreCase("upgrade-rules")) {
             run(sender, "Upgrade rules", coreApiClient.progression().upgradeRules().thenApply(this::upgradeRulesMessage));
             return true;
+        }
+        if (args[0].equalsIgnoreCase("bonus") || args[0].equalsIgnoreCase("addbonus") || args[0].equalsIgnoreCase("syncbonus")) {
+            return handleBonusCompatibility(sender, args);
         }
         if (gameplayModifierCommand(args[0])) {
             return handleGameplayModifier(sender, args);
@@ -1978,7 +1983,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             sendCommandUsage(sender, List.of(
                 "/ciadmin player info <playerUuid|playerName>",
                 "/ciadmin player setisland <playerUuid|playerName> <islandUuid>",
-                "/ciadmin player clearisland <playerUuid|playerName>"
+                "/ciadmin player clearisland <playerUuid|playerName>",
+                "/ciadmin player setdisbands <playerUuid|playerName> <value>",
+                "/ciadmin player givedisbands <playerUuid|playerName> <delta>"
             ));
             return true;
         }
@@ -2005,10 +2012,30 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 run(sender, "Player clearisland", coreApiClient.playerProfileCommands().clearPrimaryIsland(playerUuid).thenApply(profile -> playerActionMessage("Player clearisland", profile)));
                 return;
             }
+            if (args[1].equalsIgnoreCase("setdisbands")) {
+                if (args.length < 4) {
+                    sender.sendMessage(adminText("admin-command-player-disbands-value-required", "디스밴드 횟수를 입력해주세요."));
+                    return;
+                }
+                int value = boundedInt(Math.max(0L, number(args[3], 0L)));
+                run(sender, "Player setdisbands", coreApiClient.playerProfileCommands().setDisbandsRemaining(playerUuid, value).thenApply(profile -> playerDisbandsActionMessage("Player setdisbands", profile)));
+                return;
+            }
+            if (args[1].equalsIgnoreCase("givedisbands")) {
+                if (args.length < 4) {
+                    sender.sendMessage(adminText("admin-command-player-disbands-delta-required", "추가할 디스밴드 횟수를 입력해주세요."));
+                    return;
+                }
+                int delta = boundedInt(number(args[3], 0L));
+                run(sender, "Player givedisbands", coreApiClient.playerProfileCommands().addDisbandsRemaining(playerUuid, delta).thenApply(profile -> playerDisbandsActionMessage("Player givedisbands", profile)));
+                return;
+            }
             sendCommandUsage(sender, List.of(
                 "/ciadmin player info <playerUuid|playerName>",
                 "/ciadmin player setisland <playerUuid|playerName> <islandUuid>",
-                "/ciadmin player clearisland <playerUuid|playerName>"
+                "/ciadmin player clearisland <playerUuid|playerName>",
+                "/ciadmin player setdisbands <playerUuid|playerName> <value>",
+                "/ciadmin player givedisbands <playerUuid|playerName> <delta>"
             ));
         }).exceptionally(error -> {
             sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
@@ -2357,6 +2384,39 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin rankings level [limit]",
             "/ciadmin rankings worth [limit]"
         ));
+        return true;
+    }
+
+    private boolean handleBonusCompatibility(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sendCommandUsage(sender, List.of(
+                "/ciadmin bonus <islandUuid|islandName>",
+                "/ciadmin addbonus <islandUuid|islandName> <bonusKey> <delta>",
+                "/ciadmin syncbonus <islandUuid|islandName>"
+            ));
+            return true;
+        }
+        resolveIslandUuid(sender, args[1]).thenAccept(islandId -> {
+            if (islandId == null) {
+                return;
+            }
+            if (args[0].equalsIgnoreCase("bonus")) {
+                run(sender, "Island bonus", coreApiClient.environment().limitViews(islandId).thenApply(this::bonusListMessage));
+                return;
+            }
+            if (args[0].equalsIgnoreCase("addbonus")) {
+                if (args.length < 4) {
+                    sendCommandUsage(sender, List.of("/ciadmin addbonus <islandUuid|islandName> <bonusKey> <delta>"));
+                    return;
+                }
+                run(sender, "Island addbonus", coreApiClient.environmentCommands().adminAddLimit(islandId, bonusLimitKey(args[2]), number(args[3], 0L)).thenApply(result -> gameplayModifierMessage("Island addbonus", result)));
+                return;
+            }
+            run(sender, "Island syncbonus", coreApiClient.progressionCommands().adminRecalculateUpgrades(islandId).thenApply(result -> bonusSyncMessage("Island syncbonus", result)));
+        }).exceptionally(error -> {
+            sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[1]);
+            return null;
+        });
         return true;
     }
 
@@ -3264,7 +3324,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         String islandId = profile.primaryIslandId();
         return adminText("admin-command-player-info-uuid-prefix", "Player: uuid=") + shortId(playerUuid)
             + (lastName.isBlank() ? "" : adminText("admin-command-player-info-name-prefix", " name=") + lastName)
-            + (islandId.isBlank() ? adminText("admin-command-player-info-island-none", " island=none") : adminText("admin-command-player-info-island-prefix", " island=") + shortId(islandId));
+            + (islandId.isBlank() ? adminText("admin-command-player-info-island-none", " island=none") : adminText("admin-command-player-info-island-prefix", " island=") + shortId(islandId))
+            + adminText("admin-command-player-info-disbands-prefix", " disbands=") + profile.disbandsRemaining();
     }
 
     private String playerActionMessage(String label, PlayerProfileView profile) {
@@ -3276,6 +3337,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=")
             + shortId(profile.playerUuid())
             + (islandId.isBlank() ? adminText("admin-command-player-info-island-none", " island=none") : adminText("admin-command-player-info-island-prefix", " island=") + shortId(islandId));
+    }
+
+    private String playerDisbandsActionMessage(String label, PlayerProfileView profile) {
+        if (profile.playerUuid().isBlank()) {
+            return label + adminText("admin-command-player-action-failed-code-prefix", ": failed code=") + "PLAYER_NOT_FOUND";
+        }
+        return label
+            + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=")
+            + shortId(profile.playerUuid())
+            + adminText("admin-command-player-info-disbands-prefix", " disbands=") + profile.disbandsRemaining();
     }
 
     private String rankingListMessage(String label, List<ProgressionRankingEntryView> rankings) {
@@ -3654,6 +3725,25 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
         }
         return adminText("admin-command-upgrade-rules-total-prefix", "Upgrade rules: total=") + rules.size() + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private String bonusListMessage(List<CoreGuiViews.LimitView> limits) {
+        List<String> entries = limits.stream()
+            .filter(limit -> limit.key().startsWith(BONUS_LIMIT_PREFIX))
+            .map(limit -> limit.key().substring(BONUS_LIMIT_PREFIX.length()) + "=" + limit.value())
+            .sorted()
+            .toList();
+        if (entries.isEmpty()) {
+            return adminText("admin-command-bonus-empty", "Island bonus: empty");
+        }
+        return adminText("admin-command-bonus-prefix", "Island bonus: ") + String.join(", ", entries);
+    }
+
+    private String bonusSyncMessage(String label, ProgressionUpgradeRecalculationView result) {
+        return label
+            + adminText("admin-command-action-result-accepted-target-prefix", ": accepted target=")
+            + shortId(result.islandId())
+            + adminText("admin-command-bonus-sync-applied-prefix", " applied=") + result.applied();
     }
 
     private String maintenanceMessage(String label, AdminMaintenanceResultView result) {
@@ -4361,6 +4451,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (root.equals("island") && args.length > 1 && args[1].equalsIgnoreCase("inspect")) {
             return "cloudislands.admin.island.inspect";
         }
+        if (root.equals("bonus") || root.equals("addbonus") || root.equals("syncbonus")) {
+            return "cloudislands.admin.upgrade-rules";
+        }
         return switch (root) {
             case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "spy", "openmenu", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "setspawn", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
@@ -4481,6 +4574,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return "RATE:UNKNOWN";
     }
 
+    private String bonusLimitKey(String key) {
+        return BONUS_LIMIT_PREFIX + normalizeGameplayKey(key);
+    }
+
     private String adminLimitKey(String command) {
         return switch (command.toLowerCase(Locale.ROOT)) {
             case "setbanklimit", "addbanklimit" -> "BANK";
@@ -4588,6 +4685,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         } catch (NumberFormatException exception) {
             return fallback;
         }
+    }
+
+    private int boundedInt(long value) {
+        if (value > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        if (value < Integer.MIN_VALUE) {
+            return Integer.MIN_VALUE;
+        }
+        return (int) value;
     }
 
     private Double decimalArgument(String value) {

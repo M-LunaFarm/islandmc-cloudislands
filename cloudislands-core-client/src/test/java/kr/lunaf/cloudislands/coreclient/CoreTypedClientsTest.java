@@ -1838,6 +1838,12 @@ class CoreTypedClientsTest {
                         {"accepted":true,"code":"UPGRADED","cost":"0","upgrade":{"islandId":"%s","upgradeKey":"size","type":"ISLAND_SIZE","level":4,"updatedAt":"2026-01-02T03:04:05Z"}}
                         """.formatted(islandId), (String) args[1]));
                 }
+                case "adminRecalculateUpgrades" -> {
+                    calls.add("adminRecalculate");
+                    yield CompletableFuture.completedFuture(JdkProgressionCommandClient.upgradeRecalculationResult("""
+                        {"accepted":true,"islandId":"%s","applied":2}
+                        """.formatted(islandId)));
+                }
                 case "progressMission" -> {
                     calls.add("progress:" + args[2] + ":" + args[3] + ":" + args[4]);
                     yield CompletableFuture.completedFuture(JdkProgressionCommandClient.missionCompletionResult("""
@@ -1899,6 +1905,7 @@ class CoreTypedClientsTest {
         LevelView level = client.recalculateLevel(islandId, actorUuid).join();
         ProgressionUpgradePurchaseView upgrade = client.purchaseUpgrade(islandId, actorUuid, "generator").join();
         ProgressionUpgradePurchaseView adminUpgrade = client.adminPurchaseUpgrade(islandId, "size").join();
+        ProgressionUpgradeRecalculationView adminRecalculation = client.adminRecalculateUpgrades(islandId).join();
         ProgressionMissionCompletionView progress = client.progressMission(islandId, actorUuid, "starter", "CHALLENGE", 1L).join();
         ProgressionMissionCompletionView mission = client.completeMission(islandId, actorUuid, "starter", "CHALLENGE").join();
         ProgressionMissionCompletionView adminProgress = client.adminProgressMission(islandId, actorUuid, "admin", "DAILY", 3L).join();
@@ -1916,6 +1923,8 @@ class CoreTypedClientsTest {
         assertEquals("size", adminUpgrade.upgradeKey());
         assertEquals("ISLAND_SIZE", adminUpgrade.type());
         assertEquals(4L, adminUpgrade.level());
+        assertTrue(adminRecalculation.accepted());
+        assertEquals(2L, adminRecalculation.applied());
         assertEquals(1L, progress.progress());
         assertFalse(progress.completed());
         assertEquals(islandId.toString(), mission.islandId());
@@ -1951,6 +1960,7 @@ class CoreTypedClientsTest {
             "recalculate",
             "purchase:generator",
             "adminPurchase:size",
+            "adminRecalculate",
             "progress:starter:CHALLENGE:1",
             "mission:starter:CHALLENGE",
             "adminProgress:admin:DAILY:3",

@@ -94,6 +94,7 @@ public final class IslandUpgradeRoutes implements RouteGroup {
         registry.routePost("/v1/islands/upgrades", this::upgrades);
         registry.routePost("/v1/islands/upgrades/purchase", this::purchase);
         registry.routePost("/v1/admin/islands/upgrades/purchase", this::adminPurchase);
+        registry.routePost("/v1/admin/islands/upgrades/recalculate", this::adminRecalculate);
         registry.routePost("/v1/islands/upgrades/recalculate", this::recalculate);
     }
 
@@ -147,6 +148,17 @@ public final class IslandUpgradeRoutes implements RouteGroup {
             return;
         }
         int applied = recalculateUpgradeEffects(islandId, actorUuid);
+        CoreHttpResponses.write(exchange, 202, upgradeRecalculationJson(islandId, applied, upgradeRepository.list(islandId)));
+    }
+
+    private void adminRecalculate(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        if (!requireIsland(exchange, islandId)) {
+            return;
+        }
+        int applied = recalculateUpgradeEffects(islandId, EMPTY_UUID);
+        audit.log(EMPTY_UUID, "ADMIN", "ISLAND_UPGRADE_ADMIN_RECALCULATE", "ISLAND", islandId.toString(), Map.of("applied", Integer.toString(applied)));
         CoreHttpResponses.write(exchange, 202, upgradeRecalculationJson(islandId, applied, upgradeRepository.list(islandId)));
     }
 

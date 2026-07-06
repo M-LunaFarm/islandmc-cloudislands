@@ -41,10 +41,11 @@ class IslandUpgradeRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(4, paths.size());
+        assertEquals(5, paths.size());
         assertTrue(paths.contains("/v1/islands/upgrades"));
         assertTrue(paths.contains("/v1/islands/upgrades/purchase"));
         assertTrue(paths.contains("/v1/admin/islands/upgrades/purchase"));
+        assertTrue(paths.contains("/v1/admin/islands/upgrades/recalculate"));
         assertTrue(paths.contains("/v1/islands/upgrades/recalculate"));
     }
 
@@ -57,6 +58,7 @@ class IslandUpgradeRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/upgrades"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/upgrades/purchase"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/upgrades/purchase"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/upgrades/recalculate"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/upgrades/recalculate"));
     }
 

@@ -12,6 +12,8 @@ public interface ProgressionCommandClient {
 
     CompletableFuture<ProgressionUpgradePurchaseView> adminPurchaseUpgrade(UUID islandId, String upgradeKey);
 
+    CompletableFuture<ProgressionUpgradeRecalculationView> adminRecalculateUpgrades(UUID islandId);
+
     CompletableFuture<ProgressionMissionCompletionView> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind);
 
     CompletableFuture<ProgressionMissionCompletionView> progressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount);

@@ -13,7 +13,8 @@ final class CorePlayerProfileJson {
             CoreJson.text(root, "lastName"),
             CoreJson.text(root, "primaryIslandId"),
             CoreJson.text(root, "lastSeenAt"),
-            CoreJson.text(root, "locale")
+            CoreJson.text(root, "locale"),
+            Math.toIntExact(CoreJson.number(root, "disbandsRemaining"))
         );
     }
 

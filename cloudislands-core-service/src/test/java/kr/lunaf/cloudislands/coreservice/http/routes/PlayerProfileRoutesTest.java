@@ -24,13 +24,15 @@ class PlayerProfileRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(6, paths.size());
+        assertEquals(8, paths.size());
         assertTrue(paths.contains("/v1/admin/players/info"));
         assertTrue(paths.contains("/v1/players/info"));
         assertTrue(paths.contains("/v1/players/touch"));
         assertTrue(paths.contains("/v1/players/locale"));
         assertTrue(paths.contains("/v1/admin/players/setisland"));
         assertTrue(paths.contains("/v1/admin/players/clearisland"));
+        assertTrue(paths.contains("/v1/admin/players/setdisbands"));
+        assertTrue(paths.contains("/v1/admin/players/adddisbands"));
     }
 
     @Test
@@ -45,6 +47,8 @@ class PlayerProfileRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/players/locale"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/setisland"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/clearisland"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/setdisbands"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/adddisbands"));
     }
 
     @Test
@@ -54,13 +58,15 @@ class PlayerProfileRoutesTest {
             "Steve, \"Builder\"",
             java.util.Optional.empty(),
             java.time.Instant.EPOCH,
-            "EN-US"
+            "EN-US",
+            3
         ));
         Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
 
         assertEquals("Steve, \"Builder\"", SimpleJson.text(root.get("lastName")));
         assertNull(root.get("primaryIslandId"));
         assertEquals("en_us", SimpleJson.text(root.get("locale")));
+        assertEquals(3L, SimpleJson.number(root.get("disbandsRemaining")));
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

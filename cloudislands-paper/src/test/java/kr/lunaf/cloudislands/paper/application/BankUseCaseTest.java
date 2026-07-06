@@ -27,6 +27,7 @@ import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
 import kr.lunaf.cloudislands.coreclient.ProgressionMissionCompletionView;
 import kr.lunaf.cloudislands.coreclient.ProgressionRankingIgnoreView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
+import kr.lunaf.cloudislands.coreclient.ProgressionUpgradeRecalculationView;
 import org.junit.jupiter.api.Test;
 
 class BankUseCaseTest {
@@ -358,6 +359,11 @@ class BankUseCaseTest {
 
         @Override
         public CompletableFuture<ProgressionUpgradePurchaseView> adminPurchaseUpgrade(UUID islandId, String upgradeKey) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public CompletableFuture<ProgressionUpgradeRecalculationView> adminRecalculateUpgrades(UUID islandId) {
             throw new UnsupportedOperationException();
         }
 

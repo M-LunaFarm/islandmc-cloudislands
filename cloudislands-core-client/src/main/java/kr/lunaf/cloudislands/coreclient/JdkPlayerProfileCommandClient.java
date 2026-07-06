@@ -54,6 +54,22 @@ final class JdkPlayerProfileCommandClient implements PlayerProfileCommandClient 
             .thenApply(CorePlayerProfileJson::profile);
     }
 
+    @Override
+    public CompletableFuture<PlayerProfileView> setDisbandsRemaining(UUID playerUuid, int value) {
+        requireId(playerUuid, "playerUuid");
+        return core.postResultBody("/v1/admin/players/setdisbands", CoreJsonPayload.object("playerUuid", playerUuid, "value", Math.max(0, value)))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
+    public CompletableFuture<PlayerProfileView> addDisbandsRemaining(UUID playerUuid, int delta) {
+        requireId(playerUuid, "playerUuid");
+        return core.postResultBody("/v1/admin/players/adddisbands", CoreJsonPayload.object("playerUuid", playerUuid, "delta", delta))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
     private static void requireId(UUID id, String name) {
         if (id == null) {
             throw new IllegalArgumentException(name + " is required");

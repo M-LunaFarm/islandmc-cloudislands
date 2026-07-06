@@ -46,6 +46,14 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
     }
 
     @Override
+    public CompletableFuture<ProgressionUpgradeRecalculationView> adminRecalculateUpgrades(UUID islandId) {
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/admin/islands/upgrades/recalculate", CoreJsonPayload.object("islandId", islandId))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkProgressionCommandClient::upgradeRecalculationResult);
+    }
+
+    @Override
     public CompletableFuture<ProgressionMissionCompletionView> completeMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");
@@ -122,6 +130,15 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
             CoreJson.number(upgrade, "level"),
             CoreJson.text(root, "cost"),
             CoreJson.text(upgrade, "updatedAt")
+        );
+    }
+
+    static ProgressionUpgradeRecalculationView upgradeRecalculationResult(String body) {
+        Map<?, ?> root = CoreJson.object(body);
+        return new ProgressionUpgradeRecalculationView(
+            CoreJson.accepted(root),
+            CoreJson.text(root, "islandId"),
+            CoreJson.number(root, "applied")
         );
     }
 
