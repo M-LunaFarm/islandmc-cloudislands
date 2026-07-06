@@ -4,7 +4,7 @@ import java.util.List;
 import kr.lunaf.cloudislands.common.feature.SuperiorSkyblockReplacementFeaturePolicy;
 
 final class AdminCommandCatalog {
-    static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "template", "templates", "migrate", "migrate-superiorskyblock2", "reload");
+    static final List<String> ROOT_COMMANDS = List.of("help", "commands", "command", "command-list", "명령어", "명령어목록", "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "setspawn", "template", "templates", "migrate", "migrate-superiorskyblock2", "reload");
     static final List<String> SETUP_COMMANDS = List.of("start", "wizard", "core", "redis", "database", "storage", "velocity", "paper-node", "verify", "explain", "export-redacted");
     static final List<String> CONFIG_COMMANDS = List.of("show", "validate", "diff", "reload", "effective", "sources");
     static final List<String> CACHE_COMMANDS = List.of("clear");
@@ -179,6 +179,8 @@ final class AdminCommandCatalog {
         "ciadmin setcropgrowth <island> <percent>",
         "ciadmin setmobdrops <island> <percent>",
         "ciadmin setspawnerrates <island> <percent>",
+        "ciadmin setspawn",
+        "ciadmin setspawn <world> <x> <y> <z> [yaw]",
         "ciadmin template list",
         "ciadmin template import <name>",
         "ciadmin template import-bundle <id> <bundlePath> <checksum> [sizeBytes] [displayName]",

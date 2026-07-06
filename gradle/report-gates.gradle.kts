@@ -598,7 +598,7 @@ private fun adminPermissionParityEntries(): List<PermissionParityEntry> = listOf
     permissionParity("admin", "superior.admin.setrolelimit", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct role-limit mutation is exposed by /ciadmin island setrolelimit through the enforced ROLE_LIMIT:<role> limit key"),
     permissionParity("admin", "superior.admin.setsettings", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct island flag mutation is exposed by /ciadmin island setsettings with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.setsize", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct island size mutation is exposed by /ciadmin island setsize with typed Core audit and event coverage"),
-    permissionParity("admin", "superior.admin.setspawn", "PLANNED:admin-spawn-mutation", "PLANNED", "P2", "server spawn mutation is outside current island admin scope"),
+    permissionParity("admin", "superior.admin.setspawn", "cloudislands.admin.setspawn", "SUPPORTED_VERIFIED", "P2", "server spawn mutation is exposed by /ciadmin setspawn using Paper World#setSpawnLocation with audit logging"),
     permissionParity("admin", "superior.admin.setspawnerrates", "cloudislands.admin.setspawnerrates", "SUPPORTED_VERIFIED", "", "spawner rate mutation maps directly"),
     permissionParity("admin", "superior.admin.setteamlimit", "cloudislands.admin.island", "SUPPORTED_VERIFIED", "P1", "direct team-limit mutation is exposed by /ciadmin island setteamlimit with typed Core audit and event coverage"),
     permissionParity("admin", "superior.admin.settings", "cloudislands.admin.config", "COVERED_BY", "", "in-game config editor maps to config administration"),

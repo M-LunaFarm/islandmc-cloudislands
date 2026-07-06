@@ -71,6 +71,8 @@ import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.integration.IntegrationRuntimeCertification;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.world.AdminWorldSpawnGateway;
+import kr.lunaf.cloudislands.paper.platform.world.AdminWorldSpawnGateway.SpawnUpdateResult;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
@@ -266,6 +268,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (gameplayModifierCommand(args[0])) {
             return handleGameplayModifier(sender, args);
         }
+        if (args[0].equalsIgnoreCase("setspawn")) {
+            return handleSetSpawn(sender, args);
+        }
         if (args[0].equalsIgnoreCase("template") || args[0].equalsIgnoreCase("templates")) {
             return handleTemplate(sender, args);
         }
@@ -419,6 +424,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && rateModifierCommand(args[0])) {
             return matches(List.of("50", "100", "150", "200"), args[2]);
+        }
+        if (args.length == 2 && args[0].equalsIgnoreCase("setspawn")) {
+            return matches(worldNames(), args[1]);
+        }
+        if (args.length >= 3 && args.length <= 5 && args[0].equalsIgnoreCase("setspawn")) {
+            return matches(List.of("0", "64", "100", "128"), args[args.length - 1]);
+        }
+        if (args.length == 6 && args[0].equalsIgnoreCase("setspawn")) {
+            return matches(List.of("0", "90", "180", "270"), args[5]);
         }
         if (args.length == 4 && (args[0].equalsIgnoreCase("seteffect") || args[0].equalsIgnoreCase("setblockamount"))) {
             return matches(List.of("0", "1", "2", "3", "100"), args[3]);
@@ -2402,6 +2416,46 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return false;
     }
 
+    private boolean handleSetSpawn(CommandSender sender, String[] args) {
+        SpawnUpdateResult result;
+        if (args.length == 1 && sender instanceof Player player) {
+            result = worldSpawnGateway().setFromPlayer(player);
+        } else {
+            if (args.length < 5) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin setspawn",
+                    "/ciadmin setspawn <world> <x> <y> <z> [yaw]"
+                ));
+                return true;
+            }
+            Double x = decimalArgument(args[2]);
+            Double y = decimalArgument(args[3]);
+            Double z = decimalArgument(args[4]);
+            Double yaw = args.length > 5 ? decimalArgument(args[5]) : 0.0D;
+            if (x == null || y == null || z == null || yaw == null) {
+                sendCommandUsage(sender, List.of(
+                    "/ciadmin setspawn",
+                    "/ciadmin setspawn <world> <x> <y> <z> [yaw]"
+                ));
+                return true;
+            }
+            result = worldSpawnGateway().set(args[1], x, y, z, yaw.floatValue());
+        }
+        if (!result.worldFound()) {
+            sender.sendMessage(adminText("admin-command-world-not-found", "월드를 찾지 못했습니다."));
+            return true;
+        }
+        auditAdminSetSpawn(sender, result);
+        sender.sendMessage(adminText("admin-command-setspawn-updated-prefix", "Admin spawn updated: ")
+            + "world=" + result.worldName()
+            + " x=" + formatCoordinate(result.x())
+            + " y=" + formatCoordinate(result.y())
+            + " z=" + formatCoordinate(result.z())
+            + " yaw=" + formatCoordinate(result.yaw())
+            + " accepted=" + result.accepted());
+        return true;
+    }
+
     private boolean handleTemplate(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
             run(sender, "Template list", coreApiClient.templates().list().thenApply(this::templateListMessage));
@@ -4163,7 +4217,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "cloudislands.admin.island.inspect";
         }
         return switch (root) {
-            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "fly", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "setspawn", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }
@@ -4230,6 +4284,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return value.equalsIgnoreCase("setcropgrowth")
             || value.equalsIgnoreCase("setmobdrops")
             || value.equalsIgnoreCase("setspawnerrates");
+    }
+
+    private void auditAdminSetSpawn(CommandSender sender, SpawnUpdateResult result) {
+        String actor = sender instanceof Player player ? player.getUniqueId().toString() : sender.getName();
+        agent.plugin().getLogger().warning(
+            "CloudIslands admin setspawn"
+                + " actor=" + actor
+                + " world=" + result.worldName()
+                + " x=" + formatCoordinate(result.x())
+                + " y=" + formatCoordinate(result.y())
+                + " z=" + formatCoordinate(result.z())
+                + " yaw=" + formatCoordinate(result.yaw())
+                + " accepted=" + result.accepted()
+        );
     }
 
     private String gameplayModifierLimitKey(String command) {
@@ -4354,6 +4422,18 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
     }
 
+    private Double decimalArgument(String value) {
+        try {
+            return Double.parseDouble(value);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private String formatCoordinate(double value) {
+        return String.format(Locale.ROOT, "%.2f", value);
+    }
+
     private boolean booleanArgument(String value, boolean fallback) {
         if (value == null || value.isBlank()) {
             return fallback;
@@ -4451,6 +4531,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             names.add(player.getName());
         }
         return names;
+    }
+
+    private List<String> worldNames() {
+        return worldSpawnGateway().worldNames();
+    }
+
+    private AdminWorldSpawnGateway worldSpawnGateway() {
+        return new AdminWorldSpawnGateway(agent.plugin());
     }
 
     private List<String> addonIds() {

@@ -172,6 +172,8 @@ permissions:
     default: op
   cloudislands.admin.setspawnerrates:
     default: op
+  cloudislands.admin.setspawn:
+    default: op
   cloudislands.admin.templates:
     default: op
   cloudislands.admin.migrate-superiorskyblock2:

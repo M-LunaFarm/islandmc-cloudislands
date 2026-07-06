@@ -818,6 +818,28 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminSetSpawnIsAFirstClassPaperRuntimeCommand() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String spawnGateway = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/platform/world/AdminWorldSpawnGateway.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = source + "\n" + catalog;
+
+        assertTrue(adminSurface.contains("ciadmin setspawn"), "Current-location setspawn help must be listed");
+        assertTrue(adminSurface.contains("ciadmin setspawn <world> <x> <y> <z> [yaw]"), "Coordinate setspawn help must be listed");
+        assertTrue(source.contains("handleSetSpawn"), "setspawn must route through a focused Paper runtime handler");
+        assertTrue(source.contains("AdminWorldSpawnGateway"), "setspawn must route Paper world runtime access through the platform adapter");
+        assertTrue(spawnGateway.contains("world.setSpawnLocation(location)"), "setspawn must use the Paper World spawn mutation API");
+        assertTrue(source.contains("auditAdminSetSpawn"), "setspawn must emit an admin audit log line");
+        assertTrue(source.contains("sender instanceof Player player") && spawnGateway.contains("player.getLocation()"), "Player operators must be able to set spawn from their current location");
+        assertTrue(spawnGateway.contains("plugin.getServer().getWorld(worldName)"), "Coordinate setspawn must resolve a named Bukkit world inside the platform adapter");
+        assertTrue(source.contains("worldNames()"), "setspawn tab completion must suggest loaded worlds");
+        assertTrue(plugin.contains("cloudislands.admin.setspawn"), "setspawn must have a plugin permission");
+        assertTrue(parity.contains("\"superior.admin.setspawn\", \"cloudislands.admin.setspawn\", \"SUPPORTED_VERIFIED\", \"P2\""), "Feature parity matrix must mark superior.admin.setspawn verified P2");
+    }
+
+    @Test
     void adminUpgradeRulesUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
 
