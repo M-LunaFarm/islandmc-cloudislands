@@ -16,6 +16,8 @@ import kr.lunaf.cloudislands.velocity.VelocityRoutingActions;
 import kr.lunaf.cloudislands.velocity.VelocityRoutingController;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 abstract class VelocityCommandSupport {
     protected final ProxyServer proxy;
@@ -38,10 +40,33 @@ abstract class VelocityCommandSupport {
 
     protected void sendCommandList(Player player, String title, List<String> commands, int page, String nextCommand) {
         CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, nextCommand);
-        player.sendMessage(Component.text(title + " " + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX));
-        for (String line : CommandListPolicy.displayLines(commandPage)) {
-            player.sendMessage(Component.text(line));
+        player.sendMessage(Component.text(title + " " + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX, NamedTextColor.GOLD)
+            .hoverEvent(Component.text("명령어를 클릭하면 채팅 입력창에 안전하게 입력합니다.", NamedTextColor.GRAY)));
+        for (String command : commandPage.entries()) {
+            player.sendMessage(commandEntryComponent(command));
         }
+        if (commandPage.previousCommand() != null) {
+            player.sendMessage(navigationEntryComponent(commandPage.previousCommand(), "이전 명령어 페이지를 엽니다."));
+        }
+        if (commandPage.nextCommand() != null) {
+            player.sendMessage(navigationEntryComponent(commandPage.nextCommand(), "다음 명령어 페이지를 엽니다."));
+        }
+    }
+
+    private Component commandEntryComponent(String command) {
+        String oneLineCommand = CommandListPolicy.oneLine(command);
+        return Component.text(CommandListPolicy.ENTRY_PREFIX, NamedTextColor.DARK_GRAY)
+            .append(Component.text(oneLineCommand, NamedTextColor.AQUA))
+            .clickEvent(ClickEvent.suggestCommand("/" + oneLineCommand))
+            .hoverEvent(Component.text("클릭: 명령어 입력\n예시: /" + oneLineCommand, NamedTextColor.GRAY));
+    }
+
+    private Component navigationEntryComponent(String command, String hover) {
+        String oneLineCommand = CommandListPolicy.oneLine(command);
+        return Component.text(CommandListPolicy.ENTRY_PREFIX, NamedTextColor.DARK_GRAY)
+            .append(Component.text(oneLineCommand, NamedTextColor.GREEN))
+            .clickEvent(ClickEvent.runCommand("/" + oneLineCommand))
+            .hoverEvent(Component.text(hover, NamedTextColor.GRAY));
     }
 
     protected boolean isCommandListRequest(String[] args) {

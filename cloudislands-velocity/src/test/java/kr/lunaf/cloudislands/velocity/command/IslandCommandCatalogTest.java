@@ -92,6 +92,19 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
+        String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
+
+        assertTrue(support.contains("ClickEvent.suggestCommand(\"/\" + oneLineCommand)"), "Velocity help entries must safely insert commands instead of plain-text-only output");
+        assertTrue(support.contains("ClickEvent.runCommand(\"/\" + oneLineCommand)"), "Velocity help pagination must be clickable");
+        assertTrue(support.contains("hoverEvent(Component.text(\"클릭: 명령어 입력"), "Velocity help entries must expose hover usage guidance");
+        assertTrue(support.contains("CommandListPolicy.oneLine(command)"), "Velocity help entries must sanitize commands before rendering clickable components");
+        assertTrue(support.contains("commandEntryComponent(command)"), "Velocity player/admin/destructive command lists must share the clickable renderer");
+        assertTrue(support.contains("navigationEntryComponent(commandPage.nextCommand()"), "Velocity command lists must render next-page navigation as a clickable entry");
+        assertTrue(support.contains("NamedTextColor.AQUA"), "Velocity command entries must be visually distinct from navigation");
+    }
+
+    @Test
     void adminCommandCatalogIncludesGoalCommandsAndKoreanAlias() {
         List<String> commands = IslandCommandCatalog.adminCommands(true);
 
