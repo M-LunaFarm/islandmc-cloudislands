@@ -16,3 +16,5 @@ route-session:
 trusted-proxies: []
 proxy-source-allowlist:
   required: true
+admin-command-dispatch:
+  enabled: false

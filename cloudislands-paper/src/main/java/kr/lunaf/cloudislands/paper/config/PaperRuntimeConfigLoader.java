@@ -360,6 +360,7 @@ public final class PaperRuntimeConfigLoader {
         setIfPresent(source, target, "route-session.required", "routing.require-route-session");
         setIfPresent(source, target, "trusted-proxies", "security.proxy-source-allowlist");
         setIfPresent(source, target, "proxy-source-allowlist.required", "security.require-proxy-source-allowlist");
+        setIfPresent(source, target, "admin-command-dispatch.enabled", "security.admin-command-dispatch.enabled");
     }
 
     private static void mapFeaturesV2(FileConfiguration source, FileConfiguration target) {
@@ -550,7 +551,8 @@ public final class PaperRuntimeConfigLoader {
             booleanValue(config, "security.require-velocity-forwarding", true),
             resolver.apply(string(config, "security.forwarding-secret", "")),
             config.getStringList("security.proxy-source-allowlist"),
-            booleanValue(config, "security.require-proxy-source-allowlist", true)
+            booleanValue(config, "security.require-proxy-source-allowlist", true),
+            booleanValue(config, "security.admin-command-dispatch.enabled", false)
         );
     }
 

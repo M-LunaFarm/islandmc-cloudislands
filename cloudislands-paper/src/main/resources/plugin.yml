@@ -132,6 +132,12 @@ permissions:
     default: op
   cloudislands.admin.player:
     default: op
+  cloudislands.admin.message:
+    default: op
+  cloudislands.admin.title:
+    default: op
+  cloudislands.admin.cmd:
+    default: op
   cloudislands.admin.jobs:
     default: op
   cloudislands.admin.route:

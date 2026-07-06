@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -70,6 +71,8 @@ import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.integration.IntegrationRuntimeCertification;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -100,6 +103,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private static final List<String> NODE_DANGER_REASONS = AdminCommandCatalog.NODE_DANGER_REASONS;
     private static final List<String> HELP_COMMANDS = AdminCommandCatalog.HELP_COMMANDS;
     private static final List<String> MIGRATION_HELP_COMMANDS = AdminCommandCatalog.MIGRATION_HELP_COMMANDS;
+    private static final List<String> ADMIN_RUNTIME_TARGETS = List.of("player", "island", "all");
     private final CloudIslandsPaperAgent agent;
     private final CoreApiClient coreApiClient;
     private final String nodeId;
@@ -205,6 +209,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args[0].equalsIgnoreCase("player")) {
             return handlePlayer(sender, args);
+        }
+        if (args[0].equalsIgnoreCase("message")) {
+            return handleAdminMessageCommand(sender, args);
+        }
+        if (args[0].equalsIgnoreCase("title")) {
+            return handleAdminTitleCommand(sender, args);
+        }
+        if (args[0].equalsIgnoreCase("cmd")) {
+            return handleAdminCmdCommand(sender, args);
         }
         if (args[0].equalsIgnoreCase("jobs")) {
             return handleJobs(sender, args);
@@ -320,6 +333,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("player")) {
             return matches(PLAYER_COMMANDS, args[1]);
+        }
+        if (args.length == 2 && (args[0].equalsIgnoreCase("message") || args[0].equalsIgnoreCase("title") || args[0].equalsIgnoreCase("cmd"))) {
+            return matches(ADMIN_RUNTIME_TARGETS, args[1]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("message") || args[0].equalsIgnoreCase("title") || args[0].equalsIgnoreCase("cmd")) && args[1].equalsIgnoreCase("player")) {
+            return matches(onlinePlayerNames(), args[2]);
+        }
+        if (args.length >= 4 && args[0].equalsIgnoreCase("cmd")) {
+            return matches(List.of("--confirm"), args[args.length - 1]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("jobs")) {
             return matches(JOB_COMMANDS, args[1]);
@@ -1931,6 +1953,193 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleAdminMessageCommand(CommandSender sender, String[] args) {
+        if (args.length < 3 || !ADMIN_RUNTIME_TARGETS.contains(args[1].toLowerCase(Locale.ROOT))) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        String targetMode = args[1].toLowerCase(Locale.ROOT);
+        int messageStart = targetMode.equals("all") ? 2 : 3;
+        if (args.length <= messageStart) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        String message = joined(args, messageStart).trim();
+        if (message.isBlank()) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        resolveAdminRuntimeTargetUuids(sender, targetMode, targetMode.equals("all") ? "all" : args[2]).thenAccept(targetUuids ->
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> {
+                List<Player> recipients = onlinePlayers(targetUuids);
+                if (recipients.isEmpty()) {
+                    sender.sendMessage(adminText("admin-command-runtime-no-online-targets", "온라인 대상 플레이어가 없습니다."));
+                    return;
+                }
+                Component component = Component.text(message);
+                recipients.forEach(player -> player.sendMessage(component));
+                auditAdminRuntimeAction(sender, "message." + targetMode, targetMode.equals("all") ? "all" : args[2], recipients.size(), false);
+                sender.sendMessage(adminText("admin-command-runtime-message-sent-prefix", "Admin message sent recipients=") + recipients.size());
+            })
+        );
+        return true;
+    }
+
+    private boolean handleAdminTitleCommand(CommandSender sender, String[] args) {
+        if (args.length < 3 || !ADMIN_RUNTIME_TARGETS.contains(args[1].toLowerCase(Locale.ROOT))) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        String targetMode = args[1].toLowerCase(Locale.ROOT);
+        int titleStart = targetMode.equals("all") ? 2 : 3;
+        if (args.length <= titleStart) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        TitlePayload payload = titlePayload(args, titleStart);
+        if (payload.title().isBlank()) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        resolveAdminRuntimeTargetUuids(sender, targetMode, targetMode.equals("all") ? "all" : args[2]).thenAccept(targetUuids ->
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> {
+                List<Player> recipients = onlinePlayers(targetUuids);
+                if (recipients.isEmpty()) {
+                    sender.sendMessage(adminText("admin-command-runtime-no-online-targets", "온라인 대상 플레이어가 없습니다."));
+                    return;
+                }
+                Title title = Title.title(Component.text(payload.title()), Component.text(payload.subtitle()));
+                recipients.forEach(player -> player.showTitle(title));
+                auditAdminRuntimeAction(sender, "title." + targetMode, targetMode.equals("all") ? "all" : args[2], recipients.size(), false);
+                sender.sendMessage(adminText("admin-command-runtime-title-sent-prefix", "Admin title sent recipients=") + recipients.size());
+            })
+        );
+        return true;
+    }
+
+    private boolean handleAdminCmdCommand(CommandSender sender, String[] args) {
+        if (args.length < 3 || !ADMIN_RUNTIME_TARGETS.contains(args[1].toLowerCase(Locale.ROOT))) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        if (!sender.hasPermission("cloudislands.admin.cmd")) {
+            sender.sendMessage(adminText("admin-command-no-permission", "권한이 없습니다."));
+            return true;
+        }
+        if (!adminCommandDispatchEnabled()) {
+            sender.sendMessage(adminText("admin-command-cmd-disabled", "관리자 명령 실행은 config-v2/security.yml admin-command-dispatch.enabled=false 로 차단되어 있습니다."));
+            return true;
+        }
+        if (!confirmed(args)) {
+            sendAdminRuntimeCommandUsage(sender);
+            sender.sendMessage(adminText("admin-command-cmd-confirm-required", "관리자 명령 실행은 --confirm 이 필요합니다."));
+            return true;
+        }
+        String targetMode = args[1].toLowerCase(Locale.ROOT);
+        int commandStart = targetMode.equals("all") ? 2 : 3;
+        if (args.length <= commandStart) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        String command = joinedExcludingTrailingConfirm(args, commandStart).trim();
+        if (command.startsWith("/")) {
+            command = command.substring(1).trim();
+        }
+        if (command.isBlank()) {
+            sendAdminRuntimeCommandUsage(sender);
+            return true;
+        }
+        String commandToRun = command;
+        resolveAdminRuntimeTargetUuids(sender, targetMode, targetMode.equals("all") ? "all" : args[2]).thenAccept(targetUuids ->
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> {
+                List<Player> recipients = onlinePlayers(targetUuids);
+                if (recipients.isEmpty()) {
+                    sender.sendMessage(adminText("admin-command-runtime-no-online-targets", "온라인 대상 플레이어가 없습니다."));
+                    return;
+                }
+                for (Player player : recipients) {
+                    String expanded = commandToRun
+                        .replace("{player}", player.getName())
+                        .replace("{uuid}", player.getUniqueId().toString());
+                    agent.plugin().getServer().dispatchCommand(agent.plugin().getServer().getConsoleSender(), expanded);
+                }
+                auditAdminRuntimeAction(sender, "cmd." + targetMode, targetMode.equals("all") ? "all" : args[2], recipients.size(), true);
+                sender.sendMessage(adminText("admin-command-runtime-cmd-sent-prefix", "Admin command dispatched recipients=") + recipients.size());
+            })
+        );
+        return true;
+    }
+
+    private CompletableFuture<List<UUID>> resolveAdminRuntimeTargetUuids(CommandSender sender, String targetMode, String target) {
+        if (targetMode.equals("all")) {
+            return CompletableFuture.completedFuture(agent.plugin().getServer().getOnlinePlayers().stream()
+                .map(Player::getUniqueId)
+                .toList());
+        }
+        if (targetMode.equals("player")) {
+            return resolvePlayerUuid(sender, target).thenApply(uuid -> uuid == null ? List.of() : List.of(uuid));
+        }
+        return resolveIslandUuid(sender, target).thenCompose(islandId -> {
+            if (islandId == null) {
+                return CompletableFuture.completedFuture(List.of());
+            }
+            return coreApiClient.islands().listMembers(islandId).thenApply(members -> members.stream()
+                .map(CoreGuiViews.MemberView::playerUuid)
+                .map(this::uuidOrNull)
+                .filter(uuid -> uuid != null)
+                .distinct()
+                .toList());
+        });
+    }
+
+    private List<Player> onlinePlayers(List<UUID> targetUuids) {
+        Set<UUID> seen = new HashSet<>();
+        List<Player> players = new ArrayList<>();
+        for (UUID uuid : targetUuids == null ? List.<UUID>of() : targetUuids) {
+            if (uuid == null || !seen.add(uuid)) {
+                continue;
+            }
+            Player player = agent.plugin().getServer().getPlayer(uuid);
+            if (player != null && player.isOnline()) {
+                players.add(player);
+            }
+        }
+        return players;
+    }
+
+    private void auditAdminRuntimeAction(CommandSender sender, String action, String target, int recipientCount, boolean commandDispatch) {
+        String actor = sender instanceof Player player ? player.getUniqueId().toString() : sender.getName();
+        agent.plugin().getLogger().warning(
+            "CloudIslands admin runtime action"
+                + " action=" + action
+                + " actor=" + actor
+                + " target=" + target
+                + " recipients=" + recipientCount
+                + " commandDispatch=" + commandDispatch
+        );
+    }
+
+    private boolean adminCommandDispatchEnabled() {
+        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
+            return plugin.runtimeConfig().security().adminCommandDispatchEnabled();
+        }
+        return false;
+    }
+
+    private void sendAdminRuntimeCommandUsage(CommandSender sender) {
+        sendCommandUsage(sender, List.of(
+            "/ciadmin message player <playerUuid|playerName> <message>",
+            "/ciadmin message island <islandUuid|islandName> <message>",
+            "/ciadmin message all <message>",
+            "/ciadmin title player <playerUuid|playerName> <title> [subtitle]",
+            "/ciadmin title island <islandUuid|islandName> <title> [subtitle]",
+            "/ciadmin title all <title> [subtitle]",
+            "/ciadmin cmd player <playerUuid|playerName> <command> --confirm",
+            "/ciadmin cmd island <islandUuid|islandName> <command> --confirm",
+            "/ciadmin cmd all <command> --confirm"
+        ));
+    }
+
     private boolean handleJobs(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
             run(sender, "Jobs list", coreApiClient.jobs().list().thenApply(this::jobListMessage));
@@ -2515,6 +2724,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private record IntegrationReportFiles(Path json, Path markdown) {
+    }
+
+    private record TitlePayload(String title, String subtitle) {
     }
 
     private record BulkRestoreEntry(String requested, UUID islandId, boolean accepted, String code) {
@@ -3897,7 +4109,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return "cloudislands.admin.island.inspect";
         }
         return switch (root) {
-            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
+            case "status", "dashboard", "doctor", "setup", "config", "cache", "addons", "integrations", "node", "island", "player", "message", "title", "cmd", "jobs", "route", "rankings", "events", "audit", "metrics", "storage", "diagnostics", "support-bundle", "block-values", "upgrade-rules", "setblockamount", "seteffect", "setcropgrowth", "setmobdrops", "setspawnerrates", "templates", "migrate-superiorskyblock2", "reload" -> "cloudislands.admin." + root;
             default -> "";
         };
     }
@@ -4119,6 +4331,30 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             builder.append(args[i]);
         }
         return builder.toString();
+    }
+
+    private String joinedExcludingTrailingConfirm(String[] args, int start) {
+        int end = args == null ? 0 : args.length;
+        if (end > start) {
+            String last = args[end - 1];
+            if (last.equalsIgnoreCase("--confirm") || last.equalsIgnoreCase("confirm") || booleanArgument(last, false)) {
+                end--;
+            }
+        }
+        StringBuilder builder = new StringBuilder();
+        for (int i = start; i < end; i++) {
+            if (builder.length() > 0) {
+                builder.append(' ');
+            }
+            builder.append(args[i]);
+        }
+        return builder.toString();
+    }
+
+    private TitlePayload titlePayload(String[] args, int start) {
+        String title = args.length > start ? args[start] : "";
+        String subtitle = args.length > start + 1 ? joined(args, start + 1) : "";
+        return new TitlePayload(title, subtitle);
     }
 
     private List<String> matches(List<String> values, String typed) {

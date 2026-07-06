@@ -451,9 +451,11 @@ class PaperPlatformBoundaryTest {
         Path root = repositoryRoot();
         Path paperSource = root.resolve("cloudislands-paper/src/main/java");
         Path rewardDelivery = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/MissionRewardDeliveryListener.java");
+        Path adminBackend = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java");
         try (Stream<Path> files = javaFiles(paperSource)) {
             String violations = files
                 .filter(path -> !path.equals(rewardDelivery))
+                .filter(path -> !path.equals(adminBackend))
                 .filter(path -> containsAny(path, "performCommand(", "dispatchCommand("))
                 .map(path -> root.relativize(path).toString())
                 .sorted()
@@ -467,6 +469,11 @@ class PaperPlatformBoundaryTest {
         assertTrue(!source.contains("performCommand("), "Mission command rewards must not reenter player command strings");
         assertTrue(source.contains("COMMAND_REWARD_QUEUED"), "Mission command reward event code must be handled");
         assertTrue(source.contains("ITEM_REWARD_QUEUED"), "Mission item reward event code must be handled");
+        String adminSource = Files.readString(adminBackend);
+        assertTrue(adminSource.contains("adminCommandDispatchEnabled()"), "Admin command dispatch must be disabled by default behind runtime config");
+        assertTrue(adminSource.contains("sender.hasPermission(\"cloudislands.admin.cmd\")"), "Admin command dispatch must require its explicit high-risk permission");
+        assertTrue(adminSource.contains("confirmed(args)"), "Admin command dispatch must require explicit confirmation");
+        assertTrue(adminSource.contains("dispatchCommand(agent.plugin().getServer().getConsoleSender(), expanded)"), "Admin command dispatch must run from the console sender only after guards");
     }
 
     @Test

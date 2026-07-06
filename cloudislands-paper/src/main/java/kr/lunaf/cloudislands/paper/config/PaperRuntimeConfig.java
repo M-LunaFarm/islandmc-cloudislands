@@ -141,7 +141,8 @@ public record PaperRuntimeConfig(
         boolean requireVelocityForwarding,
         String forwardingSecret,
         List<String> proxySourceAllowlist,
-        boolean requireProxySourceAllowlist
+        boolean requireProxySourceAllowlist,
+        boolean adminCommandDispatchEnabled
     ) {
         public Security {
             forwardingSecret = forwardingSecret == null ? "" : forwardingSecret;
@@ -149,7 +150,7 @@ public record PaperRuntimeConfig(
         }
 
         public static Security defaults() {
-            return new Security(false, true, true, true, "", List.of(), true);
+            return new Security(false, true, true, true, "", List.of(), true, false);
         }
     }
 

@@ -940,6 +940,46 @@ class AdminCommandBackendPolicyTest {
         assertTrue(backend.contains("this::messagesFor"), "Admin backend must pass localized messages into the migration wizard handler");
     }
 
+    @Test
+    void adminRuntimeMessageTitleAndCommandDispatchAreGuardedFirstClassCommands() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));
+        String plugin = Files.readString(Path.of("src/main/resources/plugin.yml"));
+        String runtimeConfig = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfig.java"));
+        String runtimeLoader = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfigLoader.java"));
+        String securityConfig = Files.readString(Path.of("src/main/resources/config-v2/security.yml"));
+        String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
+        String adminSurface = backend + "\n" + catalog;
+
+        assertTrue(catalog.contains("\"message\", \"title\", \"cmd\""), "Admin runtime broadcast commands must be root admin commands");
+        assertTrue(adminSurface.contains("ciadmin message player <player> <message>"), "Admin message player help must be listed");
+        assertTrue(adminSurface.contains("ciadmin message island <island> <message>"), "Admin message island help must be listed");
+        assertTrue(adminSurface.contains("ciadmin message all <message>"), "Admin message all help must be listed");
+        assertTrue(adminSurface.contains("ciadmin title player <player> <title> [subtitle]"), "Admin title player help must be listed");
+        assertTrue(adminSurface.contains("ciadmin title island <island> <title> [subtitle]"), "Admin title island help must be listed");
+        assertTrue(adminSurface.contains("ciadmin title all <title> [subtitle]"), "Admin title all help must be listed");
+        assertTrue(adminSurface.contains("ciadmin cmd player <player> <command> --confirm"), "Admin cmd player help must advertise confirmation");
+        assertTrue(adminSurface.contains("ciadmin cmd island <island> <command> --confirm"), "Admin cmd island help must advertise confirmation");
+        assertTrue(adminSurface.contains("ciadmin cmd all <command> --confirm"), "Admin cmd all help must advertise confirmation");
+        assertTrue(backend.contains("handleAdminMessageCommand") && backend.contains("player.sendMessage(component)"), "Admin message must send Adventure components to resolved online players");
+        assertTrue(backend.contains("handleAdminTitleCommand") && backend.contains("player.showTitle(title)"), "Admin title must show Adventure titles to resolved online players");
+        assertTrue(backend.contains("coreApiClient.islands().listMembers(islandId)"), "Island-targeted runtime commands must resolve typed Core island members");
+        assertTrue(backend.contains("auditAdminRuntimeAction"), "Admin runtime actions must emit an audit log line");
+        assertTrue(backend.contains("sender.hasPermission(\"cloudislands.admin.cmd\")"), "Command dispatch must require the explicit high-risk permission");
+        assertTrue(backend.contains("security().adminCommandDispatchEnabled()"), "Command dispatch must be disabled by default behind runtime config");
+        assertTrue(backend.contains("confirmed(args)"), "Command dispatch must require --confirm");
+        assertTrue(backend.contains("dispatchCommand(agent.plugin().getServer().getConsoleSender(), expanded)"), "Command dispatch must run as console after guards");
+        assertTrue(plugin.contains("cloudislands.admin.message"), "Admin message command must have a plugin permission");
+        assertTrue(plugin.contains("cloudislands.admin.title"), "Admin title command must have a plugin permission");
+        assertTrue(plugin.contains("cloudislands.admin.cmd"), "Admin cmd command must have a plugin permission");
+        assertTrue(runtimeConfig.contains("boolean adminCommandDispatchEnabled") && runtimeConfig.contains("true, false"), "Admin command dispatch must default to disabled");
+        assertTrue(runtimeLoader.contains("admin-command-dispatch.enabled") && runtimeLoader.contains("security.admin-command-dispatch.enabled"), "Admin command dispatch config-v2 key must be mapped");
+        assertTrue(securityConfig.contains("admin-command-dispatch:") && securityConfig.contains("enabled: false"), "Packaged config must keep command dispatch disabled by default");
+        for (String permission : List.of("superior.admin.msg", "superior.admin.msgall", "superior.admin.title", "superior.admin.titleall", "superior.admin.cmdall")) {
+            assertTrue(parity.contains("\"" + permission + "\", \"cloudislands.admin.") && parity.contains("\"" + permission + "\",") && parity.contains("\"SUPPORTED_VERIFIED\", \"P1\""), "Feature parity matrix must mark " + permission + " verified P1");
+        }
+    }
+
     private static Set<String> declaredPermissionNodes(String plugin) {
         return Arrays.stream(plugin.split("\\R"))
             .map(String::trim)
