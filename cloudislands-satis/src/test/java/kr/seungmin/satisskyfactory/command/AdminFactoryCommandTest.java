@@ -176,6 +176,39 @@ class AdminFactoryCommandTest {
         assertTrue(messages.contains("admin-support-title"));
     }
 
+    @Test
+    void delegatesGameplayMutationsToFocusedSubcommandComponents() throws Exception {
+        String admin = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminFactoryCommand.java"));
+        String give = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminGiveCommands.java"));
+        String island = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminIslandOperations.java"));
+        String machine = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/command/AdminMachineCommands.java"));
+
+        assertTrue(admin.lines().count() < 1400, "AdminFactoryCommand must remain a router instead of regrowing gameplay implementations");
+        assertTrue(admin.contains("private final AdminGiveCommands giveCommands;"));
+        assertTrue(admin.contains("private final AdminIslandOperations islandOperations;"));
+        assertTrue(admin.contains("private final AdminMachineCommands machineCommands;"));
+        assertTrue(admin.contains("giveCommands.giveMachine(sender, args)"));
+        assertTrue(admin.contains("giveCommands.giveItem(sender, args)"));
+        assertTrue(admin.contains("islandOperations.addResearch(sender, args)"));
+        assertTrue(admin.contains("islandOperations.setDebt(sender, args)"));
+        assertTrue(admin.contains("islandOperations.charge(sender, args)"));
+        assertTrue(admin.contains("islandOperations.generateNodes(sender, args)"));
+        assertTrue(admin.contains("machineCommands.debug(sender, args)"));
+        assertTrue(admin.contains("machineCommands.removeHere(sender)"));
+        assertTrue(admin.contains("machineCommands.repairHere(sender)"));
+        assertFalse(admin.contains("private void giveMachine("));
+        assertFalse(admin.contains("private void giveItem("));
+        assertFalse(admin.contains("private void debug("));
+        assertFalse(admin.contains("private void removeHere("));
+        assertFalse(admin.contains("private void repairHere("));
+
+        assertTrue(give.contains("inventory.remove(itemId, amount)"), "Virtual storage failure must roll back the in-memory grant");
+        assertTrue(island.contains("island.researchPoints(previousResearch)"), "Research persistence failure must roll back points");
+        assertTrue(island.contains("island.lastMaintenanceAt(previousLastMaintenanceAt)"), "Maintenance persistence failure must restore charge timestamps");
+        assertTrue(machine.contains("machine.wear(previousWear)"), "Machine repair persistence failure must restore wear");
+        assertTrue(machine.contains("machine.status(previousStatus)"), "Machine repair persistence failure must restore status");
+    }
+
     @SuppressWarnings("unchecked")
     private List<String> visibleHelpCommands(AdminFactoryCommand command, String label) throws Exception {
         Method method = AdminFactoryCommand.class.getDeclaredMethod("visibleHelpCommands", String.class);
