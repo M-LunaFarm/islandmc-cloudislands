@@ -62,7 +62,6 @@ import kr.lunaf.cloudislands.api.model.IslandRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRegionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeJobType;

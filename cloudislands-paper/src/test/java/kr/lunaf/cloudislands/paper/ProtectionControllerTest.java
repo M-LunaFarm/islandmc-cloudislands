@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.paper;
 
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.common.protection.ProtectionDecisionPolicy;
 import kr.lunaf.cloudislands.common.protection.RegionIndex;
@@ -32,7 +31,7 @@ class ProtectionControllerTest {
         ProtectionController protection = new ProtectionController(new RegionIndex(), cache);
         protection.registerIsland(ISLAND, "ci_shard_001", 0, 0, 300, 2, 3);
         cache.putFlag(ISLAND, IslandFlag.VISITOR_INTERACT, "true");
-        cache.putRole(ISLAND, BANNED, IslandRole.BANNED);
+        cache.putRoleKey(ISLAND, BANNED, "BANNED");
 
         assertTrue(protection.checkBlock(VISITOR, "ci_shard_001", 0, 100, 0, IslandPermission.INTERACT).allowed());
         assertFalse(protection.checkBlock(BANNED, "ci_shard_001", 0, 100, 0, IslandPermission.INTERACT).allowed());
@@ -63,6 +62,7 @@ class ProtectionControllerTest {
         cache.putRuleKey(ISLAND, "builder", IslandPermission.BREAK, false);
 
         assertTrue(protection.memberOrTrusted(ISLAND, builder));
+        assertEquals(RoleId.of("BUILDER"), protection.roleId(ISLAND, builder));
         assertTrue(protection.checkBlock(builder, "ci_shard_001", 0, 100, 0, IslandPermission.BUILD).allowed());
         var denied = protection.checkBlock(builder, "ci_shard_001", 0, 100, 0, IslandPermission.BREAK);
         assertFalse(denied.allowed());
@@ -71,16 +71,26 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void blankRoleKeysNormalizeToVisitorAtTheCacheBoundary() {
+        LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
+        ProtectionController protection = new ProtectionController(new RegionIndex(), cache);
+        cache.putRoleKey(ISLAND, VISITOR, "  ");
+
+        assertEquals(RoleId.of("VISITOR"), protection.roleId(ISLAND, VISITOR));
+        assertFalse(protection.memberOrTrusted(ISLAND, VISITOR));
+    }
+
+    @Test
     void protectionSmokeMatrixCoversOwnerMemberTrustedVisitorBannedAndAdminBypass() {
         LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
         ProtectionController protection = new ProtectionController(new RegionIndex(), cache);
         protection.registerIsland(ISLAND, "ci_shard_001", 0, 0, 300, 2, 3);
-        cache.putRole(ISLAND, OWNER, IslandRole.OWNER);
-        cache.putRole(ISLAND, MEMBER, IslandRole.MEMBER);
-        cache.putRole(ISLAND, TRUSTED, IslandRole.TRUSTED);
-        cache.putRole(ISLAND, BANNED, IslandRole.BANNED);
-        cache.putRule(ISLAND, IslandRole.MEMBER, IslandPermission.BUILD, true);
-        cache.putRule(ISLAND, IslandRole.TRUSTED, IslandPermission.OPEN_CONTAINER, true);
+        cache.putRoleKey(ISLAND, OWNER, "OWNER");
+        cache.putRoleKey(ISLAND, MEMBER, "MEMBER");
+        cache.putRoleKey(ISLAND, TRUSTED, "TRUSTED");
+        cache.putRoleKey(ISLAND, BANNED, "BANNED");
+        cache.putRuleKey(ISLAND, "MEMBER", IslandPermission.BUILD, true);
+        cache.putRuleKey(ISLAND, "TRUSTED", IslandPermission.OPEN_CONTAINER, true);
 
         assertTrue(protection.checkBlock(OWNER, "ci_shard_001", 0, 100, 0, IslandPermission.BREAK).allowed(), "owner block break must be allowed");
         assertTrue(protection.checkBlock(MEMBER, "ci_shard_001", 0, 100, 0, IslandPermission.BUILD).allowed(), "member block place must follow role allow");

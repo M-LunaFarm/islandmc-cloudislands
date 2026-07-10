@@ -23,10 +23,10 @@ REQUIRED_LISTENER_MARKERS = {
 
 REQUIRED_ROLE_MARKERS = [
     "protectionSmokeMatrixCoversOwnerMemberTrustedVisitorBannedAndAdminBypass",
-    "IslandRole.OWNER",
-    "IslandRole.MEMBER",
-    "IslandRole.TRUSTED",
-    "IslandRole.BANNED",
+    'cache.putRoleKey(ISLAND, OWNER, "OWNER")',
+    'cache.putRoleKey(ISLAND, MEMBER, "MEMBER")',
+    'cache.putRoleKey(ISLAND, TRUSTED, "TRUSTED")',
+    'cache.putRoleKey(ISLAND, BANNED, "BANNED")',
     "admin bypass",
 ]
 

@@ -5,7 +5,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
@@ -87,8 +86,8 @@ public final class ProtectionController {
         return ProtectionDecisionPolicy.HOT_PATH_POLICY;
     }
 
-    public IslandRole role(UUID islandId, UUID playerUuid) {
-        return permissionCache.role(islandId, playerUuid);
+    public RoleId roleId(UUID islandId, UUID playerUuid) {
+        return permissionCache.roleId(islandId, playerUuid);
     }
 
     public java.util.List<String> roleCatalog(UUID islandId, boolean includeVisitor) {
@@ -161,13 +160,5 @@ public final class ProtectionController {
             case ATTACK_PLAYER -> IslandFlag.VISITOR_PVP;
             default -> null;
         };
-    }
-
-    private IslandRole legacyRole(String roleKey) {
-        try {
-            return IslandRole.valueOf(roleKey);
-        } catch (IllegalArgumentException exception) {
-            return IslandRole.VISITOR;
-        }
     }
 }
