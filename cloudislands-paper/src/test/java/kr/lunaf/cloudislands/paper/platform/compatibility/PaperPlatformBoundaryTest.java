@@ -1158,10 +1158,46 @@ class PaperPlatformBoundaryTest {
         assertTrue(bootstrap.contains("new PaperPlayerProfileListener(client, plugin.playerLocales)"), "Core profile touch must feed the locale cache");
         assertTrue(profileListener.contains("coreApiClient.playerProfileCommands()"), "Paper profile listener must use typed Core player profile commands");
         assertTrue(profileListener.contains("profile.locale()"), "Paper profile listener must use the typed Core profile locale returned by touch");
-        assertTrue(commandMessenger.contains("messages.forLocale(locales == null ? player.getLocale() : locales.locale(player))"), "Command and GUI messages must prefer the Core profile locale cache");
-        assertTrue(branding.contains("locales == null ? player.getLocale() : locales.locale(player)"), "Tab and join messages must prefer the Core profile locale cache");
-        assertTrue(scoreboard.contains("locales == null ? player.getLocale() : locales.locale(player)"), "Scoreboard messages must prefer the Core profile locale cache");
-        assertTrue(chat.contains("locales == null ? player.getLocale() : locales.locale(player)"), "Chat renderer must prefer the Core profile locale cache");
+        assertTrue(commandMessenger.contains("messages.forLocale(locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player))"), "Command and GUI messages must prefer the Core profile locale cache");
+        assertTrue(branding.contains("locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player)"), "Tab and join messages must prefer the Core profile locale cache");
+        assertTrue(scoreboard.contains("locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player)"), "Scoreboard messages must prefer the Core profile locale cache");
+        assertTrue(chat.contains("locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player)"), "Chat renderer must prefer the Core profile locale cache");
+    }
+
+    @Test
+    void paperPresentationAvoidsDeprecatedStringAndLegacyMetadataApis() throws Exception {
+        Path root = repositoryRoot();
+        Path paperSource = root.resolve("cloudislands-paper/src/main/java");
+        try (Stream<Path> files = javaFiles(paperSource)) {
+            String violations = files
+                .filter(path -> containsAny(path,
+                    ".getLocale()",
+                    ".kickPlayer(",
+                    ".getDescription()",
+                    ".setDisplayName(",
+                    ".setLore(",
+                    ".setWarningTime("))
+                .map(path -> root.relativize(path).toString())
+                .sorted()
+                .reduce((left, right) -> left + "\n" + right)
+                .orElse("");
+            assertTrue(violations.isBlank(), violations);
+        }
+
+        String localeCache = Files.readString(paperSource.resolve("kr/lunaf/cloudislands/paper/session/PlayerLocaleCache.java"));
+        String routeSession = Files.readString(paperSource.resolve("kr/lunaf/cloudislands/paper/session/PaperRouteSessionListener.java"));
+        String guiItems = Files.readString(paperSource.resolve("kr/lunaf/cloudislands/paper/gui/GuiItems.java"));
+        String inventories = Files.readString(paperSource.resolve("kr/lunaf/cloudislands/paper/gui/GuiInventories.java"));
+        String scoreboard = Files.readString(paperSource.resolve("kr/lunaf/cloudislands/paper/session/PaperScoreboardListener.java"));
+        String environment = Files.readString(paperSource.resolve("kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java"));
+
+        assertTrue(localeCache.contains("player.locale().toLanguageTag()"), "Player locale fallback must use the current Locale API");
+        assertTrue(routeSession.contains("Component.text(playerMessage("), "Pre-login rejection messages must use Adventure components");
+        assertTrue(guiItems.contains("meta.displayName(Component.text(name))"), "GUI item names must use Adventure components");
+        assertTrue(guiItems.contains("meta.lore("), "GUI item lore must use Adventure components");
+        assertTrue(inventories.contains("Bukkit.createInventory(holder, size, Component.text(title))"), "GUI titles must use Adventure components");
+        assertTrue(scoreboard.contains("registerNewObjective(\"cloudislands\", Criteria.DUMMY, messages.componentForLocale(locale, \"scoreboard-title\"))"), "Scoreboard criteria and titles must use current typed APIs");
+        assertTrue(environment.contains("border.setWarningTimeTicks(100)"), "World border warning duration must use the tick API");
     }
 
     @Test

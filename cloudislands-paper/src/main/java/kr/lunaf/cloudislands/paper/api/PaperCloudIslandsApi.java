@@ -1980,7 +1980,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 "paper",
                 agent.role().name(),
                 config.node().id(),
-                plugin.getDescription().getVersion(),
+                plugin.getPluginMeta().getVersion(),
                 true,
                 !resolved(config.coreApi().token()).isBlank() || envPresent("CI_CORE_TOKEN"),
                 !resolved(config.coreApi().adminToken()).isBlank() || envPresent("CI_ADMIN_TOKEN"),

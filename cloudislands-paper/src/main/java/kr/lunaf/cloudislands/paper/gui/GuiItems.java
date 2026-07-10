@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -26,8 +27,8 @@ public final class GuiItems {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
+            meta.displayName(Component.text(name));
+            meta.lore(List.of(lore).stream().map(Component::text).toList());
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
             pdc.set(ACTION_ID, PersistentDataType.STRING, actionId);
             if (!data.isEmpty()) {

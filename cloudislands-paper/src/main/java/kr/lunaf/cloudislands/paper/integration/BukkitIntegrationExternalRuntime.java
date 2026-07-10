@@ -188,10 +188,9 @@ final class BukkitIntegrationExternalRuntime implements IntegrationExternalRunti
         }
     }
 
-    @SuppressWarnings("deprecation")
     private static String pluginVersion(Plugin plugin) {
-        return plugin == null || plugin.getDescription() == null || plugin.getDescription().getVersion() == null
+        return plugin == null || plugin.getPluginMeta().getVersion() == null
             ? ""
-            : plugin.getDescription().getVersion();
+            : plugin.getPluginMeta().getVersion();
     }
 }

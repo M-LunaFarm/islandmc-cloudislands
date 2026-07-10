@@ -84,6 +84,7 @@ import kr.lunaf.cloudislands.paper.integration.IntegrationRuntimeCertification;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.world.AdminWorldSpawnGateway;
 import kr.lunaf.cloudislands.paper.platform.world.AdminWorldSpawnGateway.SpawnUpdateResult;
+import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
@@ -1506,7 +1507,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private MessageRenderer messagesFor(Player player) {
-        return messages == null || player == null ? messages : messages.forLocale(player.getLocale());
+        return messages == null || player == null ? messages : messages.forLocale(PlayerLocaleCache.clientLocale(player));
     }
 
     private boolean handleIsland(CommandSender sender, String[] args) {

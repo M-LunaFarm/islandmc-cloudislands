@@ -101,18 +101,18 @@ public final class PaperRouteSessionListener implements Listener {
         if (requireProxySourceAllowlist && !proxySourceAllowlist.configured()) {
             proxySourceConfigurationRejections.incrementAndGet();
             plugin.getLogger().warning("Rejected login because security.proxy-source-allowlist is required but empty; policy=" + BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY);
-            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, playerMessage("route-login-proxy-allowlist-required", "섬 서버 프록시 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요."));
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, Component.text(playerMessage("route-login-proxy-allowlist-required", "섬 서버 프록시 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.")));
             return;
         }
         if (!proxySourceAllowlist.allows(event.getAddress())) {
             proxySourceRejections.incrementAndGet();
             plugin.getLogger().warning("Rejected non-proxy login source for " + event.getUniqueId() + " from " + event.getAddress().getHostAddress() + "; policy=" + BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY);
-            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, playerMessage("route-login-proxy-required", "정상적인 프록시 경로로 접속해주세요."));
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, Component.text(playerMessage("route-login-proxy-required", "정상적인 프록시 경로로 접속해주세요.")));
             return;
         }
         if (!forwardingReady) {
             forwardingRejections.incrementAndGet();
-            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, playerMessage("route-login-forwarding-not-ready", "섬 서버 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요."));
+            event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, Component.text(playerMessage("route-login-forwarding-not-ready", "섬 서버 보안 설정이 완료되지 않았습니다. 관리자에게 문의해주세요.")));
             return;
         }
         if (!requireRouteSession) {
@@ -131,7 +131,7 @@ public final class PaperRouteSessionListener implements Listener {
             plugin.getLogger().warning("Route session pre-login check failed for " + event.getUniqueId() + ": " + exception.getMessage());
         }
         routeSessionRejections.incrementAndGet();
-        event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, playerMessage("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
+        event.disallow(AsyncPlayerPreLoginEvent.Result.KICK_OTHER, Component.text(playerMessage("route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요.")));
     }
 
     @EventHandler
@@ -272,7 +272,7 @@ public final class PaperRouteSessionListener implements Listener {
         if (messages == null) {
             return fallback;
         }
-        String rendered = messages.plainForLocale(player == null ? "" : locales == null ? player.getLocale() : locales.locale(player), key);
+        String rendered = messages.plainForLocale(player == null ? "" : locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player), key);
         return rendered.isBlank() ? fallback : rendered;
     }
 

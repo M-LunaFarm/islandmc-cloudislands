@@ -9,6 +9,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
@@ -59,8 +60,8 @@ public final class PaperScoreboardListener implements Listener {
             return;
         }
         Scoreboard scoreboard = manager.getNewScoreboard();
-        String locale = locales == null ? player.getLocale() : locales.locale(player);
-        Objective objective = scoreboard.registerNewObjective("cloudislands", "dummy", messages.plainForLocale(locale, "scoreboard-title"));
+        String locale = locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player);
+        Objective objective = scoreboard.registerNewObjective("cloudislands", Criteria.DUMMY, messages.componentForLocale(locale, "scoreboard-title"));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
         List<String> lines = messages.linesForLocale(locale, "scoreboard-lines",
             "player", player.getName(),

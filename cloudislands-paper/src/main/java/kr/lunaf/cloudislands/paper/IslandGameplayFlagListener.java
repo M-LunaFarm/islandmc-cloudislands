@@ -167,7 +167,7 @@ public final class IslandGameplayFlagListener implements Listener {
         if (messages == null) {
             return fallback;
         }
-        String rendered = messages.plainForLocale(player == null ? "" : locales == null ? player.getLocale() : locales.locale(player), key);
+        String rendered = messages.plainForLocale(player == null ? "" : locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player), key);
         return rendered.isBlank() ? fallback : rendered;
     }
 

@@ -13,7 +13,11 @@ public final class PlayerLocaleCache {
         if (player == null) {
             return "";
         }
-        return locale(player.getUniqueId(), player.getLocale());
+        return locale(player.getUniqueId(), clientLocale(player));
+    }
+
+    public static String clientLocale(Player player) {
+        return player == null ? "" : PlayerIslandProfile.normalizeLocale(player.locale().toLanguageTag());
     }
 
     public String locale(UUID playerUuid, String fallback) {
@@ -32,7 +36,7 @@ public final class PlayerLocaleCache {
 
     public void remember(Player player) {
         if (player != null) {
-            remember(player.getUniqueId(), player.getLocale());
+            remember(player.getUniqueId(), clientLocale(player));
         }
     }
 

@@ -59,7 +59,7 @@ public final class PaperBrandingListener implements Listener {
     }
 
     private String locale(Player player) {
-        return locales == null ? player.getLocale() : locales.locale(player);
+        return locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player);
     }
 
     private byte[] brandPayload(String brand) {
@@ -79,7 +79,7 @@ public final class PaperBrandingListener implements Listener {
             byte part = (byte) (current & 0x7F);
             current >>>= 7;
             if (current != 0) {
-                part |= 0x80;
+                part = (byte) (part | 0x80);
             }
             buffer[index++] = part;
         } while (current != 0 && index < buffer.length);

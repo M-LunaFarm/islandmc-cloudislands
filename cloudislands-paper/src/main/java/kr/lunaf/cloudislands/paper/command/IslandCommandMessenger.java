@@ -18,7 +18,7 @@ final class IslandCommandMessenger {
     }
 
     MessageRenderer messagesFor(Player player) {
-        return messages == null || player == null ? messages : messages.forLocale(locales == null ? player.getLocale() : locales.locale(player));
+        return messages == null || player == null ? messages : messages.forLocale(locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player));
     }
 
     String routeMessage(String key, String fallback, String... variables) {

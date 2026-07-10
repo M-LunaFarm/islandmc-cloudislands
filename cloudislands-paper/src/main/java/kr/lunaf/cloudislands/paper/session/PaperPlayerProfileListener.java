@@ -23,7 +23,7 @@ public final class PaperPlayerProfileListener implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         java.util.UUID playerUuid = event.getPlayer().getUniqueId();
-        String playerLocale = event.getPlayer().getLocale();
+        String playerLocale = PlayerLocaleCache.clientLocale(event.getPlayer());
         if (locales != null) {
             locales.remember(playerUuid, playerLocale);
         }

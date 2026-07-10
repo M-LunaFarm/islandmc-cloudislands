@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
+import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import org.bukkit.Bukkit;
@@ -318,7 +319,7 @@ public final class RouteTicketConsumer {
         if (renderer == null) {
             return fallback;
         }
-        String rendered = renderer.plainForLocale(player == null ? "" : player.getLocale(), key);
+        String rendered = renderer.plainForLocale(PlayerLocaleCache.clientLocale(player), key);
         return rendered.isBlank() ? fallback : rendered;
     }
 

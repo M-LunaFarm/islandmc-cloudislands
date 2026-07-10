@@ -396,7 +396,7 @@ final class IslandEnvironmentCommandHandler {
         border.setCenter(settings.centerX(), settings.centerZ());
         border.setSize(settings.size());
         border.setWarningDistance(settings.warningDistance());
-        border.setWarningTime(5);
+        border.setWarningTimeTicks(100);
         player.setWorldBorder(border);
         if (announce) {
             runtime.message(player, message("border-apply-prefix", "섬 경계 UI 적용: ") + message("border-color-label", "색상=") + settings.color() + message("border-policy-label", ", 정책=") + settings.policy() + message("border-size-label", ", 크기=") + view.info().border());

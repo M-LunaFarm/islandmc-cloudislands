@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.gui;
 import java.util.List;
 import java.util.Map;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -70,8 +71,8 @@ public final class IslandConfirmationMenu implements Listener {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(name);
-            meta.setLore(List.of(lore));
+            meta.displayName(Component.text(name));
+            meta.lore(List.of(lore).stream().map(Component::text).toList());
             item.setItemMeta(meta);
         }
         return item;

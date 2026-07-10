@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.gui;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
@@ -11,14 +12,14 @@ public final class GuiInventories {
 
     public static Inventory create(String menuId, int size, String title) {
         CloudIslandsMenuHolder holder = new CloudIslandsMenuHolder(menuId);
-        Inventory inventory = Bukkit.createInventory(holder, size, title);
+        Inventory inventory = Bukkit.createInventory(holder, size, Component.text(title));
         holder.attach(inventory);
         return inventory;
     }
 
     public static Inventory create(String menuId, UUID sessionId, int size, String title) {
         CloudIslandsMenuHolder holder = new CloudIslandsMenuHolder(menuId, sessionId);
-        Inventory inventory = Bukkit.createInventory(holder, size, title);
+        Inventory inventory = Bukkit.createInventory(holder, size, Component.text(title));
         holder.attach(inventory);
         return inventory;
     }

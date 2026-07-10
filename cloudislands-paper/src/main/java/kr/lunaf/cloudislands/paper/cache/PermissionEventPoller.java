@@ -665,7 +665,7 @@ public final class PermissionEventPoller {
             player.sendMessage(reason);
             if (!canUseBungeeConnect()) {
                 islandMutationFallbackKicks.incrementAndGet();
-                player.kickPlayer(reason);
+                player.kick(Component.text(reason));
                 continue;
             }
             try {
@@ -679,7 +679,7 @@ public final class PermissionEventPoller {
                 islandMutationFallbackFailures.incrementAndGet();
                 islandMutationFallbackKicks.incrementAndGet();
                 plugin.getLogger().warning("Failed to move island player to fallback: " + exception.getMessage());
-                player.kickPlayer(reason);
+                player.kick(Component.text(reason));
             }
         }
     }
@@ -690,7 +690,7 @@ public final class PermissionEventPoller {
             player.sendMessage(reason);
             if (!canUseBungeeConnect()) {
                 islandMutationFallbackKicks.incrementAndGet();
-                player.kickPlayer(reason);
+                player.kick(Component.text(reason));
                 continue;
             }
             try {
@@ -704,7 +704,7 @@ public final class PermissionEventPoller {
                 islandMutationFallbackFailures.incrementAndGet();
                 islandMutationFallbackKicks.incrementAndGet();
                 plugin.getLogger().warning("Failed to move node players to fallback: " + exception.getMessage());
-                player.kickPlayer(reason);
+                player.kick(Component.text(reason));
             }
         }
     }
@@ -743,7 +743,7 @@ public final class PermissionEventPoller {
         }
         target.sendMessage("섬에서 추방되어 로비로 이동합니다.");
         if (!canUseBungeeConnect()) {
-            target.kickPlayer("섬에서 추방되었습니다.");
+            target.kick(Component.text("섬에서 추방되었습니다."));
             return;
         }
         try {
@@ -754,7 +754,7 @@ public final class PermissionEventPoller {
             target.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
         } catch (IOException | RuntimeException exception) {
             plugin.getLogger().warning("Failed to move kicked visitor to fallback: " + exception.getMessage());
-            target.kickPlayer("섬에서 추방되었습니다.");
+            target.kick(Component.text("섬에서 추방되었습니다."));
         }
     }
 
@@ -767,7 +767,7 @@ public final class PermissionEventPoller {
             ? "섬 점검으로 로비로 이동합니다."
             : "섬 점검으로 로비로 이동합니다. 사유: " + reason;
         for (org.bukkit.entity.Player player : Bukkit.getOnlinePlayers()) {
-            player.kickPlayer(message);
+            player.kick(Component.text(message));
         }
     }
 

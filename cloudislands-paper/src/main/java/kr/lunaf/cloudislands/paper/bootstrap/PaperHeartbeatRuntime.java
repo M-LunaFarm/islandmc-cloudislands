@@ -36,7 +36,7 @@ public final class PaperHeartbeatRuntime implements RuntimeComponent {
             config.node().id(),
             config.node().pool(),
             config.node().velocityServerName(),
-            plugin.getDescription().getVersion(),
+            plugin.getPluginMeta().getVersion(),
             supportedTemplates,
             supportedTemplatesSupplier,
             storageAvailable,

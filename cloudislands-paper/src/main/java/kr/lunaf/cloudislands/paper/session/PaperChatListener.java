@@ -71,7 +71,7 @@ public final class PaperChatListener implements Listener {
         if (!(viewer instanceof Player player)) {
             return "";
         }
-        return locales == null ? player.getLocale() : locales.locale(player);
+        return locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player);
     }
 
     private void sendAdminSpyLine(AsyncChatEvent event) {
