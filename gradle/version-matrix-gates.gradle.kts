@@ -1,6 +1,9 @@
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.tasks.SourceSetContainer
 import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.jvm.tasks.Jar
+import org.gradle.jvm.toolchain.JavaToolchainService
 import java.util.zip.ZipFile
 
 private data class MinecraftVersionRange(val major: Int, val minor: Int) : Comparable<MinecraftVersionRange> {
@@ -353,12 +356,45 @@ tasks.register("verifyVersionPackaging") {
     dependsOn(tasks.named("verifyAdapterPackaging"))
 }
 
+private val versionMatrixJavaToolchains = extensions.getByType<JavaToolchainService>()
+private val paperProject = project(":cloudislands-paper")
+private val paperMainSources = paperProject.extensions
+    .getByType<SourceSetContainer>()
+    .named("main")
+private val paperBaselineCompileClasspath = paperProject.configurations.named("compileClasspath")
+private val paperTargetRelease = gateVersionCatalog.findVersion("java-current").orElseThrow().requiredVersion.toInt()
+
 private val paperVersionCompileTasks = minecraftVersionMatrix.compileEntries.associateWith { entry ->
-    tasks.register(entry.compileTaskName) {
+    val variantClasspath = paperProject.configurations.create("${entry.compileTaskName}Classpath") {
+        isCanBeConsumed = false
+        isCanBeResolved = true
+        extendsFrom(paperBaselineCompileClasspath.get())
+        resolutionStrategy.deactivateDependencyLocking()
+        resolutionStrategy.force("io.papermc.paper:paper-api:${entry.paperApiVersion}")
+    }
+    paperProject.dependencies.add(
+        variantClasspath.name,
+        "io.papermc.paper:paper-api:${entry.paperApiVersion}"
+    )
+    paperProject.dependencies.add(
+        variantClasspath.name,
+        "org.jetbrains:annotations:26.0.2-1"
+    )
+
+    tasks.register<JavaCompile>(entry.compileTaskName) {
         group = "verification"
-        description = "Compiles the CloudIslands Paper plugin for ${entry.normalizedRange} from the Minecraft version matrix."
-        dependsOn(project(":${entry.adapterProject}").tasks.named("compileJava"))
-        dependsOn(project(":${entry.adapterProject}").tasks.named("processResources"))
+        description = "Compiles CloudIslands Paper against ${entry.paperApiVersion} on Java ${entry.javaVersion}."
+        source(paperMainSources.map { it.allJava })
+        classpath = variantClasspath
+        destinationDirectory.set(layout.buildDirectory.dir("version-matrix/${entry.id}/classes"))
+        javaCompiler.set(versionMatrixJavaToolchains.compilerFor {
+            languageVersion.set(JavaLanguageVersion.of(entry.javaVersion))
+        })
+        options.release.set(paperTargetRelease)
+        options.encoding = "UTF-8"
+        options.compilerArgs.addAll(listOf("-Xlint:all", "-Xlint:-processing"))
+        inputs.property("paperApiVersion", entry.paperApiVersion)
+        inputs.property("javaVersion", entry.javaVersion)
     }
 }
 
@@ -386,6 +422,9 @@ minecraftVersionMatrix.entries.forEach { entry ->
                 "--plugin", paperJar.get().archiveFile.get().asFile.absolutePath,
                 "--work-dir", layout.buildDirectory.dir("smoke/paper-${entry.bootVersion}").get().asFile.absolutePath,
                 "--cache-dir", layout.buildDirectory.dir("smoke/cache").get().asFile.absolutePath,
+                "--java-command", versionMatrixJavaToolchains.launcherFor {
+                    languageVersion.set(JavaLanguageVersion.of(entry.javaVersion))
+                }.get().executablePath.asFile.absolutePath,
                 "--timeout", "240"
             )
         }

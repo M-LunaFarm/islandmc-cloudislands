@@ -34,7 +34,7 @@ class MinecraftVersionMatrixPolicyTest {
         matrix.validate(root);
 
         assertEquals(List.of("paper-1.21", "paper-26.1", "paper-26.2"), matrix.ids());
-        assertEquals("paper-1.21", matrix.latestStable().id());
+        assertEquals("paper-26.1", matrix.latestStable().id());
         assertFalse(matrix.entries().stream().anyMatch(entry -> entry.experimental() && entry.releaseSupported()));
         assertTrue(buildSurface.contains("verifyMinecraftVersionMatrix"));
         assertTrue(buildSurface.contains("compileAllMinecraftVersions"));

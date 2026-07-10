@@ -433,7 +433,9 @@ Object Storage down:
 
 ## Build
 
-Requires Java 21.
+Requires Java 21 for the CloudIslands build baseline and Paper 1.21.x. Paper
+26.1.x and newer servers require Java 25; the version-matrix tasks select the
+matching compiler and server launcher explicitly.
 
 ```bash
 ./gradlew build
@@ -451,8 +453,8 @@ Current repository state:
 | Target | Compile | Boot smoke | Release | Notes |
 |---|---|---|---|---|
 | Paper `1.21.x` | `paper121Compile` | `paper121BootSmoke` | release-supported | current paper-api and plugin.yml baseline |
-| Paper `26.1.x` | `paper261Compile` | pending official Paper build | experimental compile-only | adapter compile-verified; boot smoke waits for official Paper build |
-| Paper `26.2.x` | `paper262Compile` | pending official Paper build | experimental compile-only | adapter compile-verified; boot smoke waits for official Paper build |
+| Paper `26.1.x` | `paper261Compile` | `paper261BootSmoke` | release-supported | stable Paper 26.1.2 API compile and boot verified on Java 25 |
+| Paper `26.2.x` | `paper262Compile` | pending official Paper build | experimental compile-only | official alpha Paper API compile-verified on Java 25; stable boot build pending |
 <!-- minecraft-version-matrix:end -->
 
 Velocity `3.5.0-SNAPSHOT` remains the proxy compile baseline with a boot smoke
@@ -473,13 +475,14 @@ The build generates Paper compile and boot smoke tasks from
 ## Feature parity by evidence
 
 Status values are intentionally conservative. `IMPLEMENTED_VERIFIED` requires
-tests or generated release evidence. Compile-only 26.x adapter coverage is not
-reported as boot or integration verification.
+tests or generated release evidence. Paper 26.1.x has Java 25 compile and boot
+coverage; compile-only 26.2.x adapter coverage is not reported as boot or
+integration verification.
 
 <!-- feature-parity:start -->
 | Area | Status | Verified evidence | Limit |
 |---|---|---|---|
-| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume | 26.1 and 26.2 stay compile-only until official bootable Paper builds are available |
+| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; real-player destructive-action smoke is not part of CI | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
@@ -502,9 +505,9 @@ Release notes for `v1.0.1`:
 - Core migration compatibility: SuperiorSkyblock2 import remains a CloudIslands
   Core/Paper/Velocity operation; `cloudislands-satis` no longer exposes legacy
   import or rollback commands
-- supported Paper version: Paper `1.21.x` is release-supported; Paper `26.1.x`
-  and `26.2.x` are compile-only experimental targets until official bootable
-  Paper builds are available
+- supported Paper version: Paper `1.21.x` and stable `26.1.x` are
+  release-supported; Paper `26.2.x` is compile-only experimental until a stable
+  Paper build is available
 - breaking changes: no public API breaking change from the 1.0.x compatibility
   baseline; addon compatibility is checked by `apiCompatibilityCheck`
 - release checklist: `./gradlew build distBundle distChecksums distSbom

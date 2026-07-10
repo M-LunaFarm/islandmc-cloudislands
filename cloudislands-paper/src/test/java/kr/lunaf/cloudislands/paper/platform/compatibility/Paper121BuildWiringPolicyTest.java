@@ -13,7 +13,7 @@ class Paper121BuildWiringPolicyTest {
         String matrix = Files.readString(Path.of("../gradle/minecraft-versions.toml"));
 
         assertTrue(build.contains("val paperVersionCompileTasks = minecraftVersionMatrix.compileEntries.associateWith"));
-        assertTrue(build.contains("tasks.register(entry.compileTaskName)"));
+        assertTrue(build.contains("tasks.register<JavaCompile>(entry.compileTaskName)"));
         assertTrue(build.contains("tasks.register<Exec>(entry.bootSmokeTaskName)"));
         assertTrue(build.contains("tasks.register(\"paperBootSmoke\")"));
         assertTrue(build.contains("minecraftVersionMatrix.latestStable.bootSmokeTaskName"));

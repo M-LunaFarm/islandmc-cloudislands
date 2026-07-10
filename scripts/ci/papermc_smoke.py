@@ -39,7 +39,7 @@ def download(url: str, target: Path) -> None:
     tmp.replace(target)
 
 
-def prepare_paper(work_dir: Path, plugin: Path) -> list[str]:
+def prepare_paper(work_dir: Path, plugin: Path, java_command: str) -> list[str]:
     cloudislands_dir = work_dir / "plugins" / "CloudIslands"
     config_v2_dir = cloudislands_dir / "config-v2"
     cloudislands_dir.mkdir(parents=True, exist_ok=True)
@@ -128,10 +128,10 @@ def prepare_paper(work_dir: Path, plugin: Path) -> list[str]:
         ),
         encoding="utf-8",
     )
-    return ["java", "-Xms256m", "-Xmx768m", "-jar", "server.jar", "--nogui"]
+    return [java_command, "-Xms256m", "-Xmx768m", "-jar", "server.jar", "--nogui"]
 
 
-def prepare_velocity(work_dir: Path, plugin: Path) -> list[str]:
+def prepare_velocity(work_dir: Path, plugin: Path, java_command: str) -> list[str]:
     (work_dir / "plugins" / "cloudislands").mkdir(parents=True, exist_ok=True)
     shutil.copy2(plugin, work_dir / "plugins" / plugin.name)
     (work_dir / "velocity.toml").write_text(
@@ -178,7 +178,7 @@ def prepare_velocity(work_dir: Path, plugin: Path) -> list[str]:
         ),
         encoding="utf-8",
     )
-    return ["java", "-Xms256m", "-Xmx512m", "-jar", "server.jar"]
+    return [java_command, "-Xms256m", "-Xmx512m", "-jar", "server.jar"]
 
 
 def wait_for_smoke(process: subprocess.Popen, log_path: Path, expected: list[str], ready: list[str], timeout: int) -> None:
@@ -215,6 +215,7 @@ def main() -> int:
     parser.add_argument("--plugin", required=True)
     parser.add_argument("--work-dir", required=True)
     parser.add_argument("--cache-dir", required=True)
+    parser.add_argument("--java-command", default="java")
     parser.add_argument("--timeout", type=int, default=240)
     args = parser.parse_args()
 
@@ -234,12 +235,12 @@ def main() -> int:
     shutil.copy2(server_jar, work_dir / "server.jar")
 
     if args.project == "paper":
-        command = prepare_paper(work_dir, plugin)
+        command = prepare_paper(work_dir, plugin, args.java_command)
         expected = ["CloudIslands Paper agent enabled"]
         ready = ["Done ("]
         shutdown = "stop\n"
     else:
-        command = prepare_velocity(work_dir, plugin)
+        command = prepare_velocity(work_dir, plugin, args.java_command)
         expected = ["CloudIslands Velocity router enabled"]
         ready = ["Done ("]
         shutdown = "end\n"

@@ -28,7 +28,7 @@ class SupportedRuntimeMatrixTest {
         assertTrue(minecraftMatrix.contains("id = \"paper-26.2\""));
         assertTrue(readme.contains("<!-- minecraft-version-matrix:start -->"));
         assertTrue(readme.contains("| Paper `1.21.x` | `paper121Compile` | `paper121BootSmoke` | release-supported |"));
-        assertTrue(readme.contains("| Paper `26.1.x` | `paper261Compile` | pending official Paper build | experimental compile-only |"));
+        assertTrue(readme.contains("| Paper `26.1.x` | `paper261Compile` | `paper261BootSmoke` | release-supported |"));
         assertTrue(readme.contains("| Paper `26.2.x` | `paper262Compile` | pending official Paper build | experimental compile-only |"));
         assertTrue(readme.contains("Velocity `3.5.0-SNAPSHOT` remains the proxy compile baseline"));
         assertTrue(readme.contains("paper121Compile"));
@@ -38,9 +38,13 @@ class SupportedRuntimeMatrixTest {
         assertTrue(readme.contains("verifyReadmeVersionTable"));
 
         assertTrue(workflow.contains("platform: paper-1.21.11"));
+        assertTrue(workflow.contains("platform: paper-26.1"));
+        assertTrue(workflow.contains("java: \"25\""));
+        assertTrue(workflow.contains("boot-task: paper261BootSmoke"));
         assertTrue(workflow.contains("java: \"21\""));
         assertTrue(workflow.contains("minecraft-baseline: \"1.21.11\""));
-        assertTrue(workflow.contains("java-version: ${{ matrix.java }}"));
+        assertTrue(workflow.contains("Set up Java 25 toolchain"));
+        assertTrue(workflow.contains("Set up Java 21 build launcher"));
         assertTrue(workflow.contains("cloudislands-dist-${{ matrix.platform }}-java${{ matrix.java }}"));
     }
 
