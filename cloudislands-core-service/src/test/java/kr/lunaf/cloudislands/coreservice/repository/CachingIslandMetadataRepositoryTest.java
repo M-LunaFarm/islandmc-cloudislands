@@ -1,7 +1,6 @@
 package kr.lunaf.cloudislands.coreservice.repository;
 
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -18,19 +17,19 @@ class CachingIslandMetadataRepositoryTest {
         Instant now = Instant.parse("2026-01-02T03:04:05Z");
 
         assertTrue(CachingIslandMetadataRepository.activeMember(
-            new IslandMemberSnapshot(islandId, playerUuid, IslandRole.TRUSTED, now.minusSeconds(60), null),
+            new IslandMemberSnapshot(islandId, playerUuid, "TRUSTED", now.minusSeconds(60), null),
             now
         ));
         assertTrue(CachingIslandMetadataRepository.activeMember(
-            new IslandMemberSnapshot(islandId, playerUuid, IslandRole.TRUSTED, now.minusSeconds(60), now.plusSeconds(1)),
+            new IslandMemberSnapshot(islandId, playerUuid, "TRUSTED", now.minusSeconds(60), now.plusSeconds(1)),
             now
         ));
         assertFalse(CachingIslandMetadataRepository.activeMember(
-            new IslandMemberSnapshot(islandId, playerUuid, IslandRole.TRUSTED, now.minusSeconds(60), now),
+            new IslandMemberSnapshot(islandId, playerUuid, "TRUSTED", now.minusSeconds(60), now),
             now
         ));
         assertFalse(CachingIslandMetadataRepository.activeMember(
-            new IslandMemberSnapshot(islandId, playerUuid, IslandRole.TRUSTED, now.minusSeconds(60), now.minusSeconds(1)),
+            new IslandMemberSnapshot(islandId, playerUuid, "TRUSTED", now.minusSeconds(60), now.minusSeconds(1)),
             now
         ));
     }

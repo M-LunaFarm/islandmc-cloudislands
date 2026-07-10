@@ -10,8 +10,8 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionOverrideSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
+import kr.lunaf.cloudislands.api.model.RoleDefinition;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
@@ -25,6 +25,7 @@ import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 import kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository;
 
 public final class PermissionRoleRoutes implements RouteGroup {
@@ -77,7 +78,7 @@ public final class PermissionRoleRoutes implements RouteGroup {
     private void setPermission(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
-        String roleKey = roleKey(body, IslandRole.MEMBER.name());
+        String roleKey = roleKey(body, CoreRoleKeys.MEMBER);
         IslandPermission permission = JsonFields.enumValue(IslandPermission.class, body, "permission", IslandPermission.BUILD);
         boolean allowed = JsonFields.bool(body, "allowed", false);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
@@ -100,7 +101,7 @@ public final class PermissionRoleRoutes implements RouteGroup {
         if (!requireIsland(exchange, islandId)) {
             return;
         }
-        String roleKey = roleKey(body, IslandRole.MEMBER.name());
+        String roleKey = roleKey(body, CoreRoleKeys.MEMBER);
         IslandPermission permission = JsonFields.enumValue(IslandPermission.class, body, "permission", IslandPermission.BUILD);
         boolean allowed = JsonFields.bool(body, "allowed", false);
         permissionRules.putRoleKey(islandId, roleKey, permission, allowed);
@@ -353,12 +354,13 @@ public final class PermissionRoleRoutes implements RouteGroup {
         return IslandRoleRepository.normalizeRoleKey(value);
     }
 
-    private static int defaultWeight(String roleKey) {
-        try {
-            return IslandRole.valueOf(roleKey).ordinal();
-        } catch (IllegalArgumentException exception) {
-            return 100;
-        }
+    static int defaultWeight(String roleKey) {
+        String normalizedRoleKey = IslandRoleRepository.normalizeRoleKey(roleKey);
+        return RoleDefinition.defaultMemberRoles().stream()
+            .filter(definition -> definition.roleId().value().equals(normalizedRoleKey))
+            .mapToInt(RoleDefinition::weight)
+            .findFirst()
+            .orElse(100);
     }
 
 }

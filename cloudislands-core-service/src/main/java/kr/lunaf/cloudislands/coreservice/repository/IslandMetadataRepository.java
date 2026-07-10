@@ -18,10 +18,14 @@ public interface IslandMetadataRepository {
     List<IslandMemberSnapshot> members(UUID islandId);
     List<IslandMemberSnapshot> islandsForMember(UUID playerUuid);
     boolean isMember(UUID islandId, UUID playerUuid);
-    void upsertMember(UUID islandId, UUID playerUuid, IslandRole role);
     void upsertMemberKey(UUID islandId, UUID playerUuid, String roleKey);
+    @Deprecated(forRemoval = false)
+    default void upsertMember(UUID islandId, UUID playerUuid, IslandRole role) {
+        upsertMemberKey(islandId, playerUuid, role == null ? "" : role.name());
+    }
+    @Deprecated(forRemoval = false)
     default void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, java.time.Instant expiresAt) {
-        upsertMember(islandId, playerUuid, role);
+        upsertMemberKey(islandId, playerUuid, role == null ? "" : role.name(), expiresAt);
     }
     default void upsertMemberKey(UUID islandId, UUID playerUuid, String roleKey, java.time.Instant expiresAt) {
         upsertMemberKey(islandId, playerUuid, roleKey);

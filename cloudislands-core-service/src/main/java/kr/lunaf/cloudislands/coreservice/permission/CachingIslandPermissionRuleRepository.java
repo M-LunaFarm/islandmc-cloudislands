@@ -10,9 +10,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionOverrideSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingIslandPermissionRuleRepository implements IslandPermissionRuleRepository {
@@ -146,7 +146,7 @@ public final class CachingIslandPermissionRuleRepository implements IslandPermis
     private static String roleKey(String object) {
         String roleKey = JsonFields.text(object, "roleKey", "");
         if (roleKey.isBlank()) {
-            roleKey = JsonFields.text(object, "role", IslandRole.VISITOR.name());
+            roleKey = JsonFields.text(object, "role", CoreRoleKeys.VISITOR);
         }
         return kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
     }

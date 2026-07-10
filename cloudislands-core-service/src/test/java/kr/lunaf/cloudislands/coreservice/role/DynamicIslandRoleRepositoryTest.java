@@ -94,4 +94,13 @@ class DynamicIslandRoleRepositoryTest {
         assertEquals("BUILDER", member.roleKey());
         assertEquals("BUILDER", member.effectiveRoleKey());
     }
+
+    @Test
+    void coreMembershipChecksUseRoleKeysAcrossRoutes() throws Exception {
+        for (String route : java.util.List.of("IslandVisitorRoutes", "IslandCommunicationRoutes", "ProgressionRoutes")) {
+            String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/" + route + ".java"));
+            assertTrue(source.contains("CoreRoleKeys.memberRole"), route + " must preserve custom roles when checking island membership");
+            assertFalse(source.contains("record.role() != IslandRole"), route + " must not classify membership through the deprecated enum");
+        }
+    }
 }

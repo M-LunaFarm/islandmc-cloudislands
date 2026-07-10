@@ -8,7 +8,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -21,6 +20,7 @@ import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 
 public final class IslandCommunicationRoutes implements RouteGroup {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
@@ -89,7 +89,7 @@ public final class IslandCommunicationRoutes implements RouteGroup {
             .map(island -> island.ownerUuid().equals(actorUuid))
             .orElse(false);
         boolean member = metadataRepository.members(islandId).stream()
-            .anyMatch(record -> record.playerUuid().equals(actorUuid) && record.role() != IslandRole.VISITOR && record.role() != IslandRole.BANNED);
+            .anyMatch(record -> record.playerUuid().equals(actorUuid) && CoreRoleKeys.memberRole(record.effectiveRoleKey()));
         if (owner || member) {
             return true;
         }

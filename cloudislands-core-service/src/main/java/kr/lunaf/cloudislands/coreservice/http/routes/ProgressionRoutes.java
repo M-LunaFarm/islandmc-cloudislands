@@ -11,7 +11,6 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
@@ -33,6 +32,7 @@ import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradeRule;
 
@@ -426,7 +426,7 @@ public final class ProgressionRoutes implements RouteGroup {
             .map(island -> island.ownerUuid().equals(actorUuid))
             .orElse(false);
         boolean member = metadataRepository.members(islandId).stream()
-            .anyMatch(record -> record.playerUuid().equals(actorUuid) && record.role() != IslandRole.VISITOR && record.role() != IslandRole.BANNED);
+            .anyMatch(record -> record.playerUuid().equals(actorUuid) && CoreRoleKeys.memberRole(record.effectiveRoleKey()));
         if (owner || member) {
             return true;
         }

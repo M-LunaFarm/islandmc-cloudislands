@@ -10,7 +10,6 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
@@ -25,6 +24,7 @@ import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateSnapshot;
@@ -116,7 +116,7 @@ public final class CreateIslandWorkflow {
             islands.updateStats(islandId, template.defaultIslandSize(), island.level(), island.worth());
             island = islands.findById(islandId).orElse(island);
         }
-        metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
+        metadata.upsertMemberKey(islandId, ownerUuid, CoreRoleKeys.OWNER);
         playerProfiles.setPrimaryIsland(ownerUuid, islandId);
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime;
         try {

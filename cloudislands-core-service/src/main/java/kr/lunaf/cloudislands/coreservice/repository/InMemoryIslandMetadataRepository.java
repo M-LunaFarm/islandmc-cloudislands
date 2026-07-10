@@ -55,6 +55,8 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    @Deprecated(forRemoval = false)
+    @SuppressWarnings("deprecation")
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role) {
         upsertMember(islandId, playerUuid, role, null);
     }
@@ -65,6 +67,8 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    @Deprecated(forRemoval = false)
+    @SuppressWarnings("deprecation")
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, Instant expiresAt) {
         upsertMemberKey(islandId, playerUuid, role.name(), expiresAt);
     }
@@ -110,7 +114,7 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
             return false;
         }
         invites.put(inviteId, new IslandInviteSnapshot(invite.inviteId(), invite.islandId(), invite.inviterUuid(), invite.targetUuid(), "ACCEPTED", invite.createdAt(), invite.expiresAt()));
-        upsertMember(invite.islandId(), playerUuid, IslandRole.MEMBER);
+        upsertMemberKey(invite.islandId(), playerUuid, kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.MEMBER);
         return true;
     }
 

@@ -12,7 +12,6 @@ import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
@@ -27,6 +26,7 @@ import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 
 public final class IslandVisitorRoutes implements RouteGroup {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
@@ -116,7 +116,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
         events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
         if (accepted) {
             invite.ifPresent(value -> islandLogs.append(value.islandId(), playerUuid, "ISLAND_INVITE_ACCEPT", Map.of("inviteId", inviteId.toString(), "accepted", "true")));
-            events.publish(CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "role", IslandRole.MEMBER.name()));
+            events.publish(CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "role", CoreRoleKeys.MEMBER, "roleKey", CoreRoleKeys.MEMBER));
             events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString()));
         }
         CoreHttpResponses.write(exchange, accepted ? 202 : 409, accepted ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing, expired, or not pending"));
@@ -146,8 +146,8 @@ public final class IslandVisitorRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.BAN_VISITOR)) {
             return;
         }
-        IslandRole targetRole = memberRole(metadataRepository.members(islandId), playerUuid);
-        if (targetRole != null && targetRole != IslandRole.VISITOR && targetRole != IslandRole.BANNED) {
+        String targetRoleKey = memberRoleKey(metadataRepository.members(islandId), playerUuid);
+        if (CoreRoleKeys.memberRole(targetRoleKey)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("VISITOR_BAN_DENIED", "Island members cannot be handled through visitor bans"));
             return;
         }
@@ -213,10 +213,10 @@ public final class IslandVisitorRoutes implements RouteGroup {
         return false;
     }
 
-    static IslandRole memberRole(List<IslandMemberSnapshot> members, UUID playerUuid) {
+    static String memberRoleKey(List<IslandMemberSnapshot> members, UUID playerUuid) {
         return members.stream()
             .filter(member -> member.playerUuid().equals(playerUuid))
-            .map(IslandMemberSnapshot::role)
+            .map(IslandMemberSnapshot::effectiveRoleKey)
             .findFirst()
             .orElse(null);
     }

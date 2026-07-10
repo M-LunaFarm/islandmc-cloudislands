@@ -20,7 +20,6 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
@@ -31,6 +30,7 @@ import kr.lunaf.cloudislands.coreservice.ranking.IslandLevelRepository;
 import kr.lunaf.cloudislands.coreservice.ranking.RankingRecalculationService;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
@@ -493,10 +493,10 @@ final class MigrationAdminBackend {
             }
             islands.setState(manifest.islandId(), IslandState.INACTIVE_READY);
             islands.updateStats(manifest.islandId(), manifest.size(), manifest.level(), manifest.worth());
-            metadata.upsertMember(manifest.islandId(), manifest.ownerUuid(), IslandRole.OWNER);
+            metadata.upsertMemberKey(manifest.islandId(), manifest.ownerUuid(), CoreRoleKeys.OWNER);
             for (java.util.UUID memberUuid : manifest.members()) {
                 if (!memberUuid.equals(manifest.ownerUuid())) {
-                    metadata.upsertMember(manifest.islandId(), memberUuid, IslandRole.MEMBER);
+                    metadata.upsertMemberKey(manifest.islandId(), memberUuid, CoreRoleKeys.MEMBER);
                 }
             }
             for (kr.lunaf.cloudislands.migration.MigrationMemberRole memberRole : manifest.memberRoles()) {

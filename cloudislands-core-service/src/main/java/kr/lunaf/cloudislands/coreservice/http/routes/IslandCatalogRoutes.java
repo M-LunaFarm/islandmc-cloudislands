@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.RoutingOrchestrator;
@@ -23,6 +22,7 @@ import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 import kr.lunaf.cloudislands.coreservice.workflow.CreateIslandWorkflow;
 
 public final class IslandCatalogRoutes implements RouteGroup {
@@ -82,7 +82,7 @@ public final class IslandCatalogRoutes implements RouteGroup {
         String templateId = JsonFields.text(body, "templateId", "default");
         CreateIslandResult result = createIsland.create(playerUuid, templateId);
         if (result.accepted() && result.island() != null) {
-            metadataRepository.upsertMember(result.island().islandId(), playerUuid, IslandRole.OWNER);
+            metadataRepository.upsertMemberKey(result.island().islandId(), playerUuid, CoreRoleKeys.OWNER);
             islandLogs.append(result.island().islandId(), playerUuid, "ISLAND_CREATE", Map.of("templateId", templateId));
         }
         audit.log(playerUuid, "PLAYER", "ISLAND_CREATE", "ISLAND", result.island() == null ? "" : result.island().islandId().toString(), Map.of("code", result.code()));

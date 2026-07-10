@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
@@ -153,7 +152,7 @@ class IslandBlockLevelRoutesTest {
         InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
         islands.createOwnedIsland(islandId, ownerUuid, "default", "ranked");
         islands.setState(islandId, IslandState.INACTIVE_READY);
-        metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
+        metadata.upsertMemberKey(islandId, ownerUuid, "OWNER");
         levels.putBlockValue("minecraft:diamond_block", new RankingRecalculationService.BlockValue(new BigDecimal("10.00"), 5L, 0L));
         levels.replaceBlockCounts(islandId, Map.of("minecraft:diamond_block", 4L));
         IslandBlockLevelRoutes routes = new IslandBlockLevelRoutes(

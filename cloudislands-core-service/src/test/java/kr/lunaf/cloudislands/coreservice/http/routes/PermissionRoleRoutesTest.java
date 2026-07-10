@@ -26,7 +26,6 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandPermissionOverrideSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermissionRuleSnapshot;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
@@ -78,13 +77,13 @@ class PermissionRoleRoutesTest {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
         String version = PermissionRoleRoutes.permissionVersion(
-            List.of(new IslandPermissionRuleSnapshot(islandId, IslandRole.MEMBER, IslandPermission.BUILD, true)),
+            List.of(new IslandPermissionRuleSnapshot(islandId, "MEMBER", IslandPermission.BUILD, true)),
             List.of(new IslandPermissionOverrideSnapshot(islandId, playerUuid, IslandPermission.BREAK, false))
         );
 
         assertEquals(
             "{\"version\":\"" + version + "\",\"rules\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"MEMBER\",\"roleKey\":\"MEMBER\",\"permission\":\"BUILD\",\"allowed\":true}],\"overrides\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"permission\":\"BREAK\",\"allowed\":false}]}",
-            PermissionRoleRoutes.permissionsJson(List.of(new IslandPermissionRuleSnapshot(islandId, IslandRole.MEMBER, IslandPermission.BUILD, true)), List.of(new IslandPermissionOverrideSnapshot(islandId, playerUuid, IslandPermission.BREAK, false)))
+            PermissionRoleRoutes.permissionsJson(List.of(new IslandPermissionRuleSnapshot(islandId, "MEMBER", IslandPermission.BUILD, true)), List.of(new IslandPermissionOverrideSnapshot(islandId, playerUuid, IslandPermission.BREAK, false)))
         );
         assertEquals(
             "{\"roles\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"BUILDER\",\"roleKey\":\"BUILDER\",\"weight\":7,\"displayName\":\"Builder \\\"A\\\"\"}]}",
@@ -94,6 +93,8 @@ class PermissionRoleRoutesTest {
             "{\"roles\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"BUILDER\",\"roleKey\":\"BUILDER\",\"weight\":20,\"displayName\":\"Builder\"}]}",
             PermissionRoleRoutes.rolesJson(List.of(new IslandRoleSnapshot(islandId, "builder", 20, "Builder")))
         );
+        assertEquals(3, PermissionRoleRoutes.defaultWeight("member"));
+        assertEquals(100, PermissionRoleRoutes.defaultWeight("builder"));
     }
 
     @Test
@@ -105,7 +106,7 @@ class PermissionRoleRoutesTest {
         InMemoryIslandPermissionRuleRepository permissions = new InMemoryIslandPermissionRuleRepository();
         islands.createOwnedIsland(islandId, ownerUuid, "default", "owner-island");
         islands.setState(islandId, IslandState.INACTIVE_READY);
-        metadata.upsertMember(islandId, ownerUuid, IslandRole.OWNER);
+        metadata.upsertMemberKey(islandId, ownerUuid, "OWNER");
         PermissionRoleRoutes routes = new PermissionRoleRoutes(
             islands,
             metadata,

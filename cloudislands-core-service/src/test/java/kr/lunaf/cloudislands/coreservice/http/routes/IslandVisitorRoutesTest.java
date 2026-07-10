@@ -17,7 +17,6 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import org.junit.jupiter.api.Test;
@@ -95,10 +94,12 @@ class IslandVisitorRoutesTest {
             Instant.parse("2026-01-02T03:04:05Z"),
             null
         );
-        IslandMemberSnapshot member = new IslandMemberSnapshot(islandId, bannedUuid, IslandRole.BANNED, Instant.parse("2026-01-02T03:04:05Z"));
+        IslandMemberSnapshot member = new IslandMemberSnapshot(islandId, bannedUuid, "BANNED", Instant.parse("2026-01-02T03:04:05Z"), null);
+        IslandMemberSnapshot builder = new IslandMemberSnapshot(islandId, actorUuid, "BUILDER", Instant.parse("2026-01-02T03:04:05Z"), null);
 
-        assertEquals(IslandRole.BANNED, IslandVisitorRoutes.memberRole(List.of(member), bannedUuid));
-        assertNull(IslandVisitorRoutes.memberRole(List.of(member), actorUuid));
+        assertEquals("BANNED", IslandVisitorRoutes.memberRoleKey(List.of(member), bannedUuid));
+        assertEquals("BUILDER", IslandVisitorRoutes.memberRoleKey(List.of(builder), actorUuid));
+        assertNull(IslandVisitorRoutes.memberRoleKey(List.of(member), actorUuid));
         Map<?, ?> bans = SimpleJson.object(SimpleJson.parse(IslandVisitorRoutes.bansJson(List.of(ban))));
         Map<?, ?> listedBan = SimpleJson.object(SimpleJson.list(bans.get("bans")).get(0));
 

@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
@@ -162,11 +161,11 @@ class IslandMemberRoutesTest {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
 
-        IslandMemberSnapshot member = new IslandMemberSnapshot(islandId, playerUuid, IslandRole.CO_OWNER, Instant.parse("2026-01-02T03:04:05Z"));
-        IslandMemberSnapshot temporary = new IslandMemberSnapshot(islandId, UUID.fromString("00000000-0000-0000-0000-000000000004"), IslandRole.TRUSTED, Instant.parse("2026-01-02T04:04:05Z"), Instant.parse("2026-01-02T05:04:05Z"));
+        IslandMemberSnapshot member = new IslandMemberSnapshot(islandId, playerUuid, "CO_OWNER", Instant.parse("2026-01-02T03:04:05Z"), null);
+        IslandMemberSnapshot temporary = new IslandMemberSnapshot(islandId, UUID.fromString("00000000-0000-0000-0000-000000000004"), "TRUSTED", Instant.parse("2026-01-02T04:04:05Z"), Instant.parse("2026-01-02T05:04:05Z"));
 
-        assertEquals(IslandRole.CO_OWNER, IslandMemberRoutes.memberRole(List.of(member), playerUuid));
-        assertNull(IslandMemberRoutes.memberRole(List.of(member), UUID.fromString("00000000-0000-0000-0000-000000000003")));
+        assertEquals("CO_OWNER", IslandMemberRoutes.memberRoleKey(List.of(member), playerUuid));
+        assertNull(IslandMemberRoutes.memberRoleKey(List.of(member), UUID.fromString("00000000-0000-0000-0000-000000000003")));
         Map<?, ?> members = SimpleJson.object(SimpleJson.parse(IslandMemberRoutes.membersJson(List.of(member, temporary))));
         Map<?, ?> renderedMember = SimpleJson.object(SimpleJson.list(members.get("members")).get(0));
         Map<?, ?> renderedTemporary = SimpleJson.object(SimpleJson.list(members.get("members")).get(1));
@@ -199,7 +198,7 @@ class IslandMemberRoutesTest {
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000022");
         IslandMemberSnapshot member = new IslandMemberSnapshot(islandId, playerUuid, "builder", Instant.parse("2026-01-02T03:04:05Z"), null);
 
-        assertNull(IslandMemberRoutes.memberRole(List.of(member), playerUuid));
+        assertEquals("BUILDER", IslandMemberRoutes.memberRoleKey(List.of(member), playerUuid));
         assertEquals("BUILDER", member.effectiveRoleKey());
         Map<?, ?> members = SimpleJson.object(SimpleJson.parse(IslandMemberRoutes.membersJson(List.of(member))));
         assertMember(islandId, playerUuid, "BUILDER", SimpleJson.object(SimpleJson.list(members.get("members")).get(0)));
@@ -209,7 +208,7 @@ class IslandMemberRoutesTest {
     void selfLeaveBypassesManageMembersPermissionButOwnerRemainsProtected() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
 
-        assertTrue(source.contains("member.effectiveRoleKey().equals(IslandRole.OWNER.name())"), "owners must remain protected from member removal");
+        assertTrue(source.contains("member.effectiveRoleKey().equals(CoreRoleKeys.OWNER)"), "owners must remain protected from member removal");
         assertTrue(source.contains("!actorUuid.equals(playerUuid) && !requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)"), "self-leave must not require MANAGE_MEMBERS");
     }
 

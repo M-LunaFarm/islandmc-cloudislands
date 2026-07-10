@@ -80,6 +80,8 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    @Deprecated(forRemoval = false)
+    @SuppressWarnings("deprecation")
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role) {
         upsertMember(islandId, playerUuid, role, null);
     }
@@ -90,6 +92,8 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    @Deprecated(forRemoval = false)
+    @SuppressWarnings("deprecation")
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, Instant expiresAt) {
         upsertMemberKey(islandId, playerUuid, role.name(), expiresAt);
     }

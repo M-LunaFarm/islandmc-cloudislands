@@ -57,6 +57,8 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    @Deprecated(forRemoval = false)
+    @SuppressWarnings("deprecation")
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role) {
         delegate.upsertMember(islandId, playerUuid, role);
         cacheMembers(islandId, delegate.members(islandId));
@@ -69,6 +71,8 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    @Deprecated(forRemoval = false)
+    @SuppressWarnings("deprecation")
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, Instant expiresAt) {
         delegate.upsertMember(islandId, playerUuid, role, expiresAt);
         cacheMembers(islandId, delegate.members(islandId));
@@ -488,7 +492,7 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     private static String roleKey(String object) {
         String roleKey = JsonFields.text(object, "roleKey", "");
         if (roleKey.isBlank()) {
-            roleKey = JsonFields.text(object, "role", IslandRole.VISITOR.name());
+            roleKey = JsonFields.text(object, "role", kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.VISITOR);
         }
         return kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
     }

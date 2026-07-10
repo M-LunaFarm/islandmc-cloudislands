@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.coreservice.ranking;
 
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
@@ -24,8 +23,8 @@ class DirtyRankingRecalculationTaskTest {
         DirtyRankingRecalculationTask task = task(rankings, levels, metadata, events);
 
         levels.replaceBlockCounts(ISLAND, Map.of("minecraft:diamond_block", 250L));
-        metadata.upsertMember(ISLAND, UUID.fromString("00000000-0000-0000-0000-000000000411"), IslandRole.OWNER);
-        metadata.upsertMember(ISLAND, UUID.fromString("00000000-0000-0000-0000-000000000412"), IslandRole.MEMBER);
+        metadata.upsertMemberKey(ISLAND, UUID.fromString("00000000-0000-0000-0000-000000000411"), "OWNER");
+        metadata.upsertMemberKey(ISLAND, UUID.fromString("00000000-0000-0000-0000-000000000412"), "MEMBER");
         rankings.markDirty(ISLAND);
         rankings.markDirty(ISLAND);
         rankings.markDirty(ISLAND);

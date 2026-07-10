@@ -10,7 +10,6 @@ import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
@@ -29,6 +28,7 @@ import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleReposito
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 import kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository;
 
 public final class IslandMemberRoutes implements RouteGroup {
@@ -95,7 +95,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
-        String roleKey = roleKey(body, IslandRole.MEMBER.name());
+        String roleKey = roleKey(body, CoreRoleKeys.MEMBER);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_ROLES)) {
             return;
@@ -103,7 +103,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         List<IslandMemberSnapshot> members = metadataRepository.members(islandId);
         IslandMemberSnapshot currentMember = member(members, playerUuid);
         String currentRoleKey = currentMember == null ? "" : currentMember.effectiveRoleKey();
-        if (roleKey.equals(IslandRole.OWNER.name()) || currentRoleKey.equals(IslandRole.OWNER.name())) {
+        if (roleKey.equals(CoreRoleKeys.OWNER) || currentRoleKey.equals(CoreRoleKeys.OWNER)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island ownership must be changed through ownership transfer"));
             return;
         }
@@ -142,7 +142,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         List<IslandMemberSnapshot> members = metadataRepository.members(islandId);
         IslandMemberSnapshot currentMember = member(members, playerUuid);
         String currentRoleKey = currentMember == null ? "" : currentMember.effectiveRoleKey();
-        if (currentRoleKey.equals(IslandRole.OWNER.name())) {
+        if (currentRoleKey.equals(CoreRoleKeys.OWNER)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be temporary trusted"));
             return;
         }
@@ -151,15 +151,15 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
             return;
         }
-        if (roleLimitReached(islandId, members, currentRoleKey, IslandRole.TRUSTED.name())) {
+        if (roleLimitReached(islandId, members, currentRoleKey, CoreRoleKeys.TRUSTED)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
             return;
         }
         Instant expiresAt = Instant.now().plusSeconds(seconds);
-        metadataRepository.upsertMember(islandId, playerUuid, IslandRole.TRUSTED, expiresAt);
+        metadataRepository.upsertMemberKey(islandId, playerUuid, CoreRoleKeys.TRUSTED, expiresAt);
         Map<String, String> fields = Map.of(
             "playerUuid", playerUuid.toString(),
-            "role", IslandRole.TRUSTED.name(),
+            "role", CoreRoleKeys.TRUSTED,
             "expiresAt", expiresAt.toString(),
             "durationSeconds", Long.toString(seconds)
         );
@@ -168,13 +168,13 @@ public final class IslandMemberRoutes implements RouteGroup {
         events.publish(CloudIslandEventType.ISLAND_MEMBER_ROLE_CHANGED.name(), Map.of(
             "islandId", islandId.toString(),
             "playerUuid", playerUuid.toString(),
-            "oldRole", currentMember == null ? IslandRole.VISITOR.name() : currentRoleKey,
-            "oldRoleKey", currentMember == null ? IslandRole.VISITOR.name() : currentRoleKey,
-            "newRole", IslandRole.TRUSTED.name(),
-            "newRoleKey", IslandRole.TRUSTED.name(),
+            "oldRole", currentMember == null ? CoreRoleKeys.VISITOR : currentRoleKey,
+            "oldRoleKey", currentMember == null ? CoreRoleKeys.VISITOR : currentRoleKey,
+            "newRole", CoreRoleKeys.TRUSTED,
+            "newRoleKey", CoreRoleKeys.TRUSTED,
             "expiresAt", expiresAt.toString()
         ));
-        events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", IslandRole.TRUSTED.name(), "roleKey", IslandRole.TRUSTED.name(), "expiresAt", expiresAt.toString()));
+        events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", CoreRoleKeys.TRUSTED, "roleKey", CoreRoleKeys.TRUSTED, "expiresAt", expiresAt.toString()));
         CoreHttpResponses.write(exchange, 202, temporaryTrustJson(islandId, playerUuid, expiresAt, seconds));
     }
 
@@ -185,8 +185,8 @@ public final class IslandMemberRoutes implements RouteGroup {
         UUID targetUuid = JsonFields.uuid(body, "targetUuid", EMPTY_UUID);
         boolean transferred = islandRepository.transferOwnership(islandId, actorUuid, targetUuid);
         if (transferred) {
-            metadataRepository.upsertMember(islandId, actorUuid, IslandRole.CO_OWNER);
-            metadataRepository.upsertMember(islandId, targetUuid, IslandRole.OWNER);
+            metadataRepository.upsertMemberKey(islandId, actorUuid, CoreRoleKeys.CO_OWNER);
+            metadataRepository.upsertMemberKey(islandId, targetUuid, CoreRoleKeys.OWNER);
             playerProfiles.clearPrimaryIsland(actorUuid);
             playerProfiles.setPrimaryIsland(targetUuid, islandId);
         }
@@ -205,7 +205,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
         IslandMemberSnapshot member = member(metadataRepository.members(islandId), playerUuid);
-        if (member != null && member.effectiveRoleKey().equals(IslandRole.OWNER.name())) {
+        if (member != null && member.effectiveRoleKey().equals(CoreRoleKeys.OWNER)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be removed as a member"));
             return;
         }
@@ -224,19 +224,19 @@ public final class IslandMemberRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
-        String roleKey = roleKey(body, IslandRole.MEMBER.name());
+        String roleKey = roleKey(body, CoreRoleKeys.MEMBER);
         if (islandRepository.findById(islandId).isEmpty()) {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
             return;
         }
-        if (roleKey.equals(IslandRole.OWNER.name()) || !IslandRoleRepository.editableRoleKey(roleKey)) {
+        if (roleKey.equals(CoreRoleKeys.OWNER) || !IslandRoleRepository.editableRoleKey(roleKey)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_ROLE_UNAVAILABLE", "Admin member add requires an editable island role"));
             return;
         }
         List<IslandMemberSnapshot> members = metadataRepository.members(islandId);
         IslandMemberSnapshot current = member(members, playerUuid);
         String oldRoleKey = current == null ? "" : current.effectiveRoleKey();
-        if (oldRoleKey.equals(IslandRole.OWNER.name())) {
+        if (oldRoleKey.equals(CoreRoleKeys.OWNER)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner role is protected"));
             return;
         }
@@ -259,7 +259,7 @@ public final class IslandMemberRoutes implements RouteGroup {
             return;
         }
         IslandMemberSnapshot current = member(metadataRepository.members(islandId), playerUuid);
-        if (current != null && current.effectiveRoleKey().equals(IslandRole.OWNER.name())) {
+        if (current != null && current.effectiveRoleKey().equals(CoreRoleKeys.OWNER)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be removed as a member"));
             return;
         }
@@ -293,7 +293,7 @@ public final class IslandMemberRoutes implements RouteGroup {
             return;
         }
         String oldRoleKey = current.effectiveRoleKey();
-        if (oldRoleKey.equals(IslandRole.OWNER.name())) {
+        if (oldRoleKey.equals(CoreRoleKeys.OWNER)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner role is protected"));
             return;
         }
@@ -324,8 +324,8 @@ public final class IslandMemberRoutes implements RouteGroup {
         UUID oldOwner = island.ownerUuid();
         boolean transferred = islandRepository.transferOwnership(islandId, oldOwner, targetUuid);
         if (transferred) {
-            metadataRepository.upsertMember(islandId, oldOwner, IslandRole.CO_OWNER);
-            metadataRepository.upsertMember(islandId, targetUuid, IslandRole.OWNER);
+            metadataRepository.upsertMemberKey(islandId, oldOwner, CoreRoleKeys.CO_OWNER);
+            metadataRepository.upsertMemberKey(islandId, targetUuid, CoreRoleKeys.OWNER);
             playerProfiles.clearPrimaryIsland(oldOwner);
             playerProfiles.setPrimaryIsland(targetUuid, islandId);
         }
@@ -372,11 +372,10 @@ public final class IslandMemberRoutes implements RouteGroup {
         return false;
     }
 
-    static IslandRole memberRole(List<IslandMemberSnapshot> members, UUID playerUuid) {
+    static String memberRoleKey(List<IslandMemberSnapshot> members, UUID playerUuid) {
         return members.stream()
             .filter(member -> member.playerUuid().equals(playerUuid))
-            .filter(member -> member.role() != null)
-            .map(IslandMemberSnapshot::role)
+            .map(IslandMemberSnapshot::effectiveRoleKey)
             .findFirst()
             .orElse(null);
     }
