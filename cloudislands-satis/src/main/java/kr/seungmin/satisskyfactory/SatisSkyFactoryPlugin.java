@@ -1661,7 +1661,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public String addonVersion() {
-        return getDescription().getVersion();
+        return getPluginMeta().getVersion();
     }
 
     @Override
@@ -3096,7 +3096,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandMemberJoined(IslandMemberJoinEvent event) {
-        String operation = "member-join:" + (event.role() == null ? "unknown" : event.role().name());
+        String operation = "member-join:" + event.roleKey();
         runSatisLifecycle("members", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 
@@ -3112,7 +3112,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onIslandRoleChanged(IslandRoleChangeEvent event) {
-        String operation = "member-role-change:" + (event.newRole() == null ? "unknown" : event.newRole().name());
+        String operation = "member-role-change:" + event.newRoleKey();
         runSatisLifecycle("permissions", event.islandId(), operation, () -> synchronizeSatisIsland(event.islandId(), operation));
     }
 

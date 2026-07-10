@@ -13,6 +13,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class RuntimeDependencyPolicyTest {
     @Test
+    void pluginVersionUsesCurrentPaperMetadataApi() throws IOException {
+        String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+
+        assertTrue(source.contains("getPluginMeta().getVersion()"));
+        assertFalse(source.contains("getDescription().getVersion()"));
+    }
+
+    @Test
     void doesNotImportLegacySkyblockRuntimeApis() throws IOException {
         Path sourceRoot = Path.of("src/main/java");
         List<String> forbiddenImports = List.of(

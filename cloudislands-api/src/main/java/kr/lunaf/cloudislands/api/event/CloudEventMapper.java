@@ -8,7 +8,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.GlobalEventSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
-import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.RoleId;
 
 public final class CloudEventMapper {
     private static final UUID NIL_UUID = new UUID(0L, 0L);
@@ -44,10 +44,10 @@ public final class CloudEventMapper {
             case "ISLAND_PRE_VISIT", "ISLAND_VISIT_REQUESTED" -> Optional.of(new IslandPreVisitEvent(uuid(fields, "islandId"), firstUuid(fields, "visitorUuid", "playerUuid"), occurredAt));
             case "ISLAND_VISITED" -> Optional.of(new IslandVisitEvent(uuid(fields, "islandId"), firstUuid(fields, "visitorUuid", "playerUuid"), firstText(fields, "nodeId", "targetNode"), occurredAt));
             case "ISLAND_INVITE_CHANGED" -> Optional.of(new IslandInviteChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "inviteId", "id"), firstUuid(fields, "playerUuid", "actorUuid"), firstUuid(fields, "targetUuid", "targetPlayerUuid"), text(fields, "state"), nullableBool(fields, "accepted"), nullableBool(fields, "declined"), occurredAt));
-            case "ISLAND_MEMBER_JOINED" -> Optional.of(new IslandMemberJoinEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), firstRole(fields, "role", "newRole"), occurredAt));
+            case "ISLAND_MEMBER_JOINED" -> Optional.of(new IslandMemberJoinEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), firstRoleKey(fields, "MEMBER", "roleKey", "role", "newRoleKey", "newRole"), occurredAt));
             case "ISLAND_MEMBER_LEFT" -> Optional.of(new IslandMemberLeaveEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), occurredAt));
-            case "ISLAND_MEMBER_CHANGED" -> Optional.of(new IslandMemberChangedEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), text(fields, "action"), role(fields, "oldRole"), firstRole(fields, "newRole", "role"), occurredAt));
-            case "ISLAND_MEMBER_ROLE_CHANGED" -> Optional.of(new IslandRoleChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), role(fields, "oldRole"), firstRole(fields, "newRole", "role"), occurredAt));
+            case "ISLAND_MEMBER_CHANGED" -> Optional.of(new IslandMemberChangedEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), text(fields, "action"), firstRoleKey(fields, "VISITOR", "oldRoleKey", "oldRole"), firstRoleKey(fields, "MEMBER", "newRoleKey", "newRole", "roleKey", "role"), occurredAt));
+            case "ISLAND_MEMBER_ROLE_CHANGED" -> Optional.of(new IslandRoleChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), firstRoleKey(fields, "VISITOR", "oldRoleKey", "oldRole"), firstRoleKey(fields, "MEMBER", "newRoleKey", "newRole", "roleKey", "role"), occurredAt));
             case "ISLAND_OWNERSHIP_CHANGED" -> Optional.of(new IslandOwnershipChangeEvent(uuid(fields, "islandId"), firstUuid(fields, "actorUuid", "playerUuid"), firstUuid(fields, "targetUuid", "newOwnerUuid"), occurredAt));
             case "ISLAND_RENAMED" -> Optional.of(new IslandRenamedEvent(uuid(fields, "islandId"), firstUuid(fields, "actorUuid", "playerUuid"), firstText(fields, "name", "islandName"), occurredAt));
             case "ISLAND_ACCESS_CHANGED" -> Optional.of(new IslandAccessChangeEvent(uuid(fields, "islandId"), nullableBool(fields, "publicAccess"), nullableBool(fields, "locked"), occurredAt));
@@ -55,8 +55,8 @@ public final class CloudEventMapper {
             case "ISLAND_VISITOR_KICKED" -> Optional.of(new IslandVisitorKickEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), firstUuid(fields, "actorUuid", "requesterUuid"), occurredAt));
             case "ISLAND_FLAG_CHANGED" -> Optional.of(new IslandFlagChangeEvent(uuid(fields, "islandId"), flag(fields, "flag"), text(fields, "value"), occurredAt));
             case "ISLAND_PERMISSION_CHECKED" -> Optional.of(new IslandPermissionCheckEvent(uuid(fields, "islandId"), firstUuid(fields, "playerUuid", "targetUuid"), permission(fields, "permission"), bool(fields, "allowed"), occurredAt));
-            case "ISLAND_PERMISSION_CHANGED" -> Optional.of(new IslandPermissionChangeEvent(uuid(fields, "islandId"), firstRole(fields, "role", "targetRole"), permission(fields, "permission"), nullableBool(fields, "allowed"), occurredAt));
-            case "ISLAND_ROLE_CHANGED" -> Optional.of(new IslandRoleCatalogChangeEvent(uuid(fields, "islandId"), firstRole(fields, "role", "targetRole"), text(fields, "operation"), occurredAt));
+            case "ISLAND_PERMISSION_CHANGED" -> Optional.of(new IslandPermissionChangeEvent(uuid(fields, "islandId"), firstRoleKey(fields, "MEMBER", "roleKey", "role", "targetRoleKey", "targetRole"), permission(fields, "permission"), nullableBool(fields, "allowed"), occurredAt));
+            case "ISLAND_ROLE_CHANGED" -> Optional.of(new IslandRoleCatalogChangeEvent(uuid(fields, "islandId"), firstRoleKey(fields, "MEMBER", "roleKey", "role", "targetRoleKey", "targetRole"), text(fields, "operation"), occurredAt));
             case "ISLAND_BIOME_CHANGED" -> Optional.of(new IslandBiomeChangeEvent(uuid(fields, "islandId"), firstText(fields, "biomeKey", "biome"), occurredAt));
             case "ISLAND_HOME_CHANGED" -> Optional.of(new IslandHomeChangeEvent(uuid(fields, "islandId"), firstText(fields, "homeName", "name"), occurredAt));
             case "ISLAND_WARP_CREATED" -> Optional.of(new IslandWarpCreateEvent(uuid(fields, "islandId"), firstText(fields, "warpName", "name"), location(fields), occurredAt));
@@ -152,14 +152,6 @@ public final class CloudEventMapper {
         }
     }
 
-    private static IslandRole role(Map<String, String> fields, String key) {
-        try {
-            return IslandRole.valueOf(text(fields, key));
-        } catch (IllegalArgumentException ignored) {
-            return null;
-        }
-    }
-
     private static kr.lunaf.cloudislands.api.model.IslandPermission permission(Map<String, String> fields, String key) {
         try {
             return kr.lunaf.cloudislands.api.model.IslandPermission.valueOf(text(fields, key));
@@ -168,9 +160,14 @@ public final class CloudEventMapper {
         }
     }
 
-    private static IslandRole firstRole(Map<String, String> fields, String first, String second) {
-        IslandRole value = role(fields, first);
-        return value == null ? role(fields, second) : value;
+    private static String firstRoleKey(Map<String, String> fields, String fallback, String... keys) {
+        for (String key : keys) {
+            String value = text(fields, key);
+            if (!value.isBlank()) {
+                return RoleId.normalize(value, fallback);
+            }
+        }
+        return RoleId.of(fallback).value();
     }
 
     private static BigDecimal decimal(Map<String, String> fields, String key) {

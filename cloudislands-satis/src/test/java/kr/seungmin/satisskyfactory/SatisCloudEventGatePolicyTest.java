@@ -34,6 +34,16 @@ class SatisCloudEventGatePolicyTest {
     }
 
     @Test
+    void roleLifecycleOperationsPreserveCustomRoleKeys() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+
+        assertTrue(source.contains("\"member-join:\" + event.roleKey()"));
+        assertTrue(source.contains("\"member-role-change:\" + event.newRoleKey()"));
+        assertTrue(!source.contains("event.role() == null ? \"unknown\""));
+        assertTrue(!source.contains("event.newRole() == null ? \"unknown\""));
+    }
+
+    @Test
     void routeEventsOnlyPublishDiagnosticStateWhenRouteEventGateIsEnabled() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
         String bridge = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/runtime/SatisRouteEventBridge.java"));
