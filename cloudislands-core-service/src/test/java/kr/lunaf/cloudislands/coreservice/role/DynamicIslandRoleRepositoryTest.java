@@ -60,6 +60,8 @@ class DynamicIslandRoleRepositoryTest {
         assertNull(rule.role());
         assertEquals("BUILDER", rule.effectiveRoleKey());
         assertTrue(rule.allowed());
+        assertTrue(permissions.allowedRoleKey(ISLAND, new UUID(0L, 1L), "builder", IslandPermission.BUILD));
+        assertFalse(permissions.allowedRoleKey(ISLAND, new UUID(0L, 1L), "builder", IslandPermission.BREAK));
     }
 
     @Test

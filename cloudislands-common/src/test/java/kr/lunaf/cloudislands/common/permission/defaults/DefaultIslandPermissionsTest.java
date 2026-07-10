@@ -1,14 +1,12 @@
 package kr.lunaf.cloudislands.common.permission.defaults;
 
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.permission.CachedPermissionSet;
 import org.junit.jupiter.api.Test;
 
 import java.util.EnumSet;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DefaultIslandPermissionsTest {
@@ -17,8 +15,8 @@ class DefaultIslandPermissionsTest {
         CachedPermissionSet permissions = DefaultIslandPermissions.create();
 
         for (IslandPermission permission : IslandPermission.values()) {
-            assertFalse(permissions.allowed(IslandRole.VISITOR, permission), permission.name());
-            assertFalse(permissions.allowed(IslandRole.BANNED, permission), permission.name());
+            assertFalse(permissions.allowedRoleKey("VISITOR", permission), permission.name());
+            assertFalse(permissions.allowedRoleKey("BANNED", permission), permission.name());
         }
     }
 
@@ -38,9 +36,9 @@ class DefaultIslandPermissionsTest {
 
         for (IslandPermission permission : IslandPermission.values()) {
             if (trustedAllowed.contains(permission)) {
-                assertTrue(permissions.allowed(IslandRole.TRUSTED, permission), permission.name());
+                assertTrue(permissions.allowedRoleKey("TRUSTED", permission), permission.name());
             } else {
-                assertFalse(permissions.allowed(IslandRole.TRUSTED, permission), permission.name());
+                assertFalse(permissions.allowedRoleKey("TRUSTED", permission), permission.name());
             }
         }
     }
@@ -60,14 +58,17 @@ class DefaultIslandPermissionsTest {
             IslandPermission.SET_BIOME,
             IslandPermission.WITHDRAW_BANK
         )) {
-            assertTrue(permissions.allowed(IslandRole.MODERATOR, permission), permission.name());
-            assertFalse(permissions.allowed(IslandRole.MEMBER, permission), permission.name());
+            assertTrue(permissions.allowedRoleKey("MODERATOR", permission), permission.name());
+            assertFalse(permissions.allowedRoleKey("MEMBER", permission), permission.name());
         }
     }
 
     @Test
-    void legacyCustomSlotsAreNotDefaultPermissionRoles() {
-        assertThrows(IllegalArgumentException.class, () -> IslandRole.valueOf("CUSTOM_1"));
-        assertThrows(IllegalArgumentException.class, () -> IslandRole.valueOf("CUSTOM_5"));
+    void customRolesDefaultDenyUntilExplicitlyConfigured() {
+        CachedPermissionSet permissions = DefaultIslandPermissions.create();
+
+        assertFalse(permissions.allowedRoleKey("BUILDER", IslandPermission.BUILD));
+        permissions.putRoleKey("builder", IslandPermission.BUILD, true);
+        assertTrue(permissions.allowedRoleKey("BUILDER", IslandPermission.BUILD));
     }
 }

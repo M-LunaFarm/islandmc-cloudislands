@@ -14,19 +14,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class IslandPermissionSystemPolicyTest {
     @Test
     void pinsGoalRoleSurface() {
-        for (IslandRole role : List.of(
-                IslandRole.OWNER,
-                IslandRole.CO_OWNER,
-                IslandRole.MODERATOR,
-                IslandRole.MEMBER,
-                IslandRole.TRUSTED,
-                IslandRole.VISITOR,
-                IslandRole.BANNED
+        for (String roleKey : List.of(
+                "OWNER",
+                "CO_OWNER",
+                "MODERATOR",
+                "MEMBER",
+                "TRUSTED",
+                "VISITOR",
+                "BANNED"
         )) {
-            assertTrue(IslandPermissionSystemPolicy.isBaseRole(role), role.name());
-            assertTrue(IslandPermissionSystemPolicy.isBaseRoleKey(role.name()), role.name());
+            assertTrue(IslandPermissionSystemPolicy.isBaseRoleKey(roleKey), roleKey);
+            assertTrue(IslandPermissionSystemPolicy.isBaseRoleKey(roleKey.toLowerCase(java.util.Locale.ROOT)), roleKey);
         }
         assertEquals(7, IslandPermissionSystemPolicy.baseRoleKeys().size());
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    void legacyBaseRoleAdaptersRemainCompatible() {
+        assertTrue(IslandPermissionSystemPolicy.isBaseRole(IslandRole.OWNER));
+        assertTrue(IslandPermissionSystemPolicy.baseRoles().contains(IslandRole.BANNED));
     }
 
     @Test

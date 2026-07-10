@@ -5,6 +5,7 @@ import java.util.Set;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandRole;
+import kr.lunaf.cloudislands.api.model.RoleId;
 
 public final class IslandPermissionSystemPolicy {
     public static final String DECISION_ORDER =
@@ -21,16 +22,6 @@ public final class IslandPermissionSystemPolicy {
             "trusted-override",
             "visitor-flags",
             "default-deny"
-    );
-
-    private static final Set<IslandRole> BASE_ROLES = Set.of(
-            IslandRole.OWNER,
-            IslandRole.CO_OWNER,
-            IslandRole.MODERATOR,
-            IslandRole.MEMBER,
-            IslandRole.TRUSTED,
-            IslandRole.VISITOR,
-            IslandRole.BANNED
     );
 
     private static final Set<String> BASE_ROLE_KEYS = Set.of(
@@ -114,8 +105,11 @@ public final class IslandPermissionSystemPolicy {
         return DECISION_STEPS;
     }
 
+    @SuppressWarnings("deprecation")
     public static Set<IslandRole> baseRoles() {
-        return BASE_ROLES;
+        return BASE_ROLE_KEYS.stream()
+                .map(IslandRole::valueOf)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 
     public static Set<String> baseRoleKeys() {
@@ -130,12 +124,13 @@ public final class IslandPermissionSystemPolicy {
         return BASE_FLAGS;
     }
 
+    @SuppressWarnings("deprecation")
     public static boolean isBaseRole(IslandRole role) {
-        return BASE_ROLES.contains(role);
+        return role != null && isBaseRoleKey(role.name());
     }
 
     public static boolean isBaseRoleKey(String roleKey) {
-        return BASE_ROLE_KEYS.contains(roleKey);
+        return roleKey != null && !roleKey.isBlank() && BASE_ROLE_KEYS.contains(RoleId.of(roleKey).value());
     }
 
     public static boolean isBasePermission(IslandPermission permission) {

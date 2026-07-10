@@ -620,7 +620,7 @@ class CoreTypedClientsTest {
                     {"members":[
                       {"playerUuid":"%s","role":"OWNER","joinedAt":"2026-06-21T10:00:00Z","playerName":"Alice"},
                       {"playerUuid":"%s","role":"MEMBER","joinedAt":"2026-06-21T10:01:00Z","playerName":"Bob"},
-                      {"playerUuid":"%s","role":"TRUSTED","joinedAt":"2026-06-21T10:02:00Z","playerName":"Carol"}
+                      {"playerUuid":"%s","role":"BUILDER","joinedAt":"2026-06-21T10:02:00Z","playerName":"Carol"}
                     ]}
                     """.formatted(firstMemberUuid, secondMemberUuid, thirdMemberUuid).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
@@ -634,7 +634,8 @@ class CoreTypedClientsTest {
             CoreGuiViews.IslandInfoView ownedIsland = client.getIslandByOwner(ownerUuid).join();
             CoreGuiViews.IslandInfoView namedIsland = client.findIslandByName(" Named ").join();
             List<CoreGuiViews.MemberView> members = client.listMembers(islandId).join();
-            IslandMemberSnapshot memberSnapshot = client.memberSnapshots(islandId).join().get(0);
+            List<IslandMemberSnapshot> memberSnapshots = client.memberSnapshots(islandId).join();
+            IslandMemberSnapshot memberSnapshot = memberSnapshots.get(0);
             MemberPage firstPage = client.listMembers(islandId, new MemberCursor(0, 2)).join();
             MemberPage secondPage = client.listMembers(islandId, firstPage.nextCursor()).join();
 
@@ -649,6 +650,8 @@ class CoreTypedClientsTest {
             assertEquals(3, members.size());
             assertEquals(firstMemberUuid, memberSnapshot.playerUuid());
             assertEquals("OWNER", memberSnapshot.roleKey());
+            assertEquals("BUILDER", memberSnapshots.get(2).effectiveRoleKey());
+            assertNull(memberSnapshots.get(2).role());
             assertEquals(2, firstPage.members().size());
             assertTrue(firstPage.hasNext());
             assertEquals("Bob", firstPage.members().get(1).playerName());

@@ -16,10 +16,12 @@ public final class PermissionResolver {
     private final Map<UUID, String> cachedRoleKeys;
     private final Map<UUID, Map<IslandPermission, Boolean>> playerOverrides;
 
+    @SuppressWarnings("deprecation")
     public PermissionResolver(CachedPermissionSet permissionSet, Map<UUID, IslandRole> cachedRoles) {
         this(permissionSet, cachedRoles, Map.of());
     }
 
+    @SuppressWarnings("deprecation")
     public PermissionResolver(CachedPermissionSet permissionSet, Map<UUID, IslandRole> cachedRoles, Map<UUID, Map<IslandPermission, Boolean>> playerOverrides) {
         this(permissionSet, legacyRoleKeys(cachedRoles), playerOverrides, true);
     }
@@ -47,7 +49,6 @@ public final class PermissionResolver {
             return PermissionResult.allow(RoleId.of(OWNER_ROLE_KEY));
         }
         RoleId roleId = RoleId.of(roleKey);
-        IslandRole effectiveRole = legacyRoleOrNull(roleKey);
         Boolean override = playerOverrides.getOrDefault(playerUuid, Map.of()).get(permission);
         if (override != null) {
             return override ? PermissionResult.allow(roleId) : PermissionResult.deny("PLAYER_PERMISSION_OVERRIDE", roleId);
@@ -55,12 +56,13 @@ public final class PermissionResolver {
         if (roleKey.equals(BANNED_ROLE_KEY)) {
             return PermissionResult.deny("DEFAULT_DENY", RoleId.of(BANNED_ROLE_KEY));
         }
-        if (permissionSet.allowed(effectiveRole, permission)) {
+        if (permissionSet.allowedRoleKey(roleKey, permission)) {
             return PermissionResult.allow(roleId);
         }
         return PermissionResult.deny("DEFAULT_DENY", roleId);
     }
 
+    @SuppressWarnings("deprecation")
     private static Map<UUID, String> legacyRoleKeys(Map<UUID, IslandRole> cachedRoles) {
         return cachedRoles.entrySet().stream()
             .collect(java.util.stream.Collectors.toUnmodifiableMap(
@@ -83,13 +85,5 @@ public final class PermissionResolver {
             return VISITOR_ROLE_KEY;
         }
         return value.toUpperCase(java.util.Locale.ROOT).replace('-', '_');
-    }
-
-    private static IslandRole legacyRoleOrNull(String roleKey) {
-        try {
-            return IslandRole.valueOf(roleKey);
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
     }
 }

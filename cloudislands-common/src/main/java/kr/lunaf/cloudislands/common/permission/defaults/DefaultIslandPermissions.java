@@ -1,7 +1,6 @@
 package kr.lunaf.cloudislands.common.permission.defaults;
 
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 import kr.lunaf.cloudislands.common.permission.CachedPermissionSet;
 
 public final class DefaultIslandPermissions {
@@ -9,16 +8,16 @@ public final class DefaultIslandPermissions {
 
     public static CachedPermissionSet create() {
         CachedPermissionSet set = new CachedPermissionSet();
-        allowMember(set, IslandRole.MEMBER);
-        allowMember(set, IslandRole.MODERATOR);
-        allowMember(set, IslandRole.CO_OWNER);
+        allowMember(set, "MEMBER");
+        allowMember(set, "MODERATOR");
+        allowMember(set, "CO_OWNER");
         allowTrusted(set);
-        allowManagement(set, IslandRole.MODERATOR);
-        allowManagement(set, IslandRole.CO_OWNER);
+        allowManagement(set, "MODERATOR");
+        allowManagement(set, "CO_OWNER");
         return set;
     }
 
-    private static void allowMember(CachedPermissionSet set, IslandRole role) {
+    private static void allowMember(CachedPermissionSet set, String roleKey) {
         for (IslandPermission permission : new IslandPermission[] {
             IslandPermission.BUILD,
             IslandPermission.BREAK,
@@ -40,7 +39,7 @@ public final class DefaultIslandPermissions {
             IslandPermission.SET_HOME,
             IslandPermission.DEPOSIT_BANK
         }) {
-            set.put(role, permission, true);
+            set.putRoleKey(roleKey, permission, true);
         }
     }
 
@@ -55,11 +54,11 @@ public final class DefaultIslandPermissions {
             IslandPermission.PICKUP_ITEM,
             IslandPermission.DROP_ITEM
         }) {
-            set.put(IslandRole.TRUSTED, permission, true);
+            set.putRoleKey("TRUSTED", permission, true);
         }
     }
 
-    private static void allowManagement(CachedPermissionSet set, IslandRole role) {
+    private static void allowManagement(CachedPermissionSet set, String roleKey) {
         for (IslandPermission permission : new IslandPermission[] {
             IslandPermission.MANAGE_MEMBERS,
             IslandPermission.MANAGE_ROLES,
@@ -72,7 +71,7 @@ public final class DefaultIslandPermissions {
             IslandPermission.SET_BIOME,
             IslandPermission.WITHDRAW_BANK
         }) {
-            set.put(role, permission, true);
+            set.putRoleKey(roleKey, permission, true);
         }
     }
 }

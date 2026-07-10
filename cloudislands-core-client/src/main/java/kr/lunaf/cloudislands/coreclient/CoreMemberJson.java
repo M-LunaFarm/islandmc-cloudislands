@@ -7,7 +7,6 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
-import kr.lunaf.cloudislands.api.model.IslandRole;
 
 final class CoreMemberJson {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
@@ -118,10 +117,9 @@ final class CoreMemberJson {
         return new IslandMemberSnapshot(
             islandId == null ? uuid(CoreJson.text(values, "islandId")) : islandId,
             uuid(CoreJson.text(values, "playerUuid")),
-            parseRole(roleKey),
+            roleKey,
             instant(CoreJson.text(values, "joinedAt")),
-            nullableInstant(CoreJson.text(values, "expiresAt")),
-            roleKey
+            nullableInstant(CoreJson.text(values, "expiresAt"))
         );
     }
 
@@ -146,14 +144,6 @@ final class CoreMemberJson {
             instant(CoreJson.text(values, "createdAt")),
             nullableInstant(CoreJson.text(values, "expiresAt"))
         );
-    }
-
-    private static IslandRole parseRole(String roleKey) {
-        try {
-            return roleKey == null || roleKey.isBlank() ? IslandRole.VISITOR : IslandRole.valueOf(roleKey.trim().toUpperCase(java.util.Locale.ROOT));
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
     }
 
     private static UUID uuid(String value) {

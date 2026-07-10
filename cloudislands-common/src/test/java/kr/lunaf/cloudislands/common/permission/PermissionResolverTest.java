@@ -23,58 +23,72 @@ class PermissionResolverTest {
     @Test
     void followsCachedPermissionOrderWithoutExternalLookups() {
         CachedPermissionSet permissions = new CachedPermissionSet();
-        permissions.put(IslandRole.TRUSTED, IslandPermission.INTERACT, true);
-        PermissionResolver resolver = new PermissionResolver(permissions, Map.of(
-            OWNER, IslandRole.OWNER,
-            TRUSTED, IslandRole.TRUSTED,
-            BANNED, IslandRole.BANNED
+        permissions.putRoleKey("TRUSTED", IslandPermission.INTERACT, true);
+        PermissionResolver resolver = PermissionResolver.fromRoleKeys(permissions, Map.of(
+            OWNER, "OWNER",
+            TRUSTED, "TRUSTED",
+            BANNED, "BANNED"
         ));
 
-        assertAllowed(resolver.check(VISITOR, IslandPermission.BREAK, true), IslandRole.OWNER);
-        assertAllowed(resolver.check(OWNER, IslandPermission.BREAK, false), IslandRole.OWNER);
-        assertAllowed(resolver.check(TRUSTED, IslandPermission.INTERACT, false), IslandRole.TRUSTED);
-        assertDenied(resolver.check(VISITOR, IslandPermission.INTERACT, false), IslandRole.VISITOR);
-        assertDenied(resolver.check(BANNED, IslandPermission.INTERACT, false), IslandRole.BANNED);
+        assertAllowed(resolver.check(VISITOR, IslandPermission.BREAK, true), "OWNER");
+        assertAllowed(resolver.check(OWNER, IslandPermission.BREAK, false), "OWNER");
+        assertAllowed(resolver.check(TRUSTED, IslandPermission.INTERACT, false), "TRUSTED");
+        assertDenied(resolver.check(VISITOR, IslandPermission.INTERACT, false), "VISITOR");
+        assertDenied(resolver.check(BANNED, IslandPermission.INTERACT, false), "BANNED");
     }
 
     @Test
     void resolvesLegacyDefaultsFromRoleKeysWithoutEnumInput() {
         CachedPermissionSet permissions = new CachedPermissionSet();
-        permissions.put(IslandRole.TRUSTED, IslandPermission.INTERACT, true);
+        permissions.putRoleKey("TRUSTED", IslandPermission.INTERACT, true);
         PermissionResolver resolver = PermissionResolver.fromRoleKeys(permissions, Map.of(
             OWNER, "owner",
             TRUSTED, "trusted",
             BANNED, "banned"
         ));
 
-        assertAllowed(resolver.check(OWNER, IslandPermission.BREAK, false), IslandRole.OWNER);
-        assertAllowed(resolver.check(TRUSTED, IslandPermission.INTERACT, false), IslandRole.TRUSTED);
-        assertDenied(resolver.check(BANNED, IslandPermission.INTERACT, false), IslandRole.BANNED);
-        assertDenied(resolver.check(VISITOR, IslandPermission.INTERACT, false), IslandRole.VISITOR);
+        assertAllowed(resolver.check(OWNER, IslandPermission.BREAK, false), "OWNER");
+        assertAllowed(resolver.check(TRUSTED, IslandPermission.INTERACT, false), "TRUSTED");
+        assertDenied(resolver.check(BANNED, IslandPermission.INTERACT, false), "BANNED");
+        assertDenied(resolver.check(VISITOR, IslandPermission.INTERACT, false), "VISITOR");
     }
 
     @Test
-    void keepsCustomRoleKeyAsCanonicalPermissionResultIdentity() {
+    void resolvesCustomRoleRulesWithoutEnumConversion() {
         UUID builder = UUID.fromString("00000000-0000-0000-0000-000000000405");
-        PermissionResolver resolver = PermissionResolver.fromRoleKeys(new CachedPermissionSet(), Map.of(builder, "builder"));
+        CachedPermissionSet permissions = new CachedPermissionSet();
+        permissions.putRoleKey("builder", IslandPermission.BUILD, true);
+        PermissionResolver resolver = PermissionResolver.fromRoleKeys(permissions, Map.of(builder, "builder"));
 
         PermissionResult result = resolver.check(builder, IslandPermission.BUILD, false);
 
-        assertFalse(result.allowed());
+        assertTrue(result.allowed());
         assertEquals(RoleId.of("BUILDER"), result.effectiveRoleId());
         assertNull(result.effectiveRole());
     }
 
-    private void assertAllowed(PermissionResult result, IslandRole role) {
+    @Test
+    @SuppressWarnings("deprecation")
+    void legacyEnumAdaptersRemainCompatible() {
+        CachedPermissionSet permissions = new CachedPermissionSet();
+        permissions.put(IslandRole.TRUSTED, IslandPermission.INTERACT, true);
+        PermissionResolver resolver = new PermissionResolver(permissions, Map.of(TRUSTED, IslandRole.TRUSTED));
+
+        PermissionResult result = resolver.check(TRUSTED, IslandPermission.INTERACT, false);
+
         assertTrue(result.allowed());
-        assertEquals(role, result.effectiveRole());
-        assertEquals(RoleId.of(role, IslandRole.VISITOR.name()), result.effectiveRoleId());
+        assertEquals(IslandRole.TRUSTED, result.effectiveRole());
+        assertEquals(RoleId.of("TRUSTED"), result.effectiveRoleId());
     }
 
-    private void assertDenied(PermissionResult result, IslandRole role) {
+    private void assertAllowed(PermissionResult result, String roleKey) {
+        assertTrue(result.allowed());
+        assertEquals(RoleId.of(roleKey), result.effectiveRoleId());
+    }
+
+    private void assertDenied(PermissionResult result, String roleKey) {
         assertFalse(result.allowed());
-        assertEquals(role, result.effectiveRole());
-        assertEquals(RoleId.of(role, IslandRole.VISITOR.name()), result.effectiveRoleId());
+        assertEquals(RoleId.of(roleKey), result.effectiveRoleId());
         assertEquals("DEFAULT_DENY", result.reason());
     }
 }

@@ -42,23 +42,12 @@ public interface IslandPermissionRuleRepository {
             return override.get();
         }
         String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
-        CachedPermissionSet permissions = DefaultIslandPermissions.create();
-        for (IslandPermissionRuleSnapshot rule : list(islandId)) {
-            if (rule.role() != null) {
-                permissions.put(rule.role(), rule.permission(), rule.allowed());
-            }
-        }
         for (IslandPermissionRuleSnapshot rule : list(islandId)) {
             if (rule.effectiveRoleKey().equals(normalizedRoleKey) && rule.permission() == permission) {
                 return rule.allowed();
             }
         }
-        IslandRole role = null;
-        try {
-            role = IslandRole.valueOf(normalizedRoleKey);
-        } catch (IllegalArgumentException ignored) {
-            return false;
-        }
-        return permissions.allowed(role, permission);
+        CachedPermissionSet permissions = DefaultIslandPermissions.create();
+        return permissions.allowedRoleKey(normalizedRoleKey, permission);
     }
 }
