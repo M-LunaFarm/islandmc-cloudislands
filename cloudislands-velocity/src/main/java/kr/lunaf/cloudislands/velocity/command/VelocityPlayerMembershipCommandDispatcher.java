@@ -141,12 +141,12 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.listBans(player, islandId);
             return true;
         }
-        if (args[0].equalsIgnoreCase("public") || args[0].equals("공개")) {
+        if (args[0].equalsIgnoreCase("public") || args[0].equalsIgnoreCase("open") || args[0].equals("공개")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerMembership.setPublicAccess(player, islandId, true);
             return true;
         }
-        if (args[0].equalsIgnoreCase("private") || args[0].equals("비공개")) {
+        if (args[0].equalsIgnoreCase("private") || args[0].equalsIgnoreCase("close") || args[0].equals("비공개")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerMembership.setPublicAccess(player, islandId, false);
             return true;

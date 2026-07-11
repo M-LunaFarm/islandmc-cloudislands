@@ -257,6 +257,14 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void superiorSkyblockOpenCloseAreCanonical() {
+        assertEquals(IslandCommandPermission.SETTINGS, IslandCommandPermission.fromSubcommand("open"));
+        assertEquals(IslandCommandPermission.SETTINGS, IslandCommandPermission.fromSubcommand("close"));
+        assertTrue(IslandCommandCatalog.SUBCOMMANDS.containsAll(List.of("open", "close")));
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.containsAll(List.of("섬 open", "섬 close")));
+    }
+
+    @Test
     void superiorSkyblockStackerPermissionParityUsesCoreEnvironmentWithoutFakeRuntimeStateTransfer() throws Exception {
         String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackerIntegration.java"));

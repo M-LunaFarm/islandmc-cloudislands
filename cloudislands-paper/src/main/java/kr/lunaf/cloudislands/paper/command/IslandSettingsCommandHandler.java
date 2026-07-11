@@ -38,11 +38,11 @@ final class IslandSettingsCommandHandler {
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
-        if (subcommand.equals("public") || subcommand.equals("공개")) {
+        if (subcommand.equals("public") || subcommand.equals("open") || subcommand.equals("공개")) {
             setPublicAccess(player, true);
             return true;
         }
-        if (subcommand.equals("private") || subcommand.equals("비공개")) {
+        if (subcommand.equals("private") || subcommand.equals("close") || subcommand.equals("비공개")) {
             setPublicAccess(player, false);
             return true;
         }
