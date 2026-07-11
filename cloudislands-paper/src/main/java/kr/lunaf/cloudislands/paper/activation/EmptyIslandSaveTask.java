@@ -97,17 +97,38 @@ public final class EmptyIslandSaveTask {
         try {
             saveService.save(activeIsland.islandId(), activeIsland);
             retryQueue.remove(activeIsland.islandId());
-            coreApiClient.lifecycle().deactivateIsland(activeIsland.islandId()).exceptionally(error -> {
-                plugin.getLogger().warning("Empty island deactivate request failed for " + activeIsland.islandId());
-                scheduler.runGlobal(() -> savedWhileEmpty.remove(activeIsland.islandId()));
-                return null;
-            });
+            scheduler.runGlobal(() -> requestDeactivationIfStillEmpty(activeIsland));
         } catch (java.io.IOException exception) {
             failuresTotal.incrementAndGet();
             int attempts = retryQueue.merge(activeIsland.islandId(), 1, Integer::sum);
             plugin.getLogger().warning("Empty island save failed for " + activeIsland.islandId() + " retry=" + attempts + " queued=" + retryQueue.size() + " policy=" + StorageOutagePolicy.DEACTIVATION_POLICY + ": " + exception.getMessage());
             scheduler.runGlobal(() -> savedWhileEmpty.remove(activeIsland.islandId()));
         }
+    }
+
+    private void requestDeactivationIfStillEmpty(ActiveIslandRegistry.ActiveIsland expected) {
+        ActiveIslandRegistry.ActiveIsland current = activeIslands.find(expected.islandId()).orElse(null);
+        boolean occupied = occupiedIslands().contains(expected.islandId());
+        if (!sameActivation(expected, current) || occupied) {
+            savedWhileEmpty.remove(expected.islandId());
+            retryQueue.remove(expected.islandId());
+            if (occupied) {
+                emptySinceMillis.remove(expected.islandId());
+            }
+            return;
+        }
+        coreApiClient.lifecycle().deactivateIsland(expected.islandId()).exceptionally(error -> {
+            plugin.getLogger().warning("Empty island deactivate request failed for " + expected.islandId() + ": " + error.getMessage());
+            scheduler.runGlobal(() -> savedWhileEmpty.remove(expected.islandId()));
+            return null;
+        });
+    }
+
+    static boolean sameActivation(ActiveIslandRegistry.ActiveIsland expected, ActiveIslandRegistry.ActiveIsland current) {
+        return current != null
+            && current.islandId().equals(expected.islandId())
+            && current.fencingToken() == expected.fencingToken()
+            && current.activatedAt().equals(expected.activatedAt());
     }
 
     public int retryQueueSize() {
