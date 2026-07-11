@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.19`
+Version: `1.1.20`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.19`
+Current release: `v1.1.20`
 
-Built for the CloudIslands 1.1.19 baseline.
+Built for the CloudIslands 1.1.20 baseline.
 
-Release notes for `v1.1.19`:
+Release notes for `v1.1.20`:
+
+- complete public discovery: the Paper visit GUI can browse every public,
+  unlocked island instead of permanently stopping at its first 35 slots
+- stable Core pages: public-list queries use deterministic creation-time and
+  island-ID ordering with bounded server-side offset and limit parameters
+- random behavior preserved: random visit continues using the randomized
+  candidate query while user-facing pages remain stable between clicks
+- next-page sentinel: Paper requests only one extra record to determine whether
+  another page exists instead of loading the entire public island catalog
+- shrinking-list recovery: if islands become private or locked while a player
+  navigates, an empty trailing page automatically returns to the prior page
+- typed API compatibility: the navigation client exposes offset pagination with
+  a backward-compatible default for third-party client implementations
+
+Release notes carried forward from `v1.1.19`:
 
 - complete recovery history: the Paper snapshot GUI queries the configured
   retention horizon instead of permanently limiting recovery to 20 records
@@ -901,7 +916,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.19`.
+Current read: production-readiness baseline `v1.1.20`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
