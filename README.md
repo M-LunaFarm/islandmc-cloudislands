@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.39`
+Version: `1.1.40`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -594,7 +594,7 @@ integration verification.
 |---|---|---|---|
 | lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify target-island coordinates and bounded safe destinations | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
-| flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular block/item/entity/teleport interactions, growth boundaries, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
+| flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular block/item/entity/projectile/teleport interactions, growth boundaries, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
@@ -606,11 +606,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.39`
+Current release: `v1.1.40`
 
-Built for the CloudIslands 1.1.39 baseline.
+Built for the CloudIslands 1.1.40 baseline.
 
-Release notes for `v1.1.39`:
+Release notes for `v1.1.40`:
+
+- projectile pickup closure: arrows and tridents now pass through the same local
+  `PICKUP_ITEM` decision as ordinary dropped items, closing a separate Paper
+  event path that could bypass visitor pickup policy
+- launch-time protection: fishing hooks, tridents, ender pearls, and player wind
+  charges are rejected at their source when the matching island permission is
+  absent; destination and explosion checks remain as defense in depth
+- frost-walker containment: player-attributed frosted-ice formation now requires
+  build access instead of bypassing ordinary block-place protection
+- additional SS2-style privileges: creeper ignition, entity naming, and sculk
+  sensor/shrieker interaction can be delegated independently per island role
+- compatible role defaults: members and trusted roles retain existing physical
+  interactions, while visitors continue to follow `VISITOR_INTERACT`
+
+Release notes carried forward from `v1.1.39`:
 
 - additional SS2-style privileges: roles now expose `BREAK_SPAWNER`,
   `PAINTING`, `TURTLE_EGG_TRAMPLE`, and `WIND_CHARGE` independently
@@ -1171,7 +1186,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.39`.
+Current read: production-readiness baseline `v1.1.40`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
