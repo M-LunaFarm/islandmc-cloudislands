@@ -31,13 +31,41 @@ class PaperLocalCommandForwarderTest {
     }
 
     @Test
+    void forwardsOfficialMenuCommandsWithoutReplacingTargetedProxyExtensions() {
+        for (String command : List.of(
+                "is bank",
+                "is bank logs",
+                "is biome",
+                "is border",
+                "is homes",
+                "is warps",
+                "is visitors",
+                "is members",
+                "is settings",
+                "is permissions",
+                "is upgrade",
+                "is top",
+                "is ratings",
+                "is values",
+                "is panel")) {
+            assertTrue(PaperLocalCommandForwarder.shouldForward(command, List.of("is")), command);
+        }
+        for (String command : List.of(
+                "is members OtherIsland",
+                "is warps 00000000-0000-0000-0000-000000000001",
+                "is values Steve 20",
+                "is ratings 50")) {
+            assertFalse(PaperLocalCommandForwarder.shouldForward(command, List.of("is")), command);
+        }
+    }
+
+    @Test
     void keepsGlobalAndReadOnlyCommandsOnVelocity() {
         for (String command : List.of(
                 "is home",
                 "is visit Steve",
                 "is balance",
                 "is warehouse-list",
-                "is members",
                 "ciadmin status",
                 "say is deposit 100",
                 "is")) {

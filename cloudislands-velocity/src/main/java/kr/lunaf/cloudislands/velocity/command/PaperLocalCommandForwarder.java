@@ -14,7 +14,23 @@ public final class PaperLocalCommandForwarder {
         "warehouse-deposit", "창고입금",
         "warehouse-withdraw", "창고출금",
         "chest", "vault", "island-chest", "islandchest", "storage-box", "창고",
-        "fly", "비행"
+        "fly", "비행",
+        "biome", "setbiome", "biome-menu", "바이옴",
+        "border", "border-ui", "경계",
+        "permissions", "permission-menu", "perms", "권한",
+        "panel", "manager", "cp"
+    );
+    private static final Set<String> PAPER_MENU_SUBCOMMANDS = Set.of(
+        "bank", "은행",
+        "homes", "home-menu", "홈관리",
+        "warps", "warp-menu", "워프관리",
+        "invites", "invite-menu", "초대목록",
+        "members", "coops", "member-menu", "멤버", "멤버관리",
+        "banlist", "bans", "ban-menu", "밴목록",
+        "settings", "setting", "설정",
+        "flags", "flag-menu", "플래그",
+        "missions", "mission-menu", "challenges", "challenge-menu",
+        "upgrade", "upgrades", "top", "ratings", "values", "visitors"
     );
 
     private PaperLocalCommandForwarder() {
@@ -42,7 +58,17 @@ public final class PaperLocalCommandForwarder {
                 .map(alias -> alias.toLowerCase(Locale.ROOT))
                 .forEach(roots::add);
         }
-        return roots.contains(arguments[0].toLowerCase(Locale.ROOT))
-            && PAPER_LOCAL_SUBCOMMANDS.contains(arguments[1].toLowerCase(Locale.ROOT));
+        String root = arguments[0].toLowerCase(Locale.ROOT);
+        String subcommand = arguments[1].toLowerCase(Locale.ROOT);
+        if (!roots.contains(root)) {
+            return false;
+        }
+        if (PAPER_LOCAL_SUBCOMMANDS.contains(subcommand)) {
+            return true;
+        }
+        if (!PAPER_MENU_SUBCOMMANDS.contains(subcommand)) {
+            return false;
+        }
+        return arguments.length == 2 || subcommand.equals("bank") && arguments[2].equalsIgnoreCase("logs");
     }
 }

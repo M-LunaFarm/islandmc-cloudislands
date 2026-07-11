@@ -58,7 +58,11 @@ final class IslandVisitReviewCommandHandler {
             listIslandReviews(player, args.length > 1 ? integer(args[1], 10) : 10);
             return true;
         }
-        if (subcommand.equals("visitor-stats") || subcommand.equals("visitorstats") || subcommand.equals("visitors") || subcommand.equals("방문통계") || subcommand.equals("방문자통계")) {
+        if (subcommand.equals("visitors")) {
+            openVisitorStatsMenu(player);
+            return true;
+        }
+        if (subcommand.equals("visitor-stats") || subcommand.equals("visitorstats") || subcommand.equals("방문통계") || subcommand.equals("방문자통계")) {
             listVisitorStats(player, args.length > 1 ? integer(args[1], 10) : 10);
             return true;
         }

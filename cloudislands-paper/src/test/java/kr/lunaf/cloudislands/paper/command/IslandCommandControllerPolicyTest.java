@@ -724,6 +724,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(visitReviewHandler.contains("navigationUseCase.reviewViews"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.visitorStats"));
         assertTrue(visitReviewHandler.contains("IslandVisitorStatsMenu.open"));
+        assertTrue(visitReviewHandler.contains("if (subcommand.equals(\"visitors\"))"), "canonical SS2 visitors command must have a dedicated menu branch");
+        assertTrue(visitReviewHandler.indexOf("if (subcommand.equals(\"visitors\"))") < visitReviewHandler.indexOf("if (subcommand.equals(\"visitor-stats\")"), "visitors must open the menu before text-stat aliases are evaluated");
         assertTrue(visitReviewHandler.contains("navigationUseCase.setReviewAction"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.deleteReviewAction"));
         assertFalse(visitReviewHandler.contains("coreApiClient.createVisitTicket"));
