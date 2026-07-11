@@ -52,6 +52,7 @@ public final class DefaultIslandPermissions {
             IslandPermission.IGNITE_CREEPER,
             IslandPermission.NAME_ENTITY,
             IslandPermission.SCULK_SENSOR,
+            IslandPermission.TRIGGER_RAID,
             IslandPermission.USE_SPAWNER,
             IslandPermission.USE_ANVIL,
             IslandPermission.USE_ENCHANT_TABLE,

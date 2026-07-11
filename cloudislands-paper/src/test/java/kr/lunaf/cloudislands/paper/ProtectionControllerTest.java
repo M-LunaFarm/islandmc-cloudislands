@@ -217,6 +217,20 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void automationBoundariesMobTargetingAndRaidsAreProtected() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("onBucketDispense(BlockDispenseEvent event)"));
+        assertTrue(listener.contains("onBucketDispenseCount(BlockDispenseEvent event)"));
+        assertTrue(listener.contains("priority = EventPriority.MONITOR"));
+        assertTrue(listener.contains("!sameIsland(event.getBlock(), target)"));
+        assertTrue(listener.contains("onEntityTarget(EntityTargetLivingEntityEvent event)"));
+        assertTrue(listener.contains("IslandPermission.ATTACK_MOB"));
+        assertTrue(listener.contains("onRaidTrigger(RaidTriggerEvent event)"));
+        assertTrue(listener.contains("IslandPermission.TRIGGER_RAID"));
+    }
+
+    @Test
     void roleCatalogUsesRoleKeysForDefaultSuggestions() {
         LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
         cache.putRoleDefinition(ISLAND, "builder");

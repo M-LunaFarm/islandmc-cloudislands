@@ -35,6 +35,7 @@ public enum IslandPermission {
     IGNITE_CREEPER,
     NAME_ENTITY,
     SCULK_SENSOR,
+    TRIGGER_RAID,
     USE_SPAWNER,
     USE_ANVIL,
     USE_ENCHANT_TABLE,

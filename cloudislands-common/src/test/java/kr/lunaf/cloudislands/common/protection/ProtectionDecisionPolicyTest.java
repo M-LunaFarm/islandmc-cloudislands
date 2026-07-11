@@ -46,6 +46,9 @@ class ProtectionDecisionPolicyTest {
         assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("PlayerPickupArrowEvent"));
         assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("ProjectileLaunchEvent"));
         assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("EntityBlockFormEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("BlockDispenseEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("EntityTargetLivingEntityEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("RaidTriggerEvent"));
         assertTrue(ProtectionDecisionPolicy.protectedEvent("block_break_event"));
         assertTrue(ProtectionDecisionPolicy.protectedEvent("BlockFromToEvent"));
     }

@@ -20,6 +20,17 @@ class DefaultIslandPermissionsTest {
     }
 
     @Test
+    void raidTriggerDefaultsToMembersButNotTrustedOrVisitors() {
+        CachedPermissionSet permissions = DefaultIslandPermissions.create();
+
+        assertTrue(permissions.allowedRoleKey("MEMBER", IslandPermission.TRIGGER_RAID));
+        assertTrue(permissions.allowedRoleKey("MODERATOR", IslandPermission.TRIGGER_RAID));
+        assertTrue(permissions.allowedRoleKey("CO_OWNER", IslandPermission.TRIGGER_RAID));
+        assertFalse(permissions.allowedRoleKey("TRUSTED", IslandPermission.TRIGGER_RAID));
+        assertFalse(permissions.allowedRoleKey("VISITOR", IslandPermission.TRIGGER_RAID));
+    }
+
+    @Test
     void visitorsAndBannedPlayersDefaultDenyEveryPermissionKey() {
         CachedPermissionSet permissions = DefaultIslandPermissions.create();
 

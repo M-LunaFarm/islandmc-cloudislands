@@ -30,6 +30,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockDispenseEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
@@ -53,6 +54,7 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.PlayerLeashEntityEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
@@ -76,10 +78,12 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
+import org.bukkit.event.raid.RaidTriggerEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.world.StructureGrowEvent;
+import org.bukkit.util.Vector;
 
 public final class IslandProtectionListener implements Listener {
     private final ProtectionController protection;
@@ -174,6 +178,37 @@ public final class IslandProtectionListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
+    public void onBucketDispense(BlockDispenseEvent event) {
+        Material item = event.getItem().getType();
+        if (item != Material.BUCKET && item != Material.WATER_BUCKET && item != Material.LAVA_BUCKET) {
+            return;
+        }
+        Block target = dispenseTarget(event.getBlock(), event.getVelocity());
+        if (!sameIsland(event.getBlock(), target)) {
+            event.setCancelled(true);
+            return;
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBucketDispenseCount(BlockDispenseEvent event) {
+        Material item = event.getItem().getType();
+        if (item != Material.BUCKET && item != Material.WATER_BUCKET && item != Material.LAVA_BUCKET) {
+            return;
+        }
+        Block target = dispenseTarget(event.getBlock(), event.getVelocity());
+        protection.islandAt(target).ifPresent(islandId -> {
+            if (item == Material.BUCKET && (target.getType() == Material.WATER || target.getType() == Material.LAVA)) {
+                blockDeltas.broken(islandId, target);
+            } else if (item == Material.WATER_BUCKET) {
+                blockDeltas.placed(islandId, Material.WATER);
+            } else if (item == Material.LAVA_BUCKET) {
+                blockDeltas.placed(islandId, Material.LAVA);
+            }
+        });
+    }
+
+    @EventHandler(ignoreCancelled = true)
     public void onTakeLecternBook(PlayerTakeLecternBookEvent event) {
         event.setCancelled(denied(event.getPlayer(), event.getLectern().getBlock(), IslandPermission.TAKE_LECTERN_BOOK));
     }
@@ -216,6 +251,18 @@ public final class IslandProtectionListener implements Listener {
         if (player != null) {
             event.setCancelled(denied(player, event.getEntity().getLocation().getBlock(), event.getEntity() instanceof Player ? IslandPermission.ATTACK_PLAYER : IslandPermission.ATTACK_MOB));
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityTarget(EntityTargetLivingEntityEvent event) {
+        if (event.getTarget() instanceof Player player) {
+            event.setCancelled(denied(player, event.getEntity().getLocation().getBlock(), IslandPermission.ATTACK_MOB));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onRaidTrigger(RaidTriggerEvent event) {
+        event.setCancelled(denied(event.getPlayer(), event.getRaid().getLocation().getBlock(), IslandPermission.TRIGGER_RAID));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -558,6 +605,20 @@ public final class IslandProtectionListener implements Listener {
             case LAVA_BUCKET -> Material.LAVA;
             default -> null;
         };
+    }
+
+    private Block dispenseTarget(Block source, Vector velocity) {
+        double x = velocity.getX();
+        double y = velocity.getY();
+        double z = velocity.getZ();
+        double max = Math.max(Math.abs(x), Math.max(Math.abs(y), Math.abs(z)));
+        if (max == 0.0D) {
+            return source;
+        }
+        int dx = Math.abs(x) == max ? (int) Math.signum(x) : 0;
+        int dy = Math.abs(y) == max ? (int) Math.signum(y) : 0;
+        int dz = Math.abs(z) == max ? (int) Math.signum(z) : 0;
+        return source.getRelative(dx, dy, dz);
     }
 
     private void sendDenyMessage(Player player, IslandPermission permission) {
