@@ -247,6 +247,27 @@ class ProductionReadinessPolicyTest {
         assertTrue(workloads.contains("name: object-storage-data"));
     }
 
+    @Test
+    void shipsTagDrivenVerifiedGitHubReleasePublishing() throws Exception {
+        Path workflow = repositoryRoot().resolve(".github/workflows/release.yml");
+        assertTrue(Files.exists(workflow));
+        String release = Files.readString(workflow);
+        assertTrue(release.contains("tags:"));
+        assertTrue(release.contains("- \"v*\""));
+        assertTrue(release.contains("contents: write"));
+        assertTrue(release.contains("cancel-in-progress: false"));
+        assertTrue(release.contains("verifyReleaseSecurityGate"));
+        assertTrue(release.contains("distBundle distAddonBundle distChecksums"));
+        assertTrue(release.contains("distSbom distProvenance"));
+        assertTrue(release.contains("GH_TOKEN: ${{ github.token }}"));
+        assertTrue(release.contains("gh release create"));
+        assertTrue(release.contains("gh release upload"));
+        assertTrue(release.contains("--clobber"));
+        assertTrue(release.contains("build/dist/cloudislands-sbom.cdx.json"));
+        assertTrue(release.contains("build/dist/provenance.json"));
+        assertTrue(release.contains("build/dist/plugins/*.jar"));
+    }
+
     private static Path repositoryRoot() {
         Path path = Path.of("").toAbsolutePath();
         while (path != null && !Files.exists(path.resolve("settings.gradle.kts"))) {

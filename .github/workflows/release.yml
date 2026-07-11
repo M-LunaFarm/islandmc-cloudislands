@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  github-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21 toolchain
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Java 25 build launcher
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Validate and configure Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Verify tag matches the release version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          grep -F "Version: \`${version}\`" README.md
+          grep -F "Release notes for \`v${version}\`:" README.md
+
+      - name: Build and verify release artifacts
+        run: >-
+          ./gradlew clean check verifyMinecraftVersionMatrix verifyVersionIsolation
+          verifyReleaseSecurityGate distBundle distAddonBundle distChecksums
+          distSbom distProvenance --no-daemon
+
+      - name: Publish GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          assets=(
+            build/dist/cloudislands-*.zip
+            build/dist/checksums-sha256.txt
+            build/dist/cloudislands-sbom.cdx.json
+            build/dist/provenance.json
+            build/dist/CHANGELOG.txt
+            build/dist/plugins/*.jar
+            build/dist/addons/*.jar
+            build/dist/tools/*.jar
+          )
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --clobber
+            gh release edit "$GITHUB_REF_NAME" \
+              --title "CloudIslands ${GITHUB_REF_NAME#v}" \
+              --notes-file build/dist/CHANGELOG.txt \
+              --latest
+          else
+            prerelease=()
+            if [[ "$GITHUB_REF_NAME" == *-* ]]; then
+              prerelease=(--prerelease)
+            fi
+            gh release create "$GITHUB_REF_NAME" "${assets[@]}" \
+              --verify-tag \
+              --title "CloudIslands ${GITHUB_REF_NAME#v}" \
+              --notes-file build/dist/CHANGELOG.txt \
+              --latest \
+              "${prerelease[@]}"
+          fi

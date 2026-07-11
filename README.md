@@ -115,7 +115,9 @@ plugin jars, Core service runtime, developer kit, `checksums-sha256.txt`,
 `cloudislands-sbom.cdx.json`, `provenance.json`, and generated `CHANGELOG.txt`.
 The release gate is `./gradlew build distBundle distChecksums distSbom
 distProvenance`; `distProvenance` records the commit, dirty state, artifact
-paths, and SHA-256 digests.
+paths, and SHA-256 digests. Pushing a matching `v*` tag runs the dedicated
+Release workflow, repeats the full verification/security gates, and creates or
+updates the GitHub Release with every distributable asset.
 <!-- operator-release-docs:end -->
 
 Quickstart, one Paper server:
@@ -560,6 +562,9 @@ Release notes for `v1.0.1`:
   enchanting, Bukkit statistic increments, advancements, and item consumption;
   a bounded two-second per-island cache coalesces Core definition reads during
   high-frequency mining and farming events, and invalidates on completion
+- release publishing: matching `v*` tags now verify the README version, rebuild
+  all signed evidence artifacts, and publish bundles, individual plugin/addon
+  jars, checksums, SBOM, provenance, and generated changelog to GitHub Releases
 - Core migration compatibility: SuperiorSkyblock2 import remains a CloudIslands
   Core/Paper/Velocity operation; `cloudislands-satis` no longer exposes legacy
   import or rollback commands
