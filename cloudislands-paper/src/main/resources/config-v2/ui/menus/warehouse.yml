@@ -7,7 +7,7 @@ layout:
   - "_________"
   - "_________"
   - "....E...."
-  - "D...R...M"
+  - "DW..R.N.M"
 items:
   _:
     material: CHEST
@@ -56,8 +56,19 @@ items:
     fallback-lore:
       - "/섬 메뉴"
     action: back
+  W:
+    material: ARROW
+    name-key: warehouse-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: warehouse-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
 actions:
   open: island.warehouse.open
+  page: island.warehouse.page
   list: island.warehouse.open
   deposit-help: island.warehouse.deposit.help
   back: island.main.open

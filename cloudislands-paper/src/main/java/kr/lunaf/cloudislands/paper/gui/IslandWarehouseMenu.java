@@ -25,6 +25,7 @@ public final class IslandWarehouseMenu implements Listener {
             "open", "island.warehouse.open",
             "list", "island.warehouse.open",
             "deposit-help", "island.warehouse.deposit.help",
+            "page", "island.warehouse.page",
             "back", "island.main.open"
         ))
     );
@@ -46,11 +47,15 @@ public final class IslandWarehouseMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         warehouseRows(client, islandId)
             .thenCompose(rows -> new IslandWarehouseUseCase(client).listItems(islandId, rows * 9))
-            .thenAccept(items -> openSync(plugin, player, session, items, messages))
+            .thenAccept(items -> openSync(plugin, player, session, islandId, items, messages, page))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "warehouse-menu-load-failed", "섬 창고를 불러오지 못했습니다."), "island.warehouse.open", "island.settings.open");
                 return null;
@@ -74,18 +79,30 @@ public final class IslandWarehouseMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<WarehouseItemView> items, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, List<WarehouseItemView> items, MessageRenderer messages, int requestedPage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             List<Integer> slots = GuiMenuRenderer.slots(MENU, "_");
             List<WarehouseItemView> entries = items == null ? List.of() : items;
-            for (int index = 0; index < entries.size() && index < slots.size(); index++) {
-                WarehouseItemView itemView = entries.get(index);
+            int pageSize = Math.max(1, slots.size());
+            int maxPage = Math.max(0, (entries.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            String title = message(messages, MENU.titleKey(), TITLE) + " " + (page + 1) + "/" + (maxPage + 1);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, title, item -> !List.of("E", "_", "W", "N").contains(item.symbol()));
+            int offset = page * pageSize;
+            for (int index = 0; index < pageSize && offset + index < entries.size(); index++) {
+                WarehouseItemView itemView = entries.get(offset + index);
                 int slot = slots.get(index);
                 MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, Map.of(), itemLore(itemView, messages))));
             }
             if (entries.isEmpty() && !slots.isEmpty()) {
                 GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
+            } else {
+                if (page > 0) {
+                    setPageItem(inventory, "W", islandId, page - 1, messages);
+                }
+                if (page < maxPage) {
+                    setPageItem(inventory, "N", islandId, page + 1, messages);
+                }
             }
             player.openInventory(inventory);
         });
@@ -116,5 +133,12 @@ public final class IslandWarehouseMenu implements Listener {
 
     private static String message(MessageRenderer messages, String key, String fallback) {
         return GuiMenuRenderer.message(messages, key, fallback);
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, int page, MessageRenderer messages) {
+        String key = symbol.equals("W") ? "warehouse-menu-previous-page" : "warehouse-menu-next-page";
+        String fallback = symbol.equals("W") ? "이전 페이지" : "다음 페이지";
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("islandId", islandId.toString(), "page", Integer.toString(page)), List.of(message(messages, key, fallback)));
     }
 }

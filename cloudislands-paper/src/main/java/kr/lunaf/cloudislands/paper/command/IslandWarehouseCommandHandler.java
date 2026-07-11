@@ -74,6 +74,10 @@ final class IslandWarehouseCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
+        if (action instanceof GuiAction.WarehousePage page) {
+            IslandWarehouseMenu.open(plugin, coreApiClient, player, page.islandId(), runtime.messagesFor(player), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.NoPayload noPayload && noPayload.type() == GuiAction.NoPayloadType.WAREHOUSE_OPEN) {
             openWarehouseMenu(player);
             return true;

@@ -345,7 +345,7 @@ class GuiSystemPolicyTest {
                 || List.of("IslandBanMenu", "IslandMyIslandsMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())")
                 || List.of("IslandInviteMenu", "IslandSnapshotMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
                 || menuName.equals("IslandVisitMenu") && menu.contains("!List.of(\"E\", \"W\", \"N\").contains(item.symbol())")
-                || List.of("IslandMissionMenu", "IslandRoleMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"W\", \"N\").contains(item.symbol())"),
+                || List.of("IslandMissionMenu", "IslandRoleMenu", "IslandWarehouseMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"W\", \"N\").contains(item.symbol())"),
                 menuName + " must hide configured dynamic placeholders during normal render");
             assertTrue(menu.contains("GuiMenuRenderer.setSymbolItem(inventory, MENU, \"E\""), menuName + " must render the configured empty placeholder when the list is empty");
         }
@@ -460,6 +460,9 @@ class GuiSystemPolicyTest {
         String missions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMissionMenu.java"));
         assertTrue(missions.contains("int maxPage = Math.max(0, (missions.size() - 1) / pageSize)"), "mission and challenge catalogs must paginate instead of hiding later definitions");
         assertTrue(missions.contains("Map.of(\"islandId\", islandId.toString(), \"kind\", kind, \"page\""), "mission page actions must preserve island and task-kind context");
+        String warehouse = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandWarehouseMenu.java"));
+        assertTrue(warehouse.contains("int maxPage = Math.max(0, (entries.size() - 1) / pageSize)"), "all warehouse rows returned by Core must remain visible despite footer controls");
+        assertTrue(warehouse.contains("rows * 9"), "warehouse query must continue honoring the configured row capacity before pagination");
     }
 
     @Test

@@ -144,6 +144,7 @@ public final class GuiActionParser {
         "island.visit.target",
         "island.warehouse.deposit.help",
         "island.warehouse.open",
+        "island.warehouse.page",
         "island.warp.delete.confirm",
         "island.warp.delete.prepare",
         "island.warp.private",
@@ -377,6 +378,10 @@ public final class GuiActionParser {
                 case "island.missions.page" -> Optional.of(new GuiAction.MissionPage(
                     UUID.fromString(required(safeData, "islandId")),
                     safeData.getOrDefault("kind", "MISSION"),
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
+                case "island.warehouse.page" -> Optional.of(new GuiAction.WarehousePage(
+                    UUID.fromString(required(safeData, "islandId")),
                     nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.review.set" -> Optional.of(new GuiAction.ReviewSet(
