@@ -137,7 +137,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(router.contains("if (subcommand.equals(\"menu\") || subcommand.equals(\"메뉴\")) {\n            openMainMenuOrCommandList(player, label);"), "/island menu and /섬 메뉴 must open the GUI first");
         assertTrue(router.contains("if (action instanceof GuiAction.MainOpen) {\n            openMainMenuOrCommandList(player, \"섬\");"), "GUI main-open actions must return to the main menu");
         assertTrue(router.contains("private void openMainMenuOrCommandList(Player player, String label)"));
-        assertTrue(router.contains("if (!runtime.openMainMenu(player)) {\n            sendCommandList(player, label, \"섬 명령어 목록\", IslandCommandCatalog.HELP_COMMANDS, 1);"), "command list must remain only as the no-GUI/error fallback");
+        assertTrue(router.contains("if (!runtime.openMainMenu(player)) {\n            sendCommandList(player, label, \"섬 명령어 목록\", allHelpCommands(), 1);"), "command list must remain only as the no-GUI/error fallback and include addon commands");
         assertFalse(router.contains("if (action instanceof GuiAction.MainOpen) {\n            sendCommandList"), "main-open GUI action must not show the command list directly");
         assertTrue(factory.contains("IslandOnboardingMenu.open(plugin, coreApiClient, player"), "router runtime must route bare /섬 through state-based onboarding");
         assertTrue(factory.contains("() -> IslandMainMenu.open(player, messages.messagesFor(player))"), "router runtime must keep IslandMainMenu as onboarding fallback");
@@ -157,7 +157,7 @@ class IslandCommandControllerPolicyTest {
 
         assertTrue(router.contains("isGuiHelpRequest(effectiveArgs)"), "/섬 도움말 gui must route to the GUI entry point");
         assertTrue(router.contains("noPayload.type() == GuiAction.NoPayloadType.HELP_OPEN"), "main menu help button must reuse the command help renderer");
-        assertTrue(router.contains("sendCommandList(player, \"섬\", \"섬 명령어 목록\", IslandCommandCatalog.HELP_COMMANDS, 1);"));
+        assertTrue(router.contains("sendCommandList(player, \"섬\", \"섬 명령어 목록\", allHelpCommands(), 1);"));
         assertTrue(actions.contains("HELP_OPEN(\"island.help.open\")"));
         assertTrue(parser.contains("case \"island.help.open\" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.HELP_OPEN));"));
         assertTrue(menu.contains("action: island.help.open"));

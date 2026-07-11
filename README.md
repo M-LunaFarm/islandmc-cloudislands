@@ -374,6 +374,17 @@ Flow:
 State follows the island.
 Not the server.
 
+## Addon island commands
+
+External addons can register collision-safe `/is` subcommands through
+`api.addons().registerCommand(AddonIslandCommand)`. Registered aliases appear
+in player tab completion and paginated command help, enforce the addon's
+permission and argument range, and can return asynchronous messages without
+blocking the Paper thread. CloudIslands rejects built-in and legacy SS2 alias
+collisions and removes every owned command when the addon is disabled,
+reloaded, unregistered, or the Paper plugin stops. The example addon registers
+`/is example [status|events]` as the certification reference.
+
 ## Satis feature pack
 
 `cloudislands-satis` is optional.
@@ -565,6 +576,9 @@ Release notes for `v1.0.3`:
 - release publishing: matching `v*` tags now verify the README version, rebuild
   all signed evidence artifacts, and publish bundles, individual plugin/addon
   jars, checksums, SBOM, provenance, and generated changelog to GitHub Releases
+- addon command SDK: addons can register lifecycle-safe `/is` subcommands with
+  permissions, argument validation, asynchronous execution, tab completion,
+  help integration, collision rejection, and automatic unregister cleanup
 - temporary co-op integrity: permanent members can no longer be overwritten by
   expiring `TRUSTED` membership, existing temporary co-op access can be renewed,
   SS2 `uncoop` removes that access, and admin co-op limits enforce the dedicated

@@ -132,6 +132,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             adminChatSpies = null;
         }
         GuiSessions.clear();
+        kr.lunaf.cloudislands.paper.command.AddonIslandCommandRegistry.global().clear();
         runtimeConfig = null;
         runtimeCompatibility = null;
     }

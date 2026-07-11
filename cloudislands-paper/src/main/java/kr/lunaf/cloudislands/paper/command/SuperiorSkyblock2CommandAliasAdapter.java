@@ -66,6 +66,10 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         return new SuperiorSkyblock2CommandAliasAdapter(false, false);
     }
 
+    static java.util.Set<String> playerAliases() {
+        return MAPPINGS.keySet();
+    }
+
     Optional<ResolvedAlias> translate(String[] args) {
         if (!enabled || args == null || args.length == 0) {
             return Optional.empty();

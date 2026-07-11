@@ -139,7 +139,10 @@ final class IslandCommandRouter {
         }
         int commandListPage = commandListPage(effectiveArgs);
         if (commandListPage > 0) {
-            sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, commandListPage);
+            sendCommandList(player, label, "섬 명령어 목록", allHelpCommands(), commandListPage);
+            return true;
+        }
+        if (AddonIslandCommandRegistry.global().execute(player, label, effectiveArgs)) {
             return true;
         }
         IslandCommandPermission permission = IslandCommandPermission.fromSubcommand(subcommand);
@@ -215,7 +218,7 @@ final class IslandCommandRouter {
         }
         suggestions.suggest(subcommand, IslandCommandCatalog.SUBCOMMANDS)
             .ifPresent(suggestion -> sendCommandSuggestion(player, label, suggestion));
-        sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
+        sendCommandList(player, label, "섬 명령어 목록", allHelpCommands(), 1);
         return true;
     }
 
@@ -267,7 +270,7 @@ final class IslandCommandRouter {
             return;
         }
         if (action instanceof GuiAction.NoPayload noPayload && noPayload.type() == GuiAction.NoPayloadType.HELP_OPEN) {
-            sendCommandList(player, "섬", "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
+            sendCommandList(player, "섬", "섬 명령어 목록", allHelpCommands(), 1);
             return;
         }
         if (bankCommands.handleGuiAction(player, action)) {
@@ -425,8 +428,14 @@ final class IslandCommandRouter {
 
     private void openMainMenuOrCommandList(Player player, String label) {
         if (!runtime.openMainMenu(player)) {
-            sendCommandList(player, label, "섬 명령어 목록", IslandCommandCatalog.HELP_COMMANDS, 1);
+            sendCommandList(player, label, "섬 명령어 목록", allHelpCommands(), 1);
         }
+    }
+
+    private List<String> allHelpCommands() {
+        List<String> commands = new java.util.ArrayList<>(IslandCommandCatalog.HELP_COMMANDS);
+        commands.addAll(AddonIslandCommandRegistry.global().helpCommands());
+        return List.copyOf(commands);
     }
 
     private boolean checkCommandDelay(Player player, String label, String subcommand, String[] args) {

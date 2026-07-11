@@ -166,7 +166,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
             return literalMatches(List.of("true", "false", "on", "off", "허용", "거부"), args[3]);
         }
         if (args.length != 1) {
-            return List.of();
+            return sender instanceof Player player ? AddonIslandCommandRegistry.global().tabComplete(player, alias, args) : List.of();
         }
         String typed = args[0].toLowerCase(Locale.ROOT);
         List<String> matches = new ArrayList<>();
@@ -175,7 +175,10 @@ final class IslandCommandTabCompleter implements TabCompleter {
                 matches.add(subcommand);
             }
         }
-        return matches;
+        if (sender instanceof Player player) {
+            matches.addAll(AddonIslandCommandRegistry.global().tabComplete(player, alias, args));
+        }
+        return matches.stream().distinct().sorted().toList();
     }
 
     private List<String> literalMatches(List<String> values, String typed) {
@@ -193,7 +196,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
         List<String> values = new ArrayList<>(IslandCommandCatalog.helpCategoryNames());
         values.add("gui");
         values.add("메뉴");
-        values.addAll(commandListPageSuggestions(IslandCommandBackend.HELP_COMMANDS.size()));
+        values.addAll(commandListPageSuggestions(IslandCommandBackend.HELP_COMMANDS.size() + AddonIslandCommandRegistry.global().helpCommands().size()));
         return values;
     }
 

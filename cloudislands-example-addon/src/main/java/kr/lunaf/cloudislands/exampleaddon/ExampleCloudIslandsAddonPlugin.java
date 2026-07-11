@@ -104,6 +104,12 @@ public final class ExampleCloudIslandsAddonPlugin extends JavaPlugin implements 
     @Override
     public void onAddonRegistered(CloudIslandsAddonSnapshot snapshot) {
         getLogger().info("CloudIslands addon state registered: " + snapshot.id());
+        CloudIslandsProvider.get().ifPresent(api -> api.addons().registerCommand(new ExampleAddonIslandSubcommand())
+            .thenAccept(command -> getLogger().info("Registered /is " + command.primaryAlias() + " for " + command.addonId()))
+            .exceptionally(error -> {
+                getLogger().warning("Failed to register example addon island command: " + error.getMessage());
+                return null;
+            }));
     }
 
     @Override

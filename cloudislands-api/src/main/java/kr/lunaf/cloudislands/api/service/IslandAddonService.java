@@ -7,9 +7,11 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
+import kr.lunaf.cloudislands.api.addon.AddonIslandCommand;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
+import kr.lunaf.cloudislands.api.model.AddonIslandCommandSnapshot;
 
 public interface IslandAddonService {
     String TABLE_STATE_KEY_PREFIX = "table/";
@@ -169,6 +171,18 @@ public interface IslandAddonService {
     }
 
     CompletableFuture<Void> unregister(String id);
+
+    default CompletableFuture<AddonIslandCommandSnapshot> registerCommand(AddonIslandCommand command) {
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("Addon island command registration is unavailable on this runtime"));
+    }
+
+    default CompletableFuture<Void> unregisterCommands(String addonId) {
+        return CompletableFuture.completedFuture(null);
+    }
+
+    default CompletableFuture<List<AddonIslandCommandSnapshot>> commands() {
+        return CompletableFuture.completedFuture(List.of());
+    }
 
     default CompletableFuture<Void> unregisterPreservingState(String id) {
         return unregister(id);

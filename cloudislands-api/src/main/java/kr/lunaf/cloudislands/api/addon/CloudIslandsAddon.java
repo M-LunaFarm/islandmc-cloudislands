@@ -14,6 +14,8 @@ import kr.lunaf.cloudislands.api.event.IslandActivatedEvent;
 import kr.lunaf.cloudislands.api.event.IslandAccessChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandMemberJoinEvent;
 import kr.lunaf.cloudislands.api.event.IslandMemberLeaveEvent;
+import kr.lunaf.cloudislands.api.event.IslandCoopAddEvent;
+import kr.lunaf.cloudislands.api.event.IslandCoopRemoveEvent;
 import kr.lunaf.cloudislands.api.event.IslandBankChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandBiomeChangeEvent;
 import kr.lunaf.cloudislands.api.event.IslandBlockValueChangeEvent;
@@ -175,6 +177,8 @@ public interface CloudIslandsAddon {
             "island-member-joined",
             "island-member-left",
             "island-member-changed",
+            "island-coop-added",
+            "island-coop-removed",
             "island-renamed",
             "island-access-changed",
             "island-visitor-ban-changed",
@@ -364,6 +368,10 @@ public interface CloudIslandsAddon {
             onIslandMemberLeft(memberLeft);
         } else if (event instanceof IslandMemberChangedEvent memberChanged) {
             onIslandMemberChanged(memberChanged);
+        } else if (event instanceof IslandCoopAddEvent coopAdded) {
+            onIslandCoopAdded(coopAdded);
+        } else if (event instanceof IslandCoopRemoveEvent coopRemoved) {
+            onIslandCoopRemoved(coopRemoved);
         } else if (event instanceof IslandRenamedEvent renamed) {
             onIslandRenamed(renamed);
         } else if (event instanceof IslandAccessChangeEvent accessChanged) {
@@ -508,6 +516,12 @@ public interface CloudIslandsAddon {
     }
 
     default void onIslandMemberChanged(IslandMemberChangedEvent event) {
+    }
+
+    default void onIslandCoopAdded(IslandCoopAddEvent event) {
+    }
+
+    default void onIslandCoopRemoved(IslandCoopRemoveEvent event) {
     }
 
     default void onIslandRenamed(IslandRenamedEvent event) {

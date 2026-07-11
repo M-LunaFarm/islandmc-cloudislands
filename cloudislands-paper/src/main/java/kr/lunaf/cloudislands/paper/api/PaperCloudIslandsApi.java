@@ -22,10 +22,12 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
+import kr.lunaf.cloudislands.api.addon.AddonIslandCommand;
 import kr.lunaf.cloudislands.api.addon.CloudIslandsAddon;
 import kr.lunaf.cloudislands.api.event.CloudEvent;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkLoadRequest;
 import kr.lunaf.cloudislands.api.model.AddonStateBulkSaveRequest;
+import kr.lunaf.cloudislands.api.model.AddonIslandCommandSnapshot;
 import kr.lunaf.cloudislands.api.model.AuditLogSnapshot;
 import kr.lunaf.cloudislands.api.model.BlockValueSnapshot;
 import kr.lunaf.cloudislands.api.model.ClaimedIslandJobSnapshot;
@@ -151,6 +153,7 @@ import kr.lunaf.cloudislands.coreclient.UpgradeRuleView;
 import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
+import kr.lunaf.cloudislands.paper.command.AddonIslandCommandRegistry;
 import kr.lunaf.cloudislands.paper.config.PaperAddonConfigFile;
 import kr.lunaf.cloudislands.paper.config.PaperAddonConfigStore;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
@@ -277,6 +280,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(String id, String displayName, String version, boolean enabled, Map<String, Boolean> features, Map<String, String> metadata) {
             String safeId = safeRegistrationId(id);
+            AddonIslandCommandRegistry.global().unregisterAddon(safeId);
             CloudIslandsAddon previous = addonObjects.remove(safeId);
             if (previous != null) {
                 notifyUnregistered(previous);
@@ -304,6 +308,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<CloudIslandsAddonSnapshot> register(CloudIslandsAddon addon) {
             String id = safeAddonId(addon);
+            AddonIslandCommandRegistry.global().unregisterAddon(id);
             AddonRegistration registration = new AddonRegistration(id, safeAddonDisplayName(addon, id), safeAddonVersion(addon), safeAddonEnabledByDefault(addon), Instant.now(), safeAddonFeatures(addon, id), safeAddonMetadata(addon, id));
             registrations.put(id, registration);
             CloudIslandsAddon previous = addon == null ? addonObjects.remove(id) : addonObjects.put(id, addon);
@@ -528,6 +533,7 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Void> unregister(String id) {
             String safeId = safeRegistrationId(id);
+            AddonIslandCommandRegistry.global().unregisterAddon(safeId);
             CloudIslandsAddon addon = addonObjects.remove(safeId);
             if (addon != null) {
                 notifyUnregistered(addon);
@@ -536,6 +542,40 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             addons.remove(safeId);
             syncEventSubscription();
             return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletableFuture<AddonIslandCommandSnapshot> registerCommand(AddonIslandCommand command) {
+            if (command == null) {
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Addon island command is required"));
+            }
+            String addonId = safeRegistrationId(command.addonId());
+            CloudIslandsAddonSnapshot addon = addons.get(addonId);
+            if (addon == null) {
+                return CompletableFuture.failedFuture(new IllegalStateException("Addon must be registered before its island commands: " + addonId));
+            }
+            if (!addon.enabled()) {
+                return CompletableFuture.failedFuture(new IllegalStateException("Disabled addon cannot register island commands: " + addonId));
+            }
+            if (!addon.commandsEnabled()) {
+                return CompletableFuture.failedFuture(new IllegalStateException("Addon commands feature is disabled: " + addonId));
+            }
+            try {
+                return CompletableFuture.completedFuture(AddonIslandCommandRegistry.global().register(command));
+            } catch (RuntimeException exception) {
+                return CompletableFuture.failedFuture(exception);
+            }
+        }
+
+        @Override
+        public CompletableFuture<Void> unregisterCommands(String addonId) {
+            AddonIslandCommandRegistry.global().unregisterAddon(safeRegistrationId(addonId));
+            return CompletableFuture.completedFuture(null);
+        }
+
+        @Override
+        public CompletableFuture<List<AddonIslandCommandSnapshot>> commands() {
+            return CompletableFuture.completedFuture(AddonIslandCommandRegistry.global().snapshots());
         }
 
         @Override
@@ -559,6 +599,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             CloudIslandsAddonSnapshot snapshot = snapshot(registration);
             addons.put(safeId, snapshot);
+            if (!snapshot.commandsEnabled()) {
+                AddonIslandCommandRegistry.global().unregisterAddon(safeId);
+            }
             CloudIslandsAddon addon = addonObjects.get(safeId);
             if (addon != null) {
                 notifyReloaded(addon, snapshot);
@@ -572,6 +615,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             registrations.values().forEach(registration -> {
                 CloudIslandsAddonSnapshot snapshot = snapshot(registration);
                 addons.put(registration.id(), snapshot);
+                if (!snapshot.commandsEnabled()) {
+                    AddonIslandCommandRegistry.global().unregisterAddon(registration.id());
+                }
                 CloudIslandsAddon addon = addonObjects.get(registration.id());
                 if (addon != null) {
                     notifyReloaded(addon, snapshot);
@@ -590,7 +636,12 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             }
             AddonRegistration registration = registrations.get(safeId);
             addonConfig.setEnabled(safeId, parentConfigAliases(registration.metadata()), enabled);
-            return refresh(safeId);
+            return refresh(safeId).thenApply(snapshot -> {
+                if (!enabled) {
+                    AddonIslandCommandRegistry.global().unregisterAddon(safeId);
+                }
+                return snapshot;
+            });
         }
 
         @Override
@@ -611,7 +662,10 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
                 clearFeatureAliases(safeId, aliases, registration, normalizedFeature);
             }
             addonConfig.saveAndReload();
-            return refresh(safeId);
+            return refresh(safeId).thenApply(snapshot -> {
+                snapshot.filter(value -> !value.commandsEnabled()).ifPresent(_disabled -> AddonIslandCommandRegistry.global().unregisterAddon(safeId));
+                return snapshot;
+            });
         }
 
         private String configFeatureKey(AddonRegistration registration, String requestedFeature, String normalizedFeature) {
