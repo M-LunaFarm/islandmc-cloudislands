@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.29`
+Version: `1.1.30`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.29`
+Current release: `v1.1.30`
 
-Built for the CloudIslands 1.1.29 baseline.
+Built for the CloudIslands 1.1.30 baseline.
 
-Release notes for `v1.1.29`:
+Release notes for `v1.1.30`:
+
+- truthful TOP 10 views: level, worth, and review ranking requests no longer
+  hide rank ten behind their nine configured metric slots
+- synchronized pages: all three ranking columns advance together while keeping
+  each entry's original global rank and island visit target
+- dynamic bounds: sparse review or worth data cannot create an unreachable page;
+  the longest returned ranking column determines the current page range
+- page-safe visits: entries on the second page retain the same typed island
+  target action as entries on the first page
+- localized navigation: previous and next ranking controls are available in
+  Korean and English configurations
+
+Release notes carried forward from `v1.1.29`:
 
 - unbounded public-warp browsing: Paper now requests stable Core offset pages
   instead of making every category and search stop at its first 45 results
@@ -1035,7 +1048,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.29`.
+Current read: production-readiness baseline `v1.1.30`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
