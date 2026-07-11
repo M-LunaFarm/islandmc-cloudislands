@@ -385,6 +385,17 @@ collisions and removes every owned command when the addon is disabled,
 reloaded, unregistered, or the Paper plugin stops. The example addon registers
 `/is example [status|events]` as the certification reference.
 
+## SuperiorSkyblock2 command migration
+
+The optional legacy alias adapter preserves player-command meaning for common
+SS2 forms including `join`, `add`, `remove`, `bal`, `money`, `vault`,
+`setbiome`, `tp`, `go`, `settp`, `setgo`, `show`, `showteam`, `online`, `tc`,
+`leader`, `leadership`, and `expel`. Player aliases are not misclassified as
+admin operations. `/is uncoop <player>` verifies that the target has the
+temporary `TRUSTED` role before removal, so it can never remove a permanent
+team member. `/is value [material]` resolves the held or named material against
+typed Core block values and reports worth, level points, and placement limit.
+
 ## PlaceholderAPI
 
 CloudIslands placeholders resolve the player's primary permanent island first,

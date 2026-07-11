@@ -59,8 +59,13 @@ final class IslandProgressionCommandHandler {
             showLevel(player);
             return true;
         }
-        if (subcommand.equals("worth") || subcommand.equals("value") || subcommand.equals("가치")) {
+        if (subcommand.equals("worth") || subcommand.equals("가치")) {
             showWorth(player);
+            return true;
+        }
+        if (subcommand.equals("value")) {
+            String material = args.length > 1 ? args[1] : player.getInventory().getItemInMainHand().getType().getKey().toString();
+            showBlockValue(player, material);
             return true;
         }
         if (subcommand.equals("blocks") || subcommand.equals("values") || subcommand.equals("block-details") || subcommand.equals("block-counts") || subcommand.equals("블록상세") || subcommand.equals("블록목록")) {
@@ -236,6 +241,21 @@ final class IslandProgressionCommandHandler {
                     return null;
                 });
         });
+    }
+
+    private void showBlockValue(Player player, String material) {
+        String normalized = BlockValueLookup.normalize(material);
+        coreApiClient.blockValues().list()
+            .thenAccept(values -> BlockValueLookup.find(values, normalized).ifPresentOrElse(
+                value -> runtime.message(player, message("block-value-prefix", "블록 가치: ") + value.materialKey()
+                    + " " + message("block-value-worth-label", "가치=") + value.worth()
+                    + " " + message("block-value-level-label", "점수=") + value.levelPoints()
+                    + " " + message("block-value-limit-label", "제한=") + value.limit()),
+                () -> runtime.message(player, message("block-value-not-found-prefix", "등록되지 않은 블록입니다: ") + normalized)))
+            .exceptionally(error -> {
+                runtime.message(player, message("block-value-load-failed", "블록 가치를 불러오지 못했습니다."));
+                return null;
+            });
     }
 
     private void showBlockDetails(Player player, int limit) {

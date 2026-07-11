@@ -410,14 +410,15 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adapter.contains("public final class SuperiorSkyblock2CommandAliasAdapter"));
         assertTrue(adapter.contains("Map.entry(\"recalc\", new Mapping(\"levelcalc\", \"레벨계산\"))"), "SS2 recalc must route to the CloudIslands level calculation command");
         assertTrue(adapter.contains("Map.entry(\"team\", new Mapping(\"members\", \"멤버\"))"), "SS2 team must route to the CloudIslands member command");
-        assertTrue(adapter.contains("Map.entry(\"value\", new Mapping(\"values\", \"values\"))"), "SS2 value <block> must route to the block-values command path");
+        assertTrue(adapter.contains("Map.entry(\"value\", new Mapping(\"value\", \"가치\"))"), "SS2 value <block> must preserve single-material lookup semantics");
         assertTrue(adapter.contains("Map.entry(\"teleport\", new Mapping(\"home\", \"홈\"))"), "SS2 teleport must route to the CloudIslands home command");
         assertTrue(adapter.contains("Map.entry(\"delwarp\", new Mapping(\"warp-delete\", \"워프삭제\"))"), "SS2 delwarp must route to the CloudIslands warp deletion command");
         assertTrue(adapter.contains("Map.entry(\"rankup\", new Mapping(\"upgrade-buy\", \"업그레이드구매\"))"), "SS2 rankup must route to the CloudIslands upgrade purchase command");
         assertTrue(adapter.contains("Map.entry(\"panel\", new Mapping(\"menu\", \"메뉴\"))"), "SS2 panel must route to the CloudIslands menu command");
         assertTrue(adapter.contains("Map.entry(\"close\", new Mapping(\"private\", \"비공개\"))"), "SS2 close must route to island private access");
         assertTrue(adapter.contains("Map.entry(\"open\", new Mapping(\"public\", \"공개\"))"), "SS2 open must route to island public access");
-        assertTrue(adapter.contains("Map.entry(\"uncoop\", new Mapping(\"kick\", \"추방\"))"), "SS2 uncoop must remove temporary cooperation instead of promoting it to permanent membership");
+        assertTrue(adapter.contains("Map.entry(\"uncoop\", new Mapping(\"untrust\", \"신뢰해제\"))"), "SS2 uncoop must use the role-checked temporary cooperation removal path");
+        assertTrue(router.contains("legacyAliases.translate(args)"), "Player aliases must be translated before legacy admin guidance is considered");
         assertTrue(adapter.contains("Map.entry(\"coops\", new Mapping(\"members\", \"멤버\"))"), "SS2 coops must open the member/co-op management surface");
         assertTrue(adapter.contains("AdminAliasGuidance"), "SS2 admin aliases must be guidance-only, not player command translations");
         assertTrue(adapter.contains("admin(\"purge\", \"island delete <island> --confirm\", true)"), "dangerous SS2 admin aliases must point at ciadmin confirmation flows");

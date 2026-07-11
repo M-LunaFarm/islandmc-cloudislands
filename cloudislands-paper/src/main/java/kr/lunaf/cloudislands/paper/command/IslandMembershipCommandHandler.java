@@ -107,12 +107,12 @@ final class IslandMembershipCommandHandler {
             }
             return true;
         }
-        if (subcommand.equals("untrust") || subcommand.equals("신뢰해제")) {
+        if (subcommand.equals("untrust") || subcommand.equals("uncoop") || subcommand.equals("신뢰해제")) {
             if (args.length < 2) {
                 runtime.message(player, message("input-untrust-player-required", "신뢰 해제할 플레이어를 입력해주세요."));
                 return true;
             }
-            removeIslandMember(player, args[1]);
+            removeCoopMember(player, args[1]);
             return true;
         }
         if (subcommand.equals("promote") || subcommand.equals("승급")) {
@@ -493,6 +493,36 @@ final class IslandMembershipCommandHandler {
                     });
             });
         });
+    }
+
+    private void removeCoopMember(Player player, String target) {
+        runtime.currentIsland(player, message("member-remove-island-required", "섬 안에서만 협동원을 해제할 수 있습니다.")).ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.MANAGE_MEMBERS)) {
+                runtime.message(player, message("member-remove-denied", "섬 협동원을 해제할 권한이 없습니다."));
+                return;
+            }
+            runtime.resolvePlayerUuid(target).thenCompose(targetUuid -> memberManagement.listMemberViews(islandId)
+                .thenCompose(members -> {
+                    if (!isTemporaryCoop(members, targetUuid)) {
+                        runtime.message(player, message("member-uncoop-target-not-coop", "해당 플레이어는 이 섬의 협동원이 아닙니다."));
+                        return CompletableFuture.completedFuture(null);
+                    }
+                    return runtime.mutateIdempotent("island.member.coop.remove", () -> memberManagement.removeMemberAction(islandId, player.getUniqueId(), targetUuid))
+                        .thenAccept(result -> runtime.message(player, memberActionMessage(message("member-uncoop-action-label", "섬 협동 해제"), targetUuid, result)));
+                }))
+                .exceptionally(error -> {
+                    runtime.message(player, message("member-uncoop-failed", "섬 협동원을 해제하지 못했습니다."));
+                    return null;
+                });
+        });
+    }
+
+    static boolean isTemporaryCoop(List<MemberView> members, UUID targetUuid) {
+        if (targetUuid == null) {
+            return false;
+        }
+        return (members == null ? List.<MemberView>of() : members).stream()
+            .anyMatch(member -> targetUuid.toString().equalsIgnoreCase(member.playerUuid()) && "TRUSTED".equalsIgnoreCase(member.role()));
     }
 
     private void leaveIsland(Player player) {

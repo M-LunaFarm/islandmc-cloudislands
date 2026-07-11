@@ -9,9 +9,6 @@ import java.util.concurrent.atomic.LongAdder;
 
 public final class SuperiorSkyblock2CommandAliasAdapter {
     private static final Map<String, AdminAliasGuidance> ADMIN_GUIDANCE = Map.ofEntries(
-        admin("add", "island member add <island> <player> [role]", false),
-        admin("remove", "island member remove <island> <player>", false),
-        admin("join", "island join <island|player>", false),
         admin("purge", "island delete <island> --confirm", true),
         admin("schematic", "template verify-bundle <id>", false),
         admin("cmdall", "help command list", true),
@@ -32,7 +29,7 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
     private static final Map<String, Mapping> MAPPINGS = Map.ofEntries(
         Map.entry("top", new Mapping("top", "랭킹")),
         Map.entry("values", new Mapping("values", "values")),
-        Map.entry("value", new Mapping("values", "values")),
+        Map.entry("value", new Mapping("value", "가치")),
         Map.entry("counts", new Mapping("block-counts", "블록상세")),
         Map.entry("recalc", new Mapping("levelcalc", "레벨계산")),
         Map.entry("missions", new Mapping("missions", "미션")),
@@ -48,9 +45,32 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         Map.entry("rankup", new Mapping("upgrade-buy", "업그레이드구매")),
         Map.entry("close", new Mapping("private", "비공개")),
         Map.entry("open", new Mapping("public", "공개")),
-        Map.entry("uncoop", new Mapping("kick", "추방")),
+        Map.entry("uncoop", new Mapping("untrust", "신뢰해제")),
         Map.entry("permissions", new Mapping("permissions", "권한")),
-        Map.entry("border", new Mapping("border", "경계"))
+        Map.entry("border", new Mapping("border", "경계")),
+        Map.entry("join", new Mapping("accept", "초대수락")),
+        Map.entry("balance", new Mapping("bank", "은행")),
+        Map.entry("bal", new Mapping("bank", "은행")),
+        Map.entry("money", new Mapping("bank", "은행")),
+        Map.entry("setbiome", new Mapping("biome", "바이옴")),
+        Map.entry("vault", new Mapping("chest", "창고")),
+        Map.entry("add", new Mapping("invite", "초대")),
+        Map.entry("remove", new Mapping("kick", "추방")),
+        Map.entry("lang", new Mapping("language", "언어")),
+        Map.entry("manager", new Mapping("menu", "메뉴")),
+        Map.entry("cp", new Mapping("menu", "메뉴")),
+        Map.entry("setperm", new Mapping("permissions", "권한")),
+        Map.entry("settp", new Mapping("sethome", "셋홈")),
+        Map.entry("setgo", new Mapping("sethome", "셋홈")),
+        Map.entry("show", new Mapping("info", "정보")),
+        Map.entry("showteam", new Mapping("member-list", "멤버목록")),
+        Map.entry("online", new Mapping("member-list", "멤버목록")),
+        Map.entry("tc", new Mapping("teamchat", "팀채팅")),
+        Map.entry("tp", new Mapping("home", "홈")),
+        Map.entry("go", new Mapping("home", "홈")),
+        Map.entry("leader", new Mapping("transfer", "양도")),
+        Map.entry("leadership", new Mapping("transfer", "양도")),
+        Map.entry("expel", new Mapping("kickvisitor", "방문자추방"))
     );
     private static final ConcurrentHashMap<String, LongAdder> USAGE = new ConcurrentHashMap<>();
 

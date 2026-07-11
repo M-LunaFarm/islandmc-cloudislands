@@ -1,7 +1,12 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.List;
+import java.util.UUID;
+import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 import org.junit.jupiter.api.Test;
 
 class IslandMembershipCommandHandlerTest {
@@ -15,5 +20,19 @@ class IslandMembershipCommandHandlerTest {
             "/is permission-exception <player> <permission> <allow|deny>",
             IslandMembershipCommandHandler.permissionExceptionCommand("", "", "")
         );
+    }
+
+    @Test
+    void uncoopOnlyAcceptsTrustedMembershipAndNeverPermanentTeamRoles() {
+        UUID trusted = UUID.fromString("00000000-0000-0000-0000-000000000011");
+        UUID member = UUID.fromString("00000000-0000-0000-0000-000000000012");
+        List<CoreGuiViews.MemberView> members = List.of(
+            new CoreGuiViews.MemberView(trusted.toString(), "TRUSTED", "", "Coop", "", "ONLINE", "", ""),
+            new CoreGuiViews.MemberView(member.toString(), "MEMBER", "", "Member", "", "ONLINE", "", "")
+        );
+
+        assertTrue(IslandMembershipCommandHandler.isTemporaryCoop(members, trusted));
+        assertFalse(IslandMembershipCommandHandler.isTemporaryCoop(members, member));
+        assertFalse(IslandMembershipCommandHandler.isTemporaryCoop(null, trusted));
     }
 }

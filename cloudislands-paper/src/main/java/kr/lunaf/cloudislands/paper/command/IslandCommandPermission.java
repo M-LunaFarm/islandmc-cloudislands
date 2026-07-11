@@ -26,7 +26,7 @@ public enum IslandCommandPermission {
     INVITE("cloudislands.island.invite", "invite", "초대"),
     INVITE_RESPOND("cloudislands.island.invite.respond", "accept", "invite-accept", "decline", "invite-decline", "초대수락", "초대거절"),
     LEAVE("cloudislands.island.leave", "leave", "탈퇴"),
-    KICK("cloudislands.island.kick", "kick", "remove-member", "untrust", "ban", "unban", "pardon", "kickvisitor", "추방", "신뢰해제", "밴", "밴해제", "방문자추방"),
+    KICK("cloudislands.island.kick", "kick", "remove-member", "untrust", "uncoop", "ban", "unban", "pardon", "kickvisitor", "추방", "신뢰해제", "밴", "밴해제", "방문자추방"),
     TRUST("cloudislands.island.trust", "trust", "coop", "co-op", "신뢰", "협동"),
     PROMOTE("cloudislands.island.promote", "promote", "setrole", "role-set", "role-upsert", "role-edit", "role-reset", "승급", "역할설정", "역할편집", "역할초기화"),
     DEMOTE("cloudislands.island.demote", "demote", "강등"),
