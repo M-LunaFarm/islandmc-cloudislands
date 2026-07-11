@@ -26,6 +26,9 @@ final class CloudIslandsPlaceholderValues {
         if (key.startsWith("member_") && key.length() > "member_".length()) {
             return indexedMember(orderedTeam, key.substring("member_".length()));
         }
+        if (key.startsWith("upgrade_") && key.length() > "upgrade_".length()) {
+            return upgradeLevel(data.upgrades(), key.substring("upgrade_".length()));
+        }
         return switch (key) {
             case "has_island" -> Boolean.toString(member);
             case "has_associated_island" -> "true";
@@ -62,6 +65,16 @@ final class CloudIslandsPlaceholderValues {
             case "coop_limit", "island_coop_limit" -> Long.toString(data.coopLimit());
             case "member_list", "team_list" -> names(team);
             case "coop_list" -> names(coops);
+            case "biome", "island_biome" -> data.biome();
+            case "bans_count", "island_bans_count" -> Integer.toString(data.bans().size());
+            case "bans_list", "island_bans_list" -> sortedValues(data.bans());
+            case "home", "island_home" -> location(data.home());
+            case "home_x", "island_home_x" -> coordinate(data.home(), Axis.X);
+            case "home_y", "island_home_y" -> coordinate(data.home(), Axis.Y);
+            case "home_z", "island_home_z" -> coordinate(data.home(), Axis.Z);
+            case "world", "island_world" -> data.home() == null ? "" : data.home().worldName();
+            case "warps", "island_warps" -> Integer.toString(data.warpCount());
+            case "warps_limit", "island_warps_limit", "raw_warps_limit" -> Long.toString(data.warpLimit());
             case "created_at", "creation_time" -> data.createdAt();
             case "updated_at", "last_time_updated" -> data.updatedAt();
             default -> "";
@@ -93,6 +106,42 @@ final class CloudIslandsPlaceholderValues {
         } catch (NumberFormatException ignored) {
             return "";
         }
+    }
+
+    private static String upgradeLevel(List<Upgrade> upgrades, String requestedKey) {
+        String normalizedKey = requestedKey.replace('-', '_');
+        return upgrades.stream()
+            .filter(upgrade -> upgrade != null && upgrade.key() != null && upgrade.key().toLowerCase(Locale.ROOT).replace('-', '_').equals(normalizedKey))
+            .map(upgrade -> Integer.toString(upgrade.level()))
+            .findFirst()
+            .orElse("0");
+    }
+
+    private static String sortedValues(List<String> values) {
+        return values.stream().filter(value -> value != null && !value.isBlank()).sorted(String.CASE_INSENSITIVE_ORDER)
+            .reduce((left, right) -> left + ", " + right).orElse("");
+    }
+
+    private static String location(Home home) {
+        if (home == null) {
+            return "";
+        }
+        return home.worldName() + ", " + decimal(home.x()) + ", " + decimal(home.y()) + ", " + decimal(home.z());
+    }
+
+    private static String coordinate(Home home, Axis axis) {
+        if (home == null) {
+            return "";
+        }
+        return decimal(switch (axis) {
+            case X -> home.x();
+            case Y -> home.y();
+            case Z -> home.z();
+        });
+    }
+
+    private static String decimal(double value) {
+        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
     }
 
     private static String integer(String value) {
@@ -143,12 +192,39 @@ final class CloudIslandsPlaceholderValues {
         }
     }
 
+    record Home(String worldName, double x, double y, double z) {
+        Home {
+            worldName = worldName == null ? "" : worldName;
+        }
+    }
+
+    record Upgrade(String key, int level) {
+    }
+
+    private enum Axis {
+        X,
+        Y,
+        Z
+    }
+
     record Data(String islandId, String name, String ownerUuid, String state, long size, long border, long level,
                 String worth, boolean publicAccess, boolean locked, String createdAt, String updatedAt,
                 String bankBalance, String role, List<Member> members, long memberLimit, long coopLimit,
-                int worthRank, int levelRank) {
+                int worthRank, int levelRank, String biome, List<String> bans, Home home, int warpCount,
+                long warpLimit, List<Upgrade> upgrades) {
+        Data(String islandId, String name, String ownerUuid, String state, long size, long border, long level,
+             String worth, boolean publicAccess, boolean locked, String createdAt, String updatedAt,
+             String bankBalance, String role, List<Member> members, long memberLimit, long coopLimit,
+             int worthRank, int levelRank) {
+            this(islandId, name, ownerUuid, state, size, border, level, worth, publicAccess, locked, createdAt, updatedAt,
+                bankBalance, role, members, memberLimit, coopLimit, worthRank, levelRank, "", List.of(), null, 0, 1L, List.of());
+        }
+
         Data {
             members = members == null ? List.of() : List.copyOf(members);
+            biome = biome == null ? "" : biome;
+            bans = bans == null ? List.of() : List.copyOf(bans);
+            upgrades = upgrades == null ? List.of() : List.copyOf(upgrades);
         }
     }
 }

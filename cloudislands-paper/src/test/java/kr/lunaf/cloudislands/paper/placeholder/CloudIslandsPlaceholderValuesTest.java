@@ -52,6 +52,30 @@ class CloudIslandsPlaceholderValuesTest {
         assertEquals("", value(null, "island_name"));
     }
 
+    @Test
+    void exposesCoreBackedBiomeBanHomeWarpAndUpgradeValues() {
+        CloudIslandsPlaceholderValues.Data source = data("OWNER");
+        CloudIslandsPlaceholderValues.Data extended = new CloudIslandsPlaceholderValues.Data(
+            source.islandId(), source.name(), source.ownerUuid(), source.state(), source.size(), source.border(), source.level(),
+            source.worth(), source.publicAccess(), source.locked(), source.createdAt(), source.updatedAt(), source.bankBalance(),
+            source.role(), source.members(), source.memberLimit(), source.coopLimit(), source.worthRank(), source.levelRank(),
+            "minecraft:plains", List.of("banned-b", "banned-a"),
+            new CloudIslandsPlaceholderValues.Home("island_world", 10.5D, 64.0D, -3.25D), 2, 5L,
+            List.of(new CloudIslandsPlaceholderValues.Upgrade("border-size", 3)));
+
+        assertEquals("minecraft:plains", value(extended, "biome"));
+        assertEquals("2", value(extended, "bans_count"));
+        assertEquals("banned-a, banned-b", value(extended, "bans_list"));
+        assertEquals("island_world, 10.5, 64, -3.25", value(extended, "home"));
+        assertEquals("10.5", value(extended, "home_x"));
+        assertEquals("64", value(extended, "home_y"));
+        assertEquals("island_world", value(extended, "world"));
+        assertEquals("2", value(extended, "warps"));
+        assertEquals("5", value(extended, "warps_limit"));
+        assertEquals("3", value(extended, "upgrade_border_size"));
+        assertEquals("0", value(extended, "upgrade_missing"));
+    }
+
     private static String value(CloudIslandsPlaceholderValues.Data data, String key) {
         return CloudIslandsPlaceholderValues.value(data, key);
     }

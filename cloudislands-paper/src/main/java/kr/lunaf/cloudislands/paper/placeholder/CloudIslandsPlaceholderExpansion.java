@@ -131,8 +131,14 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
             CompletableFuture<CoreGuiViews.BankView> bank = client.bank().islandBank(islandId).exceptionally(_error -> null);
             CompletableFuture<List<CoreGuiViews.MemberView>> members = client.islands().listMembers(islandId).exceptionally(_error -> List.of());
             CompletableFuture<List<CoreGuiViews.LimitView>> limits = client.environment().limitViews(islandId).exceptionally(_error -> List.of());
-            CompletableFuture<IslandDetails> loaded = CompletableFuture.allOf(island, bank, members, limits)
-                .thenApply(_ignored -> new IslandDetails(island.join(), bank.join(), members.join(), limits.join()));
+            CompletableFuture<CoreGuiViews.BiomeView> biome = client.environment().islandBiome(islandId).exceptionally(_error -> null);
+            CompletableFuture<List<CoreGuiViews.BanView>> bans = client.members().bans(islandId).exceptionally(_error -> List.of());
+            CompletableFuture<List<CoreGuiViews.HomeView>> homes = client.homeWarps().homes(islandId).exceptionally(_error -> List.of());
+            CompletableFuture<List<CoreGuiViews.WarpView>> warps = client.homeWarps().warps(islandId).exceptionally(_error -> List.of());
+            CompletableFuture<List<CoreGuiViews.UpgradeView>> upgrades = client.progression().upgrades(islandId).exceptionally(_error -> List.of());
+            CompletableFuture<IslandDetails> loaded = CompletableFuture.allOf(island, bank, members, limits, biome, bans, homes, warps, upgrades)
+                .thenApply(_ignored -> new IslandDetails(island.join(), bank.join(), members.join(), limits.join(), biome.join(),
+                    bans.join(), homes.join(), warps.join(), upgrades.join()));
             detailCache.put(islandId, new DetailCache(loaded, now + CACHE_TTL_MILLIS), now);
             return loaded;
         }
@@ -147,7 +153,8 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         }
         UUID parsedIslandId = uuid(islandId);
         if (parsedIslandId == null) {
-            return CompletableFuture.completedFuture(new Snapshot(island, null, selectedRole, List.of(), 3L, 8L, 0, 0, expiresAt));
+            return CompletableFuture.completedFuture(new Snapshot(island, null, selectedRole, List.of(), 3L, 8L, 0, 0,
+                "", List.of(), null, 0, 1L, List.of(), expiresAt));
         }
         CompletableFuture<CoreGuiViews.RankingData> rankings = rankings();
         return rankings.thenApply(rankingValues -> {
@@ -161,10 +168,25 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
                 .orElseGet(() -> island.ownerUuid().equals(playerUuid.toString()) ? "OWNER" : selectedRole);
             long memberLimit = limit(details.limits(), "MEMBERS", 3L);
             long coopLimit = limit(details.limits(), "ROLE_LIMIT:TRUSTED", 8L);
+            long warpLimit = limit(details.limits(), "WARPS", 1L);
+            String biome = details.biome() == null ? "" : details.biome().key();
+            List<String> bans = details.bans().stream().map(CoreGuiViews.BanView::bannedUuid).filter(value -> value != null && !value.isBlank()).toList();
+            CoreGuiViews.HomeView home = defaultHome(details.homes());
             return new Snapshot(island, details.bank(), role, memberValues, memberLimit, coopLimit,
                 CloudIslandsPlaceholderRanks.worthRank(rankingValues, islandId),
-                CloudIslandsPlaceholderRanks.levelRank(rankingValues, islandId), expiresAt);
+                CloudIslandsPlaceholderRanks.levelRank(rankingValues, islandId), biome, bans, home, details.warps().size(),
+                warpLimit, details.upgrades(), expiresAt);
         });
+    }
+
+    private static CoreGuiViews.HomeView defaultHome(List<CoreGuiViews.HomeView> homes) {
+        if (homes == null || homes.isEmpty()) {
+            return null;
+        }
+        return homes.stream().filter(home -> home != null && home.name() != null)
+            .min(Comparator.comparingInt((CoreGuiViews.HomeView home) -> "default".equalsIgnoreCase(home.name()) ? 0 : 1)
+                .thenComparing(CoreGuiViews.HomeView::name, String.CASE_INSENSITIVE_ORDER))
+            .orElse(null);
     }
 
     private CompletableFuture<CoreGuiViews.RankingData> rankings() {
@@ -190,11 +212,17 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         List<CloudIslandsPlaceholderValues.Member> members = snapshot.members().stream()
             .map(member -> new CloudIslandsPlaceholderValues.Member(member.playerUuid(), member.playerName(), member.role(), member.presenceState()))
             .toList();
+        CloudIslandsPlaceholderValues.Home home = snapshot.home() == null ? null : new CloudIslandsPlaceholderValues.Home(
+            snapshot.home().worldName(), snapshot.home().x(), snapshot.home().y(), snapshot.home().z());
+        List<CloudIslandsPlaceholderValues.Upgrade> upgrades = snapshot.upgrades().stream()
+            .map(upgrade -> new CloudIslandsPlaceholderValues.Upgrade(upgrade.key(), upgrade.level()))
+            .toList();
         CloudIslandsPlaceholderValues.Data data = island == null ? null : new CloudIslandsPlaceholderValues.Data(
             island.islandId(), island.name(), island.ownerUuid(), island.state(), island.size(), island.border(), island.level(),
             island.worth(), island.publicAccess(), island.locked(), island.createdAt(), island.updatedAt(),
             bank == null ? "" : bank.balance(), snapshot.role(), members, snapshot.memberLimit(), snapshot.coopLimit(),
-            snapshot.worthRank(), snapshot.levelRank());
+            snapshot.worthRank(), snapshot.levelRank(), snapshot.biome(), snapshot.bans(), home, snapshot.warpCount(),
+            snapshot.warpLimit(), upgrades);
         return CloudIslandsPlaceholderValues.value(data, params);
     }
 
@@ -232,18 +260,23 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
     }
 
     private record IslandDetails(CoreGuiViews.IslandInfoView island, CoreGuiViews.BankView bank,
-                                 List<CoreGuiViews.MemberView> members, List<CoreGuiViews.LimitView> limits) {
+                                 List<CoreGuiViews.MemberView> members, List<CoreGuiViews.LimitView> limits,
+                                 CoreGuiViews.BiomeView biome, List<CoreGuiViews.BanView> bans,
+                                 List<CoreGuiViews.HomeView> homes, List<CoreGuiViews.WarpView> warps,
+                                 List<CoreGuiViews.UpgradeView> upgrades) {
     }
 
     private record Snapshot(CoreGuiViews.IslandInfoView island, CoreGuiViews.BankView bank, String role,
                             List<CoreGuiViews.MemberView> members, long memberLimit, long coopLimit,
-                            int worthRank, int levelRank, long expiresAtMillis) {
+                            int worthRank, int levelRank, String biome, List<String> bans, CoreGuiViews.HomeView home,
+                            int warpCount, long warpLimit, List<CoreGuiViews.UpgradeView> upgrades, long expiresAtMillis) {
         private static Snapshot empty(long expiresAtMillis) {
-            return new Snapshot(null, null, "", List.of(), 3L, 8L, 0, 0, expiresAtMillis);
+            return new Snapshot(null, null, "", List.of(), 3L, 8L, 0, 0, "", List.of(), null, 0, 1L, List.of(), expiresAtMillis);
         }
 
         private Snapshot retryAfter(long retryAtMillis) {
-            return new Snapshot(island, bank, role, members, memberLimit, coopLimit, worthRank, levelRank, retryAtMillis);
+            return new Snapshot(island, bank, role, members, memberLimit, coopLimit, worthRank, levelRank, biome, bans, home,
+                warpCount, warpLimit, upgrades, retryAtMillis);
         }
     }
 }

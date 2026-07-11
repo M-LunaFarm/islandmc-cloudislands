@@ -405,6 +405,10 @@ SS2-style scoreboard aliases include `bank_format|int|raw`,
 `worth_format|int|raw`, `level_format|int|raw`, `leader`, indexed `member_<n>`,
 and `team_size_online`; formatted values use locale-stable `K`, `M`, `B`, `T`,
 and `Q` suffixes.
+Core-backed SS2 data aliases also include `biome`, `bans_count`, `bans_list`,
+`home`, `home_x|y|z`, `world`, `warps`, `warps_limit`, and dynamic
+`upgrade_<key>`. Optional subsystem failures degrade only those values and do
+not discard an otherwise healthy island snapshot.
 
 ## Satis feature pack
 
