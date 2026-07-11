@@ -1,7 +1,6 @@
 package kr.lunaf.cloudislands.paper.placeholder;
 
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,10 +14,18 @@ import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
 public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion {
     private static final long CACHE_TTL_MILLIS = 15_000L;
     private static final long MISS_TTL_MILLIS = 5_000L;
+    private static final long STALE_RETENTION_MILLIS = 300_000L;
+    private static final long CACHE_MAINTENANCE_INTERVAL_MILLIS = 30_000L;
+    private static final int MAX_CACHE_ENTRIES = 10_000;
 
     private final Plugin plugin;
     private final CoreApiClient client;
-    private final Map<UUID, Snapshot> cache = new ConcurrentHashMap<>();
+    private final BoundedStaleCache<UUID, Snapshot> cache = new BoundedStaleCache<>(
+        MAX_CACHE_ENTRIES,
+        STALE_RETENTION_MILLIS,
+        CACHE_MAINTENANCE_INTERVAL_MILLIS,
+        Snapshot::expiresAtMillis
+    );
     private final java.util.Set<UUID> refreshing = ConcurrentHashMap.newKeySet();
 
     public CloudIslandsPlaceholderExpansion(Plugin plugin, CoreApiClient client) {
@@ -69,8 +76,16 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         }
         client.islands().getIslandByOwner(playerUuid)
             .thenCompose(this::snapshotWithBank)
-            .exceptionally(error -> Snapshot.empty(System.currentTimeMillis() + MISS_TTL_MILLIS))
-            .thenAccept(snapshot -> cache.put(playerUuid, snapshot))
+            .handle((snapshot, error) -> {
+                long now = System.currentTimeMillis();
+                if (error == null) {
+                    cache.put(playerUuid, snapshot, now);
+                } else {
+                    Snapshot stale = cache.get(playerUuid);
+                    cache.put(playerUuid, stale == null ? Snapshot.empty(now + MISS_TTL_MILLIS) : stale.retryAfter(now + MISS_TTL_MILLIS), now);
+                }
+                return null;
+            })
             .whenComplete((_result, _error) -> refreshing.remove(playerUuid));
     }
 
@@ -123,6 +138,10 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
     private record Snapshot(CoreGuiViews.IslandInfoView island, CoreGuiViews.BankView bank, int worthRank, int levelRank, long expiresAtMillis) {
         private static Snapshot empty(long expiresAtMillis) {
             return new Snapshot(null, null, 0, 0, expiresAtMillis);
+        }
+
+        private Snapshot retryAfter(long retryAtMillis) {
+            return new Snapshot(island, bank, worthRank, levelRank, retryAtMillis);
         }
     }
 }
