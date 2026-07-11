@@ -190,7 +190,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                     }
                 }
             }
-            if (!memberExists(connection, invite.islandId(), playerUuid) && memberCount(connection, invite.islandId()) >= Math.max(0L, maxMembers)) {
+            if (!teamMemberExists(connection, invite.islandId(), playerUuid) && teamMemberCount(connection, invite.islandId()) >= Math.max(0L, maxMembers)) {
                 connection.rollback();
                 return false;
             }
@@ -209,21 +209,27 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         }
     }
 
-    private static boolean memberExists(Connection connection, UUID islandId, UUID playerUuid) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM island_members WHERE island_id = ? AND player_uuid = ? AND (trusted_expires_at IS NULL OR trusted_expires_at > CURRENT_TIMESTAMP)")) {
+    private static boolean teamMemberExists(Connection connection, UUID islandId, UUID playerUuid) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT role FROM island_members WHERE island_id = ? AND player_uuid = ? AND (trusted_expires_at IS NULL OR trusted_expires_at > CURRENT_TIMESTAMP)")) {
             statement.setObject(1, islandId);
             statement.setObject(2, playerUuid);
             try (ResultSet result = statement.executeQuery()) {
-                return result.next();
+                return result.next() && kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(result.getString("role"));
             }
         }
     }
 
-    private static long memberCount(Connection connection, UUID islandId) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM island_members WHERE island_id = ? AND (trusted_expires_at IS NULL OR trusted_expires_at > CURRENT_TIMESTAMP)")) {
+    private static long teamMemberCount(Connection connection, UUID islandId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT role FROM island_members WHERE island_id = ? AND (trusted_expires_at IS NULL OR trusted_expires_at > CURRENT_TIMESTAMP)")) {
             statement.setObject(1, islandId);
             try (ResultSet result = statement.executeQuery()) {
-                return result.next() ? result.getLong(1) : 0L;
+                long count = 0L;
+                while (result.next()) {
+                    if (kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(result.getString("role"))) {
+                        count++;
+                    }
+                }
+                return count;
             }
         }
     }

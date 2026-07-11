@@ -22,4 +22,8 @@ public final class CoreRoleKeys {
         String normalized = normalize(roleKey);
         return !normalized.isBlank() && !normalized.equals(VISITOR) && !normalized.equals(BANNED);
     }
+
+    public static boolean teamMemberRole(String roleKey) {
+        return memberRole(roleKey) && !normalize(roleKey).equals(TRUSTED);
+    }
 }

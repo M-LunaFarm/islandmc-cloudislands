@@ -118,7 +118,12 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
         if (invite == null || !invite.targetUuid().equals(playerUuid) || !invite.state().equals("PENDING") || !invite.expiresAt().isAfter(Instant.now())) {
             return false;
         }
-        if (!isMember(invite.islandId(), playerUuid) && members(invite.islandId()).size() >= Math.max(0L, maxMembers)) {
+        boolean existingTeamMember = members(invite.islandId()).stream()
+            .anyMatch(member -> member.playerUuid().equals(playerUuid) && kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(member.effectiveRoleKey()));
+        long teamMemberCount = members(invite.islandId()).stream()
+            .filter(member -> kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(member.effectiveRoleKey()))
+            .count();
+        if (!existingTeamMember && teamMemberCount >= Math.max(0L, maxMembers)) {
             return false;
         }
         invites.put(inviteId, new IslandInviteSnapshot(invite.inviteId(), invite.islandId(), invite.inviterUuid(), invite.targetUuid(), "ACCEPTED", invite.createdAt(), invite.expiresAt()));

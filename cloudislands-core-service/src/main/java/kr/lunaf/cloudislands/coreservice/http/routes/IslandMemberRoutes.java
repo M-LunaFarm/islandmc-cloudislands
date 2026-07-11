@@ -436,7 +436,7 @@ public final class IslandMemberRoutes implements RouteGroup {
     }
 
     private static boolean teamMemberRole(String roleKey) {
-        return roleKey != null && !roleKey.isBlank() && !roleKey.equals(CoreRoleKeys.TRUSTED);
+        return CoreRoleKeys.teamMemberRole(roleKey);
     }
 
     private static long teamMemberCount(List<IslandMemberSnapshot> members) {

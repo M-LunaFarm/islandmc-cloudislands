@@ -20,9 +20,9 @@ class InviteAcceptanceLimitTest {
         String acceptance = source.substring(start, end);
 
         org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE"));
-        org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("memberCount(connection, invite.islandId()) >= Math.max(0L, maxMembers)"));
-        org.junit.jupiter.api.Assertions.assertTrue(acceptance.indexOf("lockInvite(connection, inviteId)") < acceptance.indexOf("memberCount(connection, invite.islandId())"));
-        org.junit.jupiter.api.Assertions.assertTrue(acceptance.indexOf("memberCount(connection, invite.islandId())") < acceptance.indexOf("connection.commit();"));
+        org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("teamMemberCount(connection, invite.islandId()) >= Math.max(0L, maxMembers)"));
+        org.junit.jupiter.api.Assertions.assertTrue(acceptance.indexOf("lockInvite(connection, inviteId)") < acceptance.indexOf("teamMemberCount(connection, invite.islandId())"));
+        org.junit.jupiter.api.Assertions.assertTrue(acceptance.indexOf("teamMemberCount(connection, invite.islandId())") < acceptance.indexOf("connection.commit();"));
     }
 
     @Test
@@ -47,6 +47,23 @@ class InviteAcceptanceLimitTest {
             assertEquals(1, accepted);
             assertEquals(1, metadata.members(islandId).size());
         }
+    }
+
+    @Test
+    void trustedCoopDoesNotConsumeTeamSlotButUpgradeToMemberDoes() {
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID inviterUuid = UUID.randomUUID();
+        UUID coopPlayer = UUID.randomUUID();
+        UUID otherPlayer = UUID.randomUUID();
+        metadata.upsertMemberKey(islandId, coopPlayer, "TRUSTED");
+        UUID coopInvite = metadata.createInvite(islandId, inviterUuid, coopPlayer).inviteId();
+        UUID otherInvite = metadata.createInvite(islandId, inviterUuid, otherPlayer).inviteId();
+
+        org.junit.jupiter.api.Assertions.assertTrue(metadata.acceptInvite(coopInvite, coopPlayer, 1L));
+        org.junit.jupiter.api.Assertions.assertFalse(metadata.acceptInvite(otherInvite, otherPlayer, 1L));
+        assertEquals("MEMBER", metadata.members(islandId).stream().filter(member -> member.playerUuid().equals(coopPlayer)).findFirst().orElseThrow().effectiveRoleKey());
+        assertEquals(1, metadata.members(islandId).size());
     }
 
     private static boolean accept(InMemoryIslandMetadataRepository metadata, UUID inviteId, UUID playerUuid, CountDownLatch ready, CountDownLatch start) throws InterruptedException {

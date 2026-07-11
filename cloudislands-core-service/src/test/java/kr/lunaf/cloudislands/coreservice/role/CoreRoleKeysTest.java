@@ -22,5 +22,9 @@ class CoreRoleKeysTest {
         assertFalse(CoreRoleKeys.memberRole(CoreRoleKeys.BANNED));
         assertFalse(CoreRoleKeys.memberRole("  "));
         assertFalse(CoreRoleKeys.memberRole(null));
+        assertTrue(CoreRoleKeys.teamMemberRole(CoreRoleKeys.OWNER));
+        assertTrue(CoreRoleKeys.teamMemberRole("BUILDER"));
+        assertFalse(CoreRoleKeys.teamMemberRole(CoreRoleKeys.TRUSTED));
+        assertFalse(CoreRoleKeys.teamMemberRole(CoreRoleKeys.VISITOR));
     }
 }

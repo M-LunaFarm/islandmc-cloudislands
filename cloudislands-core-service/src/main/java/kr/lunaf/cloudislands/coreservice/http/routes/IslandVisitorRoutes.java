@@ -76,12 +76,12 @@ public final class IslandVisitorRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, inviterUuid, IslandPermission.MANAGE_MEMBERS)) {
             return;
         }
-        boolean existingMember = metadataRepository.members(islandId).stream().anyMatch(member -> member.playerUuid().equals(targetUuid));
+        boolean existingMember = existingTeamMember(islandId, targetUuid);
         if (existingMember) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ALREADY_MEMBER", "Player is already an island member"));
             return;
         }
-        if (metadataRepository.members(islandId).size() >= limitValue(islandId, "MEMBERS", 3L)) {
+        if (teamMemberCount(islandId) >= limitValue(islandId, "MEMBERS", 3L)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
             return;
         }
@@ -106,8 +106,8 @@ public final class IslandVisitorRoutes implements RouteGroup {
         long maxMembers = invite.map(value -> limitValue(value.islandId(), "MEMBERS", 3L)).orElse(0L);
         if (invite.isPresent()) {
             UUID inviteIslandId = invite.get().islandId();
-            boolean existingMember = metadataRepository.members(inviteIslandId).stream().anyMatch(member -> member.playerUuid().equals(playerUuid));
-            if (!existingMember && metadataRepository.members(inviteIslandId).size() >= limitValue(inviteIslandId, "MEMBERS", 3L)) {
+            boolean existingMember = existingTeamMember(inviteIslandId, playerUuid);
+            if (!existingMember && teamMemberCount(inviteIslandId) >= limitValue(inviteIslandId, "MEMBERS", 3L)) {
                 CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
                 return;
             }
@@ -115,8 +115,8 @@ public final class IslandVisitorRoutes implements RouteGroup {
         boolean accepted = metadataRepository.acceptInvite(inviteId, playerUuid, maxMembers);
         if (!accepted && invite.isPresent()) {
             UUID inviteIslandId = invite.get().islandId();
-            boolean existingMember = metadataRepository.members(inviteIslandId).stream().anyMatch(member -> member.playerUuid().equals(playerUuid));
-            if (!existingMember && metadataRepository.members(inviteIslandId).size() >= maxMembers) {
+            boolean existingMember = existingTeamMember(inviteIslandId, playerUuid);
+            if (!existingMember && teamMemberCount(inviteIslandId) >= maxMembers) {
                 CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
                 return;
             }
@@ -230,6 +230,17 @@ public final class IslandVisitorRoutes implements RouteGroup {
             .map(island -> island.ownerUuid().equals(playerUuid))
             .orElse(false);
         return owner || CoreRoleKeys.memberRole(memberRoleKey(metadataRepository.members(islandId), playerUuid));
+    }
+
+    private boolean existingTeamMember(UUID islandId, UUID playerUuid) {
+        return metadataRepository.members(islandId).stream()
+            .anyMatch(member -> member.playerUuid().equals(playerUuid) && CoreRoleKeys.teamMemberRole(member.effectiveRoleKey()));
+    }
+
+    private long teamMemberCount(UUID islandId) {
+        return metadataRepository.members(islandId).stream()
+            .filter(member -> CoreRoleKeys.teamMemberRole(member.effectiveRoleKey()))
+            .count();
     }
 
     static String memberRoleKey(List<IslandMemberSnapshot> members, UUID playerUuid) {
