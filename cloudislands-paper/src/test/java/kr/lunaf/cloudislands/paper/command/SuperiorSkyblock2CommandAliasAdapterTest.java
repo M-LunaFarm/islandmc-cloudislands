@@ -84,6 +84,9 @@ class SuperiorSkyblock2CommandAliasAdapterTest {
         assertEquals("island delete <island> --confirm", nestedPurge.ciadminCommand());
         assertTrue(nestedPurge.dangerous());
         assertTrue(adapter.adminGuidance(new String[] {"ADMIN", "DEBUG"}).isPresent());
+        assertEquals("island member add <island> <player> [role]", adapter.adminGuidance(new String[] {"admin", "add"}).orElseThrow().ciadminCommand());
+        assertEquals("island bank withdraw <island> <amount>", adapter.adminGuidance(new String[] {"admin", "withdraw"}).orElseThrow().ciadminCommand());
+        assertEquals("island tp <island>", adapter.adminGuidance(new String[] {"admin", "teleport"}).orElseThrow().ciadminCommand());
         assertTrue(adapter.adminGuidance(new String[] {"admin"}).isEmpty());
         assertTrue(adapter.adminGuidance(new String[] {"admin", "unknown"}).isEmpty());
         assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAdminAlias("cmdall"));

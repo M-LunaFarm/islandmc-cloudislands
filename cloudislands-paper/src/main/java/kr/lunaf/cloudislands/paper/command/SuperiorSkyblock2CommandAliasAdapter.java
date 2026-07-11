@@ -9,7 +9,33 @@ import java.util.concurrent.atomic.LongAdder;
 
 public final class SuperiorSkyblock2CommandAliasAdapter {
     private static final Map<String, AdminAliasGuidance> ADMIN_GUIDANCE = Map.ofEntries(
+        admin("add", "island member add <island> <player> [role]", false),
+        admin("addbanklimit", "island addbanklimit <island> <delta>", false),
+        admin("addblocklimit", "island addblocklimit <island> <materialKey> <delta>", false),
+        admin("addcooplimit", "island addcooplimit <island> <delta>", false),
+        admin("addentitylimit", "island addentitylimit <island> <delta>", false),
+        admin("addgenerator", "island addgenerator <island> <levels> [generatorKey]", false),
+        admin("addsize", "island addsize <island> <delta>", false),
+        admin("addteamlimit", "island addteamlimit <island> <delta>", false),
+        admin("addwarpslimit", "island addwarpslimit <island> <delta>", false),
+        admin("delwarp", "island delwarp <island> <warp>", true),
+        admin("demote", "island member demote <island> <player>", false),
+        admin("deposit", "island bank deposit <island> <amount>", false),
+        admin("disband", "island delete <island> --confirm", true),
+        admin("fly", "fly player <player> <true|false>", false),
+        admin("ignore", "island ignore <island>", false),
+        admin("join", "island join <island> [role]", false),
+        admin("kick", "island member kick <island> <player>", true),
+        admin("mission", "island mission complete <island> <player> <missionKey> [kind]", false),
+        admin("msg", "message player <player> <message>", false),
+        admin("name", "island rename <island> <name>", false),
+        admin("openmenu", "openmenu <player> <menuId>", false),
+        admin("promote", "island member promote <island> <player>", false),
         admin("purge", "island delete <island> --confirm", true),
+        admin("reload", "reload", false),
+        admin("removeblocklimit", "island removeblocklimit <island> <materialKey>", true),
+        admin("removeentitylimit", "island removeentitylimit <island>", true),
+        admin("removeratings", "island removeratings <island> <reviewer>", true),
         admin("schematic", "template verify-bundle <id>", false),
         admin("cmdall", "help command list", true),
         admin("msgall", "help command list", true),
@@ -18,12 +44,29 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         admin("modules", "integrations", false),
         admin("resetworld", "island reset <island> --confirm", true),
         admin("setlimit", "island setblockamount <island> <materialKey> <amount>", false),
+        admin("setbanklimit", "island setbanklimit <island> <limit>", false),
+        admin("setbiome", "island setbiome <island> <biomeKey>", false),
+        admin("setcooplimit", "island setcooplimit <island> <limit>", false),
+        admin("setentitylimit", "island setentitylimit <island> <limit>", false),
+        admin("setrate", "island setrate <island> <reviewer> <rating> [comment]", false),
+        admin("setrolelimit", "island setrolelimit <island> <role> <limit>", false),
+        admin("setsettings", "island setsettings <island> <flag> <value>", false),
         admin("setsize", "island setsize <island> <size>", false),
+        admin("setspawn", "setspawn", false),
+        admin("setspawnerrates", "setspawnerrates <island> <percent>", false),
         admin("setteamlimit", "island setteamlimit <island> <limit>", false),
         admin("setwarpslimit", "island setwarpslimit <island> <limit>", false),
         admin("setgenerator", "island setgenerator <island> <generatorKey>", false),
         admin("setpermission", "island setpermission <island> <permission> <true|false>", false),
         admin("resetpermissions", "island resetpermissions <island>", true),
+        admin("resetsettings", "island resetsettings <island>", true),
+        admin("show", "island info <island>", false),
+        admin("spy", "spy [true|false|toggle]", false),
+        admin("stats", "metrics", false),
+        admin("teleport", "island tp <island>", false),
+        admin("title", "title player <player> <title> [subtitle]", false),
+        admin("unignore", "island unignore <island>", false),
+        admin("withdraw", "island bank withdraw <island> <amount>", false),
         admin("bypass", "help command list", false)
     );
     private static final Map<String, Mapping> MAPPINGS = Map.ofEntries(
@@ -110,7 +153,11 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         if (!enabled) {
             return Optional.empty();
         }
-        return Optional.ofNullable(ADMIN_GUIDANCE.get(normalize(alias)));
+        String normalized = normalize(alias);
+        if (MAPPINGS.containsKey(normalized)) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(ADMIN_GUIDANCE.get(normalized));
     }
 
     Optional<AdminAliasGuidance> adminGuidance(String[] args) {
