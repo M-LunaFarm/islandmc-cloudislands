@@ -38,6 +38,16 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void routeFutureCallbacksReturnToThePaperSchedulerBeforePlayerUiAccess() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandRoutingCommandHandler.java"));
+
+        assertTrue(source.contains("thenAccept(ticket -> runSync(() -> routeTicket(player, ticket, failureMessage, 0)))"));
+        assertTrue(source.contains("routeTicketStatus(ticket).thenAccept(status -> runSync(() ->"));
+        assertTrue(source.contains("runSync(() -> {\n                clearRouteLoading(player);\n                connectWithTicket"));
+        assertTrue(source.contains("PaperSchedulers.run(plugin, task)"));
+    }
+
+    @Test
     void tabCompletionIsSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String controller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));

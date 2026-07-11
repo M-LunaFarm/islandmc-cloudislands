@@ -46,9 +46,11 @@ final class IslandRoutingCommandHandler {
     }
 
     void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
-        ticketFuture.thenAccept(ticket -> routeTicket(player, ticket, failureMessage, 0)).exceptionally(error -> {
-            clearRouteLoading(player);
-            runtime.message(player, routeFailureMessage(error, failureMessage));
+        ticketFuture.thenAccept(ticket -> runSync(() -> routeTicket(player, ticket, failureMessage, 0))).exceptionally(error -> {
+            runSync(() -> {
+                clearRouteLoading(player);
+                runtime.message(player, routeFailureMessage(error, failureMessage));
+            });
             return null;
         });
     }
@@ -98,18 +100,22 @@ final class IslandRoutingCommandHandler {
         String progressValue = Integer.toString(progress);
         showRouteLoading(player, RoutePreparationProgressPolicy.preparingProgress(attempt), runtime.routeMessage(player, "route-loading-progress", RoutePreparationProgressPolicy.loadingTitle(target, attempt), "target", target, "progress", progressValue));
         player.sendActionBar(routeComponent(player, "route-preparing-progress", RoutePreparationProgressPolicy.preparingActionBar(target, attempt), "target", target, "progress", progressValue));
-        CompletableFuture.runAsync(() -> routingUseCase.routeTicketStatus(ticket).thenAccept(status -> {
-            if (status.isPresent()) {
-                routeTicket(player, status.get(), failureMessage, attempt + 1);
-            } else {
-                clearRouteLoading(player);
-                runtime.message(player, failureMessage);
-            }
-        }).exceptionally(error -> {
-            clearRouteLoading(player);
-            runtime.message(player, routeFailureMessage(error, failureMessage));
-            return null;
-        }), CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS));
+        CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() ->
+            routingUseCase.routeTicketStatus(ticket).thenAccept(status -> runSync(() -> {
+                if (status.isPresent()) {
+                    routeTicket(player, status.get(), failureMessage, attempt + 1);
+                } else {
+                    clearRouteLoading(player);
+                    runtime.message(player, failureMessage);
+                }
+            })).exceptionally(error -> {
+                runSync(() -> {
+                    clearRouteLoading(player);
+                    runtime.message(player, routeFailureMessage(error, failureMessage));
+                });
+                return null;
+            })
+        );
     }
 
     private String routeFailureMessage(Throwable error, String fallback) {
@@ -141,14 +147,22 @@ final class IslandRoutingCommandHandler {
             return;
         }
         routingUseCase.publishRouteSession(ticket, runtime::mutate).thenRun(() -> {
-            clearRouteLoading(player);
-            connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
+            runSync(() -> {
+                clearRouteLoading(player);
+                connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
+            });
         }).exceptionally(error -> {
-            clearRouteLoading(player);
             clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
-            runtime.message(player, routeFailureMessage(error, failureMessage));
+            runSync(() -> {
+                clearRouteLoading(player);
+                runtime.message(player, routeFailureMessage(error, failureMessage));
+            });
             return null;
         });
+    }
+
+    private void runSync(Runnable task) {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, task);
     }
 
     private void showRouteLoading(Player player, float progress, String title) {
