@@ -17,13 +17,13 @@ class SupportedRuntimeMatrixTest {
         String workflow = Files.readString(root.resolve(".github/workflows/build.yml"));
         String wrapper = Files.readString(root.resolve("gradle/wrapper/gradle-wrapper.properties"));
 
-        assertTrue(versionCatalog.contains("cloudislands = \"1.1.7\""));
+        assertTrue(versionCatalog.contains("cloudislands = \"1.1.8\""));
         assertTrue(versionCatalog.contains("java-current = \"21\""));
         assertTrue(versionCatalog.contains("minecraft-baseline = \"1.21.11\""));
         assertTrue(versionCatalog.contains("velocity-api = \"3.5.0-SNAPSHOT\""));
 
-        assertTrue(readme.contains("Version: `1.1.7`"));
-        assertTrue(readme.contains("Current release: `v1.1.7`"));
+        assertTrue(readme.contains("Version: `1.1.8`"));
+        assertTrue(readme.contains("Current release: `v1.1.8`"));
         assertTrue(minecraftMatrix.contains("id = \"paper-1.21\""));
         assertTrue(minecraftMatrix.contains("id = \"paper-26.1\""));
         assertTrue(minecraftMatrix.contains("id = \"paper-26.2\""));

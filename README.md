@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.7`
+Version: `1.1.8`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,25 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.7`
+Current release: `v1.1.8`
 
-Built for the CloudIslands 1.1.7 baseline.
+Built for the CloudIslands 1.1.8 baseline.
 
-Release notes for `v1.1.7`:
+Release notes for `v1.1.8`:
+
+- executable Velocity parity: every player alias advertised by the shared
+  Paper/Velocity registry now has a proxy execution branch, with regression
+  coverage preventing catalog-only commands
+- restored SuperiorSkyblock2-style proxy behavior for reviews and ratings,
+  visitor statistics, social fields, border controls, stacked-block display,
+  co-op aliases, role menus, permission exceptions, chat menus, and warp delete
+- current-island correctness: member, access, permission, lifecycle, biome,
+  home, and warp actions resolve the player's current island before calling
+  Core instead of forwarding the nil current-island sentinel
+- safer proxy mutations: unresolved review targets no longer reach Core, and
+  standalone team-chat toggle requests no longer become empty chat messages
+
+Release notes carried forward from `v1.1.7`:
 
 - canonical SuperiorSkyblock2 player compatibility: `toggleblocks`, `counts`,
   `balance`/`bal`/`money`, `show`, `team`/`showteam`/`online`,
@@ -728,7 +742,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.7`.
+Current read: production-readiness baseline `v1.1.8`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
