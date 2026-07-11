@@ -407,8 +407,10 @@ and `team_size_online`; formatted values use locale-stable `K`, `M`, `B`, `T`,
 and `Q` suffixes.
 Core-backed SS2 data aliases also include `biome`, `bans_count`, `bans_list`,
 `home`, `home_x|y|z`, `world`, `warps`, `warps_limit`, and dynamic
-`upgrade_<key>`. Optional subsystem failures degrade only those values and do
-not discard an otherwise healthy island snapshot.
+`upgrade_<key>`, `permission_<permission>`, and `flag_<flag>`. Permission
+results follow the runtime order of player override, role rule, then built-in
+role defaults. Optional subsystem failures degrade only those values and do not
+discard an otherwise healthy island snapshot.
 
 ## Satis feature pack
 

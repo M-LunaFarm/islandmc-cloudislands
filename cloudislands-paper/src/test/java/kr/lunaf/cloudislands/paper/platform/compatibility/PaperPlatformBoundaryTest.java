@@ -602,6 +602,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(source.contains("client.homeWarps().homes(islandId)"), "Placeholder home lookup must use the typed home query client");
         assertTrue(source.contains("client.homeWarps().warps(islandId)"), "Placeholder warp lookup must use the typed warp query client");
         assertTrue(source.contains("client.progression().upgrades(islandId)"), "Placeholder upgrade lookup must use the typed progression query client");
+        assertTrue(source.contains("client.permissionQueries().permissions(islandId)"), "Placeholder permission lookup must use the typed permission query client");
+        assertTrue(source.contains("client.environment().flagValues(islandId)"), "Placeholder flag lookup must use the typed environment query client");
         assertTrue(source.contains("rankingCache"), "Placeholder ranking lookups must be shared instead of repeated per player");
         assertTrue(source.contains("detailCache"), "Placeholder island details must be shared across players on the same island");
         assertTrue(!source.contains("client.islandInfoByOwner("), "Placeholder presentation must not call raw island JSON endpoints directly");

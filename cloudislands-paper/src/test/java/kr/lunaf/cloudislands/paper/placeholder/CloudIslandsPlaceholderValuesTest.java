@@ -61,7 +61,11 @@ class CloudIslandsPlaceholderValuesTest {
             source.role(), source.members(), source.memberLimit(), source.coopLimit(), source.worthRank(), source.levelRank(),
             "minecraft:plains", List.of("banned-b", "banned-a"),
             new CloudIslandsPlaceholderValues.Home("island_world", 10.5D, 64.0D, -3.25D), 2, 5L,
-            List.of(new CloudIslandsPlaceholderValues.Upgrade("border-size", 3)));
+            List.of(new CloudIslandsPlaceholderValues.Upgrade("border-size", 3)), "owner-uuid",
+            List.of(
+                new CloudIslandsPlaceholderValues.Permission("OWNER", "owner-uuid", "BREAK", false),
+                new CloudIslandsPlaceholderValues.Permission("OWNER", "", "MANAGE_WARPS", true)
+            ), java.util.Map.of("ALWAYS_DAY", "enabled", "PVP", "false"));
 
         assertEquals("minecraft:plains", value(extended, "biome"));
         assertEquals("2", value(extended, "bans_count"));
@@ -74,6 +78,11 @@ class CloudIslandsPlaceholderValuesTest {
         assertEquals("5", value(extended, "warps_limit"));
         assertEquals("3", value(extended, "upgrade_border_size"));
         assertEquals("0", value(extended, "upgrade_missing"));
+        assertEquals("false", value(extended, "permission_break"));
+        assertEquals("true", value(extended, "permission_manage_warps"));
+        assertEquals("true", value(extended, "flag_always_day"));
+        assertEquals("false", value(extended, "flag_pvp"));
+        assertEquals("false", value(extended, "permission_not_real"));
     }
 
     private static String value(CloudIslandsPlaceholderValues.Data data, String key) {

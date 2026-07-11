@@ -5,6 +5,9 @@ import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.common.permission.defaults.DefaultIslandPermissions;
 
 final class CloudIslandsPlaceholderValues {
     private CloudIslandsPlaceholderValues() {
@@ -28,6 +31,12 @@ final class CloudIslandsPlaceholderValues {
         }
         if (key.startsWith("upgrade_") && key.length() > "upgrade_".length()) {
             return upgradeLevel(data.upgrades(), key.substring("upgrade_".length()));
+        }
+        if (key.startsWith("permission_") && key.length() > "permission_".length()) {
+            return Boolean.toString(permissionAllowed(data, key.substring("permission_".length())));
+        }
+        if (key.startsWith("flag_") && key.length() > "flag_".length()) {
+            return Boolean.toString(flagAllowed(data.flags(), key.substring("flag_".length())));
         }
         return switch (key) {
             case "has_island" -> Boolean.toString(member);
@@ -117,6 +126,41 @@ final class CloudIslandsPlaceholderValues {
             .orElse("0");
     }
 
+    private static boolean permissionAllowed(Data data, String requestedPermission) {
+        IslandPermission permission;
+        try {
+            permission = IslandPermission.valueOf(normalize(requestedPermission));
+        } catch (IllegalArgumentException ignored) {
+            return false;
+        }
+        Boolean playerOverride = data.permissions().stream()
+            .filter(rule -> rule != null && data.playerUuid().equals(rule.playerUuid()) && permission.name().equals(normalize(rule.permission())))
+            .map(Permission::allowed)
+            .findFirst()
+            .orElse(null);
+        if (playerOverride != null) {
+            return playerOverride;
+        }
+        String role = normalize(data.role());
+        Boolean roleRule = data.permissions().stream()
+            .filter(rule -> rule != null && (rule.playerUuid() == null || rule.playerUuid().isBlank()))
+            .filter(rule -> role.equals(normalize(rule.role())) && permission.name().equals(normalize(rule.permission())))
+            .map(Permission::allowed)
+            .findFirst()
+            .orElse(null);
+        return roleRule != null ? roleRule : DefaultIslandPermissions.create().allowedRoleKey(role, permission);
+    }
+
+    private static boolean flagAllowed(Map<String, String> flags, String requestedFlag) {
+        String value = flags.entrySet().stream()
+            .filter(entry -> normalize(entry.getKey()).equals(normalize(requestedFlag)))
+            .map(Map.Entry::getValue)
+            .findFirst()
+            .orElse("");
+        return value.equalsIgnoreCase("true") || value.equalsIgnoreCase("allow") || value.equalsIgnoreCase("allowed")
+            || value.equalsIgnoreCase("enabled") || value.equalsIgnoreCase("on");
+    }
+
     private static String sortedValues(List<String> values) {
         return values.stream().filter(value -> value != null && !value.isBlank()).sorted(String.CASE_INSENSITIVE_ORDER)
             .reduce((left, right) -> left + ", " + right).orElse("");
@@ -201,6 +245,9 @@ final class CloudIslandsPlaceholderValues {
     record Upgrade(String key, int level) {
     }
 
+    record Permission(String role, String playerUuid, String permission, boolean allowed) {
+    }
+
     private enum Axis {
         X,
         Y,
@@ -211,13 +258,15 @@ final class CloudIslandsPlaceholderValues {
                 String worth, boolean publicAccess, boolean locked, String createdAt, String updatedAt,
                 String bankBalance, String role, List<Member> members, long memberLimit, long coopLimit,
                 int worthRank, int levelRank, String biome, List<String> bans, Home home, int warpCount,
-                long warpLimit, List<Upgrade> upgrades) {
+                long warpLimit, List<Upgrade> upgrades, String playerUuid, List<Permission> permissions,
+                Map<String, String> flags) {
         Data(String islandId, String name, String ownerUuid, String state, long size, long border, long level,
              String worth, boolean publicAccess, boolean locked, String createdAt, String updatedAt,
              String bankBalance, String role, List<Member> members, long memberLimit, long coopLimit,
              int worthRank, int levelRank) {
             this(islandId, name, ownerUuid, state, size, border, level, worth, publicAccess, locked, createdAt, updatedAt,
-                bankBalance, role, members, memberLimit, coopLimit, worthRank, levelRank, "", List.of(), null, 0, 1L, List.of());
+                bankBalance, role, members, memberLimit, coopLimit, worthRank, levelRank, "", List.of(), null, 0, 1L,
+                List.of(), "", List.of(), Map.of());
         }
 
         Data {
@@ -225,6 +274,9 @@ final class CloudIslandsPlaceholderValues {
             biome = biome == null ? "" : biome;
             bans = bans == null ? List.of() : List.copyOf(bans);
             upgrades = upgrades == null ? List.of() : List.copyOf(upgrades);
+            playerUuid = playerUuid == null ? "" : playerUuid;
+            permissions = permissions == null ? List.of() : List.copyOf(permissions);
+            flags = flags == null ? Map.of() : Map.copyOf(flags);
         }
     }
 }
