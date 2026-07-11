@@ -1756,6 +1756,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 return true;
             }
             IslandFlag flag = islandFlag(args[3]);
+            if (flag == null) {
+                sender.sendMessage(adminText("admin-command-flag-input-invalid", "올바른 섬 플래그를 입력해주세요."));
+                return true;
+            }
             run(sender, "Island setsettings", coreApiClient.settingsCommands().adminSetFlag(islandId, flag, args[4]).thenApply(result -> settingsActionMessage("Island setsettings", islandId, result)));
             return true;
         }
@@ -4653,8 +4657,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private IslandFlag islandFlag(String value) {
         try {
             return IslandFlag.valueOf(normalizeGameplayKey(value));
-        } catch (IllegalArgumentException exception) {
-            return IslandFlag.VISITOR_INTERACT;
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            return null;
         }
     }
 

@@ -961,6 +961,8 @@ class AdminCommandBackendPolicyTest {
         assertTrue(backend.contains("Boolean allowed = strictBooleanArgument(args[5])"));
         assertTrue(backend.contains("if (permission == null || allowed == null)"), "invalid permission mutations must stop before Core");
         assertFalse(backend.contains("return IslandPermission.BUILD;"), "an unknown admin permission must never silently mutate BUILD");
+        assertFalse(backend.contains("return IslandFlag.VISITOR_INTERACT;"), "an unknown admin flag must never silently mutate VISITOR_INTERACT");
+        assertTrue(backend.contains("if (flag == null)"), "invalid island flags must stop before Core mutation");
         assertTrue(backend.contains("admin-command-permission-input-invalid"), "operators must receive an actionable validation error");
     }
 
