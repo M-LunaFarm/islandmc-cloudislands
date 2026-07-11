@@ -48,6 +48,15 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void offlinePlayerNamesUseCoreProfilesInsteadOfInventedBukkitUuids() throws Exception {
+        String resolver = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandPlayerResolver.java"));
+
+        assertTrue(resolver.contains("memberManagement.playerUuidByName(value)"));
+        assertTrue(resolver.contains("player profile was not found"));
+        assertFalse(resolver.contains("getOfflinePlayer("));
+    }
+
+    @Test
     void tabCompletionIsSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String controller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));

@@ -25,8 +25,12 @@ final class IslandCommandPlayerResolver {
             return CompletableFuture.completedFuture(parsed);
         }
         return memberManagement.playerUuidByName(value)
-            .thenApply(profileUuid -> profileUuid == null ? plugin.getServer().getOfflinePlayer(value).getUniqueId() : profileUuid)
-            .exceptionally(error -> plugin.getServer().getOfflinePlayer(value).getUniqueId());
+            .thenApply(profileUuid -> {
+                if (profileUuid == null) {
+                    throw new IllegalArgumentException("player profile was not found: " + value);
+                }
+                return profileUuid;
+            });
     }
 
     private UUID uuid(String value) {
