@@ -46,6 +46,9 @@ public final class PaperRouteSessionRuntimeFactory {
             messages,
             locales
         );
+        if (safeConfig.routing().directLocalTeleport()) {
+            listener.disableRouteSessionConsumption();
+        }
         return new Runtime(allowlist, listener);
     }
 

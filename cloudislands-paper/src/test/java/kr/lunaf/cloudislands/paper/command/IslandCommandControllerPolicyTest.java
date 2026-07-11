@@ -25,6 +25,7 @@ class IslandCommandControllerPolicyTest {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandRoutingCommandHandler.java"));
         String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/PaperCommandRegistrar.java"));
         String routeSessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/bootstrap/PaperRouteSessionRuntimeFactory.java"));
+        String routeSessionListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperRouteSessionListener.java"));
 
         assertTrue(source.contains("localConsumer.consumeAndTeleport(ticket.ticketId(), player.getUniqueId(), ticket.nonce())"));
         assertTrue(source.indexOf("if (localConsumer != null)") < source.indexOf("routingUseCase.publishRouteSession"));
@@ -32,6 +33,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(registrar.contains("islandController.enableLocalRouting(agent.routeTickets(), plugin.runtimeConfig().routing().localFallbackWorld())"));
         assertTrue(source.contains("localRouteConsumer.teleportToWorldSpawn(player.getUniqueId(), localFallbackWorld)"));
         assertTrue(routeSessions.contains("islandNode && !safeConfig.routing().directLocalTeleport()"));
+        assertTrue(routeSessions.contains("listener.disableRouteSessionConsumption()"));
+        assertTrue(routeSessionListener.contains("if (!routeSessionConsumptionEnabled)"));
     }
 
     @Test

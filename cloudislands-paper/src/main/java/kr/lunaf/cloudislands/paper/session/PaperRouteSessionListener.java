@@ -44,6 +44,7 @@ public final class PaperRouteSessionListener implements Listener {
     private final AtomicLong forwardingRejections = new AtomicLong();
     private final AtomicLong routeSessionRejections = new AtomicLong();
     private final AtomicLong routeSessionCheckFailures = new AtomicLong();
+    private volatile boolean routeSessionConsumptionEnabled = true;
 
     public PaperRouteSessionListener(Plugin plugin, CoreApiClient coreApiClient, RouteTicketConsumer ticketConsumer, String nodeId) {
         this(plugin, coreApiClient, ticketConsumer, nodeId, false);
@@ -96,8 +97,16 @@ public final class PaperRouteSessionListener implements Listener {
         this.players = players;
     }
 
+    public void disableRouteSessionConsumption() {
+        routeSessionConsumptionEnabled = false;
+        verifiedSessions.clear();
+    }
+
     @EventHandler
     public void onPreLogin(AsyncPlayerPreLoginEvent event) {
+        if (!routeSessionConsumptionEnabled) {
+            return;
+        }
         if (requireProxySourceAllowlist && !proxySourceAllowlist.configured()) {
             proxySourceConfigurationRejections.incrementAndGet();
             plugin.getLogger().warning("Rejected login because security.proxy-source-allowlist is required but empty; policy=" + BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY);
@@ -136,6 +145,9 @@ public final class PaperRouteSessionListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
+        if (!routeSessionConsumptionEnabled) {
+            return;
+        }
         UUID playerUuid = event.getPlayer().getUniqueId();
         PlayerRouteSession verified = verifiedSessions.remove(playerUuid);
         if (verified != null) {
