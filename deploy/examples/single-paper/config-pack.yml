@@ -1,0 +1,59 @@
+profile: single-paper
+purpose: production-small-server
+topology:
+  core:
+    instances:
+      - core-1
+  data:
+    database: postgres
+    object-storage: local-filesystem
+    redis: disabled
+  proxy:
+    velocity: disabled
+  paper:
+    servers:
+      - node-id: single-paper-01
+        role: ISLAND_NODE
+        public-entrypoint: true
+runtime:
+  core-api-base-url: http://127.0.0.1:8443
+  database-jdbc-url: jdbc:postgresql://127.0.0.1:5432/cloudislands
+  redis-uri: ""
+  storage-type: LOCAL_FILESYSTEM
+  storage-local-path: plugins/CloudIslands/islands-storage
+paper-config-v2:
+  runtime.yml:
+    node:
+      id: single-paper-01
+      role: ISLAND_NODE
+      velocity-server-name: single-paper-01
+      reject-default-identity: false
+  integrations.yml:
+    routing:
+      transport: CORE_TICKET
+      direct-local-teleport: true
+    redis:
+      enabled: false
+      uri: ""
+    storage:
+      type: LOCAL_FILESYSTEM
+      local-path: islands-storage
+  security.yml:
+    forwarding:
+      required: false
+      secret: ""
+    route-session:
+      enforce: false
+      required: false
+    proxy-source-allowlist:
+      required: false
+secrets:
+  database-password-file: /run/secrets/cloudislands_database_password
+  core-token-file: /run/secrets/cloudislands_core_token
+  admin-token-file: /run/secrets/cloudislands_admin_token
+acceptance:
+  - paper-starts-without-velocity
+  - direct-player-login-is-accepted
+  - create-one-island-and-teleport-locally
+  - return-to-primary-world-without-proxy
+  - restart-and-restore-island-from-local-storage

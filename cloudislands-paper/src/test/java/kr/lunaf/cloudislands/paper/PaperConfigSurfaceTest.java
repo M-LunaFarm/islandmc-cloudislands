@@ -20,6 +20,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PaperConfigSurfaceTest {
     @Test
+    void singlePaperProfileDisablesProxyHandoffAndUsesLocalRouting() throws Exception {
+        String profile = Files.readString(Path.of("../deploy/examples/single-paper/config-pack.yml"), StandardCharsets.UTF_8);
+
+        assertTrue(profile.contains("profile: single-paper"));
+        assertTrue(profile.contains("velocity: disabled"));
+        assertTrue(profile.contains("direct-local-teleport: true"));
+        assertTrue(profile.contains("required: false"));
+        assertTrue(profile.contains("storage-type: LOCAL_FILESYSTEM"));
+    }
+
+    @Test
     void configV2DefaultsKeepGoalPaperAgentSurface() throws Exception {
         String runtime = Files.readString(Path.of("src/main/resources/config-v2/runtime.yml"), StandardCharsets.UTF_8);
         String integrations = Files.readString(Path.of("src/main/resources/config-v2/integrations.yml"), StandardCharsets.UTF_8);

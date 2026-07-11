@@ -190,18 +190,26 @@ final class PaperPluginBootstrap {
     }
 
     private void logSecurityPosture(PaperRuntimeConfig config) {
-        if (config.security().requireVelocityForwarding()) {
+        boolean directLocalRouting = config.routing().directLocalTeleport();
+        if (directLocalRouting) {
+            if (plugin.getServer().getOnlineMode()) {
+                plugin.getLogger().info("CloudIslands single-Paper routing is enabled with direct online-mode player authentication");
+            } else {
+                plugin.getLogger().warning("CloudIslands single-Paper routing is enabled while Paper online-mode is disabled; do not expose this server directly without an authenticated network boundary");
+            }
+        }
+        if (!directLocalRouting && config.security().requireVelocityForwarding()) {
             if (config.security().forwardingSecret().isBlank()) {
                 plugin.getLogger().warning("CloudIslands security: Velocity forwarding is required but security.forwarding-secret is empty");
             }
         }
-        if (!config.security().enforceRouteSession()) {
+        if (!directLocalRouting && !config.security().enforceRouteSession()) {
             plugin.getLogger().warning("CloudIslands security: route session enforcement is disabled");
         }
-        if (config.security().allowBungeeConnectPluginMessaging()) {
+        if (!directLocalRouting && config.security().allowBungeeConnectPluginMessaging()) {
             plugin.getLogger().warning("CloudIslands security: BungeeCord connect plugin messaging is enabled; keep it disabled unless proxy fallback transfers require it");
         }
-        if (config.security().proxySourceAllowlist().isEmpty()) {
+        if (!directLocalRouting && config.security().proxySourceAllowlist().isEmpty()) {
             plugin.getLogger().warning("CloudIslands security: proxy source allowlist is empty; use a host firewall or set security.proxy-source-allowlist to Velocity source IPs");
         }
         if (config.coreApi().token().isBlank()) {

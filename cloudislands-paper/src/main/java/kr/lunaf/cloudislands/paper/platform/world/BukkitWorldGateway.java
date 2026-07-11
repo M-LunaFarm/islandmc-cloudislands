@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.platform.world;
 
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
@@ -13,5 +14,11 @@ public final class BukkitWorldGateway implements PaperWorldGateway {
     @Override
     public World world(String worldName) {
         return worldName == null ? null : plugin.getServer().getWorld(worldName);
+    }
+
+    @Override
+    public Location primaryWorldSpawn() {
+        World world = plugin.getServer().getWorlds().stream().findFirst().orElse(null);
+        return world == null ? null : world.getSpawnLocation();
     }
 }

@@ -22,15 +22,16 @@ final class PaperObservabilityFormatter {
 
     String healthJson(AgentRole role, String nodeId) {
         PaperRedisClient.PingResult redis = plugin.redisClient() == null ? PaperRedisClient.PingResult.disabled() : plugin.redisClient().ping();
-        boolean forwardingRequired = config.security().requireVelocityForwarding();
+        boolean directLocalRouting = config.routing().directLocalTeleport();
+        boolean forwardingRequired = !directLocalRouting && config.security().requireVelocityForwarding();
         boolean forwardingSecretConfigured = !config.security().forwardingSecret().isBlank();
-        boolean routeSessionEnforced = config.security().enforceRouteSession() || config.security().requireRouteSession();
+        boolean routeSessionEnforced = !directLocalRouting && (config.security().enforceRouteSession() || config.security().requireRouteSession());
         boolean hideNodeNames = config.routing().hideNodeNames();
         boolean topologyExposureRisk = !hideNodeNames;
         boolean defaultNodeIdentityRisk = plugin.defaultNodeIdentityRisk(role, nodeId, config.node().velocityServerName());
         int proxySourceAllowlistEntries = plugin.proxySourceAllowlist() == null ? 0 : plugin.proxySourceAllowlist().entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
-        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && config.security().requireProxySourceAllowlist();
+        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && !directLocalRouting && config.security().requireProxySourceAllowlist();
         boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !plugin.getServer().getOnlineMode() && !proxySourceAllowlistConfigured && !proxySourceAllowlistRequired;
         boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && plugin.getServer().getOnlineMode();
         boolean bungeeConnectPluginMessaging = config.security().allowBungeeConnectPluginMessaging();
@@ -202,15 +203,16 @@ final class PaperObservabilityFormatter {
         long storageFallbackWrites = storage == null ? 0L : storage.fallbackWrites();
         long storageFallbackDeletes = storage == null ? 0L : storage.fallbackDeletes();
         long storageFallbackOperations = storage == null ? 0L : storage.fallbackOperations();
-        boolean forwardingRequired = config.security().requireVelocityForwarding();
+        boolean directLocalRouting = config.routing().directLocalTeleport();
+        boolean forwardingRequired = !directLocalRouting && config.security().requireVelocityForwarding();
         boolean forwardingSecretConfigured = !config.security().forwardingSecret().isBlank();
-        boolean routeSessionEnforced = config.security().enforceRouteSession() || config.security().requireRouteSession();
+        boolean routeSessionEnforced = !directLocalRouting && (config.security().enforceRouteSession() || config.security().requireRouteSession());
         boolean hideNodeNames = config.routing().hideNodeNames();
         boolean topologyExposureRisk = !hideNodeNames;
         boolean defaultNodeIdentityRisk = plugin.defaultNodeIdentityRisk(role, nodeId, config.node().velocityServerName());
         int proxySourceAllowlistEntries = plugin.proxySourceAllowlist() == null ? 0 : plugin.proxySourceAllowlist().entryCount();
         boolean proxySourceAllowlistConfigured = proxySourceAllowlistEntries > 0;
-        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && config.security().requireProxySourceAllowlist();
+        boolean proxySourceAllowlistRequired = role == AgentRole.ISLAND_NODE && !directLocalRouting && config.security().requireProxySourceAllowlist();
         boolean directAccessRisk = role == AgentRole.ISLAND_NODE && !plugin.getServer().getOnlineMode() && !proxySourceAllowlistConfigured && !proxySourceAllowlistRequired;
         boolean velocityOnlineModeMismatch = role == AgentRole.ISLAND_NODE && forwardingRequired && plugin.getServer().getOnlineMode();
         boolean bungeeConnectPluginMessaging = config.security().allowBungeeConnectPluginMessaging();

@@ -25,12 +25,13 @@ public final class PaperRouteSessionRuntimeFactory {
         PaperRuntimeConfig safeConfig = config == null ? PaperRuntimeConfig.defaults() : config;
         AgentRole role = safeConfig.node().role();
         boolean islandNode = role == AgentRole.ISLAND_NODE;
-        boolean enforceRouteSession = islandNode && safeConfig.security().enforceRouteSession();
-        boolean requireRouteSession = islandNode && (safeConfig.security().requireRouteSession() || enforceRouteSession);
-        boolean forwardingReady = !islandNode
+        boolean proxyBackedIslandNode = islandNode && !safeConfig.routing().directLocalTeleport();
+        boolean enforceRouteSession = proxyBackedIslandNode && safeConfig.security().enforceRouteSession();
+        boolean requireRouteSession = proxyBackedIslandNode && (safeConfig.security().requireRouteSession() || enforceRouteSession);
+        boolean forwardingReady = !proxyBackedIslandNode
             || !safeConfig.security().requireVelocityForwarding()
             || !safeConfig.security().forwardingSecret().isBlank();
-        boolean requireProxySourceAllowlist = islandNode && safeConfig.security().requireProxySourceAllowlist();
+        boolean requireProxySourceAllowlist = proxyBackedIslandNode && safeConfig.security().requireProxySourceAllowlist();
         ProxySourceAllowlist allowlist = new ProxySourceAllowlist(safeConfig.security().proxySourceAllowlist());
         PaperRouteSessionListener listener = new PaperRouteSessionListener(
             plugin,

@@ -4,6 +4,7 @@ import java.util.List;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -75,6 +76,10 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     public IslandCommandController(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, int routeWaitSeconds, String fallbackServerName, IslandLevelScanService levelScanService, EconomyBridge economyBridge, MessageRenderer messages, PlayerLocaleCache locales, String nodeId, String defaultGeneratorKey, boolean guiMenusEnabled, SnapshotRetentionPolicy snapshotRetentionPolicy, boolean superiorSkyblock2LegacyAliasesEnabled, boolean superiorSkyblock2MigrationMode) {
         this.backend = new IslandCommandBackend(plugin, coreApiClient, protection, routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, new kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway(), new kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway(plugin), nodeId, defaultGeneratorKey, guiMenusEnabled, snapshotRetentionPolicy, superiorSkyblock2LegacyAliasesEnabled, superiorSkyblock2MigrationMode);
         this.tabCompleter = new IslandCommandTabCompleter(plugin, protection);
+    }
+
+    public void enableLocalRouting(RouteTicketConsumer routeTicketConsumer) {
+        backend.enableLocalRouting(routeTicketConsumer);
     }
 
     @Override

@@ -4,6 +4,7 @@ import java.util.List;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -157,6 +158,10 @@ final class IslandCommandBackend {
 
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         return router.handleCommand(sender, command, label, args);
+    }
+
+    void enableLocalRouting(RouteTicketConsumer routeTicketConsumer) {
+        routingCommands.enableLocalRouting(routeTicketConsumer);
     }
 
     void executeGuiAction(Player player, GuiAction action, GuiClick click) {

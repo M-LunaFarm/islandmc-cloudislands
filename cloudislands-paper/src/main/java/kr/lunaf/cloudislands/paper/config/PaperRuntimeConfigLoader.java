@@ -346,6 +346,8 @@ public final class PaperRuntimeConfigLoader {
         setIfPresent(source, target, "storage.endpoint", "setup.storage.endpoint");
         setIfPresent(source, target, "storage.bucket", "setup.storage.bucket");
         setIfPresent(source, target, "storage.region", "setup.storage.region");
+        setIfPresent(source, target, "storage.local-path", "setup.storage.local-path");
+        setIfPresent(source, target, "routing.direct-local-teleport", "routing.direct-local-teleport");
     }
 
     private static void mapSecurityV2(FileConfiguration source, FileConfiguration target) {
@@ -560,7 +562,8 @@ public final class PaperRuntimeConfigLoader {
         return new PaperRuntimeConfig.Routing(
             string(config, "routing.fallback-on-failure", "Lobby"),
             config.getInt("routing.wait-for-activation-timeout-seconds", 20),
-            booleanValue(config, "routing.hide-node-names", true)
+            booleanValue(config, "routing.hide-node-names", true),
+            booleanValue(config, "routing.direct-local-teleport", false)
         );
     }
 

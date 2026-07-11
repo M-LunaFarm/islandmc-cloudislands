@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
 import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
+import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
 import kr.lunaf.cloudislands.paper.application.IslandRoutingUseCase;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
@@ -29,6 +30,7 @@ final class IslandRoutingCommandHandler {
     private final String fallbackServerName;
     private final Runtime runtime;
     private final Map<UUID, BossBar> routeBossBars = new ConcurrentHashMap<>();
+    private volatile RouteTicketConsumer localRouteConsumer;
 
     IslandRoutingCommandHandler(Plugin plugin, CoreApiClient coreApiClient, int routeWaitSeconds, String fallbackServerName, Runtime runtime) {
         this.plugin = plugin;
@@ -57,7 +59,21 @@ final class IslandRoutingCommandHandler {
         }
     }
 
+    void enableLocalRouting(RouteTicketConsumer routeTicketConsumer) {
+        this.localRouteConsumer = routeTicketConsumer;
+    }
+
     boolean connectPlayerToFallback(Player player, String successMessage, String failureMessage) {
+        if (localRouteConsumer != null) {
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+                if (!localRouteConsumer.teleportToPrimaryWorld(player.getUniqueId())) {
+                    player.sendMessage(runtime.playerMessage(failureMessage));
+                    return;
+                }
+                player.sendMessage(runtime.playerMessage(successMessage));
+            });
+            return true;
+        }
         connectPlayerToServer(player, fallbackServerName, successMessage, failureMessage);
         return true;
     }
@@ -116,6 +132,12 @@ final class IslandRoutingCommandHandler {
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
+        RouteTicketConsumer localConsumer = localRouteConsumer;
+        if (localConsumer != null) {
+            clearRouteLoading(player);
+            localConsumer.consumeAndTeleport(ticket.ticketId(), player.getUniqueId(), ticket.nonce());
+            return;
+        }
         routingUseCase.publishRouteSession(ticket, runtime::mutate).thenRun(() -> {
             clearRouteLoading(player);
             connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));

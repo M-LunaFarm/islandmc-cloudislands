@@ -154,14 +154,14 @@ public record PaperRuntimeConfig(
         }
     }
 
-    public record Routing(String fallbackServerName, int waitForActivationTimeoutSeconds, boolean hideNodeNames) {
+    public record Routing(String fallbackServerName, int waitForActivationTimeoutSeconds, boolean hideNodeNames, boolean directLocalTeleport) {
         public Routing {
             fallbackServerName = blankDefault(fallbackServerName, "Lobby");
             waitForActivationTimeoutSeconds = Math.max(1, waitForActivationTimeoutSeconds);
         }
 
         public static Routing defaults() {
-            return new Routing("Lobby", 20, true);
+            return new Routing("Lobby", 20, true, false);
         }
     }
 

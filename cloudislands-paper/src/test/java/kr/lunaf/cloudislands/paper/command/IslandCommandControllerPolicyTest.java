@@ -21,6 +21,19 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void singlePaperRoutingConsumesReadyTicketsLocally() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandRoutingCommandHandler.java"));
+        String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/PaperCommandRegistrar.java"));
+        String routeSessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/bootstrap/PaperRouteSessionRuntimeFactory.java"));
+
+        assertTrue(source.contains("localConsumer.consumeAndTeleport(ticket.ticketId(), player.getUniqueId(), ticket.nonce())"));
+        assertTrue(source.indexOf("if (localConsumer != null)") < source.indexOf("routingUseCase.publishRouteSession"));
+        assertTrue(registrar.contains("routing().directLocalTeleport()"));
+        assertTrue(registrar.contains("islandController.enableLocalRouting(agent.routeTickets())"));
+        assertTrue(routeSessions.contains("islandNode && !safeConfig.routing().directLocalTeleport()"));
+    }
+
+    @Test
     void tabCompletionIsSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String controller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));

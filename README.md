@@ -118,7 +118,25 @@ distProvenance`; `distProvenance` records the commit, dirty state, artifact
 paths, and SHA-256 digests.
 <!-- operator-release-docs:end -->
 
-Quickstart, single node:
+Quickstart, one Paper server:
+
+- run one Paper server with the CloudIslands Paper plugin, one Core API, and one
+  SQL database; Velocity and a separate lobby Paper server are not required
+- start from `deploy/examples/single-paper/config-pack.yml`
+- keep the Paper role as `ISLAND_NODE` so the same server runs commands, GUI,
+  protection, island activation, saving, and restoration
+- set `routing.direct-local-teleport: true` in Config v2 `integrations.yml`;
+  ready Core route tickets are then consumed locally instead of using the
+  BungeeCord/Velocity connect channel
+- direct-local routing disables the backend-only route-session, forwarding,
+  and proxy-source login gates; keep the Paper server in online mode when it is
+  exposed directly
+- use `LOCAL_FILESYSTEM` storage for a small single-host deployment and back up
+  `plugins/CloudIslands/islands-storage`, or keep S3-compatible storage when
+  off-host durability is required
+- Redis may be disabled by setting an empty Redis URI in this topology
+
+Quickstart, clustered single island node:
 
 - run one Core API, one Redis, one SQL database, one object storage endpoint,
   one Velocity proxy, one lobby Paper server, and one island Paper node

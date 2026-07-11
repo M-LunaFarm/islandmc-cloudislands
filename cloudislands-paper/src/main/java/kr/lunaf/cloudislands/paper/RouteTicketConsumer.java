@@ -74,6 +74,12 @@ public final class RouteTicketConsumer {
         consumeAndTeleport(ticketId, playerUuid, nonce, 0);
     }
 
+    public boolean teleportToPrimaryWorld(UUID playerUuid) {
+        Player player = players.onlinePlayer(playerUuid);
+        Location target = worlds.primaryWorldSpawn();
+        return player != null && target != null && players.teleport(player, target);
+    }
+
     private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
         if (players.onlinePlayer(playerUuid) == null) {
             recordFailure("PLAYER_DISCONNECTED");
