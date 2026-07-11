@@ -15,6 +15,7 @@ public enum IslandPermission {
     ATTACK_MOB,
     PICKUP_ITEM,
     DROP_ITEM,
+    FERTILIZE,
     USE_SPAWNER,
     USE_ANVIL,
     USE_ENCHANT_TABLE,

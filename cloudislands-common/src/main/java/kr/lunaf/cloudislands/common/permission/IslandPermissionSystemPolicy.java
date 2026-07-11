@@ -49,6 +49,7 @@ public final class IslandPermissionSystemPolicy {
             IslandPermission.ATTACK_MOB,
             IslandPermission.PICKUP_ITEM,
             IslandPermission.DROP_ITEM,
+            IslandPermission.FERTILIZE,
             IslandPermission.USE_SPAWNER,
             IslandPermission.USE_ANVIL,
             IslandPermission.USE_ENCHANT_TABLE,

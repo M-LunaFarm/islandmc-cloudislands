@@ -110,6 +110,18 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void fertilizationRequiresItsOwnPermissionAndCannotGrowAcrossIslandBoundaries() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("onFertilize(BlockFertilizeEvent event)"));
+        assertTrue(listener.contains("IslandPermission.FERTILIZE"));
+        assertTrue(listener.contains("anyMatch(state -> !sameIsland(event.getBlock(), state.getBlock()))"));
+        assertTrue(listener.contains("onStructureGrow(StructureGrowEvent event)"));
+        assertTrue(listener.contains("if (event.isFromBonemeal())"));
+        assertTrue(listener.contains("reportBlockReplacement(state.getBlock(), state.getType())"));
+    }
+
+    @Test
     void roleCatalogUsesRoleKeysForDefaultSuggestions() {
         LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
         cache.putRoleDefinition(ISLAND, "builder");

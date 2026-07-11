@@ -11,6 +11,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DefaultIslandPermissionsTest {
     @Test
+    void membersAndTrustedPlayersCanFertilizeByDefault() {
+        CachedPermissionSet permissions = DefaultIslandPermissions.create();
+
+        assertTrue(permissions.allowedRoleKey("MEMBER", IslandPermission.FERTILIZE));
+        assertTrue(permissions.allowedRoleKey("TRUSTED", IslandPermission.FERTILIZE));
+        assertFalse(permissions.allowedRoleKey("VISITOR", IslandPermission.FERTILIZE));
+    }
+
+    @Test
     void visitorsAndBannedPlayersDefaultDenyEveryPermissionKey() {
         CachedPermissionSet permissions = DefaultIslandPermissions.create();
 
@@ -31,7 +40,8 @@ class DefaultIslandPermissionsTest {
             IslandPermission.USE_BUTTON,
             IslandPermission.USE_PRESSURE_PLATE,
             IslandPermission.PICKUP_ITEM,
-            IslandPermission.DROP_ITEM
+            IslandPermission.DROP_ITEM,
+            IslandPermission.FERTILIZE
         );
 
         for (IslandPermission permission : IslandPermission.values()) {

@@ -24,6 +24,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
+import org.bukkit.event.block.BlockFertilizeEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
@@ -60,6 +61,7 @@ import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.world.StructureGrowEvent;
 
 public final class IslandProtectionListener implements Listener {
     private final ProtectionController protection;
@@ -185,6 +187,29 @@ public final class IslandProtectionListener implements Listener {
     public void onPickup(EntityPickupItemEvent event) {
         if (event.getEntity() instanceof Player player) {
             event.setCancelled(denied(player, event.getItem().getLocation().getBlock(), IslandPermission.PICKUP_ITEM));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onFertilize(BlockFertilizeEvent event) {
+        boolean blocked = (event.getPlayer() != null && denied(event.getPlayer(), event.getBlock(), IslandPermission.FERTILIZE))
+            || event.getBlocks().stream().anyMatch(state -> !sameIsland(event.getBlock(), state.getBlock()));
+        event.setCancelled(blocked);
+        if (!blocked) {
+            event.getBlocks().forEach(state -> reportBlockReplacement(state.getBlock(), state.getType()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onStructureGrow(StructureGrowEvent event) {
+        if (event.isFromBonemeal()) {
+            return;
+        }
+        Block source = event.getLocation().getBlock();
+        boolean crossesBoundary = event.getBlocks().stream().anyMatch(state -> !sameIsland(source, state.getBlock()));
+        event.setCancelled(crossesBoundary);
+        if (!crossesBoundary) {
+            event.getBlocks().forEach(state -> reportBlockReplacement(state.getBlock(), state.getType()));
         }
     }
 

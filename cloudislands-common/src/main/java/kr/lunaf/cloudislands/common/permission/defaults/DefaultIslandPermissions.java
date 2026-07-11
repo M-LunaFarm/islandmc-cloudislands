@@ -32,6 +32,7 @@ public final class DefaultIslandPermissions {
             IslandPermission.ATTACK_MOB,
             IslandPermission.PICKUP_ITEM,
             IslandPermission.DROP_ITEM,
+            IslandPermission.FERTILIZE,
             IslandPermission.USE_SPAWNER,
             IslandPermission.USE_ANVIL,
             IslandPermission.USE_ENCHANT_TABLE,
@@ -52,7 +53,8 @@ public final class DefaultIslandPermissions {
             IslandPermission.USE_BUTTON,
             IslandPermission.USE_PRESSURE_PLATE,
             IslandPermission.PICKUP_ITEM,
-            IslandPermission.DROP_ITEM
+            IslandPermission.DROP_ITEM,
+            IslandPermission.FERTILIZE
         }) {
             set.putRoleKey("TRUSTED", permission, true);
         }
