@@ -62,6 +62,7 @@ public final class GuiActionParser {
         "island.create.locked",
         "island.create.open",
         "island.create.prepare",
+        "island.create.page",
         "island.danger.delete.confirm",
         "island.danger.delete.prepare",
         "island.danger.open",
@@ -367,6 +368,9 @@ public final class GuiActionParser {
                 ));
                 case "island.roles.page" -> Optional.of(new GuiAction.RolePage(
                     UUID.fromString(required(safeData, "islandId")),
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
+                case "island.create.page" -> Optional.of(new GuiAction.TemplatePage(
                     nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.review.set" -> Optional.of(new GuiAction.ReviewSet(

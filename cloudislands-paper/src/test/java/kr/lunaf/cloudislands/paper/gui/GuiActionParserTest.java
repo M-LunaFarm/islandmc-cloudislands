@@ -339,6 +339,9 @@ class GuiActionParserTest {
             "islandId", "00000000-0000-0000-0000-000000000004", "page", "6")).orElseThrow();
         assertTrue(rolePage instanceof GuiAction.RolePage);
         assertEquals("6", rolePage.data().get("page"));
+        GuiAction templatePage = GuiActionParser.parse("island.create.page", Map.of("page", "7")).orElseThrow();
+        assertTrue(templatePage instanceof GuiAction.TemplatePage);
+        assertEquals(Map.of("page", "7"), templatePage.data());
     }
 
     @Test
@@ -503,7 +506,7 @@ class GuiActionParserTest {
             case "island.ban.pardon.prepare", "island.member.demote.prepare", "island.member.detail",
                 "island.member.promote.prepare", "island.member.remove.prepare" -> Map.of("playerUuid", "00000000-0000-0000-0000-000000000000");
             case "island.bans.page" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000", "page", "0");
-            case "island.invites.page", "island.list.page", "island.members.page", "island.visit.page" -> Map.of("page", "0");
+            case "island.create.page", "island.invites.page", "island.list.page", "island.members.page", "island.visit.page" -> Map.of("page", "0");
             case "island.mission.complete" -> Map.of("missionKey", "starter");
             case "island.missions.open" -> Map.of("kind", "MISSION");
             case "island.permissions.page" -> Map.of("page", "0", "rolePage", "0");

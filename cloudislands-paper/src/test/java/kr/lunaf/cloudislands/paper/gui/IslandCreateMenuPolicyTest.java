@@ -18,6 +18,9 @@ class IslandCreateMenuPolicyTest {
         assertTrue(source.contains("\"island.create.locked\""), "Locked templates must render as a typed locked action");
         assertTrue(source.contains("Material.BARRIER"), "Locked templates must be visually distinct");
         assertTrue(source.contains("create-menu-locked"), "Locked templates must explain the missing permission state");
+        assertFalse(source.contains(".limit(14)"), "Enabled templates must not disappear after the first GUI page");
+        assertTrue(source.contains("int maxPage = Math.max(0, (enabled.size() - 1) / pageSize)"), "Create menu must paginate the complete enabled template catalog");
+        assertTrue(source.contains("canUse(player, template)"), "Every page must preserve per-template permission rendering");
     }
 
     @Test

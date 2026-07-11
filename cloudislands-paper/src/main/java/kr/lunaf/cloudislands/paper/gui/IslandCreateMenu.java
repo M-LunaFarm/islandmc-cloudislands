@@ -24,6 +24,7 @@ public final class IslandCreateMenu implements Listener {
         new GuiMenuDefinition("island.create", 3, TITLE_KEY, java.util.Map.of(
             "open", "island.create.open",
             "create", "island.create.prepare",
+            "page", "island.create.page",
             "back", "island.main.open"
         ))
     );
@@ -68,10 +69,14 @@ public final class IslandCreateMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
+        open(plugin, client, player, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.templates(client)
-            .thenAccept(templates -> openSync(plugin, player, session, templates, messages))
+            .thenAccept(templates -> openSync(plugin, player, session, templates, messages, page))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "create-menu-load-failed", "섬 템플릿을 불러오지 못했습니다."), "island.create.open", "island.main.open");
                 return null;
@@ -121,19 +126,30 @@ public final class IslandCreateMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<TemplateView> templates, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<TemplateView> templates, MessageRenderer messages, int requestedPage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             List<TemplateView> enabled = templates.stream()
                 .filter(TemplateView::enabled)
-                .limit(14)
                 .toList();
             if (enabled.isEmpty()) {
                 enabled = List.of(new TemplateView("default", message(messages, "create-menu-default-template", "기본 섬"), true, ""));
             }
             List<Integer> templateSlots = GuiMenuRenderer.slots(MENU, "_");
-            for (int index = 0; index < enabled.size() && index < templateSlots.size(); index++) {
-                inventory.setItem(templateSlots.get(index), item(enabled.get(index), messages, canUse(player, enabled.get(index))));
+            int pageSize = Math.max(1, templateSlots.size());
+            int maxPage = Math.max(0, (enabled.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            String title = message(messages, MENU.titleKey(), TITLE) + " " + (page + 1) + "/" + (maxPage + 1);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, title, item -> !List.of("W", "N").contains(item.symbol()));
+            int offset = page * pageSize;
+            for (int index = 0; index < pageSize && offset + index < enabled.size(); index++) {
+                TemplateView template = enabled.get(offset + index);
+                inventory.setItem(templateSlots.get(index), item(template, messages, canUse(player, template)));
+            }
+            if (page > 0) {
+                setPageItem(inventory, "W", page - 1, messages);
+            }
+            if (page < maxPage) {
+                setPageItem(inventory, "N", page + 1, messages);
             }
             player.openInventory(inventory);
         });
@@ -195,6 +211,12 @@ public final class IslandCreateMenu implements Listener {
 
     private static boolean canUse(Player player, TemplateView template) {
         return template.requiredPermission().isBlank() || player.hasPermission(template.requiredPermission());
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, int page, MessageRenderer messages) {
+        String key = symbol.equals("W") ? "create-menu-previous-page" : "create-menu-next-page";
+        String fallback = symbol.equals("W") ? "이전 페이지" : "다음 페이지";
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages, Map.of("page", Integer.toString(page)), List.of(message(messages, key, fallback)));
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

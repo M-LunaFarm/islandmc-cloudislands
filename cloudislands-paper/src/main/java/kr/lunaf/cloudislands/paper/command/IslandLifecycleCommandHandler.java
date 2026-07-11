@@ -86,6 +86,10 @@ final class IslandLifecycleCommandHandler {
             runtime.message(player, runtime.routeMessage("create-menu-locked", "이 템플릿을 사용할 권한이 없습니다.") + (locked.requiredPermission().isBlank() ? "" : " " + locked.requiredPermission()));
             return true;
         }
+        if (action instanceof GuiAction.TemplatePage page) {
+            IslandCreateMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.DangerResetConfirm resetConfirm) {
             if (dangerConfirmed(player, resetConfirm.operation(), resetConfirm.token(), click, DangerousGuiActionPolicy.RESET_OPERATION, DangerousGuiActionPolicy.RESET_TOKEN)) {
                 resetIsland(player, resetConfirm.reason());
