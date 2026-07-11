@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.0`
+Version: `1.1.1`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -385,6 +385,21 @@ collisions and removes every owned command when the addon is disabled,
 reloaded, unregistered, or the Paper plugin stops. The example addon registers
 `/is example [status|events]` as the certification reference.
 
+## PlaceholderAPI
+
+CloudIslands placeholders resolve the player's primary permanent island first,
+then another permanent team island, and finally temporary co-op access. This
+keeps owner, member, and co-op pages on the same Core-backed membership view.
+Global ranking data is shared for the 15-second cache window instead of being
+requested once per online player.
+
+Alongside island identity, level, worth, rank, bank, public, and border values,
+the expansion exposes `%cloudislands_role%`, `is_member`, `is_owner`, `is_coop`,
+`team_size`, `coop_size`, `team_limit`, `coop_limit`, `team_list`, `coop_list`,
+`locked`, `creation_time`, and `last_time_updated` (all with the
+`%cloudislands_<key>%` form). `has_island` means permanent team membership;
+`has_associated_island` also includes temporary co-op access.
+
 ## Satis feature pack
 
 `cloudislands-satis` is optional.
@@ -563,11 +578,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.0`
+Current release: `v1.1.1`
 
-Built for the CloudIslands 1.1.0 baseline.
+Built for the CloudIslands 1.1.1 baseline.
 
-Release notes for `v1.1.0`:
+Release notes for `v1.1.1`:
+
+- player island loading: Core now preserves each membership's canonical role
+  and temporary expiry in `/v1/players/islands`, fixing blank roles and incorrect
+  primary-island selection for member and co-op pages
+- PlaceholderAPI parity: owner, permanent member, and temporary co-op players
+  resolve a deterministic associated island; role, team/co-op counts, limits,
+  lists, lock state, and timestamps are exposed with stable missing values
+- runtime load: ranking requests are coalesced into one shared 15-second cache
+  instead of issuing a global top-100 query for every player's refresh
+
+Release notes carried forward from `v1.1.0`:
 
 - mission parity and runtime load: definition-driven missions now progress from
   enchanting, Bukkit statistic increments, advancements, and item consumption;
@@ -600,7 +626,7 @@ Release notes for `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.0`.
+Current read: production-readiness baseline `v1.1.1`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
