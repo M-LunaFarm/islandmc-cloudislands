@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.11`
+Version: `1.1.12`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,27 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.11`
+Current release: `v1.1.12`
 
-Built for the CloudIslands 1.1.11 baseline.
+Built for the CloudIslands 1.1.12 baseline.
 
-Release notes for `v1.1.11`:
+Release notes for `v1.1.12`:
+
+- corrected warehouse authorization: deposits, withdrawals, menus, and list
+  views now consistently require `OPEN_CONTAINER`; bank withdrawal authority
+  no longer grants access to island inventory
+- protected warehouse contents: visitors without the island container role
+  permission can no longer inspect warehouse materials or quantities
+- serialized inventory mutations: overlapping requests from one player remain
+  locked until the Paper inventory grant or refund is applied, preventing
+  capacity races, dropped overflow, and refund ordering bugs
+- projection-drift recovery: the authoritative island owner retains access to
+  locked islands and private warps even when a membership or stale self-ban
+  projection is temporarily inconsistent
+- routing correctness: owners with a missing membership projection are never
+  classified or allocated as visitor warp traffic
+
+Release notes carried forward from `v1.1.11`:
 
 - fail-closed permission mutation: unknown permission names no longer silently
   become `BUILD` on Velocity or Paper admin command paths
@@ -785,7 +801,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.11`.
+Current read: production-readiness baseline `v1.1.12`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
