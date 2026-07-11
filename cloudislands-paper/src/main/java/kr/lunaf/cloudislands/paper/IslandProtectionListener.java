@@ -14,8 +14,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.AbstractHorse;
+import org.bukkit.entity.AbstractVillager;
+import org.bukkit.entity.Animals;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.Steerable;
+import org.bukkit.entity.Vehicle;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -36,6 +41,7 @@ import org.bukkit.event.block.FluidLevelChangeEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityBreedEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
@@ -53,6 +59,7 @@ import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -61,6 +68,7 @@ import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.world.StructureGrowEvent;
 
 public final class IslandProtectionListener implements Listener {
@@ -122,12 +130,12 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInteractEntity(PlayerInteractEntityEvent event) {
-        event.setCancelled(denied(event.getPlayer(), event.getRightClicked().getLocation().getBlock(), IslandPermission.INTERACT));
+        event.setCancelled(denied(event.getPlayer(), event.getRightClicked().getLocation().getBlock(), entityInteractionPermission(event.getPlayer(), event.getRightClicked(), event.getHand())));
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onInteractAtEntity(PlayerInteractAtEntityEvent event) {
-        event.setCancelled(denied(event.getPlayer(), event.getRightClicked().getLocation().getBlock(), IslandPermission.INTERACT));
+        event.setCancelled(denied(event.getPlayer(), event.getRightClicked().getLocation().getBlock(), entityInteractionPermission(event.getPlayer(), event.getRightClicked(), event.getHand())));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -281,7 +289,27 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onShear(PlayerShearEntityEvent event) {
-        event.setCancelled(denied(event.getPlayer(), event.getEntity().getLocation().getBlock(), IslandPermission.INTERACT));
+        event.setCancelled(denied(event.getPlayer(), event.getEntity().getLocation().getBlock(), IslandPermission.ANIMAL_SHEAR));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBreed(EntityBreedEvent event) {
+        if (event.getBreeder() instanceof Player player) {
+            event.setCancelled(denied(player, event.getEntity().getLocation().getBlock(), IslandPermission.ANIMAL_BREED));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onFish(PlayerFishEvent event) {
+        Block target = event.getCaught() == null ? event.getHook().getLocation().getBlock() : event.getCaught().getLocation().getBlock();
+        event.setCancelled(denied(event.getPlayer(), target, IslandPermission.FISH));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onVehicleEnter(VehicleEnterEvent event) {
+        if (event.getEntered() instanceof Player player) {
+            event.setCancelled(denied(player, event.getVehicle().getLocation().getBlock(), IslandPermission.ENTITY_RIDE));
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -501,6 +529,23 @@ public final class IslandProtectionListener implements Listener {
             return IslandPermission.BUILD;
         }
         return interactionPermission(event.getClickedBlock().getType());
+    }
+
+    private IslandPermission entityInteractionPermission(Player player, org.bukkit.entity.Entity entity, org.bukkit.inventory.EquipmentSlot hand) {
+        Material held = player.getInventory().getItem(hand).getType();
+        if (held == Material.SHEARS) {
+            return IslandPermission.ANIMAL_SHEAR;
+        }
+        if (entity instanceof Animals animals && animals.isBreedItem(player.getInventory().getItem(hand))) {
+            return IslandPermission.ANIMAL_BREED;
+        }
+        if (entity instanceof AbstractVillager) {
+            return IslandPermission.VILLAGER_TRADE;
+        }
+        if (entity instanceof Vehicle || entity instanceof AbstractHorse || entity instanceof Steerable) {
+            return IslandPermission.ENTITY_RIDE;
+        }
+        return IslandPermission.INTERACT;
     }
 
     private IslandPermission interactionPermission(Material type) {

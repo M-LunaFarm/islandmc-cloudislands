@@ -122,6 +122,41 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void animalFishingRideAndTradingActionsUseGranularPermissions() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("onBreed(EntityBreedEvent event)"));
+        assertTrue(listener.contains("IslandPermission.ANIMAL_BREED"));
+        assertTrue(listener.contains("IslandPermission.ANIMAL_SHEAR"));
+        assertTrue(listener.contains("onFish(PlayerFishEvent event)"));
+        assertTrue(listener.contains("IslandPermission.FISH"));
+        assertTrue(listener.contains("onVehicleEnter(VehicleEnterEvent event)"));
+        assertTrue(listener.contains("IslandPermission.ENTITY_RIDE"));
+        assertTrue(listener.contains("entity instanceof AbstractVillager"));
+        assertTrue(listener.contains("IslandPermission.VILLAGER_TRADE"));
+        assertTrue(listener.contains("animals.isBreedItem"));
+    }
+
+    @Test
+    void visitorInteractFlagPreservesGranularInteractionCompatibility() {
+        LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
+        ProtectionController protection = new ProtectionController(new RegionIndex(), cache);
+        protection.registerIsland(ISLAND, "ci_shard_001", 0, 0, 300, 2, 3);
+        cache.putRoleKey(ISLAND, VISITOR, "VISITOR");
+        cache.putFlag(ISLAND, IslandFlag.VISITOR_INTERACT, "true");
+
+        for (IslandPermission permission : java.util.List.of(
+            IslandPermission.ANIMAL_BREED,
+            IslandPermission.ANIMAL_SHEAR,
+            IslandPermission.FISH,
+            IslandPermission.ENTITY_RIDE,
+            IslandPermission.VILLAGER_TRADE
+        )) {
+            assertTrue(protection.checkBlock(VISITOR, "ci_shard_001", 0, 100, 0, permission).allowed(), permission.name());
+        }
+    }
+
+    @Test
     void roleCatalogUsesRoleKeysForDefaultSuggestions() {
         LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
         cache.putRoleDefinition(ISLAND, "builder");

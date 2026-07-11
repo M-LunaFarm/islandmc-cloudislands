@@ -33,6 +33,11 @@ public final class DefaultIslandPermissions {
             IslandPermission.PICKUP_ITEM,
             IslandPermission.DROP_ITEM,
             IslandPermission.FERTILIZE,
+            IslandPermission.ANIMAL_BREED,
+            IslandPermission.ANIMAL_SHEAR,
+            IslandPermission.FISH,
+            IslandPermission.ENTITY_RIDE,
+            IslandPermission.VILLAGER_TRADE,
             IslandPermission.USE_SPAWNER,
             IslandPermission.USE_ANVIL,
             IslandPermission.USE_ENCHANT_TABLE,
@@ -54,7 +59,12 @@ public final class DefaultIslandPermissions {
             IslandPermission.USE_PRESSURE_PLATE,
             IslandPermission.PICKUP_ITEM,
             IslandPermission.DROP_ITEM,
-            IslandPermission.FERTILIZE
+            IslandPermission.FERTILIZE,
+            IslandPermission.ANIMAL_BREED,
+            IslandPermission.ANIMAL_SHEAR,
+            IslandPermission.FISH,
+            IslandPermission.ENTITY_RIDE,
+            IslandPermission.VILLAGER_TRADE
         }) {
             set.putRoleKey("TRUSTED", permission, true);
         }

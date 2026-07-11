@@ -153,7 +153,12 @@ public final class ProtectionController {
                 USE_SPAWNER,
                 USE_ANVIL,
                 USE_ENCHANT_TABLE,
-                USE_BREWING_STAND -> IslandFlag.VISITOR_INTERACT;
+                USE_BREWING_STAND,
+                ANIMAL_BREED,
+                ANIMAL_SHEAR,
+                FISH,
+                ENTITY_RIDE,
+                VILLAGER_TRADE -> IslandFlag.VISITOR_INTERACT;
             case OPEN_CONTAINER -> IslandFlag.VISITOR_CONTAINER;
             case PICKUP_ITEM -> IslandFlag.VISITOR_PICKUP;
             case DROP_ITEM -> IslandFlag.VISITOR_DROP;

@@ -41,7 +41,12 @@ class DefaultIslandPermissionsTest {
             IslandPermission.USE_PRESSURE_PLATE,
             IslandPermission.PICKUP_ITEM,
             IslandPermission.DROP_ITEM,
-            IslandPermission.FERTILIZE
+            IslandPermission.FERTILIZE,
+            IslandPermission.ANIMAL_BREED,
+            IslandPermission.ANIMAL_SHEAR,
+            IslandPermission.FISH,
+            IslandPermission.ENTITY_RIDE,
+            IslandPermission.VILLAGER_TRADE
         );
 
         for (IslandPermission permission : IslandPermission.values()) {
