@@ -7,7 +7,7 @@ layout:
   - "____E____"
   - "_________"
   - "_________"
-  - "M..CR...V"
+  - "MP.CR.N.V"
 items:
   _:
     material: GRASS_BLOCK
@@ -78,8 +78,19 @@ items:
     fallback-lore:
       - "/섬 방문"
     action: public
+  P:
+    material: ARROW
+    name-key: my-islands-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: my-islands-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
 actions:
   open: island.list.open
+  page: island.list.page
   visit: island.visit.target
   select: island.select.target
   create: island.create.open

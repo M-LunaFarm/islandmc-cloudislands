@@ -64,6 +64,10 @@ final class IslandOverviewCommandHandler {
             IslandMyIslandsMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
             return true;
         }
+        if (action instanceof GuiAction.IslandListPage page) {
+            IslandMyIslandsMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.SelectIslandTarget selectTarget) {
             selectIsland(player, selectTarget.target());
             return true;

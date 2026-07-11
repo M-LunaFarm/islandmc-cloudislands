@@ -83,6 +83,7 @@ public final class GuiActionParser {
         "island.limits.list",
         "island.limits.open",
         "island.list.open",
+        "island.list.page",
         "island.lock.toggle",
         "island.log.detail",
         "island.logs.list",
@@ -341,6 +342,9 @@ public final class GuiActionParser {
                 ));
                 case "island.select.target" -> Optional.of(new GuiAction.SelectIslandTarget(
                     required(safeData, "target")
+                ));
+                case "island.list.page" -> Optional.of(new GuiAction.IslandListPage(
+                    nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.review.set" -> Optional.of(new GuiAction.ReviewSet(
                     UUID.fromString(required(safeData, "islandId")),

@@ -20,6 +20,7 @@ public final class IslandMyIslandsMenu implements Listener {
         "config-v2/ui/menus/my-islands.yml",
         new GuiMenuDefinition("island.my-islands", 6, TITLE_KEY, Map.of(
             "open", "island.list.open",
+            "page", "island.list.page",
             "visit", "island.visit.target",
             "select", "island.select.target",
             "create", "island.create.open",
@@ -49,10 +50,14 @@ public final class IslandMyIslandsMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
+        open(plugin, client, player, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.playerIslands(client, player.getUniqueId())
-            .thenAccept(islands -> openSync(plugin, player, session, islands, messages))
+            .thenAccept(islands -> openSync(plugin, player, session, islands, messages, page))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "my-islands-menu-load-failed", "내 섬 목록을 불러오지 못했습니다."), "island.list.open", "island.main.open");
                 return null;
@@ -82,15 +87,20 @@ public final class IslandMyIslandsMenu implements Listener {
         actions.execute(player, GuiActions.from(resolvedActionId, GuiItems.data(event.getCurrentItem())).orElse(null), click);
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<PlayerIslandView> islands, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<PlayerIslandView> islands, MessageRenderer messages, int requestedPage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
+            List<Integer> islandSlots = GuiMenuRenderer.slots(MENU, "_");
+            int pageSize = Math.max(1, islandSlots.size());
+            int maxPage = Math.max(0, (islands.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            String title = message(messages, MENU.titleKey(), TITLE) + " " + (page + 1) + "/" + (maxPage + 1);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, title, item -> !List.of("E", "P", "N").contains(item.symbol()));
             if (islands.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
-                List<Integer> islandSlots = GuiMenuRenderer.slots(MENU, "_");
-                for (int index = 0; index < islands.size() && index < islandSlots.size(); index++) {
-                    PlayerIslandView island = islands.get(index);
+                int offset = page * pageSize;
+                for (int index = 0; index < pageSize && offset + index < islands.size(); index++) {
+                    PlayerIslandView island = islands.get(offset + index);
                     int slot = islandSlots.get(index);
                     MENU.item(island.role()).or(() -> MENU.item("_")).ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, island.name(),
                         Map.of("target", island.islandId()),
@@ -103,6 +113,12 @@ public final class IslandMyIslandsMenu implements Listener {
                             message(messages, "my-islands-menu-right-click-to-select", "우클릭: 기본 섬으로 선택")
                         ))));
                 }
+                if (page > 0) {
+                    setPageItem(inventory, "P", page - 1, messages, "my-islands-menu-previous-page", "이전 페이지");
+                }
+                if (page < maxPage) {
+                    setPageItem(inventory, "N", page + 1, messages, "my-islands-menu-next-page", "다음 페이지");
+                }
             }
             player.openInventory(inventory);
         });
@@ -114,6 +130,10 @@ public final class IslandMyIslandsMenu implements Listener {
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
         GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, int page, MessageRenderer messages, String key, String fallback) {
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages, Map.of("page", Integer.toString(page)), List.of(message(messages, key, fallback)));
     }
 
 }
