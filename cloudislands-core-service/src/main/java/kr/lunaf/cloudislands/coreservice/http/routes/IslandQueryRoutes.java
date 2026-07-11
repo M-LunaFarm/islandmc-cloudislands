@@ -28,6 +28,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 
@@ -229,11 +230,14 @@ public final class IslandQueryRoutes {
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/islands")) {
             UUID playerUuid = uuidPath(tail.substring(0, tail.length() - "/islands".length()));
-            ArrayList<IslandSnapshot> islands = new ArrayList<>();
+            LinkedHashMap<UUID, IslandSnapshot> islands = new LinkedHashMap<>();
+            islandRepository.findByOwner(playerUuid).ifPresent(island -> islands.put(island.islandId(), island));
             for (var member : metadataRepository.islandsForMember(playerUuid)) {
-                islandRepository.findById(member.islandId()).ifPresent(islands::add);
+                if (CoreRoleKeys.memberRole(member.effectiveRoleKey())) {
+                    islandRepository.findById(member.islandId()).ifPresent(island -> islands.putIfAbsent(island.islandId(), island));
+                }
             }
-            CoreHttpResponses.write(exchange, 200, IslandCatalogRoutes.islandsJson(islands));
+            CoreHttpResponses.write(exchange, 200, IslandCatalogRoutes.islandsJson(new ArrayList<>(islands.values())));
             return;
         }
         CoreHttpResponses.write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));

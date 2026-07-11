@@ -416,6 +416,16 @@ class IslandMemberRoutesTest {
         assertEquals("TRUSTED", SimpleJson.text(rendered.get("role")));
         assertEquals("TRUSTED", SimpleJson.text(rendered.get("roleKey")));
         assertEquals(expiresAt.toString(), SimpleJson.text(rendered.get("membershipExpiresAt")));
+
+        metadata.upsertMemberKey(islandId, coopUuid, "BANNED");
+        TestExchange bannedExchange = new TestExchange("/v1/players/islands", "{\"playerUuid\":\"" + coopUuid + "\"}");
+        handlers.get("/v1/players/islands").handle(bannedExchange);
+        assertTrue(SimpleJson.list(SimpleJson.object(SimpleJson.parse(bannedExchange.body())).get("islands")).isEmpty());
+
+        TestExchange ownerExchange = new TestExchange("/v1/players/islands", "{\"playerUuid\":\"" + ownerUuid + "\"}");
+        handlers.get("/v1/players/islands").handle(ownerExchange);
+        Map<?, ?> ownerIsland = SimpleJson.object(SimpleJson.list(SimpleJson.object(SimpleJson.parse(ownerExchange.body())).get("islands")).get(0));
+        assertEquals("OWNER", SimpleJson.text(ownerIsland.get("roleKey")), "authoritative ownership must remain visible without a membership projection");
     }
 
     private static void assertMember(UUID islandId, UUID playerUuid, String roleKey, Map<?, ?> member) {

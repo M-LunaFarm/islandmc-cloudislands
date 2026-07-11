@@ -84,7 +84,16 @@ public final class IslandMemberRoutes implements RouteGroup {
 
     private void playerIslands(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
-        List<IslandMemberSnapshot> memberships = metadataRepository.islandsForMember(JsonFields.uuid(body, "playerUuid", EMPTY_UUID));
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        List<IslandMemberSnapshot> memberships = new ArrayList<>(metadataRepository.islandsForMember(playerUuid).stream()
+            .filter(member -> CoreRoleKeys.memberRole(member.effectiveRoleKey()))
+            .toList());
+        islandRepository.findByOwner(playerUuid).ifPresent(island -> {
+            boolean present = memberships.stream().anyMatch(member -> member.islandId().equals(island.islandId()));
+            if (!present) {
+                memberships.add(0, new IslandMemberSnapshot(island.islandId(), playerUuid, CoreRoleKeys.OWNER, island.createdAt(), null));
+            }
+        });
         CoreHttpResponses.write(exchange, 200, playerIslandsJson(memberships));
     }
 
