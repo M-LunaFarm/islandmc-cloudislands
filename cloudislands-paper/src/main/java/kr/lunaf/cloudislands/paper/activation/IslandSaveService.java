@@ -14,6 +14,8 @@ import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public final class IslandSaveService {
     private static final int RETAINED_SNAPSHOTS = 50;
+    private static final int SAVE_LOCK_STRIPES = 256;
+    private static final Object[] SAVE_LOCKS = createSaveLocks();
 
     private final IslandStorage storage;
     private final IslandBundleExporter exporter;
@@ -60,12 +62,20 @@ public final class IslandSaveService {
     }
 
     public SaveResult backupBeforeDelete(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
-        SaveResult result = save(islandId, activeIsland, true, false, null, "BEFORE_DELETE");
-        storage.deleteLiveState(islandId);
-        return result;
+        synchronized (saveLock(islandId)) {
+            SaveResult result = saveLocked(islandId, activeIsland, true, false, null, "BEFORE_DELETE");
+            storage.deleteLiveState(islandId);
+            return result;
+        }
     }
 
     private SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, boolean deleteBackup, boolean pruneAfterSave, IslandBundleManifest baseManifest, String reason) throws IOException {
+        synchronized (saveLock(islandId)) {
+            return saveLocked(islandId, activeIsland, deleteBackup, pruneAfterSave, baseManifest, reason);
+        }
+    }
+
+    private SaveResult saveLocked(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, boolean deleteBackup, boolean pruneAfterSave, IslandBundleManifest baseManifest, String reason) throws IOException {
         if (!retentionPolicy.checksumAlgorithm().equalsIgnoreCase("SHA-256")) {
             throw new IOException("unsupported snapshot checksum algorithm: " + retentionPolicy.checksumAlgorithm());
         }
@@ -118,6 +128,16 @@ public final class IslandSaveService {
             storage.pruneSnapshots(islandId, retentionPolicy);
         }
         return new SaveResult(islandId, exported.snapshotNo(), exported.bundleFile(), storedBundle.storagePath(), storedBundle.checksum(), storedBundle.sizeBytes());
+    }
+
+    private static Object saveLock(UUID islandId) {
+        return SAVE_LOCKS[Math.floorMod(islandId.hashCode(), SAVE_LOCK_STRIPES)];
+    }
+
+    private static Object[] createSaveLocks() {
+        Object[] locks = new Object[SAVE_LOCK_STRIPES];
+        java.util.Arrays.setAll(locks, ignored -> new Object());
+        return locks;
     }
 
     public record SaveResult(UUID islandId, long snapshotNo, Path bundleFile, String storagePath, String checksum, long sizeBytes) {}
