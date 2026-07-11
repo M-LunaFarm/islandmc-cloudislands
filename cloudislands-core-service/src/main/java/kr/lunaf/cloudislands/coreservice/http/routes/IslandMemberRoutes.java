@@ -193,7 +193,6 @@ public final class IslandMemberRoutes implements RouteGroup {
         if (transferred) {
             metadataRepository.upsertMemberKey(islandId, actorUuid, CoreRoleKeys.CO_OWNER);
             metadataRepository.upsertMemberKey(islandId, targetUuid, CoreRoleKeys.OWNER);
-            playerProfiles.clearPrimaryIsland(actorUuid);
             playerProfiles.setPrimaryIsland(targetUuid, islandId);
         }
         audit.log(actorUuid, "PLAYER", "ISLAND_OWNERSHIP_TRANSFER", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "transferred", Boolean.toString(transferred)));
@@ -344,7 +343,6 @@ public final class IslandMemberRoutes implements RouteGroup {
         if (transferred) {
             metadataRepository.upsertMemberKey(islandId, oldOwner, CoreRoleKeys.CO_OWNER);
             metadataRepository.upsertMemberKey(islandId, targetUuid, CoreRoleKeys.OWNER);
-            playerProfiles.clearPrimaryIsland(oldOwner);
             playerProfiles.setPrimaryIsland(targetUuid, islandId);
         }
         adminMemberAudit(islandId, targetUuid, "ISLAND_MEMBER_ADMIN_SETLEADER", Map.of("oldOwnerUuid", oldOwner.toString(), "transferred", Boolean.toString(transferred)));

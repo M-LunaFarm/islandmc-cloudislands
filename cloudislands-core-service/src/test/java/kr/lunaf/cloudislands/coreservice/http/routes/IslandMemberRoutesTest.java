@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.Headers;
@@ -95,6 +96,7 @@ class IslandMemberRoutesTest {
         InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
         Map<String, HttpHandler> handlers = new HashMap<>();
         islands.createOwnedIsland(islandId, ownerUuid, "default", "member-admin");
+        profiles.setPrimaryIsland(ownerUuid, islandId);
 
         new IslandMemberRoutes(
             islands,
@@ -117,10 +119,20 @@ class IslandMemberRoutesTest {
         assertTrue(metadata.members(islandId).isEmpty());
         handle(handlers, "/v1/admin/islands/members/setleader", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "LEADER_SET");
         assertEquals(playerUuid, islands.findById(islandId).orElseThrow().ownerUuid());
+        assertEquals(islandId, profiles.find(ownerUuid).primaryIslandId().orElseThrow(), "the former owner remains a co-owner and must keep their selected island");
+        assertEquals(islandId, profiles.find(playerUuid).primaryIslandId().orElseThrow());
         assertEquals(1L, events.countByType("ISLAND_OWNERSHIP_CHANGED"));
         assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_ADD"));
         assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_KICK"));
         assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_SETLEADER"));
+    }
+
+    @Test
+    void ownershipTransferNeverClearsTheFormerOwnersSelectedIsland() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
+
+        assertFalse(source.contains("playerProfiles.clearPrimaryIsland(actorUuid)"));
+        assertFalse(source.contains("playerProfiles.clearPrimaryIsland(oldOwner)"));
     }
 
     @Test
