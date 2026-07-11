@@ -22,7 +22,7 @@ public enum IslandCommandPermission {
     WAREHOUSE("cloudislands.island.warehouse.view", Set.of("cloudislands.island.warehouse"), "warehouse", "warehouse-list", "storage-box", "chest", "island-chest", "islandchest", "창고", "창고목록"),
     WAREHOUSE_DEPOSIT("cloudislands.island.warehouse.deposit", "warehouse-deposit", "창고입금"),
     WAREHOUSE_WITHDRAW("cloudislands.island.warehouse.withdraw", "warehouse-withdraw", "창고출금"),
-    MEMBERS("cloudislands.island.members", "members", "member-menu", "member-list", "member-list-target", "roles", "role-menu", "role-list", "invites", "invite-menu", "invite-list", "bans", "ban-menu", "ban-list", "banlist", "멤버", "멤버관리", "멤버목록", "역할", "역할목록", "초대목록", "밴목록"),
+    MEMBERS("cloudislands.island.members", "members", "member-menu", "member-list", "member-list-target", "team", "showteam", "online", "roles", "role-menu", "role-list", "invites", "invite-menu", "invite-list", "bans", "ban-menu", "ban-list", "banlist", "멤버", "멤버관리", "멤버목록", "역할", "역할목록", "초대목록", "밴목록"),
     INVITE("cloudislands.island.invite", "invite", "초대"),
     INVITE_RESPOND("cloudislands.island.invite.respond", "accept", "invite-accept", "decline", "invite-decline", "초대수락", "초대거절"),
     LEAVE("cloudislands.island.leave", "leave", "탈퇴"),

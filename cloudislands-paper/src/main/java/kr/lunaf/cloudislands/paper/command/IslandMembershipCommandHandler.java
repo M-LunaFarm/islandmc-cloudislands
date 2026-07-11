@@ -49,7 +49,7 @@ final class IslandMembershipCommandHandler {
             listIslandMembers(player);
             return true;
         }
-        if (subcommand.equals("member-list-target")) {
+        if (subcommand.equals("member-list-target") || subcommand.equals("team") || subcommand.equals("showteam") || subcommand.equals("online")) {
             if (args.length < 2) {
                 listIslandMembers(player);
             } else {

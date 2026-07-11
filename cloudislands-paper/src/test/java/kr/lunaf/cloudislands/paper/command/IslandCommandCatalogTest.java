@@ -169,6 +169,19 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void superiorSkyblockTeamAliasesAreCanonicalAndTargetAware() throws Exception {
+        String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
+
+        for (String alias : List.of("team", "showteam", "online")) {
+            assertTrue(IslandCommandCatalog.SUBCOMMANDS.contains(alias), alias);
+            assertEquals(IslandCommandPermission.MEMBERS, IslandCommandPermission.fromSubcommand(alias), alias);
+        }
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 team [player|island]"));
+        assertTrue(handler.contains("subcommand.equals(\"team\")"));
+        assertTrue(handler.contains("targetResolver.resolve(args[1])"));
+    }
+
+    @Test
     void superiorSkyblockStackerPermissionParityUsesCoreEnvironmentWithoutFakeRuntimeStateTransfer() throws Exception {
         String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackerIntegration.java"));

@@ -80,7 +80,23 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void listMembers(Player player, UUID islandId) {
-        sendTextResult(player, coreApiClient.islands().listMembers(islandId).thenApply(islandMessages::memberList), "멤버 목록을 불러오지 못했습니다.");
+        withResolvedIsland(player, islandId, "멤버를 확인할 섬을 찾지 못했습니다.", "멤버 목록을 불러오지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.islands().listMembers(resolved).thenApply(islandMessages::memberList), "멤버 목록을 불러오지 못했습니다."));
+    }
+
+    public void listMembers(Player player, String target) {
+        targetResolver.resolveIslandId(target)
+            .thenAccept(islandId -> {
+                if (islandId.equals(new UUID(0L, 0L))) {
+                    player.sendMessage(Component.text("멤버를 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                    return;
+                }
+                listMembers(player, islandId);
+            })
+            .exceptionally(error -> {
+                player.sendMessage(Component.text("멤버를 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                return null;
+            });
     }
 
     public void setRole(Player player, UUID islandId, UUID targetUuid, String roleKey) {
