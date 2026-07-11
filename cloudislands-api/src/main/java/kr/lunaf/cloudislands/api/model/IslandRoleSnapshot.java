@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.api.model;
 
 import java.util.UUID;
 
+@SuppressWarnings("deprecation")
 public record IslandRoleSnapshot(
     UUID islandId,
     IslandRole role,
@@ -10,10 +11,8 @@ public record IslandRoleSnapshot(
     String roleKey
 ) {
     public IslandRoleSnapshot {
-        roleKey = role == null ? RoleId.of(roleKey).value() : RoleId.of(roleKey, role.name()).value();
-        if (role == null) {
-            role = parseRole(roleKey);
-        }
+        roleKey = LegacyRoleSupport.canonicalRoleKey(roleKey, role);
+        role = LegacyRoleSupport.legacyRole(roleKey);
     }
 
     public IslandRoleSnapshot(UUID islandId, IslandRole role, int weight, String displayName) {
@@ -21,7 +20,7 @@ public record IslandRoleSnapshot(
     }
 
     public IslandRoleSnapshot(UUID islandId, String roleKey, int weight, String displayName) {
-        this(islandId, parseRole(roleKey), weight, displayName, RoleId.normalize(roleKey, IslandRole.MEMBER.name()));
+        this(islandId, null, weight, displayName, RoleId.normalize(roleKey, IslandRole.MEMBER.name()));
     }
 
     public String effectiveRoleKey() {
@@ -34,13 +33,5 @@ public record IslandRoleSnapshot(
 
     public SystemRole systemRole() {
         return roleId().asSystemRole();
-    }
-
-    private static IslandRole parseRole(String roleKey) {
-        try {
-            return IslandRole.valueOf(RoleId.normalize(roleKey, IslandRole.MEMBER.name()));
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
     }
 }

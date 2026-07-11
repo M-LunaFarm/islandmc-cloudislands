@@ -22,6 +22,7 @@ public record RoleId(String value) {
         return new RoleId(normalized);
     }
 
+    @SuppressWarnings("deprecation")
     public static RoleId of(IslandRole role, String fallback) {
         return of(role == null ? "" : role.name(), fallback);
     }

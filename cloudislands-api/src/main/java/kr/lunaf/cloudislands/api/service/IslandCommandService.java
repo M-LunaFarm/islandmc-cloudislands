@@ -205,6 +205,7 @@ public interface IslandCommandService {
     CompletableFuture<Void> withdrawBank(UUID islandId, UUID actorUuid, BigDecimal amount);
     CompletableFuture<IslandBankChangeSnapshot> withdrawBankResult(UUID islandId, UUID actorUuid, BigDecimal amount);
 
+    @SuppressWarnings("deprecation")
     private static String legacyRoleKey(IslandRole role) {
         return role == null ? "" : role.name();
     }

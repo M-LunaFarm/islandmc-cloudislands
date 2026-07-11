@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.api.model.IslandRoleSnapshot;
 import kr.lunaf.cloudislands.api.model.RoleId;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("deprecation")
 class IslandCommandServiceRoleKeyTest {
     @Test
     void legacyEnumRoleMethodsAreDeprecatedAdapters() throws Exception {

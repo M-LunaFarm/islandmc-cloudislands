@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.api.model;
 
 import java.util.UUID;
 
+@SuppressWarnings("deprecation")
 public record IslandPermissionRuleSnapshot(
     UUID islandId,
     IslandRole role,
@@ -10,10 +11,8 @@ public record IslandPermissionRuleSnapshot(
     String roleKey
 ) {
     public IslandPermissionRuleSnapshot {
-        roleKey = role == null ? RoleId.of(roleKey).value() : RoleId.of(roleKey, role.name()).value();
-        if (role == null) {
-            role = parseRole(roleKey);
-        }
+        roleKey = LegacyRoleSupport.canonicalRoleKey(roleKey, role);
+        role = LegacyRoleSupport.legacyRole(roleKey);
     }
 
     public IslandPermissionRuleSnapshot(UUID islandId, IslandRole role, IslandPermission permission, boolean allowed) {
@@ -21,7 +20,7 @@ public record IslandPermissionRuleSnapshot(
     }
 
     public IslandPermissionRuleSnapshot(UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
-        this(islandId, parseRole(roleKey), permission, allowed, RoleId.normalize(roleKey, IslandRole.MEMBER.name()));
+        this(islandId, null, permission, allowed, RoleId.normalize(roleKey, IslandRole.MEMBER.name()));
     }
 
     public String effectiveRoleKey() {
@@ -34,13 +33,5 @@ public record IslandPermissionRuleSnapshot(
 
     public SystemRole systemRole() {
         return roleId().asSystemRole();
-    }
-
-    private static IslandRole parseRole(String roleKey) {
-        try {
-            return IslandRole.valueOf(RoleId.normalize(roleKey, IslandRole.MEMBER.name()));
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
     }
 }

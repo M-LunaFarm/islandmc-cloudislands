@@ -3,12 +3,11 @@ package kr.lunaf.cloudislands.api.model;
 import java.time.Instant;
 import java.util.UUID;
 
+@SuppressWarnings("deprecation")
 public record IslandMemberSnapshot(UUID islandId, UUID playerUuid, IslandRole role, Instant joinedAt, Instant expiresAt, String roleKey) {
     public IslandMemberSnapshot {
-        roleKey = role == null ? RoleId.of(roleKey).value() : RoleId.of(roleKey, role.name()).value();
-        if (role == null) {
-            role = parseRole(roleKey);
-        }
+        roleKey = LegacyRoleSupport.canonicalRoleKey(roleKey, role);
+        role = LegacyRoleSupport.legacyRole(roleKey);
     }
 
     public IslandMemberSnapshot(UUID islandId, UUID playerUuid, IslandRole role, Instant joinedAt) {
@@ -20,7 +19,7 @@ public record IslandMemberSnapshot(UUID islandId, UUID playerUuid, IslandRole ro
     }
 
     public IslandMemberSnapshot(UUID islandId, UUID playerUuid, String roleKey, Instant joinedAt, Instant expiresAt) {
-        this(islandId, playerUuid, parseRole(roleKey), joinedAt, expiresAt, RoleId.normalize(roleKey, IslandRole.VISITOR.name()));
+        this(islandId, playerUuid, null, joinedAt, expiresAt, RoleId.normalize(roleKey, IslandRole.VISITOR.name()));
     }
 
     public String effectiveRoleKey() {
@@ -33,13 +32,5 @@ public record IslandMemberSnapshot(UUID islandId, UUID playerUuid, IslandRole ro
 
     public SystemRole systemRole() {
         return roleId().asSystemRole();
-    }
-
-    private static IslandRole parseRole(String roleKey) {
-        try {
-            return IslandRole.valueOf(RoleId.normalize(roleKey, IslandRole.VISITOR.name()));
-        } catch (IllegalArgumentException exception) {
-            return null;
-        }
     }
 }

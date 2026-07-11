@@ -11,6 +11,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.service.IslandCommandService;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("deprecation")
 class RoleIdSnapshotTest {
     @Test
     void roleIdRequiresCanonicalNonBlankValue() {
@@ -60,6 +61,27 @@ class RoleIdSnapshotTest {
         PermissionResult legacy = PermissionResult.deny("DEFAULT_DENY", IslandRole.TRUSTED);
         assertEquals(RoleId.of("TRUSTED"), legacy.effectiveRoleId());
         assertEquals(IslandRole.TRUSTED, legacy.effectiveRole());
+    }
+
+    @Test
+    void canonicalRoleIdentityWinsOverConflictingLegacyEnumValues() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        Instant joinedAt = Instant.parse("2026-01-02T03:04:05Z");
+
+        IslandMemberSnapshot customMember = new IslandMemberSnapshot(islandId, playerUuid, IslandRole.MEMBER, joinedAt, null, "builder");
+        IslandRoleSnapshot trustedRole = new IslandRoleSnapshot(islandId, IslandRole.MEMBER, 4, "Trusted", "trusted");
+        IslandPermissionRuleSnapshot customRule = new IslandPermissionRuleSnapshot(islandId, IslandRole.MEMBER, IslandPermission.BUILD, true, "builder");
+        PermissionResult customResult = new PermissionResult(true, "ALLOW", IslandRole.MEMBER, RoleId.of("builder"));
+
+        assertEquals(RoleId.of("BUILDER"), customMember.roleId());
+        assertNull(customMember.role());
+        assertEquals(RoleId.of("TRUSTED"), trustedRole.roleId());
+        assertEquals(IslandRole.TRUSTED, trustedRole.role());
+        assertEquals(RoleId.of("BUILDER"), customRule.roleId());
+        assertNull(customRule.role());
+        assertEquals(RoleId.of("BUILDER"), customResult.effectiveRoleId());
+        assertNull(customResult.effectiveRole());
     }
 
     @Test
