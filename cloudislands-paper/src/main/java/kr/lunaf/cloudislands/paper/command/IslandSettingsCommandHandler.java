@@ -58,7 +58,7 @@ final class IslandSettingsCommandHandler {
             openSettings(player);
             return true;
         }
-        if (subcommand.equals("language") || subcommand.equals("locale") || subcommand.equals("언어")) {
+        if (subcommand.equals("language") || subcommand.equals("locale") || subcommand.equals("lang") || subcommand.equals("언어")) {
             if (args.length < 2) {
                 runtime.message(player, message("input-locale-required", "언어 코드를 입력해주세요. 예: /섬 언어 ko_kr"));
                 return true;

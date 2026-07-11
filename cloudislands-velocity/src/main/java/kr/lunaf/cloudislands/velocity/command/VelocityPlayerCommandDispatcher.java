@@ -51,6 +51,14 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerRouting.showIslandSettings(player, islandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("language") || args[0].equalsIgnoreCase("locale") || args[0].equalsIgnoreCase("lang") || args[0].equals("언어")) {
+            if (args.length < 2) {
+                player.sendMessage(Component.text("언어 코드를 입력해주세요. 예: /is lang ko_kr"));
+            } else {
+                playerRouting.setPlayerLocale(player, args[1]);
+            }
+            return;
+        }
         if (args[0].equalsIgnoreCase("name") || args[0].equalsIgnoreCase("setname") || args[0].equalsIgnoreCase("rename") || args[0].equals("이름") || args[0].equals("이름설정")) {
             if (args.length < 2) {
                 player.sendMessage(Component.text("새 섬 이름을 입력해주세요."));

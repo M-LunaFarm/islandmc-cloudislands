@@ -190,6 +190,17 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void langPersistsLocaleThroughCoreOnVelocity() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerRoutingActions.java"));
+
+        assertTrue(IslandCommandCatalog.playerCommands().contains("섬 lang <ko_kr|en_us>"));
+        assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"lang\")"));
+        assertTrue(dispatcher.contains("playerRouting.setPlayerLocale(player, args[1])"));
+        assertTrue(actions.contains("playerProfileCommands().setLocale(player.getUniqueId(), locale)"));
+    }
+
+    @Test
     void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
 
