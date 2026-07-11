@@ -1167,6 +1167,9 @@ def run_load_probe(
             event_publish_observed = True
         secondary_events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 100, "sinceSeq": secondary_since_seq}, admin=True, expect=(200,))
         if any(event.get("type") == "ROUTE_TICKET_CREATED" for event in secondary_events.get("events", [])):
+            # A remote replay is also direct proof that the primary published the event.
+            # Outbound events are not required to loop back into the producer's local stream.
+            event_publish_observed = True
             event_lag = time.perf_counter() - event_probe_start
             event_replay_observed = True
             break
