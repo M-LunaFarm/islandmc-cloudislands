@@ -276,7 +276,7 @@ def main() -> int:
     else:
         command = prepare_velocity(work_dir, plugin, args.java_command)
         expected = ["CloudIslands Velocity config loaded", "health=127.0.0.1:18788", "CloudIslands Velocity router enabled"]
-        ready = ["Done ("]
+        ready = ["Listening on"]
         shutdown = "end\n"
 
     env = os.environ.copy()
