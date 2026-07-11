@@ -45,6 +45,12 @@ public final class IslandEntityLimitListener implements Listener {
         this.messages = messages;
     }
 
+    public void invalidate(UUID islandId) {
+        observedEntities.remove(islandId);
+        seededEntities.remove(islandId);
+        lastLimitNotice.remove(islandId);
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onEntitySpawn(EntitySpawnEvent event) {
         if (event.getEntity() instanceof Hanging || event.getEntity() instanceof Vehicle) {

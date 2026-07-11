@@ -24,7 +24,9 @@ import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import kr.lunaf.cloudislands.paper.limit.IslandEffectApplier;
 import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitListener;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
+import kr.lunaf.cloudislands.paper.limit.IslandLimitLifecycleListener;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
+import kr.lunaf.cloudislands.paper.limit.IslandRuntimeStateInvalidator;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.mission.IslandMissionProgressListener;
 import kr.lunaf.cloudislands.paper.mission.MissionRewardDeliveryListener;
@@ -105,8 +107,10 @@ final class PaperPluginBootstrap {
             plugin.boundaryListener = new IslandBoundaryListener(plugin.agent.protection(), plugin.messages);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.boundaryListener);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages, plugin.playerLocales, plugin.adminFlightOverrides));
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandLimitListener(plugin.agent.protection(), limitCache, plugin.messages));
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandEntityLimitListener(plugin.agent.protection(), limitCache, plugin.messages));
+            IslandLimitListener blockLimitListener = new IslandLimitListener(plugin.agent.protection(), limitCache, plugin.messages);
+            IslandEntityLimitListener entityLimitListener = new IslandEntityLimitListener(plugin.agent.protection(), limitCache, plugin.messages);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, blockLimitListener);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, entityLimitListener);
             plugin.generatorLevels = new GeneratorLevelCache(client, config.generator().defaultKey());
             CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
             plugin.localCaches.register("generator-levels", plugin.generatorLevels::invalidateAll);
@@ -114,6 +118,14 @@ final class PaperPluginBootstrap {
             plugin.generatorListener = new IslandGeneratorListener(plugin.agent.protection(), ConfigGeneratorRules.load(plugin), plugin.generatorLevels, blockDeltas);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.generatorListener);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandCropGrowthListener(plugin.agent.protection(), cropGrowthLevels, limitCache));
+            IslandRuntimeStateInvalidator stateInvalidator = new IslandRuntimeStateInvalidator(java.util.List.of(
+                blockLimitListener::invalidate,
+                entityLimitListener::invalidate,
+                limitCache::invalidate,
+                plugin.generatorLevels::invalidate,
+                cropGrowthLevels::invalidate
+            ));
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandLimitLifecycleListener(stateInvalidator));
             plugin.lifecycle.started("island-effects", new IslandEffectApplier(plugin, plugin.agent.protection(), limitCache).start());
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandMissionProgressListener(plugin.agent.protection(), client.progressionCommands(), client.progression()));
         }

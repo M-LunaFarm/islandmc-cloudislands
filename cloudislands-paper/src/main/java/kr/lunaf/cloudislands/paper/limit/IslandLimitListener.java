@@ -35,6 +35,13 @@ public final class IslandLimitListener implements Listener {
         this.messages = messages;
     }
 
+    public void invalidate(UUID islandId) {
+        observed.remove(islandId);
+        seeded.remove(islandId);
+        String noticePrefix = islandId + ":";
+        lastLimitNotice.keySet().removeIf(key -> key.startsWith(noticePrefix));
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         String key = limitKey(event.getBlockPlaced().getType());
