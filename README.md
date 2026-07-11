@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.17`
+Version: `1.1.18`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.17`
+Current release: `v1.1.18`
 
-Built for the CloudIslands 1.1.17 baseline.
+Built for the CloudIslands 1.1.18 baseline.
 
-Release notes for `v1.1.17`:
+Release notes for `v1.1.18`:
+
+- complete visitor-ban management: Paper operators can page through more than
+  45 active visitor bans without older entries becoming unreachable
+- authoritative ban navigation: previous/next actions preserve the island UUID
+  so detail inspection and pardon operations stay scoped to the correct island
+- complete invitation inbox: players can page through every pending island
+  invitation and accept or decline entries beyond the first GUI page
+- bounded page safety: requested pages are clamped against current list sizes,
+  including lists that shrink after a pardon, acceptance, decline, or expiry
+- localized controls: ban and invitation page navigation is available in both
+  Korean and English menu configurations
+
+Release notes carried forward from `v1.1.17`:
 
 - Paper island-list workflow: left-click still visits an island while
   right-click safely selects it as the player's primary island
@@ -875,7 +888,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.17`.
+Current read: production-readiness baseline `v1.1.18`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
