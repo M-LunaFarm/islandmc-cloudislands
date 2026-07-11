@@ -158,7 +158,12 @@ public final class ProtectionController {
                 ANIMAL_SHEAR,
                 FISH,
                 ENTITY_RIDE,
-                VILLAGER_TRADE -> IslandFlag.VISITOR_INTERACT;
+                VILLAGER_TRADE,
+                PICKUP_ENTITY_BUCKET,
+                TAKE_LECTERN_BOOK,
+                DYE_SHEEP,
+                SADDLE_ENTITY,
+                BRUSH -> IslandFlag.VISITOR_INTERACT;
             case OPEN_CONTAINER -> IslandFlag.VISITOR_CONTAINER;
             case PICKUP_ITEM -> IslandFlag.VISITOR_PICKUP;
             case DROP_ITEM -> IslandFlag.VISITOR_DROP;

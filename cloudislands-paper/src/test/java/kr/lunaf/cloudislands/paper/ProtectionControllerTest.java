@@ -150,10 +150,34 @@ class ProtectionControllerTest {
             IslandPermission.ANIMAL_SHEAR,
             IslandPermission.FISH,
             IslandPermission.ENTITY_RIDE,
-            IslandPermission.VILLAGER_TRADE
+            IslandPermission.VILLAGER_TRADE,
+            IslandPermission.PICKUP_ENTITY_BUCKET,
+            IslandPermission.TAKE_LECTERN_BOOK,
+            IslandPermission.DYE_SHEEP,
+            IslandPermission.SADDLE_ENTITY,
+            IslandPermission.BRUSH
         )) {
             assertTrue(protection.checkBlock(VISITOR, "ci_shard_001", 0, 100, 0, permission).allowed(), permission.name());
         }
+    }
+
+    @Test
+    void itemEntityAndSpecialTeleportActionsUseGranularPermissions() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("onBucketEntity(PlayerBucketEntityEvent event)"));
+        assertTrue(listener.contains("IslandPermission.PICKUP_ENTITY_BUCKET"));
+        assertTrue(listener.contains("onTakeLecternBook(PlayerTakeLecternBookEvent event)"));
+        assertTrue(listener.contains("IslandPermission.TAKE_LECTERN_BOOK"));
+        assertTrue(listener.contains("entity instanceof Sheep"));
+        assertTrue(listener.contains("IslandPermission.DYE_SHEEP"));
+        assertTrue(listener.contains("held == Material.SADDLE"));
+        assertTrue(listener.contains("IslandPermission.SADDLE_ENTITY"));
+        assertTrue(listener.contains("event.getItem().getType() == Material.BRUSH"));
+        assertTrue(listener.contains("IslandPermission.BRUSH"));
+        assertTrue(listener.contains("onSpecialTeleport(PlayerTeleportEvent event)"));
+        assertTrue(listener.contains("cause.equals(\"ENDER_PEARL\")"));
+        assertTrue(listener.contains("cause.equals(\"CHORUS_FRUIT\")"));
     }
 
     @Test

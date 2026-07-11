@@ -46,7 +46,14 @@ class DefaultIslandPermissionsTest {
             IslandPermission.ANIMAL_SHEAR,
             IslandPermission.FISH,
             IslandPermission.ENTITY_RIDE,
-            IslandPermission.VILLAGER_TRADE
+            IslandPermission.VILLAGER_TRADE,
+            IslandPermission.PICKUP_ENTITY_BUCKET,
+            IslandPermission.TAKE_LECTERN_BOOK,
+            IslandPermission.DYE_SHEEP,
+            IslandPermission.SADDLE_ENTITY,
+            IslandPermission.BRUSH,
+            IslandPermission.ENDER_PEARL,
+            IslandPermission.CHORUS_FRUIT
         );
 
         for (IslandPermission permission : IslandPermission.values()) {

@@ -17,9 +17,12 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.AbstractHorse;
 import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Animals;
+import org.bukkit.entity.Axolotl;
+import org.bukkit.entity.Fish;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Steerable;
+import org.bukkit.entity.Sheep;
 import org.bukkit.entity.Vehicle;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -57,12 +60,15 @@ import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketEntityEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerTakeLecternBookEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
@@ -154,6 +160,27 @@ public final class IslandProtectionListener implements Listener {
         event.setCancelled(blocked);
         if (!blocked && (event.getBlock().getType() == Material.WATER || event.getBlock().getType() == Material.LAVA)) {
             protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getPlayer().getUniqueId(), event.getBlock()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onBucketEntity(PlayerBucketEntityEvent event) {
+        event.setCancelled(denied(event.getPlayer(), event.getEntity().getLocation().getBlock(), IslandPermission.PICKUP_ENTITY_BUCKET));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onTakeLecternBook(PlayerTakeLecternBookEvent event) {
+        event.setCancelled(denied(event.getPlayer(), event.getLectern().getBlock(), IslandPermission.TAKE_LECTERN_BOOK));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onSpecialTeleport(PlayerTeleportEvent event) {
+        String cause = event.getCause().name();
+        IslandPermission permission = cause.equals("ENDER_PEARL")
+            ? IslandPermission.ENDER_PEARL
+            : cause.equals("CHORUS_FRUIT") ? IslandPermission.CHORUS_FRUIT : null;
+        if (permission != null && event.getTo() != null) {
+            event.setCancelled(denied(event.getPlayer(), event.getTo().getBlock(), permission));
         }
     }
 
@@ -528,13 +555,25 @@ public final class IslandProtectionListener implements Listener {
         if (event.getAction() == Action.PHYSICAL && event.getClickedBlock() != null && event.getClickedBlock().getType() == Material.FARMLAND) {
             return IslandPermission.BUILD;
         }
+        if (event.getItem() != null && event.getItem().getType() == Material.BRUSH) {
+            return IslandPermission.BRUSH;
+        }
         return interactionPermission(event.getClickedBlock().getType());
     }
 
     private IslandPermission entityInteractionPermission(Player player, org.bukkit.entity.Entity entity, org.bukkit.inventory.EquipmentSlot hand) {
         Material held = player.getInventory().getItem(hand).getType();
+        if (held == Material.WATER_BUCKET && (entity instanceof Fish || entity instanceof Axolotl)) {
+            return IslandPermission.PICKUP_ENTITY_BUCKET;
+        }
         if (held == Material.SHEARS) {
             return IslandPermission.ANIMAL_SHEAR;
+        }
+        if (held.getKey().getKey().endsWith("_dye") && entity instanceof Sheep) {
+            return IslandPermission.DYE_SHEEP;
+        }
+        if (held == Material.SADDLE && (entity instanceof AbstractHorse || entity instanceof Steerable)) {
+            return IslandPermission.SADDLE_ENTITY;
         }
         if (entity instanceof Animals animals && animals.isBreedItem(player.getInventory().getItem(hand))) {
             return IslandPermission.ANIMAL_BREED;
