@@ -319,9 +319,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "flags/protection",
         "IMPLEMENTED_VERIFIED",
         "Gameplay and permission flags are represented in the domain",
-        "Paper protection listeners and cache paths have unit coverage",
+        "Paper protection listeners, fertilization growth boundaries, and cache paths have unit coverage",
         "Bukkit-facing behavior is kept inside Paper runtime code",
-        "unit verified; Paper policy tests cover bounded asynchronous safe returns after boundary escape",
+        "unit verified; Paper policy tests cover fertilization growth boundaries and bounded asynchronous safe returns",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/ProtectionControllerTest.java",

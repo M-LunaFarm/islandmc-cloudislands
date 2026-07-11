@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.34`
+Version: `1.1.35`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -594,7 +594,7 @@ integration verification.
 |---|---|---|---|
 | lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume; Paper tests verify target-island coordinates and bounded safe destinations | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
-| flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover bounded asynchronous safe returns after boundary escape | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
+| flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover fertilization growth boundaries and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.34`
+Current release: `v1.1.35`
 
-Built for the CloudIslands 1.1.34 baseline.
+Built for the CloudIslands 1.1.35 baseline.
 
-Release notes for `v1.1.34`:
+Release notes for `v1.1.35`:
+
+- granular SS2-style control: island roles now expose a dedicated `FERTILIZE`
+  permission instead of treating every bone-meal action as generic interaction
+- default compatibility: members and trusted players retain fertilization access,
+  while visitors and unknown/custom roles remain denied until explicitly allowed
+- allocation safety: fertilized trees and vegetation are cancelled atomically
+  when any generated block would cross the authoritative island boundary
+- natural growth safety: non-bone-meal structure growth follows the same island
+  boundary rule, preventing trees from entering neighboring allocation cells
+- accurate progression: every allowed generated block is reported through the
+  existing block replacement delta path for level and worth recalculation
+
+Release notes carried forward from `v1.1.34`:
 
 - safe boundary recovery: players crossing an island edge now return through
   the same solid-ground, clearance, liquid, and hazard validation as homes and
@@ -1102,7 +1115,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.34`.
+Current read: production-readiness baseline `v1.1.35`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
