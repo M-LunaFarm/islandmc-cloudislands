@@ -347,6 +347,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(warehouseHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
         assertTrue(warehouseHandler.contains("IslandWarehouseMenu.open"));
+        assertTrue(warehouseHandler.contains("if (!canOpenWarehouse(player))"), "warehouse menu and list must enforce the island container permission before revealing contents");
+        assertTrue(warehouseHandler.contains("runtime.allowed(player, IslandPermission.OPEN_CONTAINER)"), "warehouse reads must use the same island container permission as mutations");
+        assertTrue(warehouseHandler.contains("warehouse-open-denied"), "denied warehouse reads must give explicit operator-configurable feedback");
         assertTrue(warehouseHandler.contains("isWarehouseMenuCommand(subcommand)"));
         assertTrue(warehouseHandler.contains("isWarehouseListCommand(subcommand)"));
         assertTrue(warehouseHandler.contains("subcommand.equals(\"chest\")"));

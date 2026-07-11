@@ -598,6 +598,7 @@ warehouse-list-island-required: "You must be on an island to view the warehouse.
 warehouse-list-load-failed: "Could not load the island warehouse."
 warehouse-list-prefix: "Island warehouse: "
 warehouse-menu-island-required: "You must be on an island to open the warehouse menu."
+warehouse-open-denied: "You do not have permission to open the island warehouse."
 warehouse-not-enough-items: "Not enough items in your inventory."
 warehouse-withdraw-denied: "You do not have permission for warehouse withdraw."
 warehouse-withdraw-failed: "Could not withdraw from the island warehouse."

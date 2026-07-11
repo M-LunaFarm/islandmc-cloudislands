@@ -85,11 +85,19 @@ final class IslandWarehouseCommandHandler {
     }
 
     private void openWarehouseMenu(Player player) {
-        runtime.currentIsland(player, message("warehouse-menu-island-required", "섬 안에서만 창고 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandWarehouseMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+        runtime.currentIsland(player, message("warehouse-menu-island-required", "섬 안에서만 창고 메뉴를 열 수 있습니다.")).ifPresent(islandId -> {
+            if (!canOpenWarehouse(player)) {
+                return;
+            }
+            IslandWarehouseMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player));
+        });
     }
 
     private void listWarehouse(Player player, int limit) {
         runtime.currentIsland(player, message("warehouse-list-island-required", "섬 안에서만 창고를 확인할 수 있습니다.")).ifPresent(islandId -> {
+            if (!canOpenWarehouse(player)) {
+                return;
+            }
             warehouseUseCase.listItems(islandId, limit)
                 .thenAccept(items -> runtime.message(player, warehouseListMessage(items)))
                 .exceptionally(error -> {
@@ -97,6 +105,14 @@ final class IslandWarehouseCommandHandler {
                     return null;
                 });
         });
+    }
+
+    private boolean canOpenWarehouse(Player player) {
+        if (runtime.allowed(player, IslandPermission.OPEN_CONTAINER)) {
+            return true;
+        }
+        runtime.message(player, message("warehouse-open-denied", "섬 창고를 열 권한이 없습니다."));
+        return false;
     }
 
     private void changeWarehouse(Player player, String materialKey, long amount, boolean deposit) {
