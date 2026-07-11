@@ -22,6 +22,7 @@ public final class IslandHomeMenu implements Listener {
         "config-v2/ui/menus/homes.yml",
         new GuiMenuDefinition("island.homes", 6, TITLE_KEY, Map.of(
             "open", "island.homes.open",
+            "page", "island.homes.page",
             "home", "island.home",
             "set", "island.home.set",
             "settings", "island.settings.open",
@@ -50,10 +51,14 @@ public final class IslandHomeMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandHomes(client, islandId)
-            .thenAccept(homes -> openSync(plugin, player, session, homes, messages))
+            .thenAccept(homes -> openSync(plugin, player, session, islandId, page, homes, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "home-menu-load-failed", "섬 홈을 불러오지 못했습니다."), "island.homes.open", "island.settings.open");
                 return null;
@@ -100,19 +105,34 @@ public final class IslandHomeMenu implements Listener {
         }
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<HomeView> homes, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, int requestedPage, List<HomeView> homes, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             List<Integer> homeSlots = GuiMenuRenderer.slots(MENU, "_");
-            List<HomeView> visibleHomes = homes.stream().limit(homeSlots.size()).toList();
+            int pageSize = Math.max(1, homeSlots.size());
+            int maxPage = Math.max(0, (homes.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            String title = TITLE + " (" + (page + 1) + "/" + (maxPage + 1) + ")";
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, title, item -> !List.of("E", "_", "P", "N").contains(item.symbol()));
+            List<HomeView> visibleHomes = homes.stream().skip((long) page * pageSize).limit(pageSize).toList();
             for (int index = 0; index < visibleHomes.size(); index++) {
                 inventory.setItem(homeSlots.get(index), homeItem(visibleHomes.get(index), messages));
             }
             if (homes.isEmpty()) {
                 setEmptyItem(inventory, messages);
             }
+            if (page > 0) {
+                setPageItem(inventory, "P", islandId, page - 1, messages);
+            }
+            if (page < maxPage) {
+                setPageItem(inventory, "N", islandId, page + 1, messages);
+            }
             player.openInventory(inventory);
         });
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, int page, MessageRenderer messages) {
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("islandId", islandId.toString(), "page", Integer.toString(page)), List.of());
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

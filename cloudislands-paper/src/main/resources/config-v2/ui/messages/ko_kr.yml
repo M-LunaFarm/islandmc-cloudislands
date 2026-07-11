@@ -657,3 +657,7 @@ warp-teleport-island-required: "섬 안에서만 워프로 이동할 수 있습�
 warp-teleport-success: "섬 워프로 이동했습니다."
 admin-command-permission-input-invalid: "올바른 권한과 true/false 값을 입력해주세요."
 admin-command-flag-input-invalid: "올바른 섬 플래그를 입력해주세요."
+home-menu-previous-page: "이전 홈 페이지"
+home-menu-next-page: "다음 홈 페이지"
+warp-menu-previous-page: "이전 워프 페이지"
+warp-menu-next-page: "다음 워프 페이지"

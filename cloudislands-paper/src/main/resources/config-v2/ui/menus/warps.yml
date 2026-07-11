@@ -7,7 +7,7 @@ layout:
   - "_________"
   - "_________"
   - "_________"
-  - "W...S...M"
+  - "WP..SN..M"
 items:
   _:
     material: ENDER_PEARL
@@ -34,6 +34,16 @@ items:
       - "사용법: /섬 워프설정 <이름>"
     data:
       mode: set-current
+  P:
+    material: ARROW
+    name-key: warp-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: warp-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
   S:
     material: COMPARATOR
     name-key: warp-menu-settings-name
@@ -54,6 +64,7 @@ items:
     action: back
 actions:
   open: island.warps.open
+  page: island.warps.page
   teleport: island.warp.teleport
   public-toggle: island.warp.public.toggle
   public: island.warp.public

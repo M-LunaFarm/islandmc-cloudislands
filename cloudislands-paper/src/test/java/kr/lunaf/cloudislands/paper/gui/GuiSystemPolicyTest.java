@@ -342,6 +342,7 @@ class GuiSystemPolicyTest {
         )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
             assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())")
+                || menuName.equals("IslandHomeMenu") && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
                 || List.of("IslandBanMenu", "IslandMyIslandsMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())")
                 || List.of("IslandInviteMenu", "IslandSnapshotMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
                 || menuName.equals("IslandVisitMenu") && menu.contains("!List.of(\"E\", \"W\", \"N\").contains(item.symbol())")
@@ -463,6 +464,12 @@ class GuiSystemPolicyTest {
         String warehouse = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandWarehouseMenu.java"));
         assertTrue(warehouse.contains("int maxPage = Math.max(0, (entries.size() - 1) / pageSize)"), "all warehouse rows returned by Core must remain visible despite footer controls");
         assertTrue(warehouse.contains("rows * 9"), "warehouse query must continue honoring the configured row capacity before pagination");
+        String homes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandHomeMenu.java"));
+        assertTrue(homes.contains("int maxPage = Math.max(0, (homes.size() - 1) / pageSize)"), "named homes beyond the first GUI page must remain reachable");
+        assertTrue(homes.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "home page actions must retain authoritative island context");
+        String warps = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandWarpMenu.java"));
+        assertTrue(warps.contains("int maxPage = publicMenu ? 0 : Math.max(0, (warps.size() - 1) / pageSize)"), "private warps beyond the first GUI page must remain reachable");
+        assertTrue(warps.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "warp page actions must retain authoritative island context");
     }
 
     @Test

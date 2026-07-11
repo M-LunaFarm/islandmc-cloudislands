@@ -175,12 +175,20 @@ final class IslandHomeWarpCommandHandler {
             setHome(player, homeSet.homeName());
             return true;
         }
+        if (action instanceof GuiAction.HomePage page) {
+            IslandHomeMenu.open(plugin, coreApiClient, player, page.islandId(), runtime.messagesFor(player), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.WarpTeleport warpTeleport) {
             if (warpTeleport.islandId() != null) {
                 runtime.routeWarp(player, warpTeleport.islandId(), warpTeleport.warpName());
             } else {
                 teleportWarp(player, warpTeleport.warpName());
             }
+            return true;
+        }
+        if (action instanceof GuiAction.WarpPage page) {
+            IslandWarpMenu.open(plugin, coreApiClient, player, page.islandId(), runtime.messagesFor(player), page.page());
             return true;
         }
         if (action instanceof GuiAction.PublicWarpCategory publicWarpCategory) {

@@ -7,7 +7,7 @@ layout:
   - "____E____"
   - "_________"
   - "_________"
-  - "D...S...M"
+  - "DP..SN..M"
 items:
   E:
     material: BARRIER
@@ -36,6 +36,16 @@ items:
       homeName: default
       mode: set-default
     action: set
+  P:
+    material: ARROW
+    name-key: home-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: home-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
   S:
     material: COMPARATOR
     name-key: home-menu-settings-name
@@ -56,6 +66,7 @@ items:
     action: back
 actions:
   open: island.homes.open
+  page: island.homes.page
   home: island.home
   set: island.home.set
   settings: island.settings.open

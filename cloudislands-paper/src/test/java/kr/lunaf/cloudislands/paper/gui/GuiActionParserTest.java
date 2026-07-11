@@ -351,6 +351,14 @@ class GuiActionParserTest {
             "islandId", "00000000-0000-0000-0000-000000000006", "page", "1")).orElseThrow();
         assertTrue(warehousePage instanceof GuiAction.WarehousePage);
         assertEquals("1", warehousePage.data().get("page"));
+        GuiAction homePage = GuiActionParser.parse("island.homes.page", Map.of(
+            "islandId", "00000000-0000-0000-0000-000000000007", "page", "2")).orElseThrow();
+        assertTrue(homePage instanceof GuiAction.HomePage);
+        assertEquals("2", homePage.data().get("page"));
+        GuiAction warpPage = GuiActionParser.parse("island.warps.page", Map.of(
+            "islandId", "00000000-0000-0000-0000-000000000008", "page", "3")).orElseThrow();
+        assertTrue(warpPage instanceof GuiAction.WarpPage);
+        assertEquals("3", warpPage.data().get("page"));
     }
 
     @Test
@@ -547,7 +555,7 @@ class GuiActionParserTest {
             case "island.warp.delete.prepare", "island.warp.private", "island.warp.public",
                 "island.warp.teleport" -> Map.of("warpName", "shop");
             case "island.warp.public.toggle" -> Map.of("warpName", "shop", "publicAccess", "true");
-            case "island.warehouse.page" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000", "page", "0");
+            case "island.homes.page", "island.warehouse.page", "island.warps.page" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000", "page", "0");
             default -> Map.of();
         };
     }

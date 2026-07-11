@@ -74,6 +74,7 @@ public final class GuiActionParser {
         "island.help.open",
         "island.home",
         "island.home.set",
+        "island.homes.page",
         "island.homes.open",
         "island.info.open",
         "island.invite.accept",
@@ -152,6 +153,7 @@ public final class GuiActionParser {
         "island.warp.public.toggle",
         "island.warp.teleport",
         "island.warps.open",
+        "island.warps.page",
         "island.worth.show"
     );
 
@@ -402,9 +404,17 @@ public final class GuiActionParser {
                 case "island.home.set" -> Optional.of(new GuiAction.HomeSet(
                     required(safeData, "homeName")
                 ));
+                case "island.homes.page" -> Optional.of(new GuiAction.HomePage(
+                    UUID.fromString(required(safeData, "islandId")),
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
                 case "island.warp.teleport" -> Optional.of(new GuiAction.WarpTeleport(
                     required(safeData, "warpName"),
                     optionalUuid(safeData, "islandId")
+                ));
+                case "island.warps.page" -> Optional.of(new GuiAction.WarpPage(
+                    UUID.fromString(required(safeData, "islandId")),
+                    nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.warp.public", "island.warp.private" -> Optional.of(new GuiAction.WarpAccess(
                     safeAction.equals("island.warp.public") ? GuiAction.WarpAccessType.PUBLIC : GuiAction.WarpAccessType.PRIVATE,
