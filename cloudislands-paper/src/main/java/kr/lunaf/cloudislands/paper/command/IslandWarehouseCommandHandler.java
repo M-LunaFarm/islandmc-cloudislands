@@ -22,6 +22,7 @@ final class IslandWarehouseCommandHandler {
     private final CoreApiClient coreApiClient;
     private final IslandWarehouseUseCase warehouseUseCase;
     private final Runtime runtime;
+    private final PendingWarehouseOperations pendingOperations = new PendingWarehouseOperations();
 
     IslandWarehouseCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
@@ -139,22 +140,41 @@ final class IslandWarehouseCommandHandler {
                 runtime.message(player, runtime.playerCodeMessage("INVENTORY_FULL", message("warehouse-inventory-full", "인벤토리 공간이 부족합니다.")));
                 return;
             }
+            UUID playerUuid = player.getUniqueId();
+            if (!pendingOperations.acquire(playerUuid)) {
+                runtime.message(player, message("warehouse-operation-pending", "진행 중인 창고 작업이 끝난 뒤 다시 시도해주세요."));
+                return;
+            }
             if (deposit) {
                 removeMaterial(player, material, amount);
             }
-            CompletableFuture<IslandWarehouseUseCase.WarehouseOperationResult> request = deposit
-                ? warehouseUseCase.deposit(islandId, player.getUniqueId(), material.name(), amount, runtime::mutateIdempotent)
-                : warehouseUseCase.withdraw(islandId, player.getUniqueId(), material.name(), amount, runtime::mutateIdempotent);
-            request.thenAccept(result -> PaperSchedulers.run(plugin, () -> handleWarehouseResult(player, material, amount, deposit, result)))
-                .exceptionally(error -> {
-                    PaperSchedulers.run(plugin, () -> {
+            CompletableFuture<IslandWarehouseUseCase.WarehouseOperationResult> request;
+            try {
+                request = deposit
+                    ? warehouseUseCase.deposit(islandId, playerUuid, material.name(), amount, runtime::mutateIdempotent)
+                    : warehouseUseCase.withdraw(islandId, playerUuid, material.name(), amount, runtime::mutateIdempotent);
+            } catch (RuntimeException error) {
+                if (deposit) {
+                    giveMaterial(player, material, amount);
+                }
+                pendingOperations.release(playerUuid);
+                runtime.message(player, runtime.coreWriteFailureMessage(error, warehouseFailureMessage(deposit)));
+                return;
+            }
+            request.whenComplete((result, error) -> PaperSchedulers.run(plugin, () -> {
+                try {
+                    if (error != null) {
                         if (deposit) {
                             giveMaterial(player, material, amount);
                         }
                         runtime.message(player, runtime.coreWriteFailureMessage(error, warehouseFailureMessage(deposit)));
-                    });
-                    return null;
-                });
+                    } else {
+                        handleWarehouseResult(player, material, amount, deposit, result);
+                    }
+                } finally {
+                    pendingOperations.release(playerUuid);
+                }
+            }));
         });
     }
 
