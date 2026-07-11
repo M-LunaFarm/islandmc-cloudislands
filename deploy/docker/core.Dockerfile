@@ -1,8 +1,10 @@
+# syntax=docker/dockerfile:1.7
 FROM eclipse-temurin:21-jdk-jammy AS build
 
 WORKDIR /workspace
 COPY . .
-RUN ./gradlew --no-daemon :cloudislands-core-service:installDist
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew --no-daemon :cloudislands-core-service:installDist
 
 FROM eclipse-temurin:21-jre-jammy
 

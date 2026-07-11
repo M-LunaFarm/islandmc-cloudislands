@@ -188,6 +188,8 @@ class ProductionReadinessPolicyTest {
         assertTrue(compose.contains("postgres:"));
         assertTrue(compose.contains("redis:"));
         assertTrue(compose.contains("minio:"));
+        assertTrue(compose.contains("minio-init:"));
+        assertTrue(compose.contains("mc mb --ignore-existing local/cloudislands"));
         assertTrue(compose.contains("core-1:"));
         assertTrue(compose.contains("core-2:"));
         assertTrue(compose.contains("velocity:"));
@@ -195,6 +197,12 @@ class ProductionReadinessPolicyTest {
         assertTrue(compose.contains("island-paper-a:"));
         assertTrue(compose.contains("island-paper-b:"));
         assertTrue(compose.contains("_FILE"));
+        assertTrue(compose.contains("CI_REDIS_PASSWORD_FILE: /run/secrets/cloudislands_redis_password"));
+        assertTrue(compose.contains("CI_AUTH_MODE: TOKEN_REQUIRED"));
+        assertTrue(compose.contains("CI_DB_AUTO_SCHEMA: \"true\""));
+        assertTrue(compose.contains("http://127.0.0.1:8443/live"));
+        assertTrue(compose.contains("${CLOUDISLANDS_CORE_API_BIND:-127.0.0.1}:8443:8443"));
+        assertTrue(compose.contains("CLOUDISLANDS_NODE_ROLE: ISLAND_NODE"));
         assertTrue(compose.contains("networks:"));
         assertTrue(compose.contains("internal: true"));
 

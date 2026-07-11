@@ -126,7 +126,10 @@ public record CoreServiceConfig(
             !env("CI_SETUP_CORE_API_AUTH_TOKEN", setupDatabaseCoreApiSetting(config, "auth-token", setting(config, "core-api.auth-token", env("CI_CORE_TOKEN", "")))).isBlank(),
             !env("CI_SETUP_CORE_API_ADMIN_TOKEN", setupDatabaseCoreApiSetting(config, "admin-token", setting(config, "core-api.admin-token", env("CI_ADMIN_TOKEN", "")))).isBlank(),
             integer("CI_SETUP_CORE_API_TIMEOUT_MS", setupDatabaseCoreApiInteger(config, "timeout-ms", configInteger(config, "core-api.timeout-ms", 3000))),
-            URI.create(env("CI_REDIS_URI", setupSetting(config, "redis-uri", setting(config, "redis.uri", "redis://redis.internal:6379")))),
+            RedisUriResolver.withPassword(
+                URI.create(env("CI_REDIS_URI", setupSetting(config, "redis-uri", setting(config, "redis.uri", "redis://redis.internal:6379")))),
+                env("CI_REDIS_PASSWORD", "")
+            ),
             bool("CI_REDIS_LOCK_LOCAL_FALLBACK_ENABLED", configBoolean(config, "routing.redis-lock-local-fallback-enabled", configBoolean(config, "redis.lock-local-fallback-enabled", false))),
             env("CI_STORAGE_TYPE", setupSetting(config, "storage-type", setting(config, "storage.type", "S3"))),
             URI.create(env("CI_STORAGE_ENDPOINT", setupSetting(config, "storage-endpoint", setting(config, "storage.endpoint", "http://minio.internal:9000")))),
