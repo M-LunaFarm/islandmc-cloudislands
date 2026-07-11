@@ -61,7 +61,7 @@ tasks.shadowJar {
             "CloudIslands-Paper-Job-Completion-Payload" to "activation-save-deactivation-delete-completions-carry-job-context-and-fencing-token",
             "CloudIslands-Paper-Command-List-Policy" to "one-line-one-command-page-size-12",
             "CloudIslands-Paper-Protection-Decision-Policy" to "ProtectionDecisionPolicy-region-index-local-cache-only-no-sync-core-api-http-db-redis-on-hot-path",
-            "CloudIslands-Paper-Protection-Event-Coverage" to "block,interact,bucket,inventory,entity-damage,explosion,hanging,item,armorstand,shear,breed,fish,ride,villager-trade,leash,vehicle,fire,spread,decay,fluid,fertilize,structure-growth",
+            "CloudIslands-Paper-Protection-Event-Coverage" to "block,interact,bucket,entity-bucket,lectern-book,special-teleport,brush,dye,saddle,inventory,entity-damage,explosion,hanging,item,armorstand,shear,breed,fish,ride,villager-trade,leash,vehicle,fire,spread,decay,fluid,fertilize,structure-growth",
             "CloudIslands-Paper-Level-Worth-Policy" to "block-delta-reporter-plus-periodic-island-level-scan",
             "CloudIslands-Paper-Generator-Policy" to "config-driven-generator-rules-blockform-and-fluid-collision-replacement",
             "CloudIslands-Paper-Generator-Rule-Resource" to "rules/generators.yaml",
