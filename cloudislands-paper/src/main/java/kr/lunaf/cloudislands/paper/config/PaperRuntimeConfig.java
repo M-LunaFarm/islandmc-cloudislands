@@ -262,7 +262,8 @@ public record PaperRuntimeConfig(
         long activationWorkerIntervalTicks,
         long periodicSaveSeconds,
         long saveOnEmptyAfterSeconds,
-        long levelScanIntervalSeconds
+        long levelScanIntervalSeconds,
+        long shutdownSaveTimeoutSeconds
     ) {
         public Worker {
             shardWorldPrefix = blankDefault(shardWorldPrefix, "ci_shard_");
@@ -274,10 +275,11 @@ public record PaperRuntimeConfig(
             periodicSaveSeconds = Math.max(1L, periodicSaveSeconds);
             saveOnEmptyAfterSeconds = Math.max(1L, saveOnEmptyAfterSeconds);
             levelScanIntervalSeconds = Math.max(1L, levelScanIntervalSeconds);
+            shutdownSaveTimeoutSeconds = Math.max(1L, shutdownSaveTimeoutSeconds);
         }
 
         public static Worker defaults() {
-            return new Worker("ci_shard_", 16, 1024, 4, 300, 20L, 600L, 300L, 900L);
+            return new Worker("ci_shard_", 16, 1024, 4, 300, 20L, 600L, 300L, 900L, 30L);
         }
     }
 

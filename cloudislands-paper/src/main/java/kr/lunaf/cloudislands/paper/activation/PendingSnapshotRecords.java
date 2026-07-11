@@ -17,7 +17,7 @@ final class PendingSnapshotRecords {
     private static final Base64.Encoder ENCODER = Base64.getUrlEncoder().withoutPadding();
     private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
 
-    private final Map<UUID, PendingSnapshotRecord> pending = new HashMap<>();
+    private final Map<RecordKey, PendingSnapshotRecord> pending = new HashMap<>();
     private final Map<UUID, PendingSnapshotRecord> inFlight = new HashMap<>();
     private final Path journalPath;
     private String lastPersistenceError = "";
@@ -34,32 +34,37 @@ final class PendingSnapshotRecords {
     }
 
     synchronized boolean enqueue(PendingSnapshotRecord record) {
-        PendingSnapshotRecord existing = pending.putIfAbsent(record.islandId(), record);
+        PendingSnapshotRecord existing = pending.putIfAbsent(RecordKey.of(record), record);
         return existing != null || persist();
     }
 
     synchronized boolean contains(UUID islandId) {
-        return pending.containsKey(islandId);
+        return pending.keySet().stream().anyMatch(key -> key.islandId().equals(islandId));
     }
 
     synchronized List<PendingSnapshotRecord> claimAll() {
-        return pending.values().stream().filter(this::claim).toList();
+        return pending.values().stream()
+            .sorted(Comparator.comparing(PendingSnapshotRecord::islandId).thenComparingLong(PendingSnapshotRecord::snapshotNo))
+            .filter(record -> record.equals(oldestPending(record.islandId())))
+            .filter(this::claim)
+            .toList();
     }
 
     synchronized List<PendingSnapshotRecord> claim(UUID islandId) {
-        PendingSnapshotRecord record = pending.get(islandId);
+        PendingSnapshotRecord record = oldestPending(islandId);
         return record != null && claim(record) ? List.of(record) : List.of();
     }
 
     synchronized boolean completed(PendingSnapshotRecord record) {
         inFlight.remove(record.islandId(), record);
-        if (!pending.remove(record.islandId(), record)) {
+        RecordKey key = RecordKey.of(record);
+        if (!pending.remove(key, record)) {
             return true;
         }
         if (persist()) {
             return true;
         }
-        pending.putIfAbsent(record.islandId(), record);
+        pending.putIfAbsent(key, record);
         return false;
     }
 
@@ -83,6 +88,13 @@ final class PendingSnapshotRecords {
         return inFlight.putIfAbsent(record.islandId(), record) == null;
     }
 
+    private PendingSnapshotRecord oldestPending(UUID islandId) {
+        return pending.values().stream()
+            .filter(record -> record.islandId().equals(islandId))
+            .min(Comparator.comparingLong(PendingSnapshotRecord::snapshotNo))
+            .orElse(null);
+    }
+
     private void loadJournal() {
         if (journalPath == null || Files.notExists(journalPath)) {
             return;
@@ -94,7 +106,7 @@ final class PendingSnapshotRecords {
                 }
                 try {
                     PendingSnapshotRecord record = decode(line);
-                    pending.putIfAbsent(record.islandId(), record);
+                    pending.putIfAbsent(RecordKey.of(record), record);
                 } catch (RuntimeException invalidRecord) {
                     discardedJournalRecords++;
                 }
@@ -120,7 +132,7 @@ final class PendingSnapshotRecords {
                 Files.createDirectories(parent);
             }
             List<String> lines = pending.values().stream()
-                .sorted(Comparator.comparing(record -> record.islandId().toString()))
+                .sorted(Comparator.comparing((PendingSnapshotRecord record) -> record.islandId().toString()).thenComparingLong(PendingSnapshotRecord::snapshotNo))
                 .map(PendingSnapshotRecords::encode)
                 .toList();
             Files.write(temporary, lines, StandardCharsets.UTF_8);
@@ -182,6 +194,12 @@ final class PendingSnapshotRecords {
 
     private static String errorMessage(Exception error) {
         return error.getMessage() == null || error.getMessage().isBlank() ? error.getClass().getSimpleName() : error.getMessage();
+    }
+
+    private record RecordKey(UUID islandId, long snapshotNo) {
+        private static RecordKey of(PendingSnapshotRecord record) {
+            return new RecordKey(record.islandId(), record.snapshotNo());
+        }
     }
 
     record PendingSnapshotRecord(

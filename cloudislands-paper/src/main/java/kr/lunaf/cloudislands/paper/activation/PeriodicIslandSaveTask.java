@@ -25,6 +25,7 @@ public final class PeriodicIslandSaveTask {
     private final Map<UUID, Integer> retryQueue = new ConcurrentHashMap<>();
     private final PendingSnapshotRecords pendingSnapshotRecords;
     private final AtomicBoolean running = new AtomicBoolean();
+    private final Object runningMonitor = new Object();
     private final AtomicLong failuresTotal = new AtomicLong();
     private TaskHandle task;
 
@@ -70,14 +71,36 @@ public final class PeriodicIslandSaveTask {
         }
     }
 
+    public boolean shutdown(Duration timeout) {
+        stop();
+        AtomicBoolean flushFailed = new AtomicBoolean();
+        boolean completed = ShutdownSaveCoordinator.awaitIdleAndFlush(running::get, runningMonitor, () -> {
+            try {
+                saveAll(true);
+            } catch (RuntimeException error) {
+                flushFailed.set(true);
+                plugin.getLogger().severe("Failed to save active islands during CloudIslands shutdown: " + error.getMessage());
+            }
+        }, timeout) && !flushFailed.get();
+        if (!completed) {
+            failuresTotal.incrementAndGet();
+            plugin.getLogger().severe("CloudIslands shutdown save did not complete within the configured deadline; pending snapshot metadata remains journaled for restart recovery");
+        }
+        return completed;
+    }
+
     private void saveAll() {
+        saveAll(false);
+    }
+
+    private void saveAll(boolean forceActiveSave) {
         if (!running.compareAndSet(false, true)) {
             return;
         }
         try {
             pendingSnapshotRecords.claimAll().forEach(this::recordSnapshot);
             for (ActiveIslandRegistry.ActiveIsland activeIsland : activeIslands.snapshot()) {
-                if (pendingSnapshotRecords.contains(activeIsland.islandId())) {
+                if (!forceActiveSave && pendingSnapshotRecords.contains(activeIsland.islandId())) {
                     continue;
                 }
                 try {
@@ -98,6 +121,9 @@ public final class PeriodicIslandSaveTask {
             }
         } finally {
             running.set(false);
+            synchronized (runningMonitor) {
+                runningMonitor.notifyAll();
+            }
         }
     }
 

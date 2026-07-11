@@ -67,6 +67,7 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(loader.contains("\"cloudislands.gui\", \"paper-gui.enabled\""), "Config v2 GUI feature flag must feed runtime GUI config");
         assertTrue(loader.contains("\"generator.default-profile\", \"generators.default-key\""), "Config v2 generator profile must feed runtime generator config");
         assertTrue(loader.contains("durationTicks"), "Config v2 duration values must be converted before entering the runtime snapshot");
+        assertTrue(loader.contains("island-node.activation.shutdown-save-timeout-seconds"), "shutdown save timeout must be mapped into the worker runtime config");
         assertTrue(runtime.contains("capacity:"), "Bundled runtime config-v2 must define capacity values");
         assertTrue(runtime.contains("reject-default-identity: true"), "Bundled runtime config-v2 must make the production identity guard explicit");
         assertTrue(integrations.contains("core-api:"), "Bundled integrations config-v2 must define Core API values");

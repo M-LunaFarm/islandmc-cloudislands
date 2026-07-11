@@ -33,14 +33,18 @@ class PendingSnapshotRecordsTest {
     }
 
     @Test
-    void keepsOriginalSnapshotUntilItIsRecorded() {
+    void recordsMultipleSnapshotsForOneIslandInOrder() {
         UUID islandId = UUID.randomUUID();
         PendingSnapshotRecords records = new PendingSnapshotRecords();
         PendingSnapshotRecords.PendingSnapshotRecord first = record(islandId, 10L);
+        PendingSnapshotRecords.PendingSnapshotRecord second = record(islandId, 11L);
         records.enqueue(first);
-        records.enqueue(record(islandId, 11L));
+        records.enqueue(second);
 
         assertEquals(first, records.claim(islandId).getFirst());
+        assertTrue(records.claim(islandId).isEmpty());
+        assertTrue(records.completed(first));
+        assertEquals(second, records.claim(islandId).getFirst());
     }
 
     @Test
@@ -61,6 +65,23 @@ class PendingSnapshotRecordsTest {
 
         PendingSnapshotRecords afterCompletionRestart = new PendingSnapshotRecords(journal);
         assertEquals(0, afterCompletionRestart.size());
+    }
+
+    @Test
+    void restoresMultipleOrderedRecordsForOneIslandAfterRestart() {
+        Path journal = temporaryDirectory.resolve("pending-periodic-snapshots.tsv");
+        UUID islandId = UUID.randomUUID();
+        PendingSnapshotRecords.PendingSnapshotRecord first = record(islandId, 7L);
+        PendingSnapshotRecords.PendingSnapshotRecord second = record(islandId, 8L);
+        PendingSnapshotRecords writer = new PendingSnapshotRecords(journal);
+        assertTrue(writer.enqueue(first));
+        assertTrue(writer.enqueue(second));
+
+        PendingSnapshotRecords restored = new PendingSnapshotRecords(journal);
+        assertEquals(2, restored.size());
+        assertEquals(first, restored.claim(islandId).getFirst());
+        assertTrue(restored.completed(first));
+        assertEquals(second, restored.claim(islandId).getFirst());
     }
 
     @Test

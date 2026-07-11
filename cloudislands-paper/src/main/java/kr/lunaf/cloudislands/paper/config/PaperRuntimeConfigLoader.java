@@ -386,6 +386,9 @@ public final class PaperRuntimeConfigLoader {
         if (source.contains("island-node.activation.save-on-empty-after")) {
             target.set("island-node.activation.save-on-empty-after-seconds", durationSeconds(source.getString("island-node.activation.save-on-empty-after", "5m")));
         }
+        if (source.contains("island-node.activation.shutdown-save-timeout")) {
+            target.set("island-node.activation.shutdown-save-timeout-seconds", durationSeconds(source.getString("island-node.activation.shutdown-save-timeout", "30s")));
+        }
         if (source.contains("island-node.level-scan-interval")) {
             target.set("island-node.level-scan-interval-seconds", durationSeconds(source.getString("island-node.level-scan-interval", "15m")));
         }
@@ -587,7 +590,8 @@ public final class PaperRuntimeConfigLoader {
             config.getLong("island-node.activation.worker-interval-ticks", 20L),
             config.getLong("island-node.activation.periodic-save-seconds", 600L),
             config.getLong("island-node.activation.save-on-empty-after-seconds", 300L),
-            config.getLong("island-node.level-scan-interval-seconds", 900L)
+            config.getLong("island-node.level-scan-interval-seconds", 900L),
+            config.getLong("island-node.activation.shutdown-save-timeout-seconds", 30L)
         );
     }
 

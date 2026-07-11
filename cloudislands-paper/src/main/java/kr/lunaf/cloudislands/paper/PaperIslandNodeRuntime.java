@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper;
 
+import java.time.Duration;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.activation.EmptyIslandSaveTask;
@@ -113,9 +114,9 @@ final class PaperIslandNodeRuntime {
         plugin.permissionEventPoller.start(config.protection().cacheEventPollTicks());
         plugin.lifecycle.started("permission-event-poller", plugin.permissionEventPoller::stop);
         plugin.jobWorker.start(config.worker().activationWorkerIntervalTicks());
-        plugin.lifecycle.started("job-worker", plugin.jobWorker::stop);
         plugin.periodicSaveTask.start(config.worker().periodicSaveSeconds());
-        plugin.lifecycle.started("periodic-save", plugin.periodicSaveTask::stop);
+        plugin.lifecycle.started("periodic-save", () -> plugin.periodicSaveTask.shutdown(Duration.ofSeconds(config.worker().shutdownSaveTimeoutSeconds())));
+        plugin.lifecycle.started("job-worker", plugin.jobWorker::stop);
         plugin.emptyIslandSaveTask.start(config.worker().saveOnEmptyAfterSeconds());
         plugin.lifecycle.started("empty-save", plugin.emptyIslandSaveTask::stop);
         plugin.periodicLevelScanTask.start(config.worker().levelScanIntervalSeconds());
