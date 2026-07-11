@@ -1,0 +1,14 @@
+core-api:
+  auth-token: "${file:/run/secrets/cloudislands_core_token}"
+  admin-token: "${file:/run/secrets/cloudislands_admin_token}"
+forwarding:
+  required: false
+  secret: ""
+route-session:
+  enforce: false
+  required: false
+trusted-proxies: []
+proxy-source-allowlist:
+  required: false
+admin-command-dispatch:
+  enabled: false

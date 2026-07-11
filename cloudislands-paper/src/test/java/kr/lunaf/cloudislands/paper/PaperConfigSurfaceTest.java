@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.List;
@@ -22,12 +23,24 @@ class PaperConfigSurfaceTest {
     @Test
     void singlePaperProfileDisablesProxyHandoffAndUsesLocalRouting() throws Exception {
         String profile = Files.readString(Path.of("../deploy/examples/single-paper/config-pack.yml"), StandardCharsets.UTF_8);
+        Path configRoot = Path.of("../deploy/examples/single-paper/config-v2");
+        String runtime = Files.readString(configRoot.resolve("runtime.yml"), StandardCharsets.UTF_8);
+        String integrations = Files.readString(configRoot.resolve("integrations.yml"), StandardCharsets.UTF_8);
+        String security = Files.readString(configRoot.resolve("security.yml"), StandardCharsets.UTF_8);
 
         assertTrue(profile.contains("profile: single-paper"));
         assertTrue(profile.contains("velocity: disabled"));
         assertTrue(profile.contains("direct-local-teleport: true"));
         assertTrue(profile.contains("required: false"));
         assertTrue(profile.contains("storage-type: LOCAL_FILESYSTEM"));
+        assertTrue(runtime.contains("role: ISLAND_NODE"));
+        assertTrue(integrations.contains("direct-local-teleport: true"));
+        assertTrue(integrations.contains("type: LOCAL_FILESYSTEM"));
+        assertTrue(security.contains("forwarding:\n  required: false"));
+        assertTrue(security.contains("route-session:\n  enforce: false\n  required: false"));
+        assertTrue(ConfigV2Validator.validateYaml("runtime.yml", runtime).valid());
+        assertTrue(ConfigV2Validator.validateYaml("integrations.yml", integrations).valid());
+        assertTrue(ConfigV2Validator.validateYaml("security.yml", security).valid());
     }
 
     @Test

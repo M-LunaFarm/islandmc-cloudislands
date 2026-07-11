@@ -1,0 +1,20 @@
+node:
+  id: single-paper-01
+  role: ISLAND_NODE
+  pool: single-paper
+  velocity-server-name: single-paper-01
+  reject-default-identity: false
+  supported-templates:
+    - "*"
+capacity:
+  max-active-islands: 100
+  soft-player-limit: 80
+  hard-player-limit: 100
+  max-activation-queue: 10
+heartbeat:
+  interval: 5s
+  timeout: 20s
+health:
+  enabled: true
+  bind-host: 127.0.0.1
+  port: 8789

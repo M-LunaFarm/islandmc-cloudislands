@@ -123,6 +123,9 @@ Quickstart, one Paper server:
 - run one Paper server with the CloudIslands Paper plugin, one Core API, and one
   SQL database; Velocity and a separate lobby Paper server are not required
 - start from `deploy/examples/single-paper/config-pack.yml`
+- copy `deploy/examples/single-paper/config-v2/{runtime,integrations,security}.yml`
+  into `plugins/CloudIslands/config-v2/`, alongside the other generated Config
+  v2 files, then set the Core tokens before starting Paper
 - keep the Paper role as `ISLAND_NODE` so the same server runs commands, GUI,
   protection, island activation, saving, and restoration
 - set `routing.direct-local-teleport: true` in Config v2 `integrations.yml`;

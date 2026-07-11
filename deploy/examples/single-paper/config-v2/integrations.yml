@@ -1,0 +1,16 @@
+core-api:
+  enabled: true
+  base-url: http://127.0.0.1:8443
+  timeout:
+    connect: 2s
+    request: 3s
+redis:
+  enabled: false
+  uri: ""
+  database: 0
+storage:
+  type: LOCAL_FILESYSTEM
+  local-path: islands-storage
+routing:
+  transport: CORE_TICKET
+  direct-local-teleport: true
