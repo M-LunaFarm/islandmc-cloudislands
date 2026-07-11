@@ -7,7 +7,7 @@ layout:
   - "____E____"
   - "_________"
   - "_________"
-  - "M...R...B"
+  - "MP..R.N.B"
 items:
   E:
     material: BARRIER
@@ -49,8 +49,19 @@ items:
     fallback-lore:
       - "/섬 메뉴"
     action: main
+  P:
+    material: ARROW
+    name-key: invite-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: invite-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
 actions:
   open: island.invites.open
+  page: island.invites.page
   accept: island.invite.accept
   decline: island.invite.decline
   back: island.members.open

@@ -78,6 +78,7 @@ public final class GuiActionParser {
         "island.invite.accept",
         "island.invite.decline",
         "island.invites.open",
+        "island.invites.page",
         "island.level.recalculate",
         "island.level.show",
         "island.limit.set",
@@ -349,6 +350,9 @@ public final class GuiActionParser {
                 ));
                 case "island.bans.page" -> Optional.of(new GuiAction.BanPage(
                     UUID.fromString(required(safeData, "islandId")),
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
+                case "island.invites.page" -> Optional.of(new GuiAction.InvitePage(
                     nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.review.set" -> Optional.of(new GuiAction.ReviewSet(

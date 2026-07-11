@@ -355,6 +355,10 @@ final class IslandMembershipCommandHandler {
             IslandBanMenu.open(plugin, coreApiClient, player, page.islandId(), runtime.messagesFor(player), page.page());
             return true;
         }
+        if (action instanceof GuiAction.InvitePage page) {
+            IslandInviteMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.PermissionPage permissionPage) {
             runtime.openIslandPermissionMenu(player, permissionPage.page(), permissionPage.rolePage());
             return true;

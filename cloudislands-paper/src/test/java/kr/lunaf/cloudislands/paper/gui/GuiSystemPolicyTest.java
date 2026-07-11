@@ -342,7 +342,8 @@ class GuiSystemPolicyTest {
         )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
             assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())")
-                || List.of("IslandBanMenu", "IslandMyIslandsMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())"),
+                || List.of("IslandBanMenu", "IslandMyIslandsMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())")
+                || menuName.equals("IslandInviteMenu") && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())"),
                 menuName + " must hide configured dynamic placeholders during normal render");
             assertTrue(menu.contains("GuiMenuRenderer.setSymbolItem(inventory, MENU, \"E\""), menuName + " must render the configured empty placeholder when the list is empty");
         }
@@ -444,6 +445,8 @@ class GuiSystemPolicyTest {
         String bans = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandBanMenu.java"));
         assertTrue(bans.contains("int maxPage = Math.max(0, (bans.size() - 1) / pageSize)"), "ban management must paginate instead of hiding older bans");
         assertTrue(bans.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "ban page actions must retain authoritative island context");
+        String invites = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandInviteMenu.java"));
+        assertTrue(invites.contains("int maxPage = Math.max(0, (invites.size() - 1) / pageSize)"), "pending invites must paginate instead of hiding actionable invitations");
     }
 
     @Test
