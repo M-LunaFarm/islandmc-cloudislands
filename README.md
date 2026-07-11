@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.8`
+Version: `1.1.9`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,27 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.8`
+Current release: `v1.1.9`
 
-Built for the CloudIslands 1.1.8 baseline.
+Built for the CloudIslands 1.1.9 baseline.
 
-Release notes for `v1.1.8`:
+Release notes for `v1.1.9`:
+
+- safe proxy-to-Paper execution: commands that depend on Vault balances,
+  Bukkit inventory, the player's exact location, inventory GUIs, or live flight
+  state are forwarded to the attached Paper server instead of being approximated
+  by Velocity
+- economy and inventory correctness: bank deposit/withdraw and warehouse
+  deposit/withdraw now retain Paper's permission, idempotency, refund, capacity,
+  and real item/money transaction boundaries when `/is` is registered globally
+- canonical GUI behavior: `chest`, `vault`, and `warehouse` open the existing
+  inventory menu; `warps`, `visitors`, `settings`, `permissions`, `upgrade`,
+  `top`, and other official menu commands preserve their Paper GUI behavior
+- extension compatibility: targeted read-only CloudIslands commands remain on
+  Velocity while no-argument SuperiorSkyblock2 menu forms are delegated to
+  Paper, including custom configured root aliases
+
+Release notes carried forward from `v1.1.8`:
 
 - executable Velocity parity: every player alias advertised by the shared
   Paper/Velocity registry now has a proxy execution branch, with regression
@@ -742,7 +758,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.8`.
+Current read: production-readiness baseline `v1.1.9`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
