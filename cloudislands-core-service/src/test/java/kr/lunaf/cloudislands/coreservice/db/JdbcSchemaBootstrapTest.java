@@ -1,7 +1,10 @@
 package kr.lunaf.cloudislands.coreservice.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import org.junit.jupiter.api.Test;
 
 class JdbcSchemaBootstrapTest {
@@ -31,7 +34,16 @@ class JdbcSchemaBootstrapTest {
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
-        assertEquals("postgresql-migration-chain:74", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
+        assertEquals("postgresql-migration-chain:76", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
+    }
+
+    @Test
+    void heartbeatMetadataMigrationValidatesOnlyTheTemplatePrefixAsCsv() throws IOException {
+        try (var input = JdbcSchemaBootstrapTest.class.getResourceAsStream("/db/migration/V76__server_node_heartbeat_metadata.sql")) {
+            String migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            assertTrue(migration.contains("split_part(supported_templates, ';', 1)"));
+            assertTrue(migration.contains("chk_server_nodes_heartbeat_metadata_shape"));
+        }
     }
 }

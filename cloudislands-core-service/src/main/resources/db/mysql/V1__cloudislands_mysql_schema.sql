@@ -551,8 +551,9 @@ CREATE TABLE IF NOT EXISTS server_nodes (
     CONSTRAINT chk_server_nodes_node_version_trimmed CHECK (node_version = trim(node_version)),
     CONSTRAINT chk_server_nodes_supported_templates_not_blank CHECK (trim(supported_templates) <> ''),
     CONSTRAINT chk_server_nodes_supported_templates_trimmed CHECK (supported_templates = trim(supported_templates)),
-    CONSTRAINT chk_server_nodes_supported_templates_lowercase CHECK (supported_templates = '*' OR supported_templates = lower(supported_templates)),
-    CONSTRAINT chk_server_nodes_supported_templates_list_shape CHECK (supported_templates = '*' OR (supported_templates NOT LIKE ',%' AND supported_templates NOT LIKE '%,' AND supported_templates NOT LIKE '%,,%' AND supported_templates NOT LIKE '% %'))
+    CONSTRAINT chk_server_nodes_supported_templates_lowercase CHECK (substring_index(supported_templates, ';', 1) = '*' OR substring_index(supported_templates, ';', 1) = lower(substring_index(supported_templates, ';', 1))),
+    CONSTRAINT chk_server_nodes_supported_templates_list_shape CHECK (substring_index(supported_templates, ';', 1) = '*' OR (substring_index(supported_templates, ';', 1) NOT LIKE ',%' AND substring_index(supported_templates, ';', 1) NOT LIKE '%,' AND substring_index(supported_templates, ';', 1) NOT LIKE '%,,%' AND substring_index(supported_templates, ';', 1) NOT LIKE '% %')),
+    CONSTRAINT chk_server_nodes_heartbeat_metadata_shape CHECK (supported_templates NOT LIKE '%;' AND supported_templates NOT LIKE '%;;%')
 );
 
 CREATE UNIQUE INDEX idx_server_nodes_pool_velocity_server_unique ON server_nodes(pool, velocity_server_name_ci);

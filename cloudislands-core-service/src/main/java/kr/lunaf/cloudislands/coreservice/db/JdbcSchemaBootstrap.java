@@ -92,7 +92,9 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V71__island_snapshot_node_id.sql",
         "/db/migration/V72__island_rank_ignored.sql",
         "/db/migration/V73__template_bundle_metadata.sql",
-        "/db/migration/V74__island_warp_world_name.sql"
+        "/db/migration/V74__island_warp_world_name.sql",
+        "/db/migration/V75__player_disband_quota.sql",
+        "/db/migration/V76__server_node_heartbeat_metadata.sql"
     };
 
     private enum Dialect {
