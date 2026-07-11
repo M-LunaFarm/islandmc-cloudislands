@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.5`
+Version: `1.1.6`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,21 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.5`
+Current release: `v1.1.6`
 
-Built for the CloudIslands 1.1.5 baseline.
+Built for the CloudIslands 1.1.6 baseline.
 
-Release notes for `v1.1.5`:
+Release notes for `v1.1.6`:
+
+- deterministic route replay certification: the Core load probe clears the
+  reused player's route ticket/session before capturing the event baseline, so
+  every run generates and observes a real `ROUTE_TICKET_CREATED` replay
+- release-gate regression protection: `verifyReleaseGateCoverage` now enforces
+  that route clearing occurs before the event sequence baseline is captured
+- verified in GitHub Actions: the corrected main Integration workflow passes
+  the full Core integration smoke with PostgreSQL, Redis, and MinIO
+
+Release notes carried forward from `v1.1.5`:
 
 - targeted SS2 query parity: `balance`, `show`, and `team` preserve their
   optional island/player target instead of silently using the caller's island
@@ -702,7 +712,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.5`.
+Current read: production-readiness baseline `v1.1.6`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
