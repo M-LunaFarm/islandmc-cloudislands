@@ -13,6 +13,19 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class IslandCommandCatalogTest {
     @Test
+    void invalidPermissionAndFlagTokensNeverFallbackToDestructiveDefaults() throws Exception {
+        String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
+        String membership = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerMembershipCommandDispatcher.java"));
+
+        assertFalse(support.contains("return IslandPermission.BUILD;"), "unknown permission tokens must not mutate BUILD");
+        assertFalse(support.contains("return kr.lunaf.cloudislands.api.model.IslandFlag.FLY;"), "unknown flag tokens must not mutate FLY");
+        assertTrue(support.contains("Boolean parseExplicitToggle(String value)"), "permission mutations must distinguish invalid booleans from explicit false");
+        assertTrue(membership.contains("if (flag == null || enabled == null)"), "invalid flag mutation input must stop before Core");
+        assertTrue(membership.contains("if (roleKey.isBlank() || permission == null || allowed == null)"), "invalid role permission input must stop before Core");
+        assertTrue(membership.contains("if (permission == null || allowed == null)"), "invalid player override input must stop before Core");
+    }
+
+    @Test
     void paperLocalStateCommandsBypassProxyExecution() throws Exception {
         String plugin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/CloudIslandsVelocityPlugin.java"));
         String forwarder = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/PaperLocalCommandForwarder.java"));

@@ -201,8 +201,12 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
         if (args[0].equalsIgnoreCase("setflag") || args[0].equalsIgnoreCase("flag-set") || args[0].equals("플래그설정")) {
             UUID islandId = islandIdArgument(args, 1);
             int flagIndex = hasIslandIdArgument(args, 1) ? 2 : 1;
-            kr.lunaf.cloudislands.api.model.IslandFlag flag = args.length > flagIndex ? parseFlag(args[flagIndex]) : kr.lunaf.cloudislands.api.model.IslandFlag.FLY;
-            boolean enabled = parseToggle(args, flagIndex + 1, true);
+            kr.lunaf.cloudislands.api.model.IslandFlag flag = args.length > flagIndex ? parseFlag(args[flagIndex]) : null;
+            Boolean enabled = args.length > flagIndex + 1 ? parseExplicitToggle(args[flagIndex + 1]) : null;
+            if (flag == null || enabled == null) {
+                player.sendMessage(Component.text("사용법: /is setflag <flag> <true|false|allow|deny>"));
+                return true;
+            }
             playerMembership.setBooleanFlag(player, islandId, flag, enabled, flag.name());
             return true;
         }
@@ -219,11 +223,11 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
         if (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             int roleIndex = hasOptionalIslandIdArgument(args, 1) ? 2 : 1;
-            String roleKey = args.length > roleIndex ? roleKeyOrBlank(args[roleIndex]) : ROLE_MEMBER;
-            IslandPermission permission = args.length > roleIndex + 1 ? parsePermission(args[roleIndex + 1]) : IslandPermission.BUILD;
-            boolean allowed = parseToggle(args, roleIndex + 2, false);
-            if (roleKey.isBlank()) {
-                player.sendMessage(Component.text("권한을 설정할 역할을 입력해주세요. 예: MEMBER, VISITOR, BUILDER"));
+            String roleKey = args.length > roleIndex ? roleKeyOrBlank(args[roleIndex]) : "";
+            IslandPermission permission = args.length > roleIndex + 1 ? parsePermission(args[roleIndex + 1]) : null;
+            Boolean allowed = args.length > roleIndex + 2 ? parseExplicitToggle(args[roleIndex + 2]) : null;
+            if (roleKey.isBlank() || permission == null || allowed == null) {
+                player.sendMessage(Component.text("사용법: /is setpermission <role> <permission> <true|false|allow|deny>"));
                 return true;
             }
             playerMembership.setPermission(player, islandId, roleKey, permission, allowed);
@@ -237,7 +241,13 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             if (args.length < 4) {
                 player.sendMessage(Component.text("사용법: /is permission-exception <player> <permission> <allow|deny>"));
             } else {
-                playerMembership.setPermissionOverrideTarget(player, new UUID(0L, 0L), args[1], parsePermission(args[2]), parseToggle(args, 3, false));
+                IslandPermission permission = parsePermission(args[2]);
+                Boolean allowed = parseExplicitToggle(args[3]);
+                if (permission == null || allowed == null) {
+                    player.sendMessage(Component.text("올바른 권한과 허용 여부를 입력해주세요."));
+                    return true;
+                }
+                playerMembership.setPermissionOverrideTarget(player, new UUID(0L, 0L), args[1], permission, allowed);
             }
             return true;
         }

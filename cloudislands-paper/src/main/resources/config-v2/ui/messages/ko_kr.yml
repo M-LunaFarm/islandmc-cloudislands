@@ -629,3 +629,4 @@ warp-set-island-required: "섬 안에서만 워프를 설정할 수 있습니다
 warp-teleport-denied: "섬 워프로 이동할 권한이 없습니다."
 warp-teleport-island-required: "섬 안에서만 워프로 이동할 수 있습니다."
 warp-teleport-success: "섬 워프로 이동했습니다."
+admin-command-permission-input-invalid: "올바른 권한과 true/false 값을 입력해주세요."

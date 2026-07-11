@@ -286,17 +286,30 @@ abstract class VelocityCommandSupport {
 
     protected IslandPermission parsePermission(String value) {
         try {
-            return IslandPermission.valueOf(value.toUpperCase());
-        } catch (IllegalArgumentException ignored) {
-            return IslandPermission.BUILD;
+            return IslandPermission.valueOf(value.toUpperCase(java.util.Locale.ROOT).replace('-', '_'));
+        } catch (IllegalArgumentException | NullPointerException ignored) {
+            return null;
         }
     }
 
     protected kr.lunaf.cloudislands.api.model.IslandFlag parseFlag(String value) {
         try {
             return kr.lunaf.cloudislands.api.model.IslandFlag.valueOf(value.toUpperCase().replace('-', '_'));
-        } catch (IllegalArgumentException ignored) {
-            return kr.lunaf.cloudislands.api.model.IslandFlag.FLY;
+        } catch (IllegalArgumentException | NullPointerException ignored) {
+            return null;
         }
+    }
+
+    protected Boolean parseExplicitToggle(String value) {
+        if (value == null) {
+            return null;
+        }
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("on") || value.equalsIgnoreCase("allow") || value.equalsIgnoreCase("allowed") || value.equals("1") || value.equals("허용") || value.equals("켜기")) {
+            return true;
+        }
+        if (value.equalsIgnoreCase("false") || value.equalsIgnoreCase("off") || value.equalsIgnoreCase("deny") || value.equalsIgnoreCase("denied") || value.equals("0") || value.equals("거부") || value.equals("끄기")) {
+            return false;
+        }
+        return null;
     }
 }

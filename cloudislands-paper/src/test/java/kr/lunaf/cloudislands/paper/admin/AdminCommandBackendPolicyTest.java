@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
@@ -950,6 +951,17 @@ class AdminCommandBackendPolicyTest {
         assertTrue(eventPoller.contains("adminSpyMessageLine") && eventPoller.contains("messages.plain(\"admin-chat-spy-format\""), "Spy chat delivery must use localizable formatting");
         assertTrue(plugin.contains("cloudislands.admin.spy"), "Spy command must have a plugin permission");
         assertTrue(parity.contains("\"superior.admin.spy\", \"cloudislands.admin.spy\", \"SUPPORTED_VERIFIED\", \"P2\""), "Feature parity matrix must mark superior.admin.spy verified P2");
+    }
+
+    @Test
+    void invalidAdminPermissionInputsCannotFallbackToBuildOrDeny() throws Exception {
+        String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+
+        assertTrue(backend.contains("IslandPermission permission = islandPermission(args[4])"));
+        assertTrue(backend.contains("Boolean allowed = strictBooleanArgument(args[5])"));
+        assertTrue(backend.contains("if (permission == null || allowed == null)"), "invalid permission mutations must stop before Core");
+        assertFalse(backend.contains("return IslandPermission.BUILD;"), "an unknown admin permission must never silently mutate BUILD");
+        assertTrue(backend.contains("admin-command-permission-input-invalid"), "operators must receive an actionable validation error");
     }
 
     @Test

@@ -1602,7 +1602,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 return true;
             }
             IslandPermission permission = islandPermission(args[4]);
-            boolean allowed = booleanArgument(args[5], false);
+            Boolean allowed = strictBooleanArgument(args[5]);
+            if (permission == null || allowed == null) {
+                sender.sendMessage(adminText("admin-command-permission-input-invalid", "올바른 권한과 true/false 값을 입력해주세요."));
+                return true;
+            }
             run(sender, "Island setpermission", coreApiClient.permissions().adminSetPermission(islandId, args[3], permission, allowed).thenApply(result -> permissionActionMessage("Island setpermission", result)));
             return true;
         }
@@ -4628,9 +4632,22 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private IslandPermission islandPermission(String value) {
         try {
             return IslandPermission.valueOf(normalizeGameplayKey(value));
-        } catch (IllegalArgumentException exception) {
-            return IslandPermission.BUILD;
+        } catch (IllegalArgumentException | NullPointerException exception) {
+            return null;
         }
+    }
+
+    private Boolean strictBooleanArgument(String value) {
+        if (value == null) {
+            return null;
+        }
+        if (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("allow") || value.equalsIgnoreCase("on") || value.equals("1") || value.equals("허용")) {
+            return true;
+        }
+        if (value.equalsIgnoreCase("false") || value.equalsIgnoreCase("deny") || value.equalsIgnoreCase("off") || value.equals("0") || value.equals("거부")) {
+            return false;
+        }
+        return null;
     }
 
     private IslandFlag islandFlag(String value) {
