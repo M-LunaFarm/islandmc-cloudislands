@@ -17,6 +17,7 @@ routing:
   transport: CORE_TICKET
   # Enable only when this plugin is the sole Paper server and also owns island worlds.
   direct-local-teleport: false
+  local-fallback-world: world
 hooks:
   # Plugin entries describe support policy. Runtime presence is discovered from
   # Bukkit; these entries are not per-plugin enable/disable switches.

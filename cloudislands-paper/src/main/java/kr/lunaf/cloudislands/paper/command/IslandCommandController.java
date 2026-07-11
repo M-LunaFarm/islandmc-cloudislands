@@ -78,8 +78,8 @@ public final class IslandCommandController implements CommandExecutor, TabComple
         this.tabCompleter = new IslandCommandTabCompleter(plugin, protection);
     }
 
-    public void enableLocalRouting(RouteTicketConsumer routeTicketConsumer) {
-        backend.enableLocalRouting(routeTicketConsumer);
+    public void enableLocalRouting(RouteTicketConsumer routeTicketConsumer, String fallbackWorld) {
+        backend.enableLocalRouting(routeTicketConsumer, fallbackWorld);
     }
 
     @Override

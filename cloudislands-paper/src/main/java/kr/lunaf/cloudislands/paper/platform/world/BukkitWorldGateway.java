@@ -17,8 +17,8 @@ public final class BukkitWorldGateway implements PaperWorldGateway {
     }
 
     @Override
-    public Location primaryWorldSpawn() {
-        World world = plugin.getServer().getWorlds().stream().findFirst().orElse(null);
+    public Location worldSpawn(String worldName) {
+        World world = world(worldName);
         return world == null ? null : world.getSpawnLocation();
     }
 }

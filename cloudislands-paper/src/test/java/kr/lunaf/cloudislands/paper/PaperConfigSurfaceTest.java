@@ -35,6 +35,7 @@ class PaperConfigSurfaceTest {
         assertTrue(profile.contains("storage-type: LOCAL_FILESYSTEM"));
         assertTrue(runtime.contains("role: ISLAND_NODE"));
         assertTrue(integrations.contains("direct-local-teleport: true"));
+        assertTrue(integrations.contains("local-fallback-world: world"));
         assertTrue(integrations.contains("type: LOCAL_FILESYSTEM"));
         assertTrue(security.contains("forwarding:\n  required: false"));
         assertTrue(security.contains("route-session:\n  enforce: false\n  required: false"));

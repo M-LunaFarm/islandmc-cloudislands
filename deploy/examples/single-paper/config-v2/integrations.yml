@@ -14,3 +14,4 @@ storage:
 routing:
   transport: CORE_TICKET
   direct-local-teleport: true
+  local-fallback-world: world

@@ -29,7 +29,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(source.contains("localConsumer.consumeAndTeleport(ticket.ticketId(), player.getUniqueId(), ticket.nonce())"));
         assertTrue(source.indexOf("if (localConsumer != null)") < source.indexOf("routingUseCase.publishRouteSession"));
         assertTrue(registrar.contains("routing().directLocalTeleport()"));
-        assertTrue(registrar.contains("islandController.enableLocalRouting(agent.routeTickets())"));
+        assertTrue(registrar.contains("islandController.enableLocalRouting(agent.routeTickets(), plugin.runtimeConfig().routing().localFallbackWorld())"));
+        assertTrue(source.contains("localRouteConsumer.teleportToWorldSpawn(player.getUniqueId(), localFallbackWorld)"));
         assertTrue(routeSessions.contains("islandNode && !safeConfig.routing().directLocalTeleport()"));
     }
 

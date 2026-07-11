@@ -44,7 +44,7 @@ public final class PaperCommandRegistrar {
             IslandLevelScanService levelScanService = new IslandLevelScanService(plugin, activeIslands, client);
             IslandCommandController islandController = new IslandCommandController(plugin, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, nodeId, plugin.runtimeConfig().generator().defaultKey(), plugin.runtimeConfig().guiEnabledForRole(agent.role()), plugin.runtimeConfig().snapshots(), plugin.runtimeConfig().migration().superiorSkyblock2LegacyAliasesEnabled(), plugin.runtimeConfig().migration().superiorSkyblock2Enabled());
             if (plugin.runtimeConfig().routing().directLocalTeleport()) {
-                islandController.enableLocalRouting(agent.routeTickets());
+                islandController.enableLocalRouting(agent.routeTickets(), plugin.runtimeConfig().routing().localFallbackWorld());
             }
             island.setExecutor(islandController);
             island.setTabCompleter(islandController);

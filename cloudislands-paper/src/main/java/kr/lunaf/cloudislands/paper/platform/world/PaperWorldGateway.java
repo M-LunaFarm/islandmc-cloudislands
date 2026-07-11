@@ -6,7 +6,7 @@ import org.bukkit.World;
 public interface PaperWorldGateway {
     World world(String worldName);
 
-    default Location primaryWorldSpawn() {
+    default Location worldSpawn(String worldName) {
         return null;
     }
 }

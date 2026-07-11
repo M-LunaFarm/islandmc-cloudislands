@@ -160,8 +160,8 @@ final class IslandCommandBackend {
         return router.handleCommand(sender, command, label, args);
     }
 
-    void enableLocalRouting(RouteTicketConsumer routeTicketConsumer) {
-        routingCommands.enableLocalRouting(routeTicketConsumer);
+    void enableLocalRouting(RouteTicketConsumer routeTicketConsumer, String fallbackWorld) {
+        routingCommands.enableLocalRouting(routeTicketConsumer, fallbackWorld);
     }
 
     void executeGuiAction(Player player, GuiAction action, GuiClick click) {

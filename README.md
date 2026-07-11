@@ -131,6 +131,8 @@ Quickstart, one Paper server:
 - set `routing.direct-local-teleport: true` in Config v2 `integrations.yml`;
   ready Core route tickets are then consumed locally instead of using the
   BungeeCord/Velocity connect channel
+- set `routing.local-fallback-world` to the exact lobby/spawn world name; local
+  fallback never guesses from world load order
 - direct-local routing disables the backend-only route-session, forwarding,
   and proxy-source login gates; keep the Paper server in online mode when it is
   exposed directly

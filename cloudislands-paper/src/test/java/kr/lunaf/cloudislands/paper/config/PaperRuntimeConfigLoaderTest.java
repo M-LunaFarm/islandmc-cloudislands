@@ -56,6 +56,7 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(loader.contains("\"storage.type\", \"setup.storage.type\""), "Config v2 storage type must feed setup-owned runtime storage config");
         assertTrue(loader.contains("\"storage.local-path\", \"setup.storage.local-path\""), "Config v2 local storage path must feed single-Paper storage config");
         assertTrue(loader.contains("\"routing.direct-local-teleport\", \"routing.direct-local-teleport\""), "Config v2 must map direct local routing for single-Paper deployments");
+        assertTrue(loader.contains("\"routing.local-fallback-world\", \"routing.local-fallback-world\""), "Config v2 must map an explicit local fallback world");
         assertTrue(loader.contains("\"storage.bearer-token\", \"setup.storage.auth-token\""), "Config v2 storage bearer token must feed setup-owned runtime storage auth config");
         assertFalse(loader.contains("String legacyPath"), "Config v2 setup values must not fall back to legacy runtime paths");
         assertFalse(loader.contains("string(config, legacyPath"), "Config v2 setup values must not read legacy runtime paths");

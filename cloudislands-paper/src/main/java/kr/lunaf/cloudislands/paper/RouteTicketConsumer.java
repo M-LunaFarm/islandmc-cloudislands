@@ -74,9 +74,9 @@ public final class RouteTicketConsumer {
         consumeAndTeleport(ticketId, playerUuid, nonce, 0);
     }
 
-    public boolean teleportToPrimaryWorld(UUID playerUuid) {
+    public boolean teleportToWorldSpawn(UUID playerUuid, String worldName) {
         Player player = players.onlinePlayer(playerUuid);
-        Location target = worlds.primaryWorldSpawn();
+        Location target = worlds.worldSpawn(worldName);
         return player != null && target != null && players.teleport(player, target);
     }
 

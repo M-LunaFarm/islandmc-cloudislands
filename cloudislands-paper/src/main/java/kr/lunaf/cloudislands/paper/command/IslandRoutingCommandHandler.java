@@ -31,6 +31,7 @@ final class IslandRoutingCommandHandler {
     private final Runtime runtime;
     private final Map<UUID, BossBar> routeBossBars = new ConcurrentHashMap<>();
     private volatile RouteTicketConsumer localRouteConsumer;
+    private volatile String localFallbackWorld = "world";
 
     IslandRoutingCommandHandler(Plugin plugin, CoreApiClient coreApiClient, int routeWaitSeconds, String fallbackServerName, Runtime runtime) {
         this.plugin = plugin;
@@ -59,14 +60,15 @@ final class IslandRoutingCommandHandler {
         }
     }
 
-    void enableLocalRouting(RouteTicketConsumer routeTicketConsumer) {
+    void enableLocalRouting(RouteTicketConsumer routeTicketConsumer, String fallbackWorld) {
         this.localRouteConsumer = routeTicketConsumer;
+        this.localFallbackWorld = fallbackWorld == null || fallbackWorld.isBlank() ? "world" : fallbackWorld.trim();
     }
 
     boolean connectPlayerToFallback(Player player, String successMessage, String failureMessage) {
         if (localRouteConsumer != null) {
             kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                if (!localRouteConsumer.teleportToPrimaryWorld(player.getUniqueId())) {
+                if (!localRouteConsumer.teleportToWorldSpawn(player.getUniqueId(), localFallbackWorld)) {
                     player.sendMessage(runtime.playerMessage(failureMessage));
                     return;
                 }
