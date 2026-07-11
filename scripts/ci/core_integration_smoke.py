@@ -210,6 +210,24 @@ def latest_ticket(base_url: str, player_uuid: str):
     )
 
 
+def wait_for_ticket_clear(base_url: str, player_uuid: str, timeout: float = 10.0) -> None:
+    deadline = time.monotonic() + timeout
+    last = None
+    while time.monotonic() < deadline:
+        last = request(
+            base_url,
+            "POST",
+            "/v1/admin/routes/ticket",
+            {"playerUuid": player_uuid},
+            admin=True,
+            expect=(200, 404),
+        )
+        if response_code(last) == "ROUTE_TICKET_NOT_FOUND":
+            return
+        time.sleep(0.1)
+    raise RuntimeError(f"route ticket cache did not converge after clear: {last}")
+
+
 def claim_one(base_url: str, node_id: str, expected_type: str):
     deadline = time.monotonic() + 10
     last_jobs = None
@@ -1103,6 +1121,7 @@ def write_cluster_evidence(
 
 def run_load_probe(
     primary_url: str,
+    primary_admin_url: str,
     secondary_url: str,
     secondary_admin_url: str,
     island_id: str,
@@ -1120,6 +1139,7 @@ def run_load_probe(
         admin=True,
         expect=(202,),
     )
+    wait_for_ticket_clear(primary_admin_url, player_uuid)
     before_events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 1}, admin=True, expect=(200,))
     since_seq = int(before_events.get("latestSeq", 0))
     event_probe_start = time.perf_counter()
@@ -1153,6 +1173,7 @@ def run_load_probe(
                 admin=True,
                 expect=(202,),
             )
+            wait_for_ticket_clear(primary_admin_url, player_uuid)
             _route, duration = timed_request(
                 primary_url,
                 "POST",
@@ -1454,6 +1475,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
 
         load_metrics = run_load_probe(
             primary_url,
+            primary_admin_url,
             secondary_url,
             secondary_admin_url,
             island_id,
