@@ -147,6 +147,17 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void teleportAliasesPreservePaperVelocityParity() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));
+
+        for (String command : List.of("섬 teleport [home]", "섬 tp [home]", "섬 go [home]")) {
+            assertTrue(IslandCommandCatalog.playerCommands().contains(command), command);
+        }
+        assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"teleport\")"));
+        assertTrue(dispatcher.contains("playerRouting.routeHome(player, args.length > 1 ? args[1] : \"default\")"));
+    }
+
+    @Test
     void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
 

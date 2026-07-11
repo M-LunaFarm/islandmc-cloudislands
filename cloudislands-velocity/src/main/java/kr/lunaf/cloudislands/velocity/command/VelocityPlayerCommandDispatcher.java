@@ -29,7 +29,7 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 command list");
             return;
         }
-        if (args[0].equalsIgnoreCase("home") || args[0].equals("홈")) {
+        if (args[0].equalsIgnoreCase("home") || args[0].equalsIgnoreCase("teleport") || args[0].equalsIgnoreCase("tp") || args[0].equalsIgnoreCase("go") || args[0].equals("홈")) {
             player.sendActionBar(Component.text("섬을 준비하는 중입니다."));
             playerRouting.routeHome(player, args.length > 1 ? args[1] : "default");
             return;

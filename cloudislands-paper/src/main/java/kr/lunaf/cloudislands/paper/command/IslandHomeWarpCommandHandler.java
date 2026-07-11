@@ -65,7 +65,7 @@ final class IslandHomeWarpCommandHandler {
             listHomes(player);
             return true;
         }
-        if (subcommand.equals("home") || subcommand.equals("홈")) {
+        if (subcommand.equals("home") || subcommand.equals("teleport") || subcommand.equals("tp") || subcommand.equals("go") || subcommand.equals("홈")) {
             teleportHome(player, args.length > 1 ? args[1] : "default");
             return true;
         }

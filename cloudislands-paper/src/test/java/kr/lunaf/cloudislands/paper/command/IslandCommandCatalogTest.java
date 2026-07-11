@@ -182,6 +182,19 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void superiorSkyblockTeleportAliasesAreCanonicalHomeRoutes() throws Exception {
+        String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
+
+        for (String alias : List.of("teleport", "tp", "go")) {
+            assertTrue(IslandCommandCatalog.SUBCOMMANDS.contains(alias), alias);
+            assertEquals(IslandCommandPermission.HOME, IslandCommandPermission.fromSubcommand(alias), alias);
+        }
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 teleport [home]"));
+        assertTrue(handler.contains("subcommand.equals(\"teleport\")"));
+        assertTrue(handler.contains("teleportHome(player, args.length > 1 ? args[1] : \"default\")"));
+    }
+
+    @Test
     void superiorSkyblockStackerPermissionParityUsesCoreEnvironmentWithoutFakeRuntimeStateTransfer() throws Exception {
         String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackerIntegration.java"));
