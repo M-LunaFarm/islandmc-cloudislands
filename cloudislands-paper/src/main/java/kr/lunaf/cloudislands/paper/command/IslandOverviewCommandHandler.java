@@ -13,17 +13,32 @@ import org.bukkit.plugin.Plugin;
 final class IslandOverviewCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
+    private final IslandTargetResolver targetResolver;
     private final Runtime runtime;
 
     IslandOverviewCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
+        this.targetResolver = new IslandTargetResolver(coreApiClient);
         this.runtime = runtime;
     }
 
-    boolean handleCommand(Player player, String subcommand) {
+    boolean handleCommand(Player player, String subcommand, String[] args) {
         if (subcommand.equals("info") || subcommand.equals("정보")) {
             openInfoMenu(player);
+            return true;
+        }
+        if (subcommand.equals("info-target")) {
+            if (args.length < 2) {
+                openInfoMenu(player);
+            } else {
+                targetResolver.resolve(args[1])
+                    .thenAccept(islandId -> IslandInfoMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)))
+                    .exceptionally(error -> {
+                        runtime.message(player, runtime.routeMessage("overview-target-not-found", "정보를 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                        return null;
+                    });
+            }
             return true;
         }
         if (subcommand.equals("list") || subcommand.equals("my") || subcommand.equals("my-islands") || subcommand.equals("목록") || subcommand.equals("내섬")) {
@@ -53,6 +68,8 @@ final class IslandOverviewCommandHandler {
         Optional<UUID> currentIsland(Player player, String missingMessage);
 
         String routeMessage(String key, String fallback);
+
+        void message(Player player, String message);
 
         MessageRenderer messagesFor(Player player);
     }

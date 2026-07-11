@@ -29,12 +29,14 @@ final class IslandMembershipCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final MemberManagementUseCase memberManagement;
+    private final IslandTargetResolver targetResolver;
     private final Runtime runtime;
 
     IslandMembershipCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.memberManagement = new MemberManagementUseCase(coreApiClient);
+        this.targetResolver = new IslandTargetResolver(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -45,6 +47,19 @@ final class IslandMembershipCommandHandler {
         }
         if (subcommand.equals("member-list") || subcommand.equals("멤버목록")) {
             listIslandMembers(player);
+            return true;
+        }
+        if (subcommand.equals("member-list-target")) {
+            if (args.length < 2) {
+                listIslandMembers(player);
+            } else {
+                targetResolver.resolve(args[1])
+                    .thenAccept(islandId -> listIslandMembers(player, islandId))
+                    .exceptionally(error -> {
+                        runtime.message(player, message("member-target-not-found", "멤버를 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                        return null;
+                    });
+            }
             return true;
         }
         if (subcommand.equals("invite") || subcommand.equals("초대")) {
@@ -415,14 +430,16 @@ final class IslandMembershipCommandHandler {
     }
 
     private void listIslandMembers(Player player) {
-        runtime.currentIsland(player, message("member-list-island-required", "섬 안에서만 멤버를 확인할 수 있습니다.")).ifPresent(islandId -> {
-            memberManagement.listMemberViews(islandId)
+        runtime.currentIsland(player, message("member-list-island-required", "섬 안에서만 멤버를 확인할 수 있습니다.")).ifPresent(islandId -> listIslandMembers(player, islandId));
+    }
+
+    private void listIslandMembers(Player player, UUID islandId) {
+        memberManagement.listMemberViews(islandId)
                 .thenAccept(members -> runtime.message(player, memberListMessage(members)))
                 .exceptionally(error -> {
                     runtime.message(player, message("member-list-load-failed", "섬 멤버를 불러오지 못했습니다."));
                     return null;
                 });
-        });
     }
 
     private void listIslandBans(Player player) {

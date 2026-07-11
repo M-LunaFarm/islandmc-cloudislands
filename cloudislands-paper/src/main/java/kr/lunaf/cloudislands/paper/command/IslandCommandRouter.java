@@ -181,7 +181,7 @@ final class IslandCommandRouter {
             openMainMenuOrCommandList(player, label);
             return true;
         }
-        if (overviewCommands.handleCommand(player, subcommand)) {
+        if (overviewCommands.handleCommand(player, subcommand, args)) {
             return true;
         }
         if (lifecycleCommands.handleCommand(player, subcommand, args)) {

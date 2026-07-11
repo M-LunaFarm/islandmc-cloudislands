@@ -38,7 +38,7 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         Map.entry("delwarp", new Mapping("warp-delete", "워프삭제")),
         Map.entry("teleport", new Mapping("home", "홈")),
         Map.entry("chest", new Mapping("chest", "창고")),
-        Map.entry("team", new Mapping("members", "멤버")),
+        Map.entry("team", new Mapping("member-list-target", "멤버목록")),
         Map.entry("coops", new Mapping("members", "멤버")),
         Map.entry("panel", new Mapping("menu", "메뉴")),
         Map.entry("disband", new Mapping("delete", "삭제")),
@@ -49,9 +49,9 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         Map.entry("permissions", new Mapping("permissions", "권한")),
         Map.entry("border", new Mapping("border", "경계")),
         Map.entry("join", new Mapping("accept", "초대수락")),
-        Map.entry("balance", new Mapping("bank", "은행")),
-        Map.entry("bal", new Mapping("bank", "은행")),
-        Map.entry("money", new Mapping("bank", "은행")),
+        Map.entry("balance", new Mapping("bank-balance-target", "은행잔액")),
+        Map.entry("bal", new Mapping("bank-balance-target", "은행잔액")),
+        Map.entry("money", new Mapping("bank-balance-target", "은행잔액")),
         Map.entry("setbiome", new Mapping("biome", "바이옴")),
         Map.entry("vault", new Mapping("chest", "창고")),
         Map.entry("add", new Mapping("invite", "초대")),
@@ -62,15 +62,16 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         Map.entry("setperm", new Mapping("permissions", "권한")),
         Map.entry("settp", new Mapping("sethome", "셋홈")),
         Map.entry("setgo", new Mapping("sethome", "셋홈")),
-        Map.entry("show", new Mapping("info", "정보")),
-        Map.entry("showteam", new Mapping("member-list", "멤버목록")),
-        Map.entry("online", new Mapping("member-list", "멤버목록")),
+        Map.entry("show", new Mapping("info-target", "정보")),
+        Map.entry("showteam", new Mapping("member-list-target", "멤버목록")),
+        Map.entry("online", new Mapping("member-list-target", "멤버목록")),
         Map.entry("tc", new Mapping("teamchat", "팀채팅")),
         Map.entry("tp", new Mapping("home", "홈")),
         Map.entry("go", new Mapping("home", "홈")),
         Map.entry("leader", new Mapping("transfer", "양도")),
         Map.entry("leadership", new Mapping("transfer", "양도")),
-        Map.entry("expel", new Mapping("kickvisitor", "방문자추방"))
+        Map.entry("expel", new Mapping("kickvisitor", "방문자추방")),
+        Map.entry("warp", new Mapping("legacy-warp", "워프"))
     );
     private static final ConcurrentHashMap<String, LongAdder> USAGE = new ConcurrentHashMap<>();
 

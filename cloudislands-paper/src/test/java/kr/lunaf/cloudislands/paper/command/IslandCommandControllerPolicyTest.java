@@ -409,7 +409,7 @@ class IslandCommandControllerPolicyTest {
 
         assertTrue(adapter.contains("public final class SuperiorSkyblock2CommandAliasAdapter"));
         assertTrue(adapter.contains("Map.entry(\"recalc\", new Mapping(\"levelcalc\", \"레벨계산\"))"), "SS2 recalc must route to the CloudIslands level calculation command");
-        assertTrue(adapter.contains("Map.entry(\"team\", new Mapping(\"members\", \"멤버\"))"), "SS2 team must route to the CloudIslands member command");
+        assertTrue(adapter.contains("Map.entry(\"team\", new Mapping(\"member-list-target\", \"멤버목록\"))"), "SS2 team must preserve its optional island or player target");
         assertTrue(adapter.contains("Map.entry(\"value\", new Mapping(\"value\", \"가치\"))"), "SS2 value <block> must preserve single-material lookup semantics");
         assertTrue(adapter.contains("Map.entry(\"teleport\", new Mapping(\"home\", \"홈\"))"), "SS2 teleport must route to the CloudIslands home command");
         assertTrue(adapter.contains("Map.entry(\"delwarp\", new Mapping(\"warp-delete\", \"워프삭제\"))"), "SS2 delwarp must route to the CloudIslands warp deletion command");
@@ -779,11 +779,11 @@ class IslandCommandControllerPolicyTest {
         String overviewHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandOverviewCommandHandler.java"));
 
         assertTrue(backend.contains("private final IslandOverviewCommandHandler overviewCommands;"));
-        assertTrue(routerSource().contains("overviewCommands.handleCommand(player, subcommand)"));
+        assertTrue(routerSource().contains("overviewCommands.handleCommand(player, subcommand, args)"));
         assertTrue(routerSource().contains("overviewCommands.handleGuiAction(player, action"));
         assertFalse(backend.contains("openIslandInfoMenu("), "info menu routing belongs in IslandOverviewCommandHandler");
         assertFalse(backend.contains("IslandMyIslandsMenu.open("), "my islands menu routing belongs in IslandOverviewCommandHandler");
-        assertTrue(overviewHandler.contains("boolean handleCommand(Player player, String subcommand)"));
+        assertTrue(overviewHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(overviewHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
         assertTrue(overviewHandler.contains("IslandInfoMenu.open"));
         assertTrue(overviewHandler.contains("IslandMyIslandsMenu.open"));

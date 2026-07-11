@@ -19,6 +19,7 @@ final class IslandBankCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final BankUseCase bankUseCase;
+    private final IslandTargetResolver targetResolver;
     private final Runtime runtime;
     private final PendingBankOperations pendingOperations = new PendingBankOperations();
 
@@ -26,6 +27,7 @@ final class IslandBankCommandHandler {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.bankUseCase = new BankUseCase(coreApiClient, economyBridge);
+        this.targetResolver = new IslandTargetResolver(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -36,6 +38,19 @@ final class IslandBankCommandHandler {
         }
         if (subcommand.equals("bank-balance") || subcommand.equals("은행잔액")) {
             showBank(player);
+            return true;
+        }
+        if (subcommand.equals("bank-balance-target")) {
+            if (args.length < 2) {
+                showBank(player);
+            } else {
+                targetResolver.resolve(args[1])
+                    .thenAccept(islandId -> showBank(player, islandId))
+                    .exceptionally(error -> {
+                        runtime.message(player, message("bank-target-not-found", "은행을 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                        return null;
+                    });
+            }
             return true;
         }
         if (subcommand.equals("deposit") || subcommand.equals("bank-deposit") || subcommand.equals("입금")) {
@@ -74,14 +89,16 @@ final class IslandBankCommandHandler {
     }
 
     private void showBank(Player player) {
-        runtime.currentIsland(player, message("bank-balance-island-required", "섬 안에서만 은행을 확인할 수 있습니다.")).ifPresent(islandId -> {
-            bankUseCase.bank(islandId)
+        runtime.currentIsland(player, message("bank-balance-island-required", "섬 안에서만 은행을 확인할 수 있습니다.")).ifPresent(islandId -> showBank(player, islandId));
+    }
+
+    private void showBank(Player player, UUID islandId) {
+        bankUseCase.bank(islandId)
                 .thenAccept(result -> runtime.message(player, message("bank-balance-prefix", "섬 은행 잔액: ") + result.balance()))
                 .exceptionally(error -> {
                     runtime.message(player, message("bank-load-failed", "섬 은행을 불러오지 못했습니다."));
                     return null;
                 });
-        });
     }
 
     private void openBankMenu(Player player) {

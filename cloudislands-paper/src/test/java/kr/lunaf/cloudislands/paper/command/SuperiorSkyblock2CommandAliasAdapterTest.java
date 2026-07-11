@@ -35,8 +35,8 @@ class SuperiorSkyblock2CommandAliasAdapterTest {
 
         assertEquals("levelcalc", recalc.subcommand());
         assertEquals("레벨계산", recalc.displayCommand());
-        assertEquals("members", team.subcommand());
-        assertEquals("멤버", team.displayCommand());
+        assertEquals("member-list-target", team.subcommand());
+        assertEquals("멤버목록", team.displayCommand());
         assertArrayEquals(new String[] {"value", "diamond_block"}, value.args());
         assertArrayEquals(new String[] {"home", "spawn"}, teleport.args());
         assertArrayEquals(new String[] {"warp-delete", "shop"}, delwarp.args());
@@ -47,7 +47,7 @@ class SuperiorSkyblock2CommandAliasAdapterTest {
 
     @Test
     void exposesMajorLegacyAliasesForPolicyCoverage() {
-        for (String alias : java.util.List.of("top", "values", "value", "counts", "recalc", "missions", "ratings", "setwarp", "delwarp", "teleport", "chest", "team", "coops", "panel", "disband", "rankup", "close", "open", "uncoop", "permissions", "border", "join", "balance", "bal", "money", "setbiome", "vault", "add", "remove", "lang", "manager", "cp", "setperm", "settp", "setgo", "show", "showteam", "online", "tc", "tp", "go", "leader", "leadership", "expel")) {
+        for (String alias : java.util.List.of("top", "values", "value", "counts", "recalc", "missions", "ratings", "setwarp", "delwarp", "teleport", "chest", "team", "coops", "panel", "disband", "rankup", "close", "open", "uncoop", "permissions", "border", "join", "balance", "bal", "money", "setbiome", "vault", "add", "remove", "lang", "manager", "cp", "setperm", "settp", "setgo", "show", "showteam", "online", "tc", "tp", "go", "leader", "leadership", "expel", "warp")) {
             assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAlias(alias), alias);
         }
     }
@@ -62,6 +62,10 @@ class SuperiorSkyblock2CommandAliasAdapterTest {
         assertTrue(adapter.adminGuidance("join").isEmpty());
         assertTrue(adapter.adminGuidance("add").isEmpty());
         assertTrue(adapter.adminGuidance("remove").isEmpty());
+        assertArrayEquals(new String[] {"bank-balance-target", "NamedIsland"}, adapter.translate(new String[] {"balance", "NamedIsland"}).orElseThrow().args());
+        assertArrayEquals(new String[] {"info-target", "Player"}, adapter.translate(new String[] {"show", "Player"}).orElseThrow().args());
+        assertArrayEquals(new String[] {"member-list-target", "Player"}, adapter.translate(new String[] {"showteam", "Player"}).orElseThrow().args());
+        assertArrayEquals(new String[] {"legacy-warp", "Player", "shop"}, adapter.translate(new String[] {"warp", "Player", "shop"}).orElseThrow().args());
     }
 
     @Test

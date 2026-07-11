@@ -395,6 +395,11 @@ admin operations. `/is uncoop <player>` verifies that the target has the
 temporary `TRUSTED` role before removal, so it can never remove a permanent
 team member. `/is value [material]` resolves the held or named material against
 typed Core block values and reports worth, level points, and placement limit.
+Targeted SS2 forms preserve their optional player/island argument: `balance`,
+`show`, and `team` resolve an island UUID, exact island name, or player's
+primary island through Core. In migration mode, `warp <player|island> [warp]`
+uses the same resolver instead of accepting UUIDs only or silently treating the
+target as a local warp name.
 
 ## PlaceholderAPI
 

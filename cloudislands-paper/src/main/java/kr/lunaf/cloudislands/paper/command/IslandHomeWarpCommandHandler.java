@@ -27,16 +27,32 @@ final class IslandHomeWarpCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final IslandHomeWarpUseCase homeWarpUseCase;
+    private final IslandTargetResolver targetResolver;
     private final Runtime runtime;
 
     IslandHomeWarpCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.homeWarpUseCase = new IslandHomeWarpUseCase(coreApiClient);
+        this.targetResolver = new IslandTargetResolver(coreApiClient);
         this.runtime = runtime;
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
+        if (subcommand.equals("legacy-warp")) {
+            if (args.length < 2) {
+                runtime.message(player, message("input-island-target-required"));
+                return true;
+            }
+            String warpName = args.length > 2 ? args[2] : "default";
+            targetResolver.resolve(args[1])
+                .thenAccept(islandId -> runtime.routeWarp(player, islandId, warpName))
+                .exceptionally(error -> {
+                    runtime.message(player, message("input-island-target-not-found"));
+                    return null;
+                });
+            return true;
+        }
         if (subcommand.equals("sethome") || subcommand.equals("setteleport") || subcommand.equals("setspawnpoint") || subcommand.equals("셋홈")) {
             setHome(player, args.length > 1 ? args[1] : "default");
             return true;
