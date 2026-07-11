@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.2`
+Version: `1.1.3`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -590,11 +590,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.2`
+Current release: `v1.1.3`
 
-Built for the CloudIslands 1.1.2 baseline.
+Built for the CloudIslands 1.1.3 baseline.
 
-Release notes for `v1.1.2`:
+Release notes for `v1.1.3`:
+
+- broader SS2 PlaceholderAPI parity: biome, active ban count/list, default
+  home/world coordinates, warp count/limit, and dynamic upgrade levels now use
+  typed Core data instead of unavailable local Paper state
+- permission parity: dynamic `permission_<permission>` applies player override,
+  role rule, and built-in role defaults in the same order as runtime protection
+- flag parity: dynamic `flag_<flag>` accepts the runtime's supported true/allow/
+  enabled/on values while unknown and disabled flags remain false
+- failure isolation: optional biome, ban, home, warp, upgrade, permission, or
+  flag query failures leave the base island snapshot usable
+
+Release notes carried forward from `v1.1.2`:
 
 - SS2 scoreboard compatibility: formatted, integer, and raw bank/worth/level
   aliases, leader name, indexed team members, and online team size now resolve
@@ -650,7 +662,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.2`.
+Current read: production-readiness baseline `v1.1.3`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
