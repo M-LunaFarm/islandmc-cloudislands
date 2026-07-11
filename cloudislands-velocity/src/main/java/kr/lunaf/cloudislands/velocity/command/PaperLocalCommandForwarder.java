@@ -67,9 +67,18 @@ public final class PaperLocalCommandForwarder {
         if (PAPER_LOCAL_SUBCOMMANDS.contains(subcommand)) {
             return true;
         }
+        if (Set.of("teamchat", "team-chat", "teamchat-toggle", "tc", "팀채팅").contains(subcommand)) {
+            return arguments.length == 2 || isTeamChatModeArgument(arguments[2]);
+        }
         if (!PAPER_MENU_SUBCOMMANDS.contains(subcommand)) {
             return false;
         }
         return arguments.length == 2 || subcommand.equals("bank") && arguments[2].equalsIgnoreCase("logs");
+    }
+
+    private static boolean isTeamChatModeArgument(String value) {
+        return value.equalsIgnoreCase("toggle") || value.equalsIgnoreCase("mode")
+            || value.equalsIgnoreCase("on") || value.equalsIgnoreCase("off")
+            || value.equals("전환") || value.equals("모드");
     }
 }

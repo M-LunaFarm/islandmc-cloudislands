@@ -944,7 +944,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(pluginMain.contains("AdminChatSpyRegistry adminChatSpies") && pluginMain.contains("adminChatSpies.clearAll()"), "Spy registry must be owned by the plugin and cleared on shutdown");
         assertTrue(registry.contains("ConcurrentHashMap.newKeySet()") && registry.contains("enabled(Player player)"), "Spy registry must be thread-safe and player-addressable");
         assertTrue(bootstrap.contains("plugin.adminChatSpies = new AdminChatSpyRegistry()"), "Bootstrap must create the spy registry");
-        assertTrue(bootstrap.contains("new PaperChatListener(plugin.messages, plugin.playerLocales, plugin.adminChatSpies)"), "Global chat listener must receive the spy registry");
+        assertTrue(bootstrap.contains("plugin.playerLocales, plugin.adminChatSpies, plugin.teamChatModes)"), "Global chat listener must receive the spy and team-chat mode registries");
         assertTrue(chatListener.contains("sendAdminSpyLine(event)") && chatListener.contains("player.hasPermission(\"cloudislands.admin.spy\")"), "Global chat must deliver spy lines only to authorized enabled operators");
         assertTrue(eventPoller.contains("sendAdminSpyChat(normalizedChannel, actorName, chatMessage)"), "Core-backed island/team chat broadcasts must also be visible to spy operators");
         assertTrue(eventPoller.contains("adminSpyMessageLine") && eventPoller.contains("messages.plain(\"admin-chat-spy-format\""), "Spy chat delivery must use localizable formatting");

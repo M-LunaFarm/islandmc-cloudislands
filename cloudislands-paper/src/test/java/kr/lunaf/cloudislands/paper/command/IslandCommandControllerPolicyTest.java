@@ -754,6 +754,21 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void teamChatModeRoutesNormalChatThroughCoreTeamChannel() throws Exception {
+        String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandChatLogCommandHandler.java"));
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java"));
+        String bootstrap = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"));
+
+        assertTrue(handler.contains("teamChatModes.toggle(player.getUniqueId())"), "no-argument teamchat must toggle mode like canonical SS2");
+        assertTrue(handler.contains("teamChatModes.set(player.getUniqueId(), true)") && handler.contains("teamChatModes.set(player.getUniqueId(), false)"), "explicit on/off modes must be deterministic");
+        assertTrue(listener.contains("event.setCancelled(true)"), "team-mode chat must not leak to global chat viewers");
+        assertTrue(listener.contains("PaperSchedulers.run(plugin, () -> sendTeamChat"), "async chat must return to the Paper scheduler before location access");
+        assertTrue(listener.contains("communicationCommands().sendChat(islandId, player.getUniqueId(), \"TEAM\""), "team-mode messages must use the typed Core team-chat channel");
+        assertTrue(listener.contains("teamChatModes.clear(event.getPlayer().getUniqueId())"), "disconnects must clear local chat mode state");
+        assertTrue(bootstrap.contains("plugin.teamChatModes"), "commands and chat listener must share one runtime mode registry");
+    }
+
+    @Test
     void lifecycleCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String lifecycleHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java"));

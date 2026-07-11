@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandChatMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLogMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.session.TeamChatModeRegistry;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -20,12 +21,18 @@ final class IslandChatLogCommandHandler {
     private final CoreApiClient coreApiClient;
     private final IslandCommunicationUseCase communicationUseCase;
     private final Runtime runtime;
+    private final TeamChatModeRegistry teamChatModes;
 
     IslandChatLogCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
+        this(plugin, coreApiClient, runtime, new TeamChatModeRegistry());
+    }
+
+    IslandChatLogCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime, TeamChatModeRegistry teamChatModes) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.communicationUseCase = new IslandCommunicationUseCase(coreApiClient);
         this.runtime = runtime;
+        this.teamChatModes = teamChatModes == null ? new TeamChatModeRegistry() : teamChatModes;
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
@@ -43,12 +50,14 @@ final class IslandChatLogCommandHandler {
         }
         if (subcommand.equals("teamchat") || subcommand.equals("team-chat") || subcommand.equals("teamchat-toggle") || subcommand.equals("tc") || subcommand.equals("팀채팅")) {
             if (args.length < 2) {
-                openChatMenu(player);
+                setTeamChatMode(player, teamChatModes.toggle(player.getUniqueId()));
                 return true;
             }
             if (isTeamChatToggle(args[1])) {
-                runtime.message(player, message("chat-team-toggle-help", "팀 채팅 모드: /섬 팀채팅 <message>로 팀 채널에 보낼 수 있습니다."));
-                openChatMenu(player);
+                boolean enabled = args[1].equalsIgnoreCase("on") ? teamChatModes.set(player.getUniqueId(), true)
+                    : args[1].equalsIgnoreCase("off") ? teamChatModes.set(player.getUniqueId(), false)
+                    : teamChatModes.toggle(player.getUniqueId());
+                setTeamChatMode(player, enabled);
                 return true;
             }
             sendChat(player, "TEAM", joined(args, 1), "chat-team-label", "팀 채팅", "chat-team-required", "섬 안에서만 팀 채팅을 사용할 수 있습니다.");
@@ -63,6 +72,12 @@ final class IslandChatLogCommandHandler {
             return true;
         }
         return false;
+    }
+
+    private void setTeamChatMode(Player player, boolean enabled) {
+        runtime.message(player, enabled
+            ? message("chat-team-mode-enabled", "팀 채팅 모드를 켰습니다. 일반 채팅이 팀 채널로 전송됩니다.")
+            : message("chat-team-mode-disabled", "팀 채팅 모드를 껐습니다."));
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {

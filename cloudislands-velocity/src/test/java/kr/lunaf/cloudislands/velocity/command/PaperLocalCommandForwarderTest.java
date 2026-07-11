@@ -62,6 +62,14 @@ class PaperLocalCommandForwarderTest {
     }
 
     @Test
+    void forwardsTeamChatModeChangesButKeepsDirectMessagesOnVelocity() {
+        for (String command : List.of("is teamchat", "is tc toggle", "is team-chat on", "섬 팀채팅 off")) {
+            assertTrue(PaperLocalCommandForwarder.shouldForward(command, List.of("is", "섬")), command);
+        }
+        assertFalse(PaperLocalCommandForwarder.shouldForward("is teamchat hello team", List.of("is")));
+    }
+
+    @Test
     void keepsGlobalAndReadOnlyCommandsOnVelocity() {
         for (String command : List.of(
                 "is home",

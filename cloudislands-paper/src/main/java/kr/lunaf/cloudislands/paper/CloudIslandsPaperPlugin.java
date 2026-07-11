@@ -54,6 +54,7 @@ import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
 import kr.lunaf.cloudislands.paper.session.PaperScoreboardListener;
 import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
+import kr.lunaf.cloudislands.paper.session.TeamChatModeRegistry;
 import kr.lunaf.cloudislands.paper.storage.MeteredIslandStorage;
 import kr.lunaf.cloudislands.paper.storage.PaperStorageFactory;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
@@ -90,6 +91,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     PaperRuntimeCompatibility.RuntimeSelection runtimeCompatibility;
     AdminFlightOverrides adminFlightOverrides;
     AdminChatSpyRegistry adminChatSpies;
+    TeamChatModeRegistry teamChatModes;
 
     @Override
     public void onEnable() {
@@ -131,6 +133,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             adminChatSpies.clearAll();
             adminChatSpies = null;
         }
+        if (teamChatModes != null) {
+            teamChatModes.clearAll();
+            teamChatModes = null;
+        }
         GuiSessions.clear();
         kr.lunaf.cloudislands.paper.command.AddonIslandCommandRegistry.global().clear();
         runtimeConfig = null;
@@ -139,6 +145,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public CloudIslandsPaperAgent agent() {
         return agent;
+    }
+
+    public TeamChatModeRegistry teamChatModes() {
+        return teamChatModes;
     }
 
     public ActiveIslandRegistry activeIslands() {

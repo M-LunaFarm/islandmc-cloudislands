@@ -118,7 +118,8 @@ final class IslandCommandBackend {
         this.bankCommands = new IslandBankCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices);
         this.snapshotCommands = new IslandSnapshotCommandHandler(plugin, coreApiClient, runtimeServices, snapshotRetentionPolicy);
         this.warehouseCommands = new IslandWarehouseCommandHandler(plugin, coreApiClient, runtimeServices);
-        this.chatLogCommands = new IslandChatLogCommandHandler(plugin, coreApiClient, runtimeServices);
+        this.chatLogCommands = new IslandChatLogCommandHandler(plugin, coreApiClient, runtimeServices,
+            plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands ? cloudIslands.teamChatModes() : new kr.lunaf.cloudislands.paper.session.TeamChatModeRegistry());
         this.progressionCommands = new IslandProgressionCommandHandler(plugin, coreApiClient, levelScanService, runtimeServices, defaultGeneratorKey);
         this.environmentCommands = new IslandEnvironmentCommandHandler(plugin, coreApiClient, protection, runtimeServices);
         this.settingsCommands = new IslandSettingsCommandHandler(plugin, coreApiClient, runtimeServices, locales);
