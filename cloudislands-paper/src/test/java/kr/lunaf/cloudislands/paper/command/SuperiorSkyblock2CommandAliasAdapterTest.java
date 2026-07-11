@@ -53,6 +53,13 @@ class SuperiorSkyblock2CommandAliasAdapterTest {
     }
 
     @Test
+    void everyLegacyPlayerAliasIsAlsoCanonical() {
+        for (String alias : SuperiorSkyblock2CommandAliasAdapter.playerAliases()) {
+            assertTrue(IslandCommandCatalog.SUBCOMMANDS.contains(alias), alias + " must work when the temporary legacy-alias switch is disabled");
+        }
+    }
+
+    @Test
     void officialPlayerAliasesWinInsteadOfBeingMisclassifiedAsAdminCommands() {
         SuperiorSkyblock2CommandAliasAdapter adapter = new SuperiorSkyblock2CommandAliasAdapter(true, true);
 

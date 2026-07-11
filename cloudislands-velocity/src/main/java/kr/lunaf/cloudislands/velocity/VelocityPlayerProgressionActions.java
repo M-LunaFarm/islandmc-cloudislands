@@ -16,6 +16,7 @@ import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailView;
 import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailsView;
 import kr.lunaf.cloudislands.coreclient.ReviewListView;
 import kr.lunaf.cloudislands.coreclient.ReviewView;
+import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityPlayerProgressionActions extends VelocityActionSupport {
@@ -37,6 +38,34 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
         }
         withResolvedIsland(player, islandId, "블록 상세를 확인할 섬을 찾지 못했습니다.", "섬 블록 상세를 불러오지 못했습니다.",
             resolved -> sendTextResult(player, coreApiClient.progression().blockDetails(resolved, Math.max(1, Math.min(limit, 100))).thenApply(VelocityPlayerProgressionActions::blockDetailsMessage), "섬 블록 상세를 불러오지 못했습니다."));
+    }
+
+    public void listWarehouse(Player player, UUID islandId) {
+        withResolvedIsland(player, islandId, "창고를 확인할 섬을 찾지 못했습니다.", "섬 창고를 불러오지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.warehouse().listItems(resolved, 100).thenApply(VelocityPlayerProgressionActions::warehouseMessage), "섬 창고를 불러오지 못했습니다."));
+    }
+
+    public void depositWarehouse(Player player, UUID islandId, String materialKey, long amount) {
+        withResolvedIsland(player, islandId, "창고를 확인할 섬을 찾지 못했습니다.", "창고에 입금하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.warehouseCommands().deposit(resolved, player.getUniqueId(), materialKey, amount)
+                .thenApply(result -> "창고 입금: code=" + result.code() + " material=" + result.materialKey() + " amount=" + result.amount()), "창고에 입금하지 못했습니다."));
+    }
+
+    public void withdrawWarehouse(Player player, UUID islandId, String materialKey, long amount) {
+        withResolvedIsland(player, islandId, "창고를 확인할 섬을 찾지 못했습니다.", "창고에서 출금하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.warehouseCommands().withdraw(resolved, player.getUniqueId(), materialKey, amount)
+                .thenApply(result -> "창고 출금: code=" + result.code() + " material=" + result.materialKey() + " amount=" + result.amount()), "창고에서 출금하지 못했습니다."));
+    }
+
+    private static String warehouseMessage(List<WarehouseItemView> items) {
+        if (items == null || items.isEmpty()) {
+            return "섬 창고: 비어 있음";
+        }
+        return "섬 창고: " + items.stream()
+            .map(item -> item.materialKey() + "=" + item.amount())
+            .limit(100)
+            .reduce((left, right) -> left + ", " + right)
+            .orElse("비어 있음");
     }
 
     public void showBlockDetails(Player player, String target, int limit) {

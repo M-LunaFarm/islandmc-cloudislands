@@ -100,7 +100,7 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerRouting.showBiome(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("biome") || args[0].equals("바이옴")) {
+        if (args[0].equalsIgnoreCase("biome") || args[0].equalsIgnoreCase("setbiome") || args[0].equals("바이옴")) {
             UUID islandId = args.length > 2 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             if (args.length > 1) {
                 playerRouting.setBiome(player, islandId, args.length > 2 ? args[2] : args[1]);
@@ -218,6 +218,26 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             UUID islandId = optionalIslandIdArgument(args, 1);
             String amount = argumentAfterOptionalIsland(args, 1, "0");
             playerMembership.withdrawBank(player, islandId, amount);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("warehouse") || args[0].equalsIgnoreCase("warehouse-list") || args[0].equalsIgnoreCase("storage-box") || args[0].equalsIgnoreCase("chest") || args[0].equalsIgnoreCase("vault") || args[0].equalsIgnoreCase("island-chest") || args[0].equalsIgnoreCase("islandchest") || args[0].equals("창고") || args[0].equals("창고목록")) {
+            playerProgression.listWarehouse(player, new UUID(0L, 0L));
+            return;
+        }
+        if (args[0].equalsIgnoreCase("warehouse-deposit") || args[0].equals("창고입금")) {
+            if (args.length < 3) {
+                player.sendMessage(Component.text("사용법: /is warehouse-deposit <material> <amount>"));
+            } else {
+                playerProgression.depositWarehouse(player, new UUID(0L, 0L), args[1], parseLongOrZero(args[2]));
+            }
+            return;
+        }
+        if (args[0].equalsIgnoreCase("warehouse-withdraw") || args[0].equals("창고출금")) {
+            if (args.length < 3) {
+                player.sendMessage(Component.text("사용법: /is warehouse-withdraw <material> <amount>"));
+            } else {
+                playerProgression.withdrawWarehouse(player, new UUID(0L, 0L), args[1], parseLongOrZero(args[2]));
+            }
             return;
         }
         if (args[0].equalsIgnoreCase("values") || args[0].equalsIgnoreCase("counts") || args[0].equalsIgnoreCase("blocks") || args[0].equalsIgnoreCase("block-details") || args[0].equalsIgnoreCase("block-counts") || args[0].equals("블록상세") || args[0].equals("블록목록")) {

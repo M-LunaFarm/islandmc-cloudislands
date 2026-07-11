@@ -19,7 +19,7 @@ public enum IslandCommandPermission {
     BANK("cloudislands.island.bank", "bank", "bank-balance", "bank-balance-target", "balance", "bal", "money", "은행", "은행잔액"),
     BANK_DEPOSIT("cloudislands.island.bank.deposit", "deposit", "bank-deposit", "입금"),
     BANK_WITHDRAW("cloudislands.island.bank.withdraw", "withdraw", "bank-withdraw", "출금"),
-    WAREHOUSE("cloudislands.island.warehouse.view", Set.of("cloudislands.island.warehouse"), "warehouse", "warehouse-list", "storage-box", "chest", "island-chest", "islandchest", "창고", "창고목록"),
+    WAREHOUSE("cloudislands.island.warehouse.view", Set.of("cloudislands.island.warehouse"), "warehouse", "warehouse-list", "storage-box", "chest", "vault", "island-chest", "islandchest", "창고", "창고목록"),
     WAREHOUSE_DEPOSIT("cloudislands.island.warehouse.deposit", "warehouse-deposit", "창고입금"),
     WAREHOUSE_WITHDRAW("cloudislands.island.warehouse.withdraw", "warehouse-withdraw", "창고출금"),
     MEMBERS("cloudislands.island.members", "members", "coops", "member-menu", "member-list", "member-list-target", "team", "showteam", "online", "roles", "role-menu", "role-list", "invites", "invite-menu", "invite-list", "bans", "ban-menu", "ban-list", "banlist", "멤버", "멤버관리", "멤버목록", "역할", "역할목록", "초대목록", "밴목록"),
@@ -39,7 +39,7 @@ public enum IslandCommandPermission {
     VISITOR_STATS("cloudislands.island.visitor-stats", "visitor-stats", "visitorstats", "visitors", "방문통계", "방문자통계"),
     PROGRESSION("cloudislands.island.progression", "level", "worth", "value", "values", "counts", "blocks", "block-details", "block-counts", "rank", "ranking", "top", "leaderboard", "rank-list", "worthrank", "valuerank", "levelcalc", "recalculate", "recalc", "upgrade", "upgrades", "upgrade-menu", "upgrade-list", "buyupgrade", "upgrade-buy", "rankup", "generator", "generator-info", "mission", "missions", "mission-menu", "mission-list", "challenge", "challenges", "challenge-menu", "challenge-list", "레벨", "가치", "블록상세", "블록목록", "랭킹", "랭킹목록", "가치랭킹", "레벨계산", "업그레이드", "업그레이드목록", "업그레이드구매", "생성기", "생성기정보", "미션", "미션목록", "챌린지", "챌린지목록"),
     CHAT("cloudislands.island.chat", "chat", "chat-menu", "islandchat", "teamchat", "team-chat", "teamchat-toggle", "tc", "log", "logs", "log-menu", "log-list", "채팅", "팀채팅", "로그", "로그목록"),
-    ENVIRONMENT("cloudislands.island.environment", "biome", "biome-menu", "biome-info", "size", "border", "border-ui", "border-color", "border-visible", "toggle", "toggleblocks", "limit", "limits", "limit-menu", "limit-list", "setlimit", "limit-set", "hoppers", "spawners", "entities", "redstone", "바이옴", "바이옴정보", "크기", "경계", "경계표시", "경계색상", "토글", "제한", "제한목록", "제한설정", "호퍼", "스포너", "엔티티", "레드스톤");
+    ENVIRONMENT("cloudislands.island.environment", "biome", "setbiome", "biome-menu", "biome-info", "size", "border", "border-ui", "border-color", "border-visible", "toggle", "toggleblocks", "limit", "limits", "limit-menu", "limit-list", "setlimit", "limit-set", "hoppers", "spawners", "entities", "redstone", "바이옴", "바이옴정보", "크기", "경계", "경계표시", "경계색상", "토글", "제한", "제한목록", "제한설정", "호퍼", "스포너", "엔티티", "레드스톤");
 
     private static final String ADMIN_BYPASS = "cloudislands.admin.bypass";
     private final String node;

@@ -45,7 +45,7 @@ final class IslandEnvironmentCommandHandler {
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
-        if (subcommand.equals("biome") || subcommand.equals("바이옴")) {
+        if (subcommand.equals("biome") || subcommand.equals("setbiome") || subcommand.equals("바이옴")) {
             if (args.length > 1) {
                 setBiome(player, args[1]);
             } else {

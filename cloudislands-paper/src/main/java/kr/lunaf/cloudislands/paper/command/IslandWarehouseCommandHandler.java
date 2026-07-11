@@ -59,6 +59,7 @@ final class IslandWarehouseCommandHandler {
             || subcommand.equals("warehouse-list")
             || subcommand.equals("storage-box")
             || subcommand.equals("chest")
+            || subcommand.equals("vault")
             || subcommand.equals("island-chest")
             || subcommand.equals("islandchest")
             || subcommand.equals("창고")

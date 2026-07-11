@@ -237,6 +237,19 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void warehouseCommandsActuallyExecuteOnVelocity() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerProgressionActions.java"));
+        assertTrue(dispatcher.contains("equalsIgnoreCase(\"vault\")"));
+        assertTrue(dispatcher.contains("playerProgression.listWarehouse"));
+        assertTrue(dispatcher.contains("playerProgression.depositWarehouse"));
+        assertTrue(dispatcher.contains("playerProgression.withdrawWarehouse"));
+        assertTrue(actions.contains("coreApiClient.warehouse().listItems"));
+        assertTrue(actions.contains("coreApiClient.warehouseCommands().deposit"));
+        assertTrue(actions.contains("coreApiClient.warehouseCommands().withdraw"));
+    }
+
+    @Test
     void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
 
