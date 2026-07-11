@@ -10,7 +10,7 @@ public final class ProtectionDecisionPolicy {
     public static final String MIGRATION_POLICY = "deny-protected-actions-while-island-region-is-migrating";
     public static final String DECISION_ORDER = "admin-bypass>island-owner>explicit-member-role>trusted-override>visitor-flags>default-deny";
     public static final String REGION_LOOKUP_ORDER = "world-chunk-region-index>bounding-box>island-id>local-permission-cache";
-    public static final String PROTECTED_EVENT_SURFACE = "block-place-break-interact-bucket-inventory-combat-explosion-hanging-item-armorstand-entity-vehicle-fire-fluid";
+    public static final String PROTECTED_EVENT_SURFACE = "block-place-break-interact-bucket-inventory-combat-explosion-hanging-item-projectile-frost-walker-armorstand-entity-vehicle-fire-fluid";
     public static final String SYNC_EVENT_SOURCE_POLICY = "synchronous-paper-events-may-read-region-index-permission-cache-and-runtime-cache-only";
     public static final String ASYNC_REFRESH_SOURCE_POLICY = "core-api-http-database-and-redis-refresh-local-cache-outside-event-thread";
     public static final String BORDER_POLICY = "visitor-returns-to-visitor-spawn-member-returns-to-island-spawn-admin-may-bypass";
@@ -51,6 +51,9 @@ public final class ProtectionDecisionPolicy {
             "HangingPlaceEvent",
             "PlayerDropItemEvent",
             "EntityPickupItemEvent",
+            "PlayerPickupArrowEvent",
+            "ProjectileLaunchEvent",
+            "EntityBlockFormEvent",
             "PlayerArmorStandManipulateEvent",
             "PlayerShearEntityEvent",
             "PlayerLeashEntityEvent",

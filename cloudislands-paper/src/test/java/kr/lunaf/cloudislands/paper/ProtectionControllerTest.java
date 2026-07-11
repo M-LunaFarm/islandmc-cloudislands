@@ -156,6 +156,9 @@ class ProtectionControllerTest {
             IslandPermission.DYE_SHEEP,
             IslandPermission.SADDLE_ENTITY,
             IslandPermission.BRUSH,
+            IslandPermission.IGNITE_CREEPER,
+            IslandPermission.NAME_ENTITY,
+            IslandPermission.SCULK_SENSOR,
             IslandPermission.TURTLE_EGG_TRAMPLE
         )) {
             assertTrue(protection.checkBlock(VISITOR, "ci_shard_001", 0, 100, 0, permission).allowed(), permission.name());
@@ -192,6 +195,25 @@ class ProtectionControllerTest {
         assertTrue(listener.contains("EntityType.WIND_CHARGE"));
         assertTrue(listener.contains("EntityType.BREEZE_WIND_CHARGE"));
         assertTrue(listener.contains("IslandPermission.WIND_CHARGE"));
+    }
+
+    @Test
+    void projectilesFrostWalkerAndRemainingPhysicalInteractionsAreProtected() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("onPickupArrow(PlayerPickupArrowEvent event)"));
+        assertTrue(listener.contains("onProjectileLaunch(ProjectileLaunchEvent event)"));
+        assertTrue(listener.contains("case TRIDENT -> IslandPermission.PICKUP_ITEM"));
+        assertTrue(listener.contains("case ENDER_PEARL -> IslandPermission.ENDER_PEARL"));
+        assertTrue(listener.contains("case WIND_CHARGE -> IslandPermission.WIND_CHARGE"));
+        assertTrue(listener.contains("onFrostWalker(EntityBlockFormEvent event)"));
+        assertTrue(listener.contains("held == Material.NAME_TAG"));
+        assertTrue(listener.contains("IslandPermission.NAME_ENTITY"));
+        assertTrue(listener.contains("entity instanceof Creeper"));
+        assertTrue(listener.contains("IslandPermission.IGNITE_CREEPER"));
+        assertTrue(listener.contains("calibrated_sculk_sensor"));
+        assertTrue(listener.contains("sculk_shrieker"));
+        assertTrue(listener.contains("IslandPermission.SCULK_SENSOR"));
     }
 
     @Test

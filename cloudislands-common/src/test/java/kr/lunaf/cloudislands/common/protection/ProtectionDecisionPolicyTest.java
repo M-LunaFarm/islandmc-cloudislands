@@ -43,6 +43,9 @@ class ProtectionDecisionPolicyTest {
         assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("PlayerInteractEvent"));
         assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("EntityExplodeEvent"));
         assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("FluidLevelChangeEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("PlayerPickupArrowEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("ProjectileLaunchEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("EntityBlockFormEvent"));
         assertTrue(ProtectionDecisionPolicy.protectedEvent("block_break_event"));
         assertTrue(ProtectionDecisionPolicy.protectedEvent("BlockFromToEvent"));
     }

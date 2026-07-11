@@ -164,6 +164,9 @@ public final class ProtectionController {
                 DYE_SHEEP,
                 SADDLE_ENTITY,
                 BRUSH,
+                IGNITE_CREEPER,
+                NAME_ENTITY,
+                SCULK_SENSOR,
                 TURTLE_EGG_TRAMPLE -> IslandFlag.VISITOR_INTERACT;
             case OPEN_CONTAINER -> IslandFlag.VISITOR_CONTAINER;
             case PICKUP_ITEM -> IslandFlag.VISITOR_PICKUP;

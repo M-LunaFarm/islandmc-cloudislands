@@ -57,7 +57,10 @@ class DefaultIslandPermissionsTest {
             IslandPermission.BREAK_SPAWNER,
             IslandPermission.PAINTING,
             IslandPermission.TURTLE_EGG_TRAMPLE,
-            IslandPermission.WIND_CHARGE
+            IslandPermission.WIND_CHARGE,
+            IslandPermission.IGNITE_CREEPER,
+            IslandPermission.NAME_ENTITY,
+            IslandPermission.SCULK_SENSOR
         );
 
         for (IslandPermission permission : IslandPermission.values()) {

@@ -18,6 +18,7 @@ import org.bukkit.entity.AbstractHorse;
 import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Axolotl;
+import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Fish;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -44,12 +45,14 @@ import org.bukkit.event.block.FluidLevelChangeEvent;
 import org.bukkit.event.block.LeavesDecayEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.entity.EntityBreedEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.entity.PlayerLeashEntityEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
@@ -63,6 +66,7 @@ import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketEntityEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerPickupArrowEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -223,6 +227,36 @@ public final class IslandProtectionListener implements Listener {
     public void onPickup(EntityPickupItemEvent event) {
         if (event.getEntity() instanceof Player player) {
             event.setCancelled(denied(player, event.getItem().getLocation().getBlock(), IslandPermission.PICKUP_ITEM));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPickupArrow(PlayerPickupArrowEvent event) {
+        event.setCancelled(denied(event.getPlayer(), event.getArrow().getLocation().getBlock(), IslandPermission.PICKUP_ITEM));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onProjectileLaunch(ProjectileLaunchEvent event) {
+        Player player = attackingPlayer(event.getEntity());
+        if (player == null) {
+            return;
+        }
+        IslandPermission permission = switch (event.getEntityType()) {
+            case FISHING_BOBBER -> IslandPermission.FISH;
+            case TRIDENT -> IslandPermission.PICKUP_ITEM;
+            case ENDER_PEARL -> IslandPermission.ENDER_PEARL;
+            case WIND_CHARGE -> IslandPermission.WIND_CHARGE;
+            default -> null;
+        };
+        if (permission != null) {
+            event.setCancelled(denied(player, event.getEntity().getLocation().getBlock(), permission));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onFrostWalker(EntityBlockFormEvent event) {
+        if (event.getEntity() instanceof Player player) {
+            event.setCancelled(denied(player, event.getBlock().getLocation().getBlock(), IslandPermission.BUILD));
         }
     }
 
@@ -575,6 +609,12 @@ public final class IslandProtectionListener implements Listener {
 
     private IslandPermission entityInteractionPermission(Player player, org.bukkit.entity.Entity entity, org.bukkit.inventory.EquipmentSlot hand) {
         Material held = player.getInventory().getItem(hand).getType();
+        if (held == Material.NAME_TAG) {
+            return IslandPermission.NAME_ENTITY;
+        }
+        if ((held == Material.FLINT_AND_STEEL || held == Material.FIRE_CHARGE) && entity instanceof Creeper) {
+            return IslandPermission.IGNITE_CREEPER;
+        }
         if (held == Material.WATER_BUCKET && (entity instanceof Fish || entity instanceof Axolotl)) {
             return IslandPermission.PICKUP_ENTITY_BUCKET;
         }
@@ -601,6 +641,9 @@ public final class IslandProtectionListener implements Listener {
 
     private IslandPermission interactionPermission(Material type) {
         String key = type.getKey().getKey();
+        if (key.equals("sculk_sensor") || key.equals("calibrated_sculk_sensor") || key.equals("sculk_shrieker")) {
+            return IslandPermission.SCULK_SENSOR;
+        }
         if (key.endsWith("_door") || key.endsWith("_trapdoor") || key.endsWith("_fence_gate")) {
             return IslandPermission.USE_DOOR;
         }

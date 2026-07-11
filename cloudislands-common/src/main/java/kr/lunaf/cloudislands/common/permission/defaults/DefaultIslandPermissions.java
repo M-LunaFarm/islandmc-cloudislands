@@ -49,6 +49,9 @@ public final class DefaultIslandPermissions {
             IslandPermission.PAINTING,
             IslandPermission.TURTLE_EGG_TRAMPLE,
             IslandPermission.WIND_CHARGE,
+            IslandPermission.IGNITE_CREEPER,
+            IslandPermission.NAME_ENTITY,
+            IslandPermission.SCULK_SENSOR,
             IslandPermission.USE_SPAWNER,
             IslandPermission.USE_ANVIL,
             IslandPermission.USE_ENCHANT_TABLE,
@@ -86,7 +89,10 @@ public final class DefaultIslandPermissions {
             IslandPermission.BREAK_SPAWNER,
             IslandPermission.PAINTING,
             IslandPermission.TURTLE_EGG_TRAMPLE,
-            IslandPermission.WIND_CHARGE
+            IslandPermission.WIND_CHARGE,
+            IslandPermission.IGNITE_CREEPER,
+            IslandPermission.NAME_ENTITY,
+            IslandPermission.SCULK_SENSOR
         }) {
             set.putRoleKey("TRUSTED", permission, true);
         }
