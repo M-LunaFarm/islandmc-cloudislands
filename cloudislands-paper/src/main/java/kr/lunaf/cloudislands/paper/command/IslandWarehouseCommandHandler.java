@@ -101,7 +101,7 @@ final class IslandWarehouseCommandHandler {
 
     private void changeWarehouse(Player player, String materialKey, long amount, boolean deposit) {
         runtime.currentIsland(player, deposit ? message("warehouse-deposit-island-required", "섬 안에서만 창고에 입금할 수 있습니다.") : message("warehouse-withdraw-island-required", "섬 안에서만 창고에서 출금할 수 있습니다.")).ifPresent(islandId -> {
-            IslandPermission permission = deposit ? IslandPermission.OPEN_CONTAINER : IslandPermission.WITHDRAW_BANK;
+            IslandPermission permission = IslandPermission.OPEN_CONTAINER;
             if (!runtime.allowed(player, permission)) {
                 runtime.message(player, deposit ? message("warehouse-deposit-denied", "섬 창고에 넣을 권한이 없습니다.") : message("warehouse-withdraw-denied", "섬 창고에서 뺄 권한이 없습니다."));
                 return;

@@ -2,10 +2,13 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpHandler;
 import java.time.Instant;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -20,6 +23,14 @@ import kr.lunaf.cloudislands.coreservice.warehouse.IslandWarehouseRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandWarehouseRoutesTest {
+    @Test
+    void warehouseMutationsUseContainerPermissionInsteadOfBankWithdrawalPermission() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandWarehouseRoutes.java"));
+
+        assertEquals(2, occurrences(source, "IslandPermission.OPEN_CONTAINER"));
+        assertFalse(source.contains("IslandPermission.WITHDRAW_BANK"));
+    }
+
     @Test
     void registersIslandWarehouseEndpointGroup() {
         List<String> paths = new ArrayList<>();
@@ -69,6 +80,10 @@ class IslandWarehouseRoutesTest {
         assertEquals("minecraft:stone", SimpleJson.text(item.get("materialKey")));
         assertEquals(64L, ((Number) item.get("amount")).longValue());
         assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(item.get("updatedAt")));
+    }
+
+    private static int occurrences(String source, String needle) {
+        return (source.length() - source.replace(needle, "").length()) / needle.length();
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

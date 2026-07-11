@@ -359,6 +359,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseHandler.contains("removeMaterial(player, material, amount)"), "warehouse deposit must remove real player inventory items");
         assertTrue(warehouseHandler.contains("giveMaterial(player, material, amount)"), "warehouse withdraw and failed deposits must grant/refund real items");
         assertTrue(warehouseHandler.contains("inventorySpace(player, material)"), "warehouse withdraw must verify inventory capacity before Core mutation");
+        assertTrue(warehouseHandler.contains("IslandPermission permission = IslandPermission.OPEN_CONTAINER"), "warehouse deposit and withdraw must require the container permission");
+        assertFalse(warehouseHandler.contains("deposit ? IslandPermission.OPEN_CONTAINER : IslandPermission.WITHDRAW_BANK"), "warehouse withdraw must not inherit bank withdrawal authority");
         assertTrue(warehouseHandler.contains("Material.matchMaterial"), "warehouse commands must resolve Bukkit materials before mutating Core warehouse state");
         assertTrue(warehouseHandler.contains("player.getInventory().addItem"), "warehouse withdraw must use the Bukkit inventory API");
         assertTrue(warehouseHandler.contains("player.getInventory().setStorageContents"), "warehouse deposit must persist inventory removal through the Bukkit inventory API");

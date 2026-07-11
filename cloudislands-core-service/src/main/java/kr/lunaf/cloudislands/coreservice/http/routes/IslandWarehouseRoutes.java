@@ -78,7 +78,7 @@ public final class IslandWarehouseRoutes implements RouteGroup {
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
         String materialKey = JsonFields.text(body, "materialKey", "");
         long amount = JsonFields.longValue(body, "amount", 0L);
-        if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.WITHDRAW_BANK)) {
+        if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.OPEN_CONTAINER)) {
             return;
         }
         var result = warehouse.withdraw(islandId, materialKey, amount);
