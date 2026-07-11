@@ -250,6 +250,7 @@ public final class IslandSettingsRoutes implements RouteGroup {
             return;
         }
         metadataRepository.setPublicAccess(islandId, publicAccess);
+        islandRepository.setPublicAccess(islandId, publicAccess);
         audit.log(actorUuid, "PLAYER", "ISLAND_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("publicAccess", Boolean.toString(publicAccess)));
         islandLogs.append(islandId, actorUuid, "ISLAND_ACCESS_SET", Map.of("publicAccess", Boolean.toString(publicAccess)));
         events.publish(CloudIslandEventType.ISLAND_ACCESS_CHANGED.name(), Map.of("islandId", islandId.toString(), "publicAccess", Boolean.toString(publicAccess)));

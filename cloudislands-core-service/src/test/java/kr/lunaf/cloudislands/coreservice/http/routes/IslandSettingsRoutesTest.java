@@ -81,6 +81,31 @@ class IslandSettingsRoutesTest {
     }
 
     @Test
+    void setAccessUpdatesBothMetadataAndAuthoritativeIslandSnapshot() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000091");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000092");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Access Test");
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandSettingsRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandPermissionRuleRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryAuditLogger(),
+            new InMemoryGlobalEventPublisher()
+        ).register(handlers::put);
+
+        TestExchange exchange = exchange("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + ownerUuid + "\",\"publicAccess\":true}");
+        handlers.get("/v1/islands/access").handle(exchange);
+
+        assertEquals(202, exchange.status());
+        assertTrue(metadata.isPublicAccess(islandId));
+        assertTrue(islands.findById(islandId).orElseThrow().publicAccess());
+    }
+
+    @Test
     void rendersSettingsContracts() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID actorUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");

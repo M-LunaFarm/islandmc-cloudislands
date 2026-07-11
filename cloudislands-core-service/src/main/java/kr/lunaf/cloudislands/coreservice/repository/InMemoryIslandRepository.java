@@ -73,6 +73,15 @@ public final class InMemoryIslandRepository implements IslandRepository {
     }
 
     @Override
+    public void setPublicAccess(UUID islandId, boolean publicAccess) {
+        IslandSnapshot island = byIslandId.get(islandId);
+        if (island == null || island.state() == IslandState.DELETED) {
+            throw new IllegalStateException("island not found");
+        }
+        byIslandId.put(islandId, new IslandSnapshot(island.islandId(), island.ownerUuid(), island.name(), island.state(), island.size(), island.level(), island.worth(), publicAccess, island.createdAt(), Instant.now()));
+    }
+
+    @Override
     public boolean rename(UUID islandId, String name) {
         String normalized = name == null ? "" : name.trim();
         if (normalized.isBlank()) {
