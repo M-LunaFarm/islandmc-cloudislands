@@ -118,8 +118,8 @@ final class IslandCommandRuntimeServices implements
         return playerResolver.resolvePlayerUuid(value);
     }
 
-    public void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
-        localTeleports.moveToPoint(player, point, missingMessage, successMessage);
+    public void moveToPoint(Player player, UUID islandId, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
+        localTeleports.moveToPoint(player, islandId, point, missingMessage, successMessage);
     }
 
     public boolean teleportLocalDefaultHome(Player player) {

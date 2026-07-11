@@ -309,7 +309,7 @@ final class IslandHomeWarpCommandHandler {
             return;
         }
         homeWarpUseCase.homeViews(islandId)
-            .thenAccept(homes -> runtime.moveToPoint(player, homePoint(homes, name), message("home-not-found"), message("home-teleport-success")))
+            .thenAccept(homes -> runtime.moveToPoint(player, islandId, homePoint(homes, name), message("home-not-found"), message("home-teleport-success")))
             .exceptionally(error -> {
                 if (runtime.coreUnavailable(error) && runtime.teleportLocalDefaultHome(player)) {
                     return null;
@@ -325,7 +325,7 @@ final class IslandHomeWarpCommandHandler {
                 .thenAccept(warps -> {
                     Point point = warpPoint(warps, name);
                     if (point == null) {
-                        runtime.moveToPoint(player, null, message("warp-not-found"), message("warp-teleport-success"));
+                        runtime.moveToPoint(player, islandId, null, message("warp-not-found"), message("warp-teleport-success"));
                         return;
                     }
                     homeWarpUseCase.islandInfoView(islandId).thenAccept(info -> {
@@ -333,7 +333,7 @@ final class IslandHomeWarpCommandHandler {
                             runtime.message(player, message("warp-teleport-denied"));
                             return;
                         }
-                        runtime.moveToPoint(player, point, message("warp-not-found"), message("warp-teleport-success"));
+                        runtime.moveToPoint(player, islandId, point, message("warp-not-found"), message("warp-teleport-success"));
                     }).exceptionally(error -> {
                         runtime.message(player, message("island-info-load-failed"));
                         return null;
@@ -532,7 +532,7 @@ final class IslandHomeWarpCommandHandler {
 
         IslandLocation location(Location location);
 
-        void moveToPoint(Player player, Point point, String missingMessage, String successMessage);
+        void moveToPoint(Player player, UUID islandId, Point point, String missingMessage, String successMessage);
 
         boolean teleportLocalDefaultHome(Player player);
 

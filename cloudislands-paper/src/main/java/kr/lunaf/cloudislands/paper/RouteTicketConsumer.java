@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteAction;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
+import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.event.IslandPreVisitEvent;
 import kr.lunaf.cloudislands.paper.event.IslandVisitEvent;
@@ -153,7 +154,26 @@ public final class RouteTicketConsumer {
             failRoute(playerUuid, ticket.ticketId(), "ACTIVE_ISLAND_ORIGIN_MISSING", true);
             return;
         }
-        Location target = maybeTarget.get();
+        Location requested = maybeTarget.get();
+        worlds.safeDestination(requested, targetRegion(ticket.islandId())).whenComplete((destination, error) ->
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+                if (error != null || destination == null || destination.isEmpty()) {
+                    recordTeleportFailure("UNSAFE_TELEPORT_TARGET");
+                    failRoute(playerUuid, ticket.ticketId(), "UNSAFE_TELEPORT_TARGET", true);
+                    return;
+                }
+                completeTeleport(playerUuid, ticket, payload, placementSource, destination.get());
+            })
+        );
+    }
+
+    private void completeTeleport(UUID playerUuid, RouteTicket ticket, java.util.Map<String, String> payload, String placementSource, Location target) {
+        Player player = players.onlinePlayer(playerUuid);
+        if (player == null) {
+            recordFailure("PLAYER_DISCONNECTED");
+            clearRoute(playerUuid, ticket.ticketId(), "PLAYER_DISCONNECTED");
+            return;
+        }
         teleportAttempts.incrementAndGet();
         lastTargetType = payload.getOrDefault("targetType", ticket.action().name());
         if (players.teleport(player, target)) {
@@ -169,12 +189,31 @@ public final class RouteTicketConsumer {
                     routeEventFields(ticket, target, payload)
             ));
             if (ticket.action() == RouteAction.VISIT) {
-                kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandVisitEvent(ticket.islandId(), playerUuid, player, worldName, placementSource));
+                kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandVisitEvent(ticket.islandId(), playerUuid, player, ticket.targetWorld(), placementSource));
             }
         } else {
             recordTeleportFailure("BUKKIT_TELEPORT_REJECTED");
             failRoute(playerUuid, ticket.ticketId(), "BUKKIT_TELEPORT_REJECTED", true);
         }
+    }
+
+    private IslandRegion targetRegion(UUID islandId) {
+        ActiveIslandRegistry registry = activeIslands;
+        ActiveIslandRegistry.ActiveIsland active = registry == null ? null : registry.find(islandId).orElse(null);
+        if (active == null) {
+            return null;
+        }
+        int half = Math.max(1, active.islandSize() / 2);
+        return new IslandRegion(
+            active.islandId(),
+            active.worldName(),
+            active.originX() - half,
+            active.originX() + half,
+            active.originZ() - half,
+            active.originZ() + half,
+            active.cellX(),
+            active.cellZ()
+        );
     }
 
     private Optional<Location> targetLocation(World world, RouteTicket ticket, java.util.Map<String, String> payload) {
@@ -197,7 +236,7 @@ public final class RouteTicketConsumer {
         fields.put("targetNode", ticket.targetNode() == null ? "" : ticket.targetNode());
         fields.put("targetType", payload.getOrDefault("targetType", ticket.action().name()));
         fields.put("targetResolution", targetResolution(ticket));
-        fields.put("teleportDestinationPolicy", "active-island-origin-plus-ticket-local-offset");
+        fields.put("teleportDestinationPolicy", "active-island-origin-plus-ticket-local-offset-safe-resolved");
         fields.put("homeName", payload.getOrDefault("homeName", ""));
         fields.put("warpName", payload.getOrDefault("warpName", ""));
         fields.put("localX", Double.toString(decimal(payload, "localX", defaultLocalX(ticket.action()))));

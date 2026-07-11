@@ -73,8 +73,8 @@ final class IslandHomeWarpRuntimeAdapter implements IslandHomeWarpCommandHandler
     }
 
     @Override
-    public void moveToPoint(Player player, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
-        runtime.moveToPoint(player, point, missingMessage, successMessage);
+    public void moveToPoint(Player player, UUID islandId, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
+        runtime.moveToPoint(player, islandId, point, missingMessage, successMessage);
     }
 
     @Override

@@ -692,6 +692,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpHandler.contains("new Point(home.worldName(), home.x(), home.y(), home.z(), home.yaw(), home.pitch(), false)"), "home teleport point must preserve world and facing");
         assertTrue(homeWarpHandler.contains("new Point(warp.worldName(), warp.x(), warp.y(), warp.z(), warp.yaw(), warp.pitch(), warp.publicAccess())"), "warp teleport point must preserve world and facing");
         assertTrue(localTeleports.contains("if (point.worldName().isBlank())"), "local teleport must reject missing stored worlds");
+        assertTrue(localTeleports.contains("protection.region(islandId)"), "local teleport coordinates must resolve against the target island rather than the player's current location");
+        assertTrue(localTeleports.contains("worlds.safeDestination(requested, region.get())"), "local home and warp movement must reject blocked or hazardous destinations");
         assertFalse(localTeleports.contains("point.worldName().isBlank() ?"), "local teleport must not substitute the player's current world for stored home/warp worlds");
         assertFalse(homeWarpHandler.contains("coreApiClient.setIslandHomeResult"));
         assertFalse(homeWarpHandler.contains("coreApiClient.setIslandWarpResult"));
