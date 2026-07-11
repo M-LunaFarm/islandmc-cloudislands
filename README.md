@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.10`
+Version: `1.1.11`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.10`
+Current release: `v1.1.11`
 
-Built for the CloudIslands 1.1.10 baseline.
+Built for the CloudIslands 1.1.11 baseline.
 
-Release notes for `v1.1.10`:
+Release notes for `v1.1.11`:
+
+- fail-closed permission mutation: unknown permission names no longer silently
+  become `BUILD` on Velocity or Paper admin command paths
+- fail-closed flag mutation: unknown player flags no longer become `FLY`, and
+  unknown administrator island flags no longer become `VISITOR_INTERACT`
+- strict boolean intent: malformed allow/deny values no longer silently become
+  `false`; accepted values include explicit true/false, on/off, allow/deny,
+  numeric, and localized forms
+- operator feedback and regression coverage: invalid permission, override, and
+  flag requests stop before Core mutation and return actionable localized errors
+
+Release notes carried forward from `v1.1.10`:
 
 - canonical block-value semantics: `/is value [material]` now executes on
   Paper so the no-argument form reads the real item in the player's main hand
@@ -773,7 +785,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.10`.
+Current read: production-readiness baseline `v1.1.11`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
