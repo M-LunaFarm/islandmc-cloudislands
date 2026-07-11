@@ -32,7 +32,7 @@ public enum IslandCommandPermission {
     DEMOTE("cloudislands.island.demote", "demote", "강등"),
     TRANSFER("cloudislands.island.transfer", "transfer", "leader", "leadership", "양도"),
     SETTINGS("cloudislands.island.settings", "settings", "setting", "public", "private", "lock", "unlock", "fly", "keepinventory", "keepinv", "pvp", "publicwarps", "language", "locale", "lang", "name", "setname", "rename", "setdiscord", "discord", "setpaypal", "paypal", "flags", "flag-menu", "flag-list", "flag", "setflag", "flag-set", "설정", "공개", "비공개", "잠금", "잠금해제", "비행", "인벤보존", "피빕", "공개워프", "언어", "이름", "이름설정", "디스코드", "페이팔", "플래그", "플래그설정", "플래그목록"),
-    PERMISSIONS("cloudislands.island.permissions", "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "permission-set", "permission-exception", "permission-exception-list", "권한", "권한설정", "권한목록", "권한예외", "권한예외목록"),
+    PERMISSIONS("cloudislands.island.permissions", "permissions", "permission-menu", "permission-list", "permission", "perms", "setpermission", "setperm", "permission-set", "permission-exception", "permission-exception-list", "권한", "권한설정", "권한목록", "권한예외", "권한예외목록"),
     SNAPSHOT("cloudislands.island.snapshot", "snapshot", "snapshots", "snapshot-menu", "snapshot-list", "snapshot-create", "snapshot-request", "스냅샷", "스냅샷목록", "스냅샷생성"),
     RESTORE("cloudislands.island.restore", "snapshot-restore", "restore", "rollback", "스냅샷복원", "복원", "롤백"),
     REVIEW("cloudislands.island.review", "reviews", "review-list", "ratings", "rate", "review", "delete-review", "review-delete", "reviewdel", "reviewrank", "평가", "후기", "후기삭제", "평가삭제", "평가목록", "후기목록", "평가랭킹", "후기랭킹"),

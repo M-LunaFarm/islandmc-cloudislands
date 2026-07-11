@@ -212,6 +212,14 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void setpermPreservesPaperVelocityParity() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerMembershipCommandDispatcher.java"));
+
+        assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"setperm\")"));
+        assertTrue(IslandCommandCatalog.playerCommands().contains("섬 setperm"));
+    }
+
+    @Test
     void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
 

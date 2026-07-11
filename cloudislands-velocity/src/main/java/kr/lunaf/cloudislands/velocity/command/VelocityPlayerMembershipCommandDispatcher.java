@@ -195,7 +195,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.listFlags(player, islandId);
             return true;
         }
-        if (args[0].equalsIgnoreCase("permissions") || args[0].equalsIgnoreCase("permission-list") || args[0].equalsIgnoreCase("permission-menu") || args[0].equalsIgnoreCase("permission") || args[0].equalsIgnoreCase("perms") || args[0].equals("권한") || args[0].equals("권한목록")) {
+        if (args[0].equalsIgnoreCase("permissions") || args[0].equalsIgnoreCase("permission-list") || args[0].equalsIgnoreCase("permission-menu") || args[0].equalsIgnoreCase("permission") || args[0].equalsIgnoreCase("perms") || args[0].equalsIgnoreCase("setperm") || args[0].equals("권한") || args[0].equals("권한목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerMembership.listPermissions(player, islandId);
             return true;

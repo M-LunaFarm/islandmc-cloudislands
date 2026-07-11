@@ -233,7 +233,7 @@ final class IslandMembershipCommandHandler {
             listIslandBans(player);
             return true;
         }
-        if (subcommand.equals("permissions") || subcommand.equals("permission-menu") || subcommand.equals("permission") || subcommand.equals("perms") || subcommand.equals("권한")) {
+        if (subcommand.equals("permissions") || subcommand.equals("permission-menu") || subcommand.equals("permission") || subcommand.equals("perms") || subcommand.equals("setperm") || subcommand.equals("권한")) {
             if (args.length > 3) {
                 runtime.setIslandPermission(player, args[1], args[2], args[3]);
             } else {
