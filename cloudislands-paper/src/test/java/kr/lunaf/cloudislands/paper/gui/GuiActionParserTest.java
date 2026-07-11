@@ -335,6 +335,10 @@ class GuiActionParserTest {
         GuiAction publicPage = GuiActionParser.parse("island.visit.page", Map.of("page", "5")).orElseThrow();
         assertTrue(publicPage instanceof GuiAction.PublicIslandPage);
         assertEquals(Map.of("page", "5"), publicPage.data());
+        GuiAction rolePage = GuiActionParser.parse("island.roles.page", Map.of(
+            "islandId", "00000000-0000-0000-0000-000000000004", "page", "6")).orElseThrow();
+        assertTrue(rolePage instanceof GuiAction.RolePage);
+        assertEquals("6", rolePage.data().get("page"));
     }
 
     @Test
@@ -512,6 +516,7 @@ class GuiActionParserTest {
                 "comment", "good"
             );
             case "island.role.weight.adjust" -> Map.of("role", "MEMBER", "weight", "1");
+            case "island.roles.page" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000", "page", "0");
             case "island.snapshot.create" -> Map.of("reason", "manual");
             case "island.snapshot.restore.confirm" -> Map.of(
                 "snapshotNo", "1",

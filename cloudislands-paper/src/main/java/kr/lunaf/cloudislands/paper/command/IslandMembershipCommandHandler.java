@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandBanMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -357,6 +358,10 @@ final class IslandMembershipCommandHandler {
         }
         if (action instanceof GuiAction.InvitePage page) {
             IslandInviteMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page.page());
+            return true;
+        }
+        if (action instanceof GuiAction.RolePage page) {
+            IslandRoleMenu.open(plugin, coreApiClient, player, page.islandId(), runtime.messagesFor(player), page.page());
             return true;
         }
         if (action instanceof GuiAction.PermissionPage permissionPage) {

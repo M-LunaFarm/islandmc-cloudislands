@@ -4,7 +4,7 @@ title-key: menu.roles.title
 layout:
   - "_________"
   - "____E____"
-  - "LPR.....S"
+  - "LPRW..N.S"
 items:
   _:
     material: PAPER
@@ -80,9 +80,20 @@ items:
     fallback-lore:
       - 섬 설정으로 돌아갑니다.
     action: settings
+  W:
+    material: ARROW
+    name-key: role-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: role-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
 actions:
   open: island.roles.open
   list: island.roles.list
+  page: island.roles.page
   adjust-weight: island.role.weight.adjust
   permissions: island.permissions.open
   settings: island.settings.open

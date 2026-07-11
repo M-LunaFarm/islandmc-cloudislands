@@ -122,6 +122,7 @@ public final class GuiActionParser {
         "island.role.weight.adjust",
         "island.roles.list",
         "island.roles.open",
+        "island.roles.page",
         "island.settings.open",
         "island.select.target",
         "island.snapshot.create",
@@ -362,6 +363,10 @@ public final class GuiActionParser {
                     nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.visit.page" -> Optional.of(new GuiAction.PublicIslandPage(
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
+                case "island.roles.page" -> Optional.of(new GuiAction.RolePage(
+                    UUID.fromString(required(safeData, "islandId")),
                     nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.review.set" -> Optional.of(new GuiAction.ReviewSet(

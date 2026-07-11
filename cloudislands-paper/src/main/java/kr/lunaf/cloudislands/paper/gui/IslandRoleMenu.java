@@ -23,6 +23,7 @@ public final class IslandRoleMenu implements Listener {
         new GuiMenuDefinition("island.roles", 3, TITLE_KEY, Map.of(
             "open", "island.roles.open",
             "list", "island.roles.list",
+            "page", "island.roles.page",
             "adjust-weight", "island.role.weight.adjust",
             "permissions", "island.permissions.open",
             "settings", "island.settings.open"
@@ -50,10 +51,14 @@ public final class IslandRoleMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandRoles(client, islandId)
-            .thenAccept(roles -> openSync(plugin, player, session, roles, messages))
+            .thenAccept(roles -> openSync(plugin, player, session, islandId, roles, messages, page))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "role-menu-load-failed", "섬 역할을 불러오지 못했습니다."), "island.roles.open", "island.settings.open");
                 return null;
@@ -81,16 +86,27 @@ public final class IslandRoleMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), click);
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<RoleView> roles, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, List<RoleView> roles, MessageRenderer messages, int requestedPage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             List<Integer> roleSlots = GuiMenuRenderer.slots(MENU, "_");
-            List<RoleView> visibleRoles = roles.stream().limit(roleSlots.size()).toList();
-            for (int index = 0; index < visibleRoles.size(); index++) {
-                inventory.setItem(roleSlots.get(index), roleItem(visibleRoles.get(index), messages));
+            int pageSize = Math.max(1, roleSlots.size());
+            int maxPage = Math.max(0, (roles.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            String title = message(messages, MENU.titleKey(), TITLE) + " " + (page + 1) + "/" + (maxPage + 1);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, title, item -> !List.of("E", "_", "W", "N").contains(item.symbol()));
+            int offset = page * pageSize;
+            for (int index = 0; index < pageSize && offset + index < roles.size(); index++) {
+                inventory.setItem(roleSlots.get(index), roleItem(roles.get(offset + index), messages));
             }
             if (roles.isEmpty()) {
                 setEmptyItem(inventory, messages);
+            } else {
+                if (page > 0) {
+                    setPageItem(inventory, "W", islandId, page - 1, messages);
+                }
+                if (page < maxPage) {
+                    setPageItem(inventory, "N", islandId, page + 1, messages);
+                }
             }
             player.openInventory(inventory);
         });
@@ -119,6 +135,13 @@ public final class IslandRoleMenu implements Listener {
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
         GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, int page, MessageRenderer messages) {
+        String key = symbol.equals("W") ? "role-menu-previous-page" : "role-menu-next-page";
+        String fallback = symbol.equals("W") ? "이전 페이지" : "다음 페이지";
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("islandId", islandId.toString(), "page", Integer.toString(page)), List.of(message(messages, key, fallback)));
     }
 
 }
