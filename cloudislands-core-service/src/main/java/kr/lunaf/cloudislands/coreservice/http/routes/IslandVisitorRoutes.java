@@ -24,6 +24,7 @@ import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
@@ -35,6 +36,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
     private final IslandMetadataRepository metadataRepository;
     private final IslandLimitRepository limitRepository;
     private final IslandPermissionRuleRepository permissionRules;
+    private final PlayerProfileRepository playerProfiles;
     private final IslandLogRepository islandLogs;
     private final AuditLogger audit;
     private final GlobalEventPublisher events;
@@ -47,10 +49,22 @@ public final class IslandVisitorRoutes implements RouteGroup {
             IslandLogRepository islandLogs,
             AuditLogger audit,
             GlobalEventPublisher events) {
+        this(islandRepository, metadataRepository, limitRepository, permissionRules, null, islandLogs, audit, events);
+    }
+
+    public IslandVisitorRoutes(IslandRepository islandRepository,
+            IslandMetadataRepository metadataRepository,
+            IslandLimitRepository limitRepository,
+            IslandPermissionRuleRepository permissionRules,
+            PlayerProfileRepository playerProfiles,
+            IslandLogRepository islandLogs,
+            AuditLogger audit,
+            GlobalEventPublisher events) {
         this.islandRepository = islandRepository;
         this.metadataRepository = metadataRepository;
         this.limitRepository = limitRepository;
         this.permissionRules = permissionRules;
+        this.playerProfiles = playerProfiles;
         this.islandLogs = islandLogs;
         this.audit = audit;
         this.events = events;
@@ -124,6 +138,9 @@ public final class IslandVisitorRoutes implements RouteGroup {
         audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_ACCEPT", "INVITE", inviteId.toString(), Map.of("accepted", Boolean.toString(accepted)));
         events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
         if (accepted) {
+            if (playerProfiles != null && invite.isPresent() && playerProfiles.find(playerUuid).primaryIslandId().isEmpty()) {
+                playerProfiles.setPrimaryIsland(playerUuid, invite.get().islandId());
+            }
             invite.ifPresent(value -> islandLogs.append(value.islandId(), playerUuid, "ISLAND_INVITE_ACCEPT", Map.of("inviteId", inviteId.toString(), "accepted", "true")));
             events.publish(CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "role", CoreRoleKeys.MEMBER, "roleKey", CoreRoleKeys.MEMBER));
             events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString()));

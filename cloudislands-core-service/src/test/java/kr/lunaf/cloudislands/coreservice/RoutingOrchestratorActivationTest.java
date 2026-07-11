@@ -29,6 +29,7 @@ import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
+import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
@@ -43,6 +44,32 @@ import org.junit.jupiter.api.Test;
 class RoutingOrchestratorActivationTest {
     private static final Instant NOW = Instant.parse("2026-06-17T00:00:00Z");
     private static final UUID OWNER = UUID.fromString("00000000-0000-0000-0000-000000000101");
+
+    @Test
+    void memberHomeRouteUsesSelectedIslandInsteadOfOwnershipOnly() {
+        UUID member = UUID.fromString("00000000-0000-0000-0000-000000000102");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC));
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "team-island");
+        islands.setState(ISLAND, IslandState.ACTIVE);
+        metadata.upsertMemberKey(ISLAND, member, "MEMBER");
+        profiles.setPrimaryIsland(member, ISLAND);
+        runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 7, 8, 42L);
+        RoutingOrchestrator orchestrator = new RoutingOrchestrator(
+            new StaticNodeRegistry(List.of(node("island-2", "Island-2", 20, 120, 20.0, 0))),
+            new NodeAllocator(Duration.ofSeconds(5)), tickets, islands, metadata, profiles, runtimes,
+            new InMemoryIslandTemplateRepository(), new InMemoryIslandJobPublisher(), new NoopEvents(),
+            "island", Duration.ofSeconds(30), Duration.ofSeconds(120), null
+        );
+
+        RoutePreparationResult result = orchestrator.prepareHomeRoute(member);
+
+        assertEquals(202, result.status());
+        assertTrue(result.body().contains("\"islandId\":\"" + ISLAND + "\""));
+    }
     private static final UUID ISLAND = UUID.fromString("00000000-0000-0000-0000-000000000201");
 
     @Test

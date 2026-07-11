@@ -81,7 +81,7 @@ public final class CoreRouteModules {
         new IslandCommunicationRoutes(repositories.islandLogs(), repositories.islandRepository(), repositories.metadataRepository(), repositories.playerProfiles(), events).register(route);
         new IslandSnapshotRoutes(repositories.snapshotRepository(), repositories.runtimeRepository(), snapshotRetentionPolicy, events).register(route);
         new IslandMemberRoutes(repositories.islandRepository(), repositories.metadataRepository(), repositories.limitRepository(), repositories.permissionRules(), repositories.playerProfiles(), repositories.islandLogs(), repositories.audit(), events).register(route);
-        new IslandVisitorRoutes(repositories.islandRepository(), repositories.metadataRepository(), repositories.limitRepository(), repositories.permissionRules(), repositories.islandLogs(), repositories.audit(), events).register(route);
+        new IslandVisitorRoutes(repositories.islandRepository(), repositories.metadataRepository(), repositories.limitRepository(), repositories.permissionRules(), repositories.playerProfiles(), repositories.islandLogs(), repositories.audit(), events).register(route);
         new IslandSettingsRoutes(repositories.islandRepository(), repositories.metadataRepository(), repositories.permissionRules(), repositories.islandLogs(), repositories.audit(), events).register(route);
         new IslandWarpRoutes(repositories.islandRepository(), repositories.metadataRepository(), repositories.limitRepository(), repositories.permissionRules(), repositories.islandLogs(), repositories.audit(), events).register(route);
         new IslandReviewRoutes(repositories.reviewRepository(), repositories.islandRepository(), repositories.islandLogs(), repositories.audit(), events).register(route);

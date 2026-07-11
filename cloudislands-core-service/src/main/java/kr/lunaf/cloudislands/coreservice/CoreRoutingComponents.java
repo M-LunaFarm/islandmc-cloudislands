@@ -6,6 +6,7 @@ import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
@@ -21,6 +22,7 @@ public final class CoreRoutingComponents {
         RouteTicketStore tickets,
         IslandRepository islands,
         IslandMetadataRepository metadata,
+        PlayerProfileRepository playerProfiles,
         IslandRuntimeRepository runtimes,
         IslandTemplateRepository templates,
         IslandJobPublisher jobs,
@@ -33,6 +35,7 @@ public final class CoreRoutingComponents {
             tickets,
             islands,
             metadata,
+            playerProfiles,
             runtimes,
             templates,
             jobs,

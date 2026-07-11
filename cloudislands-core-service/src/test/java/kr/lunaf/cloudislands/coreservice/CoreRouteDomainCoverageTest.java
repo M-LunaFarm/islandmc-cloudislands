@@ -114,7 +114,7 @@ class CoreRouteDomainCoverageTest {
             entry("IslandSettingsRoutes", List.of("repositories.metadataRepository()", "repositories.permissionRules()")),
             entry("IslandSnapshotRoutes", List.of("repositories.snapshotRepository()", "repositories.runtimeRepository()")),
             entry("IslandUpgradeRoutes", List.of("domainServices.upgradeService()", "domainServices.upgradePolicy()")),
-            entry("IslandVisitorRoutes", List.of("repositories.limitRepository()", "repositories.permissionRules()")),
+            entry("IslandVisitorRoutes", List.of("repositories.limitRepository()", "repositories.permissionRules()", "repositories.playerProfiles()")),
             entry("IslandWarehouseRoutes", List.of("repositories.warehouseRepository()", "repositories.permissionRules()")),
             entry("IslandWarpRoutes", List.of("repositories.metadataRepository()", "repositories.limitRepository()")),
             entry("JobRoutes", List.of("repositories.jobs()", "domainServices.jobCompletion()")),

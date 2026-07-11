@@ -28,6 +28,7 @@ import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
+import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketJson;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
@@ -40,6 +41,7 @@ public final class RoutingOrchestrator {
     private final RouteTicketStore tickets;
     private final IslandRepository islands;
     private final IslandMetadataRepository metadata;
+    private final PlayerProfileRepository playerProfiles;
     private final IslandRuntimeRepository runtimes;
     private final IslandTemplateRepository templates;
     private final IslandJobPublisher jobs;
@@ -65,11 +67,16 @@ public final class RoutingOrchestrator {
     }
 
     public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool, Duration routeTicketTtl, Duration routePreparingTicketTtl, RedisActivationLock activationLock) {
+        this(nodes, allocator, tickets, islands, metadata, null, runtimes, templates, jobs, events, islandPool, routeTicketTtl, routePreparingTicketTtl, activationLock);
+    }
+
+    public RoutingOrchestrator(NodeRegistry nodes, NodeAllocator allocator, RouteTicketStore tickets, IslandRepository islands, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles, IslandRuntimeRepository runtimes, IslandTemplateRepository templates, IslandJobPublisher jobs, GlobalEventPublisher events, String islandPool, Duration routeTicketTtl, Duration routePreparingTicketTtl, RedisActivationLock activationLock) {
         this.nodes = nodes;
         this.allocator = allocator;
         this.tickets = tickets;
         this.islands = islands;
         this.metadata = metadata;
+        this.playerProfiles = playerProfiles;
         this.runtimes = runtimes;
         this.templates = templates;
         this.jobs = jobs;
@@ -88,9 +95,30 @@ public final class RoutingOrchestrator {
     }
 
     public RoutePreparationResult prepareHomeRoute(UUID playerUuid, String homeName) {
-        return islands.findByOwner(playerUuid)
+        return homeIsland(playerUuid)
             .map(island -> prepareTicket(playerUuid, island, RouteAction.HOME, homePayload(island.islandId(), homeName)))
-            .orElseGet(() -> rejectRoute(404, "ISLAND_NOT_FOUND", "Player does not own an island", playerUuid, null, RouteAction.HOME));
+            .orElseGet(() -> rejectRoute(404, "ISLAND_NOT_FOUND", "Player does not belong to an island", playerUuid, null, RouteAction.HOME));
+    }
+
+    private java.util.Optional<IslandSnapshot> homeIsland(UUID playerUuid) {
+        if (playerProfiles != null) {
+            java.util.Optional<UUID> selected = playerProfiles.find(playerUuid).primaryIslandId();
+            if (selected.isPresent()) {
+                java.util.Optional<IslandSnapshot> island = islands.findById(selected.get())
+                    .filter(value -> value.ownerUuid().equals(playerUuid) || metadata.isMember(value.islandId(), playerUuid));
+                if (island.isPresent()) {
+                    return island;
+                }
+            }
+        }
+        java.util.Optional<IslandSnapshot> owned = islands.findByOwner(playerUuid);
+        if (owned.isPresent()) {
+            return owned;
+        }
+        return metadata.islandsForMember(playerUuid).stream()
+            .map(member -> islands.findById(member.islandId()))
+            .flatMap(java.util.Optional::stream)
+            .findFirst();
     }
 
     public RoutePreparationResult prepareVisitRoute(UUID playerUuid, UUID islandId) {

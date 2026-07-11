@@ -36,6 +36,14 @@ class IslandVisitorRoutesTest {
     }
 
     @Test
+    void acceptedInviteInitializesOnlyAnEmptySelectedIsland() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutes.java"));
+
+        assertTrue(source.contains("playerProfiles.find(playerUuid).primaryIslandId().isEmpty()"));
+        assertTrue(source.contains("playerProfiles.setPrimaryIsland(playerUuid, invite.get().islandId())"));
+    }
+
+    @Test
     void registersIslandVisitorEndpointGroup() {
         List<String> paths = new ArrayList<>();
         IslandVisitorRoutes routes = new IslandVisitorRoutes(null, null, null, null, null, null, null);

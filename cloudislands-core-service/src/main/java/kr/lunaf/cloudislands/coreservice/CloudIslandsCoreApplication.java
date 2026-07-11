@@ -171,7 +171,7 @@ public final class CloudIslandsCoreApplication {
         DirtyRankingRecalculationTask rankingRecalculationTask = new DirtyRankingRecalculationTask(rankingRepository, levelRepository, metadataRepository, levelRecalculation);
         UpgradePolicy upgradePolicy = ConfigUpgradePolicy.load(config.upgradesFile());
         IslandUpgradeService upgradeService = new IslandUpgradeService(upgradeRepository, bankRepository, upgradePolicy);
-        RoutingOrchestrator routing = CoreRoutingComponents.routing(config, nodes, allocator, tickets, islandRepository, metadataRepository, runtimeRepository, templateRepository, jobs, events, activationLock);
+        RoutingOrchestrator routing = CoreRoutingComponents.routing(config, nodes, allocator, tickets, islandRepository, metadataRepository, playerProfiles, runtimeRepository, templateRepository, jobs, events, activationLock);
         CreateIslandWorkflow createIsland = new CreateIslandWorkflow(islandRepository, metadataRepository, playerProfiles, templateRepository, nodes, allocator, runtimeRepository, jobs, events, tickets, config.islandPool(), config.routePreparingTicketTtl(), playerCreationLock);
         IslandLifecycleWorkflow lifecycle = new IslandLifecycleWorkflow(runtimeRepository, islandRepository, templateRepository, nodes, allocator, jobs, events, config.islandPool(), config.migrationPolicy(), activationLock);
         MigrationAdminService migrationAdmin = new MigrationAdminService(
