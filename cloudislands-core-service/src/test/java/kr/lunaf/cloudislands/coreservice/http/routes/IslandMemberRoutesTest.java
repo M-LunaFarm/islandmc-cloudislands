@@ -115,8 +115,10 @@ class IslandMemberRoutesTest {
         assertEquals("MODERATOR", metadata.members(islandId).get(0).effectiveRoleKey());
         handle(handlers, "/v1/admin/islands/members/demote", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "MEMBER_DEMOTED");
         assertEquals("MEMBER", metadata.members(islandId).get(0).effectiveRoleKey());
+        profiles.setPrimaryIsland(playerUuid, islandId);
         handle(handlers, "/v1/admin/islands/members/kick", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "MEMBER_KICKED");
         assertTrue(metadata.members(islandId).isEmpty());
+        assertTrue(profiles.find(playerUuid).primaryIslandId().isEmpty(), "a removed member must not retain the removed island as their selected island");
         handle(handlers, "/v1/admin/islands/members/setleader", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "LEADER_SET");
         assertEquals(playerUuid, islands.findById(islandId).orElseThrow().ownerUuid());
         assertEquals(islandId, profiles.find(ownerUuid).primaryIslandId().orElseThrow(), "the former owner remains a co-owner and must keep their selected island");
@@ -125,6 +127,32 @@ class IslandMemberRoutesTest {
         assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_ADD"));
         assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_KICK"));
         assertTrue(audit.toJson().contains("ISLAND_MEMBER_ADMIN_SETLEADER"));
+    }
+
+    @Test
+    void authoritativeOwnerCannotSelfRemoveWhenMembershipProjectionIsMissing() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000121");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000122");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "owner-projection-test");
+        profiles.setPrimaryIsland(ownerUuid, islandId);
+        new IslandMemberRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            profiles,
+            new InMemoryIslandLogRepository(),
+            new InMemoryAuditLogger(),
+            new InMemoryGlobalEventPublisher()
+        ).register(handlers::put);
+
+        handleError(handlers, "/v1/islands/members/remove", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + ownerUuid + "\",\"actorUuid\":\"" + ownerUuid + "\"}", 409, "OWNER_ROLE_PROTECTED");
+
+        assertEquals(islandId, profiles.find(ownerUuid).primaryIslandId().orElseThrow());
     }
 
     @Test
@@ -322,8 +350,9 @@ class IslandMemberRoutesTest {
     void selfLeaveBypassesManageMembersPermissionButOwnerRemainsProtected() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
 
-        assertTrue(source.contains("member.effectiveRoleKey().equals(CoreRoleKeys.OWNER)"), "owners must remain protected from member removal");
+        assertTrue(source.contains("isOwner(islandId, playerUuid)"), "owners must remain protected by the authoritative island record even if membership projection is stale");
         assertTrue(source.contains("!actorUuid.equals(playerUuid) && !requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)"), "self-leave must not require MANAGE_MEMBERS");
+        assertTrue(source.contains("clearPrimaryIslandIfSelected(islandId, playerUuid)"), "member removal must clear only a selected island that is no longer accessible");
     }
 
     @Test

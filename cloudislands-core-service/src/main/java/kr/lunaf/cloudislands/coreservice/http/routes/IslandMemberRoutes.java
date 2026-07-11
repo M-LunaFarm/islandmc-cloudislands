@@ -100,7 +100,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         List<IslandMemberSnapshot> members = metadataRepository.members(islandId);
         IslandMemberSnapshot currentMember = member(members, playerUuid);
         String currentRoleKey = currentMember == null ? "" : currentMember.effectiveRoleKey();
-        if (roleKey.equals(CoreRoleKeys.OWNER) || currentRoleKey.equals(CoreRoleKeys.OWNER)) {
+        if (roleKey.equals(CoreRoleKeys.OWNER) || currentRoleKey.equals(CoreRoleKeys.OWNER) || isOwner(islandId, playerUuid)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island ownership must be changed through ownership transfer"));
             return;
         }
@@ -144,7 +144,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         List<IslandMemberSnapshot> members = metadataRepository.members(islandId);
         IslandMemberSnapshot currentMember = member(members, playerUuid);
         String currentRoleKey = currentMember == null ? "" : currentMember.effectiveRoleKey();
-        if (currentRoleKey.equals(CoreRoleKeys.OWNER)) {
+        if (currentRoleKey.equals(CoreRoleKeys.OWNER) || isOwner(islandId, playerUuid)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be temporary trusted"));
             return;
         }
@@ -210,7 +210,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
         IslandMemberSnapshot member = member(metadataRepository.members(islandId), playerUuid);
-        if (member != null && member.effectiveRoleKey().equals(CoreRoleKeys.OWNER)) {
+        if (isOwner(islandId, playerUuid) || member != null && member.effectiveRoleKey().equals(CoreRoleKeys.OWNER)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be removed as a member"));
             return;
         }
@@ -218,6 +218,7 @@ public final class IslandMemberRoutes implements RouteGroup {
             return;
         }
         metadataRepository.removeMember(islandId, playerUuid);
+        clearPrimaryIslandIfSelected(islandId, playerUuid);
         audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
         islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_REMOVE", Map.of("playerUuid", playerUuid.toString()));
         publishCoopTransition(islandId, playerUuid, member == null ? "" : member.effectiveRoleKey(), "");
@@ -242,7 +243,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         List<IslandMemberSnapshot> members = metadataRepository.members(islandId);
         IslandMemberSnapshot current = member(members, playerUuid);
         String oldRoleKey = current == null ? "" : current.effectiveRoleKey();
-        if (oldRoleKey.equals(CoreRoleKeys.OWNER)) {
+        if (oldRoleKey.equals(CoreRoleKeys.OWNER) || isOwner(islandId, playerUuid)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner role is protected"));
             return;
         }
@@ -270,11 +271,12 @@ public final class IslandMemberRoutes implements RouteGroup {
             return;
         }
         IslandMemberSnapshot current = member(metadataRepository.members(islandId), playerUuid);
-        if (current != null && current.effectiveRoleKey().equals(CoreRoleKeys.OWNER)) {
+        if (isOwner(islandId, playerUuid) || current != null && current.effectiveRoleKey().equals(CoreRoleKeys.OWNER)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be removed as a member"));
             return;
         }
         metadataRepository.removeMember(islandId, playerUuid);
+        clearPrimaryIslandIfSelected(islandId, playerUuid);
         adminMemberAudit(islandId, playerUuid, "ISLAND_MEMBER_ADMIN_KICK", Map.of("oldRoleKey", current == null ? "" : current.effectiveRoleKey()));
         publishCoopTransition(islandId, playerUuid, current == null ? "" : current.effectiveRoleKey(), "");
         events.publish(CloudIslandEventType.ISLAND_MEMBER_LEFT.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
@@ -305,7 +307,7 @@ public final class IslandMemberRoutes implements RouteGroup {
             return;
         }
         String oldRoleKey = current.effectiveRoleKey();
-        if (oldRoleKey.equals(CoreRoleKeys.OWNER)) {
+        if (oldRoleKey.equals(CoreRoleKeys.OWNER) || isOwner(islandId, playerUuid)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner role is protected"));
             return;
         }
@@ -538,6 +540,18 @@ public final class IslandMemberRoutes implements RouteGroup {
         values.put("createdAt", island.createdAt());
         values.put("updatedAt", island.updatedAt());
         return values;
+    }
+
+    private boolean isOwner(UUID islandId, UUID playerUuid) {
+        return islandRepository.findById(islandId)
+            .map(island -> island.ownerUuid().equals(playerUuid))
+            .orElse(false);
+    }
+
+    private void clearPrimaryIslandIfSelected(UUID islandId, UUID playerUuid) {
+        if (playerProfiles.find(playerUuid).primaryIslandId().filter(islandId::equals).isPresent()) {
+            playerProfiles.clearPrimaryIsland(playerUuid);
+        }
     }
 
     private static String roleKey(String body, String fallback) {
