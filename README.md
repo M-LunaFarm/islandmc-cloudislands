@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.31`
+Version: `1.1.32`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -596,7 +596,7 @@ integration verification.
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; real-player destructive-action smoke is not part of CI | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
-| upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, biome normalization, and Paper world-border policy | operator live-server biome painting acceptance is still recommended; CI verifies the Core mutation and Paper border application policy |
+| upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.31`
+Current release: `v1.1.32`
 
-Built for the CloudIslands 1.1.31 baseline.
+Built for the CloudIslands 1.1.32 baseline.
 
-Release notes for `v1.1.31`:
+Release notes for `v1.1.32`:
+
+- real world application: accepted biome changes now repaint the island region
+  on its assigned Paper island node instead of changing Core metadata only
+- bounded runtime work: chunks load asynchronously and one completed chunk is
+  painted per tick so a large island does not create one long main-thread stall
+- complete biome volume: Paper's four-block biome sample grid is updated across
+  every intersecting chunk and the world's full vertical build range
+- latest change wins: each island has a generation token, so a newer biome
+  event supersedes any older paint batch still waiting on chunk work
+- guarded execution: missing local regions, unloaded worlds, unknown registry
+  entries, and failed chunk loads produce operator warnings without unsafe work
+
+Release notes carried forward from `v1.1.31`:
 
 - full safe biome catalog: the supported environment list grows from ten
   hand-picked entries to all 63 selectable vanilla 1.21 biomes
@@ -1061,7 +1074,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.31`.
+Current read: production-readiness baseline `v1.1.32`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
