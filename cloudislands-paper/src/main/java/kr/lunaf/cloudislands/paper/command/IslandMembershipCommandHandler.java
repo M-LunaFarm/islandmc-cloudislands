@@ -62,7 +62,7 @@ final class IslandMembershipCommandHandler {
             }
             return true;
         }
-        if (subcommand.equals("invite") || subcommand.equals("초대")) {
+        if (subcommand.equals("invite") || subcommand.equals("add") || subcommand.equals("초대")) {
             if (args.length < 2) {
                 runtime.message(player, message("input-invite-player-required", "초대할 플레이어를 입력해주세요."));
                 return true;
@@ -94,7 +94,7 @@ final class IslandMembershipCommandHandler {
             declineIslandInviteTarget(player, args[1]);
             return true;
         }
-        if (subcommand.equals("kick") || subcommand.equals("remove-member") || subcommand.equals("추방")) {
+        if (subcommand.equals("kick") || subcommand.equals("remove") || subcommand.equals("remove-member") || subcommand.equals("추방")) {
             if (args.length < 2) {
                 runtime.message(player, message("input-remove-player-required", "추방할 플레이어를 입력해주세요."));
                 return true;
@@ -193,7 +193,7 @@ final class IslandMembershipCommandHandler {
             runtime.resetIslandRole(player, roleKey);
             return true;
         }
-        if (subcommand.equals("transfer") || subcommand.equals("양도")) {
+        if (subcommand.equals("transfer") || subcommand.equals("leader") || subcommand.equals("leadership") || subcommand.equals("양도")) {
             if (args.length < 2) {
                 runtime.message(player, message("input-transfer-player-required", "양도할 플레이어를 입력해주세요."));
                 return true;
@@ -217,7 +217,7 @@ final class IslandMembershipCommandHandler {
             pardonIslandVisitor(player, args[1]);
             return true;
         }
-        if (subcommand.equals("kickvisitor") || subcommand.equals("방문자추방")) {
+        if (subcommand.equals("kickvisitor") || subcommand.equals("expel") || subcommand.equals("방문자추방")) {
             if (args.length < 2) {
                 runtime.message(player, message("input-kick-visitor-required", "추방할 방문자를 입력해주세요."));
                 return true;

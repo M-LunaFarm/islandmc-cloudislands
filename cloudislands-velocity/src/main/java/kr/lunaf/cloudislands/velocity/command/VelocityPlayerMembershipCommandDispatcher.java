@@ -20,7 +20,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
     }
 
     boolean dispatch(Player player, String[] args) {
-        if (args[0].equalsIgnoreCase("invite") || args[0].equals("초대")) {
+        if (args[0].equalsIgnoreCase("invite") || args[0].equalsIgnoreCase("add") || args[0].equals("초대")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             playerMembership.inviteTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return true;
@@ -45,7 +45,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             }
             return true;
         }
-        if (args[0].equalsIgnoreCase("kick") || args[0].equalsIgnoreCase("remove-member") || args[0].equals("추방")) {
+        if (args[0].equalsIgnoreCase("kick") || args[0].equalsIgnoreCase("remove") || args[0].equalsIgnoreCase("remove-member") || args[0].equals("추방")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             playerMembership.kickMemberTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return true;
@@ -103,7 +103,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.resetRole(player, islandId, roleKey);
             return true;
         }
-        if (args[0].equalsIgnoreCase("transfer") || args[0].equals("양도")) {
+        if (args[0].equalsIgnoreCase("transfer") || args[0].equalsIgnoreCase("leader") || args[0].equalsIgnoreCase("leadership") || args[0].equals("양도")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             playerMembership.transferOwnershipTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return true;
@@ -131,7 +131,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.pardonVisitorTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return true;
         }
-        if (args[0].equalsIgnoreCase("kickvisitor") || args[0].equals("방문자추방")) {
+        if (args[0].equalsIgnoreCase("kickvisitor") || args[0].equalsIgnoreCase("expel") || args[0].equals("방문자추방")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             playerMembership.kickVisitorTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return true;

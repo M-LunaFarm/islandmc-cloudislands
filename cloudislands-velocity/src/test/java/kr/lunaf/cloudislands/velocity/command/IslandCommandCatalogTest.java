@@ -178,6 +178,18 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void membershipAliasesPreservePaperVelocityParity() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerMembershipCommandDispatcher.java"));
+
+        for (String alias : List.of("add", "remove", "expel", "leader", "leadership")) {
+            assertTrue(dispatcher.contains("equalsIgnoreCase(\"" + alias + "\")"), alias);
+        }
+        for (String command : List.of("섬 add <player>", "섬 remove <player>", "섬 expel <player>", "섬 leader <player>", "섬 leadership <player>")) {
+            assertTrue(IslandCommandCatalog.playerCommands().contains(command), command);
+        }
+    }
+
+    @Test
     void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
 
