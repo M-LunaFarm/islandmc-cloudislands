@@ -391,7 +391,9 @@ CloudIslands placeholders resolve the player's primary permanent island first,
 then another permanent team island, and finally temporary co-op access. This
 keeps owner, member, and co-op pages on the same Core-backed membership view.
 Global ranking data is shared for the 15-second cache window instead of being
-requested once per online player.
+requested once per online player. Island, bank, member, and limit reads are
+also coalesced per island, so a large team refreshing the same scoreboard does
+not multiply Core requests by its online member count.
 
 Alongside island identity, level, worth, rank, bank, public, and border values,
 the expansion exposes `%cloudislands_role%`, `is_member`, `is_owner`, `is_coop`,

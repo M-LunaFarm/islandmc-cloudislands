@@ -28,6 +28,13 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         Snapshot::expiresAtMillis
     );
     private final java.util.Set<UUID> refreshing = ConcurrentHashMap.newKeySet();
+    private final BoundedStaleCache<UUID, DetailCache> detailCache = new BoundedStaleCache<>(
+        MAX_CACHE_ENTRIES,
+        STALE_RETENTION_MILLIS,
+        CACHE_MAINTENANCE_INTERVAL_MILLIS,
+        DetailCache::expiresAtMillis
+    );
+    private final Object detailLock = new Object();
     private final Object rankingLock = new Object();
     private volatile RankingCache rankingCache;
 
@@ -79,10 +86,10 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         }
         CompletableFuture<kr.lunaf.cloudislands.coreclient.PlayerProfileView> profile = client.playerProfiles().profile(playerUuid).exceptionally(_error -> null);
         CompletableFuture<List<CoreGuiViews.PlayerIslandView>> memberships = client.navigation().playerIslands(playerUuid).exceptionally(_error -> List.of());
-        profile.thenCombine(memberships, (playerProfile, islands) -> selectIsland(playerUuid, playerProfile, islands))
+        profile.thenCombine(memberships, this::selectIsland)
             .thenCompose(selection -> selection == null
                 ? CompletableFuture.completedFuture(Snapshot.empty(System.currentTimeMillis() + MISS_TTL_MILLIS))
-                : client.islands().getIsland(selection.islandId()).thenCompose(island -> snapshotWithDetails(playerUuid, selection.role(), island)))
+                : details(selection.islandId()).thenCompose(details -> snapshotWithDetails(playerUuid, selection.role(), details)))
             .handle((snapshot, error) -> {
                 long now = System.currentTimeMillis();
                 if (error == null) {
@@ -96,7 +103,7 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
             .whenComplete((_result, _error) -> refreshing.remove(playerUuid));
     }
 
-    private SelectedIsland selectIsland(UUID playerUuid, kr.lunaf.cloudislands.coreclient.PlayerProfileView profile, List<CoreGuiViews.PlayerIslandView> islands) {
+    private SelectedIsland selectIsland(kr.lunaf.cloudislands.coreclient.PlayerProfileView profile, List<CoreGuiViews.PlayerIslandView> islands) {
         String primaryIslandId = profile == null ? "" : profile.primaryIslandId();
         List<CoreGuiViews.PlayerIslandView> available = islands == null ? List.of() : islands;
         CoreGuiViews.PlayerIslandView selected = available.stream()
@@ -109,8 +116,31 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         return islandId == null ? null : new SelectedIsland(islandId, selected == null ? "" : normalizedRole(selected.role()));
     }
 
-    private CompletableFuture<Snapshot> snapshotWithDetails(UUID playerUuid, String selectedRole, CoreGuiViews.IslandInfoView island) {
+    private CompletableFuture<IslandDetails> details(UUID islandId) {
+        long now = System.currentTimeMillis();
+        DetailCache current = detailCache.get(islandId);
+        if (current != null && current.expiresAtMillis() > now) {
+            return current.value();
+        }
+        synchronized (detailLock) {
+            current = detailCache.get(islandId);
+            if (current != null && current.expiresAtMillis() > now) {
+                return current.value();
+            }
+            CompletableFuture<CoreGuiViews.IslandInfoView> island = client.islands().getIsland(islandId);
+            CompletableFuture<CoreGuiViews.BankView> bank = client.bank().islandBank(islandId).exceptionally(_error -> null);
+            CompletableFuture<List<CoreGuiViews.MemberView>> members = client.islands().listMembers(islandId).exceptionally(_error -> List.of());
+            CompletableFuture<List<CoreGuiViews.LimitView>> limits = client.environment().limitViews(islandId).exceptionally(_error -> List.of());
+            CompletableFuture<IslandDetails> loaded = CompletableFuture.allOf(island, bank, members, limits)
+                .thenApply(_ignored -> new IslandDetails(island.join(), bank.join(), members.join(), limits.join()));
+            detailCache.put(islandId, new DetailCache(loaded, now + CACHE_TTL_MILLIS), now);
+            return loaded;
+        }
+    }
+
+    private CompletableFuture<Snapshot> snapshotWithDetails(UUID playerUuid, String selectedRole, IslandDetails details) {
         long expiresAt = System.currentTimeMillis() + CACHE_TTL_MILLIS;
+        CoreGuiViews.IslandInfoView island = details.island();
         String islandId = island == null ? "" : island.islandId();
         if (islandId == null || islandId.isBlank()) {
             return CompletableFuture.completedFuture(Snapshot.empty(System.currentTimeMillis() + MISS_TTL_MILLIS));
@@ -119,12 +149,9 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         if (parsedIslandId == null) {
             return CompletableFuture.completedFuture(new Snapshot(island, null, selectedRole, List.of(), 3L, 8L, 0, 0, expiresAt));
         }
-        CompletableFuture<CoreGuiViews.BankView> bank = client.bank().islandBank(parsedIslandId).exceptionally(_error -> null);
-        CompletableFuture<List<CoreGuiViews.MemberView>> members = client.islands().listMembers(parsedIslandId).exceptionally(_error -> List.of());
-        CompletableFuture<List<CoreGuiViews.LimitView>> limits = client.environment().limitViews(parsedIslandId).exceptionally(_error -> List.of());
         CompletableFuture<CoreGuiViews.RankingData> rankings = rankings();
-        return CompletableFuture.allOf(bank, members, limits, rankings).thenApply(_ignored -> {
-            List<CoreGuiViews.MemberView> memberValues = members.join();
+        return rankings.thenApply(rankingValues -> {
+            List<CoreGuiViews.MemberView> memberValues = details.members();
             String role = memberValues.stream()
                 .filter(member -> playerUuid.toString().equals(member.playerUuid()))
                 .map(CoreGuiViews.MemberView::role)
@@ -132,10 +159,9 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
                 .findFirst()
                 .map(CloudIslandsPlaceholderExpansion::normalizedRole)
                 .orElseGet(() -> island.ownerUuid().equals(playerUuid.toString()) ? "OWNER" : selectedRole);
-            long memberLimit = limit(limits.join(), "MEMBERS", 3L);
-            long coopLimit = limit(limits.join(), "ROLE_LIMIT:TRUSTED", 8L);
-            CoreGuiViews.RankingData rankingValues = rankings.join();
-            return new Snapshot(island, bank.join(), role, memberValues, memberLimit, coopLimit,
+            long memberLimit = limit(details.limits(), "MEMBERS", 3L);
+            long coopLimit = limit(details.limits(), "ROLE_LIMIT:TRUSTED", 8L);
+            return new Snapshot(island, details.bank(), role, memberValues, memberLimit, coopLimit,
                 CloudIslandsPlaceholderRanks.worthRank(rankingValues, islandId),
                 CloudIslandsPlaceholderRanks.levelRank(rankingValues, islandId), expiresAt);
         });
@@ -200,6 +226,13 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
     }
 
     private record RankingCache(CompletableFuture<CoreGuiViews.RankingData> value, long expiresAtMillis) {
+    }
+
+    private record DetailCache(CompletableFuture<IslandDetails> value, long expiresAtMillis) {
+    }
+
+    private record IslandDetails(CoreGuiViews.IslandInfoView island, CoreGuiViews.BankView bank,
+                                 List<CoreGuiViews.MemberView> members, List<CoreGuiViews.LimitView> limits) {
     }
 
     private record Snapshot(CoreGuiViews.IslandInfoView island, CoreGuiViews.BankView bank, String role,
