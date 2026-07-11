@@ -39,23 +39,25 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowPlayerAction(player, DELETE_COOLDOWN, "섬 삭제 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
-        coreApiClient.lifecycle().deleteIsland(player.getUniqueId(), islandId).thenAccept(result -> {
-            if (result != null && result.accepted()) {
-                player.sendMessage(Component.text("섬을 삭제했습니다."));
-                return;
-            }
-            player.sendMessage(Component.text("섬을 삭제할 수 없습니다."));
-        }).exceptionally(error -> {
-            player.sendMessage(Component.text("섬 삭제를 처리하지 못했습니다."));
-            return null;
-        });
+        withResolvedIsland(player, islandId, "삭제할 섬을 찾지 못했습니다.", "섬 삭제를 처리하지 못했습니다.", resolved ->
+            coreApiClient.lifecycle().deleteIsland(player.getUniqueId(), resolved).thenAccept(result -> {
+                if (result != null && result.accepted()) {
+                    player.sendMessage(Component.text("섬을 삭제했습니다."));
+                    return;
+                }
+                player.sendMessage(Component.text("섬을 삭제할 수 없습니다."));
+            }).exceptionally(error -> {
+                player.sendMessage(Component.text("섬 삭제를 처리하지 못했습니다."));
+                return null;
+            }));
     }
 
     public void resetIsland(Player player, UUID islandId, String reason) {
         if (!allowPlayerAction(player, RESET_COOLDOWN, "섬 리셋 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
-        sendTextResult(player, coreApiClient.lifecycle().resetIsland(islandId, player.getUniqueId(), reason).thenApply(result -> islandMessages.actionResult("Island reset", islandId.toString(), result)), "섬 리셋을 요청하지 못했습니다.");
+        withResolvedIsland(player, islandId, "리셋할 섬을 찾지 못했습니다.", "섬 리셋을 요청하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.lifecycle().resetIsland(resolved, player.getUniqueId(), reason).thenApply(result -> islandMessages.actionResult("Island reset", resolved.toString(), result)), "섬 리셋을 요청하지 못했습니다."));
     }
 
     public void showMyIsland(Player player) {
@@ -78,31 +80,33 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void showIslandSettings(Player player, UUID islandId) {
-        sendTextResult(player, coreApiClient.islands().getIsland(islandId).thenApply(islandMessages::islandInfo), "섬 설정을 불러오지 못했습니다.");
+        showResolvedIsland(player, islandId, "섬 설정", view -> islandMessages.islandInfo(view));
     }
 
     public void showIslandLevel(Player player, UUID islandId) {
-        sendTextResult(player, coreApiClient.islands().getIsland(islandId).thenApply(view -> islandMessages.islandStat("섬 레벨", "level", view)), "섬 레벨을 불러오지 못했습니다.");
+        showResolvedIsland(player, islandId, "섬 레벨", view -> islandMessages.islandStat("섬 레벨", "level", view));
     }
 
     public void showIslandWorth(Player player, UUID islandId) {
-        sendTextResult(player, coreApiClient.islands().getIsland(islandId).thenApply(view -> islandMessages.islandStat("섬 가치", "worth", view)), "섬 가치를 불러오지 못했습니다.");
+        showResolvedIsland(player, islandId, "섬 가치", view -> islandMessages.islandStat("섬 가치", "worth", view));
     }
 
     public void showIslandSize(Player player, UUID islandId) {
-        sendTextResult(player, coreApiClient.islands().getIsland(islandId).thenApply(view -> islandMessages.islandStat("섬 크기", "size", view)), "섬 크기를 불러오지 못했습니다.");
+        showResolvedIsland(player, islandId, "섬 크기", view -> islandMessages.islandStat("섬 크기", "size", view));
     }
 
     public void showIslandBorder(Player player, UUID islandId) {
-        sendTextResult(player, coreApiClient.islands().getIsland(islandId).thenApply(view -> islandMessages.islandStat("섬 경계", "border", view)), "섬 경계를 불러오지 못했습니다.");
+        showResolvedIsland(player, islandId, "섬 경계", view -> islandMessages.islandStat("섬 경계", "border", view));
     }
 
     public void showBiome(Player player, UUID islandId) {
-        sendTextResult(player, coreApiClient.environment().islandBiome(islandId).thenApply(view -> islandMessages.biomeInfo(islandId, view)), "섬 바이옴을 불러오지 못했습니다.");
+        withResolvedIsland(player, islandId, "바이옴을 확인할 섬을 찾지 못했습니다.", "섬 바이옴을 불러오지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.environment().islandBiome(resolved).thenApply(view -> islandMessages.biomeInfo(resolved, view)), "섬 바이옴을 불러오지 못했습니다."));
     }
 
     public void setBiome(Player player, UUID islandId, String biomeKey) {
-        sendTextResult(player, coreApiClient.environmentCommands().setBiome(islandId, player.getUniqueId(), biomeKey).thenApply(result -> islandMessages.environmentAction("섬 바이옴 변경", result)), "섬 바이옴을 변경하지 못했습니다.");
+        withResolvedIsland(player, islandId, "바이옴을 변경할 섬을 찾지 못했습니다.", "섬 바이옴을 변경하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.environmentCommands().setBiome(resolved, player.getUniqueId(), biomeKey).thenApply(result -> islandMessages.environmentAction("섬 바이옴 변경", result)), "섬 바이옴을 변경하지 못했습니다."));
     }
 
     public void routeHome(Player player, String homeName) {
@@ -227,11 +231,13 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
             return;
         }
         progressPresenter.status(player, messages.text("island-visit-preparing"), messages.text("island-route-moving"));
-        routeFuture(player, coreApiClient.routingCommands().createWarpTicket(player.getUniqueId(), targetIslandId, warpName), "해당 워프로 이동할 수 없습니다.");
+        withResolvedIsland(player, targetIslandId, "워프가 속한 섬을 찾지 못했습니다.", "해당 워프로 이동할 수 없습니다.",
+            resolved -> routeFuture(player, coreApiClient.routingCommands().createWarpTicket(player.getUniqueId(), resolved, warpName), "해당 워프로 이동할 수 없습니다."));
     }
 
     public void listWarps(Player player, UUID islandId) {
-        sendTextResult(player, coreApiClient.homeWarps().warps(islandId).thenApply(warps -> islandMessages.warpList("섬 워프", warps)), "섬 워프를 불러오지 못했습니다.");
+        withResolvedIsland(player, islandId, "워프를 확인할 섬을 찾지 못했습니다.", "섬 워프를 불러오지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.homeWarps().warps(resolved).thenApply(warps -> islandMessages.warpList("섬 워프", warps)), "섬 워프를 불러오지 못했습니다."));
     }
 
     public void listPublicWarps(Player player) {
@@ -240,14 +246,22 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
 
     public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
         IslandLocation defaultLocation = new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
-        sendTextResult(player, coreApiClient.homeWarpCommands().setWarp(islandId, player.getUniqueId(), name, defaultLocation, publicAccess).thenApply(result -> islandMessages.homeWarpAction("섬 워프 설정", result)), "섬 워프를 설정하지 못했습니다.");
+        withResolvedIsland(player, islandId, "워프를 설정할 섬을 찾지 못했습니다.", "섬 워프를 설정하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.homeWarpCommands().setWarp(resolved, player.getUniqueId(), name, defaultLocation, publicAccess).thenApply(result -> islandMessages.homeWarpAction("섬 워프 설정", result)), "섬 워프를 설정하지 못했습니다."));
     }
 
     public void deleteWarp(Player player, UUID islandId, String name) {
-        sendTextResult(player, coreApiClient.homeWarpCommands().deleteWarp(islandId, player.getUniqueId(), name).thenApply(result -> islandMessages.homeWarpAction("섬 워프 삭제", result)), "섬 워프를 삭제하지 못했습니다.");
+        withResolvedIsland(player, islandId, "워프를 삭제할 섬을 찾지 못했습니다.", "섬 워프를 삭제하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.homeWarpCommands().deleteWarp(resolved, player.getUniqueId(), name).thenApply(result -> islandMessages.homeWarpAction("섬 워프 삭제", result)), "섬 워프를 삭제하지 못했습니다."));
     }
 
     public void setWarpPublicAccess(Player player, UUID islandId, String name, boolean publicAccess) {
-        sendTextResult(player, coreApiClient.homeWarpCommands().setWarpPublicAccess(islandId, player.getUniqueId(), name, publicAccess).thenApply(result -> islandMessages.homeWarpAction(publicAccess ? "섬 워프 공개" : "섬 워프 비공개", result)), "섬 워프 공개 상태를 변경하지 못했습니다.");
+        withResolvedIsland(player, islandId, "워프 공개 상태를 변경할 섬을 찾지 못했습니다.", "섬 워프 공개 상태를 변경하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.homeWarpCommands().setWarpPublicAccess(resolved, player.getUniqueId(), name, publicAccess).thenApply(result -> islandMessages.homeWarpAction(publicAccess ? "섬 워프 공개" : "섬 워프 비공개", result)), "섬 워프 공개 상태를 변경하지 못했습니다."));
+    }
+
+    private void showResolvedIsland(Player player, UUID islandId, String label, java.util.function.Function<kr.lunaf.cloudislands.coreclient.CoreGuiViews.IslandInfoView, String> formatter) {
+        withResolvedIsland(player, islandId, label + "을 확인할 섬을 찾지 못했습니다.", label + "을 불러오지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.islands().getIsland(resolved).thenApply(formatter), label + "을 불러오지 못했습니다."));
     }
 }

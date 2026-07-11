@@ -9,8 +9,48 @@ import kr.lunaf.cloudislands.protocol.command.IslandPlayerCommandRegistry;
 import kr.lunaf.cloudislands.protocol.command.CommandExecutionTarget;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class IslandCommandCatalogTest {
+    @Test
+    void currentIslandMutationsResolveNilBeforeCallingCore() throws Exception {
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerMembershipActions.java"));
+        String routing = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerRoutingActions.java"));
+
+        for (String unsafeCall : List.of(
+                "createInvite(islandId,",
+                "setRole(islandId,",
+                "transferOwnership(islandId,",
+                "removeMember(islandId,",
+                "banVisitor(islandId,",
+                "bans(islandId)",
+                "pardonVisitor(islandId,",
+                "kickVisitor(islandId,",
+                "setPublicAccess(islandId,",
+                "homes(islandId)",
+                "setHome(islandId,",
+                "setLocked(islandId,",
+                "setPermission(islandId,",
+                "upsertRole(islandId,",
+                "resetRole(islandId,")) {
+            assertFalse(actions.contains(unsafeCall), unsafeCall + " must resolve the current-island sentinel before Core mutation");
+        }
+        assertTrue(actions.contains("withResolvedIsland(player, islandId"), "Velocity membership actions must share the current-island resolution boundary");
+        for (String unsafeCall : List.of(
+                "deleteIsland(player.getUniqueId(), islandId)",
+                "resetIsland(islandId,",
+                "islandBiome(islandId)",
+                "setBiome(islandId,",
+                "createWarpTicket(player.getUniqueId(), targetIslandId,",
+                "warps(islandId)",
+                "setWarp(islandId,",
+                "deleteWarp(islandId,",
+                "setWarpPublicAccess(islandId,")) {
+            assertFalse(routing.contains(unsafeCall), unsafeCall + " must resolve the current-island sentinel before Core routing or mutation");
+        }
+        assertTrue(routing.contains("showResolvedIsland(player, islandId"), "Velocity island views must share the current-island resolution boundary");
+    }
+
     @Test
     void everySharedVelocityAliasHasAnExecutionBranch() throws Exception {
         String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"))
