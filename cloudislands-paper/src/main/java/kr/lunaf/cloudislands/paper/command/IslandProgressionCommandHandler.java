@@ -70,7 +70,7 @@ final class IslandProgressionCommandHandler {
             showBlockValue(player, material);
             return true;
         }
-        if (subcommand.equals("blocks") || subcommand.equals("values") || subcommand.equals("block-details") || subcommand.equals("block-counts") || subcommand.equals("블록상세") || subcommand.equals("블록목록")) {
+        if (subcommand.equals("blocks") || subcommand.equals("values") || subcommand.equals("counts") || subcommand.equals("block-details") || subcommand.equals("block-counts") || subcommand.equals("블록상세") || subcommand.equals("블록목록")) {
             if (args.length > 1 && !isInteger(args[1])) {
                 showBlockDetails(player, args[1], args.length > 2 ? integer(args[2], 10) : 10);
             } else {

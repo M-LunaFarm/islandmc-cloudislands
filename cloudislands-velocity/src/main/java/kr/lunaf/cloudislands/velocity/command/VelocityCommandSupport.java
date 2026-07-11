@@ -161,6 +161,15 @@ abstract class VelocityCommandSupport {
         }
     }
 
+    protected boolean isLong(String value) {
+        try {
+            Long.parseLong(value);
+            return true;
+        } catch (RuntimeException ignored) {
+            return false;
+        }
+    }
+
     protected UUID routeTargetIslandId(String[] args, int index) {
         if (args.length > index && isUuid(args[index])) {
             return parseUuidOrNil(args[index]);

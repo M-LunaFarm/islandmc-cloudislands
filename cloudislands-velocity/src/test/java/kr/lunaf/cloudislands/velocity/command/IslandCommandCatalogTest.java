@@ -52,7 +52,8 @@ class IslandCommandCatalogTest {
                 "섬 워프비공개 <name>",
                 "섬 레벨",
                 "섬 가치",
-                "섬 values [limit]",
+                "섬 values [player|island] [limit]",
+                "섬 counts [player|island] [limit]",
                 "섬 블록상세 [limit]",
                 "섬 랭킹 [limit]",
                 "섬 top [limit]",
@@ -89,6 +90,20 @@ class IslandCommandCatalogTest {
         assertTrue(actions.contains("coreApiClient.environmentCommands().setFlag(resolved, player.getUniqueId(), IslandFlag.BORDER_VISIBLE"), "Velocity toggle border must write the typed border-visible flag");
         assertTrue(actions.contains("coreApiClient.environment().flagValues(resolved)"), "Velocity toggle border must read current flag state when no explicit value is supplied");
         assertTrue(suggestions.contains("List.of(\"border\", \"border-visible\", \"경계\", \"경계표시\")"), "Velocity toggle suggestions must expose border targets");
+    }
+
+    @Test
+    void targetedCountsAndValuesPreservePaperVelocityParity() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerProgressionActions.java"));
+        String resolver = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/routing/VelocityTargetResolver.java"));
+
+        assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"counts\")"), "proxy command routing must accept canonical counts");
+        assertTrue(dispatcher.contains("args.length > 1 && !isLong(args[1])"), "proxy must distinguish a target from the numeric result limit");
+        assertTrue(dispatcher.contains("playerProgression.showBlockDetails(player, args[1]"), "proxy must preserve the target string for resolution");
+        assertTrue(actions.contains("showBlockDetails(Player player, String target, int limit)"), "proxy actions must expose targeted block details");
+        assertTrue(actions.contains("targetResolver.resolveIslandId(target)"), "proxy targeted block details must use the shared resolver");
+        assertTrue(resolver.contains("playerProfileByName(target)"), "proxy target resolution must fall back from exact island name to player primary island");
     }
 
     @Test

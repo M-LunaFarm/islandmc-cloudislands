@@ -134,6 +134,17 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void superiorSkyblockCountsIsCanonicalAndTargetAware() throws Exception {
+        String progressionHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandProgressionCommandHandler.java"));
+
+        assertTrue(IslandCommandCatalog.SUBCOMMANDS.contains("counts"), "official /is counts must work without enabling migration aliases");
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 counts [player|island] [limit]"), "counts target semantics must be visible in shared help");
+        assertEquals(IslandCommandPermission.PROGRESSION, IslandCommandPermission.fromSubcommand("counts"));
+        assertTrue(progressionHandler.contains("subcommand.equals(\"counts\")"));
+        assertTrue(progressionHandler.contains("showBlockDetails(player, args[1]"), "counts target must route through explicit target resolution");
+    }
+
+    @Test
     void superiorSkyblockStackerPermissionParityUsesCoreEnvironmentWithoutFakeRuntimeStateTransfer() throws Exception {
         String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackerIntegration.java"));

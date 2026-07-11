@@ -200,10 +200,12 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerMembership.withdrawBank(player, islandId, amount);
             return;
         }
-        if (args[0].equalsIgnoreCase("values") || args[0].equalsIgnoreCase("blocks") || args[0].equalsIgnoreCase("block-details") || args[0].equalsIgnoreCase("block-counts") || args[0].equals("블록상세") || args[0].equals("블록목록")) {
-            UUID islandId = optionalIslandIdArgument(args, 1);
-            int limit = (int) parseLongOrZero(argumentAfterOptionalIsland(args, 1, "10"));
-            playerProgression.showBlockDetails(player, islandId, limit);
+        if (args[0].equalsIgnoreCase("values") || args[0].equalsIgnoreCase("counts") || args[0].equalsIgnoreCase("blocks") || args[0].equalsIgnoreCase("block-details") || args[0].equalsIgnoreCase("block-counts") || args[0].equals("블록상세") || args[0].equals("블록목록")) {
+            if (args.length > 1 && !isLong(args[1])) {
+                playerProgression.showBlockDetails(player, args[1], args.length > 2 ? (int) parseLongOrZero(args[2]) : 10);
+            } else {
+                playerProgression.showBlockDetails(player, new UUID(0L, 0L), args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
+            }
             return;
         }
         if (args[0].equalsIgnoreCase("ratings") || args[0].equalsIgnoreCase("reviews") || args[0].equalsIgnoreCase("review-list") || args[0].equals("후기") || args[0].equals("후기목록") || args[0].equals("평가목록")) {

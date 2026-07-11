@@ -39,6 +39,21 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             resolved -> sendTextResult(player, coreApiClient.progression().blockDetails(resolved, Math.max(1, Math.min(limit, 100))).thenApply(VelocityPlayerProgressionActions::blockDetailsMessage), "섬 블록 상세를 불러오지 못했습니다."));
     }
 
+    public void showBlockDetails(Player player, String target, int limit) {
+        targetResolver.resolveIslandId(target)
+            .thenAccept(islandId -> {
+                if (islandId.equals(new UUID(0L, 0L))) {
+                    player.sendMessage(Component.text("대상 플레이어 또는 섬을 찾지 못했습니다."));
+                    return;
+                }
+                showBlockDetails(player, islandId, limit);
+            })
+            .exceptionally(error -> {
+                player.sendMessage(Component.text("대상 섬을 확인하지 못했습니다."));
+                return null;
+            });
+    }
+
     public void listReviews(Player player, UUID islandId, int limit) {
         if (rejectExplicitIslandLookup(player, islandId)) {
             return;

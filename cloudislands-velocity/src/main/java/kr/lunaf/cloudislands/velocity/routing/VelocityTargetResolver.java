@@ -81,7 +81,11 @@ public final class VelocityTargetResolver {
         if (!parsed.equals(EMPTY_UUID)) {
             return CompletableFuture.completedFuture(parsed);
         }
-        return coreApiClient.islands().findIslandByName(target).thenApply(island -> parseUuid(island.islandId()));
+        return coreApiClient.islands().findIslandByName(target)
+            .handle((island, error) -> error == null && island != null ? parseUuid(island.islandId()) : EMPTY_UUID)
+            .thenCompose(islandId -> !islandId.equals(EMPTY_UUID)
+                ? CompletableFuture.completedFuture(islandId)
+                : coreApiClient.navigation().playerProfileByName(target).thenApply(profile -> parseUuid(profile.primaryIslandId())));
     }
 
     public static UUID parseUuid(String value) {
