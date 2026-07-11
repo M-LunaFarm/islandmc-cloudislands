@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.15`
+Version: `1.1.16`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,25 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.15`
+Current release: `v1.1.16`
 
-Built for the CloudIslands 1.1.15 baseline.
+Built for the CloudIslands 1.1.16 baseline.
 
-Release notes for `v1.1.15`:
+Release notes for `v1.1.16`:
+
+- multi-island selection: `/is select <player|island>` (plus `switch`, `선택`,
+  and `섬선택`) lets Paper and Velocity players choose the island used by
+  subsequent home routing
+- server-authoritative safety: the player selection endpoint accepts only an
+  owned island or an active member role and rejects visitor, banned, stale, and
+  unrelated island projections without changing the stored selection
+- single-Paper continuity: the same selected-island profile drives lobby home
+  routing when Paper is deployed without Velocity
+- membership projection hardening: player island lists omit BANNED and VISITOR
+  rows while restoring an authoritative owner entry if membership projection
+  data is incomplete
+
+Release notes carried forward from `v1.1.15`:
 
 - member home routing: `/is home` resolves the player's selected island when
   they are a MEMBER or CO_OWNER instead of requiring island ownership
@@ -850,7 +864,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.15`.
+Current read: production-readiness baseline `v1.1.16`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
