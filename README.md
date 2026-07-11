@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.32`
+Version: `1.1.33`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -592,7 +592,7 @@ integration verification.
 <!-- feature-parity:start -->
 | Area | Status | Verified evidence | Limit |
 |---|---|---|---|
-| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
+| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume; Paper tests verify target-island coordinates and bounded safe destinations | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; real-player destructive-action smoke is not part of CI | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
@@ -606,11 +606,25 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.32`
+Current release: `v1.1.33`
 
-Built for the CloudIslands 1.1.32 baseline.
+Built for the CloudIslands 1.1.33 baseline.
 
-Release notes for `v1.1.32`:
+Release notes for `v1.1.33`:
+
+- correct single-Paper coordinates: local home and warp destinations now use
+  the target island UUID's registered origin instead of the player's current
+  lobby or island position
+- safe arrivals: home, warp, visit, and route-ticket movement validates solid
+  footing, two-block clearance, liquids, and hazardous blocks before teleport
+- bounded recovery: blocked destinations search only four blocks horizontally
+  and eight blocks vertically, never escaping the authoritative island region
+- non-blocking chunk preparation: every chunk touched by the safety search is
+  loaded asynchronously before Bukkit block inspection begins
+- truthful results: missing regions, unsafe destinations, and rejected
+  teleports return localized failures instead of reporting false success
+
+Release notes carried forward from `v1.1.32`:
 
 - real world application: accepted biome changes now repaint the island region
   on its assigned Paper island node instead of changing Core metadata only
@@ -1074,7 +1088,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.32`.
+Current read: production-readiness baseline `v1.1.33`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
