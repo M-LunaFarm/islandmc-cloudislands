@@ -169,10 +169,28 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public boolean acceptInvite(UUID inviteId, UUID playerUuid) {
+        return acceptInvite(inviteId, playerUuid, Long.MAX_VALUE);
+    }
+
+    @Override
+    public boolean acceptInvite(UUID inviteId, UUID playerUuid, long maxMembers) {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             IslandInviteSnapshot invite = lockInvite(connection, inviteId);
             if (invite == null || !invite.targetUuid().equals(playerUuid) || !invite.state().equals("PENDING") || !invite.expiresAt().isAfter(Instant.now())) {
+                connection.rollback();
+                return false;
+            }
+            try (PreparedStatement lockIsland = connection.prepareStatement("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+                lockIsland.setObject(1, invite.islandId());
+                try (ResultSet result = lockIsland.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        return false;
+                    }
+                }
+            }
+            if (!memberExists(connection, invite.islandId(), playerUuid) && memberCount(connection, invite.islandId()) >= Math.max(0L, maxMembers)) {
                 connection.rollback();
                 return false;
             }
@@ -188,6 +206,25 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             return true;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to accept island invite", exception);
+        }
+    }
+
+    private static boolean memberExists(Connection connection, UUID islandId, UUID playerUuid) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM island_members WHERE island_id = ? AND player_uuid = ? AND (trusted_expires_at IS NULL OR trusted_expires_at > CURRENT_TIMESTAMP)")) {
+            statement.setObject(1, islandId);
+            statement.setObject(2, playerUuid);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next();
+            }
+        }
+    }
+
+    private static long memberCount(Connection connection, UUID islandId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT COUNT(*) FROM island_members WHERE island_id = ? AND (trusted_expires_at IS NULL OR trusted_expires_at > CURRENT_TIMESTAMP)")) {
+            statement.setObject(1, islandId);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? result.getLong(1) : 0L;
+            }
         }
     }
 

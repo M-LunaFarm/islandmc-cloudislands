@@ -103,6 +103,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         Optional<IslandInviteSnapshot> invite = metadataRepository.pendingInvites(playerUuid).stream().filter(value -> value.inviteId().equals(inviteId)).findFirst();
         String islandId = invite.map(value -> value.islandId().toString()).orElse("");
+        long maxMembers = invite.map(value -> limitValue(value.islandId(), "MEMBERS", 3L)).orElse(0L);
         if (invite.isPresent()) {
             UUID inviteIslandId = invite.get().islandId();
             boolean existingMember = metadataRepository.members(inviteIslandId).stream().anyMatch(member -> member.playerUuid().equals(playerUuid));
@@ -111,7 +112,15 @@ public final class IslandVisitorRoutes implements RouteGroup {
                 return;
             }
         }
-        boolean accepted = metadataRepository.acceptInvite(inviteId, playerUuid);
+        boolean accepted = metadataRepository.acceptInvite(inviteId, playerUuid, maxMembers);
+        if (!accepted && invite.isPresent()) {
+            UUID inviteIslandId = invite.get().islandId();
+            boolean existingMember = metadataRepository.members(inviteIslandId).stream().anyMatch(member -> member.playerUuid().equals(playerUuid));
+            if (!existingMember && metadataRepository.members(inviteIslandId).size() >= maxMembers) {
+                CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
+                return;
+            }
+        }
         audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_ACCEPT", "INVITE", inviteId.toString(), Map.of("accepted", Boolean.toString(accepted)));
         events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
         if (accepted) {

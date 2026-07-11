@@ -34,6 +34,9 @@ public interface IslandMetadataRepository {
     IslandInviteSnapshot createInvite(UUID islandId, UUID inviterUuid, UUID targetUuid);
     List<IslandInviteSnapshot> pendingInvites(UUID targetUuid);
     boolean acceptInvite(UUID inviteId, UUID playerUuid);
+    default boolean acceptInvite(UUID inviteId, UUID playerUuid, long maxMembers) {
+        return acceptInvite(inviteId, playerUuid);
+    }
     boolean declineInvite(UUID inviteId, UUID playerUuid);
     boolean isBanned(UUID islandId, UUID playerUuid);
     List<IslandBanSnapshot> bans(UUID islandId);
