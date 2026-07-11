@@ -163,7 +163,8 @@ public final class ProtectionController {
                 TAKE_LECTERN_BOOK,
                 DYE_SHEEP,
                 SADDLE_ENTITY,
-                BRUSH -> IslandFlag.VISITOR_INTERACT;
+                BRUSH,
+                TURTLE_EGG_TRAMPLE -> IslandFlag.VISITOR_INTERACT;
             case OPEN_CONTAINER -> IslandFlag.VISITOR_CONTAINER;
             case PICKUP_ITEM -> IslandFlag.VISITOR_PICKUP;
             case DROP_ITEM -> IslandFlag.VISITOR_DROP;

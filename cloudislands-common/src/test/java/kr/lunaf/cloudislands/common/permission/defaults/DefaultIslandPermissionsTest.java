@@ -53,7 +53,11 @@ class DefaultIslandPermissionsTest {
             IslandPermission.SADDLE_ENTITY,
             IslandPermission.BRUSH,
             IslandPermission.ENDER_PEARL,
-            IslandPermission.CHORUS_FRUIT
+            IslandPermission.CHORUS_FRUIT,
+            IslandPermission.BREAK_SPAWNER,
+            IslandPermission.PAINTING,
+            IslandPermission.TURTLE_EGG_TRAMPLE,
+            IslandPermission.WIND_CHARGE
         );
 
         for (IslandPermission permission : IslandPermission.values()) {

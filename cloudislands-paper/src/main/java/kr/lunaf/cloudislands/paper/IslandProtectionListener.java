@@ -101,7 +101,8 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
-        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BREAK);
+        IslandPermission permission = event.getBlock().getType() == Material.SPAWNER ? IslandPermission.BREAK_SPAWNER : IslandPermission.BREAK;
+        boolean blocked = denied(event.getPlayer(), event.getBlock(), permission);
         event.setCancelled(blocked);
         if (!blocked) {
             protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getPlayer().getUniqueId(), event.getBlock()));
@@ -250,7 +251,8 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onHangingPlace(HangingPlaceEvent event) {
-        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD);
+        IslandPermission permission = event.getEntity().getType() == EntityType.PAINTING ? IslandPermission.PAINTING : IslandPermission.BUILD;
+        boolean blocked = denied(event.getPlayer(), event.getBlock(), permission);
         event.setCancelled(blocked);
         if (!blocked) {
             protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
@@ -261,7 +263,8 @@ public final class IslandProtectionListener implements Listener {
     public void onHangingBreak(HangingBreakByEntityEvent event) {
         Player player = attackingPlayer(event.getRemover());
         if (player != null) {
-            boolean blocked = denied(player, event.getEntity().getLocation().getBlock(), IslandPermission.BREAK);
+            IslandPermission permission = event.getEntity().getType() == EntityType.PAINTING ? IslandPermission.PAINTING : IslandPermission.BREAK;
+            boolean blocked = denied(player, event.getEntity().getLocation().getBlock(), permission);
             event.setCancelled(blocked);
             if (!blocked) {
                 protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
@@ -387,6 +390,12 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
+        Player source = attackingPlayer(event.getEntity());
+        if (source != null && (event.getEntityType() == EntityType.WIND_CHARGE || event.getEntityType() == EntityType.BREEZE_WIND_CHARGE)
+            && denied(source, event.getLocation().getBlock(), IslandPermission.WIND_CHARGE)) {
+            event.setCancelled(true);
+            return;
+        }
         IslandFlag flag = explosionFlag(event.getEntityType());
         event.blockList().removeIf(block -> !explosionAllowed(block, flag));
         event.blockList().forEach(block ->
@@ -557,6 +566,9 @@ public final class IslandProtectionListener implements Listener {
         }
         if (event.getItem() != null && event.getItem().getType() == Material.BRUSH) {
             return IslandPermission.BRUSH;
+        }
+        if (event.getAction() == Action.PHYSICAL && event.getClickedBlock() != null && event.getClickedBlock().getType() == Material.TURTLE_EGG) {
+            return IslandPermission.TURTLE_EGG_TRAMPLE;
         }
         return interactionPermission(event.getClickedBlock().getType());
     }

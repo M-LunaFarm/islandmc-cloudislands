@@ -155,7 +155,8 @@ class ProtectionControllerTest {
             IslandPermission.TAKE_LECTERN_BOOK,
             IslandPermission.DYE_SHEEP,
             IslandPermission.SADDLE_ENTITY,
-            IslandPermission.BRUSH
+            IslandPermission.BRUSH,
+            IslandPermission.TURTLE_EGG_TRAMPLE
         )) {
             assertTrue(protection.checkBlock(VISITOR, "ci_shard_001", 0, 100, 0, permission).allowed(), permission.name());
         }
@@ -178,6 +179,19 @@ class ProtectionControllerTest {
         assertTrue(listener.contains("onSpecialTeleport(PlayerTeleportEvent event)"));
         assertTrue(listener.contains("cause.equals(\"ENDER_PEARL\")"));
         assertTrue(listener.contains("cause.equals(\"CHORUS_FRUIT\")"));
+    }
+
+    @Test
+    void spawnerPaintingTurtleEggAndWindChargeUseGranularPermissions() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("Material.SPAWNER ? IslandPermission.BREAK_SPAWNER"));
+        assertTrue(listener.contains("EntityType.PAINTING ? IslandPermission.PAINTING"));
+        assertTrue(listener.contains("Material.TURTLE_EGG"));
+        assertTrue(listener.contains("IslandPermission.TURTLE_EGG_TRAMPLE"));
+        assertTrue(listener.contains("EntityType.WIND_CHARGE"));
+        assertTrue(listener.contains("EntityType.BREEZE_WIND_CHARGE"));
+        assertTrue(listener.contains("IslandPermission.WIND_CHARGE"));
     }
 
     @Test

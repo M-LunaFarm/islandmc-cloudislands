@@ -45,6 +45,10 @@ public final class DefaultIslandPermissions {
             IslandPermission.BRUSH,
             IslandPermission.ENDER_PEARL,
             IslandPermission.CHORUS_FRUIT,
+            IslandPermission.BREAK_SPAWNER,
+            IslandPermission.PAINTING,
+            IslandPermission.TURTLE_EGG_TRAMPLE,
+            IslandPermission.WIND_CHARGE,
             IslandPermission.USE_SPAWNER,
             IslandPermission.USE_ANVIL,
             IslandPermission.USE_ENCHANT_TABLE,
@@ -78,7 +82,11 @@ public final class DefaultIslandPermissions {
             IslandPermission.SADDLE_ENTITY,
             IslandPermission.BRUSH,
             IslandPermission.ENDER_PEARL,
-            IslandPermission.CHORUS_FRUIT
+            IslandPermission.CHORUS_FRUIT,
+            IslandPermission.BREAK_SPAWNER,
+            IslandPermission.PAINTING,
+            IslandPermission.TURTLE_EGG_TRAMPLE,
+            IslandPermission.WIND_CHARGE
         }) {
             set.putRoleKey("TRUSTED", permission, true);
         }
