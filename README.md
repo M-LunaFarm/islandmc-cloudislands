@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.12`
+Version: `1.1.13`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,27 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.12`
+Current release: `v1.1.13`
 
-Built for the CloudIslands 1.1.12 baseline.
+Built for the CloudIslands 1.1.13 baseline.
 
-Release notes for `v1.1.12`:
+Release notes for `v1.1.13`:
+
+- synchronized island visibility: public/private changes now update the durable
+  island row, in-memory island snapshot, and Redis island summary immediately
+- consistent read behavior: island information and catalog responses no longer
+  retain an old `publicAccess` value after the access command succeeds
+- ownership transfer continuity: the former owner remains a co-owner without
+  losing their selected island, so home and target-resolution commands continue
+  to work after transfer
+- authoritative owner protection: stale or missing membership-role projections
+  cannot allow player or administrator member-removal paths to remove the real
+  owner
+- membership cleanup: leaving or being kicked clears the removed island as the
+  player's selected island only when it was actually selected, without changing
+  an unrelated selection
+
+Release notes carried forward from `v1.1.12`:
 
 - corrected warehouse authorization: deposits, withdrawals, menus, and list
   views now consistently require `OPEN_CONTAINER`; bank withdrawal authority
@@ -801,7 +817,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.12`.
+Current read: production-readiness baseline `v1.1.13`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
