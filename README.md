@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.4`
+Version: `1.1.5`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.4`
+Current release: `v1.1.5`
 
-Built for the CloudIslands 1.1.4 baseline.
+Built for the CloudIslands 1.1.5 baseline.
 
-Release notes for `v1.1.4`:
+Release notes for `v1.1.5`:
+
+- targeted SS2 query parity: `balance`, `show`, and `team` preserve their
+  optional island/player target instead of silently using the caller's island
+- shared target resolution: UUID, exact island name, then player primary island
+  are resolved through typed Core clients with localized not-found feedback
+- targeted warp parity: migration-mode `warp <player|island> [warp]` supports
+  names and UUIDs and no longer misreads the target as a local warp name
+- permissions remain centralized: synthetic migration subcommands map back to
+  the existing bank, menu, member, and warp permission nodes
+
+Release notes carried forward from `v1.1.4`:
 
 - safe SS2 co-op removal: `/is uncoop` and `/is untrust` now require an active
   `TRUSTED` target before mutation and cannot remove permanent team members
@@ -691,7 +702,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.4`.
+Current read: production-readiness baseline `v1.1.5`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
