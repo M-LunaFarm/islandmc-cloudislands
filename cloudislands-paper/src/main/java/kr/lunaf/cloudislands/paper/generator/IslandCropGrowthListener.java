@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.generator;
 
 import java.util.Random;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import org.bukkit.block.data.Ageable;
@@ -26,6 +27,10 @@ public final class IslandCropGrowthListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockGrow(BlockGrowEvent event) {
+        if (!protection.checkSystemFlag(event.getBlock(), IslandFlag.CROPS_GROWTH, true).allowed()) {
+            event.setCancelled(true);
+            return;
+        }
         if (!(event.getNewState().getBlockData() instanceof Ageable ageable)) {
             return;
         }

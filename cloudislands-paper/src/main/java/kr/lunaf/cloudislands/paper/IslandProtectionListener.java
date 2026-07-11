@@ -21,6 +21,7 @@ import org.bukkit.entity.AbstractVillager;
 import org.bukkit.entity.Animals;
 import org.bukkit.entity.Axolotl;
 import org.bukkit.entity.Creeper;
+import org.bukkit.entity.Chicken;
 import org.bukkit.entity.Fish;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -54,6 +55,7 @@ import org.bukkit.event.entity.EntityBreedEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityDropItemEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
@@ -322,10 +324,14 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onStructureGrow(StructureGrowEvent event) {
+        Block source = event.getLocation().getBlock();
+        if (!protection.checkSystemFlag(source, IslandFlag.TREE_GROWTH, true).allowed()) {
+            event.setCancelled(true);
+            return;
+        }
         if (event.isFromBonemeal()) {
             return;
         }
-        Block source = event.getLocation().getBlock();
         boolean crossesBoundary = event.getBlocks().stream().anyMatch(state -> !sameIsland(source, state.getBlock()));
         event.setCancelled(crossesBoundary);
         if (!crossesBoundary) {
@@ -394,6 +400,15 @@ public final class IslandProtectionListener implements Listener {
             return;
         }
         protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityDropItem(EntityDropItemEvent event) {
+        if (event.getEntity() instanceof Chicken
+            && event.getItemDrop().getItemStack().getType() == Material.EGG
+            && !protection.checkSystemFlag(event.getEntity().getLocation().getBlock(), IslandFlag.EGG_LAY, true).allowed()) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -759,6 +774,9 @@ public final class IslandProtectionListener implements Listener {
         }
         if (type == EntityType.WITHER || type == EntityType.WITHER_SKULL) {
             return IslandFlag.WITHER_DAMAGE;
+        }
+        if (type == EntityType.FIREBALL) {
+            return IslandFlag.GHAST_FIREBALL;
         }
         return IslandFlag.EXPLOSION;
     }

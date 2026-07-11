@@ -243,6 +243,30 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void ss2NaturalGameplayFlagsDefaultAllowUntilExplicitlyDisabled() throws Exception {
+        LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
+        for (IslandFlag flag : java.util.List.of(
+            IslandFlag.CROPS_GROWTH,
+            IslandFlag.TREE_GROWTH,
+            IslandFlag.EGG_LAY,
+            IslandFlag.GHAST_FIREBALL
+        )) {
+            assertTrue(cache.flagAllowedOrDefault(ISLAND, flag, true), flag.name());
+            cache.putFlag(ISLAND, flag, "false");
+            assertFalse(cache.flagAllowedOrDefault(ISLAND, flag, true), flag.name());
+            cache.putFlag(ISLAND, flag, "enabled");
+            assertTrue(cache.flagAllowedOrDefault(ISLAND, flag, true), flag.name());
+        }
+
+        String protectionListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+        String cropListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/generator/IslandCropGrowthListener.java"));
+        assertTrue(cropListener.contains("IslandFlag.CROPS_GROWTH, true"));
+        assertTrue(protectionListener.contains("IslandFlag.TREE_GROWTH, true"));
+        assertTrue(protectionListener.contains("IslandFlag.EGG_LAY, true"));
+        assertTrue(protectionListener.contains("return IslandFlag.GHAST_FIREBALL"));
+    }
+
+    @Test
     void roleCatalogUsesRoleKeysForDefaultSuggestions() {
         LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
         cache.putRoleDefinition(ISLAND, "builder");

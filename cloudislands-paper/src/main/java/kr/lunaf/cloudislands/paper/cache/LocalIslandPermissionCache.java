@@ -112,6 +112,12 @@ public final class LocalIslandPermissionCache {
         return value != null && (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("allow") || value.equalsIgnoreCase("allowed") || value.equalsIgnoreCase("enabled") || value.equalsIgnoreCase("on"));
     }
 
+    public boolean flagAllowedOrDefault(UUID islandId, IslandFlag flag, boolean defaultAllowed) {
+        CachedIslandPermissions cached = cached(islandId);
+        String value = cached.flags().get(flag);
+        return value == null ? defaultAllowed : flagAllowed(islandId, flag);
+    }
+
     public double hitRatio() {
         long total = lookups.get();
         return total <= 0L ? 1.0D : Math.min(1.0D, (double) hits.get() / total);

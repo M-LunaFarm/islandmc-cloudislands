@@ -46,7 +46,8 @@ public final class SuperiorSkyblock2MigrationScanner {
         "public", "ispublic", "publicaccess", "settings.public", "visitors.public",
         "locked", "islocked", "settings.locked",
         "pvp", "mobspawn", "animalspawn", "monsterspawn", "firespread", "explosion", "creeperdamage", "tntdamage",
-        "witherdamage", "endermangrief", "waterflow", "lavaflow", "icemelt", "leafdecay", "visitorinteract",
+        "witherdamage", "endermangrief", "waterflow", "lavaflow", "icemelt", "leafdecay", "cropsgrowth", "treegrowth",
+        "egglay", "ghastfireball", "visitorinteract",
         "visitorcontainer", "visitorpickup", "visitordrop", "visitorpvp", "fly", "keepinventory", "publicwarps",
         "sizeupgrade", "islandsizeupgrade", "membersupgrade", "memberupgrade", "warpsupgrade", "warpupgrade",
         "hoppersupgrade", "hopperupgrade", "spawnersupgrade", "spawnerupgrade", "generatorupgrade", "oregeneratorlevel",
@@ -495,6 +496,10 @@ public final class SuperiorSkyblock2MigrationScanner {
         addFlag(content, flags, "LAVA_FLOW", "lavaFlow");
         addFlag(content, flags, "ICE_MELT", "iceMelt");
         addFlag(content, flags, "LEAF_DECAY", "leafDecay");
+        addFlag(content, flags, "CROPS_GROWTH", "cropsGrowth");
+        addFlag(content, flags, "TREE_GROWTH", "treeGrowth");
+        addFlag(content, flags, "EGG_LAY", "eggLay");
+        addFlag(content, flags, "GHAST_FIREBALL", "ghastFireball");
         addFlag(content, flags, "VISITOR_INTERACT", "visitorInteract");
         addFlag(content, flags, "VISITOR_CONTAINER", "visitorContainer");
         addFlag(content, flags, "VISITOR_PICKUP", "visitorPickup");
