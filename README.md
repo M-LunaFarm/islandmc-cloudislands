@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.38`
+Version: `1.1.39`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -594,7 +594,7 @@ integration verification.
 |---|---|---|---|
 | lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify target-island coordinates and bounded safe destinations | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
-| flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular item/entity/teleport interactions, growth boundaries, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
+| flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular block/item/entity/teleport interactions, growth boundaries, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.38`
+Current release: `v1.1.39`
 
-Built for the CloudIslands 1.1.38 baseline.
+Built for the CloudIslands 1.1.39 baseline.
 
-Release notes for `v1.1.38`:
+Release notes for `v1.1.39`:
+
+- additional SS2-style privileges: roles now expose `BREAK_SPAWNER`,
+  `PAINTING`, `TURTLE_EGG_TRAMPLE`, and `WIND_CHARGE` independently
+- spawner safety: breaking a mob spawner no longer inherits every ordinary
+  block-break grant and can be restricted to selected roles
+- painting control: placing and breaking paintings share a dedicated permission
+  while non-painting hanging entities retain existing build/break behavior
+- turtle egg protection: physical trampling is distinguished from generic
+  interaction and remains compatible with the visitor-interaction flag
+- player-attributed wind charges: wind-charge and breeze-wind-charge explosions
+  trace the projectile shooter and cancel fully when that player lacks access
+
+Release notes carried forward from `v1.1.38`:
 
 - advanced SS2-style privileges: roles now expose `PICKUP_ENTITY_BUCKET`,
   `TAKE_LECTERN_BOOK`, `DYE_SHEEP`, `SADDLE_ENTITY`, `BRUSH`, `ENDER_PEARL`,
@@ -1158,7 +1171,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.38`.
+Current read: production-readiness baseline `v1.1.39`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
