@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.30`
+Version: `1.1.31`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.30`
+Current release: `v1.1.31`
 
-Built for the CloudIslands 1.1.30 baseline.
+Built for the CloudIslands 1.1.31 baseline.
 
-Release notes for `v1.1.30`:
+Release notes for `v1.1.31`:
+
+- full safe biome catalog: the supported environment list grows from ten
+  hand-picked entries to all 63 selectable vanilla 1.21 biomes
+- hazardous-world guard retained: `minecraft:the_void` remains rejected by the
+  shared API policy and Core mutation endpoint
+- complete GUI access: the expanded catalog is split across bounded pages
+  instead of silently stopping at the first 17 menu slots
+- consistent command discovery: tab completion and GUI selection consume the
+  same shared biome policy, including Nether, End, cave, ocean, and peak biomes
+- authoritative navigation: biome page actions retain the island UUID and clamp
+  against the current shared catalog
+
+Release notes carried forward from `v1.1.30`:
 
 - truthful TOP 10 views: level, worth, and review ranking requests no longer
   hide rank ten behind their nine configured metric slots
@@ -1048,7 +1061,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.30`.
+Current read: production-readiness baseline `v1.1.31`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
