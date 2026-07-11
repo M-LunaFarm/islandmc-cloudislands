@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.18`
+Version: `1.1.19`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.18`
+Current release: `v1.1.19`
 
-Built for the CloudIslands 1.1.18 baseline.
+Built for the CloudIslands 1.1.19 baseline.
 
-Release notes for `v1.1.18`:
+Release notes for `v1.1.19`:
+
+- complete recovery history: the Paper snapshot GUI queries the configured
+  retention horizon instead of permanently limiting recovery to 20 records
+- default-policy coverage: all 85 snapshots retained by the default hourly,
+  daily, weekly, and manual policy remain reachable from the GUI
+- paged restore workflow: operators can inspect metadata and initiate the
+  existing Shift+right-click restore confirmation from every snapshot page
+- safe upper bound: unusually large retention configurations are bounded to
+  100 records per GUI query to protect the Paper server and Core API
+- dynamic page clamping: pruning or creating snapshots while navigating cannot
+  leave players on an invalid page
+
+Release notes carried forward from `v1.1.18`:
 
 - complete visitor-ban management: Paper operators can page through more than
   45 active visitor bans without older entries becoming unreachable
@@ -888,7 +901,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.18`.
+Current read: production-readiness baseline `v1.1.19`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
