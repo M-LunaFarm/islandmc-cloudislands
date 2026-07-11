@@ -137,6 +137,9 @@ Production topology:
 
 - Core API should run as at least two instances behind a trusted internal load
   balancer
+- the supplied Compose topology routes every Velocity and Paper client through
+  the `core-api` HAProxy service, which removes unhealthy Core instances using
+  the unauthenticated `/ready` probe
 - Redis, SQL, and object storage must be shared by all Core, Velocity, and Paper
   nodes
 - Paper island nodes are cattle; island ownership lives in Core and object

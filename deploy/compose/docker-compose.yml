@@ -93,8 +93,6 @@ services:
       - cloudislands_admin_token
     networks:
       - backend
-    ports:
-      - "8443:8443"
 
   core-2:
     image: ${CLOUDISLANDS_CORE_IMAGE:?set CLOUDISLANDS_CORE_IMAGE}
@@ -137,13 +135,32 @@ services:
     networks:
       - backend
 
-  velocity:
-    image: ${CLOUDISLANDS_VELOCITY_IMAGE:?set CLOUDISLANDS_VELOCITY_IMAGE}
+  core-api:
+    image: haproxy:3.0-alpine
     depends_on:
       core-1:
         condition: service_started
+      core-2:
+        condition: service_started
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    networks:
+      - backend
+    ports:
+      - "8443:8443"
+    healthcheck:
+      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  velocity:
+    image: ${CLOUDISLANDS_VELOCITY_IMAGE:?set CLOUDISLANDS_VELOCITY_IMAGE}
+    depends_on:
+      core-api:
+        condition: service_healthy
     environment:
-      CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-1:8443}
+      CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-api:8443}
       CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
       CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
     secrets:
@@ -160,13 +177,13 @@ services:
     depends_on:
       velocity:
         condition: service_started
-      core-1:
-        condition: service_started
+      core-api:
+        condition: service_healthy
     environment:
       CLOUDISLANDS_NODE_ID: lobby-01
       CLOUDISLANDS_NODE_ROLE: LOBBY
       CLOUDISLANDS_VELOCITY_SERVER_NAME: lobby
-      CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-1:8443}
+      CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-api:8443}
       CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
       CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
     secrets:
@@ -180,13 +197,13 @@ services:
     depends_on:
       velocity:
         condition: service_started
-      core-1:
-        condition: service_started
+      core-api:
+        condition: service_healthy
     environment:
       CLOUDISLANDS_NODE_ID: island-a
       CLOUDISLANDS_NODE_ROLE: ISLAND
       CLOUDISLANDS_VELOCITY_SERVER_NAME: island-a
-      CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-1:8443}
+      CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-api:8443}
       CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
       CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
     secrets:
@@ -200,13 +217,13 @@ services:
     depends_on:
       velocity:
         condition: service_started
-      core-1:
-        condition: service_started
+      core-api:
+        condition: service_healthy
     environment:
       CLOUDISLANDS_NODE_ID: island-b
       CLOUDISLANDS_NODE_ROLE: ISLAND
       CLOUDISLANDS_VELOCITY_SERVER_NAME: island-b
-      CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-1:8443}
+      CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-api:8443}
       CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
       CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
     secrets:

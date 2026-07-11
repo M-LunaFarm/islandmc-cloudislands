@@ -623,15 +623,17 @@ def create_object_storage_bundle_drill(env: dict, evidence_dir: Path, island_id:
 def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     root = Path(__file__).resolve().parents[2]
     compose = root / "deploy/compose/docker-compose.yml"
+    compose_proxy = root / "deploy/compose/haproxy.cfg"
     chart = root / "deploy/helm/cloudislands/Chart.yaml"
     values = root / "deploy/helm/cloudislands/values.yaml"
     workloads = root / "deploy/helm/cloudislands/templates/workloads.yaml"
     services = root / "deploy/helm/cloudislands/templates/services.yaml"
-    required_files = [compose, chart, values, workloads, services]
+    required_files = [compose, compose_proxy, chart, values, workloads, services]
     missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
     if missing:
         raise RuntimeError(f"deployment evidence files are missing: {missing}")
     compose_text = compose.read_text(encoding="utf-8")
+    compose_proxy_text = compose_proxy.read_text(encoding="utf-8")
     values_text = values.read_text(encoding="utf-8")
     workloads_text = workloads.read_text(encoding="utf-8")
     services_text = services.read_text(encoding="utf-8")
@@ -641,6 +643,11 @@ def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
             "secret-file-env": "_FILE" in compose_text and "secrets:" in compose_text,
             "healthchecks": "healthcheck:" in compose_text,
             "service-network-isolation": "networks:" in compose_text and "internal: true" in compose_text,
+            "core-api-failover": "core-api:" in compose_text
+            and "http://core-api:8443" in compose_text
+            and "core-1 core-1:8443 check" in compose_proxy_text
+            and "core-2 core-2:8443 check" in compose_proxy_text
+            and "option httpchk GET /ready" in compose_proxy_text,
         },
         "helm-chart": {
             "chart": "apiVersion: v2" in chart.read_text(encoding="utf-8"),
@@ -809,6 +816,7 @@ def rolling_upgrade_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
 def multi_paper_failover_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     root = Path(__file__).resolve().parents[2]
     compose = root / "deploy/compose/docker-compose.yml"
+    compose_proxy = root / "deploy/compose/haproxy.cfg"
     paper_smoke = root / "scripts/ci/papermc_smoke.py"
     admin_nodes = root / "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/AdminNodeRoutes.java"
     lifecycle = root / "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/workflow/IslandLifecycleWorkflow.java"
@@ -820,6 +828,7 @@ def multi_paper_failover_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     paper_api = root / "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java"
     required_files = [
         compose,
+        compose_proxy,
         paper_smoke,
         admin_nodes,
         lifecycle,
@@ -834,6 +843,7 @@ def multi_paper_failover_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     if missing:
         raise RuntimeError(f"multi-paper failover evidence files are missing: {missing}")
     compose_text = compose.read_text(encoding="utf-8")
+    compose_proxy_text = compose_proxy.read_text(encoding="utf-8")
     smoke_text = paper_smoke.read_text(encoding="utf-8")
     admin_text = admin_nodes.read_text(encoding="utf-8")
     lifecycle_text = lifecycle.read_text(encoding="utf-8")
@@ -845,6 +855,9 @@ def multi_paper_failover_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     paper_api_text = paper_api.read_text(encoding="utf-8")
     required_signals = {
         "two-island-paper-nodes": "island-paper-a:" in compose_text and "island-paper-b:" in compose_text and "prepare_paper" in smoke_text,
+        "core-api-failover": "http://core-api:8443" in compose_text
+        and "core-1 core-1:8443 check" in compose_proxy_text
+        and "core-2 core-2:8443 check" in compose_proxy_text,
         "save-interruption": "staleSaveCompletionDoesNotRecordSnapshot" in job_test_text
         and "snapshotCompletionKeepsCommittedSnapshotWhenEventPublishFails" in job_test_text,
         "node-drain": '"/v1/admin/nodes/drain"' in admin_text and "NODE_DRAIN" in admin_text and "drainNode" in velocity_admin_text,
