@@ -5,23 +5,31 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.economy.EconomyProviderState;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
 public final class VaultEconomyBridge implements EconomyBridge {
+    private final Plugin plugin;
     private final Server server;
     private final Consumer<EconomyProviderState> stateListener;
     private volatile boolean operationFailed;
 
-    public VaultEconomyBridge(Server server) {
-        this(server, _state -> { });
+    public VaultEconomyBridge(Plugin plugin) {
+        this(plugin, _state -> { });
     }
 
-    public VaultEconomyBridge(Server server, Consumer<EconomyProviderState> stateListener) {
-        this.server = server;
+    public VaultEconomyBridge(Plugin plugin, Consumer<EconomyProviderState> stateListener) {
+        if (plugin == null) {
+            throw new IllegalArgumentException("plugin is required");
+        }
+        this.plugin = plugin;
+        this.server = plugin.getServer();
         this.stateListener = stateListener == null ? _state -> { } : stateListener;
     }
 
@@ -46,34 +54,56 @@ public final class VaultEconomyBridge implements EconomyBridge {
 
     @Override
     public CompletableFuture<Boolean> withdraw(UUID playerUuid, BigDecimal amount, String reason) {
-        return CompletableFuture.completedFuture(callBoolean(playerUuid, amount, "withdrawPlayer"));
+        return onPaperThread(() -> callBoolean(playerUuid, amount, "withdrawPlayer"));
     }
 
     @Override
     public CompletableFuture<Void> deposit(UUID playerUuid, BigDecimal amount, String reason) {
-        if (callBoolean(playerUuid, amount, "depositPlayer")) {
-            return CompletableFuture.completedFuture(null);
-        }
-        markOperationFailed();
-        return CompletableFuture.failedFuture(new IllegalStateException("economy deposit failed"));
+        return onPaperThread(() -> {
+            if (!callBoolean(playerUuid, amount, "depositPlayer")) {
+                markOperationFailed();
+                throw new IllegalStateException("economy deposit failed");
+            }
+            return null;
+        });
     }
 
     @Override
     public CompletableFuture<BigDecimal> balance(UUID playerUuid) {
+        return onPaperThread(() -> balanceNow(playerUuid));
+    }
+
+    private BigDecimal balanceNow(UUID playerUuid) {
         Object economy = economy();
         if (economy == null) {
-            return CompletableFuture.completedFuture(BigDecimal.ZERO);
+            return BigDecimal.ZERO;
         }
         try {
             Method balance = economy.getClass().getMethod("getBalance", OfflinePlayer.class);
             Object value = balance.invoke(economy, server.getOfflinePlayer(playerUuid));
             if (value instanceof Number number) {
-                return CompletableFuture.completedFuture(BigDecimal.valueOf(number.doubleValue()));
+                return BigDecimal.valueOf(number.doubleValue());
             }
         } catch (ReflectiveOperationException ignored) {
             markOperationFailed();
         }
-        return CompletableFuture.completedFuture(BigDecimal.ZERO);
+        return BigDecimal.ZERO;
+    }
+
+    private <T> CompletableFuture<T> onPaperThread(Supplier<T> operation) {
+        CompletableFuture<T> future = new CompletableFuture<>();
+        try {
+            PaperSchedulers.run(plugin, () -> {
+                try {
+                    future.complete(operation.get());
+                } catch (Throwable error) {
+                    future.completeExceptionally(error);
+                }
+            });
+        } catch (RuntimeException error) {
+            future.completeExceptionally(error);
+        }
+        return future;
     }
 
     private boolean callBoolean(UUID playerUuid, BigDecimal amount, String methodName) {

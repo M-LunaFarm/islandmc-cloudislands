@@ -57,7 +57,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
     }
 
     private void registerEconomy() {
-        this.economyBridge = new VaultEconomyBridge(plugin.getServer(), state -> {
+        this.economyBridge = new VaultEconomyBridge(plugin, state -> {
             if (plugin.getServer().getPluginManager().isPluginEnabled("Vault")) {
                 reportVaultState(state);
             }

@@ -287,6 +287,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(vaultBridge.contains("EconomyProviderState.NOT_INSTALLED"));
         assertTrue(vaultBridge.contains("EconomyProviderState.API_COMPATIBLE"));
         assertTrue(vaultBridge.contains("EconomyProviderState.OPERATION_FAILED"));
+        assertTrue(vaultBridge.contains("PaperSchedulers.run(plugin"), "Vault provider calls must return to the Paper scheduler");
+        assertTrue(vaultBridge.contains("onPaperThread(() -> callBoolean"), "Vault withdrawals must execute on the Paper scheduler");
+        assertTrue(vaultBridge.contains("return onPaperThread(() -> balanceNow(playerUuid))"), "Vault balance reads must execute on the Paper scheduler");
     }
 
     @Test
