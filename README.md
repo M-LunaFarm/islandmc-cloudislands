@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.9`
+Version: `1.1.10`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.9`
+Current release: `v1.1.10`
 
-Built for the CloudIslands 1.1.9 baseline.
+Built for the CloudIslands 1.1.10 baseline.
 
-Release notes for `v1.1.9`:
+Release notes for `v1.1.10`:
+
+- canonical block-value semantics: `/is value [material]` now executes on
+  Paper so the no-argument form reads the real item in the player's main hand
+  instead of being confused with the island's total worth
+- bank transaction history: `/is bank logs` opens a bounded GUI containing
+  only real deposit and withdrawal audit entries, excluding unrelated island
+  activity while retaining log-detail actions
+- real team-chat mode: `/is teamchat`, `/is tc toggle`, and explicit `on`/`off`
+  now control a per-player mode; normal chat is removed from global viewers and
+  sent through the Core `TEAM` channel to authorized members across nodes
+- async and lifecycle safety: team-mode chat returns to the Paper scheduler
+  before reading location state, and mode state is cleared on disconnect and
+  plugin shutdown
+
+Release notes carried forward from `v1.1.9`:
 
 - safe proxy-to-Paper execution: commands that depend on Vault balances,
   Bukkit inventory, the player's exact location, inventory GUIs, or live flight
@@ -758,7 +773,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.9`.
+Current read: production-readiness baseline `v1.1.10`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
