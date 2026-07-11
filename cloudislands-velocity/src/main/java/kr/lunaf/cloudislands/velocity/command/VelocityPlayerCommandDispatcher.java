@@ -34,8 +34,12 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerRouting.routeHome(player, args.length > 1 ? args[1] : "default");
             return;
         }
-        if (args[0].equalsIgnoreCase("info") || args[0].equals("정보")) {
-            playerRouting.showMyIsland(player);
+        if (args[0].equalsIgnoreCase("info") || args[0].equalsIgnoreCase("show") || args[0].equals("정보")) {
+            if (args.length > 1) {
+                playerRouting.showIsland(player, args[1]);
+            } else {
+                playerRouting.showMyIsland(player);
+            }
             return;
         }
         if (args[0].equalsIgnoreCase("list") || args[0].equalsIgnoreCase("my") || args[0].equalsIgnoreCase("my-islands") || args[0].equals("목록") || args[0].equals("내섬")) {

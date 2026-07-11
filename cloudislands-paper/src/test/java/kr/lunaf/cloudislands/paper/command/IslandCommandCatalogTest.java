@@ -158,6 +158,17 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void superiorSkyblockShowIsCanonicalAndTargetAware() throws Exception {
+        String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandOverviewCommandHandler.java"));
+
+        assertTrue(IslandCommandCatalog.SUBCOMMANDS.contains("show"));
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 show [player|island]"));
+        assertEquals(IslandCommandPermission.MENU, IslandCommandPermission.fromSubcommand("show"));
+        assertTrue(handler.contains("openTargetInfo(player, args[1])"));
+        assertTrue(handler.contains("targetResolver.resolve(target)"));
+    }
+
+    @Test
     void superiorSkyblockStackerPermissionParityUsesCoreEnvironmentWithoutFakeRuntimeStateTransfer() throws Exception {
         String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackerIntegration.java"));

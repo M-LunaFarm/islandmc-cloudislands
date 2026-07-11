@@ -62,6 +62,21 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         sendTextResult(player, coreApiClient.islands().getIslandByOwner(player.getUniqueId()).thenApply(islandMessages::islandInfo), "섬 정보를 불러오지 못했습니다.");
     }
 
+    public void showIsland(Player player, String target) {
+        targetResolver.resolveIslandId(target)
+            .thenAccept(islandId -> {
+                if (islandId.equals(new UUID(0L, 0L))) {
+                    player.sendMessage(Component.text("정보를 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                    return;
+                }
+                sendTextResult(player, coreApiClient.islands().getIsland(islandId).thenApply(islandMessages::islandInfo), "섬 정보를 불러오지 못했습니다.");
+            })
+            .exceptionally(error -> {
+                player.sendMessage(Component.text("정보를 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                return null;
+            });
+    }
+
     public void showIslandSettings(Player player, UUID islandId) {
         sendTextResult(player, coreApiClient.islands().getIsland(islandId).thenApply(islandMessages::islandInfo), "섬 설정을 불러오지 못했습니다.");
     }

@@ -121,6 +121,18 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void targetedShowPreservesPaperVelocityParity() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerRoutingActions.java"));
+
+        assertTrue(IslandCommandCatalog.playerCommands().contains("섬 show [player|island]"));
+        assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"show\")"));
+        assertTrue(dispatcher.contains("playerRouting.showIsland(player, args[1])"));
+        assertTrue(actions.contains("showIsland(Player player, String target)"));
+        assertTrue(actions.contains("targetResolver.resolveIslandId(target)"));
+    }
+
+    @Test
     void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
 
