@@ -1283,7 +1283,6 @@ tasks.register("verifyHomeWarpMessageKeyCoverage") {
             "home-set-failed",
             "home-set-island-required",
             "home-teleport-denied",
-            "home-teleport-island-required",
             "home-teleport-success",
             "home-warp-action-complete",
             "home-warp-action-failed",
