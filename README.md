@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.24`
+Version: `1.1.25`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.24`
+Current release: `v1.1.25`
 
-Built for the CloudIslands 1.1.24 baseline.
+Built for the CloudIslands 1.1.25 baseline.
 
-Release notes for `v1.1.24`:
+Release notes for `v1.1.25`:
+
+- complete warehouse capacity: the Paper warehouse now exposes every configured
+  row, including all 54 material entries available at the six-row limit
+- no hidden tail: page controls replace the previous 44-slot rendering ceiling
+  that silently omitted the final ten materials at maximum capacity
+- authoritative island context: warehouse navigation carries the island UUID
+  and normalized page in typed GUI actions before withdrawals are processed
+- dynamic bounds: capacity or inventory changes clamp navigation against the
+  latest Core result while preserving the configured row-based item limit
+- localized navigation: previous and next warehouse-page controls are available
+  in Korean and English configurations
+
+Release notes carried forward from `v1.1.24`:
 
 - complete progression catalog: Paper no longer hides mission or challenge
   definitions beyond the first 44 task slots
@@ -970,7 +983,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.24`.
+Current read: production-readiness baseline `v1.1.25`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
