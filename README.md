@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.6`
+Version: `1.1.7`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,27 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.6`
+Current release: `v1.1.7`
 
-Built for the CloudIslands 1.1.6 baseline.
+Built for the CloudIslands 1.1.7 baseline.
 
-Release notes for `v1.1.6`:
+Release notes for `v1.1.7`:
+
+- canonical SuperiorSkyblock2 player compatibility: `toggleblocks`, `counts`,
+  `balance`/`bal`/`money`, `show`, `team`/`showteam`/`online`,
+  `teleport`/`tp`/`go`, `panel`/`manager`/`cp`, and `coops` now work without
+  enabling the temporary legacy-alias migration switch
+- target-safe Paper and Velocity queries: UUID, exact island name, and player
+  primary-island resolution are consistent for balances, island information,
+  member lists, values, and block counts; unresolved targets never fall back to
+  the caller's island
+- migration cutover safety: `/is admin <command>` is recognized, mapped to
+  guarded `/ciadmin` guidance, separately metered, and `/ciadmin doctor` warns
+  when SS2 migration is enabled without legacy aliases during the transition
+- proxy correctness: current-island member queries resolve the player's island
+  before calling Core instead of sending a nil UUID
+
+Release notes carried forward from `v1.1.6`:
 
 - deterministic route replay certification: the Core load probe clears the
   reused player's route ticket/session before capturing the event baseline, so
@@ -712,7 +728,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.6`.
+Current read: production-readiness baseline `v1.1.7`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
