@@ -19,7 +19,9 @@ class PaperLocalCommandForwarderTest {
                 "is warehouse-withdraw DIAMOND 2",
                 "is chest 2",
                 "is vault",
-                "is fly")) {
+                "is fly",
+                "is value",
+                "is value DIAMOND_BLOCK")) {
             assertTrue(PaperLocalCommandForwarder.shouldForward(command, List.of("is", "island", "섬")), command);
         }
     }

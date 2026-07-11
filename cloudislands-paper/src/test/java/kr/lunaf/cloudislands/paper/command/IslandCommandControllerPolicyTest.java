@@ -266,6 +266,7 @@ class IslandCommandControllerPolicyTest {
         String bankHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java"));
         String bankUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/BankUseCase.java"));
         String vaultBridge = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/economy/VaultEconomyBridge.java"));
+        String logMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandLogMenu.java"));
 
         assertTrue(backend.contains("private final IslandBankCommandHandler bankCommands;"));
         assertTrue(routerSource().contains("bankCommands.handleCommand(player, subcommand, args)"));
@@ -277,6 +278,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(bankHandler.contains("private final BankUseCase bankUseCase;"));
         assertTrue(bankHandler.contains("bankUseCase.deposit("));
         assertTrue(bankHandler.contains("bankUseCase.withdraw("));
+        assertTrue(bankHandler.contains("args[1].equalsIgnoreCase(\"logs\")"), "canonical /is bank logs must not discard its logs argument");
+        assertTrue(bankHandler.contains("IslandLogMenu.openBankLogs"), "bank logs must open the filtered transaction log view");
+        assertTrue(logMenu.contains("ISLAND_BANK_DEPOSIT") && logMenu.contains("ISLAND_BANK_WITHDRAW"), "bank transaction view must exclude unrelated island audit entries");
+        assertTrue(logMenu.contains("entries.stream().filter(filter).limit(27).toList()"), "filtered transaction entries must remain bounded to available GUI slots");
         assertFalse(bankHandler.contains("coreApiClient.depositIslandBank"), "bank mutation logic belongs in BankUseCase");
         assertFalse(bankHandler.contains("coreApiClient.withdrawIslandBank"), "bank mutation logic belongs in BankUseCase");
         assertTrue(bankUseCase.contains("BankCommandClient bankCommands"));

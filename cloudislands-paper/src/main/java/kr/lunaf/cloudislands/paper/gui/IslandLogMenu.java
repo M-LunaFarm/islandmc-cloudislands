@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Predicate;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.LogEntryView;
@@ -52,12 +53,23 @@ public final class IslandLogMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, entry -> true, TITLE);
+    }
+
+    public static void openBankLogs(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages,
+            entry -> entry.action().equals("ISLAND_BANK_DEPOSIT") || entry.action().equals("ISLAND_BANK_WITHDRAW"),
+            message(messages, "bank-logs-menu-title", "섬 은행 거래 로그"));
+    }
+
+    private static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, Predicate<LogEntryView> filter, String title) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
-        GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
-        PaperGuiViews.islandLogs(client, islandId, 27)
-            .thenAccept(entries -> openSync(plugin, player, session, entries, messages))
+        GuiStateMenus.openLoading(plugin, player, session, messages, title);
+        PaperGuiViews.islandLogs(client, islandId, 100)
+            .thenApply(entries -> entries.stream().filter(filter).limit(27).toList())
+            .thenAccept(entries -> openSync(plugin, player, session, entries, messages, title))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다."), "island.logs.open", "island.settings.open");
+                GuiStateMenus.openError(plugin, player, session, messages, title, message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다."), "island.logs.open", "island.settings.open");
                 return null;
             });
     }
@@ -87,9 +99,9 @@ public final class IslandLogMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<LogEntryView> entries, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<LogEntryView> entries, MessageRenderer messages, String title) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, title, item -> !"E".equals(item.symbol()));
             if (entries.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {

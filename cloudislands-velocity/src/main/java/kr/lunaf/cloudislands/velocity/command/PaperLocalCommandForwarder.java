@@ -18,7 +18,8 @@ public final class PaperLocalCommandForwarder {
         "biome", "setbiome", "biome-menu", "바이옴",
         "border", "border-ui", "경계",
         "permissions", "permission-menu", "perms", "권한",
-        "panel", "manager", "cp"
+        "panel", "manager", "cp",
+        "value"
     );
     private static final Set<String> PAPER_MENU_SUBCOMMANDS = Set.of(
         "bank", "은행",

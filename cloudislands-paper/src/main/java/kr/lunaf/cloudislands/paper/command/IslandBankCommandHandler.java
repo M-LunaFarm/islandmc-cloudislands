@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.BankUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
+import kr.lunaf.cloudislands.paper.gui.IslandLogMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -33,6 +34,10 @@ final class IslandBankCommandHandler {
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
         if (subcommand.equals("bank") || subcommand.equals("은행")) {
+            if (args.length > 1 && args[1].equalsIgnoreCase("logs")) {
+                openBankLogs(player);
+                return true;
+            }
             openBankMenu(player);
             return true;
         }
@@ -89,6 +94,11 @@ final class IslandBankCommandHandler {
 
     private void showBank(Player player) {
         runtime.currentIsland(player, message("bank-balance-island-required", "섬 안에서만 은행을 확인할 수 있습니다.")).ifPresent(islandId -> showBank(player, islandId));
+    }
+
+    private void openBankLogs(Player player) {
+        runtime.currentIsland(player, message("bank-logs-island-required", "섬 안에서만 은행 거래 로그를 확인할 수 있습니다."))
+            .ifPresent(islandId -> IslandLogMenu.openBankLogs(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
     private void showTargetBank(Player player, String target) {
