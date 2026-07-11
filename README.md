@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.0.1`
+Version: `1.0.2`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -552,11 +552,11 @@ integration verification.
 
 ## Release
 
-Current release: `v1.0.1`
+Current release: `v1.0.2`
 
-Built for the CloudIslands 1.0.1 baseline.
+Built for the CloudIslands 1.0.2 baseline.
 
-Release notes for `v1.0.1`:
+Release notes for `v1.0.2`:
 
 - mission parity and runtime load: definition-driven missions now progress from
   enchanting, Bukkit statistic increments, advancements, and item consumption;
@@ -584,7 +584,7 @@ Release notes for `v1.0.1`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.0.1`.
+Current read: production-readiness baseline `v1.0.2`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
