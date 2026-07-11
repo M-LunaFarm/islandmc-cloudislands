@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.bootstrap;
 import kr.lunaf.cloudislands.api.CloudIslandsApi;
 import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
+import kr.lunaf.cloudislands.api.economy.EconomyProviderState;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
@@ -37,6 +38,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
     @Override
     public void stop() {
         unregisterPlaceholderExpansion();
+        plugin.integrationRegistry().clearRuntimeService("Vault");
         if (api != null) {
             CloudIslandsProvider.clear(api);
             plugin.getServer().getServicesManager().unregister(CloudIslandsApi.class, api);
@@ -55,8 +57,25 @@ public final class PaperRuntimeServices implements RuntimeComponent {
     }
 
     private void registerEconomy() {
-        this.economyBridge = new VaultEconomyBridge(plugin.getServer());
+        this.economyBridge = new VaultEconomyBridge(plugin.getServer(), state -> {
+            if (plugin.getServer().getPluginManager().isPluginEnabled("Vault")) {
+                reportVaultState(state);
+            }
+        });
         plugin.getServer().getServicesManager().register(EconomyBridge.class, economyBridge, plugin, ServicePriority.Normal);
+        EconomyProviderState state = economyBridge.providerState();
+        if (plugin.getServer().getPluginManager().isPluginEnabled("Vault")) {
+            reportVaultState(state);
+        }
+    }
+
+    private void reportVaultState(EconomyProviderState state) {
+        plugin.integrationRegistry().reportRuntimeService(
+            "Vault",
+            state == EconomyProviderState.ACTIVE,
+            "economy-provider-runtime-readiness",
+            java.util.Map.of("providerState", state.name())
+        );
     }
 
     private void registerPlaceholderExpansion(CoreApiClient client) {
@@ -67,14 +86,34 @@ public final class PaperRuntimeServices implements RuntimeComponent {
             CloudIslandsPlaceholderExpansion expansion = new CloudIslandsPlaceholderExpansion(plugin, client);
             if (expansion.register()) {
                 this.placeholderExpansion = expansion;
+                plugin.integrationRegistry().reportRuntimeService(
+                    "PlaceholderAPI",
+                    true,
+                    "cloudislands-expansion-registration",
+                    java.util.Map.of("identifier", expansion.getIdentifier())
+                );
                 plugin.getLogger().info("Registered PlaceholderAPI expansion: cloudislands");
+            } else {
+                plugin.integrationRegistry().reportRuntimeService(
+                    "PlaceholderAPI",
+                    false,
+                    "cloudislands-expansion-registration",
+                    java.util.Map.of("reason", "register-returned-false")
+                );
             }
-        } catch (LinkageError error) {
+        } catch (LinkageError | RuntimeException error) {
+            plugin.integrationRegistry().reportRuntimeService(
+                "PlaceholderAPI",
+                false,
+                "cloudislands-expansion-registration",
+                java.util.Map.of("reason", error.getClass().getSimpleName())
+            );
             plugin.getLogger().warning("PlaceholderAPI was detected but the CloudIslands expansion could not be registered: " + error.getMessage());
         }
     }
 
     private void unregisterPlaceholderExpansion() {
+        plugin.integrationRegistry().clearRuntimeService("PlaceholderAPI");
         Object expansion = placeholderExpansion;
         placeholderExpansion = null;
         if (expansion == null) {

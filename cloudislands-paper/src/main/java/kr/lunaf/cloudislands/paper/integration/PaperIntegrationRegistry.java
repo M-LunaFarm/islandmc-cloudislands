@@ -32,10 +32,12 @@ public final class PaperIntegrationRegistry {
         IntegrationCapability.ISLAND_ACTIVATE,
         IntegrationCapability.ISLAND_DEACTIVATE,
         IntegrationCapability.STATE_EXPORT,
-        IntegrationCapability.STATE_RESTORE
+        IntegrationCapability.STATE_RESTORE,
+        IntegrationCapability.RUNTIME_SERVICE
     );
     private final Server server;
     private final Map<String, CloudIntegration> integrations;
+    private final Map<String, RuntimeOperation> runtimeOperations = new java.util.concurrent.ConcurrentHashMap<>();
 
     private PaperIntegrationRegistry(Server server, List<CloudIntegration> integrations) {
         this.server = server;
@@ -60,22 +62,50 @@ public final class PaperIntegrationRegistry {
         Plugin plugin = plugin(integration.pluginName());
         IntegrationSupportState discoveryState = enabled ? IntegrationSupportState.DETECTED : IntegrationSupportState.NOT_INSTALLED;
         IntegrationSupportState apiState = apiState(integration, enabled, plugin);
-        IntegrationSupportState adapterState = adapterState(integration, enabled, apiState);
+        RuntimeOperation runtimeOperation = enabled && apiState == IntegrationSupportState.API_COMPATIBLE
+            ? runtimeOperations.get(pluginName)
+            : null;
+        IntegrationSupportState adapterState = runtimeOperation == null
+            ? adapterState(integration, enabled, apiState)
+            : runtimeOperation.adapterState();
+        IntegrationSupportState operationState = runtimeOperation == null ? null : runtimeOperation.operationState();
         return new IntegrationStatus(
             pluginName,
             integration.category(),
             integration.detect(enabled),
-            summarizeState(discoveryState, apiState, adapterState, null),
+            summarizeState(discoveryState, apiState, adapterState, operationState),
             discoveryState,
             apiState,
             adapterState,
-            null,
+            operationState,
             integration.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY),
             integration.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY)
                 ? CloudIntegrationPolicy.requiredRuntimeClaims()
                 : List.of(),
             integration.capabilities()
         );
+    }
+
+    public void reportRuntimeService(String pluginName, boolean succeeded, String operation, Map<String, String> details) {
+        if (pluginName == null || pluginName.isBlank()) {
+            return;
+        }
+        CloudIntegration integration = integrations.get(pluginName);
+        if (integration == null || !integration.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE)) {
+            return;
+        }
+        runtimeOperations.put(pluginName, new RuntimeOperation(
+            succeeded ? IntegrationSupportState.ACTIVE : IntegrationSupportState.ADAPTER_INACTIVE,
+            succeeded ? IntegrationSupportState.OPERATION_SUCCEEDED : IntegrationSupportState.OPERATION_FAILED,
+            operation,
+            details
+        ));
+    }
+
+    public void clearRuntimeService(String pluginName) {
+        if (pluginName != null) {
+            runtimeOperations.remove(pluginName);
+        }
     }
 
     public CloudIntegration integration(String pluginName) {
@@ -141,9 +171,26 @@ public final class PaperIntegrationRegistry {
         }
         return IntegrationRuntimeCertification.report(
             snapshot(),
-            IntegrationRuntimeCertification.certifyPriorityPlugins(bukkitExternalRuntime(server)),
+            runtimeCertificationResults(),
             Map.copyOf(pluginVersions)
         );
+    }
+
+    private List<IntegrationRuntimeCertification.CertificationResult> runtimeCertificationResults() {
+        return runtimeOperations.entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .map(entry -> new IntegrationRuntimeCertification.CertificationResult(
+                entry.getKey(),
+                entry.getValue().operation(),
+                entry.getValue().operationState(),
+                entry.getValue().operationState() == IntegrationSupportState.OPERATION_SUCCEEDED
+                    ? IntegrationResult.Status.SUCCESS
+                    : IntegrationResult.Status.FAILED,
+                false,
+                List.of(),
+                entry.getValue().details()
+            ))
+            .toList();
     }
 
     private static List<CloudIntegration> defaultIntegrations(IntegrationExternalRuntime externalRuntime) {
@@ -314,6 +361,18 @@ public final class PaperIntegrationRegistry {
             adapterState = adapterState == null ? IntegrationSupportState.ADAPTER_INACTIVE : adapterState;
             requiredRuntimeClaims = List.copyOf(requiredRuntimeClaims);
             capabilities = capabilities == null ? Set.of() : Set.copyOf(capabilities);
+        }
+    }
+
+    private record RuntimeOperation(
+        IntegrationSupportState adapterState,
+        IntegrationSupportState operationState,
+        String operation,
+        Map<String, String> details
+    ) {
+        private RuntimeOperation {
+            operation = operation == null ? "" : operation;
+            details = details == null ? Map.of() : Map.copyOf(details);
         }
     }
 }

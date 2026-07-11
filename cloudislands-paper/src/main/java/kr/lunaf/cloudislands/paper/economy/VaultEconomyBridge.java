@@ -4,6 +4,7 @@ import java.lang.reflect.Method;
 import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.economy.EconomyProviderState;
 import org.bukkit.OfflinePlayer;
@@ -12,10 +13,16 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 
 public final class VaultEconomyBridge implements EconomyBridge {
     private final Server server;
+    private final Consumer<EconomyProviderState> stateListener;
     private volatile boolean operationFailed;
 
     public VaultEconomyBridge(Server server) {
+        this(server, _state -> { });
+    }
+
+    public VaultEconomyBridge(Server server, Consumer<EconomyProviderState> stateListener) {
         this.server = server;
+        this.stateListener = stateListener == null ? _state -> { } : stateListener;
     }
 
     @Override
@@ -47,7 +54,7 @@ public final class VaultEconomyBridge implements EconomyBridge {
         if (callBoolean(playerUuid, amount, "depositPlayer")) {
             return CompletableFuture.completedFuture(null);
         }
-        operationFailed = true;
+        markOperationFailed();
         return CompletableFuture.failedFuture(new IllegalStateException("economy deposit failed"));
     }
 
@@ -64,7 +71,7 @@ public final class VaultEconomyBridge implements EconomyBridge {
                 return CompletableFuture.completedFuture(BigDecimal.valueOf(number.doubleValue()));
             }
         } catch (ReflectiveOperationException ignored) {
-            operationFailed = true;
+            markOperationFailed();
         }
         return CompletableFuture.completedFuture(BigDecimal.ZERO);
     }
@@ -79,8 +86,17 @@ public final class VaultEconomyBridge implements EconomyBridge {
             Object response = method.invoke(economy, server.getOfflinePlayer(playerUuid), amount.doubleValue());
             return transactionSuccess(response);
         } catch (ReflectiveOperationException exception) {
-            operationFailed = true;
+            markOperationFailed();
             return false;
+        }
+    }
+
+    private void markOperationFailed() {
+        operationFailed = true;
+        try {
+            stateListener.accept(EconomyProviderState.OPERATION_FAILED);
+        } catch (RuntimeException ignored) {
+            // Reporting must never change the outcome of an economy operation.
         }
     }
 

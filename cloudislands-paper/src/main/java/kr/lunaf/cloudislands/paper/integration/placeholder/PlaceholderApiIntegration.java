@@ -13,7 +13,8 @@ public final class PlaceholderApiIntegration extends PolicyBackedCloudIntegratio
     public PlaceholderApiIntegration(IntegrationExternalRuntime externalRuntime) {
         super("PlaceholderAPI", Set.of(
             IntegrationCapability.DETECT,
-            IntegrationCapability.VALIDATE_VERSION
+            IntegrationCapability.VALIDATE_VERSION,
+            IntegrationCapability.RUNTIME_SERVICE
         ), externalRuntime);
     }
 }

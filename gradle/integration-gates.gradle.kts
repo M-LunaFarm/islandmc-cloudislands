@@ -97,9 +97,10 @@ tasks.register("verifyIntegrationMatrix") {
         val reportsDir = integrationJsonReport.get().asFile.parentFile
         reportsDir.mkdirs()
         val diagnosticPlugins = setOf(
-            "Vault", "PlaceholderAPI", "LuckPerms", "CoreProtect", "WorldEdit", "FastAsyncWorldEdit",
+            "LuckPerms", "CoreProtect", "WorldEdit", "FastAsyncWorldEdit",
             "ItemsAdder", "Oraxen", "Nexo", "Slimefun", "RoseStacker", "WildStacker", "AdvancedSpawners", "Plan"
         )
+        val runtimeServicePlugins = setOf("Vault", "PlaceholderAPI")
         fun jsonEscape(value: String): String = buildString {
             value.forEach { character ->
                 when (character) {
@@ -125,9 +126,20 @@ tasks.register("verifyIntegrationMatrix") {
                 requiredPlugins.forEachIndexed { index, pluginName ->
                     if (index > 0) append(",")
                     val diagnostic = pluginName in diagnosticPlugins
-                    val operation = if (diagnostic) "runtime-detection-and-version-diagnostic" else "static-policy-matrix"
-                    val operationState = if (diagnostic) "DIAGNOSTIC_ONLY" else "STATIC_POLICY_VERIFIED"
-                    val remediation = if (diagnostic) {
+                    val runtimeService = pluginName in runtimeServicePlugins
+                    val operation = when {
+                        runtimeService -> "runtime-service-registration"
+                        diagnostic -> "runtime-detection-and-version-diagnostic"
+                        else -> "static-policy-matrix"
+                    }
+                    val operationState = when {
+                        runtimeService -> "RUNTIME_SERVICE_WIRED"
+                        diagnostic -> "DIAGNOSTIC_ONLY"
+                        else -> "STATIC_POLICY_VERIFIED"
+                    }
+                    val remediation = if (runtimeService) {
+                        "Install $pluginName and run /ciadmin integrations report to verify the live service operation."
+                    } else if (diagnostic) {
                         "Install $pluginName to inspect detection and version metadata; no lifecycle or state-transfer operation is certified."
                     } else {
                         "Install the plugin only when this hook is needed; static policy, config, softdepend, and registry coverage passed."
@@ -167,9 +179,20 @@ tasks.register("verifyIntegrationMatrix") {
                 appendLine("| --- | --- | --- | --- | --- | --- |")
                 requiredPlugins.forEach { pluginName ->
                     val diagnostic = pluginName in diagnosticPlugins
-                    val operation = if (diagnostic) "runtime-detection-and-version-diagnostic" else "static-policy-matrix"
-                    val operationState = if (diagnostic) "DIAGNOSTIC_ONLY" else "STATIC_POLICY_VERIFIED"
-                    val remediation = if (diagnostic) {
+                    val runtimeService = pluginName in runtimeServicePlugins
+                    val operation = when {
+                        runtimeService -> "runtime-service-registration"
+                        diagnostic -> "runtime-detection-and-version-diagnostic"
+                        else -> "static-policy-matrix"
+                    }
+                    val operationState = when {
+                        runtimeService -> "RUNTIME_SERVICE_WIRED"
+                        diagnostic -> "DIAGNOSTIC_ONLY"
+                        else -> "STATIC_POLICY_VERIFIED"
+                    }
+                    val remediation = if (runtimeService) {
+                        "Install `$pluginName` and run `/ciadmin integrations report` to verify the live service operation."
+                    } else if (diagnostic) {
                         "Install `$pluginName` to inspect detection and version metadata; no lifecycle or state-transfer operation is certified."
                     } else {
                         "Static policy, config, softdepend, and registry coverage passed."
@@ -208,6 +231,8 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
             if (!source.contains("private static final List<String> PRIORITY_PLUGINS = List.of()")) add("Probe-only registry must not advertise priority operation certification")
             if (!tests.contains("probeOnlyRegistryDoesNotAdvertiseOperationCertification")) add("Diagnostic-only no-operation certification test is missing")
             if (!tests.contains("DIAGNOSTIC_ONLY") || !tests.contains("certificationReportPublishesDiagnosticStateWithoutOperationClaims")) add("Diagnostic report assertions are missing")
+            if (!registrySource.contains("IntegrationCapability.RUNTIME_SERVICE")) add("Runtime service integrations must be executable in PaperIntegrationRegistry")
+            if (!tests.contains("runtimeServiceResultIsPublishedAsCertifiedOperation")) add("Runtime service certification result test is missing")
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))

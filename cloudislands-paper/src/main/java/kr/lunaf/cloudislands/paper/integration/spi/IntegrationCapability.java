@@ -7,5 +7,6 @@ public enum IntegrationCapability {
     ISLAND_DEACTIVATE,
     STATE_EXPORT,
     STATE_RESTORE,
+    RUNTIME_SERVICE,
     RUNTIME_AUTHORITY
 }

@@ -430,9 +430,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "integrations/localization/GUI",
         "PARTIAL_VERIFIED",
         "integration policy, localization files, GUI components, and scoped runtime certification fixtures exist",
-        "Paper integration registry separates diagnostic-only adapters from executable operation adapters",
+        "Paper integration registry certifies Vault economy and PlaceholderAPI registration while separating diagnostic-only state-transfer adapters",
         "plugin-specific operation adapters are active only where implemented",
-        "verifyIntegrationRuntimeSmoke enforces detection/version-only status for probe-only external adapters",
+        "verifyIntegrationRuntimeSmoke verifies executable runtime services and keeps probe-only external adapters diagnostic",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java",
@@ -441,7 +441,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java"
         ),
-        "no external lifecycle or state-transfer operation is certified until a real executor and live acceptance fixture exist"
+        "Vault and PlaceholderAPI runtime services are executable; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
     )
 )
 

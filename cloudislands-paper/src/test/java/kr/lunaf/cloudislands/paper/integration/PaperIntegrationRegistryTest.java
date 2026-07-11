@@ -12,6 +12,8 @@ import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
 import kr.lunaf.cloudislands.paper.integration.analytics.PlanIntegration;
+import kr.lunaf.cloudislands.paper.integration.economy.VaultIntegration;
+import kr.lunaf.cloudislands.paper.integration.placeholder.PlaceholderApiIntegration;
 import kr.lunaf.cloudislands.paper.integration.coreprotect.CoreProtectIntegration;
 import kr.lunaf.cloudislands.paper.integration.customitem.CustomItemIntegration;
 import kr.lunaf.cloudislands.paper.integration.permission.LuckPermsIntegration;
@@ -129,6 +131,23 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
+    void realVaultAndPlaceholderServicesAreExecutableIntegrations() {
+        VaultIntegration vault = new VaultIntegration();
+        PlaceholderApiIntegration placeholder = new PlaceholderApiIntegration();
+
+        assertTrue(vault.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
+        assertTrue(placeholder.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
+        assertEquals(
+            IntegrationSupportState.ACTIVE,
+            PaperIntegrationRegistry.adapterState(vault, true, IntegrationSupportState.API_COMPATIBLE)
+        );
+        assertEquals(
+            IntegrationSupportState.ACTIVE,
+            PaperIntegrationRegistry.adapterState(placeholder, true, IntegrationSupportState.API_COMPATIBLE)
+        );
+    }
+
+    @Test
     void registryWiresSpecificAdaptersAndRejectsUndeclaredOperations() {
         String registry = source("src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java");
 
@@ -139,6 +158,8 @@ class PaperIntegrationRegistryTest {
         assertTrue(registry.contains("!integration.capabilities().contains(capability)"));
         assertTrue(registry.contains("does not declare \" + capability + \" support"));
         assertTrue(registry.contains("withPluginRuntimeMetadata"));
+        assertTrue(registry.contains("runtimeCertificationResults"));
+        assertTrue(registry.contains("reportRuntimeService"));
     }
 
     @Test

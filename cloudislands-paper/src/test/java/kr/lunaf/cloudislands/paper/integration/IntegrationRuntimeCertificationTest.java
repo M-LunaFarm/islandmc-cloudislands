@@ -60,6 +60,29 @@ class IntegrationRuntimeCertificationTest {
         assertTrue(report.toMarkdown().contains("NOT_INSTALLED"));
     }
 
+    @Test
+    void runtimeServiceResultIsPublishedAsCertifiedOperation() {
+        IntegrationRuntimeCertification.CertificationResult result = new IntegrationRuntimeCertification.CertificationResult(
+            "PlaceholderAPI",
+            "cloudislands-expansion-registration",
+            IntegrationSupportState.OPERATION_SUCCEEDED,
+            kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult.Status.SUCCESS,
+            false,
+            List.of(),
+            Map.of("identifier", "cloudislands")
+        );
+
+        IntegrationRuntimeCertification.CertificationReport report = IntegrationRuntimeCertification.report(
+            List.of(diagnosticStatus("PlaceholderAPI", "placeholder")),
+            List.of(result),
+            Map.of("PlaceholderAPI", "2.11.6")
+        );
+
+        assertTrue(report.summaryLine().contains("certified=1"));
+        assertTrue(report.toJson().contains("\"operation\":\"cloudislands-expansion-registration\""));
+        assertTrue(report.toJson().contains("\"certified\":true"));
+    }
+
     private PaperIntegrationRegistry.IntegrationStatus diagnosticStatus(String pluginName, String category) {
         return new PaperIntegrationRegistry.IntegrationStatus(
             pluginName,

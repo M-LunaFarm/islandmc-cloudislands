@@ -13,7 +13,8 @@ public final class VaultIntegration extends PolicyBackedCloudIntegration {
     public VaultIntegration(IntegrationExternalRuntime externalRuntime) {
         super("Vault", Set.of(
             IntegrationCapability.DETECT,
-            IntegrationCapability.VALIDATE_VERSION
+            IntegrationCapability.VALIDATE_VERSION,
+            IntegrationCapability.RUNTIME_SERVICE
         ), externalRuntime);
     }
 }
