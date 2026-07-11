@@ -16,6 +16,7 @@ import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.migration.adapter.ParsedIslandDocument;
 import kr.lunaf.cloudislands.migration.adapter.Ss2JsonIslandParser;
 import kr.lunaf.cloudislands.migration.adapter.Ss2YamlIslandParser;
@@ -518,13 +519,7 @@ public final class SuperiorSkyblock2MigrationScanner {
 
     private List<MigrationPermission> parsePermissions(String content) {
         String[] roles = {"OWNER", "CO_OWNER", "MODERATOR", "MEMBER", "TRUSTED", "VISITOR"};
-        String[] permissions = {
-            "BUILD", "BREAK", "INTERACT", "OPEN_CONTAINER", "USE_DOOR", "USE_BUTTON", "USE_PRESSURE_PLATE", "USE_REDSTONE",
-            "PLACE_LIQUID", "BREAK_LIQUID", "ATTACK_PLAYER", "ATTACK_MOB", "PICKUP_ITEM", "DROP_ITEM", "USE_SPAWNER",
-            "USE_ANVIL", "USE_ENCHANT_TABLE", "USE_BREWING_STAND", "MANAGE_MEMBERS", "MANAGE_ROLES", "MANAGE_FLAGS",
-            "MANAGE_WARPS", "MANAGE_UPGRADES", "START_LEVEL_CALC", "BAN_VISITOR", "KICK_VISITOR", "SET_HOME",
-            "SET_BIOME", "WITHDRAW_BANK", "DEPOSIT_BANK"
-        };
+        String[] permissions = java.util.Arrays.stream(IslandPermission.values()).map(Enum::name).toArray(String[]::new);
         List<MigrationPermission> result = new ArrayList<>();
         for (String role : roles) {
             for (String permission : permissions) {

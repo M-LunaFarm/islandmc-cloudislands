@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import kr.lunaf.cloudislands.api.model.IslandPermission;
 import org.junit.jupiter.api.Test;
 
 class JdbcSchemaBootstrapTest {
@@ -34,8 +35,24 @@ class JdbcSchemaBootstrapTest {
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
-        assertEquals("postgresql-migration-chain:76", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
+        assertEquals("postgresql-migration-chain:77", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
+    }
+
+    @Test
+    void permissionKeyExpansionMatchesEveryRuntimePermission() throws IOException {
+        try (var input = JdbcSchemaBootstrapTest.class.getResourceAsStream("/db/migration/V77__island_permission_key_expansion.sql")) {
+            String migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            assertTrue(migration.contains("DROP CONSTRAINT IF EXISTS chk_island_permissions_key_known"));
+            assertTrue(migration.contains("DROP CONSTRAINT IF EXISTS chk_island_permission_override_key_known"));
+            for (IslandPermission permission : IslandPermission.values()) {
+                assertEquals(2, occurrences(migration, "'" + permission.name() + "'"), permission.name());
+            }
+        }
+    }
+
+    private int occurrences(String text, String expected) {
+        return (text.length() - text.replace(expected, "").length()) / expected.length();
     }
 
     @Test
