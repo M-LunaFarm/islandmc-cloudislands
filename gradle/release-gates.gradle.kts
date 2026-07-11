@@ -111,9 +111,13 @@ tasks.register("releaseClusterSmokeGate") {
 tasks.register("verifyReleaseGateCoverage") {
     group = "verification"
     description = "Verifies CI workflows keep partial integration smoke separate from the full release cluster evidence gate."
-    inputs.file(layout.projectDirectory.file(".github/workflows/integration.yml"))
+    inputs.files(
+        layout.projectDirectory.file(".github/workflows/integration.yml"),
+        layout.projectDirectory.file("scripts/ci/core_integration_smoke.py")
+    )
     doLast {
         val workflow = layout.projectDirectory.file(".github/workflows/integration.yml").asFile.readText()
+        val coreSmoke = layout.projectDirectory.file("scripts/ci/core_integration_smoke.py").asFile.readText()
         val requiredSignals = listOf(
             "postgres:",
             "redis:",
@@ -128,6 +132,12 @@ tasks.register("verifyReleaseGateCoverage") {
         val missing = requiredSignals.filterNot(workflow::contains)
         if (missing.isNotEmpty()) {
             throw GradleException("Integration workflow is missing cluster evidence gate signals: ${missing.joinToString(", ")}")
+        }
+        val loadProbe = coreSmoke.substringAfter("def run_load_probe(").substringBefore("def player_interaction_evidence(")
+        val clearIndex = loadProbe.indexOf("/v1/admin/routes/clear")
+        val eventBaselineIndex = loadProbe.indexOf("since_seq =")
+        if (clearIndex < 0 || eventBaselineIndex < 0 || clearIndex > eventBaselineIndex) {
+            throw GradleException("Core load probe must clear the reused route session before capturing its event replay baseline")
         }
     }
 }

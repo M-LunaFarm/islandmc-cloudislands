@@ -1112,6 +1112,14 @@ def run_load_probe(
     activation_latency: float,
 ) -> dict:
     route_durations = []
+    request(
+        secondary_admin_url,
+        "POST",
+        "/v1/admin/routes/clear",
+        {"playerUuid": player_uuid, "reason": "LOAD_TEST_ROUTE_REPLAY"},
+        admin=True,
+        expect=(202,),
+    )
     before_events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 1}, admin=True, expect=(200,))
     since_seq = int(before_events.get("latestSeq", 0))
     event_probe_start = time.perf_counter()
