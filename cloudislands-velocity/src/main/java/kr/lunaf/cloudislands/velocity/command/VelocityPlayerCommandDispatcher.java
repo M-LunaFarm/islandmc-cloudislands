@@ -245,7 +245,7 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerProgression.showLevelRanking(player, args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
             return;
         }
-        if (args[0].equalsIgnoreCase("levelcalc") || args[0].equalsIgnoreCase("recalculate") || args[0].equals("레벨계산")) {
+        if (args[0].equalsIgnoreCase("levelcalc") || args[0].equalsIgnoreCase("recalculate") || args[0].equalsIgnoreCase("recalc") || args[0].equals("레벨계산")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerProgression.recalculateLevel(player, islandId);
             return;
@@ -304,7 +304,7 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerProgression.sendIslandChat(player, new UUID(0L, 0L), "ISLAND", joinArgs(args, 1));
             return;
         }
-        if (args[0].equalsIgnoreCase("teamchat") || args[0].equalsIgnoreCase("team-chat") || args[0].equals("팀채팅")) {
+        if (args[0].equalsIgnoreCase("teamchat") || args[0].equalsIgnoreCase("team-chat") || args[0].equalsIgnoreCase("tc") || args[0].equals("팀채팅")) {
             if (args.length > 1 && (args[1].equalsIgnoreCase("toggle") || args[1].equalsIgnoreCase("mode") || args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("off") || args[1].equals("전환") || args[1].equals("모드"))) {
                 playerProgression.showTeamChatMode(player);
                 return;

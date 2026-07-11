@@ -41,7 +41,7 @@ final class IslandChatLogCommandHandler {
             openChatMenu(player);
             return true;
         }
-        if (subcommand.equals("teamchat") || subcommand.equals("team-chat") || subcommand.equals("teamchat-toggle") || subcommand.equals("팀채팅")) {
+        if (subcommand.equals("teamchat") || subcommand.equals("team-chat") || subcommand.equals("teamchat-toggle") || subcommand.equals("tc") || subcommand.equals("팀채팅")) {
             if (args.length < 2) {
                 openChatMenu(player);
                 return true;

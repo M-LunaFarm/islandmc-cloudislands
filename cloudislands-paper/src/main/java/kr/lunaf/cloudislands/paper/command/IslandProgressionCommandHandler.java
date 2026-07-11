@@ -109,7 +109,7 @@ final class IslandProgressionCommandHandler {
             listRanking(player, true, rankingLimit(args, 1));
             return true;
         }
-        if (subcommand.equals("levelcalc") || subcommand.equals("recalculate") || subcommand.equals("레벨계산")) {
+        if (subcommand.equals("levelcalc") || subcommand.equals("recalculate") || subcommand.equals("recalc") || subcommand.equals("레벨계산")) {
             recalculateLevel(player);
             return true;
         }

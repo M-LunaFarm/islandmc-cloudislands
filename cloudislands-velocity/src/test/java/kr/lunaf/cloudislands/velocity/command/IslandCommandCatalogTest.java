@@ -228,6 +228,15 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void remainingAliasesPreservePaperVelocityParity() throws Exception {
+        String player = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));
+        String membership = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerMembershipCommandDispatcher.java"));
+        assertTrue(membership.contains("equalsIgnoreCase(\"join\")"));
+        assertTrue(player.contains("equalsIgnoreCase(\"recalc\")"));
+        assertTrue(player.contains("equalsIgnoreCase(\"tc\")"));
+    }
+
+    @Test
     void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
 

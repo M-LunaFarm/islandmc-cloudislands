@@ -78,7 +78,7 @@ final class IslandMembershipCommandHandler {
             listPendingInvites(player);
             return true;
         }
-        if (subcommand.equals("accept") || subcommand.equals("invite-accept") || subcommand.equals("초대수락")) {
+        if (subcommand.equals("accept") || subcommand.equals("join") || subcommand.equals("invite-accept") || subcommand.equals("초대수락")) {
             if (args.length < 2) {
                 runtime.message(player, message("input-invite-accept-target-required", "수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
                 return true;

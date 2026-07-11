@@ -265,6 +265,15 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void remainingSuperiorSkyblockAliasesAreCanonical() {
+        assertEquals(IslandCommandPermission.INVITE_RESPOND, IslandCommandPermission.fromSubcommand("join"));
+        assertEquals(IslandCommandPermission.PROGRESSION, IslandCommandPermission.fromSubcommand("recalc"));
+        assertEquals(IslandCommandPermission.CHAT, IslandCommandPermission.fromSubcommand("tc"));
+        assertTrue(IslandCommandCatalog.SUBCOMMANDS.containsAll(List.of("join", "recalc", "tc")));
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.containsAll(List.of("섬 join <플레이어|섬|inviteId>", "섬 recalc", "섬 tc <message|toggle>")));
+    }
+
+    @Test
     void superiorSkyblockStackerPermissionParityUsesCoreEnvironmentWithoutFakeRuntimeStateTransfer() throws Exception {
         String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackerIntegration.java"));

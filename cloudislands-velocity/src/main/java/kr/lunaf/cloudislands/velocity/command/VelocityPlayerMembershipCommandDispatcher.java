@@ -29,7 +29,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.listInvites(player);
             return true;
         }
-        if (args[0].equalsIgnoreCase("accept") || args[0].equalsIgnoreCase("invite-accept") || args[0].equals("수락") || args[0].equals("초대수락")) {
+        if (args[0].equalsIgnoreCase("accept") || args[0].equalsIgnoreCase("join") || args[0].equalsIgnoreCase("invite-accept") || args[0].equals("수락") || args[0].equals("초대수락")) {
             playerMembership.acceptInviteTarget(player, args.length > 1 ? args[1] : "");
             return true;
         }
