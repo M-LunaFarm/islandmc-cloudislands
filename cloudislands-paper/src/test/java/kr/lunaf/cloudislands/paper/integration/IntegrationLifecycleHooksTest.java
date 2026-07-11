@@ -1,7 +1,9 @@
 package kr.lunaf.cloudislands.paper.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -225,6 +227,63 @@ class IntegrationLifecycleHooksTest {
 
         assertTrue(source.contains("status.adapterState() == IntegrationSupportState.ACTIVE"));
         assertFalse(source.contains("filter(PaperIntegrationRegistry.IntegrationStatus::enabled)"));
+    }
+
+    @Test
+    void skippedStateChangingHookFailsClosedAtLifecycleBoundary() {
+        UUID islandId = UUID.randomUUID();
+        IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(
+            new CoreProtectIntegration((_pluginName, _category, _operation, _context, _plan) ->
+                IntegrationResult.skipped("operation executor unavailable"))
+        ));
+        ActiveIslandRegistry.ActiveIsland activeIsland = activeIsland(islandId);
+
+        IntegrationLifecycleHooks.LifecycleBatch batch = hooks.exportState(
+            islandId,
+            activeIsland,
+            778L,
+            Path.of("778-bundle.tar.zst")
+        );
+
+        assertEquals(IntegrationResult.Status.SKIPPED, batch.results().getFirst().status());
+        assertEquals("true", batch.results().getFirst().details().get("plan.stateChanging"));
+        IOException exception = assertThrows(IOException.class, batch::throwIfFailed);
+        assertTrue(exception.getMessage().contains("CoreProtect [SKIPPED]"));
+    }
+
+    @Test
+    void skippedObservationHookRemainsBestEffort() {
+        UUID islandId = UUID.randomUUID();
+        IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(
+            new PlanIntegration((_pluginName, _category, _operation, _context, _plan) ->
+                IntegrationResult.skipped("analytics backend unavailable"))
+        ));
+
+        IntegrationLifecycleHooks.LifecycleBatch batch = hooks.exportState(
+            islandId,
+            activeIsland(islandId),
+            779L,
+            Path.of("779-bundle.tar.zst")
+        );
+
+        assertEquals(IntegrationResult.Status.SKIPPED, batch.results().getFirst().status());
+        assertEquals("false", batch.results().getFirst().details().get("plan.stateChanging"));
+        assertDoesNotThrow(batch::throwIfFailed);
+    }
+
+    private ActiveIslandRegistry.ActiveIsland activeIsland(UUID islandId) {
+        return new ActiveIslandRegistry.ActiveIsland(
+            islandId,
+            "ci_shard_001",
+            1,
+            2,
+            10,
+            20,
+            100,
+            12L,
+            99L,
+            Instant.now()
+        );
     }
 
     private IslandBundleManifest manifest(UUID islandId, int size) {

@@ -277,8 +277,8 @@ public final class IntegrationLifecycleHooks {
 
         public void throwIfFailed() throws IOException {
             List<String> failures = results.stream()
-                .filter(result -> result.status() == IntegrationResult.Status.FAILED)
-                .map(result -> result.pluginName() + ": " + result.message())
+                .filter(LifecycleResult::blocksLifecycle)
+                .map(result -> result.pluginName() + " [" + result.status() + "]: " + result.message())
                 .toList();
             if (!failures.isEmpty()) {
                 throw new IOException("integration " + operation + " hook failed: " + String.join("; ", failures));
@@ -331,6 +331,14 @@ public final class IntegrationLifecycleHooks {
             status = status == null ? IntegrationResult.Status.SKIPPED : status;
             message = message == null ? "" : message;
             details = details == null ? Map.of() : Map.copyOf(details);
+        }
+
+        private boolean blocksLifecycle() {
+            if (status == IntegrationResult.Status.FAILED) {
+                return true;
+            }
+            return status == IntegrationResult.Status.SKIPPED
+                && Boolean.parseBoolean(details.getOrDefault("plan.stateChanging", "false"));
         }
 
         private Map<String, Object> toJson() {

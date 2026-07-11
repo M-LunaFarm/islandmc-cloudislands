@@ -17,6 +17,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleExtractor;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
@@ -70,7 +71,13 @@ class IslandWorldRestorerTest {
                 Files.writeString(targetDirectory.resolve("integrations/stacker/RoseStacker/effective-stack-export.json"), "{}", StandardCharsets.UTF_8);
                 return new BundleExtractor.ExtractedBundle(targetDirectory, manifestPath, targetDirectory.resolve("chunks"));
             }),
-            IntegrationLifecycleHooks.direct("island-node-01", List.of(new StackerIntegration("RoseStacker")))
+            IntegrationLifecycleHooks.direct("island-node-01", List.of(new StackerIntegration(
+                "RoseStacker",
+                (_pluginName, _category, _operation, _context, _plan) -> IntegrationResult.success(
+                    "stack state restored",
+                    java.util.Map.of("stateArtifact", "snapshot-state-artifact")
+                )
+            )))
         );
 
         restorer.stage(ISLAND_ID, "ci_shard_001", 7, -3, 224, -96, 77L, 1234L, "snapshots/island.tar.zst");
