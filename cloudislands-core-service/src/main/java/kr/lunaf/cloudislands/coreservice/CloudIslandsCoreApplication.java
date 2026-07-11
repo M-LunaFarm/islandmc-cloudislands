@@ -97,6 +97,7 @@ import kr.lunaf.cloudislands.migration.rollback.StorageRollbackTarget;
 import kr.lunaf.cloudislands.migration.rollback.jdbc.JdbcMigrationRollbackTarget;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.LocalIslandStorage;
+import kr.lunaf.cloudislands.storage.StorageBackendPolicy;
 import kr.lunaf.cloudislands.storage.s3.S3IslandStorage;
 
 public final class CloudIslandsCoreApplication {
@@ -282,10 +283,10 @@ public final class CloudIslandsCoreApplication {
     }
 
     private static IslandStorage migrationRollbackStorage(CoreServiceConfig config) {
-        if ("LOCAL".equalsIgnoreCase(config.storageType())) {
+        if (StorageBackendPolicy.localFallbackBackend(config.storageType())) {
             return new LocalIslandStorage(Path.of(config.storageLocalPath()));
         }
-        if ("S3".equalsIgnoreCase(config.storageType())) {
+        if (StorageBackendPolicy.sharedBackend(config.storageType())) {
             return new S3IslandStorage(config.storageEndpoint(), config.storageBucket(), config.storageRegion(), config.storageAccessKey(), config.storageSecretKey(), config.storageBearerToken());
         }
         return null;

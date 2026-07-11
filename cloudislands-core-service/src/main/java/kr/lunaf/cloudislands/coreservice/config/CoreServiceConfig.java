@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.config;
 import kr.lunaf.cloudislands.common.failure.SetupBackendFallbackPolicy;
 import kr.lunaf.cloudislands.coreservice.security.CoreAuthMode;
 import kr.lunaf.cloudislands.coreservice.security.NodeCredentialBindings;
+import kr.lunaf.cloudislands.storage.StorageBackendPolicy;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -88,6 +89,10 @@ public record CoreServiceConfig(
     Duration httpKeepAlive,
     Duration httpShutdownGrace
 ) {
+    public CoreServiceConfig {
+        storageType = StorageBackendPolicy.normalizeBackend(storageType);
+    }
+
     public static CoreServiceConfig fromEnvironment() {
         Map<String, String> config = applicationConfig();
         kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy snapshotRetentionPolicy = snapshotRetentionPolicy(config);
@@ -580,7 +585,7 @@ public record CoreServiceConfig(
         if (!"REDIS".equalsIgnoreCase(eventBusMode)) {
             violations.add("event-bus-mode-must-be-REDIS");
         }
-        if (!"S3".equalsIgnoreCase(storageType)) {
+        if (!StorageBackendPolicy.sharedBackend(storageType) && !(singlePaperProductionMode() && StorageBackendPolicy.localFallbackBackend(storageType))) {
             violations.add("storage-type-must-be-S3");
         }
         if (setupDatabaseAllowInMemoryFallback) {
@@ -615,7 +620,12 @@ public record CoreServiceConfig(
     }
 
     public boolean productionMode() {
-        return "production".equalsIgnoreCase(runtimeMode == null ? "" : runtimeMode.trim());
+        String mode = runtimeMode == null ? "" : runtimeMode.trim();
+        return "production".equalsIgnoreCase(mode) || "single-paper-production".equalsIgnoreCase(mode);
+    }
+
+    public boolean singlePaperProductionMode() {
+        return "single-paper-production".equalsIgnoreCase(runtimeMode == null ? "" : runtimeMode.trim());
     }
 
     private boolean setupDatabaseInMemoryFallbackEffective() {

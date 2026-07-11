@@ -23,6 +23,7 @@ class PaperConfigSurfaceTest {
     @Test
     void singlePaperProfileDisablesProxyHandoffAndUsesLocalRouting() throws Exception {
         String profile = Files.readString(Path.of("../deploy/examples/single-paper/config-pack.yml"), StandardCharsets.UTF_8);
+        String compose = Files.readString(Path.of("../deploy/examples/single-paper/docker-compose.yml"), StandardCharsets.UTF_8);
         Path configRoot = Path.of("../deploy/examples/single-paper/config-v2");
         String runtime = Files.readString(configRoot.resolve("runtime.yml"), StandardCharsets.UTF_8);
         String integrations = Files.readString(configRoot.resolve("integrations.yml"), StandardCharsets.UTF_8);
@@ -33,6 +34,14 @@ class PaperConfigSurfaceTest {
         assertTrue(profile.contains("direct-local-teleport: true"));
         assertTrue(profile.contains("required: false"));
         assertTrue(profile.contains("storage-type: LOCAL_FILESYSTEM"));
+        assertTrue(profile.contains("core-runtime-mode: single-paper-production"));
+        assertTrue(compose.contains("CI_RUNTIME_MODE: single-paper-production"));
+        assertTrue(compose.contains("CI_AUTH_MODE: TOKEN_REQUIRED"));
+        assertTrue(compose.contains("CI_STORAGE_TYPE: LOCAL_FILESYSTEM"));
+        assertTrue(compose.contains("127.0.0.1:8443:8443"));
+        assertTrue(compose.contains("http://127.0.0.1:8443/live"));
+        assertTrue(compose.contains("CI_DB_AUTO_SCHEMA: \"true\""));
+        assertTrue(compose.contains("CI_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token"));
         assertTrue(runtime.contains("role: ISLAND_NODE"));
         assertTrue(integrations.contains("direct-local-teleport: true"));
         assertTrue(integrations.contains("local-fallback-world: world"));

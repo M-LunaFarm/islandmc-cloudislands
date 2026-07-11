@@ -120,12 +120,20 @@ paths, and SHA-256 digests.
 
 Quickstart, one Paper server:
 
-- run one Paper server with the CloudIslands Paper plugin, one Core API, and one
-  SQL database; Velocity and a separate lobby Paper server are not required
+- run one Paper server with the CloudIslands Paper plugin, one Core API, one
+  SQL database, and one Core-internal Redis; Velocity and a separate lobby
+  Paper server are not required
 - start from `deploy/examples/single-paper/config-pack.yml`
+- copy `deploy/examples/single-paper/.env.example` to `.env`, set
+  `CLOUDISLANDS_STORAGE_PATH` to the Paper plugin's absolute local storage
+  directory, create the three files under `secrets/`, and run
+  `docker compose up -d --build --wait` from that example directory
 - copy `deploy/examples/single-paper/config-v2/{runtime,integrations,security}.yml`
   into `plugins/CloudIslands/config-v2/`, alongside the other generated Config
-  v2 files, then set the Core tokens before starting Paper
+  v2 files, copy the same Core/admin token files into
+  `plugins/CloudIslands/secrets/`, then start Paper after
+  `curl --fail http://127.0.0.1:8443/live` succeeds; `/ready` intentionally
+  becomes healthy only after the Paper node starts sending heartbeats
 - keep the Paper role as `ISLAND_NODE` so the same server runs commands, GUI,
   protection, island activation, saving, and restoration
 - set `routing.direct-local-teleport: true` in Config v2 `integrations.yml`;
@@ -139,7 +147,9 @@ Quickstart, one Paper server:
 - use `LOCAL_FILESYSTEM` storage for a small single-host deployment and back up
   `plugins/CloudIslands/islands-storage`, or keep S3-compatible storage when
   off-host durability is required
-- Redis may be disabled by setting an empty Redis URI in this topology
+- Redis is disabled in the Paper plugin because it talks to Core over HTTP, but
+  the single Core service still uses its private Redis container for durable
+  job/event coordination; Redis is not published on the host
 
 Quickstart, clustered single island node:
 

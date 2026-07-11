@@ -164,6 +164,37 @@ class CoreServiceConfigTest {
     }
 
     @Test
+    void singlePaperProductionModeAllowsDurableLocalFilesystemStorageOnly() {
+        CoreServiceConfig base = config("JDBC", "jdbc:postgresql://postgres.internal:5432/cloudislands", "POSTGRESQL", true, "single-paper-production", false);
+        CoreServiceConfig local = withRuntimeBackends(base, "JDBC", "JDBC", "REDIS", "LOCAL_FILESYSTEM", false, false);
+
+        assertTrue(local.productionMode());
+        assertTrue(local.singlePaperProductionMode());
+        assertEquals("LOCAL_FILESYSTEM", local.storageType());
+        assertTrue(local.productionRuntimeModeViolations().isEmpty());
+        local.validateStartupProductionRuntimeModes();
+
+        CoreServiceConfig unsafe = withRuntimeBackends(local, "IN_MEMORY", "JDBC", "REDIS", "LOCAL_FILESYSTEM", false, false);
+        assertEquals(List.of("repository-mode-must-be-JDBC"), unsafe.productionRuntimeModeViolations());
+    }
+
+    @Test
+    void normalizesSupportedLocalStorageAliases() {
+        CoreServiceConfig local = withRuntimeBackends(
+            config("JDBC", "jdbc:postgresql://postgres.internal:5432/cloudislands", "POSTGRESQL", true),
+            "JDBC",
+            "REDIS",
+            "REDIS",
+            "local",
+            false,
+            false
+        );
+
+        assertEquals("LOCAL_FILESYSTEM", local.storageType());
+        assertEquals(List.of("storage-type-must-be-S3"), local.productionRuntimeModeViolations());
+    }
+
+    @Test
     void developmentModeDoesNotApplyProductionRuntimeBackendRestrictions() {
         CoreServiceConfig development = withRuntimeBackends(
             config("JDBC", "jdbc:postgresql://postgres.internal:5432/cloudislands", "POSTGRESQL", true, "development", true),

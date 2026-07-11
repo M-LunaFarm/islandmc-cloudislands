@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
+import kr.lunaf.cloudislands.storage.StorageBackendPolicy;
 
 public final class CoreConfigRoutes implements RouteGroup {
     private static final int MIN_NODE_PROTOCOL_VERSION = 1;
@@ -43,10 +44,10 @@ public final class CoreConfigRoutes implements RouteGroup {
         if (config == null || config.storageType() == null || config.storageType().isBlank()) {
             return "unknown-storage-backend";
         }
-        if ("S3".equalsIgnoreCase(config.storageType())) {
+        if (StorageBackendPolicy.sharedBackend(config.storageType())) {
             return "shared-object-storage-safe-for-multi-node-island-pools";
         }
-        if ("LOCAL".equalsIgnoreCase(config.storageType())) {
+        if (StorageBackendPolicy.localFallbackBackend(config.storageType())) {
             return "local-storage-requires-shared-filesystem-mount-for-multi-node-island-pools";
         }
         return "unsupported-storage-backend";
@@ -181,8 +182,8 @@ public final class CoreConfigRoutes implements RouteGroup {
         summary.put("addonStateTableKeyValueBulkLoadFallback", "local-cache-or-empty-table-on-core-api-failure");
         summary.put("databasePoolSize", config.databasePoolSize());
         summary.put("storageType", config.storageType());
-        summary.put("storageSharedBackend", ("S3".equalsIgnoreCase(config.storageType())));
-        summary.put("storageMultiNodeSafe", ("S3".equalsIgnoreCase(config.storageType())));
+        summary.put("storageSharedBackend", StorageBackendPolicy.sharedBackend(config.storageType()));
+        summary.put("storageMultiNodeSafe", StorageBackendPolicy.safeForMultiNode(config.storageType()));
         summary.put("storageBackendSafety", storageBackendSafety(config));
         summary.put("storageLocalMultiNodePolicy", "LOCAL requires the same shared filesystem mount on every Island node; otherwise use S3 or MinIO");
         summary.put("storageS3MultiNodePolicy", "S3 or MinIO is the recommended shared object storage for 5/6 Island node pools");

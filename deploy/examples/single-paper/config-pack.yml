@@ -7,7 +7,7 @@ topology:
   data:
     database: postgres
     object-storage: local-filesystem
-    redis: disabled
+    redis: core-internal
   proxy:
     velocity: disabled
   paper:
@@ -16,8 +16,9 @@ topology:
         role: ISLAND_NODE
         public-entrypoint: true
 runtime:
+  core-runtime-mode: single-paper-production
   core-api-base-url: http://127.0.0.1:8443
-  database-jdbc-url: jdbc:postgresql://127.0.0.1:5432/cloudislands
+  database-jdbc-url: jdbc:postgresql://postgres:5432/cloudislands
   redis-uri: ""
   storage-type: LOCAL_FILESYSTEM
   storage-local-path: plugins/CloudIslands/islands-storage
@@ -49,10 +50,12 @@ paper-config-v2:
     proxy-source-allowlist:
       required: false
 secrets:
-  database-password-file: /run/secrets/cloudislands_database_password
-  core-token-file: /run/secrets/cloudislands_core_token
-  admin-token-file: /run/secrets/cloudislands_admin_token
+  compose-database-password-file: secrets/database-password
+  paper-core-token-file: plugins/CloudIslands/secrets/core-token
+  paper-admin-token-file: plugins/CloudIslands/secrets/admin-token
 acceptance:
+  - core-live-with-postgresql-and-redis-before-paper-start
+  - core-ready-after-paper-heartbeat
   - paper-starts-without-velocity
   - direct-player-login-is-accepted
   - create-one-island-and-teleport-locally

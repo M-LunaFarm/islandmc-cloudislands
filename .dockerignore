@@ -1,0 +1,11 @@
+.git
+.gradle
+**/.gradle
+**/build
+**/.idea
+**/.classpath
+**/.project
+**/.settings
+**/*.iml
+deploy/examples/single-paper/secrets
+deploy/examples/single-paper/.env

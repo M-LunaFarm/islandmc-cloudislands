@@ -1,6 +1,6 @@
 core-api:
-  auth-token: "${file:/run/secrets/cloudislands_core_token}"
-  admin-token: "${file:/run/secrets/cloudislands_admin_token}"
+  auth-token: "${file:plugins/CloudIslands/secrets/core-token}"
+  admin-token: "${file:plugins/CloudIslands/secrets/admin-token}"
 forwarding:
   required: false
   secret: ""
