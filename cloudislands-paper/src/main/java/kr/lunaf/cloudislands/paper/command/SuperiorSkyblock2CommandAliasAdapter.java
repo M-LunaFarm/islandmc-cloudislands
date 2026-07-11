@@ -47,7 +47,7 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         Map.entry("rankup", new Mapping("upgrade-buy", "업그레이드구매")),
         Map.entry("close", new Mapping("private", "비공개")),
         Map.entry("open", new Mapping("public", "공개")),
-        Map.entry("uncoop", new Mapping("untrust", "신뢰해제")),
+        Map.entry("uncoop", new Mapping("kick", "추방")),
         Map.entry("permissions", new Mapping("permissions", "권한")),
         Map.entry("border", new Mapping("border", "경계"))
     );

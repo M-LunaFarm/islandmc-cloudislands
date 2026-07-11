@@ -417,7 +417,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adapter.contains("Map.entry(\"panel\", new Mapping(\"menu\", \"메뉴\"))"), "SS2 panel must route to the CloudIslands menu command");
         assertTrue(adapter.contains("Map.entry(\"close\", new Mapping(\"private\", \"비공개\"))"), "SS2 close must route to island private access");
         assertTrue(adapter.contains("Map.entry(\"open\", new Mapping(\"public\", \"공개\"))"), "SS2 open must route to island public access");
-        assertTrue(adapter.contains("Map.entry(\"uncoop\", new Mapping(\"untrust\", \"신뢰해제\"))"), "SS2 uncoop must route to the CloudIslands untrust command");
+        assertTrue(adapter.contains("Map.entry(\"uncoop\", new Mapping(\"kick\", \"추방\"))"), "SS2 uncoop must remove temporary cooperation instead of promoting it to permanent membership");
         assertTrue(adapter.contains("AdminAliasGuidance"), "SS2 admin aliases must be guidance-only, not player command translations");
         assertTrue(adapter.contains("admin(\"purge\", \"island delete <island> --confirm\", true)"), "dangerous SS2 admin aliases must point at ciadmin confirmation flows");
         assertTrue(router.contains("sendLegacyAdminAliasGuidance(player, adminGuidance);"), "legacy admin aliases must get ciadmin guidance before normal player routing");

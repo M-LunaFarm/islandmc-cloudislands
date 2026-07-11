@@ -391,7 +391,8 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("GameplayParityPolicy.WAREHOUSE_ROWS_LIMIT_KEY"), "Chest row command must use the shared warehouse rows limit key");
         assertTrue(source.contains("coreApiClient.environmentCommands().adminSetLimit(islandId, GameplayParityPolicy.WAREHOUSE_ROWS_LIMIT_KEY, rows)"), "Admin chest rows must use the typed environment client");
         assertTrue(source.contains("case \"setbanklimit\", \"addbanklimit\" -> \"BANK\""), "Bank limit commands must map to the BANK limit key");
-        assertTrue(source.contains("case \"setteamlimit\", \"addteamlimit\", \"setcooplimit\", \"addcooplimit\" -> \"MEMBERS\""), "Team/co-op limit commands must map to the enforced MEMBERS limit key");
+        assertTrue(source.contains("case \"setteamlimit\", \"addteamlimit\" -> \"MEMBERS\""), "Team limit commands must map to the enforced MEMBERS limit key");
+        assertTrue(source.contains("case \"setcooplimit\", \"addcooplimit\" -> GameplayParityPolicy.roleLimitKey(\"TRUSTED\")"), "Co-op limit commands must map to the enforced TRUSTED role limit key");
         assertTrue(source.contains("case \"setwarpslimit\", \"addwarpslimit\" -> \"WARPS\""), "Warp limit commands must map to the enforced WARPS limit key");
         assertTrue(source.contains("case \"setsize\", \"addsize\" -> \"SIZE\""), "Size commands must map to the SIZE limit key");
         assertTrue(environmentClient.contains("adminSetLimit(UUID islandId, String limitKey, long value)"), "Environment client must expose admin set limit");

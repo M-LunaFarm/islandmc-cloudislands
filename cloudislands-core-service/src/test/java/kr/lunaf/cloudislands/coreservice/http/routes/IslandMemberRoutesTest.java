@@ -157,6 +157,42 @@ class IslandMemberRoutesTest {
     }
 
     @Test
+    void temporaryTrustPreservesPermanentMembersAndCanBeRenewed() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000121");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000122");
+        UUID memberUuid = UUID.fromString("00000000-0000-0000-0000-000000000123");
+        UUID coopUuid = UUID.fromString("00000000-0000-0000-0000-000000000124");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "temporary-trust-integrity");
+
+        new IslandMemberRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            new InMemoryPlayerProfileRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryAuditLogger(),
+            new InMemoryGlobalEventPublisher()
+        ).register(handlers::put);
+
+        handle(handlers, "/v1/admin/islands/members/add", memberBody(islandId, memberUuid, "MEMBER"), 202, "MEMBER_ADDED");
+        handleError(handlers, "/v1/islands/members/trust-temporary", temporaryTrustBody(islandId, ownerUuid, memberUuid), 409, "ALREADY_ISLAND_MEMBER");
+        IslandMemberSnapshot permanentMember = metadata.members(islandId).stream().filter(member -> member.playerUuid().equals(memberUuid)).findFirst().orElseThrow();
+        assertEquals("MEMBER", permanentMember.effectiveRoleKey());
+        assertNull(permanentMember.expiresAt());
+
+        handleAccepted(handlers, "/v1/islands/members/trust-temporary", temporaryTrustBody(islandId, ownerUuid, coopUuid), 202);
+        Instant firstExpiry = metadata.members(islandId).stream().filter(member -> member.playerUuid().equals(coopUuid)).findFirst().orElseThrow().expiresAt();
+        handleAccepted(handlers, "/v1/islands/members/trust-temporary", temporaryTrustBody(islandId, ownerUuid, coopUuid), 202);
+        IslandMemberSnapshot renewed = metadata.members(islandId).stream().filter(member -> member.playerUuid().equals(coopUuid)).findFirst().orElseThrow();
+        assertEquals("TRUSTED", renewed.effectiveRoleKey());
+        assertTrue(!renewed.expiresAt().isBefore(firstExpiry));
+    }
+
+    @Test
     void rendersMemberContracts() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
@@ -266,6 +302,21 @@ class IslandMemberRoutesTest {
         Map<?, ?> response = SimpleJson.object(SimpleJson.parse(exchange.body()));
         Map<?, ?> error = SimpleJson.object(response.get("error"));
         assertEquals(expectedCode, SimpleJson.text(error.get("code")));
+    }
+
+    private static void handleAccepted(Map<String, HttpHandler> handlers, String path, String body, int expectedStatus) throws Exception {
+        TestExchange exchange = new TestExchange(path, body);
+        handlers.get(path).handle(exchange);
+        assertEquals(expectedStatus, exchange.status());
+        assertEquals(true, SimpleJson.object(SimpleJson.parse(exchange.body())).get("accepted"));
+    }
+
+    private static String memberBody(UUID islandId, UUID playerUuid, String roleKey) {
+        return "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\",\"roleKey\":\"" + roleKey + "\"}";
+    }
+
+    private static String temporaryTrustBody(UUID islandId, UUID actorUuid, UUID playerUuid) {
+        return "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"durationSeconds\":3600}";
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

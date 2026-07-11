@@ -565,6 +565,10 @@ Release notes for `v1.0.1`:
 - release publishing: matching `v*` tags now verify the README version, rebuild
   all signed evidence artifacts, and publish bundles, individual plugin/addon
   jars, checksums, SBOM, provenance, and generated changelog to GitHub Releases
+- temporary co-op integrity: permanent members can no longer be overwritten by
+  expiring `TRUSTED` membership, existing temporary co-op access can be renewed,
+  SS2 `uncoop` removes that access, and admin co-op limits enforce the dedicated
+  `ROLE_LIMIT:TRUSTED` capacity instead of consuming the permanent team limit
 - Core migration compatibility: SuperiorSkyblock2 import remains a CloudIslands
   Core/Paper/Velocity operation; `cloudislands-satis` no longer exposes legacy
   import or rollback commands

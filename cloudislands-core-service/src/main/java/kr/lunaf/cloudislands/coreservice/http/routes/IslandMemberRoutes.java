@@ -147,11 +147,18 @@ public final class IslandMemberRoutes implements RouteGroup {
             return;
         }
         boolean existingMember = currentMember != null;
+        boolean renewingTemporaryTrust = existingMember
+            && currentRoleKey.equals(CoreRoleKeys.TRUSTED)
+            && currentMember.expiresAt() != null;
+        if (existingMember && !renewingTemporaryTrust) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ALREADY_ISLAND_MEMBER", "Permanent island members cannot be converted to temporary trusted members"));
+            return;
+        }
         if (!existingMember && members.size() >= limitValue(islandId, "MEMBERS", 3L)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
             return;
         }
-        if (roleLimitReached(islandId, members, currentRoleKey, CoreRoleKeys.TRUSTED)) {
+        if (!renewingTemporaryTrust && roleLimitReached(islandId, members, currentRoleKey, CoreRoleKeys.TRUSTED)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
             return;
         }
