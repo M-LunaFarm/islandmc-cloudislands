@@ -133,6 +133,15 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
+    public int clearForPlayer(UUID playerUuid) {
+        int cleared = delegate.clearForPlayer(playerUuid);
+        deletePlayerTicket(playerUuid);
+        deleteTicketCachesForPlayer(playerUuid);
+        invalidateTicketCounts();
+        return cleared;
+    }
+
+    @Override
     public int clearAll() {
         int cleared = delegate.clearAll();
         clearTicketCaches();
@@ -186,6 +195,19 @@ public final class CachingRouteTicketStore implements RouteTicketStore {
         deletePattern("ci:player:*:route-ticket");
         deletePattern("ci:route-ticket:*");
         invalidateTicketCounts();
+    }
+
+    private void deleteTicketCachesForPlayer(UUID playerUuid) {
+        for (String key : keys("ci:route-ticket:*")) {
+            try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+                String json = redis.command("GET", key);
+                if (json != null && !json.isBlank() && ticketFromJson(json).playerUuid().equals(playerUuid)) {
+                    redis.command("DEL", key);
+                }
+            } catch (IOException | RuntimeException ignored) {
+                failures.incrementAndGet();
+            }
+        }
     }
 
     private void deletePattern(String pattern) {

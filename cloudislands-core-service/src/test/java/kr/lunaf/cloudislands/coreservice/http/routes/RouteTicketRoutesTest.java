@@ -144,6 +144,8 @@ class RouteTicketRoutesTest {
         UUID playerUuid = UUID.randomUUID();
         UUID ticketId = UUID.randomUUID();
         fixture.tickets.save(routeTicket(playerUuid, ticketId, "island-1", RouteTicketState.READY));
+        UUID olderTicketId = UUID.randomUUID();
+        fixture.tickets.save(routeTicket(playerUuid, olderTicketId, "island-1", RouteTicketState.CONSUMED));
         fixture.sessions.put(routeTicket(playerUuid, ticketId, "island-1", RouteTicketState.READY));
 
         TestExchange exchange = fixture.invoke("/v1/admin/routes/clear", """
@@ -152,10 +154,14 @@ class RouteTicketRoutesTest {
 
         assertEquals(202, exchange.status());
         assertTrue(exchange.body().contains("\"reason\":\"DOWN_NODE\""));
+        assertTrue(exchange.body().contains("\"clearedTicketCount\":2"));
+        assertTrue(fixture.tickets.find(ticketId).isEmpty());
+        assertTrue(fixture.tickets.find(olderTicketId).isEmpty());
         assertTrue(fixture.audit.toJson().contains("ROUTE_CLEAR"));
         assertTrue(fixture.audit.toJson().contains("DOWN_NODE"));
         assertTrue(fixture.events.toJson().contains("ROUTE_TICKET_CLEARED"));
         assertTrue(fixture.events.toJson().contains("\"clearedTicket\":\"true\""));
+        assertTrue(fixture.events.toJson().contains("\"clearedTicketCount\":\"2\""));
     }
 
     private static Fixture fixture() {

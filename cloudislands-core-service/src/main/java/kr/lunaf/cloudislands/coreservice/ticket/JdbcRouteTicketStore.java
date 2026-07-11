@@ -296,6 +296,17 @@ public final class JdbcRouteTicketStore implements RouteTicketStore {
     }
 
     @Override
+    public int clearForPlayer(UUID playerUuid) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM route_tickets WHERE player_uuid = ?")) {
+            statement.setObject(1, playerUuid);
+            return statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to clear player route tickets", exception);
+        }
+    }
+
+    @Override
     public int clearAll() {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM route_tickets")) {

@@ -22,6 +22,18 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InMemoryRouteTicketStoreTest {
+    @Test
+    void clearsEveryHistoricalTicketForPlayer() {
+        InMemoryRouteTicketStore store = new InMemoryRouteTicketStore(CLOCK);
+        RouteTicket first = store.save(ticket(RouteTicketState.CONSUMED, NOW.plusSeconds(30), "island-2", "old"));
+        RouteTicket second = store.save(ticket(RouteTicketState.READY, NOW.plusSeconds(60), "island-3", "new"));
+
+        assertEquals(2, store.clearForPlayer(PLAYER));
+        assertTrue(store.find(first.ticketId()).isEmpty());
+        assertTrue(store.find(second.ticketId()).isEmpty());
+        assertTrue(store.findLatestForPlayer(PLAYER).isEmpty());
+    }
+
     private static final Instant NOW = Instant.parse("2026-06-17T00:00:00Z");
     private static final Clock CLOCK = Clock.fixed(NOW, ZoneOffset.UTC);
     private static final UUID PLAYER = UUID.fromString("00000000-0000-0000-0000-000000000101");

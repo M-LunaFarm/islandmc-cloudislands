@@ -216,6 +216,13 @@ public final class InMemoryRouteTicketStore implements RouteTicketStore {
         return tickets.remove(ticketId) != null;
     }
 
+    @Override
+    public int clearForPlayer(UUID playerUuid) {
+        int before = tickets.size();
+        tickets.entrySet().removeIf(entry -> entry.getValue().playerUuid().equals(playerUuid));
+        return before - tickets.size();
+    }
+
     public int clearAll() {
         int cleared = tickets.size();
         tickets.clear();

@@ -238,27 +238,31 @@ public final class RouteTicketRoutes implements RouteGroup {
         UUID ticketId = JsonFields.uuid(body, "ticketId", EMPTY_UUID);
         String reason = JsonFields.text(body, "reason", "MANUAL_CLEAR");
         boolean clearedSession = !playerUuid.equals(EMPTY_UUID) && sessions.clear(playerUuid);
-        UUID clearTicketId = ticketId.equals(EMPTY_UUID) && !playerUuid.equals(EMPTY_UUID)
-            ? tickets.findLatestForPlayer(playerUuid).map(RouteTicket::ticketId).orElse(EMPTY_UUID)
-            : ticketId;
-        boolean clearedTicket = !clearTicketId.equals(EMPTY_UUID) && tickets.clear(clearTicketId);
+        UUID clearTicketId = ticketId;
+        int clearedTicketCount = !ticketId.equals(EMPTY_UUID)
+            ? (tickets.clear(ticketId) ? 1 : 0)
+            : (!playerUuid.equals(EMPTY_UUID) ? tickets.clearForPlayer(playerUuid) : 0);
+        boolean clearedTicket = clearedTicketCount > 0;
         String clearReason = reason == null || reason.isBlank() ? "MANUAL_CLEAR" : reason;
         audit.log(EMPTY_UUID, "MANUAL_CLEAR".equals(clearReason) ? "ADMIN" : "SYSTEM", "ROUTE_CLEAR", "ROUTE", playerUuid.toString(), Map.of(
             "ticketId", clearTicketId.toString(),
             "reason", clearReason,
             "clearedSession", Boolean.toString(clearedSession),
-            "clearedTicket", Boolean.toString(clearedTicket)
+            "clearedTicket", Boolean.toString(clearedTicket),
+            "clearedTicketCount", Integer.toString(clearedTicketCount)
         ));
         events.publish(CloudIslandEventType.ROUTE_TICKET_CLEARED.name(), Map.of(
             "playerUuid", playerUuid.toString(),
             "ticketId", clearTicketId.toString(),
             "reason", clearReason,
             "clearedSession", Boolean.toString(clearedSession),
-            "clearedTicket", Boolean.toString(clearedTicket)
+            "clearedTicket", Boolean.toString(clearedTicket),
+            "clearedTicketCount", Integer.toString(clearedTicketCount)
         ));
         CoreHttpResponses.write(exchange, 202, SimpleJson.stringify(Map.of(
             "clearedSession", clearedSession,
             "clearedTicket", clearedTicket,
+            "clearedTicketCount", clearedTicketCount,
             "reason", clearReason
         )));
     }

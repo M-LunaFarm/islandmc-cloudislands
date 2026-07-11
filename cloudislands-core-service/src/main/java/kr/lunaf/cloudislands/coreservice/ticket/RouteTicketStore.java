@@ -28,6 +28,8 @@ public interface RouteTicketStore {
 
     boolean clear(UUID ticketId);
 
+    int clearForPlayer(UUID playerUuid);
+
     int clearAll();
 
     String toJson();
