@@ -302,7 +302,9 @@ public final class RoutingOrchestrator {
                 return unavailable;
             }
             String templateId = islands.templateId(island.islandId()).orElse("default");
-            boolean visitorRoute = action == RouteAction.VISIT || (action == RouteAction.WARP && !metadata.isMember(island.islandId(), playerUuid));
+            boolean visitorRoute = action == RouteAction.VISIT || (action == RouteAction.WARP
+                && !island.ownerUuid().equals(playerUuid)
+                && !metadata.isMember(island.islandId(), playerUuid));
             if (action == RouteAction.VISIT) {
                 events.publish(CloudIslandEventType.ISLAND_PRE_VISIT.name(), Map.of("islandId", island.islandId().toString(), "visitorUuid", playerUuid.toString()));
             }

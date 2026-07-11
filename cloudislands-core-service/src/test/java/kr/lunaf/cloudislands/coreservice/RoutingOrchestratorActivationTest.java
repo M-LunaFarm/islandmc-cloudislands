@@ -56,6 +56,7 @@ class RoutingOrchestratorActivationTest {
         assertTrue(codeSource.contains("RECOVERY_REQUIRED"));
         assertTrue(source.contains("catch (RouteFailureException exception)"));
         assertTrue(source.contains("new RouteAccessPolicy"));
+        assertTrue(source.contains("!island.ownerUuid().equals(playerUuid)"), "an owner with a temporarily missing membership projection must not be routed as a visitor");
         assertTrue(source.contains("new RouteTicketService"));
         assertTrue(source.contains("new RoutingDiagnosticsService"));
         assertTrue(source.contains("RouteFailureMapper.map"));

@@ -13,10 +13,13 @@ public final class RouteAccessPolicy {
     }
 
     public RouteAccessDecision visitAccess(UUID playerUuid, IslandSnapshot island) {
+        if (island.ownerUuid().equals(playerUuid)) {
+            return RouteAccessDecision.granted();
+        }
         if (metadata.isBanned(island.islandId(), playerUuid)) {
             return RouteAccessDecision.rejected(403, "VISITOR_BANNED", "Visitor is banned from this island");
         }
-        boolean member = metadata.isMember(island.islandId(), playerUuid);
+        boolean member = memberOrOwner(playerUuid, island);
         if (metadata.isLocked(island.islandId()) && !member) {
             return RouteAccessDecision.rejected(423, "ISLAND_LOCKED", "Island is locked");
         }
@@ -27,10 +30,13 @@ public final class RouteAccessPolicy {
     }
 
     public RouteAccessDecision warpAccess(UUID playerUuid, IslandSnapshot island, boolean publicWarp) {
+        if (island.ownerUuid().equals(playerUuid)) {
+            return RouteAccessDecision.granted();
+        }
         if (metadata.isBanned(island.islandId(), playerUuid)) {
             return RouteAccessDecision.rejected(403, "VISITOR_BANNED", "Visitor is banned from this island");
         }
-        boolean member = metadata.isMember(island.islandId(), playerUuid);
+        boolean member = memberOrOwner(playerUuid, island);
         if (metadata.isLocked(island.islandId()) && !member) {
             return RouteAccessDecision.rejected(423, "ISLAND_LOCKED", "Island is locked");
         }
@@ -47,5 +53,9 @@ public final class RouteAccessPolicy {
             || value.equalsIgnoreCase("allowed")
             || value.equalsIgnoreCase("enabled")
             || value.equalsIgnoreCase("on");
+    }
+
+    private boolean memberOrOwner(UUID playerUuid, IslandSnapshot island) {
+        return island.ownerUuid().equals(playerUuid) || metadata.isMember(island.islandId(), playerUuid);
     }
 }
