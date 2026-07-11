@@ -109,6 +109,9 @@ public final class IslandMyIslandsMenu implements Listener {
                             message(messages, "my-islands-menu-state", "상태: ") + island.state(),
                             message(messages, "my-islands-menu-level", "레벨: ") + island.level(),
                             message(messages, "my-islands-menu-worth", "가치: ") + island.worth(),
+                            island.primary()
+                                ? message(messages, "my-islands-menu-primary-selected", "현재 기본 섬")
+                                : message(messages, "my-islands-menu-primary-not-selected", "기본 섬 아님"),
                             message(messages, "my-islands-menu-click-to-visit", "좌클릭: 이 섬으로 이동"),
                             message(messages, "my-islands-menu-right-click-to-select", "우클릭: 기본 섬으로 선택")
                         ))));

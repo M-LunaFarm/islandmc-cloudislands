@@ -437,6 +437,7 @@ class GuiSystemPolicyTest {
         assertTrue(myIslands.contains("MENU.item(island.role()).or(() -> MENU.item(\"_\"))"), "my-islands entries must pick configured role materials with a configured fallback item");
         assertTrue(myIslands.contains("click.right() ? \"island.select.target\" : actionId"), "right-clicking a my-islands entry must select the primary island while left-click keeps visit behavior");
         assertTrue(myIslands.contains("my-islands-menu-right-click-to-select"), "my-islands lore must explain the primary-island selection gesture");
+        assertTrue(myIslands.contains("island.primary()"), "my-islands entries must identify the currently selected primary island");
         assertTrue(myIslands.contains("int maxPage = Math.max(0, (islands.size() - 1) / pageSize)"), "my-islands must paginate memberships instead of silently truncating them");
         assertTrue(myIslands.contains("setPageItem(inventory, \"N\", page + 1"), "my-islands must expose a next-page action when more memberships exist");
         assertFalse(myIslands.contains("\"GRASS_BLOCK\""), "my-islands entries must not keep a Java fallback material");

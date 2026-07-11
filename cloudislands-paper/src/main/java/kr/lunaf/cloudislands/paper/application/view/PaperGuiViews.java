@@ -46,7 +46,13 @@ public final class PaperGuiViews {
     }
 
     public static CompletableFuture<List<PlayerIslandView>> playerIslands(CoreApiClient client, UUID playerUuid) {
-        return CoreGuiViews.playerIslands(client, playerUuid).thenApply(views -> views.stream().map(PaperGuiViews::playerIsland).toList());
+        return CoreGuiViews.playerIslands(client, playerUuid).thenCombine(
+            client.playerProfiles().profile(playerUuid).exceptionally(error -> null),
+            (views, profile) -> {
+                String primaryIslandId = profile == null ? "" : profile.primaryIslandId();
+                return views.stream().map(view -> playerIsland(view, primaryIslandId)).toList();
+            }
+        );
     }
 
     public static CompletableFuture<List<PublicIslandView>> publicIslands(CoreApiClient client, int limit) {
@@ -142,8 +148,8 @@ public final class PaperGuiViews {
         return new InviteView(view.inviteId(), view.islandId(), view.inviterUuid(), view.createdAt(), view.expiresAt());
     }
 
-    private static PlayerIslandView playerIsland(CoreGuiViews.PlayerIslandView view) {
-        return new PlayerIslandView(view.islandId(), view.name(), view.state(), view.role(), view.level(), view.worth());
+    private static PlayerIslandView playerIsland(CoreGuiViews.PlayerIslandView view, String primaryIslandId) {
+        return new PlayerIslandView(view.islandId(), view.name(), view.state(), view.role(), view.level(), view.worth(), view.islandId().equals(primaryIslandId));
     }
 
     private static PublicIslandView publicIsland(CoreGuiViews.PublicIslandView view) {
@@ -226,7 +232,7 @@ public final class PaperGuiViews {
     public record InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt) {
     }
 
-    public record PlayerIslandView(String islandId, String name, String state, String role, long level, String worth) {
+    public record PlayerIslandView(String islandId, String name, String state, String role, long level, String worth, boolean primary) {
     }
 
     public record PublicIslandView(String islandId, String ownerUuid, String name, long level, String worth) {
