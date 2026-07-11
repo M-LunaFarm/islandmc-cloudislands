@@ -122,7 +122,7 @@ final class IslandCommandRouter {
             effectiveArgs = legacyAlias.args();
             sendLegacyAliasAdvice(player, legacyAlias);
         } else {
-            SuperiorSkyblock2CommandAliasAdapter.AdminAliasGuidance adminGuidance = legacyAliases.adminGuidance(args[0]).orElse(null);
+            SuperiorSkyblock2CommandAliasAdapter.AdminAliasGuidance adminGuidance = legacyAliases.adminGuidance(args).orElse(null);
             if (adminGuidance != null) {
                 sendLegacyAdminAliasGuidance(player, adminGuidance);
                 return true;

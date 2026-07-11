@@ -74,11 +74,18 @@ class SuperiorSkyblock2CommandAliasAdapterTest {
 
         SuperiorSkyblock2CommandAliasAdapter.AdminAliasGuidance purge = adapter.adminGuidance("purge").orElseThrow();
         SuperiorSkyblock2CommandAliasAdapter.AdminAliasGuidance debug = adapter.adminGuidance("debug").orElseThrow();
+        SuperiorSkyblock2CommandAliasAdapter.AdminAliasGuidance nestedPurge = adapter.adminGuidance(new String[] {"admin", "purge", "OldIsland"}).orElseThrow();
 
         assertEquals("purge", purge.alias());
         assertEquals("island delete <island> --confirm", purge.ciadminCommand());
         assertTrue(purge.dangerous());
         assertEquals("doctor", debug.ciadminCommand());
+        assertEquals("admin purge", nestedPurge.alias());
+        assertEquals("island delete <island> --confirm", nestedPurge.ciadminCommand());
+        assertTrue(nestedPurge.dangerous());
+        assertTrue(adapter.adminGuidance(new String[] {"ADMIN", "DEBUG"}).isPresent());
+        assertTrue(adapter.adminGuidance(new String[] {"admin"}).isEmpty());
+        assertTrue(adapter.adminGuidance(new String[] {"admin", "unknown"}).isEmpty());
         assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAdminAlias("cmdall"));
         assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAdminAlias("resetworld"));
         assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAdminAlias("setpermission"));

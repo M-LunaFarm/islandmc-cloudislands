@@ -113,6 +113,23 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         return Optional.ofNullable(ADMIN_GUIDANCE.get(normalize(alias)));
     }
 
+    Optional<AdminAliasGuidance> adminGuidance(String[] args) {
+        if (!enabled || args == null || args.length == 0) {
+            return Optional.empty();
+        }
+        if (normalize(args[0]).equals("admin")) {
+            if (args.length < 2) {
+                return Optional.empty();
+            }
+            AdminAliasGuidance guidance = ADMIN_GUIDANCE.get(normalize(args[1]));
+            if (guidance == null) {
+                return Optional.empty();
+            }
+            return Optional.of(new AdminAliasGuidance("admin " + guidance.alias(), guidance.ciadminCommand(), guidance.dangerous()));
+        }
+        return adminGuidance(args[0]);
+    }
+
     static boolean knownAlias(String alias) {
         return MAPPINGS.containsKey(normalize(alias));
     }

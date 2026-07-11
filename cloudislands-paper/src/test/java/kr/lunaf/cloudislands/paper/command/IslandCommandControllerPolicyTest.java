@@ -433,6 +433,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(registrar.contains("plugin.runtimeConfig().migration().superiorSkyblock2LegacyAliasesEnabled()"));
         assertTrue(factory.contains("new SuperiorSkyblock2CommandAliasAdapter(superiorSkyblock2LegacyAliasesEnabled, superiorSkyblock2MigrationMode)"));
         assertTrue(router.contains("SuperiorSkyblock2CommandAliasAdapter.ResolvedAlias legacyAlias = legacyAliases.translate(args).orElse(null);"));
+        assertTrue(router.contains("legacyAliases.adminGuidance(args)"), "official /is admin <command> syntax must be checked as a nested legacy admin command");
         assertTrue(router.indexOf("legacyAliases.translate(args)") < router.indexOf("IslandCommandPermission.fromSubcommand(subcommand)"), "alias translation must happen before permission gating");
         assertTrue(router.indexOf("legacyAliases.translate(args)") < router.indexOf("checkCommandDelay(player, label, subcommand, effectiveArgs.clone())"), "alias translation must happen before cooldown and warmup gating");
     }
