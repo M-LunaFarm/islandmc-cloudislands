@@ -89,6 +89,14 @@ final class IslandEnvironmentCommandHandler {
             handleToggle(player, args);
             return true;
         }
+        if (subcommand.equals("toggleblocks")) {
+            if (args.length > 1) {
+                setStackedBlockVisibility(player, toggleValue(args, 1));
+            } else {
+                toggleStackedBlockVisibility(player);
+            }
+            return true;
+        }
         if (subcommand.equals("limit") || subcommand.equals("limits") || subcommand.equals("limit-list") || subcommand.equals("제한") || subcommand.equals("제한목록")) {
             if (args.length > 2) {
                 setLimit(player, args[1], longValue(args[2], 0L));
