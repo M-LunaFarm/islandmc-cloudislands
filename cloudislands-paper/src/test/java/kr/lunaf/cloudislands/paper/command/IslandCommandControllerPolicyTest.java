@@ -342,8 +342,11 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
         assertTrue(warehouseHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
         assertTrue(warehouseHandler.contains("IslandWarehouseMenu.open"));
-        assertTrue(warehouseHandler.contains("isWarehouseViewCommand(subcommand)"));
+        assertTrue(warehouseHandler.contains("isWarehouseMenuCommand(subcommand)"));
+        assertTrue(warehouseHandler.contains("isWarehouseListCommand(subcommand)"));
         assertTrue(warehouseHandler.contains("subcommand.equals(\"chest\")"));
+        assertTrue(warehouseHandler.indexOf("if (isWarehouseMenuCommand(subcommand))") < warehouseHandler.indexOf("openWarehouseMenu(player);"), "warehouse, chest, and vault commands must open the existing inventory menu");
+        assertTrue(warehouseHandler.contains("subcommand.equals(\"warehouse-list\") || subcommand.equals(\"창고목록\")"), "explicit list aliases must preserve chat-list behavior");
         assertTrue(warehouseHandler.contains("IslandWarehouseUseCase"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.listItems"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.deposit"));

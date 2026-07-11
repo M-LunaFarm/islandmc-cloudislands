@@ -13,6 +13,20 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class IslandCommandCatalogTest {
     @Test
+    void paperLocalStateCommandsBypassProxyExecution() throws Exception {
+        String plugin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/CloudIslandsVelocityPlugin.java"));
+        String forwarder = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/PaperLocalCommandForwarder.java"));
+
+        assertTrue(plugin.contains("onCommandExecute(CommandExecuteEvent event)"), "Velocity must intercept stateful commands before its registered global /is executor");
+        assertTrue(plugin.contains("PaperLocalCommandForwarder.shouldForward(event.getCommand(), commandAliases)"), "forwarding must honor configured root aliases");
+        assertTrue(plugin.contains("player.getCurrentServer().isEmpty()"), "forwarding must require an attached Paper backend");
+        assertTrue(plugin.contains("CommandExecuteEvent.CommandResult.forwardToServer()"), "stateful commands must execute through the backend Paper command boundary");
+        for (String command : List.of("deposit", "withdraw", "sethome", "setwarp", "warehouse-deposit", "warehouse-withdraw", "chest", "vault", "fly")) {
+            assertTrue(forwarder.contains("\"" + command + "\""), command + " must be delegated to Paper because it depends on economy, inventory, location, GUI, or player state");
+        }
+    }
+
+    @Test
     void currentIslandMutationsResolveNilBeforeCallingCore() throws Exception {
         String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerMembershipActions.java"));
         String routing = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerRoutingActions.java"));

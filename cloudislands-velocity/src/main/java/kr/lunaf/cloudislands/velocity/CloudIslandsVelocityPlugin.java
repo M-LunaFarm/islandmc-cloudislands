@@ -4,6 +4,7 @@ import com.google.inject.Inject;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
 import com.velocitypowered.api.event.connection.PluginMessageEvent;
 import com.velocitypowered.api.event.connection.PostLoginEvent;
+import com.velocitypowered.api.event.command.CommandExecuteEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
@@ -16,6 +17,7 @@ import kr.lunaf.cloudislands.velocity.bootstrap.VelocityRuntimeFactory;
 import kr.lunaf.cloudislands.velocity.bootstrap.VelocityRuntimeServices;
 import kr.lunaf.cloudislands.velocity.command.VelocityCommandDispatcher;
 import kr.lunaf.cloudislands.velocity.command.VelocityCommandRegistrar;
+import kr.lunaf.cloudislands.velocity.command.PaperLocalCommandForwarder;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
 import kr.lunaf.cloudislands.velocity.health.VelocityHealthService;
 import kr.lunaf.cloudislands.velocity.health.VelocityStatusReporter;
@@ -92,6 +94,20 @@ public final class CloudIslandsVelocityPlugin {
     @Subscribe
     public void onPluginMessage(PluginMessageEvent event) {
         pluginMessageFirewall.handle(event);
+    }
+
+    @Subscribe
+    public void onCommandExecute(CommandExecuteEvent event) {
+        if (!(event.getCommandSource() instanceof com.velocitypowered.api.proxy.Player player)) {
+            return;
+        }
+        if (!PaperLocalCommandForwarder.shouldForward(event.getCommand(), commandAliases)) {
+            return;
+        }
+        if (player.getCurrentServer().isEmpty()) {
+            return;
+        }
+        event.setResult(CommandExecuteEvent.CommandResult.forwardToServer());
     }
 
     @Subscribe

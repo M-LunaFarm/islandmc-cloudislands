@@ -31,7 +31,11 @@ final class IslandWarehouseCommandHandler {
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
-        if (isWarehouseViewCommand(subcommand)) {
+        if (isWarehouseMenuCommand(subcommand)) {
+            openWarehouseMenu(player);
+            return true;
+        }
+        if (isWarehouseListCommand(subcommand)) {
             listWarehouse(player, args.length > 1 ? integer(args[1], 27) : 27);
             return true;
         }
@@ -54,16 +58,18 @@ final class IslandWarehouseCommandHandler {
         return false;
     }
 
-    private static boolean isWarehouseViewCommand(String subcommand) {
+    private static boolean isWarehouseMenuCommand(String subcommand) {
         return subcommand.equals("warehouse")
-            || subcommand.equals("warehouse-list")
             || subcommand.equals("storage-box")
             || subcommand.equals("chest")
             || subcommand.equals("vault")
             || subcommand.equals("island-chest")
             || subcommand.equals("islandchest")
-            || subcommand.equals("창고")
-            || subcommand.equals("창고목록");
+            || subcommand.equals("창고");
+    }
+
+    private static boolean isWarehouseListCommand(String subcommand) {
+        return subcommand.equals("warehouse-list") || subcommand.equals("창고목록");
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
