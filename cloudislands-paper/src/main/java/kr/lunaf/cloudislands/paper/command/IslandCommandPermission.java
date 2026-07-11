@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public enum IslandCommandPermission {
-    MENU("cloudislands.island.menu", "help", "도움말", "commands", "command", "command-list", "명령어", "명령어목록", "menu", "panel", "manager", "cp", "메뉴", "info", "info-target", "show", "정보", "list", "my", "my-islands", "목록", "내섬"),
+    MENU("cloudislands.island.menu", "help", "도움말", "commands", "command", "command-list", "명령어", "명령어목록", "menu", "panel", "manager", "cp", "메뉴", "info", "info-target", "show", "정보", "list", "my", "my-islands", "목록", "내섬", "select", "switch", "선택", "섬선택"),
     CREATE("cloudislands.island.create", "create", "생성", "create-menu", "templates", "생성메뉴", "템플릿"),
     DELETE("cloudislands.island.delete", "delete", "disband", "삭제"),
     RESET("cloudislands.island.reset", "reset", "리셋", "danger", "위험작업"),

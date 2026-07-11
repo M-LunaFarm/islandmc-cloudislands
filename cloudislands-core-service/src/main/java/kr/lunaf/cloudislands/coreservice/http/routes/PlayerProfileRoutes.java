@@ -13,15 +13,26 @@ import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
+import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 
 public final class PlayerProfileRoutes implements RouteGroup {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
 
     private final PlayerProfileRepository playerProfiles;
     private final AuditLogger audit;
+    private final IslandRepository islands;
+    private final IslandMetadataRepository metadata;
 
     public PlayerProfileRoutes(PlayerProfileRepository playerProfiles, AuditLogger audit) {
+        this(playerProfiles, null, null, audit);
+    }
+
+    public PlayerProfileRoutes(PlayerProfileRepository playerProfiles, IslandRepository islands, IslandMetadataRepository metadata, AuditLogger audit) {
         this.playerProfiles = playerProfiles;
+        this.islands = islands;
+        this.metadata = metadata;
         this.audit = audit;
     }
 
@@ -31,10 +42,26 @@ public final class PlayerProfileRoutes implements RouteGroup {
         registry.routePost("/v1/players/info", this::info);
         registry.routePost("/v1/players/touch", this::touch);
         registry.routePost("/v1/players/locale", this::locale);
+        registry.routePost("/v1/players/select-island", this::selectIsland);
         registry.routePost("/v1/admin/players/setisland", this::setIsland);
         registry.routePost("/v1/admin/players/clearisland", this::clearIsland);
         registry.routePost("/v1/admin/players/setdisbands", this::setDisbands);
         registry.routePost("/v1/admin/players/adddisbands", this::addDisbands);
+    }
+
+    private void selectIsland(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        boolean owner = islands != null && islands.findById(islandId).map(island -> island.ownerUuid().equals(playerUuid)).orElse(false);
+        boolean member = metadata != null && metadata.members(islandId).stream()
+            .anyMatch(value -> value.playerUuid().equals(playerUuid) && CoreRoleKeys.memberRole(value.effectiveRoleKey()));
+        if (!owner && !member) {
+            CoreHttpResponses.write(exchange, 403, ApiResponses.error("ISLAND_SELECTION_DENIED", "Player does not belong to the selected island"));
+            return;
+        }
+        audit.log(playerUuid, "PLAYER", "PLAYER_SELECT_ISLAND", "ISLAND", islandId.toString(), Map.of("islandId", islandId.toString()));
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setPrimaryIsland(playerUuid, islandId)));
     }
 
     private void adminInfo(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

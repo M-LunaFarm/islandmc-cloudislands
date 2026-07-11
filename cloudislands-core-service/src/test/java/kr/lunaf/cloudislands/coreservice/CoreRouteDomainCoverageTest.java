@@ -120,7 +120,7 @@ class CoreRouteDomainCoverageTest {
             entry("JobRoutes", List.of("repositories.jobs()", "domainServices.jobCompletion()")),
             entry("NodeRoutes", List.of("repositories.nodes()", "repositories.runtimeRepository()")),
             entry("PermissionRoleRoutes", List.of("repositories.permissionRules()", "repositories.roleRepository()")),
-            entry("PlayerProfileRoutes", List.of("repositories.playerProfiles()", "repositories.audit()")),
+            entry("PlayerProfileRoutes", List.of("repositories.playerProfiles()", "repositories.islandRepository()", "repositories.metadataRepository()", "repositories.audit()")),
             entry("ProgressionRoutes", List.of("domainServices.upgradePolicy()", "repositories.levelRepository()", "repositories.missionRepository()")),
             entry("ProtocolRoutes", List.of("repositories.nodes()")),
             entry("RoutePreparationRoutes", List.of("domainServices.routing()")),

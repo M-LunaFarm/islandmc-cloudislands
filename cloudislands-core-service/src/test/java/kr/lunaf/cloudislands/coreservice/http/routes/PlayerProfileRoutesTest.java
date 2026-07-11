@@ -24,11 +24,12 @@ class PlayerProfileRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(8, paths.size());
+        assertEquals(9, paths.size());
         assertTrue(paths.contains("/v1/admin/players/info"));
         assertTrue(paths.contains("/v1/players/info"));
         assertTrue(paths.contains("/v1/players/touch"));
         assertTrue(paths.contains("/v1/players/locale"));
+        assertTrue(paths.contains("/v1/players/select-island"));
         assertTrue(paths.contains("/v1/admin/players/setisland"));
         assertTrue(paths.contains("/v1/admin/players/clearisland"));
         assertTrue(paths.contains("/v1/admin/players/setdisbands"));
@@ -45,6 +46,7 @@ class PlayerProfileRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/players/info"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/touch"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/locale"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/select-island"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/setisland"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/clearisland"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/setdisbands"));

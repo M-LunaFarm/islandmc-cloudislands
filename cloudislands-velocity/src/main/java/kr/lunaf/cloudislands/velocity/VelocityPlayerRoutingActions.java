@@ -214,6 +214,16 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
             });
     }
 
+    public void selectIsland(Player player, String target) {
+        targetResolver.resolveIslandId(target)
+            .thenCompose(islandId -> coreApiClient.playerProfileCommands().selectPrimaryIsland(player.getUniqueId(), islandId))
+            .thenAccept(profile -> player.sendMessage(Component.text("기본 섬을 선택했습니다.")))
+            .exceptionally(error -> {
+                player.sendMessage(Component.text("소속된 섬만 기본 섬으로 선택할 수 있습니다."));
+                return null;
+            });
+    }
+
     public void routeRandomVisit(Player player) {
         if (!allowPlayerAction(player, VISIT_COOLDOWN, "섬 방문 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;

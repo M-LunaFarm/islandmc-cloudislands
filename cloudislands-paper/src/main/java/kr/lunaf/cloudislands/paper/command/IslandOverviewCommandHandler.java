@@ -44,6 +44,14 @@ final class IslandOverviewCommandHandler {
             IslandMyIslandsMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
             return true;
         }
+        if (subcommand.equals("select") || subcommand.equals("switch") || subcommand.equals("선택") || subcommand.equals("섬선택")) {
+            if (args.length < 2) {
+                runtime.message(player, runtime.routeMessage("overview-selection-required", "선택할 섬 또는 플레이어를 입력해주세요."));
+                return true;
+            }
+            selectIsland(player, args[1]);
+            return true;
+        }
         return false;
     }
 
@@ -68,6 +76,16 @@ final class IslandOverviewCommandHandler {
             .thenAccept(islandId -> IslandInfoMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)))
             .exceptionally(error -> {
                 runtime.message(player, runtime.routeMessage("overview-target-not-found", "정보를 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                return null;
+            });
+    }
+
+    private void selectIsland(Player player, String target) {
+        targetResolver.resolve(target)
+            .thenCompose(islandId -> coreApiClient.playerProfileCommands().selectPrimaryIsland(player.getUniqueId(), islandId))
+            .thenAccept(profile -> runtime.message(player, runtime.routeMessage("overview-island-selected", "기본 섬을 선택했습니다.")))
+            .exceptionally(error -> {
+                runtime.message(player, runtime.routeMessage("overview-island-select-failed", "소속된 섬만 기본 섬으로 선택할 수 있습니다."));
                 return null;
             });
     }

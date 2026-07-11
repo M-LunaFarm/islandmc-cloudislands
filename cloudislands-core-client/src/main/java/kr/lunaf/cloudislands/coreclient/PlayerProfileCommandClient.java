@@ -12,6 +12,8 @@ public interface PlayerProfileCommandClient {
 
     CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId);
 
+    CompletableFuture<PlayerProfileView> selectPrimaryIsland(UUID playerUuid, UUID islandId);
+
     CompletableFuture<PlayerProfileView> clearPrimaryIsland(UUID playerUuid);
 
     CompletableFuture<PlayerProfileView> setDisbandsRemaining(UUID playerUuid, int value);

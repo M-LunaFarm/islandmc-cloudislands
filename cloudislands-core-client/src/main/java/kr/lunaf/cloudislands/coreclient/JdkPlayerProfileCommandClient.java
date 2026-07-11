@@ -47,6 +47,15 @@ final class JdkPlayerProfileCommandClient implements PlayerProfileCommandClient 
     }
 
     @Override
+    public CompletableFuture<PlayerProfileView> selectPrimaryIsland(UUID playerUuid, UUID islandId) {
+        requireId(playerUuid, "playerUuid");
+        requireId(islandId, "islandId");
+        return core.postResultBody("/v1/players/select-island", CoreJsonPayload.object("playerUuid", playerUuid, "islandId", islandId))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
     public CompletableFuture<PlayerProfileView> clearPrimaryIsland(UUID playerUuid) {
         requireId(playerUuid, "playerUuid");
         return core.postResultBody("/v1/admin/players/clearisland", CoreJsonPayload.object("playerUuid", playerUuid))

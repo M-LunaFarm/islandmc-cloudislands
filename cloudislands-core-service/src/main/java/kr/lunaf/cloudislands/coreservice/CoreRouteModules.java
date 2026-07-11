@@ -112,7 +112,7 @@ public final class CoreRouteModules {
         new AdminRuntimeRoutes(repositories.sessions(), repositories.tickets(), infrastructure.redisCacheAdmin(), repositories.audit(), events).register(route);
         new AdminSupportBundleRoutes(config, repositories.nodes(), repositories.jobs(), repositories.tickets(), repositories.sessions(), repositories.inMemoryEvents(), infrastructure.redisCacheAdmin(), infrastructure.dataSource(), deleteStorage).register(route);
         new SuperiorSkyblock2MigrationRoutes(config.superiorSkyblock2MigrationEnabled(), domainServices.migrationAdmin(), repositories.audit()).register(route);
-        new PlayerProfileRoutes(repositories.playerProfiles(), repositories.audit()).register(route);
+        new PlayerProfileRoutes(repositories.playerProfiles(), repositories.islandRepository(), repositories.metadataRepository(), repositories.audit()).register(route);
         new TemplateRoutes(repositories.templateRepository(), repositories.audit(), events).register(route);
         new ProtocolRoutes(repositories.nodes()).register(route);
         new AdminNodeRoutes(repositories.nodes(), nodeFailureMonitor, config.heartbeatTimeout(), repositories.audit(), events).register(route, routePrefix);

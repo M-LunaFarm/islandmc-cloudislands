@@ -46,6 +46,14 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerRouting.listMyIslands(player);
             return;
         }
+        if (args[0].equalsIgnoreCase("select") || args[0].equalsIgnoreCase("switch") || args[0].equals("선택") || args[0].equals("섬선택")) {
+            if (args.length < 2) {
+                player.sendMessage(Component.text("선택할 섬 또는 플레이어를 입력해주세요."));
+            } else {
+                playerRouting.selectIsland(player, args[1]);
+            }
+            return;
+        }
         if (args[0].equalsIgnoreCase("settings") || args[0].equalsIgnoreCase("setting") || args[0].equals("설정")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerRouting.showIslandSettings(player, islandId);
