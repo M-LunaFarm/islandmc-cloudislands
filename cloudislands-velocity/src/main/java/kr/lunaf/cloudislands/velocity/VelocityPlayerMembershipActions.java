@@ -228,7 +228,14 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void setBooleanFlag(Player player, UUID islandId, kr.lunaf.cloudislands.api.model.IslandFlag flag, boolean enabled, String label) {
-        sendTextResult(player, coreApiClient.settingsCommands().setFlag(islandId, player.getUniqueId(), flag, Boolean.toString(enabled)).thenApply(result -> islandMessages.settingsAction("섬 " + label + " 설정", result)), "섬 " + label + " 설정을 변경하지 못했습니다.");
+        withResolvedIsland(player, islandId, "설정할 섬을 찾지 못했습니다.", "섬 " + label + " 설정을 변경하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.settingsCommands().setFlag(resolved, player.getUniqueId(), flag, Boolean.toString(enabled)).thenApply(result -> islandMessages.settingsAction("섬 " + label + " 설정", result)), "섬 " + label + " 설정을 변경하지 못했습니다."));
+    }
+
+    public void setTextFlag(Player player, UUID islandId, kr.lunaf.cloudislands.api.model.IslandFlag flag, String value, String label) {
+        String normalized = value == null || value.equalsIgnoreCase("clear") ? "" : value.trim();
+        withResolvedIsland(player, islandId, "설정할 섬을 찾지 못했습니다.", "섬 " + label + " 설정을 변경하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.settingsCommands().setFlag(resolved, player.getUniqueId(), flag, normalized).thenApply(result -> islandMessages.settingsAction("섬 " + label + " 설정", result)), "섬 " + label + " 설정을 변경하지 못했습니다."));
     }
 
     public void listFlags(Player player, UUID islandId) {
@@ -262,6 +269,20 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
 
     public void setPermission(Player player, UUID islandId, String roleKey, IslandPermission permission, boolean allowed) {
         sendTextResult(player, coreApiClient.permissions().setPermission(islandId, player.getUniqueId(), roleKey, permission, allowed).thenApply(result -> islandMessages.permissionAction("섬 권한 변경", result)), "섬 권한을 변경하지 못했습니다.");
+    }
+
+    public void setPermissionOverrideTarget(Player player, UUID islandId, String target, IslandPermission permission, boolean allowed) {
+        targetResolver.resolvePlayerUuid(target).thenAccept(targetUuid -> {
+            if (targetUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("권한 예외를 설정할 플레이어를 찾지 못했습니다."));
+                return;
+            }
+            withResolvedIsland(player, islandId, "권한 예외를 설정할 섬을 찾지 못했습니다.", "섬 권한 예외를 변경하지 못했습니다.",
+                resolved -> sendTextResult(player, coreApiClient.permissions().setPermissionOverride(resolved, player.getUniqueId(), targetUuid, permission, allowed).thenApply(result -> islandMessages.permissionAction("섬 권한 예외 변경", result)), "섬 권한 예외를 변경하지 못했습니다."));
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("권한 예외를 설정할 플레이어를 찾지 못했습니다."));
+            return null;
+        });
     }
 
     public void listRoles(Player player, UUID islandId) {

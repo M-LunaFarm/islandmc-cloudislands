@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailView;
 import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailsView;
 import kr.lunaf.cloudislands.coreclient.ReviewListView;
@@ -30,6 +31,13 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
 
     public void showWorthRanking(Player player, int limit) {
         sendTextResult(player, coreApiClient.progression().topWorth(Math.max(1, Math.min(limit, 100))).thenApply(rankings -> islandMessages.rankingList("가치 랭킹", rankings)), "가치 랭킹을 불러오지 못했습니다.");
+    }
+
+    public void showReviewRanking(Player player, int limit) {
+        sendTextResult(player, coreApiClient.progression().topReviews(Math.max(1, Math.min(limit, 100)))
+            .thenApply(entries -> "평가 랭킹: " + entries.stream()
+                .map(entry -> entry.islandId() + "=" + entry.averageRating() + "(" + entry.reviewCount() + ")")
+                .reduce((left, right) -> left + ", " + right).orElse("비어 있음")), "평가 랭킹을 불러오지 못했습니다.");
     }
 
     public void showBlockDetails(Player player, UUID islandId, int limit) {
@@ -89,6 +97,51 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
         }
         withResolvedIsland(player, islandId, "후기를 확인할 섬을 찾지 못했습니다.", "섬 후기를 불러오지 못했습니다.",
             resolved -> sendTextResult(player, coreApiClient.navigation().listReviews(resolved, Math.max(1, Math.min(limit, 100))).thenApply(VelocityPlayerProgressionActions::reviewListMessage), "섬 후기를 불러오지 못했습니다."));
+    }
+
+    public void rateReview(Player player, String target, int rating, String comment) {
+        java.util.concurrent.CompletableFuture<UUID> island = target == null || target.isBlank() || target.equalsIgnoreCase("current")
+            ? resolvePlayerIsland(player)
+            : targetResolver.resolveIslandId(target);
+        island.thenAccept(islandId -> {
+            if (islandId.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("평가할 섬을 찾지 못했습니다."));
+                return;
+            }
+            sendTextResult(player, coreApiClient.navigationCommands().setReview(islandId, player.getUniqueId(), rating, comment)
+                .thenApply(result -> "섬 평가: code=" + result.code() + " rating=" + rating), "섬을 평가하지 못했습니다.");
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("평가할 섬을 찾지 못했습니다."));
+            return null;
+        });
+    }
+
+    public void deleteReview(Player player, String target) {
+        java.util.concurrent.CompletableFuture<UUID> island = target == null || target.isBlank() || target.equalsIgnoreCase("current")
+            ? resolvePlayerIsland(player)
+            : targetResolver.resolveIslandId(target);
+        island.thenAccept(islandId -> {
+            if (islandId.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("평가를 삭제할 섬을 찾지 못했습니다."));
+                return;
+            }
+            sendTextResult(player, coreApiClient.navigationCommands().deleteReview(islandId, player.getUniqueId())
+                .thenApply(result -> "섬 평가 삭제: code=" + result.code()), "섬 평가를 삭제하지 못했습니다.");
+        })
+            .exceptionally(error -> {
+                player.sendMessage(Component.text("평가를 삭제할 섬을 찾지 못했습니다."));
+                return null;
+            });
+    }
+
+    private java.util.concurrent.CompletableFuture<UUID> resolvePlayerIsland(Player player) {
+        return coreApiClient.islands().getIslandByOwner(player.getUniqueId()).thenApply(view -> parseUuid(view.islandId()));
+    }
+
+    public void showVisitorStats(Player player, UUID islandId, int limit) {
+        withResolvedIsland(player, islandId, "방문 통계를 확인할 섬을 찾지 못했습니다.", "방문 통계를 불러오지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.visitorStats().stats(resolved, Math.max(1, Math.min(limit, 100)))
+                .thenApply(stats -> "방문 통계: total=" + stats.totalVisits() + " unique=" + stats.uniqueVisitors() + " recent=" + stats.recentVisitors().size()), "방문 통계를 불러오지 못했습니다."));
     }
 
     public void recalculateLevel(Player player, UUID islandId) {
@@ -169,6 +222,20 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             sendTextResult(player, coreApiClient.environment().flagValues(resolved)
                 .thenCompose(flags -> coreApiClient.environmentCommands().setFlag(resolved, player.getUniqueId(), IslandFlag.BORDER_VISIBLE, borderVisible(flags) ? "false" : "true"))
                 .thenApply(result -> islandMessages.environmentAction("섬 경계 표시 전환", result)), "섬 경계 표시를 전환하지 못했습니다.");
+        });
+    }
+
+    public void toggleStackedBlocks(Player player, UUID islandId, String requestedValue) {
+        withResolvedIsland(player, islandId, "스택 블록 표시를 변경할 섬을 찾지 못했습니다.", "스택 블록 표시를 전환하지 못했습니다.", resolved -> {
+            if (requestedValue != null && !requestedValue.isBlank()) {
+                long value = toggleValue(requestedValue).equals("true") ? 1L : 0L;
+                sendTextResult(player, coreApiClient.environmentCommands().setLimit(resolved, player.getUniqueId(), GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY, value).thenApply(islandMessages::limitResult), "스택 블록 표시를 전환하지 못했습니다.");
+                return;
+            }
+            sendTextResult(player, coreApiClient.environment().limitViews(resolved)
+                .thenCompose(limits -> coreApiClient.environmentCommands().setLimit(resolved, player.getUniqueId(), GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY,
+                    limits.stream().filter(limit -> GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY.equalsIgnoreCase(limit.key())).findFirst().map(limit -> limit.value() == 0L ? 1L : 0L).orElse(0L)))
+                .thenApply(islandMessages::limitResult), "스택 블록 표시를 전환하지 못했습니다.");
         });
     }
 

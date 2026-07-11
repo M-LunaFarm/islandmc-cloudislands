@@ -6,10 +6,23 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import kr.lunaf.cloudislands.protocol.command.IslandPlayerCommandRegistry;
+import kr.lunaf.cloudislands.protocol.command.CommandExecutionTarget;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class IslandCommandCatalogTest {
+    @Test
+    void everySharedVelocityAliasHasAnExecutionBranch() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"))
+            + Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerMembershipCommandDispatcher.java"))
+            + Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
+
+        IslandPlayerCommandRegistry.playerDescriptors().stream()
+            .filter(descriptor -> descriptor.executionTarget() != CommandExecutionTarget.PAPER)
+            .flatMap(descriptor -> descriptor.aliases().stream())
+            .forEach(alias -> assertTrue(dispatcher.contains("\"" + alias + "\""), alias + " is advertised for Velocity but has no dispatcher branch"));
+    }
+
     @Test
     void playerCommandCatalogIncludesGoalCommandsOnePerLine() {
         List<String> commands = IslandCommandCatalog.playerCommands();

@@ -83,16 +83,36 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             return;
         }
         if (args[0].equalsIgnoreCase("toggle") || args[0].equals("토글")) {
+            if (args.length > 1 && (args[1].equalsIgnoreCase("blocks") || args[1].equalsIgnoreCase("blockamounts") || args[1].equalsIgnoreCase("stacked-blocks") || args[1].equals("블록") || args[1].equals("블록수") || args[1].equals("스택블록"))) {
+                playerProgression.toggleStackedBlocks(player, new UUID(0L, 0L), args.length > 2 ? args[2] : "");
+                return;
+            }
             if (args.length > 1 && (args[1].equalsIgnoreCase("border") || args[1].equalsIgnoreCase("border-visible") || args[1].equals("경계") || args[1].equals("경계표시"))) {
                 playerProgression.toggleBorder(player, new UUID(0L, 0L), args.length > 2 ? args[2] : "");
                 return;
             }
-            player.sendMessage(Component.text("사용법: /섬 toggle border [on|off]"));
+            player.sendMessage(Component.text("사용법: /섬 toggle <border|blocks> [on|off]"));
             return;
         }
-        if (args[0].equalsIgnoreCase("border") || args[0].equals("경계")) {
+        if (args[0].equalsIgnoreCase("toggleblocks")) {
+            playerProgression.toggleStackedBlocks(player, new UUID(0L, 0L), args.length > 1 ? args[1] : "");
+            return;
+        }
+        if (args[0].equalsIgnoreCase("border") || args[0].equalsIgnoreCase("border-ui") || args[0].equals("경계")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerRouting.showIslandBorder(player, islandId);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("border-visible") || args[0].equals("경계표시")) {
+            playerMembership.setBooleanFlag(player, new UUID(0L, 0L), kr.lunaf.cloudislands.api.model.IslandFlag.BORDER_VISIBLE, parseToggle(args, 1, true), "경계 표시");
+            return;
+        }
+        if (args[0].equalsIgnoreCase("border-color") || args[0].equals("경계색상")) {
+            if (args.length < 2) {
+                player.sendMessage(Component.text("사용법: /섬 border-color <color>"));
+            } else {
+                playerMembership.setTextFlag(player, new UUID(0L, 0L), kr.lunaf.cloudislands.api.model.IslandFlag.BORDER_COLOR, args[1], "경계 색상");
+            }
             return;
         }
         if (args[0].equalsIgnoreCase("biome-menu") || args[0].equalsIgnoreCase("biome-info") || args[0].equals("바이옴정보")) {
@@ -164,7 +184,7 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerRouting.setWarp(player, islandId, warpName, false);
             return;
         }
-        if (args[0].equalsIgnoreCase("deletewarp") || args[0].equalsIgnoreCase("delwarp") || args[0].equals("워프삭제")) {
+        if (args[0].equalsIgnoreCase("deletewarp") || args[0].equalsIgnoreCase("delwarp") || args[0].equalsIgnoreCase("warp-delete") || args[0].equals("워프삭제")) {
             boolean hasIslandId = args.length > 1 && isUuid(args[1]);
             UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             String warpName = args.length > (hasIslandId ? 2 : 1) ? args[hasIslandId ? 2 : 1] : "default";
@@ -254,11 +274,31 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerProgression.listReviews(player, islandId, limit);
             return;
         }
+        if (args[0].equalsIgnoreCase("rate") || args[0].equalsIgnoreCase("review") || args[0].equals("평가")) {
+            if (args.length < 3) {
+                player.sendMessage(Component.text("사용법: /is rate <island|current> <1-5> [comment]"));
+            } else {
+                playerProgression.rateReview(player, args[1], (int) parseLongOrZero(args[2]), joinArgs(args, 3));
+            }
+            return;
+        }
+        if (args[0].equalsIgnoreCase("delete-review") || args[0].equalsIgnoreCase("review-delete") || args[0].equalsIgnoreCase("reviewdel") || args[0].equals("후기삭제") || args[0].equals("평가삭제")) {
+            playerProgression.deleteReview(player, args.length > 1 ? args[1] : "current");
+            return;
+        }
+        if (args[0].equalsIgnoreCase("visitor-stats") || args[0].equalsIgnoreCase("visitorstats") || args[0].equalsIgnoreCase("visitors") || args[0].equals("방문통계") || args[0].equals("방문자통계")) {
+            playerProgression.showVisitorStats(player, new UUID(0L, 0L), args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
+            return;
+        }
         if (args[0].equalsIgnoreCase("worthrank") || args[0].equalsIgnoreCase("valuerank") || args[0].equals("가치랭킹") || (args.length > 1 && (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("leaderboard") || args[0].equals("랭킹")) && (args[1].equalsIgnoreCase("worth") || args[1].equalsIgnoreCase("value") || args[1].equals("가치")))) {
             int limit = args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("leaderboard") || args[0].equals("랭킹")
                 ? (args.length > 2 ? (int) parseLongOrZero(args[2]) : 10)
                 : (args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
             playerProgression.showWorthRanking(player, limit);
+            return;
+        }
+        if (args[0].equalsIgnoreCase("reviewrank") || args[0].equals("평가랭킹") || args[0].equals("후기랭킹")) {
+            playerProgression.showReviewRanking(player, args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
             return;
         }
         if (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("leaderboard") || args[0].equalsIgnoreCase("rank-list") || args[0].equals("랭킹") || args[0].equals("랭킹목록")) {
@@ -320,12 +360,16 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             }
             return;
         }
+        if (args[0].equalsIgnoreCase("chat-menu")) {
+            player.sendMessage(Component.text("섬 채팅: /섬 채팅 <메시지> | 팀 채팅: /섬 팀채팅 <메시지> | 기록: /섬 로그"));
+            return;
+        }
         if (args[0].equalsIgnoreCase("chat") || args[0].equalsIgnoreCase("islandchat") || args[0].equals("채팅")) {
             playerProgression.sendIslandChat(player, new UUID(0L, 0L), "ISLAND", joinArgs(args, 1));
             return;
         }
-        if (args[0].equalsIgnoreCase("teamchat") || args[0].equalsIgnoreCase("team-chat") || args[0].equalsIgnoreCase("tc") || args[0].equals("팀채팅")) {
-            if (args.length > 1 && (args[1].equalsIgnoreCase("toggle") || args[1].equalsIgnoreCase("mode") || args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("off") || args[1].equals("전환") || args[1].equals("모드"))) {
+        if (args[0].equalsIgnoreCase("teamchat") || args[0].equalsIgnoreCase("team-chat") || args[0].equalsIgnoreCase("teamchat-toggle") || args[0].equalsIgnoreCase("tc") || args[0].equals("팀채팅")) {
+            if (args[0].equalsIgnoreCase("teamchat-toggle") || args.length > 1 && (args[1].equalsIgnoreCase("toggle") || args[1].equalsIgnoreCase("mode") || args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("off") || args[1].equals("전환") || args[1].equals("모드"))) {
                 playerProgression.showTeamChatMode(player);
                 return;
             }

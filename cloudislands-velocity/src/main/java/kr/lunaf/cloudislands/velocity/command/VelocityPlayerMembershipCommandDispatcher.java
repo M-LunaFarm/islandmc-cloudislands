@@ -72,7 +72,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.setRoleTarget(player, islandId, target, roleKey);
             return true;
         }
-        if (args[0].equalsIgnoreCase("roles") || args[0].equalsIgnoreCase("role-list") || args[0].equals("역할목록")) {
+        if (args[0].equalsIgnoreCase("roles") || args[0].equalsIgnoreCase("role-menu") || args[0].equalsIgnoreCase("role-list") || args[0].equals("역할") || args[0].equals("역할목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerMembership.listRoles(player, islandId);
             return true;
@@ -108,12 +108,12 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.transferOwnershipTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""));
             return true;
         }
-        if (args[0].equalsIgnoreCase("trust") || args[0].equals("신뢰")) {
+        if (args[0].equalsIgnoreCase("trust") || args[0].equalsIgnoreCase("coop") || args[0].equalsIgnoreCase("co-op") || args[0].equals("신뢰") || args[0].equals("협동")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             playerMembership.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), ROLE_TRUSTED);
             return true;
         }
-        if (args[0].equalsIgnoreCase("untrust") || args[0].equals("신뢰해제")) {
+        if (args[0].equalsIgnoreCase("untrust") || args[0].equalsIgnoreCase("uncoop") || args[0].equals("신뢰해제")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             playerMembership.setRoleTarget(player, islandId, argumentAfterOptionalIsland(args, 1, ""), ROLE_MEMBER);
             return true;
@@ -161,6 +161,22 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.setLocked(player, islandId, false);
             return true;
         }
+        if (args[0].equalsIgnoreCase("setdiscord") || args[0].equalsIgnoreCase("discord") || args[0].equals("디스코드")) {
+            if (args.length < 2) {
+                player.sendMessage(Component.text("사용법: /is setdiscord <handle|clear>"));
+            } else {
+                playerMembership.setTextFlag(player, new UUID(0L, 0L), kr.lunaf.cloudislands.api.model.IslandFlag.SOCIAL_DISCORD, joinArgs(args, 1), "Discord");
+            }
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("setpaypal") || args[0].equalsIgnoreCase("paypal") || args[0].equals("페이팔")) {
+            if (args.length < 2) {
+                player.sendMessage(Component.text("사용법: /is setpaypal <value|clear>"));
+            } else {
+                playerMembership.setTextFlag(player, new UUID(0L, 0L), kr.lunaf.cloudislands.api.model.IslandFlag.SOCIAL_PAYPAL, joinArgs(args, 1), "PayPal");
+            }
+            return true;
+        }
         if (args[0].equalsIgnoreCase("fly") || args[0].equals("비행")) {
             UUID islandId = islandIdArgument(args, 1);
             boolean enabled = parseToggle(args, hasIslandIdArgument(args, 1) ? 2 : 1, true);
@@ -190,7 +206,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.setBooleanFlag(player, islandId, flag, enabled, flag.name());
             return true;
         }
-        if (args[0].equalsIgnoreCase("flags") || args[0].equalsIgnoreCase("flag-list") || args[0].equalsIgnoreCase("flag-menu") || args[0].equals("플래그") || args[0].equals("플래그목록")) {
+        if (args[0].equalsIgnoreCase("flags") || args[0].equalsIgnoreCase("flag") || args[0].equalsIgnoreCase("flag-list") || args[0].equalsIgnoreCase("flag-menu") || args[0].equals("플래그") || args[0].equals("플래그목록")) {
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerMembership.listFlags(player, islandId);
             return true;
@@ -211,6 +227,18 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
                 return true;
             }
             playerMembership.setPermission(player, islandId, roleKey, permission, allowed);
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("permission-exception-list") || args[0].equals("권한예외목록")) {
+            playerMembership.listPermissions(player, new UUID(0L, 0L));
+            return true;
+        }
+        if (args[0].equalsIgnoreCase("permission-exception") || args[0].equals("권한예외")) {
+            if (args.length < 4) {
+                player.sendMessage(Component.text("사용법: /is permission-exception <player> <permission> <allow|deny>"));
+            } else {
+                playerMembership.setPermissionOverrideTarget(player, new UUID(0L, 0L), args[1], parsePermission(args[2]), parseToggle(args, 3, false));
+            }
             return true;
         }
         if (args[0].equalsIgnoreCase("logs") || args[0].equalsIgnoreCase("log") || args[0].equalsIgnoreCase("log-list") || args[0].equalsIgnoreCase("log-menu") || args[0].equals("로그") || args[0].equals("로그목록")) {
