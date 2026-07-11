@@ -198,6 +198,7 @@ class IslandCommandCatalogTest {
         assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"lang\")"));
         assertTrue(dispatcher.contains("playerRouting.setPlayerLocale(player, args[1])"));
         assertTrue(actions.contains("playerProfileCommands().setLocale(player.getUniqueId(), locale)"));
+        assertTrue(actions.contains("profile == null || profile.locale() == null || profile.locale().isBlank()"), "mixed-version empty profile responses must not crash locale updates");
     }
 
     @Test

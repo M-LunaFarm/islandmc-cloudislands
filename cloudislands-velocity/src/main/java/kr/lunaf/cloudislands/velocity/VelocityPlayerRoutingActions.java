@@ -176,7 +176,10 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     public void setPlayerLocale(Player player, String value) {
         String locale = PlayerIslandProfile.normalizeLocale(value);
         sendTextResult(player, coreApiClient.playerProfileCommands().setLocale(player.getUniqueId(), locale)
-            .thenApply(profile -> "언어 설정을 변경했습니다. locale=" + PlayerIslandProfile.normalizeLocale(profile.locale())), "언어 설정을 변경하지 못했습니다.");
+            .thenApply(profile -> {
+                String applied = profile == null || profile.locale() == null || profile.locale().isBlank() ? locale : PlayerIslandProfile.normalizeLocale(profile.locale());
+                return "언어 설정을 변경했습니다. locale=" + applied;
+            }), "언어 설정을 변경하지 못했습니다.");
     }
 
     static String playerLocale(Player player) {
