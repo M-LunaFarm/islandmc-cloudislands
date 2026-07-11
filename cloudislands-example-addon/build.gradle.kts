@@ -1,5 +1,7 @@
 plugins { `java-library` }
 
+val pluginProjectVersion = version.toString()
+
 dependencies {
     compileOnly(libs.paper.api)
     compileOnly(project(":cloudislands-api"))
@@ -14,11 +16,11 @@ tasks.test {
 
 tasks.processResources {
     filteringCharset = "UTF-8"
-    inputs.property("projectVersion", project.version)
+    inputs.property("projectVersion", pluginProjectVersion)
     inputs.property("paperApiBaseline", libs.versions.minecraft.baseline.get())
     filesMatching("plugin.yml") {
         expand(
-            "projectVersion" to project.version,
+            "projectVersion" to pluginProjectVersion,
             "paperApiBaseline" to libs.versions.minecraft.baseline.get()
         )
     }

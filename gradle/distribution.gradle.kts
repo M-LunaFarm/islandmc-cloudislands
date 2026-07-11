@@ -148,6 +148,8 @@ val cleanDeveloperKitMaven = tasks.register<Delete>("cleanDeveloperKitMaven") {
     delete(layout.buildDirectory.dir("devkit-maven"))
 }
 
+val cloudIslandsDeveloperKitVersion = version.toString()
+
 tasks.register<Copy>("distDeveloperKit") {
     group = "distribution"
     description = "Collects API, client, protocol, testkit, BOM, Javadocs, and Maven-consumable artifacts for addon/plugin developers."
@@ -185,7 +187,7 @@ tasks.register<Copy>("distDeveloperKit") {
     val bomPomTask = bomProject.tasks.named("generatePomFileForCloudIslandsBomPublication")
     dependsOn(bomPomTask)
     from(bomProject.layout.buildDirectory.file("publications/cloudIslandsBom/pom-default.xml")) {
-        rename { "cloudislands-bom-${project.version}.pom" }
+        rename { "cloudislands-bom-$cloudIslandsDeveloperKitVersion.pom" }
         into("bom")
     }
     from(layout.buildDirectory.dir("devkit-maven")) {

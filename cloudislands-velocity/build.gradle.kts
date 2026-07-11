@@ -4,8 +4,9 @@ plugins {
 }
 
 val generatedBuildInfoDir = layout.buildDirectory.dir("generated/sources/build-info/java")
+val pluginProjectVersion = version.toString()
 val generateBuildInfo by tasks.registering {
-    inputs.property("projectVersion", project.version.toString())
+    inputs.property("projectVersion", pluginProjectVersion)
     outputs.dir(generatedBuildInfoDir)
     doLast {
         val packageDir = generatedBuildInfoDir.get().asFile.resolve("kr/lunaf/cloudislands/velocity")
@@ -15,7 +16,7 @@ val generateBuildInfo by tasks.registering {
             package kr.lunaf.cloudislands.velocity;
 
             public final class BuildInfo {
-                public static final String VERSION = "${project.version}";
+                public static final String VERSION = "$pluginProjectVersion";
 
                 private BuildInfo() {
                 }
