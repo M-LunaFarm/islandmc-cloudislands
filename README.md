@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.27`
+Version: `1.1.28`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.27`
+Current release: `v1.1.28`
 
-Built for the CloudIslands 1.1.27 baseline.
+Built for the CloudIslands 1.1.28 baseline.
 
-Release notes for `v1.1.27`:
+Release notes for `v1.1.28`:
+
+- complete fetched audit history: the Paper log GUI no longer discards entries
+  28 through 100 returned by Core after rendering its first inventory page
+- bank-filter continuity: deposit and withdrawal-only views retain their filter
+  across every page instead of falling back to the general island audit stream
+- authoritative navigation: log page actions carry the island UUID, normalized
+  ALL or BANK mode, and page number through the typed GUI action parser
+- stable ordering: displayed entry numbers retain their position in the fetched
+  history instead of restarting at one on each page
+- localized navigation: previous and next log-page controls are provided in
+  Korean and English configurations
+
+Release notes carried forward from `v1.1.27`:
 
 - complete upgrade catalog: every configured Core upgrade remains visible and
   purchasable even when the catalog exceeds the first 45 GUI slots
@@ -1009,7 +1022,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.27`.
+Current read: production-readiness baseline `v1.1.28`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
