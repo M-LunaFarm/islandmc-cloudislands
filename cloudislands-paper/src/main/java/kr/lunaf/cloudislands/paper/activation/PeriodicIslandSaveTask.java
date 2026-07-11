@@ -23,7 +23,7 @@ public final class PeriodicIslandSaveTask {
     private final String nodeId;
     private final PlatformScheduler scheduler;
     private final Map<UUID, Integer> retryQueue = new ConcurrentHashMap<>();
-    private final PendingSnapshotRecords pendingSnapshotRecords = new PendingSnapshotRecords();
+    private final PendingSnapshotRecords pendingSnapshotRecords;
     private final AtomicBoolean running = new AtomicBoolean();
     private final AtomicLong failuresTotal = new AtomicLong();
     private TaskHandle task;
@@ -43,6 +43,15 @@ public final class PeriodicIslandSaveTask {
         this.coreApiClient = coreApiClient;
         this.nodeId = nodeId == null ? "" : nodeId;
         this.scheduler = scheduler == null ? new BukkitPlatformScheduler(plugin) : scheduler;
+        this.pendingSnapshotRecords = coreApiClient == null
+            ? new PendingSnapshotRecords()
+            : new PendingSnapshotRecords(plugin.getDataFolder().toPath().resolve("pending-periodic-snapshots.tsv"));
+        if (!this.pendingSnapshotRecords.lastPersistenceError().isBlank()) {
+            plugin.getLogger().warning("Failed to load periodic snapshot retry journal: " + this.pendingSnapshotRecords.lastPersistenceError());
+        }
+        if (this.pendingSnapshotRecords.discardedJournalRecords() > 0) {
+            plugin.getLogger().warning("Discarded " + this.pendingSnapshotRecords.discardedJournalRecords() + " invalid periodic snapshot retry journal records");
+        }
     }
 
     public void start(long intervalSeconds) {
@@ -76,7 +85,9 @@ public final class PeriodicIslandSaveTask {
                     retryQueue.remove(activeIsland.islandId());
                     PendingSnapshotRecords.PendingSnapshotRecord record = pendingRecord(result, activeIsland.fencingToken());
                     if (record != null) {
-                        pendingSnapshotRecords.enqueue(record);
+                        if (!pendingSnapshotRecords.enqueue(record)) {
+                            recordJournalFailure("enqueue", record);
+                        }
                         pendingSnapshotRecords.claim(record.islandId()).forEach(this::recordSnapshot);
                     }
                 } catch (java.io.IOException exception) {
@@ -113,7 +124,9 @@ public final class PeriodicIslandSaveTask {
             coreApiClient.snapshotCommands().recordSnapshot(record.islandId(), record.snapshotNo(), record.storagePath(), record.reason(), record.checksum(), record.sizeBytes(), record.nodeId(), record.fencingToken())
                 .whenComplete((ignored, error) -> {
                     if (error == null) {
-                        pendingSnapshotRecords.completed(record);
+                        if (!pendingSnapshotRecords.completed(record)) {
+                            recordJournalFailure("complete", record);
+                        }
                         return;
                     }
                     failuresTotal.incrementAndGet();
@@ -125,5 +138,10 @@ public final class PeriodicIslandSaveTask {
             pendingSnapshotRecords.failed(record);
             plugin.getLogger().warning("Periodic island snapshot record failed for " + record.islandId() + ": " + error.getMessage());
         }
+    }
+
+    private void recordJournalFailure(String operation, PendingSnapshotRecords.PendingSnapshotRecord record) {
+        failuresTotal.incrementAndGet();
+        plugin.getLogger().warning("Periodic island snapshot retry journal " + operation + " failed for " + record.islandId() + ": " + pendingSnapshotRecords.lastPersistenceError());
     }
 }
