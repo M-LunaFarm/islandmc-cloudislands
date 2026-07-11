@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import argparse
+import hashlib
 import json
 import os
+import selectors
 import shutil
 import subprocess
 import sys
@@ -13,7 +15,7 @@ from pathlib import Path
 USER_AGENT = "cloudislands-ci-smoke/1.0"
 
 
-def stable_download_url(project: str, version: str) -> str:
+def stable_download(project: str, version: str) -> tuple[str, str, int]:
     url = f"https://fill.papermc.io/v3/projects/{project}/versions/{version}/builds"
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=30) as response:
@@ -23,19 +25,34 @@ def stable_download_url(project: str, version: str) -> str:
             downloads = build.get("downloads", {})
             server = downloads.get("server:default", {})
             download_url = server.get("url")
-            if download_url:
-                return download_url
+            checksum = server.get("checksums", {}).get("sha256")
+            size = server.get("size")
+            if download_url and checksum and isinstance(size, int) and size > 0:
+                return download_url, checksum.lower(), size
     raise RuntimeError(f"no stable {project} build found for {version}")
 
 
-def download(url: str, target: Path) -> None:
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as source:
+        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def download(url: str, target: Path, expected_checksum: str, expected_size: int) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
-    if target.exists() and target.stat().st_size > 0:
-        return
+    if target.exists():
+        if target.stat().st_size == expected_size and sha256(target) == expected_checksum:
+            return
+        target.unlink()
     tmp = target.with_suffix(target.suffix + ".tmp")
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=120) as response, tmp.open("wb") as out:
         shutil.copyfileobj(response, out)
+    if tmp.stat().st_size != expected_size or sha256(tmp) != expected_checksum:
+        tmp.unlink(missing_ok=True)
+        raise RuntimeError(f"download checksum mismatch: {target.name}")
     tmp.replace(target)
 
 
@@ -132,7 +149,8 @@ def prepare_paper(work_dir: Path, plugin: Path, java_command: str) -> list[str]:
 
 
 def prepare_velocity(work_dir: Path, plugin: Path, java_command: str) -> list[str]:
-    (work_dir / "plugins" / "cloudislands").mkdir(parents=True, exist_ok=True)
+    config_v2_dir = work_dir / "plugins" / "cloudislands" / "config-v2"
+    config_v2_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(plugin, work_dir / "plugins" / plugin.name)
     (work_dir / "velocity.toml").write_text(
         "\n".join(
@@ -155,27 +173,33 @@ def prepare_velocity(work_dir: Path, plugin: Path, java_command: str) -> list[st
         ),
         encoding="utf-8",
     )
-    (work_dir / "plugins" / "cloudislands" / "config.yaml").write_text(
+    (config_v2_dir / "core-api.yml").write_text(
         "\n".join(
             [
-                "plugin:",
-                "  debug: false",
-                "core-api:",
-                "  base-url: http://127.0.0.1:9",
-                "  auth-token: smoke",
-                "  admin-token: smoke",
-                "  timeout-ms: 100",
-                "routing:",
-                "  default-lobby: lobby",
-                "  fallback-on-failure: lobby",
-                "health:",
-                "  enabled: false",
-                "security:",
-                "  require-modern-forwarding: false",
-                "  forwarding-secret: smoke",
+                "enabled: true",
+                "base-url: http://127.0.0.1:9",
+                "timeout:",
+                "  connect: 100ms",
+                "  request: 100ms",
                 "",
             ]
         ),
+        encoding="utf-8",
+    )
+    (config_v2_dir / "config.yml").write_text(
+        "config-version: 2\nprofile: smoke\nlanguage: ko_kr\ndebug: true\nstrict-validation: true\n",
+        encoding="utf-8",
+    )
+    (config_v2_dir / "routing.yml").write_text(
+        "default-lobby: lobby\nisland-pool: island\nfailure:\n  fallback-server: lobby\n  hide-backend-node-names: true\n",
+        encoding="utf-8",
+    )
+    (config_v2_dir / "security.yml").write_text(
+        "core-api:\n  auth-token: ${env:CI_CORE_TOKEN}\n  admin-token: ${env:CI_ADMIN_TOKEN}\nforwarding:\n  require-modern: false\n  secret: ${env:VELOCITY_FORWARDING_SECRET}\nplugin-message:\n  block-cloudislands-channel: true\n",
+        encoding="utf-8",
+    )
+    (config_v2_dir / "health.yml").write_text(
+        "enabled: false\nbind-host: 127.0.0.1\nport: 18788\n",
         encoding="utf-8",
     )
     return [java_command, "-Xms256m", "-Xmx512m", "-jar", "server.jar"]
@@ -186,9 +210,16 @@ def wait_for_smoke(process: subprocess.Popen, log_path: Path, expected: list[str
     seen_expected = set()
     seen_ready = False
     lines = []
+    selector = selectors.DefaultSelector()
+    selector.register(process.stdout, selectors.EVENT_READ)
     with log_path.open("w", encoding="utf-8") as log:
         while time.monotonic() < deadline:
-            line = process.stdout.readline()
+            remaining = max(0.0, deadline - time.monotonic())
+            events = selector.select(timeout=min(0.25, remaining))
+            if events:
+                line = process.stdout.readline()
+            else:
+                line = ""
             if line:
                 lines.append(line)
                 log.write(line)
@@ -198,12 +229,15 @@ def wait_for_smoke(process: subprocess.Popen, log_path: Path, expected: list[str
                         seen_expected.add(marker)
                 if any(marker in line for marker in ready):
                     seen_ready = True
+                if any(marker in line for marker in ("[ERROR]", "[SEVERE]", "Exception in thread", "OutOfMemoryError")):
+                    selector.close()
+                    raise RuntimeError(f"fatal server log line during smoke: {line.strip()}")
                 if seen_ready and len(seen_expected) == len(expected):
+                    selector.close()
                     return
-            elif process.poll() is not None:
+            if process.poll() is not None:
                 break
-            else:
-                time.sleep(0.1)
+    selector.close()
     tail = "".join(lines[-80:])
     raise RuntimeError(f"server smoke failed; expected={expected} seen={sorted(seen_expected)} ready={seen_ready}\n{tail}")
 
@@ -225,9 +259,9 @@ def main() -> int:
     if not plugin.exists():
         raise RuntimeError(f"plugin jar does not exist: {plugin}")
 
-    download_url = stable_download_url(args.project, args.version)
+    download_url, expected_checksum, expected_size = stable_download(args.project, args.version)
     server_jar = cache_dir / Path(download_url).name
-    download(download_url, server_jar)
+    download(download_url, server_jar, expected_checksum, expected_size)
 
     if work_dir.exists():
         shutil.rmtree(work_dir)
@@ -241,7 +275,7 @@ def main() -> int:
         shutdown = "stop\n"
     else:
         command = prepare_velocity(work_dir, plugin, args.java_command)
-        expected = ["CloudIslands Velocity router enabled"]
+        expected = ["CloudIslands Velocity config loaded", "health=127.0.0.1:18788", "CloudIslands Velocity router enabled"]
         ready = ["Done ("]
         shutdown = "end\n"
 
@@ -249,6 +283,7 @@ def main() -> int:
     env.setdefault("CI_CORE_TOKEN", "smoke")
     env.setdefault("CI_ADMIN_TOKEN", "smoke")
     env.setdefault("VELOCITY_FORWARDING_SECRET", "smoke")
+    env.setdefault("S3_BEARER_TOKEN", "smoke")
     process = subprocess.Popen(
         command,
         cwd=work_dir,
