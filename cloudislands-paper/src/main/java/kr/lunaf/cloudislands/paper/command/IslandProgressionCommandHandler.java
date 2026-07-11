@@ -38,6 +38,7 @@ final class IslandProgressionCommandHandler {
     private final CoreApiClient coreApiClient;
     private final IslandProgressionUseCase progressionUseCase;
     private final GeneratorInfoUseCase generatorInfoUseCase;
+    private final IslandTargetResolver targetResolver;
     private final IslandLevelScanService levelScanService;
     private final Runtime runtime;
 
@@ -50,6 +51,7 @@ final class IslandProgressionCommandHandler {
         this.coreApiClient = coreApiClient;
         this.progressionUseCase = new IslandProgressionUseCase(coreApiClient);
         this.generatorInfoUseCase = new GeneratorInfoUseCase(coreApiClient, ConfigGeneratorRules.load(plugin), defaultGeneratorKey);
+        this.targetResolver = new IslandTargetResolver(coreApiClient);
         this.levelScanService = levelScanService;
         this.runtime = runtime;
     }
@@ -69,7 +71,11 @@ final class IslandProgressionCommandHandler {
             return true;
         }
         if (subcommand.equals("blocks") || subcommand.equals("values") || subcommand.equals("block-details") || subcommand.equals("block-counts") || subcommand.equals("블록상세") || subcommand.equals("블록목록")) {
-            showBlockDetails(player, args.length > 1 ? integer(args[1], 10) : 10);
+            if (args.length > 1 && !isInteger(args[1])) {
+                showBlockDetails(player, args[1], args.length > 2 ? integer(args[2], 10) : 10);
+            } else {
+                showBlockDetails(player, args.length > 1 ? integer(args[1], 10) : 10);
+            }
             return true;
         }
         if (subcommand.equals("rank") || subcommand.equals("ranking") || subcommand.equals("top") || subcommand.equals("leaderboard") || subcommand.equals("랭킹")) {
@@ -267,6 +273,38 @@ final class IslandProgressionCommandHandler {
                     return null;
                 });
         });
+    }
+
+    private void showBlockDetails(Player player, String target, int limit) {
+        targetResolver.resolve(target)
+            .thenAccept(islandId -> {
+                if (islandId == null) {
+                    runtime.message(player, message("block-details-target-not-found", "대상 플레이어 또는 섬을 찾을 수 없습니다."));
+                    return;
+                }
+                progressionUseCase.blockDetailsView(islandId, limit)
+                    .thenAccept(details -> runtime.message(player, blockDetailsMessage(details)))
+                    .exceptionally(error -> {
+                        runtime.message(player, message("block-details-load-failed", "섬 블록 상세를 불러오지 못했습니다."));
+                        return null;
+                    });
+            })
+            .exceptionally(error -> {
+                runtime.message(player, message("block-details-target-load-failed", "대상 섬을 확인하지 못했습니다."));
+                return null;
+            });
+    }
+
+    private static boolean isInteger(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        try {
+            Integer.parseInt(value);
+            return true;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
     }
 
     private void openRankingMenu(Player player) {

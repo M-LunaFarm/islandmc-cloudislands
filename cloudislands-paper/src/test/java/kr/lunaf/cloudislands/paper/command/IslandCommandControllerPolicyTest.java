@@ -483,6 +483,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(progressionHandler.contains("IslandProgressionUseCase"));
         assertTrue(progressionHandler.contains("progressionUseCase.islandLevel"));
         assertTrue(progressionHandler.contains("progressionUseCase.blockDetailsView"));
+        assertTrue(progressionHandler.contains("new IslandTargetResolver(coreApiClient)"), "SS2 values/counts targets must share UUID, island-name, and player-primary resolution");
+        assertTrue(progressionHandler.contains("args.length > 1 && !isInteger(args[1])"), "non-numeric values/counts arguments must be treated as targets instead of silently becoming limit 10");
+        assertTrue(progressionHandler.contains("showBlockDetails(Player player, String target, int limit)"), "targeted block details must have an explicit execution path");
+        assertTrue(progressionHandler.contains("block-details-target-not-found"), "unknown values/counts targets must report an error instead of showing the caller island");
         assertTrue(progressionHandler.contains("progressionUseCase.topWorthViews"));
         assertTrue(progressionHandler.contains("progressionUseCase.topLevelViews(100)"), "level command must calculate the next ranking target");
         assertTrue(progressionHandler.contains("progressionUseCase.topWorthViews(100)"), "worth command must calculate the next ranking target");
