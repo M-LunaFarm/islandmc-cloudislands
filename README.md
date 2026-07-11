@@ -165,10 +165,19 @@ Quickstart, clustered single island node:
 
 Quickstart, docker compose:
 
-- start Redis, SQL, object storage, and Core API first
-- start Velocity only after Core health is ready
-- start Paper nodes after Velocity backend names and forwarding secrets match
-- run `./gradlew ciIntegrationSmoke` before exposing the proxy
+- create seven secret files for the database, Redis, storage access/secret keys,
+  Core token, admin token, and Velocity forwarding secret; keep them outside the
+  repository and make the forwarding secret at least 32 URL-safe characters
+- export the corresponding `CLOUDISLANDS_*_FILE` variables, set
+  `MINECRAFT_EULA=TRUE` only after accepting the Minecraft EULA, then run
+  `docker compose -f deploy/compose/docker-compose.yml up -d --build --wait`
+- the Compose project builds Core, Velocity 3.5, and Paper 1.21.11 images from
+  this repository; set `CLOUDISLANDS_*_IMAGE` to use published/pinned images
+- only Velocity port `25565` is public; Core defaults to loopback `8443`, while
+  Paper, PostgreSQL, Redis, and MinIO remain unpublished
+- verify `curl --fail http://127.0.0.1:8443/ready` reports `status: UP` and two
+  route candidates before exposing Velocity
+- run `./gradlew ciIntegrationSmoke` as the application integration gate
 
 Production topology:
 

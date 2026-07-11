@@ -185,6 +185,7 @@ class ProductionReadinessPolicyTest {
     void shipsSeparateComposeAndHelmDeploymentTemplates() throws Exception {
         Path root = repositoryRoot();
         String compose = Files.readString(root.resolve("deploy/compose/docker-compose.yml"));
+        String buildWorkflow = Files.readString(root.resolve(".github/workflows/build.yml"));
         assertTrue(compose.contains("postgres:"));
         assertTrue(compose.contains("redis:"));
         assertTrue(compose.contains("minio:"));
@@ -205,6 +206,14 @@ class ProductionReadinessPolicyTest {
         assertTrue(compose.contains("CLOUDISLANDS_NODE_ROLE: ISLAND_NODE"));
         assertTrue(compose.contains("networks:"));
         assertTrue(compose.contains("internal: true"));
+        for (String image : List.of("core", "paper", "velocity")) {
+            assertTrue(Files.exists(root.resolve("deploy/docker/" + image + ".Dockerfile")));
+            assertTrue(buildWorkflow.contains("image: " + image));
+            assertTrue(buildWorkflow.contains("cloudislands-${{ matrix.image }}"));
+        }
+        assertTrue(buildWorkflow.contains("tr '[:upper:]' '[:lower:]'"));
+        assertTrue(buildWorkflow.contains("packages: write"));
+        assertTrue(buildWorkflow.contains("docker/build-push-action@v7"));
 
         for (String profile : List.of("single-node", "two-island-nodes", "production-ha", "migration-lab")) {
             Path pack = root.resolve("deploy/examples").resolve(profile).resolve("config-pack.yml");

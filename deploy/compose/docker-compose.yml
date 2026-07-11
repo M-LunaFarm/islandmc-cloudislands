@@ -3,6 +3,7 @@ name: cloudislands
 services:
   postgres:
     image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: cloudislands
       POSTGRES_USER: cloudislands
@@ -21,6 +22,7 @@ services:
 
   redis:
     image: redis:7
+    restart: unless-stopped
     command: ["/bin/sh", "-c", "exec redis-server --requirepass \"$$(cat /run/secrets/cloudislands_redis_password)\""]
     secrets:
       - cloudislands_redis_password
@@ -36,6 +38,7 @@ services:
 
   minio:
     image: minio/minio:latest
+    restart: unless-stopped
     command: ["server", "/data", "--console-address", ":9001"]
     environment:
       MINIO_ROOT_USER_FILE: /run/secrets/cloudislands_storage_access_key
@@ -72,7 +75,11 @@ services:
       - backend
 
   core-1:
-    image: ${CLOUDISLANDS_CORE_IMAGE:?set CLOUDISLANDS_CORE_IMAGE}
+    image: ${CLOUDISLANDS_CORE_IMAGE:-cloudislands-core:local}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/core.Dockerfile
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,7 +133,11 @@ services:
       start_period: 30s
 
   core-2:
-    image: ${CLOUDISLANDS_CORE_IMAGE:?set CLOUDISLANDS_CORE_IMAGE}
+    image: ${CLOUDISLANDS_CORE_IMAGE:-cloudislands-core:local}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/core.Dockerfile
+    restart: unless-stopped
     depends_on:
       core-1:
         condition: service_healthy
@@ -183,6 +194,7 @@ services:
 
   core-api:
     image: haproxy:3.0-alpine
+    restart: unless-stopped
     depends_on:
       core-1:
         condition: service_healthy
@@ -202,82 +214,156 @@ services:
       retries: 12
 
   velocity:
-    image: ${CLOUDISLANDS_VELOCITY_IMAGE:?set CLOUDISLANDS_VELOCITY_IMAGE}
+    image: ${CLOUDISLANDS_VELOCITY_IMAGE:-cloudislands-velocity:local}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/velocity.Dockerfile
+      args:
+        VELOCITY_VERSION: ${CLOUDISLANDS_VELOCITY_VERSION:-3.5.0-SNAPSHOT}
+    restart: unless-stopped
     depends_on:
       core-api:
         condition: service_healthy
     environment:
       CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-api:8443}
-      CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
-      CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
+      JAVA_OPTS: ${CLOUDISLANDS_VELOCITY_JAVA_OPTS:--Xms256m -Xmx1g}
     secrets:
       - cloudislands_core_token
+      - cloudislands_admin_token
       - cloudislands_forwarding_secret
     networks:
       - backend
       - edge
+    volumes:
+      - velocity-data:/data
     ports:
       - "25565:25565"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8788/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
 
   lobby-paper:
-    image: ${CLOUDISLANDS_PAPER_IMAGE:?set CLOUDISLANDS_PAPER_IMAGE}
+    image: ${CLOUDISLANDS_PAPER_IMAGE:-cloudislands-paper:local}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/paper.Dockerfile
+      args:
+        PAPER_VERSION: ${CLOUDISLANDS_PAPER_VERSION:-1.21.11}
+    restart: unless-stopped
     depends_on:
       velocity:
-        condition: service_started
+        condition: service_healthy
       core-api:
         condition: service_healthy
     environment:
+      EULA: ${MINECRAFT_EULA:?set MINECRAFT_EULA=TRUE after accepting the Minecraft EULA}
       CLOUDISLANDS_NODE_ID: lobby-01
       CLOUDISLANDS_NODE_ROLE: LOBBY
+      CLOUDISLANDS_NODE_POOL: lobby
       CLOUDISLANDS_VELOCITY_SERVER_NAME: lobby
       CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-api:8443}
-      CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
-      CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
+      CLOUDISLANDS_STORAGE_ENDPOINT: http://minio:9000
+      JAVA_OPTS: ${CLOUDISLANDS_LOBBY_JAVA_OPTS:--Xms512m -Xmx1g}
     secrets:
       - cloudislands_core_token
+      - cloudislands_admin_token
       - cloudislands_forwarding_secret
+      - cloudislands_storage_access_key
+      - cloudislands_storage_secret_key
     networks:
       - backend
+      - egress
+    volumes:
+      - lobby-paper-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8789/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 60s
 
   island-paper-a:
-    image: ${CLOUDISLANDS_PAPER_IMAGE:?set CLOUDISLANDS_PAPER_IMAGE}
+    image: ${CLOUDISLANDS_PAPER_IMAGE:-cloudislands-paper:local}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/paper.Dockerfile
+      args:
+        PAPER_VERSION: ${CLOUDISLANDS_PAPER_VERSION:-1.21.11}
+    restart: unless-stopped
     depends_on:
       velocity:
-        condition: service_started
+        condition: service_healthy
       core-api:
         condition: service_healthy
     environment:
+      EULA: ${MINECRAFT_EULA:?set MINECRAFT_EULA=TRUE after accepting the Minecraft EULA}
       CLOUDISLANDS_NODE_ID: island-a
       CLOUDISLANDS_NODE_ROLE: ISLAND_NODE
+      CLOUDISLANDS_NODE_POOL: island
       CLOUDISLANDS_VELOCITY_SERVER_NAME: island-a
       CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-api:8443}
-      CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
-      CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
+      CLOUDISLANDS_STORAGE_ENDPOINT: http://minio:9000
+      JAVA_OPTS: ${CLOUDISLANDS_ISLAND_A_JAVA_OPTS:--Xms512m -Xmx1g}
     secrets:
       - cloudislands_core_token
+      - cloudislands_admin_token
       - cloudislands_forwarding_secret
+      - cloudislands_storage_access_key
+      - cloudislands_storage_secret_key
     networks:
       - backend
+      - egress
+    volumes:
+      - island-paper-a-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8789/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 60s
 
   island-paper-b:
-    image: ${CLOUDISLANDS_PAPER_IMAGE:?set CLOUDISLANDS_PAPER_IMAGE}
+    image: ${CLOUDISLANDS_PAPER_IMAGE:-cloudislands-paper:local}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/paper.Dockerfile
+      args:
+        PAPER_VERSION: ${CLOUDISLANDS_PAPER_VERSION:-1.21.11}
+    restart: unless-stopped
     depends_on:
       velocity:
-        condition: service_started
+        condition: service_healthy
       core-api:
         condition: service_healthy
     environment:
+      EULA: ${MINECRAFT_EULA:?set MINECRAFT_EULA=TRUE after accepting the Minecraft EULA}
       CLOUDISLANDS_NODE_ID: island-b
       CLOUDISLANDS_NODE_ROLE: ISLAND_NODE
+      CLOUDISLANDS_NODE_POOL: island
       CLOUDISLANDS_VELOCITY_SERVER_NAME: island-b
       CLOUDISLANDS_CORE_API_BASE_URL: ${CLOUDISLANDS_CORE_API_BASE_URL:-http://core-api:8443}
-      CLOUDISLANDS_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
-      CLOUDISLANDS_FORWARDING_SECRET_FILE: /run/secrets/cloudislands_forwarding_secret
+      CLOUDISLANDS_STORAGE_ENDPOINT: http://minio:9000
+      JAVA_OPTS: ${CLOUDISLANDS_ISLAND_B_JAVA_OPTS:--Xms512m -Xmx1g}
     secrets:
       - cloudislands_core_token
+      - cloudislands_admin_token
       - cloudislands_forwarding_secret
+      - cloudislands_storage_access_key
+      - cloudislands_storage_secret_key
     networks:
       - backend
+      - egress
+    volumes:
+      - island-paper-b-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8789/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 60s
 
 secrets:
   cloudislands_database_password:
@@ -299,8 +385,13 @@ volumes:
   postgres-data:
   redis-data:
   minio-data:
+  velocity-data:
+  lobby-paper-data:
+  island-paper-a-data:
+  island-paper-b-data:
 
 networks:
   backend:
     internal: true
   edge:
+  egress:
