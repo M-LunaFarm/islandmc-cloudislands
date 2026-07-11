@@ -286,21 +286,25 @@ final class IslandHomeWarpCommandHandler {
     }
 
     private void teleportHome(Player player, String name) {
-        runtime.currentIsland(player, message("home-teleport-island-required")).ifPresent(islandId -> {
-            if (!runtime.allowed(player, IslandPermission.INTERACT)) {
-                runtime.message(player, message("home-teleport-denied"));
-                return;
-            }
-            homeWarpUseCase.homeViews(islandId)
-                .thenAccept(homes -> runtime.moveToPoint(player, homePoint(homes, name), message("home-not-found"), message("home-teleport-success")))
-                .exceptionally(error -> {
-                    if (runtime.coreUnavailable(error) && runtime.teleportLocalDefaultHome(player)) {
-                        return null;
-                    }
-                    runtime.message(player, message("home-load-failed"));
+        Optional<UUID> currentIsland = runtime.currentIsland(player);
+        if (currentIsland.isEmpty()) {
+            runtime.routeHome(player, name);
+            return;
+        }
+        UUID islandId = currentIsland.get();
+        if (!runtime.allowed(player, IslandPermission.INTERACT)) {
+            runtime.message(player, message("home-teleport-denied"));
+            return;
+        }
+        homeWarpUseCase.homeViews(islandId)
+            .thenAccept(homes -> runtime.moveToPoint(player, homePoint(homes, name), message("home-not-found"), message("home-teleport-success")))
+            .exceptionally(error -> {
+                if (runtime.coreUnavailable(error) && runtime.teleportLocalDefaultHome(player)) {
                     return null;
-                });
-        });
+                }
+                runtime.message(player, message("home-load-failed"));
+                return null;
+            });
     }
 
     private void teleportWarp(Player player, String name) {
@@ -498,6 +502,8 @@ final class IslandHomeWarpCommandHandler {
     interface Runtime {
         Optional<UUID> currentIsland(Player player, String missingMessage);
 
+        Optional<UUID> currentIsland(Player player);
+
         boolean allowed(Player player, IslandPermission permission);
 
         void message(Player player, String message);
@@ -523,6 +529,8 @@ final class IslandHomeWarpCommandHandler {
         boolean publicWarpAllowed(Player player, Point point, boolean islandPublicAccess);
 
         void routeWarp(Player player, UUID islandId, String warpName);
+
+        void routeHome(Player player, String homeName);
 
         void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction);
 

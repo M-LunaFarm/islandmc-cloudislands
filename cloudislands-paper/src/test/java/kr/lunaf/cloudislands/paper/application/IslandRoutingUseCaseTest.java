@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.RouteClearView;
 import kr.lunaf.cloudislands.coreclient.RoutePublishView;
 import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
+import kr.lunaf.cloudislands.coreclient.NavigationCommandClient;
 import org.junit.jupiter.api.Test;
 
 class IslandRoutingUseCaseTest {
@@ -28,12 +29,15 @@ class IslandRoutingUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000050");
         UUID playerUuid = uuid("00000000-0000-0000-0000-000000000001");
 
+        assertEquals(ticket, useCase.createHomeTicket(playerUuid, "team", mutationRunner(calls)).join());
         assertEquals(ticket, useCase.createWarpTicket(playerUuid, islandId, "spawn", mutationRunner(calls)).join());
         assertEquals(Optional.of(ticket), useCase.routeTicketStatus(ticket).join());
         assertEquals(null, useCase.publishRouteSession(ticket, mutationRunner(calls)).join());
         assertEquals("cleared", useCase.clearRouteAction(ticket, "", mutationRunner(calls)).join().code());
 
         assertEquals(List.of(
+            "audit:route.ticket.home",
+            "createHomeTicket:team",
             "audit:route.ticket.warp",
             "createWarpTicket:spawn",
             "routeTicketStatus:nonce",
@@ -50,6 +54,7 @@ class IslandRoutingUseCaseTest {
             new Class<?>[] {CoreApiClient.class},
             (_proxy, method, args) -> switch (method.getName()) {
                 case "routingCommands" -> routingCommands(calls, ticket);
+                case "navigationCommands" -> navigationCommands(calls, ticket);
                 case "createWarpTicket" -> {
                     calls.add("createWarpTicket:" + args[2]);
                     yield CompletableFuture.completedFuture(ticket);
@@ -105,6 +110,20 @@ class IslandRoutingUseCaseTest {
                 return CompletableFuture.completedFuture(new RouteClearView(true, "cleared"));
             }
         };
+    }
+
+    private static NavigationCommandClient navigationCommands(List<String> calls, RouteTicket ticket) {
+        return (NavigationCommandClient) Proxy.newProxyInstance(
+            NavigationCommandClient.class.getClassLoader(),
+            new Class<?>[] {NavigationCommandClient.class},
+            (_proxy, method, args) -> {
+                if (method.getName().equals("createHomeTicket")) {
+                    calls.add("createHomeTicket:" + args[1]);
+                    return CompletableFuture.completedFuture(ticket);
+                }
+                throw new UnsupportedOperationException(method.getName());
+            }
+        );
     }
 
     private static IslandRoutingUseCase.MutationRunner mutationRunner(List<String> calls) {

@@ -25,6 +25,10 @@ final class IslandCommandIslandContext {
         return islandId;
     }
 
+    Optional<UUID> currentIsland(Player player) {
+        return protection.islandAt(player.getLocation().getBlock());
+    }
+
     boolean allowed(Player player, IslandPermission permission) {
         Location location = player.getLocation();
         return protection.checkBlock(

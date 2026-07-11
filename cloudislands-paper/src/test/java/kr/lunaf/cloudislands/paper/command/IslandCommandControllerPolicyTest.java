@@ -682,6 +682,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.setWarpAction(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), false, category, runtime::mutate)"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.deleteWarpAction"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.homeViews"));
+        assertTrue(homeWarpHandler.contains("Optional<UUID> currentIsland = runtime.currentIsland(player)"), "single-Paper home must detect lobby context without emitting a false island-required error");
+        assertTrue(homeWarpHandler.contains("runtime.routeHome(player, name)"), "single-Paper home outside an island must use the Core selected-island route");
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.warpViews"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.publicWarpViews"));
         assertTrue(homeWarpHandler.contains("homePoint(homes, name)"), "home teleport must not fall back to the player's current world");
@@ -996,6 +998,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(backend.contains("new IslandHomeWarpRuntimeAdapter(runtimeServices, routingCommands)"));
         assertTrue(backend.contains("new IslandVisitReviewRuntimeAdapter(runtimeServices, routingCommands)"));
         assertTrue(homeWarpRuntime.contains("routingCommands.routeWarp(player, islandId, warpName)"));
+        assertTrue(homeWarpRuntime.contains("routingCommands.routeHome(player, homeName)"));
         assertTrue(visitReviewRuntime.contains("routingCommands.routeTicket(player, ticketFuture, failureMessage)"));
         assertTrue(backend.contains("routingCommands.clearRouteLoading(event.getPlayer())"));
         assertFalse(backend.contains("routeBossBars"), "route loading state belongs in IslandRoutingCommandHandler");
@@ -1008,6 +1011,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(routingHandler.contains("RoutePreparationProgressPolicy"));
         assertTrue(routingHandler.contains("IslandRoutingUseCase"));
         assertTrue(routingHandler.contains("routingUseCase.createWarpTicket"));
+        assertTrue(routingHandler.contains("routingUseCase.createHomeTicket"));
         assertTrue(routingHandler.contains("routingUseCase.clearRouteAction"));
         assertFalse(routingHandler.contains("coreApiClient.createWarpTicket"));
         assertFalse(routingHandler.contains("coreApiClient.routeTicketStatus"));
@@ -1016,6 +1020,7 @@ class IslandCommandControllerPolicyTest {
         assertFalse(routingUseCase.contains("public CompletableFuture<String> clearRoute("), "route clear usecase must expose typed actions instead of raw strings");
         assertTrue(routingUseCase.contains("RoutingCommandClient routingCommands"));
         assertTrue(routingUseCase.contains("routingCommands.createWarpTicket"));
+        assertTrue(routingUseCase.contains("navigationCommands.createHomeTicket"));
         assertTrue(routingUseCase.contains("routingCommands.routeTicketStatus"));
         assertTrue(routingUseCase.contains("routingCommands.publishRouteSession"));
         assertTrue(routingUseCase.contains("routingCommands.clearRoute"));

@@ -28,6 +28,11 @@ final class IslandHomeWarpRuntimeAdapter implements IslandHomeWarpCommandHandler
     }
 
     @Override
+    public java.util.Optional<UUID> currentIsland(Player player) {
+        return runtime.currentIsland(player);
+    }
+
+    @Override
     public boolean allowed(Player player, IslandPermission permission) {
         return runtime.allowed(player, permission);
     }
@@ -90,6 +95,11 @@ final class IslandHomeWarpRuntimeAdapter implements IslandHomeWarpCommandHandler
     @Override
     public void routeWarp(Player player, UUID islandId, String warpName) {
         routingCommands.routeWarp(player, islandId, warpName);
+    }
+
+    @Override
+    public void routeHome(Player player, String homeName) {
+        routingCommands.routeHome(player, homeName);
     }
 
     @Override

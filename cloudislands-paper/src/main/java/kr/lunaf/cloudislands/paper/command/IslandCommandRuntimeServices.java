@@ -86,6 +86,10 @@ final class IslandCommandRuntimeServices implements
         return islandContext.currentIsland(player, missingMessage);
     }
 
+    public java.util.Optional<UUID> currentIsland(Player player) {
+        return islandContext.currentIsland(player);
+    }
+
     public boolean allowed(Player player, IslandPermission permission) {
         return islandContext.allowed(player, permission);
     }

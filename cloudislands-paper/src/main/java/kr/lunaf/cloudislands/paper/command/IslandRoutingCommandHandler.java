@@ -45,6 +45,10 @@ final class IslandRoutingCommandHandler {
         routeTicket(player, routingUseCase.createWarpTicket(player.getUniqueId(), islandId, warpName, runtime::mutate), "해당 워프로 이동할 수 없습니다.");
     }
 
+    void routeHome(Player player, String homeName) {
+        routeTicket(player, routingUseCase.createHomeTicket(player.getUniqueId(), homeName, runtime::mutate), "해당 섬 홈으로 이동할 수 없습니다.");
+    }
+
     void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
         ticketFuture.thenAccept(ticket -> runSync(() -> routeTicket(player, ticket, failureMessage, 0))).exceptionally(error -> {
             runSync(() -> {

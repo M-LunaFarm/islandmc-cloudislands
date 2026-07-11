@@ -7,11 +7,13 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.RouteClearView;
+import kr.lunaf.cloudislands.coreclient.NavigationCommandClient;
 import kr.lunaf.cloudislands.coreclient.RoutingCommandClient;
 
 public final class IslandRoutingUseCase {
     private final CoreApiClient coreApiClient;
     private final RoutingCommandClient routingCommands;
+    private final NavigationCommandClient navigationCommands;
 
     public IslandRoutingUseCase(CoreApiClient coreApiClient) {
         if (coreApiClient == null) {
@@ -19,6 +21,7 @@ public final class IslandRoutingUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.routingCommands = coreApiClient.routingCommands();
+        this.navigationCommands = coreApiClient.navigationCommands();
     }
 
     IslandRoutingUseCase(CoreApiClient coreApiClient, RoutingCommandClient routingCommands) {
@@ -30,6 +33,7 @@ public final class IslandRoutingUseCase {
         }
         this.coreApiClient = coreApiClient;
         this.routingCommands = routingCommands;
+        this.navigationCommands = coreApiClient.navigationCommands();
     }
 
     public CompletableFuture<RouteTicket> createWarpTicket(UUID playerUuid, UUID islandId, String warpName, MutationRunner runner) {
@@ -37,6 +41,12 @@ public final class IslandRoutingUseCase {
         requireUuid(islandId, "islandId");
         requireRunner(runner);
         return runner.mutate("route.ticket.warp", () -> routingCommands.createWarpTicket(playerUuid, islandId, warpName == null ? "" : warpName));
+    }
+
+    public CompletableFuture<RouteTicket> createHomeTicket(UUID playerUuid, String homeName, MutationRunner runner) {
+        requireUuid(playerUuid, "playerUuid");
+        requireRunner(runner);
+        return runner.mutate("route.ticket.home", () -> navigationCommands.createHomeTicket(playerUuid, homeName == null || homeName.isBlank() ? "default" : homeName.trim()));
     }
 
     public CompletableFuture<Optional<RouteTicket>> routeTicketStatus(RouteTicket ticket) {
