@@ -420,7 +420,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         if (newRoleKey.equals(currentRoleKey)) {
             return false;
         }
-        long limit = limitValue(islandId, GameplayParityPolicy.roleLimitKey(newRoleKey), Long.MAX_VALUE);
+        long limit = limitValue(islandId, GameplayParityPolicy.roleLimitKey(newRoleKey), defaultRoleLimit(newRoleKey));
         if (limit == Long.MAX_VALUE) {
             return false;
         }
@@ -428,6 +428,10 @@ public final class IslandMemberRoutes implements RouteGroup {
             .filter(member -> member.effectiveRoleKey().equals(newRoleKey))
             .count();
         return count >= limit;
+    }
+
+    private static long defaultRoleLimit(String roleKey) {
+        return CoreRoleKeys.TRUSTED.equals(roleKey) ? 8L : Long.MAX_VALUE;
     }
 
     private static boolean addsTeamMember(String currentRoleKey, String newRoleKey) {

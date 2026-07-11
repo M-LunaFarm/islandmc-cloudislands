@@ -230,6 +230,35 @@ class IslandMemberRoutesTest {
     }
 
     @Test
+    void defaultCoopCapacityMatchesSuperiorSkyblockWithoutConfiguration() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000161");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000162");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "default-coop-capacity");
+
+        new IslandMemberRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            new InMemoryPlayerProfileRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryAuditLogger(),
+            new InMemoryGlobalEventPublisher()
+        ).register(handlers::put);
+
+        for (int index = 1; index <= 8; index++) {
+            UUID coopUuid = new UUID(0L, 0x170L + index);
+            handleAccepted(handlers, "/v1/islands/members/set", setRoleBody(islandId, ownerUuid, coopUuid, "TRUSTED"), 202);
+        }
+        UUID ninthCoop = new UUID(0L, 0x179L);
+        handleError(handlers, "/v1/islands/members/set", setRoleBody(islandId, ownerUuid, ninthCoop, "TRUSTED"), 409, "ROLE_LIMIT");
+        assertEquals(8L, metadata.members(islandId).stream().filter(member -> member.effectiveRoleKey().equals("TRUSTED")).count());
+    }
+
+    @Test
     void rendersMemberContracts() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");

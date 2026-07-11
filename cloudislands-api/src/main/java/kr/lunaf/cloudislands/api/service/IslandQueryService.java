@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBanSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBoundarySnapshot;
 import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandCoopSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
@@ -40,6 +41,30 @@ public interface IslandQueryService {
     CompletableFuture<Optional<IslandSnapshot>> getIslandAt(String worldName, int blockX, int blockY, int blockZ);
     CompletableFuture<Optional<IslandRegionSnapshot>> getRegion(UUID islandId);
     CompletableFuture<List<IslandMemberSnapshot>> getMembers(UUID islandId);
+    default CompletableFuture<List<IslandMemberSnapshot>> getTeamMembers(UUID islandId) {
+        return getMembers(islandId).thenApply(members -> members.stream()
+            .filter(member -> !"TRUSTED".equals(member.effectiveRoleKey()))
+            .toList());
+    }
+    default CompletableFuture<Boolean> isMember(UUID islandId, UUID playerUuid) {
+        return getTeamMembers(islandId).thenApply(members -> playerUuid != null && members.stream().anyMatch(member -> member.playerUuid().equals(playerUuid)));
+    }
+    default CompletableFuture<List<IslandCoopSnapshot>> getCoops(UUID islandId) {
+        return getMembers(islandId).thenApply(members -> members.stream()
+            .filter(member -> "TRUSTED".equals(member.effectiveRoleKey()))
+            .map(member -> new IslandCoopSnapshot(member.islandId(), member.playerUuid(), member.joinedAt(), member.expiresAt()))
+            .toList());
+    }
+    default CompletableFuture<Boolean> isCoop(UUID islandId, UUID playerUuid) {
+        return getCoops(islandId).thenApply(coops -> playerUuid != null && coops.stream().anyMatch(coop -> coop.playerUuid().equals(playerUuid)));
+    }
+    default CompletableFuture<Long> getCoopLimit(UUID islandId) {
+        return getLimits(islandId).thenApply(limits -> limits.stream()
+            .filter(limit -> "ROLE_LIMIT:TRUSTED".equalsIgnoreCase(limit.limitKey()))
+            .findFirst()
+            .map(IslandLimitSnapshot::value)
+            .orElse(8L));
+    }
     CompletableFuture<List<IslandBanSnapshot>> getBans(UUID islandId);
     CompletableFuture<List<IslandInviteSnapshot>> getPendingInvites(UUID playerUuid);
     CompletableFuture<List<IslandHomeSnapshot>> getHomes(UUID islandId);

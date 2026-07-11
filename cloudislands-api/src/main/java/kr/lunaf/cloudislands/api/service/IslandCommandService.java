@@ -50,8 +50,20 @@ public interface IslandCommandService {
     CompletableFuture<IslandActionResult> kickResult(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<Void> trustPlayer(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<IslandActionResult> trustPlayerResult(UUID islandId, UUID actorUuid, UUID targetUuid);
+    default CompletableFuture<Void> addCoop(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        return trustPlayer(islandId, actorUuid, targetUuid);
+    }
+    default CompletableFuture<IslandActionResult> addCoopResult(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        return trustPlayerResult(islandId, actorUuid, targetUuid);
+    }
     CompletableFuture<Void> untrustPlayer(UUID islandId, UUID actorUuid, UUID targetUuid);
     CompletableFuture<IslandActionResult> untrustPlayerResult(UUID islandId, UUID actorUuid, UUID targetUuid);
+    default CompletableFuture<Void> removeCoop(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        return untrustPlayer(islandId, actorUuid, targetUuid);
+    }
+    default CompletableFuture<IslandActionResult> removeCoopResult(UUID islandId, UUID actorUuid, UUID targetUuid) {
+        return untrustPlayerResult(islandId, actorUuid, targetUuid);
+    }
     default CompletableFuture<Void> setRole(UUID islandId, UUID actorUuid, UUID targetUuid, RoleId roleId) {
         return setRole(islandId, actorUuid, targetUuid, roleId == null ? "" : roleId.value());
     }
