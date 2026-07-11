@@ -69,6 +69,11 @@ class RoutingOrchestratorActivationTest {
 
         assertEquals(202, result.status());
         assertTrue(result.body().contains("\"islandId\":\"" + ISLAND + "\""));
+
+        metadata.upsertMemberKey(ISLAND, member, "BANNED");
+        RoutePreparationResult banned = orchestrator.prepareHomeRoute(member);
+        assertEquals(404, banned.status());
+        assertTrue(banned.body().contains("\"code\":\"ISLAND_NOT_FOUND\""));
     }
     private static final UUID ISLAND = UUID.fromString("00000000-0000-0000-0000-000000000201");
 

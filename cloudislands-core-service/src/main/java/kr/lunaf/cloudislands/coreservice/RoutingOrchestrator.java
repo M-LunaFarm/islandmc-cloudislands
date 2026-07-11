@@ -29,6 +29,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketJson;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
@@ -105,7 +106,7 @@ public final class RoutingOrchestrator {
             java.util.Optional<UUID> selected = playerProfiles.find(playerUuid).primaryIslandId();
             if (selected.isPresent()) {
                 java.util.Optional<IslandSnapshot> island = islands.findById(selected.get())
-                    .filter(value -> value.ownerUuid().equals(playerUuid) || metadata.isMember(value.islandId(), playerUuid));
+                    .filter(value -> value.ownerUuid().equals(playerUuid) || homeMember(value.islandId(), playerUuid));
                 if (island.isPresent()) {
                     return island;
                 }
@@ -116,9 +117,15 @@ public final class RoutingOrchestrator {
             return owned;
         }
         return metadata.islandsForMember(playerUuid).stream()
+            .filter(member -> CoreRoleKeys.memberRole(member.effectiveRoleKey()))
             .map(member -> islands.findById(member.islandId()))
             .flatMap(java.util.Optional::stream)
             .findFirst();
+    }
+
+    private boolean homeMember(UUID islandId, UUID playerUuid) {
+        return metadata.members(islandId).stream()
+            .anyMatch(member -> member.playerUuid().equals(playerUuid) && CoreRoleKeys.memberRole(member.effectiveRoleKey()));
     }
 
     public RoutePreparationResult prepareVisitRoute(UUID playerUuid, UUID islandId) {
