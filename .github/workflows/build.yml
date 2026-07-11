@@ -54,18 +54,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 25 toolchain
-        if: matrix.java == '25'
+      - name: Set up Java 21 toolchain
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Java 25 build launcher
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "25"
 
-      - name: Set up Java 21 build launcher
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
+      - name: Validate and configure Gradle
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Build and test
         run: ./gradlew clean build verifyMinecraftVersionMatrix verifyAdapterPackaging apiCompatibilityCheck protocolCompatibilityCheck distBundle distAddonBundle distChecksums distSbom distProvenance verifyReleaseSecurityGate --no-daemon
@@ -96,17 +98,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 25 toolchain
+      - name: Set up Java 21 toolchain
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Java 25 build launcher
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "25"
 
-      - name: Set up Java 21 build launcher
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "21"
+      - name: Validate and configure Gradle
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Verify all Paper compile and stable boot targets
         run: ./gradlew verifyMinecraftVersionMatrix compileAllMinecraftVersions bootSmokeAllStableMinecraftVersions --no-daemon

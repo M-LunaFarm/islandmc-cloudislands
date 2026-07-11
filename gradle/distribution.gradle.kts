@@ -3,7 +3,6 @@ import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Delete
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.jvm.tasks.Jar
-import java.io.ByteArrayOutputStream
 import java.security.MessageDigest
 
 fun cloudIslandsJsonEscape(value: String): String = value
@@ -431,12 +430,9 @@ tasks.register("distProvenance") {
     outputs.file(distProvenanceFile)
     doLast {
         fun commandOutput(vararg command: String): String {
-            val output = ByteArrayOutputStream()
-            exec {
+            return providers.exec {
                 commandLine(*command)
-                standardOutput = output
-            }
-            return output.toString().trim()
+            }.standardOutput.asText.get().trim()
         }
         fun sha256(file: File): String {
             val digest = MessageDigest.getInstance("SHA-256")

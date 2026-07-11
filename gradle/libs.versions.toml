@@ -21,6 +21,7 @@ velocity-api = { module = "com.velocitypowered:velocity-api", version.ref = "vel
 placeholderapi = { module = "me.clip:placeholderapi", version.ref = "placeholderapi" }
 vault-api = { module = "com.github.MilkBowl:VaultAPI", version.ref = "vault-api" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 mysql-connector = { module = "com.mysql:mysql-connector-j", version.ref = "mysql" }
 mariadb-client = { module = "org.mariadb.jdbc:mariadb-java-client", version.ref = "mariadb" }

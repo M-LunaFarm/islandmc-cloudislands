@@ -79,6 +79,7 @@ allprojects {
 subprojects {
     if (name != "cloudislands-bom") {
         apply(plugin = "java-library")
+        dependencies.add("testRuntimeOnly", versionCatalog.findLibrary("junit-platform-launcher").orElseThrow())
         if (name in developerKitProjectNames) {
             apply(plugin = "maven-publish")
         }

@@ -444,9 +444,10 @@ Object Storage down:
 
 ## Build
 
-Requires Java 21 for the CloudIslands build baseline and Paper 1.21.x. Paper
-26.1.x and newer servers require Java 25; the version-matrix tasks select the
-matching compiler and server launcher explicitly.
+CloudIslands artifacts retain a Java 21 compilation and runtime baseline for
+Paper 1.21.x. The Gradle 9.1 wrapper can run on Java 25, while toolchains select
+Java 21 or Java 25 for the matching compile and server-launch task. Paper 26.1.x
+and newer servers require Java 25.
 
 ```bash
 ./gradlew build

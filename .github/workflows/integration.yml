@@ -59,11 +59,20 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 21 toolchain
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
+
+      - name: Set up Java 25 build launcher
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Validate and configure Gradle
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Create MinIO bucket
         run: |

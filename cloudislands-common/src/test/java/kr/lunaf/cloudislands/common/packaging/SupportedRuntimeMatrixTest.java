@@ -15,6 +15,7 @@ class SupportedRuntimeMatrixTest {
         String minecraftMatrix = Files.readString(root.resolve("gradle/minecraft-versions.toml"));
         String readme = Files.readString(root.resolve("README.md"));
         String workflow = Files.readString(root.resolve(".github/workflows/build.yml"));
+        String wrapper = Files.readString(root.resolve("gradle/wrapper/gradle-wrapper.properties"));
 
         assertTrue(versionCatalog.contains("cloudislands = \"1.0.1\""));
         assertTrue(versionCatalog.contains("java-current = \"21\""));
@@ -43,8 +44,11 @@ class SupportedRuntimeMatrixTest {
         assertTrue(workflow.contains("boot-task: paper261BootSmoke"));
         assertTrue(workflow.contains("java: \"21\""));
         assertTrue(workflow.contains("minecraft-baseline: \"1.21.11\""));
-        assertTrue(workflow.contains("Set up Java 25 toolchain"));
-        assertTrue(workflow.contains("Set up Java 21 build launcher"));
+        assertTrue(workflow.contains("Set up Java 21 toolchain"));
+        assertTrue(workflow.contains("Set up Java 25 build launcher"));
+        assertTrue(workflow.contains("gradle/actions/setup-gradle@v6"));
+        assertTrue(wrapper.contains("gradle-9.1.0-bin.zip"));
+        assertTrue(wrapper.contains("distributionSha256Sum=a17ddd85a26b6a7f5ddb71ff8b05fc5104c0202c6e64782429790c933686c806"));
         assertTrue(workflow.contains("cloudislands-dist-${{ matrix.platform }}-java${{ matrix.java }}"));
     }
 
