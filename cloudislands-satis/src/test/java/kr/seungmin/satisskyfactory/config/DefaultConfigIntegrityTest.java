@@ -564,6 +564,13 @@ class DefaultConfigIntegrityTest {
         }
         assertFalse(Pattern.compile("ChatColor\\.[A-Z_]+ \\+ \"[A-Z][A-Za-z ]").matcher(source).find(),
                 "FactoryGuiService should not build player-facing English labels with ChatColor");
+        assertFalse(source.contains("org.bukkit.ChatColor"), "Factory GUI should use Adventure colors");
+        assertFalse(source.contains("setDisplayName("), "Factory GUI should use ItemMeta.displayName(Component)");
+        assertFalse(source.contains("setLore("), "Factory GUI should use ItemMeta.lore(List<Component>)");
+        assertTrue(source.contains("Bukkit.createInventory(holder, 27, title("),
+                "Factory GUI titles should be Adventure components");
+        assertTrue(source.contains("private Component title("));
+        assertTrue(source.contains("private ItemStack icon(Material material, Component name, List<Component> lore)"));
     }
 
     @Test

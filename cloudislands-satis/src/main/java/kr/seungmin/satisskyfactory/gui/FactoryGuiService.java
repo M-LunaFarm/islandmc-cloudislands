@@ -21,8 +21,10 @@ import kr.seungmin.satisskyfactory.research.UnlockDefinition;
 import kr.seungmin.satisskyfactory.storage.StorageService;
 import kr.seungmin.satisskyfactory.storage.VirtualInventory;
 import kr.seungmin.satisskyfactory.util.NumberFormatter;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -70,7 +72,7 @@ public final class FactoryGuiService {
         Inventory inventory = Bukkit.createInventory(holder, 27, title("main-title", "SatisSkyFactory"));
         holder.inventory(inventory);
         if (enabled("machines") && powerState != null) {
-            List<String> factoryLore = new ArrayList<>();
+            List<Component> factoryLore = new ArrayList<>();
             factoryLore.add(gray("gui-tier", "티어: {tier}", Map.of("tier", String.valueOf(island.tier()))));
             factoryLore.add(gray("gui-machines", "기계 수: {count}", Map.of("count", String.valueOf(machineCount))));
             if (enabled("storage")) {
@@ -78,9 +80,9 @@ public final class FactoryGuiService {
                         .map(VirtualInventory::used)
                         .orElse(0L)))));
             }
-            inventory.setItem(10, icon(Material.CRAFTING_TABLE, line(ChatColor.GOLD, "gui-factory", "공장"),
+            inventory.setItem(10, icon(Material.CRAFTING_TABLE, line(NamedTextColor.GOLD, "gui-factory", "공장"),
                     factoryLore));
-            inventory.setItem(12, icon(Material.REDSTONE, line(ChatColor.RED, "gui-power", "전력"),
+            inventory.setItem(12, icon(Material.REDSTONE, line(NamedTextColor.RED, "gui-power", "전력"),
                     List.of(gray("gui-power-ratio", "전력 비율: {ratio}", Map.of("ratio", NumberFormatter.ratio(powerState.ratio()))),
                             gray("gui-generation", "생산량: {value}", Map.of("value", NumberFormatter.decimal(powerState.generation(), 1))),
                             gray("gui-consumption", "소비량: {value}", Map.of("value", NumberFormatter.decimal(powerState.consumption(), 1))),
@@ -88,34 +90,34 @@ public final class FactoryGuiService {
                                     "stored", NumberFormatter.decimal(powerState.batteryStored(), 1),
                                     "capacity", NumberFormatter.whole(powerState.batteryCapacity()))))));
         } else {
-            inventory.setItem(10, icon(Material.CRAFTING_TABLE, line(ChatColor.DARK_GRAY, "gui-factory", "공장"),
+            inventory.setItem(10, icon(Material.CRAFTING_TABLE, line(NamedTextColor.DARK_GRAY, "gui-factory", "공장"),
                     List.of(gray("gui-machine-features-disabled", "기계 기능이 비활성화되어 있습니다."))));
         }
-        inventory.setItem(14, icon(Material.EMERALD, line(ChatColor.GREEN, "gui-economy", "경제"),
+        inventory.setItem(14, icon(Material.EMERALD, line(NamedTextColor.GREEN, "gui-economy", "경제"),
                 economyLore(island)));
         if (enabled("research")) {
             holder.action(16, "main_research", "");
-            inventory.setItem(16, icon(Material.EXPERIENCE_BOTTLE, line(ChatColor.AQUA, "gui-research", "연구"),
+            inventory.setItem(16, icon(Material.EXPERIENCE_BOTTLE, line(NamedTextColor.AQUA, "gui-research", "연구"),
                     researchMainLore(island, boosts)));
         }
         if (player.hasPermission("satisskyfactory.admin")) {
             holder.action(8, "main_admin", "");
-            inventory.setItem(8, icon(Material.COMMAND_BLOCK, line(ChatColor.RED, "gui-admin", "관리"),
+            inventory.setItem(8, icon(Material.COMMAND_BLOCK, line(NamedTextColor.RED, "gui-admin", "관리"),
                     List.of(gray("gui-open-admin", "공장 관리 메뉴를 엽니다."))));
         }
         if (enabled("contracts") && enabled("storage")) {
             holder.action(20, "main_contracts", "");
-            inventory.setItem(20, icon(Material.WRITABLE_BOOK, line(ChatColor.GOLD, "gui-contracts", "계약"),
+            inventory.setItem(20, icon(Material.WRITABLE_BOOK, line(NamedTextColor.GOLD, "gui-contracts", "계약"),
                     List.of(gray("gui-open-contracts", "납품 계약을 엽니다."))));
         }
         if (enabled("market") && enabled("storage")) {
             holder.action(22, "main_market", "");
-            inventory.setItem(22, icon(Material.EMERALD, line(ChatColor.GREEN, "gui-market", "시장"),
+            inventory.setItem(22, icon(Material.EMERALD, line(NamedTextColor.GREEN, "gui-market", "시장"),
                     List.of(gray("gui-open-market", "저장된 공장 아이템을 판매합니다."))));
         }
         if (enabled("storage")) {
             holder.action(24, "main_storage", "");
-            inventory.setItem(24, icon(Material.CHEST, line(ChatColor.YELLOW, "gui-storage", "저장고"),
+            inventory.setItem(24, icon(Material.CHEST, line(NamedTextColor.YELLOW, "gui-storage", "저장고"),
                     List.of(gray("gui-open-storage", "섬 가상 저장고를 봅니다."))));
         }
         player.openInventory(inventory);
@@ -141,8 +143,8 @@ public final class FactoryGuiService {
         }
     }
 
-    private List<String> economyLore(FactoryIsland island) {
-        List<String> lore = new ArrayList<>();
+    private List<Component> economyLore(FactoryIsland island) {
+        List<Component> lore = new ArrayList<>();
         if (enabled("maintenance")) {
             lore.add(gray("gui-debt", "부채: {debt}", Map.of("debt", String.valueOf(island.maintenanceDebt()))));
             lore.add(gray("gui-status", "상태: {status}", Map.of("status", island.maintenanceStatus().name())));
@@ -151,8 +153,8 @@ public final class FactoryGuiService {
         return lore;
     }
 
-    private List<String> marketLore(FactoryIsland island, int safePage, int maxPage) {
-        List<String> lore = new ArrayList<>();
+    private List<Component> marketLore(FactoryIsland island, int safePage, int maxPage) {
+        List<Component> lore = new ArrayList<>();
         if (enabled("maintenance")) {
             lore.add(gray("gui-debt", "부채: {debt}", Map.of("debt", String.valueOf(island.maintenanceDebt()))));
         }
@@ -162,8 +164,8 @@ public final class FactoryGuiService {
         return lore;
     }
 
-    private List<String> adminLore(FactoryIsland island, int machineCount, PowerNetworkService.NetworkState powerState) {
-        List<String> lore = new ArrayList<>();
+    private List<Component> adminLore(FactoryIsland island, int machineCount, PowerNetworkService.NetworkState powerState) {
+        List<Component> lore = new ArrayList<>();
         lore.add(gray("gui-island", "섬: {island}", Map.of("island", island.islandUuid().toString())));
         if (enabled("machines") && powerState != null) {
             lore.add(gray("gui-machines", "기계 수: {count}", Map.of("count", String.valueOf(machineCount))));
@@ -174,8 +176,8 @@ public final class FactoryGuiService {
         return lore;
     }
 
-    private List<String> researchMainLore(FactoryIsland island, IslandBoostService.Boosts boosts) {
-        List<String> lore = new ArrayList<>();
+    private List<Component> researchMainLore(FactoryIsland island, IslandBoostService.Boosts boosts) {
+        List<Component> lore = new ArrayList<>();
         lore.add(gray("gui-points", "포인트: {points}", Map.of("points", String.valueOf(island.researchPoints()))));
         if (enabled("machines")) {
             lore.add(gray("gui-agriculture-boost", "농업 x{ratio}", Map.of("ratio", NumberFormatter.ratio(boosts.agricultureBoost()))));
@@ -194,21 +196,21 @@ public final class FactoryGuiService {
         FactoryGuiHolder holder = new FactoryGuiHolder("admin", island.islandUuid(), null);
         Inventory inventory = Bukkit.createInventory(holder, 27, title("admin-title", "공장 관리"));
         holder.inventory(inventory);
-        inventory.setItem(4, icon(Material.COMMAND_BLOCK, line(ChatColor.RED, "gui-admin", "관리"),
+        inventory.setItem(4, icon(Material.COMMAND_BLOCK, line(NamedTextColor.RED, "gui-admin", "관리"),
                 adminLore(island, machineCount, powerState)));
         holder.action(10, "admin_reload", "");
-        inventory.setItem(10, icon(Material.REDSTONE_TORCH, line(ChatColor.YELLOW, "gui-reload", "다시 불러오기"),
+        inventory.setItem(10, icon(Material.REDSTONE_TORCH, line(NamedTextColor.YELLOW, "gui-reload", "다시 불러오기"),
                 List.of(gray("gui-reload-lore", "설정과 네트워크를 다시 구성합니다."))));
         holder.action(12, "admin_debug_island", "");
-        inventory.setItem(12, icon(Material.MAP, line(ChatColor.AQUA, "gui-island-debug", "섬 디버그"),
+        inventory.setItem(12, icon(Material.MAP, line(NamedTextColor.AQUA, "gui-island-debug", "섬 디버그"),
                 List.of(gray("gui-island-debug-lore", "섬 ID를 채팅으로 출력합니다."))));
         if (enabled("machines")) {
             holder.action(14, "admin_debug_networks", "");
-            inventory.setItem(14, icon(Material.REDSTONE, line(ChatColor.RED, "gui-network-debug", "네트워크 디버그"),
+            inventory.setItem(14, icon(Material.REDSTONE, line(NamedTextColor.RED, "gui-network-debug", "네트워크 디버그"),
                     List.of(gray("gui-network-debug-lore", "전력과 기계 상태를 채팅으로 출력합니다."))));
         }
         holder.action(22, "admin_back", "");
-        inventory.setItem(22, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-back", "뒤로"),
+        inventory.setItem(22, icon(Material.ARROW, line(NamedTextColor.YELLOW, "gui-back", "뒤로"),
                 List.of(gray("gui-back-main", "메인 공장 메뉴로 돌아갑니다."))));
         player.openInventory(inventory);
     }
@@ -246,11 +248,11 @@ public final class FactoryGuiService {
             return;
         }
         holder.action(45, "storage_page", String.valueOf(Math.max(0, safePage - 1)));
-        inventory.setItem(45, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-previous-page", "이전 페이지"),
+        inventory.setItem(45, icon(Material.ARROW, line(NamedTextColor.YELLOW, "gui-previous-page", "이전 페이지"),
                 List.of(gray("gui-page-of", "페이지 {page}/{pages}", Map.of(
                         "page", String.valueOf(safePage + 1),
                         "pages", String.valueOf(maxPage + 1))))));
-        inventory.setItem(49, icon(Material.BOOK, line(ChatColor.AQUA, "gui-storage", "저장고"),
+        inventory.setItem(49, icon(Material.BOOK, line(NamedTextColor.AQUA, "gui-storage", "저장고"),
                 List.of(gray("gui-used-capacity", "사용량: {used}/{capacity}", Map.of(
                                 "used", String.valueOf(virtual.used()),
                                 "capacity", String.valueOf(virtual.capacity()))),
@@ -258,10 +260,10 @@ public final class FactoryGuiService {
                                 "page", String.valueOf(safePage + 1),
                                 "pages", String.valueOf(maxPage + 1))))));
         holder.action(53, "deposit_hand", "");
-        inventory.setItem(53, icon(Material.HOPPER, line(ChatColor.GREEN, "gui-deposit-hand", "손에 든 아이템 입고"),
+        inventory.setItem(53, icon(Material.HOPPER, line(NamedTextColor.GREEN, "gui-deposit-hand", "손에 든 아이템 입고"),
                 List.of(gray("gui-deposit-hand-lore", "손에 든 아이템 묶음을 저장고에 넣습니다."))));
         holder.action(52, "storage_page", String.valueOf(Math.min(maxPage, safePage + 1)));
-        inventory.setItem(52, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-next-page", "다음 페이지"),
+        inventory.setItem(52, icon(Material.ARROW, line(NamedTextColor.YELLOW, "gui-next-page", "다음 페이지"),
                 List.of(gray("gui-page-of", "페이지 {page}/{pages}", Map.of(
                         "page", String.valueOf(safePage + 1),
                         "pages", String.valueOf(maxPage + 1))))));
@@ -273,9 +275,9 @@ public final class FactoryGuiService {
                     entry.getKey(), Material.PAPER, entry.getKey(), 0, false, 0, false, List.of()));
             ItemStack stack = new ItemStack(item.material(), (int) Math.max(1, Math.min(64, entry.getValue())));
             ItemMeta meta = stack.getItemMeta();
-            meta.setDisplayName(ChatColor.WHITE + item.displayName());
-            meta.setLore(List.of(gray("gui-amount", "수량: {amount}", Map.of("amount", String.valueOf(entry.getValue()))),
-                    line(ChatColor.DARK_GRAY, "gui-click-hint-stack", "좌클릭: 64, 우클릭: 1, Shift: 최대")));
+            meta.displayName(label(item.displayName(), NamedTextColor.WHITE));
+            meta.lore(List.of(gray("gui-amount", "수량: {amount}", Map.of("amount", String.valueOf(entry.getValue()))),
+                    line(NamedTextColor.DARK_GRAY, "gui-click-hint-stack", "좌클릭: 64, 우클릭: 1, Shift: 최대")));
             stack.setItemMeta(meta);
             holder.action(slot, "withdraw_storage", entry.getKey());
             inventory.setItem(slot++, stack);
@@ -295,9 +297,9 @@ public final class FactoryGuiService {
         Inventory inventory = Bukkit.createInventory(holder, 27, title("machine-title", "기계"));
         holder.inventory(inventory);
         MachineDefinition definition = definitions.get(machine.typeId()).orElse(null);
-        List<String> lore = new ArrayList<>();
+        List<Component> lore = new ArrayList<>();
         lore.add(gray("gui-type", "유형: {type}", Map.of("type", machine.typeId())));
-        lore.add(messages.raw("machine-status", Map.of("status", machine.status().name())));
+        lore.add(label(messages.raw("machine-status", Map.of("status", machine.status().name())), NamedTextColor.GRAY));
         lore.add(gray("gui-wear", "마모도: {wear}", Map.of("wear", NumberFormatter.ratio(machine.wear()))));
         lore.add(gray("gui-island", "섬: {island}", Map.of("island", machine.islandUuid().toString())));
         if (definition != null) {
@@ -315,7 +317,7 @@ public final class FactoryGuiService {
                     "used", String.valueOf(input.used()),
                     "capacity", String.valueOf(input.capacity()))));
             if (!input.items().isEmpty()) {
-                lore.add(line(ChatColor.DARK_GRAY, "gui-input-items", "입력품: {items}", Map.of("items", input.items().toString())));
+                lore.add(line(NamedTextColor.DARK_GRAY, "gui-input-items", "입력품: {items}", Map.of("items", input.items().toString())));
             }
         });
         storage.get(machine.outputInventoryId()).ifPresent(output -> {
@@ -323,7 +325,7 @@ public final class FactoryGuiService {
                     "used", String.valueOf(output.used()),
                     "capacity", String.valueOf(output.capacity()))));
             if (!output.items().isEmpty()) {
-                lore.add(line(ChatColor.DARK_GRAY, "gui-output-items", "출력품: {items}", Map.of("items", output.items().toString())));
+                lore.add(line(NamedTextColor.DARK_GRAY, "gui-output-items", "출력품: {items}", Map.of("items", output.items().toString())));
             }
         });
         if (machine.linkedResourceNodeId() != null) {
@@ -331,22 +333,22 @@ public final class FactoryGuiService {
         }
         ItemStack info = new ItemStack(definition == null ? Material.STONE : definition.material());
         ItemMeta meta = info.getItemMeta();
-        meta.setDisplayName(ChatColor.GOLD + (definition == null ? machine.typeId() : definition.displayName()));
-        meta.setLore(lore);
+        meta.displayName(label(definition == null ? machine.typeId() : definition.displayName(), NamedTextColor.GOLD));
+        meta.lore(lore);
         info.setItemMeta(meta);
         inventory.setItem(13, info);
         addRecipeSelectors(holder, inventory, machine, definition);
         holder.action(20, "deposit_machine_input", "");
-        inventory.setItem(20, icon(Material.HOPPER, line(ChatColor.GREEN, "gui-deposit-input", "입력 입고"),
+        inventory.setItem(20, icon(Material.HOPPER, line(NamedTextColor.GREEN, "gui-deposit-input", "입력 입고"),
                 List.of(gray("gui-deposit-input-lore", "손에 든 아이템 묶음을 이 기계 입력 저장소에 넣습니다."))));
         holder.action(22, "withdraw_machine_input", "");
-        inventory.setItem(22, icon(Material.DROPPER, line(ChatColor.YELLOW, "gui-take-input", "입력 출고"),
+        inventory.setItem(22, icon(Material.DROPPER, line(NamedTextColor.YELLOW, "gui-take-input", "입력 출고"),
                 List.of(gray("gui-take-input-lore", "이 기계 입력 저장소에서 최대 한 묶음을 꺼냅니다."))));
         holder.action(24, "withdraw_machine_output", "");
-        inventory.setItem(24, icon(Material.CHEST, line(ChatColor.AQUA, "gui-take-output", "출력 출고"),
+        inventory.setItem(24, icon(Material.CHEST, line(NamedTextColor.AQUA, "gui-take-output", "출력 출고"),
                 List.of(gray("gui-take-output-lore", "이 기계 출력 저장소에서 최대 한 묶음을 꺼냅니다."))));
         holder.action(26, "reclaim_machine", "");
-        inventory.setItem(26, icon(Material.BARRIER, line(ChatColor.RED, "gui-reclaim-machine", "기계 회수"),
+        inventory.setItem(26, icon(Material.BARRIER, line(NamedTextColor.RED, "gui-reclaim-machine", "기계 회수"),
                 List.of(gray("gui-reclaim-machine-lore", "버퍼를 섬 저장고로 돌려보내고 기계를 회수합니다."))));
         player.openInventory(inventory);
     }
@@ -370,7 +372,7 @@ public final class FactoryGuiService {
         String selectedRecipeId = machine.selectedRecipeId();
         holder.action(0, "select_recipe", "");
         inventory.setItem(0, icon(selectedRecipeId == null || selectedRecipeId.isBlank() ? Material.LIME_DYE : Material.GRAY_DYE,
-                line(ChatColor.AQUA, "gui-auto-recipe", "자동 레시피"),
+                line(NamedTextColor.AQUA, "gui-auto-recipe", "자동 레시피"),
                 List.of(gray("gui-auto-recipe-lore", "실행 가능한 첫 레시피를 기계가 선택합니다."))));
         int slot = 1;
         for (RecipeDefinition recipe : availableRecipes) {
@@ -380,7 +382,7 @@ public final class FactoryGuiService {
             boolean selected = recipe.id().equals(selectedRecipeId);
             holder.action(slot, "select_recipe", recipe.id());
             inventory.setItem(slot++, icon(selected ? Material.LIME_DYE : Material.PAPER,
-                    (selected ? ChatColor.GREEN : ChatColor.YELLOW) + recipe.id(),
+                    label(recipe.id(), selected ? NamedTextColor.GREEN : NamedTextColor.YELLOW),
                     List.of(gray("gui-recipe-input", "입력: {input}", Map.of("input", recipe.input().toString())),
                             gray("gui-recipe-output", "출력: {output}", Map.of("output", recipe.output().toString())),
                             gray("gui-recipe-byproducts", "부산물: {byproducts}", Map.of("byproducts", recipe.byproducts().toString())))));
@@ -406,7 +408,7 @@ public final class FactoryGuiService {
         holder.inventory(inventory);
         int slot = 10;
         List<ContractService.ActiveContract> activeContracts = contracts.activeContracts(island);
-        inventory.setItem(4, icon(Material.CLOCK, line(ChatColor.AQUA, "gui-active-contracts", "진행 중인 계약"),
+        inventory.setItem(4, icon(Material.CLOCK, line(NamedTextColor.AQUA, "gui-active-contracts", "진행 중인 계약"),
                 List.of(gray("gui-open-count", "진행 중: {count}", Map.of("count", String.valueOf(activeContracts.size()))))));
         for (ContractService.ActiveContract active : activeContracts) {
             if (slot >= 17) {
@@ -414,7 +416,7 @@ public final class FactoryGuiService {
             }
             ContractTemplate template = active.template();
             holder.action(slot, "contract_detail", active.contractId().toString());
-            inventory.setItem(slot++, icon(Material.WRITABLE_BOOK, ChatColor.GOLD + template.id(),
+            inventory.setItem(slot++, icon(Material.WRITABLE_BOOK, label(template.id(), NamedTextColor.GOLD),
                     List.of(gray("gui-type", "유형: {type}", Map.of("type", template.type())),
                             gray("gui-tier", "티어: {tier}", Map.of("tier", String.valueOf(template.tier()))),
                             gray("gui-required", "필요: {required}", Map.of("required", template.required().toString())),
@@ -432,7 +434,7 @@ public final class FactoryGuiService {
                     holder.action(22, "complete_emergency", "");
                 }
                 inventory.setItem(22, icon(available ? Material.FIREWORK_STAR : Material.GRAY_DYE,
-                        line(available ? ChatColor.RED : ChatColor.GRAY, "gui-emergency-contract", "비상 계약"),
+                        line(available ? NamedTextColor.RED : NamedTextColor.GRAY, "gui-emergency-contract", "비상 계약"),
                         List.of(gray("gui-debt", "부채: {debt}", Map.of("debt", String.valueOf(island.maintenanceDebt()))),
                                 gray("gui-used-today", "오늘 사용: {used}/{limit}", Map.of(
                                         "used", String.valueOf(used),
@@ -472,24 +474,24 @@ public final class FactoryGuiService {
         FactoryGuiHolder holder = new FactoryGuiHolder("contract-detail", island.islandUuid(), null);
         Inventory inventory = Bukkit.createInventory(holder, 27, title("contract-detail-title", "계약 상세"));
         holder.inventory(inventory);
-        inventory.setItem(4, icon(Material.WRITABLE_BOOK, ChatColor.GOLD + template.id(),
+        inventory.setItem(4, icon(Material.WRITABLE_BOOK, label(template.id(), NamedTextColor.GOLD),
                 List.of(gray("gui-type", "유형: {type}", Map.of("type", template.type())),
                         gray("gui-tier", "티어: {tier}", Map.of("tier", String.valueOf(template.tier()))),
                         gray("gui-expires", "만료: {minutes}분", Map.of("minutes", String.valueOf(NumberFormatter.minutesUntil(active.expiresAt(), System.currentTimeMillis())))))));
-        inventory.setItem(11, icon(Material.CHEST, line(ChatColor.YELLOW, "gui-required-items", "필요 아이템"),
+        inventory.setItem(11, icon(Material.CHEST, line(NamedTextColor.YELLOW, "gui-required-items", "필요 아이템"),
                 contractLines(template.required())));
-        inventory.setItem(15, icon(Material.EMERALD, line(ChatColor.GREEN, "gui-rewards", "보상"),
+        inventory.setItem(15, icon(Material.EMERALD, line(NamedTextColor.GREEN, "gui-rewards", "보상"),
                 rewardLines(template)));
         holder.action(18, "contracts_back", "");
-        inventory.setItem(18, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-back", "뒤로"),
+        inventory.setItem(18, icon(Material.ARROW, line(NamedTextColor.YELLOW, "gui-back", "뒤로"),
                 List.of(gray("gui-back-contracts", "계약 목록으로 돌아갑니다."))));
         holder.action(22, "complete_contract", active.contractId().toString());
-        inventory.setItem(22, icon(Material.LIME_DYE, line(ChatColor.GREEN, "gui-deliver-contract", "계약 납품"),
+        inventory.setItem(22, icon(Material.LIME_DYE, line(NamedTextColor.GREEN, "gui-deliver-contract", "계약 납품"),
                 List.of(gray("gui-deliver-contract-lore", "섬 저장고에서 필요 아이템을 제출합니다."))));
         player.openInventory(inventory);
     }
 
-    private List<String> contractLines(Map<String, Long> values) {
+    private List<Component> contractLines(Map<String, Long> values) {
         if (values.isEmpty()) {
             return List.of(gray("gui-no-items-required", "필요 아이템 없음"));
         }
@@ -501,8 +503,8 @@ public final class FactoryGuiService {
                 .toList();
     }
 
-    private List<String> rewardLines(ContractTemplate template) {
-        List<String> lore = new ArrayList<>();
+    private List<Component> rewardLines(ContractTemplate template) {
+        List<Component> lore = new ArrayList<>();
         if (template.money() > 0) {
             lore.add(gray("gui-money", "돈: {money}", Map.of("money", String.valueOf(template.money()))));
         }
@@ -554,14 +556,14 @@ public final class FactoryGuiService {
             return;
         }
         holder.action(45, "market_page", String.valueOf(Math.max(0, safePage - 1)));
-        inventory.setItem(45, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-previous-page", "이전 페이지"),
+        inventory.setItem(45, icon(Material.ARROW, line(NamedTextColor.YELLOW, "gui-previous-page", "이전 페이지"),
                 List.of(gray("gui-page-of", "페이지 {page}/{pages}", Map.of(
                         "page", String.valueOf(safePage + 1),
                         "pages", String.valueOf(maxPage + 1))))));
-        inventory.setItem(49, icon(Material.EMERALD, line(ChatColor.GREEN, "gui-market", "시장"),
+        inventory.setItem(49, icon(Material.EMERALD, line(NamedTextColor.GREEN, "gui-market", "시장"),
                 marketLore(island, safePage, maxPage)));
         holder.action(52, "market_page", String.valueOf(Math.min(maxPage, safePage + 1)));
-        inventory.setItem(52, icon(Material.ARROW, line(ChatColor.YELLOW, "gui-next-page", "다음 페이지"),
+        inventory.setItem(52, icon(Material.ARROW, line(NamedTextColor.YELLOW, "gui-next-page", "다음 페이지"),
                 List.of(gray("gui-page-of", "페이지 {page}/{pages}", Map.of(
                         "page", String.valueOf(safePage + 1),
                         "pages", String.valueOf(maxPage + 1))))));
@@ -576,10 +578,10 @@ public final class FactoryGuiService {
             long unitPrice = market.price(island.islandUuid(), itemId, 1);
             ItemStack stack = new ItemStack(item.material(), (int) Math.max(1, Math.min(64, stored)));
             ItemMeta meta = stack.getItemMeta();
-            meta.setDisplayName((stored > 0 ? ChatColor.GREEN : ChatColor.GRAY) + item.displayName());
-            meta.setLore(List.of(gray("gui-stored", "보유량: {stored}", Map.of("stored", String.valueOf(stored))),
+            meta.displayName(label(item.displayName(), stored > 0 ? NamedTextColor.GREEN : NamedTextColor.GRAY));
+            meta.lore(List.of(gray("gui-stored", "보유량: {stored}", Map.of("stored", String.valueOf(stored))),
                     gray("gui-current-price", "현재 가격: {price}", Map.of("price", String.valueOf(unitPrice))),
-                    line(ChatColor.DARK_GRAY, "gui-click-hint-stack", "좌클릭: 64, 우클릭: 1, Shift: 최대")));
+                    line(NamedTextColor.DARK_GRAY, "gui-click-hint-stack", "좌클릭: 64, 우클릭: 1, Shift: 최대")));
             stack.setItemMeta(meta);
             holder.action(slot, "sell_market_item", itemId);
             inventory.setItem(slot++, stack);
@@ -618,7 +620,7 @@ public final class FactoryGuiService {
                     unlocked ? "해금됨" : (ready ? "준비됨" : "잠김"));
             holder.action(slot, "unlock_research", unlock.id());
             inventory.setItem(slot++, icon(unlocked ? Material.LIME_DYE : (ready ? Material.YELLOW_DYE : Material.GRAY_DYE),
-                    (unlocked ? ChatColor.GREEN : ChatColor.YELLOW) + unlock.displayName(),
+                    label(unlock.displayName(), unlocked ? NamedTextColor.GREEN : NamedTextColor.YELLOW),
                     List.of(gray("gui-research-progress", "연구: {current}/{required}", Map.of(
                                     "current", String.valueOf(island.researchPoints()),
                                     "required", String.valueOf(unlock.cost()))),
@@ -635,38 +637,42 @@ public final class FactoryGuiService {
                             gray("gui-prerequisites", "선행 조건: {status}", Map.of("status", prerequisiteStatus)),
                             gray("gui-status", "상태: {status}", Map.of("status", unlockStatus)))));
         }
-        inventory.setItem(22, icon(Material.EXPERIENCE_BOTTLE, line(ChatColor.AQUA, "gui-research-points", "연구 포인트"),
+        inventory.setItem(22, icon(Material.EXPERIENCE_BOTTLE, line(NamedTextColor.AQUA, "gui-research-points", "연구 포인트"),
                 List.of(gray("gui-points", "포인트: {points}", Map.of("points", String.valueOf(island.researchPoints()))))));
         player.openInventory(inventory);
     }
 
-    private ItemStack icon(Material material, String name, List<String> lore) {
+    private ItemStack icon(Material material, Component name, List<Component> lore) {
         ItemStack stack = new ItemStack(material);
         ItemMeta meta = stack.getItemMeta();
-        meta.setDisplayName(name);
-        meta.setLore(lore);
+        meta.displayName(name);
+        meta.lore(lore);
         stack.setItemMeta(meta);
         return stack;
     }
 
-    private String title(String key, String fallback) {
-        return text(key, fallback);
+    private Component title(String key, String fallback) {
+        return label(text(key, fallback), NamedTextColor.DARK_GRAY);
     }
 
-    private String gray(String key, String fallback) {
-        return line(ChatColor.GRAY, key, fallback);
+    private Component gray(String key, String fallback) {
+        return line(NamedTextColor.GRAY, key, fallback);
     }
 
-    private String gray(String key, String fallback, Map<String, String> placeholders) {
-        return line(ChatColor.GRAY, key, fallback, placeholders);
+    private Component gray(String key, String fallback, Map<String, String> placeholders) {
+        return line(NamedTextColor.GRAY, key, fallback, placeholders);
     }
 
-    private String line(ChatColor color, String key, String fallback) {
-        return color + text(key, fallback);
+    private Component line(NamedTextColor color, String key, String fallback) {
+        return label(text(key, fallback), color);
     }
 
-    private String line(ChatColor color, String key, String fallback, Map<String, String> placeholders) {
-        return color + text(key, fallback, placeholders);
+    private Component line(NamedTextColor color, String key, String fallback, Map<String, String> placeholders) {
+        return label(text(key, fallback, placeholders), color);
+    }
+
+    private Component label(String value, NamedTextColor color) {
+        return Component.text(value == null ? "" : value, color).decoration(TextDecoration.ITALIC, false);
     }
 
     private String text(String key, String fallback) {
