@@ -399,6 +399,10 @@ the expansion exposes `%cloudislands_role%`, `is_member`, `is_owner`, `is_coop`,
 `locked`, `creation_time`, and `last_time_updated` (all with the
 `%cloudislands_<key>%` form). `has_island` means permanent team membership;
 `has_associated_island` also includes temporary co-op access.
+SS2-style scoreboard aliases include `bank_format|int|raw`,
+`worth_format|int|raw`, `level_format|int|raw`, `leader`, indexed `member_<n>`,
+and `team_size_online`; formatted values use locale-stable `K`, `M`, `B`, `T`,
+and `Q` suffixes.
 
 ## Satis feature pack
 

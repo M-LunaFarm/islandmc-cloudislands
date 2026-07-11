@@ -97,18 +97,16 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
     }
 
     private SelectedIsland selectIsland(UUID playerUuid, kr.lunaf.cloudislands.coreclient.PlayerProfileView profile, List<CoreGuiViews.PlayerIslandView> islands) {
-        if (islands == null || islands.isEmpty()) {
-            return null;
-        }
         String primaryIslandId = profile == null ? "" : profile.primaryIslandId();
-        CoreGuiViews.PlayerIslandView selected = islands.stream()
+        List<CoreGuiViews.PlayerIslandView> available = islands == null ? List.of() : islands;
+        CoreGuiViews.PlayerIslandView selected = available.stream()
             .filter(island -> island != null && island.islandId() != null && !island.islandId().isBlank())
             .min(Comparator
-                .comparingInt((CoreGuiViews.PlayerIslandView island) -> island.islandId().equals(primaryIslandId) ? 0 : teamRole(island.role()) ? 1 : 2)
+                .comparingInt((CoreGuiViews.PlayerIslandView island) -> island.islandId().equals(primaryIslandId) && teamRole(island.role()) ? 0 : teamRole(island.role()) ? 1 : 2)
                 .thenComparing(CoreGuiViews.PlayerIslandView::islandId))
             .orElse(null);
-        UUID islandId = selected == null ? null : uuid(selected.islandId());
-        return islandId == null ? null : new SelectedIsland(islandId, normalizedRole(selected.role()));
+        UUID islandId = selected == null ? uuid(primaryIslandId) : uuid(selected.islandId());
+        return islandId == null ? null : new SelectedIsland(islandId, selected == null ? "" : normalizedRole(selected.role()));
     }
 
     private CompletableFuture<Snapshot> snapshotWithDetails(UUID playerUuid, String selectedRole, CoreGuiViews.IslandInfoView island) {
@@ -164,7 +162,7 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         CoreGuiViews.IslandInfoView island = snapshot.island();
         CoreGuiViews.BankView bank = snapshot.bank();
         List<CloudIslandsPlaceholderValues.Member> members = snapshot.members().stream()
-            .map(member -> new CloudIslandsPlaceholderValues.Member(member.playerUuid(), member.playerName(), member.role()))
+            .map(member -> new CloudIslandsPlaceholderValues.Member(member.playerUuid(), member.playerName(), member.role(), member.presenceState()))
             .toList();
         CloudIslandsPlaceholderValues.Data data = island == null ? null : new CloudIslandsPlaceholderValues.Data(
             island.islandId(), island.name(), island.ownerUuid(), island.state(), island.size(), island.border(), island.level(),
