@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot;
 import kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
@@ -14,6 +15,7 @@ public final class GeneratorLevelCache {
     private final CoreApiClient client;
     private final String defaultGeneratorKey;
     private final Map<UUID, CachedSelection> cache = new ConcurrentHashMap<>();
+    private final AtomicLong refreshSequence = new AtomicLong();
 
     public GeneratorLevelCache(CoreApiClient client) {
         this(client, "default");
@@ -41,13 +43,14 @@ public final class GeneratorLevelCache {
         GeneratorSelection fallback = cached == null
             ? new GeneratorSelection(new GeneratorProfile(defaultGeneratorKey, 1), List.of())
             : cached.selection();
-        cache.put(islandId, new CachedSelection(fallback, now + 5_000L));
+        long refreshId = refreshSequence.incrementAndGet();
+        cache.put(islandId, new CachedSelection(fallback, now + 5_000L, refreshId));
         client.generators().generator(islandId)
             .thenCompose(profile -> client.generators().generatorRules(islandId)
                 .thenApply(rules -> new GeneratorSelection(profile(profile), rules == null ? List.of() : rules)))
-            .thenAccept(selection -> cache.put(islandId, new CachedSelection(selection, System.currentTimeMillis() + TTL_MILLIS)))
+            .thenAccept(selection -> completeRefresh(islandId, refreshId, selection))
             .exceptionally(exception -> {
-                cache.put(islandId, new CachedSelection(fallback, System.currentTimeMillis() + TTL_MILLIS));
+                completeRefresh(islandId, refreshId, fallback);
                 return null;
             });
         return fallback;
@@ -59,6 +62,12 @@ public final class GeneratorLevelCache {
 
     public void invalidateAll() {
         cache.clear();
+    }
+
+    private void completeRefresh(UUID islandId, long refreshId, GeneratorSelection selection) {
+        cache.computeIfPresent(islandId, (ignored, current) -> current.refreshId() == refreshId
+            ? new CachedSelection(selection, System.currentTimeMillis() + TTL_MILLIS, refreshId)
+            : current);
     }
 
     public long ttlSeconds() {
@@ -128,5 +137,5 @@ public final class GeneratorLevelCache {
         }
     }
 
-    private record CachedSelection(GeneratorSelection selection, long expiresAtMillis) {}
+    private record CachedSelection(GeneratorSelection selection, long expiresAtMillis, long refreshId) {}
 }
