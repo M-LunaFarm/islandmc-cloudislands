@@ -26,6 +26,7 @@ public final class IslandMissionMenu implements Listener {
         new GuiMenuDefinition(MISSION_MENU_ID, 6, "menu.missions.title", Map.of(
             "open", "island.missions.open",
             "complete", "island.mission.complete",
+            "page", "island.missions.page",
             "back", "island.main.open"
         ))
     );
@@ -50,11 +51,15 @@ public final class IslandMissionMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, String kind, MessageRenderer messages) {
+        open(plugin, client, player, islandId, kind, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, String kind, MessageRenderer messages, int page) {
         boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
         GuiSession session = GuiSessions.begin(player, challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), challenge ? CHALLENGE_TITLE : MISSION_TITLE));
         PaperGuiViews.islandMissions(client, islandId, kind)
-            .thenAccept(missions -> openSync(plugin, player, session, kind, missions, messages))
+            .thenAccept(missions -> openSync(plugin, player, session, islandId, kind, missions, messages, page))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), challenge ? CHALLENGE_TITLE : MISSION_TITLE), message(messages, "mission-menu-load-failed", "섬 과제를 불러오지 못했습니다."), "island.missions.open", "island.main.open");
                 return null;
@@ -89,11 +94,16 @@ public final class IslandMissionMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, data).orElse(null), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, String kind, List<MissionView> missions, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, String kind, List<MissionView> missions, MessageRenderer messages, int requestedPage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             boolean challenge = "CHALLENGE".equalsIgnoreCase(kind);
-            Inventory inventory = GuiInventories.create(challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID, session, MENU.size(), message(messages, MENU.titleKey(), challenge ? CHALLENGE_TITLE : MISSION_TITLE));
-            GuiMenuRenderer.populate(inventory, MENU, messages, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
+            List<Integer> missionSlots = GuiMenuRenderer.slots(MENU, "_");
+            int pageSize = Math.max(1, missionSlots.size());
+            int maxPage = Math.max(0, (missions.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            String title = message(messages, MENU.titleKey(), challenge ? CHALLENGE_TITLE : MISSION_TITLE) + " " + (page + 1) + "/" + (maxPage + 1);
+            Inventory inventory = GuiInventories.create(challenge ? CHALLENGE_MENU_ID : MISSION_MENU_ID, session, MENU.size(), title);
+            GuiMenuRenderer.populate(inventory, MENU, messages, item -> !List.of("E", "_", "W", "N").contains(item.symbol()));
             GuiMenuRenderer.setSymbolItem(
                 inventory,
                 MENU,
@@ -102,13 +112,19 @@ public final class IslandMissionMenu implements Listener {
                 Map.of("kind", challenge ? "CHALLENGE" : "MISSION"),
                 List.of(challenge ? message(messages, "mission-menu-challenge-command", "/섬 챌린지") : message(messages, "mission-menu-mission-command", "/섬 미션"))
             );
-            List<Integer> missionSlots = GuiMenuRenderer.slots(MENU, "_");
-            List<MissionView> visibleMissions = missions.stream().limit(missionSlots.size()).toList();
-            for (int index = 0; index < visibleMissions.size(); index++) {
-                inventory.setItem(missionSlots.get(index), missionItem(visibleMissions.get(index), messages));
+            int offset = page * pageSize;
+            for (int index = 0; index < pageSize && offset + index < missions.size(); index++) {
+                inventory.setItem(missionSlots.get(index), missionItem(missions.get(offset + index), messages));
             }
             if (missions.isEmpty()) {
                 setEmptyItem(inventory, messages);
+            } else {
+                if (page > 0) {
+                    setPageItem(inventory, "W", islandId, challenge ? "CHALLENGE" : "MISSION", page - 1, messages);
+                }
+                if (page < maxPage) {
+                    setPageItem(inventory, "N", islandId, challenge ? "CHALLENGE" : "MISSION", page + 1, messages);
+                }
             }
             player.openInventory(inventory);
         });
@@ -138,6 +154,13 @@ public final class IslandMissionMenu implements Listener {
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
         GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, String kind, int page, MessageRenderer messages) {
+        String key = symbol.equals("W") ? "mission-menu-previous-page" : "mission-menu-next-page";
+        String fallback = symbol.equals("W") ? "이전 페이지" : "다음 페이지";
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("islandId", islandId.toString(), "kind", kind, "page", Integer.toString(page)), List.of(message(messages, key, fallback)));
     }
 
 }

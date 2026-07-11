@@ -345,7 +345,7 @@ class GuiSystemPolicyTest {
                 || List.of("IslandBanMenu", "IslandMyIslandsMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())")
                 || List.of("IslandInviteMenu", "IslandSnapshotMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
                 || menuName.equals("IslandVisitMenu") && menu.contains("!List.of(\"E\", \"W\", \"N\").contains(item.symbol())")
-                || menuName.equals("IslandRoleMenu") && menu.contains("!List.of(\"E\", \"_\", \"W\", \"N\").contains(item.symbol())"),
+                || List.of("IslandMissionMenu", "IslandRoleMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"W\", \"N\").contains(item.symbol())"),
                 menuName + " must hide configured dynamic placeholders during normal render");
             assertTrue(menu.contains("GuiMenuRenderer.setSymbolItem(inventory, MENU, \"E\""), menuName + " must render the configured empty placeholder when the list is empty");
         }
@@ -457,6 +457,9 @@ class GuiSystemPolicyTest {
         String roles = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandRoleMenu.java"));
         assertTrue(roles.contains("int maxPage = Math.max(0, (roles.size() - 1) / pageSize)"), "custom role management must paginate instead of hiding roles beyond the first 17 slots");
         assertTrue(roles.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "role page actions must preserve authoritative island context");
+        String missions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMissionMenu.java"));
+        assertTrue(missions.contains("int maxPage = Math.max(0, (missions.size() - 1) / pageSize)"), "mission and challenge catalogs must paginate instead of hiding later definitions");
+        assertTrue(missions.contains("Map.of(\"islandId\", islandId.toString(), \"kind\", kind, \"page\""), "mission page actions must preserve island and task-kind context");
     }
 
     @Test

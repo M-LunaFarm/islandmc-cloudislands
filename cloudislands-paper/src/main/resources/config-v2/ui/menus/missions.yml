@@ -7,7 +7,7 @@ layout:
   - "____E____"
   - "_________"
   - "_________"
-  - "M...R...C"
+  - "MW..R..NC"
 items:
   _:
     material: BOOK
@@ -54,7 +54,18 @@ items:
     data:
       kind: CHALLENGE
     action: open
+  W:
+    material: ARROW
+    name-key: mission-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: mission-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
 actions:
   open: island.missions.open
+  page: island.missions.page
   complete: island.mission.complete
   back: island.main.open
