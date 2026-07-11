@@ -117,6 +117,7 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         Map.entry("warp", new Mapping("legacy-warp", "워프"))
     );
     private static final ConcurrentHashMap<String, LongAdder> USAGE = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, LongAdder> ADMIN_USAGE = new ConcurrentHashMap<>();
 
     private final boolean enabled;
     private final boolean migrationMode;
@@ -157,7 +158,11 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         if (MAPPINGS.containsKey(normalized)) {
             return Optional.empty();
         }
-        return Optional.ofNullable(ADMIN_GUIDANCE.get(normalized));
+        AdminAliasGuidance guidance = ADMIN_GUIDANCE.get(normalized);
+        if (guidance != null) {
+            ADMIN_USAGE.computeIfAbsent(normalized, _ignored -> new LongAdder()).increment();
+        }
+        return Optional.ofNullable(guidance);
     }
 
     Optional<AdminAliasGuidance> adminGuidance(String[] args) {
@@ -166,12 +171,16 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         }
         if (normalize(args[0]).equals("admin")) {
             if (args.length < 2) {
-                return Optional.empty();
+                ADMIN_USAGE.computeIfAbsent("admin", _ignored -> new LongAdder()).increment();
+                return Optional.of(new AdminAliasGuidance("admin", "help command list", false));
             }
-            AdminAliasGuidance guidance = ADMIN_GUIDANCE.get(normalize(args[1]));
+            String alias = normalize(args[1]);
+            AdminAliasGuidance guidance = ADMIN_GUIDANCE.get(alias);
             if (guidance == null) {
-                return Optional.empty();
+                ADMIN_USAGE.computeIfAbsent("admin.unknown", _ignored -> new LongAdder()).increment();
+                return Optional.of(new AdminAliasGuidance("admin " + alias, "help command list", false));
             }
+            ADMIN_USAGE.computeIfAbsent(alias, _ignored -> new LongAdder()).increment();
             return Optional.of(new AdminAliasGuidance("admin " + guidance.alias(), guidance.ciadminCommand(), guidance.dangerous()));
         }
         return adminGuidance(args[0]);
@@ -196,21 +205,36 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         return Collections.unmodifiableMap(snapshot);
     }
 
+    public static Map<String, Long> adminUsageSnapshot() {
+        Map<String, Long> snapshot = new LinkedHashMap<>();
+        for (String alias : ADMIN_USAGE.keySet().stream().sorted().toList()) {
+            long value = ADMIN_USAGE.getOrDefault(alias, new LongAdder()).sum();
+            if (value > 0L) {
+                snapshot.put(alias, value);
+            }
+        }
+        return Collections.unmodifiableMap(snapshot);
+    }
+
     public static String metricsLine() {
         Map<String, Long> snapshot = usageSnapshot();
-        if (snapshot.isEmpty()) {
-            return "legacySs2Aliases=0";
-        }
+        String playerMetrics = snapshot.isEmpty() ? "legacySs2Aliases=0" : usageMetrics("legacySs2Aliases", snapshot);
+        Map<String, Long> adminSnapshot = adminUsageSnapshot();
+        return adminSnapshot.isEmpty() ? playerMetrics : playerMetrics + ";" + usageMetrics("legacySs2AdminAliases", adminSnapshot);
+    }
+
+    private static String usageMetrics(String metric, Map<String, Long> snapshot) {
         String aliases = snapshot.entrySet().stream()
             .map(entry -> entry.getKey() + ":" + entry.getValue())
             .reduce((left, right) -> left + "," + right)
             .orElse("");
         long total = snapshot.values().stream().mapToLong(Long::longValue).sum();
-        return "legacySs2Aliases=" + total + "[" + aliases + "]";
+        return metric + "=" + total + "[" + aliases + "]";
     }
 
     static void resetUsageForTests() {
         USAGE.clear();
+        ADMIN_USAGE.clear();
     }
 
     private static String normalize(String value) {

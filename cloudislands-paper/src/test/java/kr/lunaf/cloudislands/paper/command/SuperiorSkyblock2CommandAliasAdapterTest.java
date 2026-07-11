@@ -87,8 +87,11 @@ class SuperiorSkyblock2CommandAliasAdapterTest {
         assertEquals("island member add <island> <player> [role]", adapter.adminGuidance(new String[] {"admin", "add"}).orElseThrow().ciadminCommand());
         assertEquals("island bank withdraw <island> <amount>", adapter.adminGuidance(new String[] {"admin", "withdraw"}).orElseThrow().ciadminCommand());
         assertEquals("island tp <island>", adapter.adminGuidance(new String[] {"admin", "teleport"}).orElseThrow().ciadminCommand());
-        assertTrue(adapter.adminGuidance(new String[] {"admin"}).isEmpty());
-        assertTrue(adapter.adminGuidance(new String[] {"admin", "unknown"}).isEmpty());
+        assertEquals("help command list", adapter.adminGuidance(new String[] {"admin"}).orElseThrow().ciadminCommand());
+        assertEquals("help command list", adapter.adminGuidance(new String[] {"admin", "unknown"}).orElseThrow().ciadminCommand());
+        assertEquals("admin unknown", adapter.adminGuidance(new String[] {"admin", "unknown"}).orElseThrow().alias());
+        assertTrue(SuperiorSkyblock2CommandAliasAdapter.adminUsageSnapshot().containsKey("purge"));
+        assertTrue(SuperiorSkyblock2CommandAliasAdapter.metricsLine().contains("legacySs2AdminAliases="));
         assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAdminAlias("cmdall"));
         assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAdminAlias("resetworld"));
         assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAdminAlias("setpermission"));
