@@ -41,6 +41,7 @@ tasks.register("verifyIntegrationMatrix") {
             "API_INCOMPATIBLE",
             "API_COMPATIBLE",
             "ADAPTER_INACTIVE",
+            "DIAGNOSTIC_ONLY",
             "ACTIVE",
             "OPERATION_SUCCEEDED",
             "OPERATION_FAILED",
@@ -95,7 +96,7 @@ tasks.register("verifyIntegrationMatrix") {
         )
         val reportsDir = integrationJsonReport.get().asFile.parentFile
         reportsDir.mkdirs()
-        val priorityOperationPlugins = setOf("Vault", "LuckPerms", "PlaceholderAPI", "WorldEdit", "CoreProtect")
+        val priorityOperationPlugins = setOf("Vault", "LuckPerms", "PlaceholderAPI")
         fun jsonEscape(value: String): String = buildString {
             value.forEach { character ->
                 when (character) {
@@ -192,7 +193,7 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
         val source = certification.asFile.readText()
         val tests = certificationTest.asFile.readText()
         val registrySource = registry.asFile.readText()
-        val requiredPlugins = listOf("Vault", "LuckPerms", "PlaceholderAPI", "WorldEdit", "CoreProtect")
+        val requiredPlugins = listOf("Vault", "LuckPerms", "PlaceholderAPI")
         val failures = buildList {
             requiredPlugins.filterNot { source.contains("\"$it\"") && tests.contains("\"$it\"") }.forEach { plugin ->
                 add("Integration runtime certification missing priority plugin $plugin")

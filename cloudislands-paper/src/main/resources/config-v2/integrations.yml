@@ -16,6 +16,8 @@ storage:
 routing:
   transport: CORE_TICKET
 hooks:
+  # Plugin entries describe support policy. Runtime presence is discovered from
+  # Bukkit; these entries are not per-plugin enable/disable switches.
   distributed-policy: paper-hooks-must-tag-island-uuid-runtime-fencing-token-node-id-and-node-ownership-before-core-state-changes
   required-runtime-claims:
     - island-uuid
@@ -26,16 +28,22 @@ hooks:
   plugins:
     CoreProtect:
       enabled: true
-      category: audit-rollback
-      runtime-authority-required: true
+      category: audit
+      mode: APPEND_ONLY_AUDIT
+      snapshot-state-portable: false
+      runtime-authority-required: false
     WorldEdit:
       enabled: true
       category: world-edit
-      runtime-authority-required: true
+      mode: COMPATIBILITY_ONLY
+      world-state-authority: CLOUDISLANDS_CHUNK_BUNDLE
+      runtime-authority-required: false
     FastAsyncWorldEdit:
       enabled: true
       category: world-edit
-      runtime-authority-required: true
+      mode: COMPATIBILITY_ONLY
+      world-state-authority: CLOUDISLANDS_CHUNK_BUNDLE
+      runtime-authority-required: false
     LuckPerms:
       enabled: true
       category: permission

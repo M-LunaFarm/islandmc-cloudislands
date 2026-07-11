@@ -12,6 +12,10 @@ No fixed `Island-1` mindset.
 No player-facing shard names.
 Portable bundles, route tickets, fencing tokens, shared storage.
 
+Portable means CloudIslands-owned world and island state. Third-party databases,
+audit history, undo queues, and other plugin-owned state are not implicitly
+embedded in an island bundle.
+
 ## What this is
 
 CloudIslands is built to replace SuperiorSkyblock2-style island management in a multi-server setup.
@@ -159,6 +163,10 @@ Backup and restore:
 - back up object storage manifests and bundles together
 - rehearse restore with `releaseClusterSmokeGate`
 - verify snapshot manifest checksum and route handoff after restore
+- back up the CoreProtect database separately when audit retention matters;
+  CloudIslands never treats a CoreProtect rollback as an island-bundle restore
+- WorldEdit and FAWE schematic or undo history is not snapshot payload; restored
+  block state comes from the verified CloudIslands chunk bundle
 
 Failure runbook:
 
@@ -494,7 +502,7 @@ integration verification.
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
-| integrations/localization/GUI | IMPLEMENTED_VERIFIED | verifyIntegrationRuntimeSmoke proves priority plugin operation smoke fixtures for Vault, LuckPerms, PlaceholderAPI, WorldEdit, and CoreProtect | full third-party server farms remain operator acceptance; CI verifies fixture-backed priority operation certification |
+| integrations/localization/GUI | PARTIAL_VERIFIED | verifyIntegrationRuntimeSmoke covers Vault, LuckPerms, and PlaceholderAPI operations; WorldEdit/FAWE and CoreProtect retain detection/version adapters | CoreProtect audit storage is external and WorldEdit/FAWE do not contribute bundle payloads; other third-party adapters require live acceptance |
 <!-- feature-parity:end -->
 
 ## Release

@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.integration.CloudIntegrationPolicy;
-import kr.lunaf.cloudislands.paper.integration.coreprotect.CoreProtectIntegration;
 import kr.lunaf.cloudislands.paper.integration.economy.VaultIntegration;
 import kr.lunaf.cloudislands.paper.integration.permission.LuckPermsIntegration;
 import kr.lunaf.cloudislands.paper.integration.placeholder.PlaceholderApiIntegration;
@@ -18,15 +17,12 @@ import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationSupportState;
-import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
 
 public final class IntegrationRuntimeCertification {
     private static final List<String> PRIORITY_PLUGINS = List.of(
         "Vault",
         "LuckPerms",
-        "PlaceholderAPI",
-        "WorldEdit",
-        "CoreProtect"
+        "PlaceholderAPI"
     );
 
     private IntegrationRuntimeCertification() {
@@ -41,9 +37,7 @@ public final class IntegrationRuntimeCertification {
         return List.of(
             certify(new VaultIntegration(externalRuntime), Operation.ACTIVATE, context("vault:operation-smoke")),
             certify(new LuckPermsIntegration(externalRuntime), Operation.EXPORT, context("luckperms:permission-smoke")),
-            certify(new PlaceholderApiIntegration(externalRuntime), Operation.ACTIVATE, context("placeholderapi:render-smoke")),
-            certify(new WorldEditIntegration("WorldEdit", externalRuntime), Operation.EXPORT, context("worldedit:region-smoke")),
-            certify(new CoreProtectIntegration(externalRuntime), Operation.EXPORT, context("coreprotect:audit-smoke"))
+            certify(new PlaceholderApiIntegration(externalRuntime), Operation.ACTIVATE, context("placeholderapi:render-smoke"))
         );
     }
 

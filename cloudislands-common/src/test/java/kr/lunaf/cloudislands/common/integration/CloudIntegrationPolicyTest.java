@@ -25,7 +25,7 @@ class CloudIntegrationPolicyTest {
 
     @Test
     void classifiesIntegrationCategories() {
-        assertEquals("audit-rollback", CloudIntegrationPolicy.category("CoreProtect"));
+        assertEquals("audit", CloudIntegrationPolicy.category("CoreProtect"));
         assertEquals("world-edit", CloudIntegrationPolicy.category("WorldEdit"));
         assertEquals("custom-items", CloudIntegrationPolicy.category("ItemsAdder"));
         assertEquals("stacker", CloudIntegrationPolicy.category("RoseStacker"));

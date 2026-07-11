@@ -17,7 +17,6 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.integration.analytics.PlanIntegration;
-import kr.lunaf.cloudislands.paper.integration.coreprotect.CoreProtectIntegration;
 import kr.lunaf.cloudislands.paper.integration.customitem.CustomItemIntegration;
 import kr.lunaf.cloudislands.paper.integration.permission.LuckPermsIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime;
@@ -37,8 +36,6 @@ class IntegrationLifecycleHooksTest {
         UUID islandId = UUID.randomUUID();
         IntegrationExternalRuntime runtime = acceptingRuntime();
         IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(
-            new CoreProtectIntegration(runtime),
-            new WorldEditIntegration("WorldEdit", runtime),
             new CustomItemIntegration("ItemsAdder", runtime),
             new StackerIntegration("RoseStacker", runtime),
             new LuckPermsIntegration(runtime),
@@ -60,7 +57,7 @@ class IntegrationLifecycleHooksTest {
         IntegrationLifecycleHooks.LifecycleBatch activationBatch = hooks.onIslandActivated(islandId, activeIsland);
         activationBatch.throwIfFailed();
 
-        assertEquals(6, activationBatch.results().size());
+        assertEquals(4, activationBatch.results().size());
         assertTrue(activationBatch.results().stream().allMatch(result -> result.status() == IntegrationResult.Status.SUCCESS));
         assertEquals("activate", activationBatch.operation());
         assertEquals("island-activate:" + islandId + ":0", activationBatch.context().idempotencyKey());
@@ -69,7 +66,7 @@ class IntegrationLifecycleHooksTest {
         IntegrationLifecycleHooks.LifecycleBatch exportBatch = hooks.exportState(islandId, activeIsland, 1234L, Path.of("1234-bundle.tar.zst"));
         exportBatch.throwIfFailed();
 
-        assertEquals(6, exportBatch.results().size());
+        assertEquals(4, exportBatch.results().size());
         assertTrue(exportBatch.results().stream().allMatch(result -> result.status() == IntegrationResult.Status.SUCCESS));
         assertEquals("12,-4", exportBatch.context().metadata().get("cell"));
         assertEquals("192,0,-64..491,319,235", exportBatch.context().metadata().get("region"));
@@ -84,7 +81,7 @@ class IntegrationLifecycleHooksTest {
         IntegrationLifecycleHooks.LifecycleBatch restoreBatch = hooks.restoreState(islandId, "ci_shard_001", 12, -4, 192, -64, 77L, 1234L, "snapshots/island.tar.zst", Path.of("bundle.tar.zst"), extractedRoot, manifest);
         restoreBatch.throwIfFailed();
 
-        assertEquals(6, restoreBatch.results().size());
+        assertEquals(4, restoreBatch.results().size());
         assertTrue(restoreBatch.results().stream().allMatch(result -> result.status() == IntegrationResult.Status.SUCCESS));
         assertEquals("0", restoreBatch.context().metadata().get("rollbackSeconds"));
         assertEquals("snapshots/island.tar.zst", restoreBatch.context().metadata().get("bundleKey"));
@@ -95,7 +92,7 @@ class IntegrationLifecycleHooksTest {
         IntegrationLifecycleHooks.LifecycleBatch deactivationBatch = hooks.onIslandDeactivated(islandId, activeIsland, Path.of("1234-bundle.tar.zst"));
         deactivationBatch.throwIfFailed();
 
-        assertEquals(6, deactivationBatch.results().size());
+        assertEquals(4, deactivationBatch.results().size());
         assertTrue(deactivationBatch.results().stream().allMatch(result -> result.status() == IntegrationResult.Status.SUCCESS));
         assertEquals("deactivate", deactivationBatch.operation());
         assertEquals("island-deactivate:" + islandId + ":0", deactivationBatch.context().idempotencyKey());
@@ -105,7 +102,7 @@ class IntegrationLifecycleHooksTest {
     @Test
     void lifecycleBatchWritesAuditableJsonWhenPluginsRan() throws IOException {
         UUID islandId = UUID.randomUUID();
-        IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(new CoreProtectIntegration(acceptingRuntime())));
+        IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(new StackerIntegration("RoseStacker", acceptingRuntime())));
         ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(
             islandId,
             "ci_shard_001",
@@ -131,9 +128,9 @@ class IntegrationLifecycleHooksTest {
         java.util.List<?> manifests = SimpleJson.list(root.get("stateManifests"));
         assertFalse(manifests.isEmpty());
         java.util.Map<?, ?> manifest = SimpleJson.object(manifests.getFirst());
-        assertEquals("CoreProtect", SimpleJson.text(manifest.get("plugin")));
-        assertEquals("audit-export", SimpleJson.text(manifest.get("operation")));
-        assertEquals("integrations/audit-rollback/CoreProtect/audit-export.json", SimpleJson.text(manifest.get("bundleRelativePath")));
+        assertEquals("RoseStacker", SimpleJson.text(manifest.get("plugin")));
+        assertEquals("effective-stack-export", SimpleJson.text(manifest.get("operation")));
+        assertEquals("integrations/stacker/RoseStacker/effective-stack-export.json", SimpleJson.text(manifest.get("bundleRelativePath")));
         assertEquals("ci_shard_001:1,2", SimpleJson.text(manifest.get("runtimeScope")));
     }
 
@@ -182,7 +179,7 @@ class IntegrationLifecycleHooksTest {
     }
 
     @Test
-    void worldEditLifecycleHooksRunForIslandActivationExportRestoreAndDeactivation() throws IOException {
+    void diagnosticOnlyWorldEditAdapterNeverRunsLifecycleHooks() throws IOException {
         UUID islandId = UUID.randomUUID();
         List<String> operations = new ArrayList<>();
         IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(
@@ -212,13 +209,8 @@ class IntegrationLifecycleHooksTest {
         hooks.restoreState(islandId, "ci_shard_001", 1, 2, 10, 20, 99L, 777L, "snapshots/island.tar.zst", Path.of("bundle.tar.zst"), tempDir.resolve("extracted"), manifest).throwIfFailed();
         hooks.onIslandDeactivated(islandId, activeIsland, Path.of("777-bundle.tar.zst")).throwIfFailed();
 
-        assertEquals(List.of(
-            "WorldEdit:clipboard-activate",
-            "WorldEdit:schematic-export",
-            "WorldEdit:schematic-restore",
-            "WorldEdit:edit-session-deactivate"
-        ), operations);
-        assertTrue(Files.isRegularFile(tempDir.resolve("integrations/world-edit/WorldEdit/schematic-export.json")));
+        assertEquals(List.of(), operations);
+        assertFalse(Files.exists(tempDir.resolve("integrations/world-edit/WorldEdit/schematic-export.json")));
     }
 
     @Test
@@ -233,7 +225,7 @@ class IntegrationLifecycleHooksTest {
     void skippedStateChangingHookFailsClosedAtLifecycleBoundary() {
         UUID islandId = UUID.randomUUID();
         IntegrationLifecycleHooks hooks = IntegrationLifecycleHooks.direct("island-node-01", List.of(
-            new CoreProtectIntegration((_pluginName, _category, _operation, _context, _plan) ->
+            new StackerIntegration("RoseStacker", (_pluginName, _category, _operation, _context, _plan) ->
                 IntegrationResult.skipped("operation executor unavailable"))
         ));
         ActiveIslandRegistry.ActiveIsland activeIsland = activeIsland(islandId);
@@ -248,7 +240,7 @@ class IntegrationLifecycleHooksTest {
         assertEquals(IntegrationResult.Status.SKIPPED, batch.results().getFirst().status());
         assertEquals("true", batch.results().getFirst().details().get("plan.stateChanging"));
         IOException exception = assertThrows(IOException.class, batch::throwIfFailed);
-        assertTrue(exception.getMessage().contains("CoreProtect [SKIPPED]"));
+        assertTrue(exception.getMessage().contains("RoseStacker [SKIPPED]"));
     }
 
     @Test

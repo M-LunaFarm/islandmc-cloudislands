@@ -16,7 +16,7 @@ class IntegrationRuntimeCertificationTest {
     @Test
     void priorityRuntimeCertificationCoversFirstExternalPluginWave() {
         assertIterableEquals(
-            List.of("Vault", "LuckPerms", "PlaceholderAPI", "WorldEdit", "CoreProtect"),
+            List.of("Vault", "LuckPerms", "PlaceholderAPI"),
             IntegrationRuntimeCertification.priorityPlugins()
         );
     }
@@ -34,19 +34,17 @@ class IntegrationRuntimeCertificationTest {
             }
         );
 
-        assertEquals(5, results.size());
+        assertEquals(3, results.size());
         assertTrue(results.stream().allMatch(IntegrationRuntimeCertification.CertificationResult::certified));
         assertTrue(results.stream().allMatch(result -> result.operationState() == IntegrationSupportState.OPERATION_SUCCEEDED));
         assertTrue(results.stream().allMatch(result -> result.requiredRuntimeClaims().contains("island-uuid")));
         assertTrue(results.stream().allMatch(result -> result.requiredRuntimeClaims().contains("runtime-fencing-token")));
-        assertTrue(results.stream().filter(IntegrationRuntimeCertification.CertificationResult::runtimeAuthorityRequired).count() >= 4);
+        assertTrue(results.stream().filter(IntegrationRuntimeCertification.CertificationResult::runtimeAuthorityRequired).count() >= 2);
 
         assertEquals(List.of(
             "Vault:economy:economy-transaction-smoke:Vault Economy#withdrawPlayer+depositPlayer+getBalance",
             "LuckPerms:permission:permission-context-export:LuckPerms#userManager+trackManager#saveContextState",
-            "PlaceholderAPI:placeholder:placeholder-render-smoke:PlaceholderAPI#setPlaceholders",
-            "WorldEdit:world-edit:schematic-export:ClipboardWriter#write",
-            "CoreProtect:audit-rollback:audit-export:CoreProtectAPI#performLookup"
+            "PlaceholderAPI:placeholder:placeholder-render-smoke:PlaceholderAPI#setPlaceholders"
         ), calls);
     }
 
@@ -57,7 +55,7 @@ class IntegrationRuntimeCertificationTest {
                 IntegrationResult.success("probe only", Map.of("apiProbe", "true"))
         );
 
-        assertEquals(5, results.size());
+        assertEquals(3, results.size());
         assertTrue(results.stream().allMatch(result -> result.operationState() == IntegrationSupportState.OPERATION_FAILED));
         assertFalse(results.stream().anyMatch(IntegrationRuntimeCertification.CertificationResult::certified));
         assertTrue(results.stream().allMatch(result -> "state-artifact-or-round-trip".equals(result.details().get("external.evidenceRequired"))));
@@ -76,7 +74,7 @@ class IntegrationRuntimeCertificationTest {
             Map.of("Vault", "1.7.3")
         );
 
-        assertTrue(report.summaryLine().contains("failed=5"));
+        assertTrue(report.summaryLine().contains("failed=3"));
         assertTrue(report.toJson().contains("\"pluginName\":\"Vault\""));
         assertTrue(report.toJson().contains("\"pluginVersion\":\"1.7.3\""));
         assertTrue(report.toJson().contains("\"operationState\":\"OPERATION_FAILED\""));

@@ -428,11 +428,11 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     ),
     FeatureParityEntry(
         "integrations/localization/GUI",
-        "IMPLEMENTED_VERIFIED",
-        "integration policy, localization files, GUI components, and priority plugin runtime certification fixtures exist",
-        "Paper integration registry reports explicit operation states and priority runtime certification",
-        "plugin-specific adapters are active where implemented",
-        "verifyIntegrationRuntimeSmoke proves priority plugin operation smoke fixtures for Vault, LuckPerms, PlaceholderAPI, WorldEdit, and CoreProtect",
+        "PARTIAL_VERIFIED",
+        "integration policy, localization files, GUI components, and scoped runtime certification fixtures exist",
+        "Paper integration registry separates diagnostic-only adapters from executable operation adapters",
+        "plugin-specific operation adapters are active only where implemented",
+        "verifyIntegrationRuntimeSmoke covers Vault, LuckPerms, and PlaceholderAPI operations; WorldEdit/FAWE and CoreProtect retain detection/version adapters",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java",
@@ -441,7 +441,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java"
         ),
-        "full third-party server farms remain operator acceptance; CI verifies fixture-backed priority operation certification"
+        "CoreProtect audit storage is external and WorldEdit/FAWE do not contribute bundle payloads; other third-party adapters require live acceptance"
     )
 )
 

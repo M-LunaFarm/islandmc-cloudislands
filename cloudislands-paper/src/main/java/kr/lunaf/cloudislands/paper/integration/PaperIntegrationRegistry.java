@@ -28,6 +28,12 @@ import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
 
 public final class PaperIntegrationRegistry {
+    private static final Set<IntegrationCapability> EXECUTABLE_CAPABILITIES = Set.of(
+        IntegrationCapability.ISLAND_ACTIVATE,
+        IntegrationCapability.ISLAND_DEACTIVATE,
+        IntegrationCapability.STATE_EXPORT,
+        IntegrationCapability.STATE_RESTORE
+    );
     private final Server server;
     private final Map<String, CloudIntegration> integrations;
 
@@ -64,8 +70,10 @@ public final class PaperIntegrationRegistry {
             apiState,
             adapterState,
             null,
-            CloudIntegrationPolicy.requiresRuntimeAuthority(pluginName, false),
-            CloudIntegrationPolicy.requiredRuntimeClaims(),
+            integration.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY),
+            integration.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY)
+                ? CloudIntegrationPolicy.requiredRuntimeClaims()
+                : List.of(),
             integration.capabilities()
         );
     }
@@ -75,23 +83,23 @@ public final class PaperIntegrationRegistry {
     }
 
     public IntegrationResult validateVersion(String pluginName, IntegrationContext context) {
-        return execute(pluginName, CloudIntegration::validateVersion, context, false);
+        return execute(pluginName, IntegrationCapability.VALIDATE_VERSION, CloudIntegration::validateVersion, context, false);
     }
 
     public IntegrationResult onIslandActivate(String pluginName, IntegrationContext context) {
-        return execute(pluginName, CloudIntegration::onIslandActivate, context);
+        return execute(pluginName, IntegrationCapability.ISLAND_ACTIVATE, CloudIntegration::onIslandActivate, context);
     }
 
     public IntegrationResult onIslandDeactivate(String pluginName, IntegrationContext context) {
-        return execute(pluginName, CloudIntegration::onIslandDeactivate, context);
+        return execute(pluginName, IntegrationCapability.ISLAND_DEACTIVATE, CloudIntegration::onIslandDeactivate, context);
     }
 
     public IntegrationResult exportState(String pluginName, IntegrationContext context) {
-        return execute(pluginName, CloudIntegration::exportState, context);
+        return execute(pluginName, IntegrationCapability.STATE_EXPORT, CloudIntegration::exportState, context);
     }
 
     public IntegrationResult restoreState(String pluginName, IntegrationContext context) {
-        return execute(pluginName, CloudIntegration::restoreState, context);
+        return execute(pluginName, IntegrationCapability.STATE_RESTORE, CloudIntegration::restoreState, context);
     }
 
     public CloudIntegrationPolicy.HookDecision validateHookContext(CloudIntegrationPolicy.HookContext context) {
@@ -165,21 +173,21 @@ public final class PaperIntegrationRegistry {
     }
 
     private static CloudIntegration genericIntegration(String pluginName) {
-        Set<IntegrationCapability> capabilities = CloudIntegrationPolicy.requiresRuntimeAuthority(pluginName, false)
-            ? Set.of(IntegrationCapability.DETECT, IntegrationCapability.RUNTIME_AUTHORITY)
-            : Set.of(IntegrationCapability.DETECT);
-        return new PolicyBackedCloudIntegration(pluginName, capabilities);
+        return new PolicyBackedCloudIntegration(pluginName, Set.of(IntegrationCapability.DETECT));
     }
 
-    private IntegrationResult execute(String pluginName, BiFunction<CloudIntegration, IntegrationContext, IntegrationResult> operation, IntegrationContext context) {
-        return execute(pluginName, operation, context, true);
+    private IntegrationResult execute(String pluginName, IntegrationCapability capability, BiFunction<CloudIntegration, IntegrationContext, IntegrationResult> operation, IntegrationContext context) {
+        return execute(pluginName, capability, operation, context, true);
     }
 
-    private IntegrationResult execute(String pluginName, BiFunction<CloudIntegration, IntegrationContext, IntegrationResult> operation, IntegrationContext context, boolean validateVersion) {
+    private IntegrationResult execute(String pluginName, IntegrationCapability capability, BiFunction<CloudIntegration, IntegrationContext, IntegrationResult> operation, IntegrationContext context, boolean validateVersion) {
         CloudIntegration integration = integration(pluginName);
         Plugin plugin = plugin(integration.pluginName());
         if (!integration.detect(pluginEnabled(integration.pluginName()))) {
             return IntegrationResult.skipped(integration.pluginName() + " is not enabled");
+        }
+        if (!integration.capabilities().contains(capability)) {
+            return IntegrationResult.skipped(integration.pluginName() + " does not declare " + capability + " support");
         }
         IntegrationContext enrichedContext = withPluginRuntimeMetadata(integration.pluginName(), context, plugin);
         if (validateVersion && integration.capabilities().contains(IntegrationCapability.VALIDATE_VERSION)) {
@@ -210,9 +218,12 @@ public final class PaperIntegrationRegistry {
             : IntegrationSupportState.API_COMPATIBLE;
     }
 
-    private IntegrationSupportState adapterState(CloudIntegration integration, boolean enabled, IntegrationSupportState apiState) {
+    static IntegrationSupportState adapterState(CloudIntegration integration, boolean enabled, IntegrationSupportState apiState) {
         if (!enabled || !specificAdapter(integration) || apiState != IntegrationSupportState.API_COMPATIBLE) {
             return IntegrationSupportState.ADAPTER_INACTIVE;
+        }
+        if (integration.capabilities().stream().noneMatch(EXECUTABLE_CAPABILITIES::contains)) {
+            return IntegrationSupportState.DIAGNOSTIC_ONLY;
         }
         return IntegrationSupportState.ACTIVE;
     }
@@ -244,6 +255,9 @@ public final class PaperIntegrationRegistry {
         }
         if (adapterState == IntegrationSupportState.ACTIVE) {
             return IntegrationSupportState.ACTIVE;
+        }
+        if (adapterState == IntegrationSupportState.DIAGNOSTIC_ONLY) {
+            return IntegrationSupportState.DIAGNOSTIC_ONLY;
         }
         if (apiState == IntegrationSupportState.API_COMPATIBLE) {
             return IntegrationSupportState.API_COMPATIBLE;

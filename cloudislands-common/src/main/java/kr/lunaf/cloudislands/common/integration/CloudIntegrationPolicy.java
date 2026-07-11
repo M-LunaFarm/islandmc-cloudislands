@@ -9,9 +9,9 @@ public final class CloudIntegrationPolicy {
     public static final String DISTRIBUTED_HOOK_POLICY =
         "paper-hooks-must-tag-island-uuid-runtime-fencing-token-node-id-and-node-ownership-before-core-state-changes";
     public static final String COREPROTECT_POLICY =
-        "coreprotect-queries-and-rollbacks-are-scoped-by-island-region-and-audit-logged-with-island-uuid";
+        "coreprotect-is-append-only-audit-history-and-is-never-used-as-an-island-bundle-restore-source";
     public static final String WORLDEDIT_POLICY =
-        "worldedit-and-fawe-operations-require-active-node-ownership-and-runtime-fencing-before-template-or-repair-writes";
+        "worldedit-and-fawe-are-detected-for-compatibility-only-cloudislands-chunk-bundles-own-world-state-transfer";
     public static final String CUSTOM_ITEM_POLICY =
         "custom-item-values-and-limits-map-external-block-ids-to-core-block-value-and-limit-keys";
     public static final String STACKER_POLICY =
@@ -55,8 +55,6 @@ public final class CloudIntegrationPolicy {
     );
 
     private static final Set<String> CORE_STATE_CHANGING_CATEGORIES = Set.of(
-        "audit-rollback",
-        "world-edit",
         "custom-items",
         "stacker",
         "spawner",
@@ -68,7 +66,7 @@ public final class CloudIntegrationPolicy {
         Map.entry("Vault", "economy"),
         Map.entry("PlaceholderAPI", "placeholder"),
         Map.entry("LuckPerms", "permission"),
-        Map.entry("CoreProtect", "audit-rollback"),
+        Map.entry("CoreProtect", "audit"),
         Map.entry("WorldEdit", "world-edit"),
         Map.entry("FastAsyncWorldEdit", "world-edit"),
         Map.entry("ItemsAdder", "custom-items"),
