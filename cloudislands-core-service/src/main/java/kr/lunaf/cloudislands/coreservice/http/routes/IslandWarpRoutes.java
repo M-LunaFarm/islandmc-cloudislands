@@ -77,12 +77,14 @@ public final class IslandWarpRoutes implements RouteGroup {
     private void publicWarps(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         int limit = queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 27), 1, 54);
+        int offset = queryInteger(exchange, "offset", JsonFields.integer(body, "offset", 0), 0, 10_000);
         String category = queryText(exchange, "category", JsonFields.text(body, "category", ""));
         String query = queryText(exchange, "query", JsonFields.text(body, "query", ""));
-        List<IslandWarpSnapshot> visibleWarps = metadataRepository.publicWarps(500, category, query).stream()
+        List<IslandWarpSnapshot> visibleWarps = metadataRepository.publicWarps(Math.min(10_054, offset + limit), category, query).stream()
             .filter(warp -> metadataRepository.isPublicAccess(warp.islandId()))
             .filter(warp -> !metadataRepository.isLocked(warp.islandId()))
             .filter(warp -> islandFlagEnabled(warp.islandId(), IslandFlag.PUBLIC_WARPS))
+            .skip(offset)
             .limit(limit)
             .toList();
         CoreHttpResponses.write(exchange, 200, warpsJson(visibleWarps));

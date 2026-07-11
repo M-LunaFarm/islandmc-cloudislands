@@ -144,6 +144,7 @@ public final class GuiActionParser {
         "island.visit.page",
         "island.visit.public.category",
         "island.visit.public.open",
+        "island.visit.public.warps.page",
         "island.visit.random",
         "island.visit.target",
         "island.warehouse.deposit.help",
@@ -413,6 +414,11 @@ public final class GuiActionParser {
                 case "island.visit.public.category" -> Optional.of(new GuiAction.PublicWarpCategory(
                     required(safeData, "category"),
                     safeData.getOrDefault("query", "")
+                ));
+                case "island.visit.public.warps.page" -> Optional.of(new GuiAction.PublicWarpPage(
+                    safeData.getOrDefault("category", ""),
+                    safeData.getOrDefault("query", ""),
+                    nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.home" -> Optional.of(new GuiAction.HomeTeleport(
                     required(safeData, "homeName")

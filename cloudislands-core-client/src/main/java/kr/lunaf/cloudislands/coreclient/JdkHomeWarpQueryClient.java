@@ -40,12 +40,18 @@ public final class JdkHomeWarpQueryClient implements HomeWarpQueryClient {
 
     @Override
     public CompletableFuture<List<IslandWarpSnapshot>> publicWarpSnapshots(int limit, String category, String query) {
+        return publicWarpSnapshots(0, limit, category, query);
+    }
+
+    @Override
+    public CompletableFuture<List<IslandWarpSnapshot>> publicWarpSnapshots(int offset, int limit, String category, String query) {
+        int safeOffset = Math.max(0, offset);
         int safeLimit = Math.max(1, Math.min(limit, 100));
         String safeCategory = category == null ? "" : category;
         String safeQuery = query == null ? "" : query;
         String payload = safeCategory.isBlank() && safeQuery.isBlank()
-            ? CoreJsonPayload.object("limit", safeLimit)
-            : CoreJsonPayload.object("limit", safeLimit, "category", safeCategory, "query", safeQuery);
+            ? CoreJsonPayload.object("offset", safeOffset, "limit", safeLimit)
+            : CoreJsonPayload.object("offset", safeOffset, "limit", safeLimit, "category", safeCategory, "query", safeQuery);
         return core.postBody("/v1/islands/public-warps", payload)
             .thenApply(CoreResponseBody::value)
             .thenApply(body -> CoreHomeWarpJson.warps(null, body));

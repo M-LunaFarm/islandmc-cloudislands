@@ -83,6 +83,10 @@ public final class PaperGuiViews {
         return CoreGuiViews.publicWarps(client, limit, category, query).thenApply(views -> views.stream().map(PaperGuiViews::warp).toList());
     }
 
+    public static CompletableFuture<List<WarpView>> publicWarps(CoreApiClient client, int offset, int limit, String category, String query) {
+        return CoreGuiViews.publicWarps(client, offset, limit, category, query).thenApply(views -> views.stream().map(PaperGuiViews::warp).toList());
+    }
+
     public static CompletableFuture<List<PermissionRuleView>> islandPermissions(CoreApiClient client, UUID islandId) {
         return islandPermissionRules(client, islandId).thenApply(PermissionRulesView::rules);
     }

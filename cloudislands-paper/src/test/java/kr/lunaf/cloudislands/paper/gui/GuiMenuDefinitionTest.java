@@ -586,8 +586,12 @@ class GuiMenuDefinitionTest {
         assertEquals("_", publicWarps.itemAt(9).orElseThrow().symbol());
         assertEquals("R", publicWarps.itemAt(45).orElseThrow().symbol());
         assertEquals("island.visit.public.open", publicWarps.action(publicWarps.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("P", publicWarps.itemAt(46).orElseThrow().symbol());
+        assertEquals("island.visit.public.warps.page", publicWarps.action(publicWarps.itemAt(46).orElseThrow().actionKey(), ""));
         assertEquals("S", publicWarps.itemAt(49).orElseThrow().symbol());
         assertEquals("island.settings.open", publicWarps.action(publicWarps.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("N", publicWarps.itemAt(50).orElseThrow().symbol());
+        assertEquals("island.visit.public.warps.page", publicWarps.action(publicWarps.itemAt(50).orElseThrow().actionKey(), ""));
         assertEquals("M", publicWarps.itemAt(53).orElseThrow().symbol());
         assertEquals("island.main.open", publicWarps.action(publicWarps.itemAt(53).orElseThrow().actionKey(), ""));
     }

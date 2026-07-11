@@ -1456,7 +1456,7 @@ class CoreTypedClientsTest {
             assertEquals("2026-01-02T03:04:05Z", warp.createdAt());
             assertEquals("Island", client.islandInfo(islandId).join().name());
             assertEquals("market", client.publicWarps(200, null, null).join().get(0).name());
-            assertEquals(List.of("homes", "warps", "public:{\"limit\":100}", "homes", "warps", "info:{\"islandId\":\"" + islandId + "\"}", "public:{\"limit\":100}"), calls);
+            assertEquals(List.of("homes", "warps", "public:{\"offset\":0,\"limit\":100}", "homes", "warps", "info:{\"islandId\":\"" + islandId + "\"}", "public:{\"offset\":0,\"limit\":100}"), calls);
             assertFalse(source.contains("SimpleJson.object(values.get("), "home/warp parser must use shared CoreJson nested object helpers");
             assertTrue(source.contains("CoreJson.decimal(values, key)"), "home/warp location parser must use shared CoreJson decimal helpers");
         } finally {

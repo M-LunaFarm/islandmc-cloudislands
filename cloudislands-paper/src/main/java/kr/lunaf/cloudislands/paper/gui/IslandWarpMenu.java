@@ -38,6 +38,7 @@ public final class IslandWarpMenu implements Listener {
         new GuiMenuDefinition("island.public-warps", 6, "menu.public-warps.title", Map.of(
             "open", "island.visit.public.open",
             "category", "island.visit.public.category",
+            "page", "island.visit.public.warps.page",
             "teleport", "island.warp.teleport",
             "settings", "island.settings.open",
             "back", "island.main.open"
@@ -77,7 +78,7 @@ public final class IslandWarpMenu implements Listener {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandWarps(client, islandId)
-            .thenAccept(warps -> openSync(plugin, player, session, TITLE, warps, false, islandId, page, messages))
+            .thenAccept(warps -> openSync(plugin, player, session, TITLE, warps, false, islandId, page, "", "", messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "warp-menu-load-failed", "섬 워프를 불러오지 못했습니다."), "island.warps.open", "island.settings.open");
                 return null;
@@ -93,10 +94,16 @@ public final class IslandWarpMenu implements Listener {
     }
 
     public static void openPublic(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages, String category, String query) {
+        openPublic(plugin, client, player, messages, category, query, 0);
+    }
+
+    public static void openPublic(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages, String category, String query, int page) {
         GuiSession session = GuiSessions.begin(player, PUBLIC_MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, PUBLIC_MENU.titleKey(), PUBLIC_TITLE));
-        PaperGuiViews.publicWarps(client, 45, category, query)
-            .thenAccept(warps -> openSync(plugin, player, session, PUBLIC_TITLE, warps, true, null, 0, messages))
+        int pageSize = Math.max(1, GuiMenuRenderer.slots(PUBLIC_MENU, "_").size());
+        int safePage = Math.max(0, page);
+        PaperGuiViews.publicWarps(client, safePage * pageSize, pageSize + 1, category, query)
+            .thenAccept(warps -> openSync(plugin, player, session, PUBLIC_TITLE, warps, true, null, safePage, category, query, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, PUBLIC_MENU.titleKey(), PUBLIC_TITLE), message(messages, "warp-menu-public-load-failed", "공개 섬 워프를 불러오지 못했습니다."), "island.visit.public.open", "island.visit.open");
                 return null;
@@ -151,33 +158,36 @@ public final class IslandWarpMenu implements Listener {
         actions.execute(player, new GuiAction.WarpTeleport(warpName, null), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, String title, List<WarpView> warps, boolean publicMenu, UUID islandId, int requestedPage, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, String title, List<WarpView> warps, boolean publicMenu, UUID islandId, int requestedPage, String category, String query, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             GuiMenuDefinition menu = publicMenu ? PUBLIC_MENU : MENU;
             List<Integer> warpSlots = GuiMenuRenderer.slots(menu, "_");
             int pageSize = Math.max(1, warpSlots.size());
-            int maxPage = publicMenu ? 0 : Math.max(0, (warps.size() - 1) / pageSize);
-            int page = publicMenu ? 0 : Math.max(0, Math.min(requestedPage, maxPage));
-            String pageTitle = publicMenu ? title : title + " (" + (page + 1) + "/" + (maxPage + 1) + ")";
+            boolean hasNext = publicMenu && warps.size() > pageSize;
+            int maxPage = publicMenu ? requestedPage + (hasNext ? 1 : 0) : Math.max(0, (warps.size() - 1) / pageSize);
+            int page = publicMenu ? Math.max(0, requestedPage) : Math.max(0, Math.min(requestedPage, maxPage));
+            String pageTitle = title + " (" + (page + 1) + (publicMenu && hasNext ? "+" : "/" + (maxPage + 1)) + ")";
             Inventory inventory = GuiMenuRenderer.render(menu, session, messages, pageTitle,
                 item -> !List.of("_", "P", "N").contains(item.symbol()));
-            List<WarpView> visibleWarps = warps.stream().skip((long) page * pageSize).limit(pageSize).toList();
+            List<WarpView> visibleWarps = warps.stream().skip(publicMenu ? 0L : (long) page * pageSize).limit(pageSize).toList();
             for (int index = 0; index < visibleWarps.size(); index++) {
                 inventory.setItem(warpSlots.get(index), warpItem(visibleWarps.get(index), publicMenu, messages));
             }
-            if (!publicMenu && page > 0) {
-                setPageItem(inventory, "P", islandId, page - 1, messages);
+            if (page > 0) {
+                setPageItem(inventory, menu, "P", islandId, category, query, page - 1, messages);
             }
-            if (!publicMenu && page < maxPage) {
-                setPageItem(inventory, "N", islandId, page + 1, messages);
+            if (publicMenu ? hasNext : page < maxPage) {
+                setPageItem(inventory, menu, "N", islandId, category, query, page + 1, messages);
             }
             player.openInventory(inventory);
         });
     }
 
-    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, int page, MessageRenderer messages) {
-        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
-            Map.of("islandId", islandId.toString(), "page", Integer.toString(page)), List.of());
+    private static void setPageItem(Inventory inventory, GuiMenuDefinition menu, String symbol, UUID islandId, String category, String query, int page, MessageRenderer messages) {
+        Map<String, String> data = islandId == null
+            ? Map.of("category", category == null ? "" : category, "query", query == null ? "" : query, "page", Integer.toString(page))
+            : Map.of("islandId", islandId.toString(), "page", Integer.toString(page));
+        GuiMenuRenderer.setSymbolItem(inventory, menu, symbol, messages, data, List.of());
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

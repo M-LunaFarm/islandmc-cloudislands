@@ -113,6 +113,10 @@ public final class CoreGuiViews {
         return client.homeWarps().publicWarps(limit, category, query);
     }
 
+    public static CompletableFuture<List<WarpView>> publicWarps(CoreApiClient client, int offset, int limit, String category, String query) {
+        return client.homeWarps().publicWarps(offset, limit, category, query);
+    }
+
     public static CompletableFuture<List<PermissionRuleView>> islandPermissions(CoreApiClient client, UUID islandId) {
         return islandPermissionRules(client, islandId).thenApply(PermissionRulesView::rules);
     }

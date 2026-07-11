@@ -468,8 +468,8 @@ class GuiSystemPolicyTest {
         assertTrue(homes.contains("int maxPage = Math.max(0, (homes.size() - 1) / pageSize)"), "named homes beyond the first GUI page must remain reachable");
         assertTrue(homes.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "home page actions must retain authoritative island context");
         String warps = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandWarpMenu.java"));
-        assertTrue(warps.contains("int maxPage = publicMenu ? 0 : Math.max(0, (warps.size() - 1) / pageSize)"), "private warps beyond the first GUI page must remain reachable");
-        assertTrue(warps.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "warp page actions must retain authoritative island context");
+        assertTrue(warps.contains(": Math.max(0, (warps.size() - 1) / pageSize)"), "private warps beyond the first GUI page must remain reachable");
+        assertTrue(warps.contains(": Map.of(\"islandId\", islandId.toString(), \"page\""), "warp page actions must retain authoritative island context");
         String upgrades = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandUpgradeMenu.java"));
         assertTrue(upgrades.contains("int maxPage = Math.max(0, (upgrades.size() - 1) / pageSize)"), "configured upgrades beyond the first GUI page must remain purchasable");
         assertTrue(upgrades.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "upgrade page actions must retain authoritative island context");
@@ -570,6 +570,9 @@ class GuiSystemPolicyTest {
         }
         String publicWarps = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/public-warps.yml"));
         assertTrue(publicWarps.contains("\"_________\""), "public-warps.yml must expose dynamic item slots in config-v2 layout");
+        String warpMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandWarpMenu.java"));
+        assertTrue(warpMenu.contains("safePage * pageSize, pageSize + 1, category, query"), "public warp discovery must request stable server-side pages with a next-page sentinel");
+        assertTrue(warpMenu.contains("Map.of(\"category\", category == null ? \"\" : category, \"query\", query == null ? \"\" : query, \"page\""), "public warp page actions must retain category and query filters");
     }
 
     @Test

@@ -15,6 +15,13 @@ public interface HomeWarpQueryClient {
 
     CompletableFuture<List<IslandWarpSnapshot>> publicWarpSnapshots(int limit, String category, String query);
 
+    default CompletableFuture<List<IslandWarpSnapshot>> publicWarpSnapshots(int offset, int limit, String category, String query) {
+        int safeOffset = Math.max(0, offset);
+        int safeLimit = Math.max(1, limit);
+        return publicWarpSnapshots(safeOffset + safeLimit, category, query)
+            .thenApply(warps -> warps.stream().skip(safeOffset).limit(safeLimit).toList());
+    }
+
     default CompletableFuture<List<CoreGuiViews.HomeView>> homes(UUID islandId) {
         return homeSnapshots(islandId).thenApply(homes -> homes.stream()
             .map(CoreHomeWarpJson::homeView)
@@ -29,6 +36,12 @@ public interface HomeWarpQueryClient {
 
     default CompletableFuture<List<CoreGuiViews.WarpView>> publicWarps(int limit, String category, String query) {
         return publicWarpSnapshots(limit, category, query).thenApply(warps -> warps.stream()
+            .map(CoreHomeWarpJson::warpView)
+            .toList());
+    }
+
+    default CompletableFuture<List<CoreGuiViews.WarpView>> publicWarps(int offset, int limit, String category, String query) {
+        return publicWarpSnapshots(offset, limit, category, query).thenApply(warps -> warps.stream()
             .map(CoreHomeWarpJson::warpView)
             .toList());
     }

@@ -7,7 +7,7 @@ layout:
   - "_________"
   - "_________"
   - "_________"
-  - "R...S...M"
+  - "RP..SN..M"
 items:
   D:
     material: COMPASS
@@ -77,6 +77,16 @@ items:
     fallback-lore:
       - "/섬 공개워프목록"
     action: open
+  P:
+    material: ARROW
+    name-key: warp-menu-public-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: warp-menu-public-next-page
+    fallback-name: 다음 페이지
+    action: page
   S:
     material: COMPARATOR
     name-key: warp-menu-settings-name
@@ -97,6 +107,7 @@ items:
     action: back
 actions:
   open: island.visit.public.open
+  page: island.visit.public.warps.page
   category: island.visit.public.category
   teleport: island.warp.teleport
   settings: island.settings.open

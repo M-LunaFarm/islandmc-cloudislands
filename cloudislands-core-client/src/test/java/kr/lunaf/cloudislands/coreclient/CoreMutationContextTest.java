@@ -804,13 +804,13 @@ class CoreMutationContextTest {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
             client.homeWarps().publicWarpSnapshots(10, "", "").join();
-            assertEquals("{\"limit\":10}", requestBodies.get("publicWarps"));
+            assertEquals("{\"offset\":0,\"limit\":10}", requestBodies.get("publicWarps"));
             client.homeWarps().publicWarpSnapshots(11, "market\"zone", "spawn\"main").join();
             client.navigation().listReviews(islandId, 12).join();
             client.navigationCommands().setReview(islandId, reviewerUuid, 5, "nice \"base\"").join();
             client.navigationCommands().deleteReview(islandId, reviewerUuid).join();
 
-            assertEquals("{\"limit\":11,\"category\":\"market\\\"zone\",\"query\":\"spawn\\\"main\"}", requestBodies.get("publicWarps"));
+            assertEquals("{\"offset\":0,\"limit\":11,\"category\":\"market\\\"zone\",\"query\":\"spawn\\\"main\"}", requestBodies.get("publicWarps"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":12}", requestBodies.get("reviews"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"rating\":5,\"comment\":\"nice \\\"base\\\"\"}", requestBodies.get("reviewSet"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\"}", requestBodies.get("reviewDelete"));
