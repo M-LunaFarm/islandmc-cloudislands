@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.13`
+Version: `1.1.14`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,28 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.13`
+Current release: `v1.1.14`
 
-Built for the CloudIslands 1.1.13 baseline.
+Built for the CloudIslands 1.1.14 baseline.
 
-Release notes for `v1.1.13`:
+Release notes for `v1.1.14`:
+
+- atomic invite capacity: concurrent invite acceptance locks the durable island
+  row and checks the team limit inside the same transaction as invite state and
+  membership mutation
+- consistent local semantics: the in-memory repository serializes the same
+  operation, with a concurrency regression test proving only one final slot can
+  be consumed
+- correct team-slot accounting: temporary `TRUSTED` co-op access does not use a
+  permanent team slot, while accepting promotion to `MEMBER` consumes one
+  atomically; custom team roles remain included
+- actionable race feedback: an invite that loses a capacity race returns
+  `MEMBER_LIMIT` instead of the misleading generic unavailable response
+- visitor sanction boundaries: authoritative owners and permanent team members
+  cannot be processed through visitor ban or visitor kick commands even when a
+  membership projection is stale
+
+Release notes carried forward from `v1.1.13`:
 
 - synchronized island visibility: public/private changes now update the durable
   island row, in-memory island snapshot, and Redis island summary immediately
@@ -817,7 +834,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.13`.
+Current read: production-readiness baseline `v1.1.14`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
