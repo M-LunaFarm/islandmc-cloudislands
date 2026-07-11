@@ -1087,6 +1087,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(membershipHandler.contains("runtime.saveStagedIslandPermissions"), "Permission save must be the only GUI save action");
         assertTrue(backend.contains("IslandPermissionCommandHandler"), "Permission commands must be extracted from the backend");
         assertTrue(permissionHandler.contains("stagedPermissionChanges"), "Permission edits must have a dirty session store");
+        assertTrue(permissionHandler.contains("void clearPlayerState(UUID playerUuid)"), "Permission staging must expose per-player lifecycle cleanup");
+        assertTrue(backend.contains("permissionCommands.clearPlayerState(event.getPlayer().getUniqueId())"), "Quit and kick handling must discard staged permission edits");
         assertTrue(permissionHandler.contains("GuiStateMenus.openSaving"), "Permission save must show a Saving state");
         assertTrue(permissionHandler.contains("GuiStateMenus.openSuccess"), "Permission save must show a Success state");
         assertTrue(permissionHandler.contains("GuiStateMenus.openConflict"), "Permission save failures must show Conflict/Error recovery state");

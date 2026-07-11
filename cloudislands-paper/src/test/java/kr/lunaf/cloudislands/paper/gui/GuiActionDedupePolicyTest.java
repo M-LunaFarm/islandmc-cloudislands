@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
@@ -29,5 +30,18 @@ class GuiActionDedupePolicyTest {
         assertTrue(policy.accept(PLAYER, new GuiAction.BankAmount(GuiAction.BankAmountType.WITHDRAW, new BigDecimal("10000")), GuiClick.LEFT, 1_100L));
         assertTrue(policy.accept(PLAYER, first, GuiClick.RIGHT, 1_200L));
         assertTrue(policy.accept(UUID.fromString("00000000-0000-0000-0000-000000000002"), first, GuiClick.LEFT, 1_300L));
+    }
+
+    @Test
+    void clearingPlayerStateReleasesTrackingAndAllowsImmediateReuse() {
+        GuiActionDedupePolicy policy = new GuiActionDedupePolicy(500L);
+        GuiAction action = new GuiAction.BankAmount(GuiAction.BankAmountType.WITHDRAW, new BigDecimal("1000"));
+
+        assertTrue(policy.accept(PLAYER, action, GuiClick.LEFT, 1_000L));
+        assertEquals(1, policy.trackedPlayers());
+        policy.clear(PLAYER);
+
+        assertEquals(0, policy.trackedPlayers());
+        assertTrue(policy.accept(PLAYER, action, GuiClick.LEFT, 1_100L));
     }
 }

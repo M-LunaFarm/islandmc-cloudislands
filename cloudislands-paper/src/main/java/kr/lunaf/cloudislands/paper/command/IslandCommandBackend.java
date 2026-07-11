@@ -165,11 +165,13 @@ final class IslandCommandBackend {
 
     public void onQuit(PlayerQuitEvent event) {
         routingCommands.clearRouteLoading(event.getPlayer());
+        permissionCommands.clearPlayerState(event.getPlayer().getUniqueId());
         router.clearPlayerState(event.getPlayer());
     }
 
     public void onKick(PlayerKickEvent event) {
         routingCommands.clearRouteLoading(event.getPlayer());
+        permissionCommands.clearPlayerState(event.getPlayer().getUniqueId());
         router.clearPlayerState(event.getPlayer());
     }
 

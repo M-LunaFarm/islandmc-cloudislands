@@ -38,6 +38,12 @@ final class IslandPermissionCommandHandler {
         this.runtime = runtime;
     }
 
+    void clearPlayerState(UUID playerUuid) {
+        if (playerUuid != null) {
+            stagedPermissionChanges.remove(playerUuid);
+        }
+    }
+
     void listIslandPermissions(Player player) {
         runtime.currentIsland(player, message("permission-list-island-required", "섬 안에서만 권한을 확인할 수 있습니다.")).ifPresent(islandId -> {
             permissionUseCase.listPermissionViews(islandId)

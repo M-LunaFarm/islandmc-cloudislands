@@ -104,7 +104,7 @@ class GuiSystemPolicyTest {
         String policy = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiInventoryEventPolicy.java"));
         String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandGuiMenuRegistrar.java"));
 
-        assertTrue(registrar.contains("new GuiEventGuard()"), "GUI event guard must be registered with menu listeners");
+        assertTrue(registrar.contains("new GuiEventGuard(registry)"), "GUI event guard must be registered with the action registry it cleans up");
         assertTrue(guard.contains("InventoryDragEvent"), "drag events must be guarded globally");
         assertTrue(guard.contains("top.getHolder() instanceof CloudIslandsMenuHolder"), "drag guard must only apply to CloudIslands menus");
         assertTrue(guard.contains("GuiInventoryEventPolicy.cancelDrag(true, event.getRawSlots(), top.getSize())"), "drag guard must delegate raw slot decisions to the tested policy");
@@ -669,6 +669,7 @@ class GuiSystemPolicyTest {
         String sessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
         String guard = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiEventGuard.java"));
         String inventories = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiInventories.java"));
+        String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandGuiMenuRegistrar.java"));
         String plugin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/CloudIslandsPaperPlugin.java"));
 
         assertTrue(sessions.contains("AtomicLong REVISIONS"), "GUI sessions must carry a monotonically increasing revision");
@@ -682,6 +683,8 @@ class GuiSystemPolicyTest {
         assertTrue(guard.contains("PlayerQuitEvent"), "player disconnects must invalidate the current GUI session");
         assertTrue(guard.contains("PlayerChangedWorldEvent"), "world changes must invalidate the current GUI session");
         assertTrue(guard.contains("GuiSessions.invalidate(event.getPlayer())"), "player lifecycle invalidation must clear the current player session");
+        assertTrue(guard.contains("actions.clear(player)"), "GUI lifecycle invalidation must release per-player action dedupe state");
+        assertTrue(registrar.contains("new GuiEventGuard(registry)"), "GUI event guard must receive the action registry it cleans up");
         assertTrue(plugin.contains("GuiSessions.clear()"), "plugin disable must clear stale GUI sessions");
     }
 }

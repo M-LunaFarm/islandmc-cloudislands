@@ -17,7 +17,7 @@ public final class IslandGuiMenuRegistrar {
         if (plugin != null) {
             GuiMenuDefinition.configureExternalRoot(plugin.getDataFolder().toPath().resolve("config-v2"));
         }
-        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new GuiEventGuard());
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new GuiEventGuard(registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, GuiStateMenus.listener(registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new AdminJobMenu(messages, registry));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new AdminMigrationMenu(messages, registry));

@@ -38,6 +38,16 @@ final class GuiActionDedupePolicy {
         return accepted.get();
     }
 
+    void clear(UUID playerId) {
+        if (playerId != null) {
+            lastActions.remove(playerId);
+        }
+    }
+
+    int trackedPlayers() {
+        return lastActions.size();
+    }
+
     private record LastAction(String fingerprint, long atMillis) {
     }
 }

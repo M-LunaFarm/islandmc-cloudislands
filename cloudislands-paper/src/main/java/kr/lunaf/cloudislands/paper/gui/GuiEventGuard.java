@@ -11,6 +11,16 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 
 final class GuiEventGuard implements Listener {
+    private final GuiActionRegistry actions;
+
+    GuiEventGuard() {
+        this(null);
+    }
+
+    GuiEventGuard(GuiActionRegistry actions) {
+        this.actions = actions;
+    }
+
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
         Inventory top = event.getView().getTopInventory();
@@ -38,16 +48,25 @@ final class GuiEventGuard implements Listener {
         InventoryHolder holder = event.getInventory().getHolder();
         if (holder instanceof CloudIslandsMenuHolder menuHolder) {
             GuiSessions.invalidate(player, menuHolder.sessionId());
+            clearActions(player);
         }
     }
 
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         GuiSessions.invalidate(event.getPlayer());
+        clearActions(event.getPlayer());
     }
 
     @EventHandler
     public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
         GuiSessions.invalidate(event.getPlayer());
+        clearActions(event.getPlayer());
+    }
+
+    private void clearActions(Player player) {
+        if (actions != null) {
+            actions.clear(player);
+        }
     }
 }

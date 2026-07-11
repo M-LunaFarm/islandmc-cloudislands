@@ -24,4 +24,10 @@ public final class GuiActionRegistry {
             executor.execute(player, action, safeClick);
         }
     }
+
+    public void clear(Player player) {
+        if (player != null) {
+            dedupePolicy.clear(player.getUniqueId());
+        }
+    }
 }
