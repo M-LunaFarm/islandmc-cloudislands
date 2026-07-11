@@ -155,6 +155,7 @@ public final class TranslationManager {
         values.put("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.");
         values.put("bank-deposit-denied", "섬 은행에 입금할 권한이 없습니다.");
         values.put("bank-withdraw-denied", "섬 은행에서 출금할 권한이 없습니다.");
+        values.put("bank-operation-pending", "진행 중인 은행 작업이 끝난 뒤 다시 시도해주세요.");
         values.put("economy-unavailable", "경제 플러그인을 찾을 수 없습니다.");
         values.put("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다.");
         values.put("biome-set-denied", "섬 바이옴을 변경할 권한이 없습니다.");

@@ -39,6 +39,7 @@ bank-deposit-denied: "You do not have permission to deposit into the island bank
 bank-balance-island-required: "You must be on an island to view the bank."
 bank-balance-prefix: "Island bank balance: "
 bank-deposit-failed: "Could not deposit into the island bank."
+bank-operation-pending: "Wait for the current bank operation to finish, then try again."
 bank-deposit-island-required: "You must be on an island to deposit into the bank."
 bank-deposit-refund-failed: "Island bank deposit was rejected and the economy refund also failed. Contact an administrator."
 bank-deposit-success-prefix: "Deposited into the island bank. Balance: "

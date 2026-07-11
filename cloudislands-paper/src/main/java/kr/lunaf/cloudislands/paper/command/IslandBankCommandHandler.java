@@ -20,6 +20,7 @@ final class IslandBankCommandHandler {
     private final CoreApiClient coreApiClient;
     private final BankUseCase bankUseCase;
     private final Runtime runtime;
+    private final PendingBankOperations pendingOperations = new PendingBankOperations();
 
     IslandBankCommandHandler(Plugin plugin, CoreApiClient coreApiClient, EconomyBridge economyBridge, Runtime runtime) {
         this.plugin = plugin;
@@ -99,12 +100,17 @@ final class IslandBankCommandHandler {
                 return;
             }
             UUID playerUuid = player.getUniqueId();
+            if (!pendingOperations.acquire(playerUuid)) {
+                runtime.message(player, message("bank-operation-pending", "진행 중인 은행 작업이 끝난 뒤 다시 시도해주세요."));
+                return;
+            }
             bankUseCase.deposit(islandId, playerUuid, parsedAmount, runtime::mutateIdempotent)
                 .thenAccept(result -> handleDepositResult(player, result))
                 .exceptionally(error -> {
                     runtime.message(player, message("bank-deposit-failed", "섬 은행에 입금하지 못했습니다."));
                     return null;
-                });
+                })
+                .whenComplete((ignored, error) -> pendingOperations.release(playerUuid));
         });
     }
 
@@ -120,12 +126,17 @@ final class IslandBankCommandHandler {
                 return;
             }
             UUID playerUuid = player.getUniqueId();
+            if (!pendingOperations.acquire(playerUuid)) {
+                runtime.message(player, message("bank-operation-pending", "진행 중인 은행 작업이 끝난 뒤 다시 시도해주세요."));
+                return;
+            }
             bankUseCase.withdraw(islandId, playerUuid, parsedAmount, runtime::mutateIdempotent)
                 .thenAccept(result -> handleWithdrawResult(player, result))
                 .exceptionally(error -> {
                     runtime.message(player, message("bank-withdraw-failed", "섬 은행에서 출금하지 못했습니다."));
                     return null;
-                });
+                })
+                .whenComplete((ignored, error) -> pendingOperations.release(playerUuid));
         });
     }
 
