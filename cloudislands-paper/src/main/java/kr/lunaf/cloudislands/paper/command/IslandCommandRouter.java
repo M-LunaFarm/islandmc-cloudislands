@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.command;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import kr.lunaf.cloudislands.api.model.AddonIslandCommandSnapshot;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
@@ -357,11 +358,14 @@ final class IslandCommandRouter {
         String canonicalCommand = canonicalCommand(label, command);
         IslandCommandPermission permission = permissionForCommand(canonicalCommand);
         IslandCommandCatalog.IslandCommandDescriptor descriptor = descriptorForCommand(canonicalCommand);
-        boolean allowed = permission == null || runtime.hasCommandPermission(player, permission);
+        AddonIslandCommandSnapshot addonCommand = AddonIslandCommandRegistry.global().snapshotForAlias(subcommandFor(canonicalCommand)).orElse(null);
+        boolean allowed = addonCommand == null
+            ? permission == null || runtime.hasCommandPermission(player, permission)
+            : addonCommand.permission().isBlank() || player.hasPermission(addonCommand.permission());
         NamedTextColor commandColor = allowed ? NamedTextColor.AQUA : NamedTextColor.DARK_GRAY;
         Component component = Component.text(CommandListPolicy.ENTRY_PREFIX, NamedTextColor.DARK_GRAY)
             .append(Component.text(command, commandColor))
-            .hoverEvent(commandHoverComponent(canonicalCommand, descriptor, permission, allowed));
+            .hoverEvent(commandHoverComponent(canonicalCommand, descriptor, permission, addonCommand, allowed));
         if (allowed) {
             return component.clickEvent(ClickEvent.suggestCommand("/" + command));
         }
@@ -375,11 +379,15 @@ final class IslandCommandRouter {
             .hoverEvent(Component.text(runtime.playerMessage(hover), NamedTextColor.GRAY));
     }
 
-    private Component commandHoverComponent(String command, IslandCommandCatalog.IslandCommandDescriptor descriptor, IslandCommandPermission permission, boolean allowed) {
-        String description = descriptor == null
+    private Component commandHoverComponent(String command, IslandCommandCatalog.IslandCommandDescriptor descriptor, IslandCommandPermission permission, AddonIslandCommandSnapshot addonCommand, boolean allowed) {
+        String description = addonCommand != null
+            ? addonCommand.description()
+            : descriptor == null
             ? runtime.routeMessage("command-list-hover-description", "섬 명령어")
             : runtime.routeMessage(descriptor.descriptionKey(), descriptor.id());
-        String permissionText = permission == null
+        String permissionText = addonCommand != null && !addonCommand.permission().isBlank()
+            ? runtime.routeMessage("command-list-hover-permission", "권한: ") + addonCommand.permission()
+            : permission == null
             ? runtime.routeMessage("command-list-hover-no-permission", "권한: 필요 없음")
             : runtime.routeMessage("command-list-hover-permission", "권한: ") + permission.node();
         String clickText = allowed

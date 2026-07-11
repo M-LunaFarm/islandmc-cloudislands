@@ -164,6 +164,11 @@ public final class AddonIslandCommandRegistry {
         return commandsByAlias.values().stream().distinct().map(RegisteredCommand::snapshot).sorted(Comparator.comparing(AddonIslandCommandSnapshot::addonId).thenComparing(AddonIslandCommandSnapshot::primaryAlias)).toList();
     }
 
+    public java.util.Optional<AddonIslandCommandSnapshot> snapshotForAlias(String alias) {
+        RegisteredCommand command = commandsByAlias.get(normalize(alias));
+        return command == null ? java.util.Optional.empty() : java.util.Optional.of(command.snapshot());
+    }
+
     public List<String> helpCommands() {
         return snapshots().stream().map(snapshot -> "섬 " + snapshot.primaryAlias() + (snapshot.usage().isBlank() ? "" : " " + snapshot.usage())).toList();
     }
