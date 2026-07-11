@@ -378,12 +378,16 @@ class GuiMenuDefinitionTest {
         assertEquals("menu.logs.title", definition.titleKey());
         assertEquals(26, GuiMenuRenderer.slots(definition, "_").size());
         assertEquals("_", definition.itemAt(0).orElseThrow().symbol());
+        assertEquals("P", definition.itemAt(27).orElseThrow().symbol());
+        assertEquals("island.logs.page", definition.action(definition.itemAt(27).orElseThrow().actionKey(), ""));
         assertEquals("M", definition.itemAt(30).orElseThrow().symbol());
         assertEquals("island.main.open", definition.action(definition.itemAt(30).orElseThrow().actionKey(), ""));
         assertEquals("R", definition.itemAt(31).orElseThrow().symbol());
         assertEquals("island.logs.open", definition.action(definition.itemAt(31).orElseThrow().actionKey(), ""));
         assertEquals("S", definition.itemAt(32).orElseThrow().symbol());
         assertEquals("island.settings.open", definition.action(definition.itemAt(32).orElseThrow().actionKey(), ""));
+        assertEquals("N", definition.itemAt(34).orElseThrow().symbol());
+        assertEquals("island.logs.page", definition.action(definition.itemAt(34).orElseThrow().actionKey(), ""));
         assertEquals("X", definition.itemAt(35).orElseThrow().symbol());
         assertEquals("gui.close", definition.action(definition.itemAt(35).orElseThrow().actionKey(), ""));
     }

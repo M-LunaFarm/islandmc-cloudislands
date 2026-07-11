@@ -93,6 +93,7 @@ public final class GuiActionParser {
         "island.log.detail",
         "island.logs.list",
         "island.logs.open",
+        "island.logs.page",
         "island.main.open",
         "island.member.demote",
         "island.member.demote.prepare",
@@ -308,6 +309,11 @@ public final class GuiActionParser {
                 case "island.chat.open" -> Optional.of(new GuiAction.ChatOpen());
                 case "island.logs.open" -> Optional.of(new GuiAction.LogsOpen());
                 case "island.logs.list" -> Optional.of(new GuiAction.LogsList());
+                case "island.logs.page" -> Optional.of(new GuiAction.LogPage(
+                    UUID.fromString(required(safeData, "islandId")),
+                    safeData.getOrDefault("mode", "ALL"),
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
                 case "island.biome.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BIOME_OPEN));
                 case "island.border.open" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BORDER_OPEN));
                 case "island.biome.show" -> Optional.of(new GuiAction.NoPayload(GuiAction.NoPayloadType.BIOME_SHOW));

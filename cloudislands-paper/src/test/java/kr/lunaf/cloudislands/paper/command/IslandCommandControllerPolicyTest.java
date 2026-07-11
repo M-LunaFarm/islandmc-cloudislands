@@ -281,7 +281,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(bankHandler.contains("args[1].equalsIgnoreCase(\"logs\")"), "canonical /is bank logs must not discard its logs argument");
         assertTrue(bankHandler.contains("IslandLogMenu.openBankLogs"), "bank logs must open the filtered transaction log view");
         assertTrue(logMenu.contains("ISLAND_BANK_DEPOSIT") && logMenu.contains("ISLAND_BANK_WITHDRAW"), "bank transaction view must exclude unrelated island audit entries");
-        assertTrue(logMenu.contains("entries.stream().filter(filter).limit(27).toList()"), "filtered transaction entries must remain bounded to available GUI slots");
+        assertTrue(logMenu.contains("entries.stream().filter(filter).toList()"), "filtered transaction entries must retain the complete fetched history before pagination");
+        assertTrue(logMenu.contains("int maxPage = Math.max(0, (entries.size() - 1) / pageSize)"), "bank transaction history must paginate instead of discarding entries beyond the first GUI page");
         assertFalse(bankHandler.contains("coreApiClient.depositIslandBank"), "bank mutation logic belongs in BankUseCase");
         assertFalse(bankHandler.contains("coreApiClient.withdrawIslandBank"), "bank mutation logic belongs in BankUseCase");
         assertTrue(bankUseCase.contains("BankCommandClient bankCommands"));

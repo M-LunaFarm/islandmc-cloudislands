@@ -24,6 +24,7 @@ public final class IslandLogMenu implements Listener {
         new GuiMenuDefinition("island.logs", 4, "menu.logs.title", Map.of(
             "open", "island.logs.open",
             "list", "island.logs.list",
+            "page", "island.logs.page",
             "detail", "island.log.detail",
             "main", "island.main.open",
             "settings", "island.settings.open",
@@ -53,21 +54,24 @@ public final class IslandLogMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        open(plugin, client, player, islandId, messages, entry -> true, TITLE);
+        open(plugin, client, player, islandId, messages, "ALL", 0);
     }
 
     public static void openBankLogs(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
-        open(plugin, client, player, islandId, messages,
-            entry -> entry.action().equals("ISLAND_BANK_DEPOSIT") || entry.action().equals("ISLAND_BANK_WITHDRAW"),
-            message(messages, "bank-logs-menu-title", "섬 은행 거래 로그"));
+        open(plugin, client, player, islandId, messages, "BANK", 0);
     }
 
-    private static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, Predicate<LogEntryView> filter, String title) {
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, String mode, int page) {
+        String normalizedMode = "BANK".equalsIgnoreCase(mode) ? "BANK" : "ALL";
+        Predicate<LogEntryView> filter = normalizedMode.equals("BANK")
+            ? entry -> entry.action().equals("ISLAND_BANK_DEPOSIT") || entry.action().equals("ISLAND_BANK_WITHDRAW")
+            : entry -> true;
+        String title = normalizedMode.equals("BANK") ? message(messages, "bank-logs-menu-title", "섬 은행 거래 로그") : TITLE;
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, title);
         PaperGuiViews.islandLogs(client, islandId, 100)
-            .thenApply(entries -> entries.stream().filter(filter).limit(27).toList())
-            .thenAccept(entries -> openSync(plugin, player, session, entries, messages, title))
+            .thenApply(entries -> entries.stream().filter(filter).toList())
+            .thenAccept(entries -> openSync(plugin, player, session, islandId, normalizedMode, page, entries, messages, title))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, title, message(messages, "log-menu-load-failed", "섬 로그를 불러오지 못했습니다."), "island.logs.open", "island.settings.open");
                 return null;
@@ -99,20 +103,37 @@ public final class IslandLogMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<LogEntryView> entries, MessageRenderer messages, String title) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, String mode, int requestedPage, List<LogEntryView> entries, MessageRenderer messages, String title) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, title, item -> !"E".equals(item.symbol()));
+            List<Integer> logSlots = GuiMenuRenderer.slots(MENU, "_");
+            int pageSize = Math.max(1, logSlots.size());
+            int maxPage = Math.max(0, (entries.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages,
+                title + " (" + (page + 1) + "/" + (maxPage + 1) + ")",
+                item -> !List.of("E", "_", "P", "N").contains(item.symbol()));
             if (entries.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
-                List<Integer> logSlots = GuiMenuRenderer.slots(MENU, "_");
-                for (int index = 0; index < entries.size() && index < logSlots.size(); index++) {
-                    LogEntryView entry = entries.get(index);
-                    inventory.setItem(logSlots.get(index), logItem(entry, index, messages));
+                int offset = page * pageSize;
+                for (int index = 0; index < pageSize && offset + index < entries.size(); index++) {
+                    LogEntryView entry = entries.get(offset + index);
+                    inventory.setItem(logSlots.get(index), logItem(entry, offset + index, messages));
                 }
+            }
+            if (page > 0) {
+                setPageItem(inventory, "P", islandId, mode, page - 1, messages);
+            }
+            if (page < maxPage) {
+                setPageItem(inventory, "N", islandId, mode, page + 1, messages);
             }
             player.openInventory(inventory);
         });
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, String mode, int page, MessageRenderer messages) {
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("islandId", islandId.toString(), "mode", mode, "page", Integer.toString(page)), List.of());
     }
 
     private static List<String> lore(LogEntryView entry, MessageRenderer messages) {

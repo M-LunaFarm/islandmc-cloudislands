@@ -5,7 +5,7 @@ layout:
   - "_________"
   - "____E____"
   - "_________"
-  - "...MRS..X"
+  - "P..MRS.NX"
 items:
   _:
     material: BOOK
@@ -45,6 +45,16 @@ items:
       - log-menu-empty
     fallback-lore:
       - 아직 기록된 섬 로그가 없습니다.
+  P:
+    material: ARROW
+    name-key: log-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: log-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
   M:
     material: COMPASS
     name-key: log-menu-main-menu-name
@@ -83,6 +93,7 @@ items:
     action: close
 actions:
   open: island.logs.open
+  page: island.logs.page
   list: island.logs.list
   detail: island.log.detail
   main: island.main.open

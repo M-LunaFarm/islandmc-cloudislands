@@ -58,6 +58,8 @@ class GuiActionParserTest {
         GuiAction chat = GuiActionParser.parse("island.chat.open", Map.of()).orElseThrow();
         GuiAction logs = GuiActionParser.parse("island.logs.open", Map.of()).orElseThrow();
         GuiAction list = GuiActionParser.parse("island.logs.list", Map.of()).orElseThrow();
+        GuiAction page = GuiActionParser.parse("island.logs.page", Map.of(
+            "islandId", "00000000-0000-0000-0000-000000000011", "mode", "bank", "page", "2")).orElseThrow();
 
         assertTrue(chat instanceof GuiAction.ChatOpen);
         assertEquals(Map.of(), chat.data());
@@ -65,6 +67,9 @@ class GuiActionParserTest {
         assertEquals(Map.of(), logs.data());
         assertTrue(list instanceof GuiAction.LogsList);
         assertEquals(Map.of(), list.data());
+        assertTrue(page instanceof GuiAction.LogPage);
+        assertEquals("BANK", page.data().get("mode"));
+        assertEquals("2", page.data().get("page"));
     }
 
     @Test
@@ -564,6 +569,7 @@ class GuiActionParserTest {
                 "island.warp.teleport" -> Map.of("warpName", "shop");
             case "island.warp.public.toggle" -> Map.of("warpName", "shop", "publicAccess", "true");
             case "island.homes.page", "island.limits.page", "island.upgrades.page", "island.warehouse.page", "island.warps.page" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000", "page", "0");
+            case "island.logs.page" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000", "mode", "ALL", "page", "0");
             default -> Map.of();
         };
     }

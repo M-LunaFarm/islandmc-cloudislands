@@ -93,6 +93,10 @@ final class IslandChatLogCommandHandler {
             listLogs(player, 10);
             return true;
         }
+        if (action instanceof GuiAction.LogPage page) {
+            IslandLogMenu.open(plugin, coreApiClient, player, page.islandId(), runtime.messagesFor(player), page.mode(), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.LogDetail detail) {
             showLogDetail(player, detail.logAction(), detail.createdAt(), detail.actorUuid(), detail.payload());
             return true;

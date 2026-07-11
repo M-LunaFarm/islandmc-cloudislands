@@ -342,7 +342,7 @@ class GuiSystemPolicyTest {
         )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
             assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())")
-                || List.of("IslandHomeMenu", "IslandLimitMenu", "IslandUpgradeMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
+                || List.of("IslandHomeMenu", "IslandLimitMenu", "IslandLogMenu", "IslandUpgradeMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
                 || List.of("IslandBanMenu", "IslandMyIslandsMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())")
                 || List.of("IslandInviteMenu", "IslandSnapshotMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
                 || menuName.equals("IslandVisitMenu") && menu.contains("!List.of(\"E\", \"W\", \"N\").contains(item.symbol())")
@@ -476,6 +476,10 @@ class GuiSystemPolicyTest {
         String limits = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandLimitMenu.java"));
         assertTrue(limits.contains("int maxPage = Math.max(0, (limits.size() - 1) / pageSize)"), "configured limits beyond the first GUI page must remain adjustable");
         assertTrue(limits.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "limit page actions must retain authoritative island context");
+        String logs = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandLogMenu.java"));
+        assertFalse(logs.contains("filter(filter).limit(27)"), "the log GUI must not discard Core history after its first page");
+        assertTrue(logs.contains("int maxPage = Math.max(0, (entries.size() - 1) / pageSize)"), "all fetched log history must remain reachable through pagination");
+        assertTrue(logs.contains("Map.of(\"islandId\", islandId.toString(), \"mode\", mode, \"page\""), "log page actions must preserve island and bank/all filter context");
     }
 
     @Test
