@@ -511,6 +511,8 @@ class GuiSystemPolicyTest {
         assertTrue(definition.contains("\"____C____\""), "biome menu must expose dynamic item slots in config-v2 layout");
         assertTrue(definition.contains("\"_________\""), "biome menu must expose enough YAML slots for biome entries");
         assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, \"_\")"), "biome entries must use menu definition slots");
+        assertTrue(menu.contains("int maxPage = Math.max(0, (BIOMES.size() - 1) / pageSize)"), "the complete supported biome catalog must paginate instead of being truncated");
+        assertTrue(menu.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "biome page actions must preserve authoritative island context");
         assertFalse(menu.contains("GuiMenuRenderer.material(\"GRASS_BLOCK\")"), "biome entries must not use a Java material fallback when config-v2 is missing");
         assertFalse(menu.contains("int slot = 9"), "biome entries must not start from a Java hard-coded slot");
         assertFalse(menu.contains("slot++"), "biome entries must not advance through Java hard-coded slots");

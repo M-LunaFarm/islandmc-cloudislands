@@ -4,7 +4,7 @@ title-key: menu.biome.title
 layout:
   - "____C____"
   - "_________"
-  - "....R.S.M"
+  - "...PR.SNM"
 items:
   _:
     material: GRASS_BLOCK
@@ -30,6 +30,16 @@ items:
     fallback-lore:
       - "/섬 바이옴"
     action: open
+  P:
+    material: ARROW
+    name-key: biome-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: biome-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
   S:
     material: COMPARATOR
     name-key: biome-menu-settings-name
@@ -50,6 +60,7 @@ items:
     action: main
 actions:
   open: island.biome.open
+  page: island.biome.page
   show: island.biome.show
   set: island.biome.set
   back: island.settings.open

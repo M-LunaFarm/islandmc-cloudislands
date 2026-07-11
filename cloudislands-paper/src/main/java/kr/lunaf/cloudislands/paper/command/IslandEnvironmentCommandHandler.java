@@ -143,6 +143,10 @@ final class IslandEnvironmentCommandHandler {
             setBiome(player, biomeSet.biomeKey());
             return true;
         }
+        if (action instanceof GuiAction.BiomePage page) {
+            IslandBiomeMenu.open(plugin, coreApiClient, player, page.islandId(), runtime.messagesFor(player), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.LimitSet limitSet) {
             setLimit(player, limitSet.limitKey(), limitSet.value());
             return true;

@@ -457,10 +457,14 @@ class GuiMenuDefinitionTest {
         assertEquals(27, biome.size());
         assertEquals("C", biome.itemAt(4).orElseThrow().symbol());
         assertEquals("island.biome.show", biome.action(biome.itemAt(4).orElseThrow().actionKey(), ""));
+        assertEquals("P", biome.itemAt(21).orElseThrow().symbol());
+        assertEquals("island.biome.page", biome.action(biome.itemAt(21).orElseThrow().actionKey(), ""));
         assertEquals("R", biome.itemAt(22).orElseThrow().symbol());
         assertEquals("island.biome.open", biome.action(biome.itemAt(22).orElseThrow().actionKey(), ""));
         assertEquals("S", biome.itemAt(24).orElseThrow().symbol());
         assertEquals("island.settings.open", biome.action(biome.itemAt(24).orElseThrow().actionKey(), ""));
+        assertEquals("N", biome.itemAt(25).orElseThrow().symbol());
+        assertEquals("island.biome.page", biome.action(biome.itemAt(25).orElseThrow().actionKey(), ""));
         assertEquals("M", biome.itemAt(26).orElseThrow().symbol());
         assertEquals("island.main.open", biome.action(biome.itemAt(26).orElseThrow().actionKey(), ""));
     }

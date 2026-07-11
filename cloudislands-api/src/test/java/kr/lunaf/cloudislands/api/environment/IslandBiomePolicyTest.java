@@ -11,6 +11,9 @@ class IslandBiomePolicyTest {
     void normalizesSupportedMinecraftBiomes() {
         assertEquals("minecraft:plains", IslandBiomePolicy.normalize("plains").orElseThrow());
         assertEquals("minecraft:cherry_grove", IslandBiomePolicy.normalize(" Minecraft:Cherry_Grove ").orElseThrow());
+        assertEquals("minecraft:deep_dark", IslandBiomePolicy.normalize("deep_dark").orElseThrow());
+        assertEquals("minecraft:warped_forest", IslandBiomePolicy.normalize("warped_forest").orElseThrow());
+        assertTrue(IslandBiomePolicy.supportedBiomes().size() > 60);
     }
 
     @Test

@@ -22,6 +22,7 @@ public final class IslandBiomeMenu implements Listener {
         new GuiMenuDefinition("island.biome", 3, "menu.biome.title", Map.of(
             "open", "island.biome.open",
             "show", "island.biome.show",
+            "page", "island.biome.page",
             "set", "island.biome.set",
             "back", "island.settings.open",
             "main", "island.main.open"
@@ -50,10 +51,14 @@ public final class IslandBiomeMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandBiome(client, islandId)
-            .thenAccept(currentBiome -> openSync(plugin, player, session, currentBiome.key(), messages))
+            .thenAccept(currentBiome -> openSync(plugin, player, session, islandId, currentBiome.key(), page, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "biome-menu-load-failed", "섬 바이옴을 불러오지 못했습니다."), "island.biome.open", "island.settings.open");
                 return null;
@@ -87,11 +92,16 @@ public final class IslandBiomeMenu implements Listener {
         actions.execute(player, new GuiAction.BiomeSet(biomeKey), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, String currentBiome, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, String currentBiome, int requestedPage, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !item.symbol().equals("_"));
             List<Integer> biomeSlots = GuiMenuRenderer.slots(MENU, "_");
-            List<String> biomes = BIOMES.stream().limit(biomeSlots.size()).toList();
+            int pageSize = Math.max(1, biomeSlots.size());
+            int maxPage = Math.max(0, (BIOMES.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages,
+                TITLE + " (" + (page + 1) + "/" + (maxPage + 1) + ")",
+                item -> !List.of("_", "P", "N").contains(item.symbol()));
+            List<String> biomes = BIOMES.stream().skip((long) page * pageSize).limit(pageSize).toList();
             for (int index = 0; index < biomes.size(); index++) {
                 String biome = biomes.get(index);
                 inventory.setItem(biomeSlots.get(index), biomeItem(biome, biome.equalsIgnoreCase(currentBiome), messages));
@@ -104,8 +114,19 @@ public final class IslandBiomeMenu implements Listener {
                 Map.of(),
                 List.of(currentBiome.isBlank() ? message(messages, "biome-menu-not-set", "설정 없음") : currentBiome)
             );
+            if (page > 0) {
+                setPageItem(inventory, "P", islandId, page - 1, messages);
+            }
+            if (page < maxPage) {
+                setPageItem(inventory, "N", islandId, page + 1, messages);
+            }
             player.openInventory(inventory);
         });
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, int page, MessageRenderer messages) {
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("islandId", islandId.toString(), "page", Integer.toString(page)), List.of());
     }
 
     private static ItemStack biomeItem(String biome, boolean selected, MessageRenderer messages) {

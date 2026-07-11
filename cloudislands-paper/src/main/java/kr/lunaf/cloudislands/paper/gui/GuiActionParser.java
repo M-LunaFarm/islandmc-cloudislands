@@ -55,6 +55,7 @@ public final class GuiActionParser {
         "island.border.color.set",
         "island.border.open",
         "island.biome.open",
+        "island.biome.page",
         "island.biome.set",
         "island.biome.show",
         "island.chat.open",
@@ -346,6 +347,10 @@ public final class GuiActionParser {
                 ));
                 case "island.biome.set" -> Optional.of(new GuiAction.BiomeSet(
                     required(safeData, "biomeKey")
+                ));
+                case "island.biome.page" -> Optional.of(new GuiAction.BiomePage(
+                    UUID.fromString(required(safeData, "islandId")),
+                    nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.flag.set" -> Optional.of(new GuiAction.FlagSet(
                     enumValue(IslandFlag.class, required(safeData, "flag"))

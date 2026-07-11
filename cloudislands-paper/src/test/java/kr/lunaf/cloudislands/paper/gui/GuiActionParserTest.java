@@ -300,10 +300,13 @@ class GuiActionParserTest {
     @Test
     void parsesBiomeSetIntoTypedAction() {
         GuiAction action = GuiActionParser.parse("island.biome.set", Map.of("biomeKey", " minecraft:plains ")).orElseThrow();
+        GuiAction page = GuiActionParser.parse("island.biome.page", Map.of("islandId", "00000000-0000-0000-0000-000000000012", "page", "3")).orElseThrow();
 
         assertTrue(action instanceof GuiAction.BiomeSet);
         assertEquals("island.biome.set", action.actionId());
         assertEquals(Map.of("biomeKey", "minecraft:plains"), action.data());
+        assertTrue(page instanceof GuiAction.BiomePage);
+        assertEquals("3", page.data().get("page"));
     }
 
     @Test
@@ -523,6 +526,7 @@ class GuiActionParserTest {
             case "island.bank.deposit", "island.bank.withdraw" -> Map.of("amount", "1");
             case "island.border.color.set" -> Map.of("color", "blue");
             case "island.biome.set" -> Map.of("biomeKey", "minecraft:plains");
+            case "island.biome.page" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000", "page", "0");
             case "island.create" -> Map.of("templateId", "default");
             case "island.danger.delete.confirm" -> DangerousGuiActionPolicy.deleteConfirmationData();
             case "island.danger.reset.confirm" -> DangerousGuiActionPolicy.resetConfirmationData();
