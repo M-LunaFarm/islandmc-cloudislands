@@ -114,7 +114,7 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerMembership.listHomes(player, islandId);
             return;
         }
-        if (args[0].equalsIgnoreCase("sethome") || args[0].equalsIgnoreCase("setteleport") || args[0].equalsIgnoreCase("setspawnpoint") || args[0].equals("셋홈")) {
+        if (args[0].equalsIgnoreCase("sethome") || args[0].equalsIgnoreCase("setteleport") || args[0].equalsIgnoreCase("settp") || args[0].equalsIgnoreCase("setgo") || args[0].equalsIgnoreCase("setspawnpoint") || args[0].equals("셋홈")) {
             boolean hasIslandId = args.length > 1 && isUuid(args[1]);
             UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             String name = args.length > (hasIslandId ? 2 : 1) ? args[hasIslandId ? 2 : 1] : "default";

@@ -53,7 +53,7 @@ final class IslandHomeWarpCommandHandler {
                 });
             return true;
         }
-        if (subcommand.equals("sethome") || subcommand.equals("setteleport") || subcommand.equals("setspawnpoint") || subcommand.equals("셋홈")) {
+        if (subcommand.equals("sethome") || subcommand.equals("setteleport") || subcommand.equals("settp") || subcommand.equals("setgo") || subcommand.equals("setspawnpoint") || subcommand.equals("셋홈")) {
             setHome(player, args.length > 1 ? args[1] : "default");
             return true;
         }

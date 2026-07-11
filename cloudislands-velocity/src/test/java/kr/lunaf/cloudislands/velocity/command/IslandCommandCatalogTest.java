@@ -202,6 +202,16 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void setTeleportAliasesPreservePaperVelocityParity() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));
+
+        assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"settp\")"));
+        assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"setgo\")"));
+        assertTrue(IslandCommandCatalog.playerCommands().contains("섬 settp [name]"));
+        assertTrue(IslandCommandCatalog.playerCommands().contains("섬 setgo [name]"));
+    }
+
+    @Test
     void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
 
