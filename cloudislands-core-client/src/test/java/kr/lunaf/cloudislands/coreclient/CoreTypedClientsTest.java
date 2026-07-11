@@ -1816,6 +1816,7 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void progressionCommandClientReturnsTypedMutationViews() {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();

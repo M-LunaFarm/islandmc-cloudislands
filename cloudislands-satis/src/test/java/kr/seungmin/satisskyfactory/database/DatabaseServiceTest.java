@@ -101,9 +101,10 @@ class DatabaseServiceTest {
     @Test
     void customSqliteFileNameControlsDatabasePath() {
         File dataFolder = tempDir.resolve("custom-db").toFile();
-        try (DatabaseHandle ignored = openDatabase(dataFolder, "custom.sqlite")) {
+        try (DatabaseHandle handle = openDatabase(dataFolder, "custom.sqlite")) {
             assertTrue(new File(dataFolder, "custom.sqlite").isFile());
             assertFalse(new File(dataFolder, "data.db").exists());
+            assertTrue(handle.database().databaseDescription().endsWith("custom.sqlite"));
         }
     }
 
@@ -145,8 +146,9 @@ class DatabaseServiceTest {
     void nestedSqlitePathCreatesParentDirectory() {
         File dataFolder = tempDir.resolve("shared-parent-db").toFile();
 
-        try (DatabaseHandle ignored = openDatabase(dataFolder, "shared/satis/data.db")) {
+        try (DatabaseHandle handle = openDatabase(dataFolder, "shared/satis/data.db")) {
             assertTrue(new File(dataFolder, "shared/satis/data.db").isFile());
+            assertTrue(handle.database().databaseDescription().endsWith("shared/satis/data.db"));
         }
     }
 
