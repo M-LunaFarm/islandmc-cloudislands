@@ -290,7 +290,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "Core lifecycle and route tickets are covered",
         "Paper 1.21.11 and 26.1.2 boot smoke load the plugin",
         "1.21.x and 26.1.x release adapters; 26.2 compile adapter",
-        "ciIntegrationSmoke verifies cross-Core create, job, route, session, consume; Paper tests verify target-island coordinates and bounded safe destinations",
+        "ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify target-island coordinates and bounded safe destinations",
         "node-down recovery restore is covered by ciIntegrationSmoke",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/workflow/IslandLifecycleWorkflowRestoreTest.java",

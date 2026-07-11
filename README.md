@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.35`
+Version: `1.1.36`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -592,7 +592,7 @@ integration verification.
 <!-- feature-parity:start -->
 | Area | Status | Verified evidence | Limit |
 |---|---|---|---|
-| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume; Paper tests verify target-island coordinates and bounded safe destinations | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
+| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify target-island coordinates and bounded safe destinations | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover fertilization growth boundaries and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.35`
+Current release: `v1.1.36`
 
-Built for the CloudIslands 1.1.35 baseline.
+Built for the CloudIslands 1.1.36 baseline.
 
-Release notes for `v1.1.35`:
+Release notes for `v1.1.36`:
+
+- complete player route cleanup: administrative and recovery clears now remove
+  every historical ticket for the player instead of only one latest record
+- distributed cache correctness: player route keys and matching ticket-ID keys
+  are removed from shared Redis alongside the authoritative SQL deletion
+- no stale route reuse: consumed or failed tickets can no longer reappear on a
+  different Core instance after a clear and suppress creation of a fresh route
+- observable cleanup: route-clear responses, audit records, and global events
+  include the exact number of tickets removed
+- deterministic cluster proof: the integration load probe waits for the primary
+  Core to observe ticket absence before measuring cross-Core event replay
+
+Release notes carried forward from `v1.1.35`:
 
 - granular SS2-style control: island roles now expose a dedicated `FERTILIZE`
   permission instead of treating every bone-meal action as generic interaction
@@ -1115,7 +1128,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.35`.
+Current read: production-readiness baseline `v1.1.36`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
