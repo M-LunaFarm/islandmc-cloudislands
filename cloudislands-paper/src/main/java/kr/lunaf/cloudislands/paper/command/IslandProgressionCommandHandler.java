@@ -193,6 +193,10 @@ final class IslandProgressionCommandHandler {
             listRanking(player, rankingList.worth(), 10);
             return true;
         }
+        if (action instanceof GuiAction.RankingPage page) {
+            IslandRankingMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.MissionsOpen missionsOpen) {
             openMissionMenu(player, missionsOpen.kind());
             return true;

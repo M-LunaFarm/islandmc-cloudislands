@@ -7,7 +7,7 @@ layout:
   - "WWWWWWWWW"
   - "CCCCCCCCC"
   - "........."
-  - "P...R...V"
+  - "PB..RN..V"
 items:
   _:
     material: EXPERIENCE_BOTTLE
@@ -65,6 +65,16 @@ items:
     fallback-lore:
       - "/섬 방문"
     action: public
+  B:
+    material: ARROW
+    name-key: ranking-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: ranking-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
   R:
     material: CLOCK
     name-key: ranking-menu-refresh-name
@@ -85,6 +95,7 @@ items:
     action: random
 actions:
   open: island.ranking.open
+  page: island.ranking.page
   list: island.ranking.list
   visit: island.visit.target
   public: island.visit.open

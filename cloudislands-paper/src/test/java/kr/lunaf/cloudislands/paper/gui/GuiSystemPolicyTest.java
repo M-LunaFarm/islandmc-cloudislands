@@ -585,6 +585,8 @@ class GuiSystemPolicyTest {
         assertTrue(definition.contains("\"CCCCCCCCC\""), "ranking review slots must live in config-v2 layout");
         assertTrue(menu.contains("GuiMenuRenderer.slots(MENU, symbol)"), "ranking entries must use menu definition slots");
         assertTrue(menu.contains("GuiMenuRenderer.symbolItem(MENU, symbol"), "ranking dynamic items must use configured materials and actions");
+        assertTrue(menu.contains("int maxPage = Math.max(0, (rankingCount - 1) / pageSize)"), "all requested TOP 10 entries must remain reachable despite nine slots per metric");
+        assertTrue(menu.contains("skip((long) page * pageSize).limit(pageSize)"), "ranking metrics must retain rank order across pages");
         assertFalse(menu.contains("GuiItems.action(material"), "ranking dynamic items must not rebuild configured actions in Java");
         assertFalse(menu.contains("int slot = 9"), "ranking entries must not start from a Java hard-coded slot");
         assertFalse(menu.contains("slot++"), "ranking entries must not advance through Java hard-coded slots");

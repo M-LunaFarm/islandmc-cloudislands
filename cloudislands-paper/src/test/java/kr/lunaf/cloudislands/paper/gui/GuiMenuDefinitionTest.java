@@ -543,8 +543,12 @@ class GuiMenuDefinitionTest {
         assertEquals("T", ranking.itemAt(4).orElseThrow().symbol());
         assertEquals("P", ranking.itemAt(45).orElseThrow().symbol());
         assertEquals("island.visit.open", ranking.action(ranking.itemAt(45).orElseThrow().actionKey(), ""));
+        assertEquals("B", ranking.itemAt(46).orElseThrow().symbol());
+        assertEquals("island.ranking.page", ranking.action(ranking.itemAt(46).orElseThrow().actionKey(), ""));
         assertEquals("R", ranking.itemAt(49).orElseThrow().symbol());
         assertEquals("island.ranking.open", ranking.action(ranking.itemAt(49).orElseThrow().actionKey(), ""));
+        assertEquals("N", ranking.itemAt(50).orElseThrow().symbol());
+        assertEquals("island.ranking.page", ranking.action(ranking.itemAt(50).orElseThrow().actionKey(), ""));
         assertEquals("V", ranking.itemAt(53).orElseThrow().symbol());
         assertEquals("island.visit.random", ranking.action(ranking.itemAt(53).orElseThrow().actionKey(), ""));
 

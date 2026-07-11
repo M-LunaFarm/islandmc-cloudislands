@@ -21,6 +21,7 @@ public final class IslandRankingMenu implements Listener {
         new GuiMenuDefinition("island.ranking", 6, "menu.ranking.title", Map.of(
             "open", "island.ranking.open",
             "list", "island.ranking.list",
+            "page", "island.ranking.page",
             "visit", "island.visit.target",
             "public", "island.visit.open",
             "random", "island.visit.random",
@@ -49,10 +50,14 @@ public final class IslandRankingMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
+        open(plugin, client, player, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.rankings(client, 10)
-            .thenAccept(data -> openSync(plugin, player, session, data.levels(), data.worths(), data.reviews(), messages))
+            .thenAccept(data -> openSync(plugin, player, session, data.levels(), data.worths(), data.reviews(), page, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "ranking-menu-load-failed", "섬 랭킹을 불러오지 못했습니다."), "island.ranking.open", "island.main.open");
                 return null;
@@ -80,22 +85,39 @@ public final class IslandRankingMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews, int requestedPage, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"L".equals(item.symbol()) && !"W".equals(item.symbol()) && !"C".equals(item.symbol()));
-            setRankingItems(inventory, "L", levels, messages);
-            setRankingItems(inventory, "W", worths, messages);
-            setRankingItems(inventory, "C", reviews, messages);
+            int pageSize = Math.max(1, GuiMenuRenderer.slots(MENU, "L").size());
+            int rankingCount = Math.max(levels.size(), Math.max(worths.size(), reviews.size()));
+            int maxPage = Math.max(0, (rankingCount - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages,
+                TITLE + " (" + (page + 1) + "/" + (maxPage + 1) + ")",
+                item -> !List.of("L", "W", "C", "B", "N").contains(item.symbol()));
+            setRankingItems(inventory, "L", levels, page, pageSize, messages);
+            setRankingItems(inventory, "W", worths, page, pageSize, messages);
+            setRankingItems(inventory, "C", reviews, page, pageSize, messages);
+            if (page > 0) {
+                setPageItem(inventory, "B", page - 1, messages);
+            }
+            if (page < maxPage) {
+                setPageItem(inventory, "N", page + 1, messages);
+            }
             player.openInventory(inventory);
         });
     }
 
-    private static void setRankingItems(Inventory inventory, String symbol, List<RankingView> rankings, MessageRenderer messages) {
+    private static void setRankingItems(Inventory inventory, String symbol, List<RankingView> rankings, int page, int pageSize, MessageRenderer messages) {
         List<Integer> slots = GuiMenuRenderer.slots(MENU, symbol);
-        List<RankingView> visibleRankings = rankings.stream().limit(slots.size()).toList();
+        List<RankingView> visibleRankings = rankings.stream().skip((long) page * pageSize).limit(pageSize).toList();
         for (int index = 0; index < visibleRankings.size(); index++) {
             inventory.setItem(slots.get(index), rankingItem(symbol, visibleRankings.get(index), messages));
         }
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, int page, MessageRenderer messages) {
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("page", Integer.toString(page)), List.of());
     }
 
     private static ItemStack rankingItem(String symbol, RankingView ranking, MessageRenderer messages) {

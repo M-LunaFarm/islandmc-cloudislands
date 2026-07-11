@@ -272,11 +272,14 @@ class GuiActionParserTest {
     @Test
     void parsesProgressionListsIntoTypedActions() {
         GuiAction ranking = GuiActionParser.parse("island.ranking.list", Map.of("kind", " worth ")).orElseThrow();
+        GuiAction rankingPage = GuiActionParser.parse("island.ranking.page", Map.of("page", "1")).orElseThrow();
         GuiAction missions = GuiActionParser.parse("island.missions.open", Map.of("kind", " challenge ")).orElseThrow();
 
         assertTrue(ranking instanceof GuiAction.RankingList);
         assertEquals(Map.of("kind", "WORTH"), ranking.data());
         assertTrue(((GuiAction.RankingList) ranking).worth());
+        assertTrue(rankingPage instanceof GuiAction.RankingPage);
+        assertEquals(Map.of("page", "1"), rankingPage.data());
         assertTrue(missions instanceof GuiAction.MissionsOpen);
         assertEquals(Map.of("kind", "CHALLENGE"), missions.data());
     }
@@ -546,6 +549,7 @@ class GuiActionParserTest {
             case "island.permissions.page" -> Map.of("page", "0", "rolePage", "0");
             case "island.permissions.set" -> Map.of("role", "MEMBER", "permission", "BUILD");
             case "island.ranking.list" -> Map.of("kind", "LEVEL");
+            case "island.ranking.page" -> Map.of("page", "0");
             case "island.review.delete" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000");
             case "island.review.set" -> Map.of(
                 "islandId", "00000000-0000-0000-0000-000000000000",

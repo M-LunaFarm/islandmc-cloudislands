@@ -120,6 +120,7 @@ public final class GuiActionParser {
         "island.public.toggle",
         "island.ranking.list",
         "island.ranking.open",
+        "island.ranking.page",
         "island.review.delete",
         "island.review.set",
         "island.reviews.open",
@@ -484,6 +485,9 @@ public final class GuiActionParser {
                 ));
                 case "island.ranking.list" -> Optional.of(new GuiAction.RankingList(
                     safeData.getOrDefault("kind", "")
+                ));
+                case "island.ranking.page" -> Optional.of(new GuiAction.RankingPage(
+                    nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.missions.open" -> Optional.of(new GuiAction.MissionsOpen(
                     safeData.getOrDefault("kind", "MISSION")
