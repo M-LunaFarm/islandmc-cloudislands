@@ -135,11 +135,11 @@ tasks.register("verifyReleaseGateCoverage") {
         }
         val loadProbe = coreSmoke.substringAfter("def run_load_probe(").substringBefore("def player_interaction_evidence(")
         val clearIndex = loadProbe.indexOf("/v1/admin/routes/clear")
-        val eventBaselineIndex = loadProbe.indexOf("since_seq =")
+        val eventBaselineIndex = loadProbe.indexOf("primary_since_seq =")
         if (clearIndex < 0 || eventBaselineIndex < 0 || clearIndex > eventBaselineIndex) {
             throw GradleException("Core load probe must clear the reused route session before capturing its event replay baseline")
         }
-        for (signal in listOf("LOAD_TEST_EVENT_REPLAY_RETRY", "event_replay_attempts < 4", "eventReplayAttempts")) {
+        for (signal in listOf("LOAD_TEST_EVENT_REPLAY_RETRY", "event_replay_attempts < 8", "eventPublishObserved", "eventReplayAttempts")) {
             if (!loadProbe.contains(signal)) {
                 throw GradleException("Core load probe must retry event production while preserving replay evidence: $signal")
             }

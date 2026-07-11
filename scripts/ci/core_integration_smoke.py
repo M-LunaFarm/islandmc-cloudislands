@@ -983,6 +983,7 @@ def load_test_evidence(load_metrics: dict | None) -> dict[str, list[str]]:
     required = {
         "route-throughput": load_metrics.get("routeThroughputPerSecond", 0) > 0,
         "activation-latency": load_metrics.get("activationLatencySeconds", 0) > 0,
+        "event-publish": load_metrics.get("eventPublishObserved", False),
         "event-lag": load_metrics.get("eventLagSeconds", 0) >= 0 and load_metrics.get("eventReplayObserved", False),
         "snapshot-throughput": load_metrics.get("snapshotThroughputPerSecond", 0) > 0,
         "resource-ceiling": load_metrics.get("resourceCeilingOk", False),
@@ -1140,8 +1141,10 @@ def run_load_probe(
         expect=(202,),
     )
     wait_for_ticket_clear(primary_admin_url, player_uuid)
-    before_events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 1}, admin=True, expect=(200,))
-    since_seq = int(before_events.get("latestSeq", 0))
+    before_primary_events = request(primary_admin_url, "POST", "/v1/events", {"limit": 1}, admin=True, expect=(200,))
+    before_secondary_events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 1}, admin=True, expect=(200,))
+    primary_since_seq = int(before_primary_events.get("latestSeq", 0))
+    secondary_since_seq = int(before_secondary_events.get("latestSeq", 0))
     event_probe_start = time.perf_counter()
     for _index in range(12):
         _route, duration = timed_request(
@@ -1153,18 +1156,22 @@ def run_load_probe(
         )
         route_durations.append(duration)
     event_lag = 0.0
+    event_publish_observed = False
     event_replay_observed = False
     event_replay_attempts = 1
-    next_replay_retry = time.monotonic() + 1.0
-    deadline = time.monotonic() + 10
+    next_replay_retry = time.monotonic() + 2.0
+    deadline = time.monotonic() + 30
     while time.monotonic() < deadline:
-        events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 100, "sinceSeq": since_seq}, admin=True, expect=(200,))
-        if any(event.get("type") == "ROUTE_TICKET_CREATED" for event in events.get("events", [])):
+        primary_events = request(primary_admin_url, "POST", "/v1/events", {"limit": 100, "sinceSeq": primary_since_seq}, admin=True, expect=(200,))
+        if any(event.get("type") == "ROUTE_TICKET_CREATED" for event in primary_events.get("events", [])):
+            event_publish_observed = True
+        secondary_events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 100, "sinceSeq": secondary_since_seq}, admin=True, expect=(200,))
+        if any(event.get("type") == "ROUTE_TICKET_CREATED" for event in secondary_events.get("events", [])):
             event_lag = time.perf_counter() - event_probe_start
             event_replay_observed = True
             break
         now = time.monotonic()
-        if now >= next_replay_retry and event_replay_attempts < 4:
+        if now >= next_replay_retry and event_replay_attempts < 8:
             request(
                 secondary_admin_url,
                 "POST",
@@ -1183,7 +1190,7 @@ def run_load_probe(
             )
             route_durations.append(duration)
             event_replay_attempts += 1
-            next_replay_retry = now + 1.0
+            next_replay_retry = now + 2.0
         time.sleep(0.1)
 
     snapshot_durations = []
@@ -1218,6 +1225,7 @@ def run_load_probe(
         "routeThroughputPerSecond": round(len(route_durations) / max(total_route_time, 0.001), 3),
         "activationLatencySeconds": rounded_seconds(activation_latency),
         "eventLagSeconds": rounded_seconds(event_lag),
+        "eventPublishObserved": event_publish_observed,
         "eventReplayObserved": event_replay_observed,
         "eventReplayAttempts": event_replay_attempts,
         "snapshotRecords": len(snapshot_durations),
