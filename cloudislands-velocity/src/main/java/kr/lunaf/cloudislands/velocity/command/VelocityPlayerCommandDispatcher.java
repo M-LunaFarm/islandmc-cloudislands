@@ -25,7 +25,7 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 command list");
             return;
         }
-        if (args.length > 0 && (args[0].equalsIgnoreCase("menu") || args[0].equals("메뉴"))) {
+        if (args.length > 0 && (args[0].equalsIgnoreCase("menu") || args[0].equalsIgnoreCase("panel") || args[0].equalsIgnoreCase("manager") || args[0].equalsIgnoreCase("cp") || args[0].equals("메뉴"))) {
             sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 command list");
             return;
         }

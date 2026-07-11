@@ -41,7 +41,7 @@ final class IslandMembershipCommandHandler {
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
-        if (subcommand.equals("members") || subcommand.equals("member-menu") || subcommand.equals("멤버") || subcommand.equals("멤버관리")) {
+        if (subcommand.equals("members") || subcommand.equals("coops") || subcommand.equals("member-menu") || subcommand.equals("멤버") || subcommand.equals("멤버관리")) {
             runtime.openIslandMemberMenu(player);
             return true;
         }

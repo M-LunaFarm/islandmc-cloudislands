@@ -177,7 +177,7 @@ final class IslandCommandRouter {
     }
 
     private boolean runIslandAction(Player player, String label, String subcommand, String[] args) {
-        if (subcommand.equals("menu") || subcommand.equals("메뉴")) {
+        if (subcommand.equals("menu") || subcommand.equals("panel") || subcommand.equals("manager") || subcommand.equals("cp") || subcommand.equals("메뉴")) {
             openMainMenuOrCommandList(player, label);
             return true;
         }

@@ -37,7 +37,7 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.declineInviteTarget(player, args.length > 1 ? args[1] : "");
             return true;
         }
-        if (args[0].equalsIgnoreCase("members") || args[0].equalsIgnoreCase("member-list") || args[0].equalsIgnoreCase("member-menu") || args[0].equalsIgnoreCase("team") || args[0].equalsIgnoreCase("showteam") || args[0].equalsIgnoreCase("online") || args[0].equals("멤버") || args[0].equals("멤버목록") || args[0].equals("멤버관리")) {
+        if (args[0].equalsIgnoreCase("members") || args[0].equalsIgnoreCase("coops") || args[0].equalsIgnoreCase("member-list") || args[0].equalsIgnoreCase("member-menu") || args[0].equalsIgnoreCase("team") || args[0].equalsIgnoreCase("showteam") || args[0].equalsIgnoreCase("online") || args[0].equals("멤버") || args[0].equals("멤버목록") || args[0].equals("멤버관리")) {
             if (args.length > 1) {
                 playerMembership.listMembers(player, args[1]);
             } else {

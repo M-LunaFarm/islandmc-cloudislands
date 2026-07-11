@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public enum IslandCommandPermission {
-    MENU("cloudislands.island.menu", "help", "도움말", "commands", "command", "command-list", "명령어", "명령어목록", "menu", "메뉴", "info", "info-target", "show", "정보", "list", "my", "my-islands", "목록", "내섬"),
+    MENU("cloudislands.island.menu", "help", "도움말", "commands", "command", "command-list", "명령어", "명령어목록", "menu", "panel", "manager", "cp", "메뉴", "info", "info-target", "show", "정보", "list", "my", "my-islands", "목록", "내섬"),
     CREATE("cloudislands.island.create", "create", "생성", "create-menu", "templates", "생성메뉴", "템플릿"),
     DELETE("cloudislands.island.delete", "delete", "삭제"),
     RESET("cloudislands.island.reset", "reset", "리셋", "danger", "위험작업"),
@@ -22,7 +22,7 @@ public enum IslandCommandPermission {
     WAREHOUSE("cloudislands.island.warehouse.view", Set.of("cloudislands.island.warehouse"), "warehouse", "warehouse-list", "storage-box", "chest", "island-chest", "islandchest", "창고", "창고목록"),
     WAREHOUSE_DEPOSIT("cloudislands.island.warehouse.deposit", "warehouse-deposit", "창고입금"),
     WAREHOUSE_WITHDRAW("cloudislands.island.warehouse.withdraw", "warehouse-withdraw", "창고출금"),
-    MEMBERS("cloudislands.island.members", "members", "member-menu", "member-list", "member-list-target", "team", "showteam", "online", "roles", "role-menu", "role-list", "invites", "invite-menu", "invite-list", "bans", "ban-menu", "ban-list", "banlist", "멤버", "멤버관리", "멤버목록", "역할", "역할목록", "초대목록", "밴목록"),
+    MEMBERS("cloudislands.island.members", "members", "coops", "member-menu", "member-list", "member-list-target", "team", "showteam", "online", "roles", "role-menu", "role-list", "invites", "invite-menu", "invite-list", "bans", "ban-menu", "ban-list", "banlist", "멤버", "멤버관리", "멤버목록", "역할", "역할목록", "초대목록", "밴목록"),
     INVITE("cloudislands.island.invite", "invite", "초대"),
     INVITE_RESPOND("cloudislands.island.invite.respond", "accept", "invite-accept", "decline", "invite-decline", "초대수락", "초대거절"),
     LEAVE("cloudislands.island.leave", "leave", "탈퇴"),

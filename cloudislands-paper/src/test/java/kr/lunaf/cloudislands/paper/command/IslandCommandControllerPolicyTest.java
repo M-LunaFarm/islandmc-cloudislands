@@ -134,7 +134,8 @@ class IslandCommandControllerPolicyTest {
         String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/PaperCommandRegistrar.java"));
 
         assertTrue(router.contains("if (args.length == 0) {\n            openMainMenuOrCommandList(player, label);"), "bare /island and /섬 must open the GUI first");
-        assertTrue(router.contains("if (subcommand.equals(\"menu\") || subcommand.equals(\"메뉴\")) {\n            openMainMenuOrCommandList(player, label);"), "/island menu and /섬 메뉴 must open the GUI first");
+        assertTrue(router.contains("subcommand.equals(\"menu\")") && router.contains("subcommand.equals(\"panel\")") && router.contains("subcommand.equals(\"manager\")") && router.contains("subcommand.equals(\"cp\")")
+            && router.contains("openMainMenuOrCommandList(player, label);"), "canonical menu and SS2 panel aliases must open the GUI first");
         assertTrue(router.contains("if (action instanceof GuiAction.MainOpen) {\n            openMainMenuOrCommandList(player, \"섬\");"), "GUI main-open actions must return to the main menu");
         assertTrue(router.contains("private void openMainMenuOrCommandList(Player player, String label)"));
         assertTrue(router.contains("if (!runtime.openMainMenu(player)) {\n            sendCommandList(player, label, \"섬 명령어 목록\", allHelpCommands(), 1);"), "command list must remain only as the no-GUI/error fallback and include addon commands");
