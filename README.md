@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.3`
+Version: `1.1.4`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -601,11 +601,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.3`
+Current release: `v1.1.4`
 
-Built for the CloudIslands 1.1.3 baseline.
+Built for the CloudIslands 1.1.4 baseline.
 
-Release notes for `v1.1.3`:
+Release notes for `v1.1.4`:
+
+- safe SS2 co-op removal: `/is uncoop` and `/is untrust` now require an active
+  `TRUSTED` target before mutation and cannot remove permanent team members
+- block-value command parity: `/is value [material]` resolves the named or held
+  material through typed Core block values and reports worth, level points, and
+  placement limit instead of opening an unrelated values list
+- player alias collision repair: official `join`, `add`, and `remove` aliases no
+  longer get intercepted as legacy admin commands
+- broader command migration: common SS2 forms such as `bal`, `money`, `vault`,
+  `setbiome`, `tp`, `go`, `settp`, `setgo`, `show`, `showteam`, `online`, `tc`,
+  `leader`, `leadership`, and `expel` preserve their player-command intent
+
+Release notes carried forward from `v1.1.3`:
 
 - broader SS2 PlaceholderAPI parity: biome, active ban count/list, default
   home/world coordinates, warp count/limit, and dynamic upgrade levels now use
@@ -673,7 +686,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.3`.
+Current read: production-readiness baseline `v1.1.4`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
