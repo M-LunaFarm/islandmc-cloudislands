@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.25`
+Version: `1.1.26`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.25`
+Current release: `v1.1.26`
 
-Built for the CloudIslands 1.1.25 baseline.
+Built for the CloudIslands 1.1.26 baseline.
 
-Release notes for `v1.1.25`:
+Release notes for `v1.1.26`:
+
+- complete named-home access: islands with more than one GUI page of homes can
+  browse, teleport to, and update every configured destination
+- complete private-warp management: private and public state, teleport, toggle,
+  and Shift-right-click deletion remain available beyond the first 45 warps
+- authoritative navigation: home and private-warp page actions retain the
+  island UUID instead of resolving a possibly changed current-island context
+- dynamic bounds: removing destinations while a menu is open clamps navigation
+  against the latest Core home or warp catalog
+- localized navigation: previous and next controls are provided in Korean and
+  English for both management menus
+
+Release notes carried forward from `v1.1.25`:
 
 - complete warehouse capacity: the Paper warehouse now exposes every configured
   row, including all 54 material entries available at the six-row limit
@@ -983,7 +996,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.25`.
+Current read: production-readiness baseline `v1.1.26`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
