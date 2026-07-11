@@ -16,7 +16,7 @@ public enum IslandCommandPermission {
     SET_HOME("cloudislands.island.sethome", "sethome", "setteleport", "setspawnpoint", "셋홈"),
     WARP("cloudislands.island.warp", "warp", "legacy-warp", "warps", "warp-menu", "warp-list", "public-warps", "publicwarplist", "visit", "randomvisit", "random-visit", "public-islands", "publicislands", "visit-list", "방문", "랜덤방문", "공개섬", "방문목록", "워프", "워프관리", "워프목록", "공개워프목록"),
     SET_WARP("cloudislands.island.setwarp", "setwarp", "delwarp", "deletewarp", "warp-delete", "warp-public", "publicwarp", "warp-private", "privatewarp", "워프설정", "워프삭제", "워프공개", "워프비공개"),
-    BANK("cloudislands.island.bank", "bank", "bank-balance", "bank-balance-target", "은행", "은행잔액"),
+    BANK("cloudislands.island.bank", "bank", "bank-balance", "bank-balance-target", "balance", "bal", "money", "은행", "은행잔액"),
     BANK_DEPOSIT("cloudislands.island.bank.deposit", "deposit", "bank-deposit", "입금"),
     BANK_WITHDRAW("cloudislands.island.bank.withdraw", "withdraw", "bank-withdraw", "출금"),
     WAREHOUSE("cloudislands.island.warehouse.view", Set.of("cloudislands.island.warehouse"), "warehouse", "warehouse-list", "storage-box", "chest", "island-chest", "islandchest", "창고", "창고목록"),

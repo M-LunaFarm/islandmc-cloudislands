@@ -145,6 +145,19 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void superiorSkyblockBalanceAliasesAreCanonicalAndTargetAware() throws Exception {
+        String bankHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java"));
+
+        for (String alias : List.of("balance", "bal", "money")) {
+            assertTrue(IslandCommandCatalog.SUBCOMMANDS.contains(alias), alias);
+            assertEquals(IslandCommandPermission.BANK, IslandCommandPermission.fromSubcommand(alias), alias);
+        }
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 balance [player|island]"));
+        assertTrue(bankHandler.contains("showTargetBank(player, args[1])"));
+        assertTrue(bankHandler.contains("targetResolver.resolve(target)"));
+    }
+
+    @Test
     void superiorSkyblockStackerPermissionParityUsesCoreEnvironmentWithoutFakeRuntimeStateTransfer() throws Exception {
         String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackerIntegration.java"));

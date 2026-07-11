@@ -107,6 +107,20 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void targetedBalanceAliasesPreservePaperVelocityParity() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));
+        String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerMembershipActions.java"));
+
+        for (String command : List.of("섬 balance [player|island]", "섬 bal [player|island]", "섬 money [player|island]")) {
+            assertTrue(IslandCommandCatalog.playerCommands().contains(command), command);
+        }
+        assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"balance\")"));
+        assertTrue(dispatcher.contains("playerMembership.showBank(player, args[1])"));
+        assertTrue(actions.contains("showBank(Player player, String target)"));
+        assertTrue(actions.contains("targetResolver.resolveIslandId(target)"));
+    }
+
+    @Test
     void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
 

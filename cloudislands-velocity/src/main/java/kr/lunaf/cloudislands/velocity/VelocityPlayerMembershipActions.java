@@ -280,6 +280,21 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
             resolved -> sendTextResult(player, coreApiClient.bank().islandBank(resolved).thenApply(view -> islandMessages.bankInfo(resolved, view)), "섬 은행을 불러오지 못했습니다."));
     }
 
+    public void showBank(Player player, String target) {
+        targetResolver.resolveIslandId(target)
+            .thenAccept(islandId -> {
+                if (islandId.equals(new UUID(0L, 0L))) {
+                    player.sendMessage(Component.text("은행을 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                    return;
+                }
+                showBank(player, islandId);
+            })
+            .exceptionally(error -> {
+                player.sendMessage(Component.text("은행을 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                return null;
+            });
+    }
+
     public void depositBank(Player player, UUID islandId, String amount) {
         player.sendMessage(Component.text("섬 은행 입금은 경제 플러그인 연동이 필요한 작업이라 Paper Agent에서만 처리합니다."));
     }

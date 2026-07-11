@@ -188,6 +188,14 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerMembership.showBank(player, islandId);
             return;
         }
+        if (args[0].equalsIgnoreCase("balance") || args[0].equalsIgnoreCase("bal") || args[0].equalsIgnoreCase("money")) {
+            if (args.length > 1) {
+                playerMembership.showBank(player, args[1]);
+            } else {
+                playerMembership.showBank(player, new UUID(0L, 0L));
+            }
+            return;
+        }
         if (args[0].equalsIgnoreCase("deposit") || args[0].equalsIgnoreCase("bank-deposit") || args[0].equals("입금")) {
             UUID islandId = optionalIslandIdArgument(args, 1);
             String amount = argumentAfterOptionalIsland(args, 1, "0");

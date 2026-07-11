@@ -36,20 +36,19 @@ final class IslandBankCommandHandler {
             openBankMenu(player);
             return true;
         }
-        if (subcommand.equals("bank-balance") || subcommand.equals("은행잔액")) {
-            showBank(player);
+        if (subcommand.equals("bank-balance") || subcommand.equals("balance") || subcommand.equals("bal") || subcommand.equals("money") || subcommand.equals("은행잔액")) {
+            if (args.length < 2) {
+                showBank(player);
+            } else {
+                showTargetBank(player, args[1]);
+            }
             return true;
         }
         if (subcommand.equals("bank-balance-target")) {
             if (args.length < 2) {
                 showBank(player);
             } else {
-                targetResolver.resolve(args[1])
-                    .thenAccept(islandId -> showBank(player, islandId))
-                    .exceptionally(error -> {
-                        runtime.message(player, message("bank-target-not-found", "은행을 확인할 섬 또는 플레이어를 찾지 못했습니다."));
-                        return null;
-                    });
+                showTargetBank(player, args[1]);
             }
             return true;
         }
@@ -90,6 +89,15 @@ final class IslandBankCommandHandler {
 
     private void showBank(Player player) {
         runtime.currentIsland(player, message("bank-balance-island-required", "섬 안에서만 은행을 확인할 수 있습니다.")).ifPresent(islandId -> showBank(player, islandId));
+    }
+
+    private void showTargetBank(Player player, String target) {
+        targetResolver.resolve(target)
+            .thenAccept(islandId -> showBank(player, islandId))
+            .exceptionally(error -> {
+                runtime.message(player, message("bank-target-not-found", "은행을 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                return null;
+            });
     }
 
     private void showBank(Player player, UUID islandId) {
