@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.44`
+Version: `1.1.45`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.44`
+Current release: `v1.1.45`
 
-Built for the CloudIslands 1.1.44 baseline.
+Built for the CloudIslands 1.1.45 baseline.
 
-Release notes for `v1.1.44`:
+Release notes for `v1.1.45`:
+
+- PostgreSQL permission persistence fixed: V77 expands both role permission and
+  player override constraints from the original 30 keys to all 51 runtime keys
+- safe live upgrade: existing constraints are dropped and recreated without
+  rebuilding permission tables or deleting configured grants
+- drift-proof migration import: the SuperiorSkyblock2 scanner now derives its
+  supported permission list directly from `IslandPermission.values()`
+- complete addon contract: the API JAR manifest advertises every current
+  permission key instead of the historical baseline subset
+- schema regression gate: every runtime permission must appear in both V77
+  constraints, preventing future enum/schema drift
+- real database proof: PostgreSQL, Redis, MinIO, and dual-Core Integration passed
+  with V77 applied
+
+Release notes carried forward from `v1.1.44`:
 
 - topology-correct publish evidence: a route event observed on the secondary
   Core now proves both primary publication and remote replay
@@ -1236,7 +1251,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.44`.
+Current read: production-readiness baseline `v1.1.45`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
