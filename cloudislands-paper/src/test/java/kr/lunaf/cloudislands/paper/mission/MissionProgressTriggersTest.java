@@ -28,6 +28,18 @@ class MissionProgressTriggersTest {
     }
 
     @Test
+    void gameplayEventsCoverEnchantingStatisticsAdvancementsAndConsumption() {
+        assertTrue(MissionProgressTriggers.enchanting("minecraft:diamond_pickaxe").stream()
+            .anyMatch(trigger -> trigger.missionKey().equals("enchant_item:diamond_pickaxe") && trigger.amount() == 1L));
+        assertTrue(MissionProgressTriggers.statistic("MOB_KILLS", 3L).stream()
+            .anyMatch(trigger -> trigger.missionKey().equals("statistic:mob_kills") && trigger.amount() == 3L));
+        assertTrue(MissionProgressTriggers.advancement("minecraft:story/mine_stone").stream()
+            .anyMatch(trigger -> trigger.missionKey().equals("advancement:story/mine_stone") && trigger.amount() == 1L));
+        assertTrue(MissionProgressTriggers.itemConsume("minecraft:golden_apple").stream()
+            .anyMatch(trigger -> trigger.missionKey().equals("item_consume:golden_apple") && trigger.amount() == 1L));
+    }
+
+    @Test
     void economyAndGeneratorEventsHaveMissionTriggerKeys() {
         assertTrue(MissionProgressTriggers.bankBalance(1000L).stream().anyMatch(trigger -> trigger.missionKey().equals("bank_balance") && trigger.amount() == 1000L));
         assertTrue(MissionProgressTriggers.generatorCollect("minecraft:diamond_ore", 3L).stream().anyMatch(trigger -> trigger.missionKey().equals("generator_collect") && trigger.amount() == 3L));

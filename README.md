@@ -541,7 +541,7 @@ integration verification.
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; real-player destructive-action smoke is not part of CI | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, biome normalization, and Paper world-border policy | operator live-server biome painting acceptance is still recommended; CI verifies the Core mutation and Paper border application policy |
-| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress, verifyMissionRewardCoverage, verifyGeneratorRules, and verifyEconomyTransactionSafety cover the current scope | operator live-server economy/provider acceptance is still recommended; Vault lifecycle certification is not claimed by the diagnostic registry |
+| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
@@ -556,6 +556,10 @@ Built for the CloudIslands 1.0.1 baseline.
 
 Release notes for `v1.0.1`:
 
+- mission parity and runtime load: definition-driven missions now progress from
+  enchanting, Bukkit statistic increments, advancements, and item consumption;
+  a bounded two-second per-island cache coalesces Core definition reads during
+  high-frequency mining and farming events, and invalidates on completion
 - Core migration compatibility: SuperiorSkyblock2 import remains a CloudIslands
   Core/Paper/Velocity operation; `cloudislands-satis` no longer exposes legacy
   import or rollback commands

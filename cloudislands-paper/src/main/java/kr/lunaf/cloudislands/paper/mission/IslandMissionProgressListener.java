@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
@@ -23,14 +24,19 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.enchantment.EnchantItemEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
+import org.bukkit.event.player.PlayerAdvancementDoneEvent;
 import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.player.PlayerItemConsumeEvent;
+import org.bukkit.event.player.PlayerStatisticIncrementEvent;
 import org.bukkit.inventory.ItemStack;
 
 public final class IslandMissionProgressListener implements Listener {
     private final ProtectionController protection;
     private final ProgressionCommandClient progressionCommands;
     private final ProgressionQueryClient progressionQueries;
+    private final MissionDefinitionCache definitionCache = new MissionDefinitionCache(512, Duration.ofSeconds(2));
     private final AtomicLong attempts = new AtomicLong();
     private final AtomicLong accepted = new AtomicLong();
     private final AtomicLong ignored = new AtomicLong();
@@ -100,6 +106,39 @@ public final class IslandMissionProgressListener implements Listener {
         progressAt(player, player.getLocation().getBlock(), "CRAFTING", materialKey(result.getType()), result.getAmount(), MissionProgressTriggers.crafting(materialKey(result.getType()), result.getAmount()));
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onEnchantItem(EnchantItemEvent event) {
+        Player player = event.getEnchanter();
+        String itemKey = materialKey(event.getItem().getType());
+        progressAt(player, player.getLocation().getBlock(), "ENCHANT_ITEM", itemKey, 1L, MissionProgressTriggers.enchanting(itemKey));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onStatisticIncrement(PlayerStatisticIncrementEvent event) {
+        long delta = (long) event.getNewValue() - event.getPreviousValue();
+        if (delta <= 0L) {
+            ignored.incrementAndGet();
+            return;
+        }
+        Player player = event.getPlayer();
+        String statisticKey = event.getStatistic().name();
+        progressAt(player, player.getLocation().getBlock(), "STATISTIC", statisticKey, delta, MissionProgressTriggers.statistic(statisticKey, delta));
+    }
+
+    @EventHandler
+    public void onAdvancementDone(PlayerAdvancementDoneEvent event) {
+        Player player = event.getPlayer();
+        String advancementKey = event.getAdvancement().getKey().toString();
+        progressAt(player, player.getLocation().getBlock(), "ADVANCEMENT", advancementKey, 1L, MissionProgressTriggers.advancement(advancementKey));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onItemConsume(PlayerItemConsumeEvent event) {
+        Player player = event.getPlayer();
+        String itemKey = materialKey(event.getItem().getType());
+        progressAt(player, player.getLocation().getBlock(), "ITEM_CONSUME", itemKey, 1L, MissionProgressTriggers.itemConsume(itemKey));
+    }
+
     private void progressAt(Player player, Block block, String triggerType, String targetKey, long amount, List<MissionProgressTriggers.Trigger> fallbackTriggers) {
         UUID islandId = protection.islandAt(block).orElse(null);
         if (islandId == null || !protection.memberOrTrusted(islandId, player.getUniqueId())) {
@@ -120,12 +159,14 @@ public final class IslandMissionProgressListener implements Listener {
         if (progressionQueries == null) {
             return CompletableFuture.completedFuture(List.of());
         }
-        CompletableFuture<List<CoreGuiViews.MissionView>> missions = progressionQueries.missions(islandId, "MISSION").exceptionally(exception -> List.of());
-        CompletableFuture<List<CoreGuiViews.MissionView>> challenges = progressionQueries.missions(islandId, "CHALLENGE").exceptionally(exception -> List.of());
-        return missions.thenCombine(challenges, (missionViews, challengeViews) -> {
+        return definitionCache.get(islandId, () -> {
+            CompletableFuture<List<CoreGuiViews.MissionView>> missions = progressionQueries.missions(islandId, "MISSION");
+            CompletableFuture<List<CoreGuiViews.MissionView>> challenges = progressionQueries.missions(islandId, "CHALLENGE");
+            return missions.thenCombine(challenges, MissionDefinitionCache.DefinitionViews::new);
+        }).thenApply(definitions -> {
             List<MissionProgressTriggers.Trigger> triggers = new ArrayList<>();
-            triggers.addAll(MissionProgressTriggers.matchingDefinitions("MISSION", missionViews, triggerType, targetKey, amount));
-            triggers.addAll(MissionProgressTriggers.matchingDefinitions("CHALLENGE", challengeViews, triggerType, targetKey, amount));
+            triggers.addAll(MissionProgressTriggers.matchingDefinitions("MISSION", definitions.missions(), triggerType, targetKey, amount));
+            triggers.addAll(MissionProgressTriggers.matchingDefinitions("CHALLENGE", definitions.challenges(), triggerType, targetKey, amount));
             return List.copyOf(triggers);
         });
     }
@@ -166,6 +207,7 @@ public final class IslandMissionProgressListener implements Listener {
             fields
         ));
         if (view.completed()) {
+            definitionCache.invalidate(islandId);
             PaperEvents.call(new IslandMissionCompleteEvent(islandId, fields.get("missionKey"), fields.get("kind"), fields));
         }
     }
@@ -191,6 +233,6 @@ public final class IslandMissionProgressListener implements Listener {
     }
 
     public String eventPolicy() {
-        return "BlockBreakEvent,BlockPlaceEvent,EntityDeathEvent,PlayerFishEvent,CraftItemEvent:definition-aware";
+        return "BlockBreakEvent,BlockPlaceEvent,EntityDeathEvent,PlayerFishEvent,CraftItemEvent,EnchantItemEvent,PlayerStatisticIncrementEvent,PlayerAdvancementDoneEvent,PlayerItemConsumeEvent:definition-aware";
     }
 }

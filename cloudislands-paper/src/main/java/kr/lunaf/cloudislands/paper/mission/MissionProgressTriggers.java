@@ -71,6 +71,35 @@ public final class MissionProgressTriggers {
         return List.copyOf(triggers);
     }
 
+    public static List<Trigger> enchanting(String materialKey) {
+        List<Trigger> triggers = new ArrayList<>();
+        addConventionTriggers(triggers, "enchant_item", materialKey);
+        return List.copyOf(triggers);
+    }
+
+    public static List<Trigger> statistic(String statisticKey, long amount) {
+        long safeAmount = Math.max(1L, amount);
+        List<Trigger> triggers = new ArrayList<>();
+        triggers.add(new Trigger("statistic", "MISSION", safeAmount));
+        String normalized = normalizeKey(statisticKey);
+        if (!normalized.isBlank()) {
+            triggers.add(new Trigger("statistic:" + normalized, "MISSION", safeAmount));
+        }
+        return List.copyOf(triggers);
+    }
+
+    public static List<Trigger> advancement(String advancementKey) {
+        List<Trigger> triggers = new ArrayList<>();
+        addConventionTriggers(triggers, "advancement", advancementKey);
+        return List.copyOf(triggers);
+    }
+
+    public static List<Trigger> itemConsume(String materialKey) {
+        List<Trigger> triggers = new ArrayList<>();
+        addConventionTriggers(triggers, "item_consume", materialKey);
+        return List.copyOf(triggers);
+    }
+
     public static List<Trigger> bankBalance(long balance) {
         long safeBalance = Math.max(1L, balance);
         return List.of(new Trigger("bank_balance", "MISSION", safeBalance));

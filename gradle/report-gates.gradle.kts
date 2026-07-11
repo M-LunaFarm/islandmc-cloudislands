@@ -368,16 +368,18 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "bank safety, economy hooks, mission triggers/rewards, challenges, generator rules, and limits have verification gates",
         "Paper mission listeners, bank rollback UX, and generator listeners have targeted tests",
         "version-neutral plus Paper/Satis runtime boundaries",
-        "verifyMissionEventProgress, verifyMissionRewardCoverage, verifyGeneratorRules, and verifyEconomyTransactionSafety cover the current scope",
+        "verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward, generator, and economy safety gates cover the remaining scope",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/IslandMissionProgressListener.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/MissionDefinitionCache.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/mission/MissionDefinitionCacheTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/mission/MissionRewardServiceTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/BankUseCaseTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/IslandGeneratorListener.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/GeneratorRoutesTest.java"
         ),
-        "operator live-server economy/provider acceptance is still recommended; Vault lifecycle certification is not claimed by the diagnostic registry"
+        "brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended"
     ),
     FeatureParityEntry(
         "chat/logs/reviews",

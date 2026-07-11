@@ -556,12 +556,14 @@ tasks.register("verifyMissionEventProgress") {
     description = "Verifies Paper mission event progress listeners and tests remain present."
     dependsOn(project(":cloudislands-paper").tasks.named("test"))
     val listener = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/IslandMissionProgressListener.java")
+    val cache = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/MissionDefinitionCache.java")
     val test = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/mission/MissionProgressTriggersTest.java")
-    inputs.files(listener, test)
+    val cacheTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/mission/MissionDefinitionCacheTest.java")
+    inputs.files(listener, cache, test, cacheTest)
     doLast {
         val listenerSource = listener.asFile.readText()
         val triggerSource = test.asFile.readText()
-        val missingSignals = listOf("BlockBreakEvent", "BlockPlaceEvent", "EntityDeathEvent", "PlayerFishEvent", "CraftItemEvent", "Ageable")
+        val missingSignals = listOf("BlockBreakEvent", "BlockPlaceEvent", "EntityDeathEvent", "PlayerFishEvent", "CraftItemEvent", "EnchantItemEvent", "PlayerStatisticIncrementEvent", "PlayerAdvancementDoneEvent", "PlayerItemConsumeEvent", "Ageable")
             .filterNot(listenerSource::contains) +
             listOf("BANK_BALANCE", "GENERATOR_COLLECT", "bankBalance", "generatorCollect")
                 .filterNot { triggerSource.contains(it) || listenerSource.contains(it) }
@@ -570,6 +572,9 @@ tasks.register("verifyMissionEventProgress") {
         }
         if (!test.asFile.isFile) {
             throw GradleException("Mission progress trigger test is missing")
+        }
+        if (!cache.asFile.readText().contains("maxEntries") || !cacheTest.asFile.readText().contains("coalescesRequestsUntilTtlExpiresAndSupportsInvalidation")) {
+            throw GradleException("Mission definition query cache and regression coverage are missing")
         }
     }
 }
