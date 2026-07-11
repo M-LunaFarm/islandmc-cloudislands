@@ -84,11 +84,8 @@ public final class IslandMemberRoutes implements RouteGroup {
 
     private void playerIslands(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
-        ArrayList<IslandSnapshot> islands = new ArrayList<>();
-        for (IslandMemberSnapshot member : metadataRepository.islandsForMember(JsonFields.uuid(body, "playerUuid", EMPTY_UUID))) {
-            islandRepository.findById(member.islandId()).ifPresent(islands::add);
-        }
-        CoreHttpResponses.write(exchange, 200, islandsJson(islands));
+        List<IslandMemberSnapshot> memberships = metadataRepository.islandsForMember(JsonFields.uuid(body, "playerUuid", EMPTY_UUID));
+        CoreHttpResponses.write(exchange, 200, playerIslandsJson(memberships));
     }
 
     private void setMember(HttpExchange exchange) throws IOException {
@@ -488,6 +485,20 @@ public final class IslandMemberRoutes implements RouteGroup {
         List<Object> renderedIslands = new ArrayList<>();
         for (IslandSnapshot island : islands) {
             renderedIslands.add(islandMap(island));
+        }
+        return SimpleJson.stringify(Map.of("islands", renderedIslands));
+    }
+
+    private String playerIslandsJson(List<IslandMemberSnapshot> memberships) {
+        List<Object> renderedIslands = new ArrayList<>();
+        for (IslandMemberSnapshot membership : memberships) {
+            islandRepository.findById(membership.islandId()).ifPresent(island -> {
+                LinkedHashMap<String, Object> rendered = new LinkedHashMap<>(islandMap(island));
+                rendered.put("role", membership.effectiveRoleKey());
+                rendered.put("roleKey", membership.effectiveRoleKey());
+                rendered.put("membershipExpiresAt", membership.expiresAt());
+                renderedIslands.add(rendered);
+            });
         }
         return SimpleJson.stringify(Map.of("islands", renderedIslands));
     }

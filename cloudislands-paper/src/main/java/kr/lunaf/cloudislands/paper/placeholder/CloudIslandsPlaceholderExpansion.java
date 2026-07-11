@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.placeholder;
 
-import java.util.Locale;
+import java.util.List;
+import java.util.Comparator;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +28,8 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         Snapshot::expiresAtMillis
     );
     private final java.util.Set<UUID> refreshing = ConcurrentHashMap.newKeySet();
+    private final Object rankingLock = new Object();
+    private volatile RankingCache rankingCache;
 
     public CloudIslandsPlaceholderExpansion(Plugin plugin, CoreApiClient client) {
         this.plugin = plugin;
@@ -74,8 +77,12 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         if (!refreshing.add(playerUuid)) {
             return;
         }
-        client.islands().getIslandByOwner(playerUuid)
-            .thenCompose(this::snapshotWithBank)
+        CompletableFuture<kr.lunaf.cloudislands.coreclient.PlayerProfileView> profile = client.playerProfiles().profile(playerUuid).exceptionally(_error -> null);
+        CompletableFuture<List<CoreGuiViews.PlayerIslandView>> memberships = client.navigation().playerIslands(playerUuid).exceptionally(_error -> List.of());
+        profile.thenCombine(memberships, (playerProfile, islands) -> selectIsland(playerUuid, playerProfile, islands))
+            .thenCompose(selection -> selection == null
+                ? CompletableFuture.completedFuture(Snapshot.empty(System.currentTimeMillis() + MISS_TTL_MILLIS))
+                : client.islands().getIsland(selection.islandId()).thenCompose(island -> snapshotWithDetails(playerUuid, selection.role(), island)))
             .handle((snapshot, error) -> {
                 long now = System.currentTimeMillis();
                 if (error == null) {
@@ -89,7 +96,22 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
             .whenComplete((_result, _error) -> refreshing.remove(playerUuid));
     }
 
-    private CompletableFuture<Snapshot> snapshotWithBank(CoreGuiViews.IslandInfoView island) {
+    private SelectedIsland selectIsland(UUID playerUuid, kr.lunaf.cloudislands.coreclient.PlayerProfileView profile, List<CoreGuiViews.PlayerIslandView> islands) {
+        if (islands == null || islands.isEmpty()) {
+            return null;
+        }
+        String primaryIslandId = profile == null ? "" : profile.primaryIslandId();
+        CoreGuiViews.PlayerIslandView selected = islands.stream()
+            .filter(island -> island != null && island.islandId() != null && !island.islandId().isBlank())
+            .min(Comparator
+                .comparingInt((CoreGuiViews.PlayerIslandView island) -> island.islandId().equals(primaryIslandId) ? 0 : teamRole(island.role()) ? 1 : 2)
+                .thenComparing(CoreGuiViews.PlayerIslandView::islandId))
+            .orElse(null);
+        UUID islandId = selected == null ? null : uuid(selected.islandId());
+        return islandId == null ? null : new SelectedIsland(islandId, normalizedRole(selected.role()));
+    }
+
+    private CompletableFuture<Snapshot> snapshotWithDetails(UUID playerUuid, String selectedRole, CoreGuiViews.IslandInfoView island) {
         long expiresAt = System.currentTimeMillis() + CACHE_TTL_MILLIS;
         String islandId = island == null ? "" : island.islandId();
         if (islandId == null || islandId.isBlank()) {
@@ -97,34 +119,59 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         }
         UUID parsedIslandId = uuid(islandId);
         if (parsedIslandId == null) {
-            return CompletableFuture.completedFuture(new Snapshot(island, null, 0, 0, expiresAt));
+            return CompletableFuture.completedFuture(new Snapshot(island, null, selectedRole, List.of(), 3L, 8L, 0, 0, expiresAt));
         }
-        return client.bank().islandBank(parsedIslandId)
-            .handle((bank, error) -> error == null ? bank : null)
-            .thenCombine(client.progression().rankings(100).handle((rankings, error) -> error == null ? rankings : null), (bank, rankings) ->
-                new Snapshot(island, bank, CloudIslandsPlaceholderRanks.worthRank(rankings, islandId), CloudIslandsPlaceholderRanks.levelRank(rankings, islandId), expiresAt));
+        CompletableFuture<CoreGuiViews.BankView> bank = client.bank().islandBank(parsedIslandId).exceptionally(_error -> null);
+        CompletableFuture<List<CoreGuiViews.MemberView>> members = client.islands().listMembers(parsedIslandId).exceptionally(_error -> List.of());
+        CompletableFuture<List<CoreGuiViews.LimitView>> limits = client.environment().limitViews(parsedIslandId).exceptionally(_error -> List.of());
+        CompletableFuture<CoreGuiViews.RankingData> rankings = rankings();
+        return CompletableFuture.allOf(bank, members, limits, rankings).thenApply(_ignored -> {
+            List<CoreGuiViews.MemberView> memberValues = members.join();
+            String role = memberValues.stream()
+                .filter(member -> playerUuid.toString().equals(member.playerUuid()))
+                .map(CoreGuiViews.MemberView::role)
+                .filter(value -> value != null && !value.isBlank())
+                .findFirst()
+                .map(CloudIslandsPlaceholderExpansion::normalizedRole)
+                .orElseGet(() -> island.ownerUuid().equals(playerUuid.toString()) ? "OWNER" : selectedRole);
+            long memberLimit = limit(limits.join(), "MEMBERS", 3L);
+            long coopLimit = limit(limits.join(), "ROLE_LIMIT:TRUSTED", 8L);
+            CoreGuiViews.RankingData rankingValues = rankings.join();
+            return new Snapshot(island, bank.join(), role, memberValues, memberLimit, coopLimit,
+                CloudIslandsPlaceholderRanks.worthRank(rankingValues, islandId),
+                CloudIslandsPlaceholderRanks.levelRank(rankingValues, islandId), expiresAt);
+        });
+    }
+
+    private CompletableFuture<CoreGuiViews.RankingData> rankings() {
+        long now = System.currentTimeMillis();
+        RankingCache current = rankingCache;
+        if (current != null && current.expiresAtMillis() > now) {
+            return current.value();
+        }
+        synchronized (rankingLock) {
+            current = rankingCache;
+            if (current != null && current.expiresAtMillis() > now) {
+                return current.value();
+            }
+            CompletableFuture<CoreGuiViews.RankingData> loaded = client.progression().rankings(100).exceptionally(_error -> null);
+            rankingCache = new RankingCache(loaded, now + CACHE_TTL_MILLIS);
+            return loaded;
+        }
     }
 
     private String value(Snapshot snapshot, String params) {
-        String key = params == null ? "" : params.toLowerCase(Locale.ROOT).replace('-', '_');
         CoreGuiViews.IslandInfoView island = snapshot.island();
         CoreGuiViews.BankView bank = snapshot.bank();
-        return switch (key) {
-            case "has_island" -> Boolean.toString(island != null && !island.islandId().isBlank());
-            case "island_id", "id" -> island == null ? "" : island.islandId();
-            case "island_name", "name" -> island == null ? "" : island.name();
-            case "owner_uuid", "owner" -> island == null ? "" : island.ownerUuid();
-            case "state", "island_state" -> island == null ? "" : island.state();
-            case "size", "island_size" -> island == null ? "" : Long.toString(island.size());
-            case "border", "island_border" -> island == null ? "" : Long.toString(island.border());
-            case "level", "island_level" -> island == null ? "" : Long.toString(island.level());
-            case "worth", "value", "island_worth" -> island == null ? "" : island.worth();
-            case "rank", "worth_rank", "island_rank", "island_worth_rank" -> snapshot.worthRank() <= 0 ? "" : Integer.toString(snapshot.worthRank());
-            case "level_rank", "island_level_rank" -> snapshot.levelRank() <= 0 ? "" : Integer.toString(snapshot.levelRank());
-            case "public", "public_access", "is_public" -> island == null ? "" : Boolean.toString(island.publicAccess());
-            case "bank", "bank_balance", "balance" -> bank == null ? "" : bank.balance();
-            default -> "";
-        };
+        List<CloudIslandsPlaceholderValues.Member> members = snapshot.members().stream()
+            .map(member -> new CloudIslandsPlaceholderValues.Member(member.playerUuid(), member.playerName(), member.role()))
+            .toList();
+        CloudIslandsPlaceholderValues.Data data = island == null ? null : new CloudIslandsPlaceholderValues.Data(
+            island.islandId(), island.name(), island.ownerUuid(), island.state(), island.size(), island.border(), island.level(),
+            island.worth(), island.publicAccess(), island.locked(), island.createdAt(), island.updatedAt(),
+            bank == null ? "" : bank.balance(), snapshot.role(), members, snapshot.memberLimit(), snapshot.coopLimit(),
+            snapshot.worthRank(), snapshot.levelRank());
+        return CloudIslandsPlaceholderValues.value(data, params);
     }
 
     private static UUID uuid(String value) {
@@ -135,13 +182,37 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         }
     }
 
-    private record Snapshot(CoreGuiViews.IslandInfoView island, CoreGuiViews.BankView bank, int worthRank, int levelRank, long expiresAtMillis) {
+    private static long limit(List<CoreGuiViews.LimitView> limits, String key, long fallback) {
+        if (limits == null) {
+            return fallback;
+        }
+        return limits.stream().filter(limit -> key.equalsIgnoreCase(limit.key())).mapToLong(CoreGuiViews.LimitView::value).findFirst().orElse(fallback);
+    }
+
+    private static String normalizedRole(String role) {
+        return role == null ? "" : role.trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
+    private static boolean teamRole(String role) {
+        String normalized = normalizedRole(role);
+        return !normalized.isBlank() && !"TRUSTED".equals(normalized);
+    }
+
+    private record SelectedIsland(UUID islandId, String role) {
+    }
+
+    private record RankingCache(CompletableFuture<CoreGuiViews.RankingData> value, long expiresAtMillis) {
+    }
+
+    private record Snapshot(CoreGuiViews.IslandInfoView island, CoreGuiViews.BankView bank, String role,
+                            List<CoreGuiViews.MemberView> members, long memberLimit, long coopLimit,
+                            int worthRank, int levelRank, long expiresAtMillis) {
         private static Snapshot empty(long expiresAtMillis) {
-            return new Snapshot(null, null, 0, 0, expiresAtMillis);
+            return new Snapshot(null, null, "", List.of(), 3L, 8L, 0, 0, expiresAtMillis);
         }
 
         private Snapshot retryAfter(long retryAtMillis) {
-            return new Snapshot(island, bank, worthRank, levelRank, retryAtMillis);
+            return new Snapshot(island, bank, role, members, memberLimit, coopLimit, worthRank, levelRank, retryAtMillis);
         }
     }
 }

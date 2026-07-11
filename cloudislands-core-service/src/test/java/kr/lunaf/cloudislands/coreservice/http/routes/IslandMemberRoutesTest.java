@@ -344,6 +344,39 @@ class IslandMemberRoutesTest {
         assertEquals(true, renderedIsland.get("publicAccess"));
     }
 
+    @Test
+    void playerIslandsRoutePreservesMembershipRoleForClients() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000201");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000202");
+        UUID coopUuid = UUID.fromString("00000000-0000-0000-0000-000000000203");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        Instant expiresAt = Instant.now().plusSeconds(3600L);
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "role-preserving-navigation");
+        metadata.upsertMemberKey(islandId, coopUuid, "TRUSTED", expiresAt);
+
+        new IslandMemberRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            new InMemoryPlayerProfileRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryAuditLogger(),
+            new InMemoryGlobalEventPublisher()
+        ).register(handlers::put);
+
+        TestExchange exchange = new TestExchange("/v1/players/islands", "{\"playerUuid\":\"" + coopUuid + "\"}");
+        handlers.get("/v1/players/islands").handle(exchange);
+        assertEquals(200, exchange.status());
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(exchange.body()));
+        Map<?, ?> rendered = SimpleJson.object(SimpleJson.list(root.get("islands")).get(0));
+        assertEquals("TRUSTED", SimpleJson.text(rendered.get("role")));
+        assertEquals("TRUSTED", SimpleJson.text(rendered.get("roleKey")));
+        assertEquals(expiresAt.toString(), SimpleJson.text(rendered.get("membershipExpiresAt")));
+    }
+
     private static void assertMember(UUID islandId, UUID playerUuid, String roleKey, Map<?, ?> member) {
         assertEquals(islandId.toString(), SimpleJson.text(member.get("islandId")));
         assertEquals(playerUuid.toString(), SimpleJson.text(member.get("playerUuid")));

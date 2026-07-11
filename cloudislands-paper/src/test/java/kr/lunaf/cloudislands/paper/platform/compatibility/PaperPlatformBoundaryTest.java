@@ -593,8 +593,11 @@ class PaperPlatformBoundaryTest {
         Path placeholder = root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/placeholder/CloudIslandsPlaceholderExpansion.java");
         String source = Files.readString(placeholder);
 
-        assertTrue(source.contains("client.islands().getIslandByOwner(playerUuid)"), "Placeholder island lookup must use the typed island query client");
+        assertTrue(source.contains("client.playerProfiles().profile(playerUuid)"), "Placeholder island selection must honor the typed primary-island profile");
+        assertTrue(source.contains("client.navigation().playerIslands(playerUuid)"), "Placeholder island selection must include typed team and co-op memberships");
+        assertTrue(source.contains("client.islands().getIsland(selection.islandId())"), "Placeholder island lookup must use the typed island query client");
         assertTrue(source.contains("client.bank().islandBank(parsedIslandId)"), "Placeholder bank lookup must use the typed bank query client");
+        assertTrue(source.contains("rankingCache"), "Placeholder ranking lookups must be shared instead of repeated per player");
         assertTrue(!source.contains("client.islandInfoByOwner("), "Placeholder presentation must not call raw island JSON endpoints directly");
         assertTrue(!source.contains("client.islandBank("), "Placeholder presentation must not call raw bank JSON endpoints directly");
         assertTrue(!source.contains("String islandJson"), "Placeholder presentation must not cache raw island JSON");
