@@ -40,7 +40,7 @@ public final class SatisCommandRuntime {
         if (command == null || command.isRegistered()) {
             return;
         }
-        commandMap().ifPresent(map -> map.register(plugin.getDescription().getName().toLowerCase(Locale.ROOT), command));
+        commandMap().ifPresent(map -> map.register(plugin.getPluginMeta().getName().toLowerCase(Locale.ROOT), command));
     }
 
     private void unregisterPluginCommand(PluginCommand command) {
