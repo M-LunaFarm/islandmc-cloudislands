@@ -442,23 +442,35 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, message("member-invite-denied", "섬 멤버를 초대할 권한이 없습니다."));
                 return;
             }
-            Player online = plugin.getServer().getPlayerExact(target);
-            UUID parsed = uuid(target);
-            if (online != null || parsed != null) {
-                sendIslandInvite(player, islandId, online == null ? parsed : online.getUniqueId());
-                return;
-            }
-            memberManagement.playerUuidByName(target).thenAccept(profileUuid -> {
-                sendIslandInvite(player, islandId, profileUuid == null ? plugin.getServer().getOfflinePlayer(target).getUniqueId() : profileUuid);
-            }).exceptionally(error -> {
-                sendIslandInvite(player, islandId, plugin.getServer().getOfflinePlayer(target).getUniqueId());
+            UUID actorUuid = player.getUniqueId();
+            resolveInviteTarget(target).thenAccept(targetUuid ->
+                sendIslandInvite(player, islandId, actorUuid, targetUuid)
+            ).exceptionally(error -> {
+                runtime.message(player, message("member-invite-player-not-found", "초대할 플레이어 프로필을 찾을 수 없습니다."));
                 return null;
             });
         });
     }
 
-    private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid) {
-        runtime.mutate("island.invite.create", () -> memberManagement.createInviteView(islandId, player.getUniqueId(), targetUuid))
+    private CompletableFuture<UUID> resolveInviteTarget(String target) {
+        Player online = plugin.getServer().getPlayerExact(target);
+        if (online != null) {
+            return CompletableFuture.completedFuture(online.getUniqueId());
+        }
+        UUID parsed = uuid(target);
+        if (parsed != null) {
+            return CompletableFuture.completedFuture(parsed);
+        }
+        return memberManagement.playerUuidByName(target).thenApply(profileUuid -> {
+            if (profileUuid == null) {
+                throw new IllegalArgumentException("player profile was not found: " + target);
+            }
+            return profileUuid;
+        });
+    }
+
+    private void sendIslandInvite(Player player, UUID islandId, UUID actorUuid, UUID targetUuid) {
+        runtime.mutate("island.invite.create", () -> memberManagement.createInviteView(islandId, actorUuid, targetUuid))
             .thenAccept(invite -> runtime.message(player, inviteCreatedMessage(invite)))
             .exceptionally(error -> {
                 runtime.message(player, message("member-invite-failed", "섬 초대를 보내지 못했습니다."));

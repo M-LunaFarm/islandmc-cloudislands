@@ -50,10 +50,15 @@ class IslandCommandControllerPolicyTest {
     @Test
     void offlinePlayerNamesUseCoreProfilesInsteadOfInventedBukkitUuids() throws Exception {
         String resolver = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandPlayerResolver.java"));
+        String membership = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
 
         assertTrue(resolver.contains("memberManagement.playerUuidByName(value)"));
         assertTrue(resolver.contains("player profile was not found"));
         assertFalse(resolver.contains("getOfflinePlayer("));
+        assertTrue(membership.contains("resolveInviteTarget(target)"));
+        assertTrue(membership.contains("memberManagement.playerUuidByName(target)"));
+        assertTrue(membership.contains("member-invite-player-not-found"));
+        assertFalse(membership.contains("getOfflinePlayer("));
     }
 
     @Test
@@ -801,7 +806,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("case PERMISSIONS_OPEN"));
         assertTrue(membershipHandler.contains("private void listPendingInvites(Player player)"), "invite list execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void inviteIslandMember(Player player, String target)"), "invite creation execution belongs in IslandMembershipCommandHandler");
-        assertTrue(membershipHandler.contains("private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid)"), "invite creation mutation belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("private void sendIslandInvite(Player player, UUID islandId, UUID actorUuid, UUID targetUuid)"), "invite creation mutation belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void acceptIslandInviteTarget(Player player, String target)"), "invite accept execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void declineIslandInviteTarget(Player player, String target)"), "invite decline execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void listIslandMembers(Player player)"), "member list execution belongs in IslandMembershipCommandHandler");
