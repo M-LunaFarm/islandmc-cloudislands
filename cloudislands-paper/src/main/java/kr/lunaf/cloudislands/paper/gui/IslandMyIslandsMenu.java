@@ -21,6 +21,7 @@ public final class IslandMyIslandsMenu implements Listener {
         new GuiMenuDefinition("island.my-islands", 6, TITLE_KEY, Map.of(
             "open", "island.list.open",
             "visit", "island.visit.target",
+            "select", "island.select.target",
             "create", "island.create.open",
             "public", "island.visit.open",
             "back", "island.main.open"
@@ -75,8 +76,10 @@ public final class IslandMyIslandsMenu implements Listener {
         if (actionId.isBlank()) {
             return;
         }
+        GuiClick click = GuiClick.from(event);
+        String resolvedActionId = actionId.equals("island.visit.target") && click.right() ? "island.select.target" : actionId;
         player.closeInventory();
-        actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
+        actions.execute(player, GuiActions.from(resolvedActionId, GuiItems.data(event.getCurrentItem())).orElse(null), click);
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<PlayerIslandView> islands, MessageRenderer messages) {
@@ -96,7 +99,8 @@ public final class IslandMyIslandsMenu implements Listener {
                             message(messages, "my-islands-menu-state", "상태: ") + island.state(),
                             message(messages, "my-islands-menu-level", "레벨: ") + island.level(),
                             message(messages, "my-islands-menu-worth", "가치: ") + island.worth(),
-                            message(messages, "my-islands-menu-click-to-visit", "클릭하면 이 섬으로 이동합니다.")
+                            message(messages, "my-islands-menu-click-to-visit", "좌클릭: 이 섬으로 이동"),
+                            message(messages, "my-islands-menu-right-click-to-select", "우클릭: 기본 섬으로 선택")
                         ))));
                 }
             }

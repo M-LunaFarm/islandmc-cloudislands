@@ -185,7 +185,7 @@ public enum IslandCommandPermission {
         if (id.startsWith("island.help")) {
             return MENU;
         }
-        if (id.startsWith("island.info") || id.startsWith("island.list")) {
+        if (id.startsWith("island.info") || id.startsWith("island.list") || id.startsWith("island.select")) {
             return MENU;
         }
         return null;

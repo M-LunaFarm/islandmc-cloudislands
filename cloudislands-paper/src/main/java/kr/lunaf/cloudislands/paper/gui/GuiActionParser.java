@@ -120,6 +120,7 @@ public final class GuiActionParser {
         "island.roles.list",
         "island.roles.open",
         "island.settings.open",
+        "island.select.target",
         "island.snapshot.create",
         "island.snapshot.restore.confirm",
         "island.snapshot.restore.prepare",
@@ -336,6 +337,9 @@ public final class GuiActionParser {
                     nonNegativeLong(required(safeData, "value"))
                 ));
                 case "island.visit.target" -> Optional.of(new GuiAction.VisitTarget(
+                    required(safeData, "target")
+                ));
+                case "island.select.target" -> Optional.of(new GuiAction.SelectIslandTarget(
                     required(safeData, "target")
                 ));
                 case "island.review.set" -> Optional.of(new GuiAction.ReviewSet(

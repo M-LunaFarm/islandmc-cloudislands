@@ -433,6 +433,8 @@ class GuiSystemPolicyTest {
         }
         String myIslands = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMyIslandsMenu.java"));
         assertTrue(myIslands.contains("MENU.item(island.role()).or(() -> MENU.item(\"_\"))"), "my-islands entries must pick configured role materials with a configured fallback item");
+        assertTrue(myIslands.contains("click.right() ? \"island.select.target\" : actionId"), "right-clicking a my-islands entry must select the primary island while left-click keeps visit behavior");
+        assertTrue(myIslands.contains("my-islands-menu-right-click-to-select"), "my-islands lore must explain the primary-island selection gesture");
         assertFalse(myIslands.contains("\"GRASS_BLOCK\""), "my-islands entries must not keep a Java fallback material");
     }
 

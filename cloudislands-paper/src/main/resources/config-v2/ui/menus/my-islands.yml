@@ -81,6 +81,7 @@ items:
 actions:
   open: island.list.open
   visit: island.visit.target
+  select: island.select.target
   create: island.create.open
   public: island.visit.open
   back: island.main.open

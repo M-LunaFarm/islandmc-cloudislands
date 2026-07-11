@@ -310,10 +310,14 @@ class GuiActionParserTest {
     @Test
     void parsesVisitTargetIntoTypedAction() {
         GuiAction action = GuiActionParser.parse("island.visit.target", Map.of("target", " 00000000-0000-0000-0000-000000000000 ")).orElseThrow();
+        GuiAction selection = GuiActionParser.parse("island.select.target", Map.of("target", " 00000000-0000-0000-0000-000000000001 ")).orElseThrow();
 
         assertTrue(action instanceof GuiAction.VisitTarget);
         assertEquals("island.visit.target", action.actionId());
         assertEquals(Map.of("target", "00000000-0000-0000-0000-000000000000"), action.data());
+        assertTrue(selection instanceof GuiAction.SelectIslandTarget);
+        assertEquals("island.select.target", selection.actionId());
+        assertEquals(Map.of("target", "00000000-0000-0000-0000-000000000001"), selection.data());
     }
 
     @Test
@@ -498,7 +502,7 @@ class GuiActionParserTest {
             case "island.snapshot.restore.prepare" -> Map.of("snapshotNo", "1");
             case "island.upgrade.purchase" -> Map.of("upgradeKey", "max-members");
             case "island.visit.public.category" -> Map.of("category", "shop");
-            case "island.visit.target" -> Map.of("target", "00000000-0000-0000-0000-000000000000");
+            case "island.select.target", "island.visit.target" -> Map.of("target", "00000000-0000-0000-0000-000000000000");
             case "island.warp.delete.confirm" -> Map.of(
                 "warpName", "shop",
                 ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
