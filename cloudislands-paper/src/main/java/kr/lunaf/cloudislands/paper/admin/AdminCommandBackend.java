@@ -858,9 +858,22 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<DoctorPart> audit = doctorPart("audit", coreApiClient.adminAudit().list(5).thenApply(this::auditListMessage));
         CompletableFuture<DoctorPart> templates = doctorPart("templates", coreApiClient.templates().list().thenApply(this::templateDoctorDiagnosticBody));
         CompletableFuture<DoctorPart> integrations = CompletableFuture.completedFuture(doctorPart("integrations", integrationStatusMessage()));
-        run(sender, "Doctor", CompletableFuture.allOf(config, setupReadiness, snapshotPolicy, metrics, storage, nodes, jobs, routes, audit, templates, integrations)
-            .thenApply(_ignored -> doctorMessage(args, List.of(config.join(), setupReadiness.join(), snapshotPolicy.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), templates.join(), integrations.join()))));
+        CompletableFuture<DoctorPart> ss2Migration = CompletableFuture.completedFuture(doctorPart("ss2-migration", superiorSkyblock2MigrationDiagnosticBody()));
+        run(sender, "Doctor", CompletableFuture.allOf(config, setupReadiness, snapshotPolicy, metrics, storage, nodes, jobs, routes, audit, templates, integrations, ss2Migration)
+            .thenApply(_ignored -> doctorMessage(args, List.of(config.join(), setupReadiness.join(), snapshotPolicy.join(), metrics.join(), storage.join(), nodes.join(), jobs.join(), routes.join(), audit.join(), templates.join(), integrations.join(), ss2Migration.join()))));
         return true;
+    }
+
+    private String superiorSkyblock2MigrationDiagnosticBody() {
+        if (!(agent.plugin() instanceof CloudIslandsPaperPlugin plugin)) {
+            return "migrationEnabled=" + superiorSkyblock2MigrationEnabled + " legacyAliases=unavailable";
+        }
+        boolean migrationEnabled = plugin.runtimeConfig().migration().superiorSkyblock2Enabled();
+        boolean legacyAliasesEnabled = plugin.runtimeConfig().migration().superiorSkyblock2LegacyAliasesEnabled();
+        if (migrationEnabled && !legacyAliasesEnabled) {
+            return "WARN migrationEnabled=true legacyAliases=false existing /is commands may break; enable migration.legacy-aliases.superiorskyblock2.enabled during cutover";
+        }
+        return "migrationEnabled=" + migrationEnabled + " legacyAliases=" + legacyAliasesEnabled;
     }
 
     private boolean handleSetup(CommandSender sender, String[] args) {
@@ -1005,6 +1018,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (label.equals("integrations") || normalized.contains("INTEGRATION") || normalized.contains("NOT-CERTIFIED")) {
             return "/ciadmin integrations report";
+        }
+        if (label.equals("ss2-migration")) {
+            return "/ciadmin config effective";
         }
         return "/ciadmin support-bundle create";
     }

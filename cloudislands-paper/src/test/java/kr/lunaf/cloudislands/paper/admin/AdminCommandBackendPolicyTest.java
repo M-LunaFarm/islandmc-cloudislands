@@ -606,6 +606,10 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("WARN_TEMPLATE_CATALOG_EMPTY"), "Doctor must warn when no templates are visible");
         assertTrue(source.contains("WARN_BUNDLE_MISSING"), "Doctor template diagnostics must warn when enabled templates have no bundle");
         assertTrue(source.contains("integrationStatusMessage()"), "Doctor must include integration state");
+        assertTrue(source.contains("superiorSkyblock2MigrationDiagnosticBody()"), "Doctor must include local SS2 cutover compatibility state");
+        assertTrue(source.contains("migrationEnabled && !legacyAliasesEnabled"), "Doctor must identify migration cutovers that forgot legacy command aliases");
+        assertTrue(source.contains("enable migration.legacy-aliases.superiorskyblock2.enabled during cutover"), "Doctor must provide the exact legacy alias remediation key");
+        assertTrue(source.contains("label.equals(\"ss2-migration\")"), "Doctor must provide a focused remediation command for SS2 cutover warnings");
         assertTrue(plugin.contains("cloudislands.admin.doctor"), "Doctor command must have a plugin permission");
     }
 
