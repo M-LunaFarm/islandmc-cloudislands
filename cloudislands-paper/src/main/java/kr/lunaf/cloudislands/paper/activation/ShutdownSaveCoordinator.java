@@ -40,11 +40,13 @@ final class ShutdownSaveCoordinator {
         while (thread.isAlive()) {
             long remainingNanos = deadlineNanos - System.nanoTime();
             if (remainingNanos <= 0L) {
+                thread.interrupt();
                 return false;
             }
             try {
                 thread.join(Math.max(1L, remainingNanos / 1_000_000L));
             } catch (InterruptedException interrupted) {
+                thread.interrupt();
                 Thread.currentThread().interrupt();
                 return false;
             }

@@ -48,22 +48,25 @@ class ShutdownSaveCoordinatorTest {
     @Test
     void boundsAStalledFinalFlush() throws Exception {
         CountDownLatch release = new CountDownLatch(1);
-        AtomicBoolean started = new AtomicBoolean();
+        CountDownLatch started = new CountDownLatch(1);
+        CountDownLatch cancelled = new CountDownLatch(1);
 
         assertFalse(ShutdownSaveCoordinator.awaitIdleAndFlush(
             () -> false,
             new Object(),
             () -> {
-                started.set(true);
+                started.countDown();
                 try {
                     release.await(1L, TimeUnit.SECONDS);
-                } catch (InterruptedException interrupted) {
+                } catch (InterruptedException caught) {
+                    cancelled.countDown();
                     Thread.currentThread().interrupt();
                 }
             },
             Duration.ofMillis(20)
         ));
-        assertTrue(started.get());
+        assertTrue(started.await(1L, TimeUnit.SECONDS));
+        assertTrue(cancelled.await(1L, TimeUnit.SECONDS));
         release.countDown();
     }
 }
