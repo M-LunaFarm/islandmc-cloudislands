@@ -155,8 +155,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.BAN_VISITOR)) {
             return;
         }
-        String targetRoleKey = memberRoleKey(metadataRepository.members(islandId), playerUuid);
-        if (CoreRoleKeys.memberRole(targetRoleKey)) {
+        if (teamMemberOrOwner(islandId, playerUuid)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("VISITOR_BAN_DENIED", "Island members cannot be handled through visitor bans"));
             return;
         }
@@ -196,6 +195,10 @@ public final class IslandVisitorRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.KICK_VISITOR)) {
             return;
         }
+        if (teamMemberOrOwner(islandId, playerUuid)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("VISITOR_KICK_DENIED", "Island members cannot be handled through visitor kicks"));
+            return;
+        }
         audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_KICK", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
         islandLogs.append(islandId, actorUuid, "ISLAND_VISITOR_KICK", Map.of("playerUuid", playerUuid.toString()));
         events.publish(CloudIslandEventType.ISLAND_VISITOR_KICKED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "actorUuid", actorUuid.toString()));
@@ -220,6 +223,13 @@ public final class IslandVisitorRoutes implements RouteGroup {
         }
         CoreHttpResponses.write(exchange, 403, ApiResponses.error("ISLAND_PERMISSION_DENIED", "Island permission " + permission.name() + " is required"));
         return false;
+    }
+
+    private boolean teamMemberOrOwner(UUID islandId, UUID playerUuid) {
+        boolean owner = islandRepository.findById(islandId)
+            .map(island -> island.ownerUuid().equals(playerUuid))
+            .orElse(false);
+        return owner || CoreRoleKeys.memberRole(memberRoleKey(metadataRepository.members(islandId), playerUuid));
     }
 
     static String memberRoleKey(List<IslandMemberSnapshot> members, UUID playerUuid) {

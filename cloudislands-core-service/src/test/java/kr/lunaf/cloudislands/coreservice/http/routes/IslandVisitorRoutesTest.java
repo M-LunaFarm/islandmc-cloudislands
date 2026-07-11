@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpHandler;
 import java.time.Instant;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -22,6 +24,17 @@ import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import org.junit.jupiter.api.Test;
 
 class IslandVisitorRoutesTest {
+    @Test
+    void visitorSanctionsRejectAuthoritativeOwnersAndTeamMembers() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutes.java"));
+
+        assertEquals(2, occurrences(source, "if (teamMemberOrOwner(islandId, playerUuid))"));
+        assertTrue(source.contains("island.ownerUuid().equals(playerUuid)"));
+        assertTrue(source.contains("CoreRoleKeys.memberRole(memberRoleKey(metadataRepository.members(islandId), playerUuid))"));
+        assertTrue(source.contains("VISITOR_BAN_DENIED"));
+        assertTrue(source.contains("VISITOR_KICK_DENIED"));
+    }
+
     @Test
     void registersIslandVisitorEndpointGroup() {
         List<String> paths = new ArrayList<>();
@@ -119,6 +132,10 @@ class IslandVisitorRoutesTest {
         assertEquals("PENDING", SimpleJson.text(invite.get("state")));
         assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(invite.get("createdAt")));
         assertEquals("2026-01-09T03:04:05Z", SimpleJson.text(invite.get("expiresAt")));
+    }
+
+    private static int occurrences(String source, String needle) {
+        return (source.length() - source.replace(needle, "").length()) / needle.length();
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {
