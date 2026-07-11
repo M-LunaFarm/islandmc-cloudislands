@@ -801,8 +801,7 @@ public record CoreServiceConfig(
     }
 
     private static String env(String key, String fallback) {
-        String value = System.getenv(key);
-        return value == null || value.isBlank() ? fallback : value;
+        return EnvironmentSecretResolver.value(System.getenv(), key, fallback);
     }
 
     private static boolean presentEnv(String key) {
