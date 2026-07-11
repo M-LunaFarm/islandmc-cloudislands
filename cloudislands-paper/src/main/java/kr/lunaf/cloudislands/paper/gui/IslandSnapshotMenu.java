@@ -24,6 +24,7 @@ public final class IslandSnapshotMenu implements Listener {
         new GuiMenuDefinition("island.snapshots", 6, TITLE_KEY, Map.of(
             "open", "island.snapshots.open",
             "list", "island.snapshots.list",
+            "page", "island.snapshots.page",
             "create", "island.snapshot.create",
             "restore-prepare", "island.snapshot.restore.prepare",
             "restore-confirm", ConfirmationTokenPolicy.SNAPSHOT_RESTORE_CONFIRM_ACTION,
@@ -61,11 +62,16 @@ public final class IslandSnapshotMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, SnapshotRetentionPolicy retentionPolicy) {
+        open(plugin, client, player, islandId, messages, retentionPolicy, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, SnapshotRetentionPolicy retentionPolicy, int page) {
         SnapshotRetentionPolicy effectivePolicy = (retentionPolicy == null ? SnapshotRetentionPolicy.defaultPolicy() : retentionPolicy).normalized();
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
-        PaperGuiViews.islandSnapshots(client, islandId, 20)
-            .thenAccept(snapshots -> openSync(plugin, player, session, snapshots, messages, effectivePolicy))
+        int queryLimit = Math.max(20, Math.min(100, effectivePolicy.retainedSnapshotCount()));
+        PaperGuiViews.islandSnapshots(client, islandId, queryLimit)
+            .thenAccept(snapshots -> openSync(plugin, player, session, islandId, snapshots, messages, effectivePolicy, page))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "snapshot-menu-load-failed", "섬 스냅샷을 불러오지 못했습니다."), "island.snapshots.open", "island.settings.open");
                 return null;
@@ -117,17 +123,27 @@ public final class IslandSnapshotMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<SnapshotView> snapshots, MessageRenderer messages, SnapshotRetentionPolicy retentionPolicy) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, List<SnapshotView> snapshots, MessageRenderer messages, SnapshotRetentionPolicy retentionPolicy, int requestedPage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
+            List<Integer> snapshotSlots = GuiMenuRenderer.slots(MENU, "_");
+            int pageSize = Math.max(1, snapshotSlots.size());
+            int maxPage = Math.max(0, (snapshots.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            String title = message(messages, TITLE_KEY, TITLE) + " " + (page + 1) + "/" + (maxPage + 1);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, title, item -> !List.of("E", "_", "P", "N").contains(item.symbol()));
             setRetentionItem(inventory, messages, retentionPolicy);
             if (snapshots.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
-                List<Integer> snapshotSlots = GuiMenuRenderer.slots(MENU, "_");
-                List<SnapshotView> visibleSnapshots = snapshots.stream().limit(snapshotSlots.size()).toList();
-                for (int index = 0; index < visibleSnapshots.size(); index++) {
-                    inventory.setItem(snapshotSlots.get(index), snapshotItem(visibleSnapshots.get(index), messages));
+                int offset = page * pageSize;
+                for (int index = 0; index < pageSize && offset + index < snapshots.size(); index++) {
+                    inventory.setItem(snapshotSlots.get(index), snapshotItem(snapshots.get(offset + index), messages));
+                }
+                if (page > 0) {
+                    setPageItem(inventory, "P", islandId, page - 1, messages);
+                }
+                if (page < maxPage) {
+                    setPageItem(inventory, "N", islandId, page + 1, messages);
                 }
             }
             player.openInventory(inventory);
@@ -165,6 +181,13 @@ public final class IslandSnapshotMenu implements Listener {
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
         GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, int page, MessageRenderer messages) {
+        String key = symbol.equals("P") ? "snapshot-menu-previous-page" : "snapshot-menu-next-page";
+        String fallback = symbol.equals("P") ? "이전 페이지" : "다음 페이지";
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("islandId", islandId.toString(), "page", Integer.toString(page)), List.of(message(messages, key, fallback)));
     }
 
     private static String fallback(String value, String fallback) {

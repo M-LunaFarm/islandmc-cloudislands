@@ -85,6 +85,10 @@ final class IslandSnapshotCommandHandler {
             }
             return true;
         }
+        if (action instanceof GuiAction.SnapshotPage page) {
+            IslandSnapshotMenu.open(plugin, coreApiClient, player, page.islandId(), runtime.messagesFor(player), retentionPolicy, page.page());
+            return true;
+        }
         if (action instanceof GuiAction.NoPayload noPayload) {
             return switch (noPayload.type()) {
                 case SNAPSHOTS_OPEN -> {

@@ -7,7 +7,7 @@ layout:
   - "____E____"
   - "_________"
   - "_________"
-  - "C...R...S"
+  - "CP..R.N.S"
 items:
   E:
     material: BARRIER
@@ -51,9 +51,20 @@ items:
     fallback-lore:
       - "/섬 설정"
     action: settings
+  P:
+    material: ARROW
+    name-key: snapshot-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: snapshot-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
 actions:
   open: island.snapshots.open
   list: island.snapshots.list
+  page: island.snapshots.page
   create: island.snapshot.create
   restore-prepare: island.snapshot.restore.prepare
   restore-confirm: island.snapshot.restore.confirm

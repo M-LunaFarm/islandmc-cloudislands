@@ -328,6 +328,10 @@ class GuiActionParserTest {
         GuiAction invitePage = GuiActionParser.parse("island.invites.page", Map.of("page", "4")).orElseThrow();
         assertTrue(invitePage instanceof GuiAction.InvitePage);
         assertEquals(Map.of("page", "4"), invitePage.data());
+        GuiAction snapshotPage = GuiActionParser.parse("island.snapshots.page", Map.of(
+            "islandId", "00000000-0000-0000-0000-000000000003", "page", "2")).orElseThrow();
+        assertTrue(snapshotPage instanceof GuiAction.SnapshotPage);
+        assertEquals("2", snapshotPage.data().get("page"));
     }
 
     @Test
@@ -511,6 +515,7 @@ class GuiActionParserTest {
                 ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
             );
             case "island.snapshot.restore.prepare" -> Map.of("snapshotNo", "1");
+            case "island.snapshots.page" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000", "page", "0");
             case "island.upgrade.purchase" -> Map.of("upgradeKey", "max-members");
             case "island.visit.public.category" -> Map.of("category", "shop");
             case "island.select.target", "island.visit.target" -> Map.of("target", "00000000-0000-0000-0000-000000000000");

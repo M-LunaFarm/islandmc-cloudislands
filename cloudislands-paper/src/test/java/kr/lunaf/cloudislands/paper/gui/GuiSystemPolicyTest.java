@@ -343,7 +343,7 @@ class GuiSystemPolicyTest {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
             assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())")
                 || List.of("IslandBanMenu", "IslandMyIslandsMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())")
-                || menuName.equals("IslandInviteMenu") && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())"),
+                || List.of("IslandInviteMenu", "IslandSnapshotMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())"),
                 menuName + " must hide configured dynamic placeholders during normal render");
             assertTrue(menu.contains("GuiMenuRenderer.setSymbolItem(inventory, MENU, \"E\""), menuName + " must render the configured empty placeholder when the list is empty");
         }
@@ -447,6 +447,9 @@ class GuiSystemPolicyTest {
         assertTrue(bans.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "ban page actions must retain authoritative island context");
         String invites = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandInviteMenu.java"));
         assertTrue(invites.contains("int maxPage = Math.max(0, (invites.size() - 1) / pageSize)"), "pending invites must paginate instead of hiding actionable invitations");
+        String snapshots = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandSnapshotMenu.java"));
+        assertTrue(snapshots.contains("effectivePolicy.retainedSnapshotCount()"), "snapshot GUI must query the configured retention horizon instead of only the latest 20 records");
+        assertTrue(snapshots.contains("int maxPage = Math.max(0, (snapshots.size() - 1) / pageSize)"), "retained snapshots must remain reachable through pagination");
     }
 
     @Test

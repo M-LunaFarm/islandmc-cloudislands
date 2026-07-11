@@ -129,6 +129,7 @@ public final class GuiActionParser {
         "island.snapshot.restore.prepare",
         "island.snapshots.list",
         "island.snapshots.open",
+        "island.snapshots.page",
         "island.upgrade.purchase",
         "island.upgrades.list",
         "island.upgrades.open",
@@ -353,6 +354,10 @@ public final class GuiActionParser {
                     nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.invites.page" -> Optional.of(new GuiAction.InvitePage(
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
+                case "island.snapshots.page" -> Optional.of(new GuiAction.SnapshotPage(
+                    UUID.fromString(required(safeData, "islandId")),
                     nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.review.set" -> Optional.of(new GuiAction.ReviewSet(
