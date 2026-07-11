@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.storage.StorageOutagePolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.IslandLifecycleActionView;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.platform.scheduler.BukkitPlatformScheduler;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PlatformScheduler;
@@ -117,11 +118,31 @@ public final class EmptyIslandSaveTask {
             }
             return;
         }
-        coreApiClient.lifecycle().deactivateIsland(expected.islandId()).exceptionally(error -> {
-            plugin.getLogger().warning("Empty island deactivate request failed for " + expected.islandId() + ": " + error.getMessage());
-            scheduler.runGlobal(() -> savedWhileEmpty.remove(expected.islandId()));
-            return null;
-        });
+        try {
+            coreApiClient.lifecycle().deactivateIsland(expected.islandId()).whenComplete((result, error) ->
+                scheduler.runGlobal(() -> handleDeactivationResponse(expected.islandId(), result, error))
+            );
+        } catch (RuntimeException error) {
+            handleDeactivationResponse(expected.islandId(), null, error);
+        }
+    }
+
+    private void handleDeactivationResponse(UUID islandId, IslandLifecycleActionView result, Throwable error) {
+        if (deactivationAccepted(result, error)) {
+            retryQueue.remove(islandId);
+            return;
+        }
+        failuresTotal.incrementAndGet();
+        int attempts = retryQueue.merge(islandId, 1, Integer::sum);
+        savedWhileEmpty.remove(islandId);
+        String detail = error == null
+            ? result == null ? "empty response" : "rejected code=" + result.code()
+            : error.getMessage() == null || error.getMessage().isBlank() ? error.getClass().getSimpleName() : error.getMessage();
+        plugin.getLogger().warning("Empty island deactivate request failed for " + islandId + " retry=" + attempts + " queued=" + retryQueue.size() + ": " + detail);
+    }
+
+    static boolean deactivationAccepted(IslandLifecycleActionView result, Throwable error) {
+        return error == null && result != null && result.accepted();
     }
 
     static boolean sameActivation(ActiveIslandRegistry.ActiveIsland expected, ActiveIslandRegistry.ActiveIsland current) {
