@@ -85,39 +85,24 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
-    void executableStateAdaptersStillRequireMetadataAndOperationEvidence() {
-        CustomItemIntegration customItems = new CustomItemIntegration("ItemsAdder", acceptingRuntime());
-        IntegrationResult missing = customItems.exportState(new IntegrationContext(UUID.randomUUID(), "node", 3L, true, "custom:1", Map.of(
-            "world", "islands",
-            "cell", "1,2",
-            "bundleKey", "bundle.tar.zst"
-        )));
-        assertEquals(IntegrationResult.Status.FAILED, missing.status());
-        assertTrue(missing.message().contains("externalBlockIds"));
-
-        StackerIntegration stacker = new StackerIntegration("RoseStacker", (_plugin, _category, _operation, _context, _plan) ->
-            IntegrationResult.success("probe only", Map.of("apiProbe", "true"))
-        );
-        IntegrationResult unevidenced = stacker.exportState(new IntegrationContext(UUID.randomUUID(), "node", 4L, true, "stacker:1", Map.of(
-            "world", "islands",
-            "cell", "1,2",
-            "entityCountKey", "entities",
-            "spawnerCountKey", "spawners",
-            "bundleKey", "bundle.tar.zst"
-        )));
-        assertEquals(IntegrationResult.Status.FAILED, unevidenced.status());
-        assertEquals("state-artifact-or-round-trip", unevidenced.details().get("external.evidenceRequired"));
+    void customItemAndStackerAdaptersAreDiagnosticOnlyUntilExecutorsExist() {
+        for (var integration : List.of(
+            new CustomItemIntegration("ItemsAdder", acceptingRuntime()),
+            new StackerIntegration("RoseStacker", acceptingRuntime())
+        )) {
+            assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION), integration.capabilities());
+            assertEquals(IntegrationResult.Status.SKIPPED, integration.exportState(context()).status());
+            assertEquals(IntegrationResult.Status.SKIPPED, integration.restoreState(context()).status());
+        }
     }
 
     @Test
-    void permissionAndAnalyticsAdaptersKeepTheirAuthorityBoundaries() {
+    void permissionAndAnalyticsAdaptersAreDiagnosticOnlyUntilExecutorsExist() {
         LuckPermsIntegration luckPerms = new LuckPermsIntegration(acceptingRuntime());
         PlanIntegration plan = new PlanIntegration(acceptingRuntime());
 
-        assertTrue(luckPerms.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
-        assertTrue(luckPerms.capabilities().contains(IntegrationCapability.STATE_EXPORT));
-        assertFalse(plan.capabilities().contains(IntegrationCapability.RUNTIME_AUTHORITY));
-        assertTrue(plan.capabilities().contains(IntegrationCapability.STATE_EXPORT));
+        assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION), luckPerms.capabilities());
+        assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION), plan.capabilities());
     }
 
     @Test
@@ -131,7 +116,7 @@ class PaperIntegrationRegistryTest {
             PaperIntegrationRegistry.adapterState(new WorldEditIntegration("WorldEdit"), true, IntegrationSupportState.API_COMPATIBLE)
         );
         assertEquals(
-            IntegrationSupportState.ACTIVE,
+            IntegrationSupportState.DIAGNOSTIC_ONLY,
             PaperIntegrationRegistry.adapterState(new StackerIntegration("RoseStacker"), true, IntegrationSupportState.API_COMPATIBLE)
         );
         assertEquals(

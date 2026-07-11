@@ -2,9 +2,7 @@ package kr.lunaf.cloudislands.paper.integration.analytics;
 
 import java.util.Set;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
-import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime;
-import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.spi.PolicyBackedCloudIntegration;
 
 public final class PlanIntegration extends PolicyBackedCloudIntegration {
@@ -15,60 +13,7 @@ public final class PlanIntegration extends PolicyBackedCloudIntegration {
     public PlanIntegration(IntegrationExternalRuntime externalRuntime) {
         super("Plan", Set.of(
             IntegrationCapability.DETECT,
-            IntegrationCapability.VALIDATE_VERSION,
-            IntegrationCapability.ISLAND_ACTIVATE,
-            IntegrationCapability.ISLAND_DEACTIVATE,
-            IntegrationCapability.STATE_EXPORT,
-            IntegrationCapability.STATE_RESTORE
+            IntegrationCapability.VALIDATE_VERSION
         ), externalRuntime);
-    }
-
-    @Override
-    public IntegrationResult onIslandActivate(IntegrationContext context) {
-        return guardedObservationHook("presence-activate", context, "analyticsScope", "presenceKey");
-    }
-
-    @Override
-    public IntegrationResult onIslandDeactivate(IntegrationContext context) {
-        return guardedObservationHook("presence-deactivate", context, "analyticsScope", "presenceKey");
-    }
-
-    @Override
-    public IntegrationResult exportState(IntegrationContext context) {
-        return guardedObservationHook("analytics-export", context, "analyticsScope", "bundleKey");
-    }
-
-    @Override
-    public IntegrationResult restoreState(IntegrationContext context) {
-        return guardedObservationHook("analytics-restore", context, "analyticsScope", "bundleKey");
-    }
-
-    @Override
-    protected String externalApiCall(String operation) {
-        return switch (operation == null ? "" : operation) {
-            case "presence-activate", "presence-deactivate" -> "PlanAPI#playerContainer";
-            case "analytics-export" -> "PlanAPI#queryService";
-            case "analytics-restore" -> "PlanAPI#importService";
-            default -> "";
-        };
-    }
-
-    @Override
-    protected String externalStateArtifacts(String operation) {
-        return switch (operation == null ? "" : operation) {
-            case "presence-activate", "presence-deactivate" -> "presence-scope-marker";
-            case "analytics-export" -> "island-presence-series,visitor-session-summary";
-            case "analytics-restore" -> "island-presence-series,visitor-session-summary,analytics-import-plan";
-            default -> "";
-        };
-    }
-
-    @Override
-    protected String externalSafetyBarriers(String operation) {
-        return switch (operation == null ? "" : operation) {
-            case "presence-activate", "presence-deactivate", "analytics-export", "analytics-restore" ->
-                "analytics-scope,bundle-key-for-state-transfer,no-core-authority";
-            default -> "";
-        };
     }
 }

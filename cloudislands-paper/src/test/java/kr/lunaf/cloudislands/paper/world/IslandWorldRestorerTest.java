@@ -58,8 +58,9 @@ class IslandWorldRestorerTest {
     }
 
     @Test
-    void stagePassesExtractedIntegrationStateRootToStackerRestoreHooks() throws IOException {
+    void stageIgnoresLegacyStackerArtifactsWhenAdapterHasNoRestoreExecutor() throws IOException {
         IslandBundleManifest manifest = compatibleManifest();
+        AtomicBoolean runtimeInvoked = new AtomicBoolean(false);
         IslandWorldRestorer restorer = new IslandWorldRestorer(
             new FixedManifestStorage(manifest),
             stagingRoot,
@@ -73,20 +74,18 @@ class IslandWorldRestorerTest {
             }),
             IntegrationLifecycleHooks.direct("island-node-01", List.of(new StackerIntegration(
                 "RoseStacker",
-                (_pluginName, _category, _operation, _context, _plan) -> IntegrationResult.success(
-                    "stack state restored",
-                    java.util.Map.of("stateArtifact", "snapshot-state-artifact")
-                )
+                (_pluginName, _category, _operation, _context, _plan) -> {
+                    runtimeInvoked.set(true);
+                    return IntegrationResult.failed("diagnostic-only adapter must not run");
+                }
             )))
         );
 
         restorer.stage(ISLAND_ID, "ci_shard_001", 7, -3, 224, -96, 77L, 1234L, "snapshots/island.tar.zst");
 
         Path restoreSummary = stagingRoot.resolve(ISLAND_ID.toString()).resolve("extracted/integrations/restore.json");
-        assertTrue(Files.isRegularFile(restoreSummary));
-        String summary = Files.readString(restoreSummary, StandardCharsets.UTF_8);
-        assertTrue(summary.contains("\"integrationStateRoot\""));
-        assertTrue(summary.contains("snapshot-state-artifact"));
+        assertFalse(runtimeInvoked.get());
+        assertFalse(Files.exists(restoreSummary));
     }
 
     @Test

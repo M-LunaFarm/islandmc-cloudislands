@@ -368,7 +368,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "bank safety, economy hooks, mission triggers/rewards, challenges, generator rules, and limits have verification gates",
         "Paper mission listeners, bank rollback UX, and generator listeners have targeted tests",
         "version-neutral plus Paper/Satis runtime boundaries",
-        "verifyMissionEventProgress, verifyMissionRewardCoverage, verifyGeneratorRules, verifyEconomyTransactionSafety, and verifyIntegrationRuntimeSmoke cover the current scope",
+        "verifyMissionEventProgress, verifyMissionRewardCoverage, verifyGeneratorRules, and verifyEconomyTransactionSafety cover the current scope",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/IslandMissionProgressListener.java",
@@ -377,7 +377,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/IslandGeneratorListener.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/GeneratorRoutesTest.java"
         ),
-        "operator live-server economy/provider acceptance is still recommended; fixture-backed priority Vault certification is enforced"
+        "operator live-server economy/provider acceptance is still recommended; Vault lifecycle certification is not claimed by the diagnostic registry"
     ),
     FeatureParityEntry(
         "chat/logs/reviews",
@@ -432,7 +432,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "integration policy, localization files, GUI components, and scoped runtime certification fixtures exist",
         "Paper integration registry separates diagnostic-only adapters from executable operation adapters",
         "plugin-specific operation adapters are active only where implemented",
-        "verifyIntegrationRuntimeSmoke covers Vault, LuckPerms, and PlaceholderAPI operations; WorldEdit/FAWE and CoreProtect retain detection/version adapters",
+        "verifyIntegrationRuntimeSmoke enforces detection/version-only status for probe-only external adapters",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java",
@@ -441,7 +441,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java"
         ),
-        "CoreProtect audit storage is external and WorldEdit/FAWE do not contribute bundle payloads; other third-party adapters require live acceptance"
+        "no external lifecycle or state-transfer operation is certified until a real executor and live acceptance fixture exist"
     )
 )
 

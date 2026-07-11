@@ -2,86 +2,77 @@ package kr.lunaf.cloudislands.paper.integration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertIterableEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationSupportState;
 import org.junit.jupiter.api.Test;
 
 class IntegrationRuntimeCertificationTest {
     @Test
-    void priorityRuntimeCertificationCoversFirstExternalPluginWave() {
-        assertIterableEquals(
-            List.of("Vault", "LuckPerms", "PlaceholderAPI"),
-            IntegrationRuntimeCertification.priorityPlugins()
-        );
-    }
+    void probeOnlyRegistryDoesNotAdvertiseOperationCertification() {
+        AtomicBoolean invoked = new AtomicBoolean(false);
 
-    @Test
-    void priorityRuntimeCertificationRunsOperationSmokeForEveryPriorityPlugin() {
-        List<String> calls = new ArrayList<>();
-        List<IntegrationRuntimeCertification.CertificationResult> results = IntegrationRuntimeCertification.certifyPriorityPlugins(
-            (pluginName, category, operation, context, plan) -> {
-                calls.add(pluginName + ":" + category + ":" + operation + ":" + plan.externalApi());
-                return IntegrationResult.success("runtime fixture passed", Map.of(
-                    "roundTripVerified", "true",
-                    "stateArtifactKey", "fixture/" + pluginName + "/" + operation + ".json"
-                ));
+        assertEquals(List.of(), IntegrationRuntimeCertification.priorityPlugins());
+        assertEquals(List.of(), IntegrationRuntimeCertification.certifyPriorityPlugins(
+            (_plugin, _category, _operation, _context, _plan) -> {
+                invoked.set(true);
+                throw new AssertionError("diagnostic adapters must not execute operation certification");
             }
-        );
-
-        assertEquals(3, results.size());
-        assertTrue(results.stream().allMatch(IntegrationRuntimeCertification.CertificationResult::certified));
-        assertTrue(results.stream().allMatch(result -> result.operationState() == IntegrationSupportState.OPERATION_SUCCEEDED));
-        assertTrue(results.stream().allMatch(result -> result.requiredRuntimeClaims().contains("island-uuid")));
-        assertTrue(results.stream().allMatch(result -> result.requiredRuntimeClaims().contains("runtime-fencing-token")));
-        assertTrue(results.stream().filter(IntegrationRuntimeCertification.CertificationResult::runtimeAuthorityRequired).count() >= 2);
-
-        assertEquals(List.of(
-            "Vault:economy:economy-transaction-smoke:Vault Economy#withdrawPlayer+depositPlayer+getBalance",
-            "LuckPerms:permission:permission-context-export:LuckPerms#userManager+trackManager#saveContextState",
-            "PlaceholderAPI:placeholder:placeholder-render-smoke:PlaceholderAPI#setPlaceholders"
-        ), calls);
+        ));
+        assertFalse(invoked.get());
     }
 
     @Test
-    void priorityRuntimeCertificationRejectsProbeOnlySuccessWithoutOperationEvidence() {
-        List<IntegrationRuntimeCertification.CertificationResult> results = IntegrationRuntimeCertification.certifyPriorityPlugins(
-            (pluginName, category, operation, context, plan) ->
-                IntegrationResult.success("probe only", Map.of("apiProbe", "true"))
-        );
-
-        assertEquals(3, results.size());
-        assertTrue(results.stream().allMatch(result -> result.operationState() == IntegrationSupportState.OPERATION_FAILED));
-        assertFalse(results.stream().anyMatch(IntegrationRuntimeCertification.CertificationResult::certified));
-        assertTrue(results.stream().allMatch(result -> "state-artifact-or-round-trip".equals(result.details().get("external.evidenceRequired"))));
-    }
-
-    @Test
-    void certificationReportExportsJsonMarkdownAndActionableFailureGuidance() {
-        List<IntegrationRuntimeCertification.CertificationResult> results = IntegrationRuntimeCertification.certifyPriorityPlugins(
-            (pluginName, category, operation, context, plan) ->
-                IntegrationResult.failed("fixture failed", Map.of("external.message", "missing operation executor"))
-        );
+    void certificationReportPublishesDiagnosticStateWithoutOperationClaims() {
+        PaperIntegrationRegistry.IntegrationStatus vault = diagnosticStatus("Vault", "economy");
+        PaperIntegrationRegistry.IntegrationStatus placeholder = diagnosticStatus("PlaceholderAPI", "placeholder");
 
         IntegrationRuntimeCertification.CertificationReport report = IntegrationRuntimeCertification.report(
+            List.of(vault, placeholder),
             List.of(),
-            results,
-            Map.of("Vault", "1.7.3")
+            Map.of("Vault", "1.7.3", "PlaceholderAPI", "2.11.6")
         );
 
-        assertTrue(report.summaryLine().contains("failed=3"));
+        assertTrue(report.summaryLine().contains("certified=0"));
+        assertTrue(report.summaryLine().contains("failed=0"));
         assertTrue(report.toJson().contains("\"pluginName\":\"Vault\""));
-        assertTrue(report.toJson().contains("\"pluginVersion\":\"1.7.3\""));
-        assertTrue(report.toJson().contains("\"operationState\":\"OPERATION_FAILED\""));
-        assertTrue(report.toJson().contains("\"remediation\""));
-        assertTrue(report.toMarkdown().contains("| Vault |"));
-        assertTrue(report.toMarkdown().contains("OPERATION_FAILED"));
-        assertTrue(report.toMarkdown().contains("Remediation"));
-        assertTrue(report.failedOperations().stream().allMatch(result -> !result.remediation().isBlank()));
+        assertTrue(report.toJson().contains("\"adapterState\":\"DIAGNOSTIC_ONLY\""));
+        assertTrue(report.toJson().contains("\"operation\":\"\""));
+        assertTrue(report.toJson().contains("\"certified\":false"));
+        assertTrue(report.toMarkdown().contains("DIAGNOSTIC_ONLY"));
+        assertTrue(report.failedOperations().isEmpty());
+    }
+
+    @Test
+    void missingPluginsRemainExplicitlyNotInstalled() {
+        IntegrationRuntimeCertification.CertificationReport report = IntegrationRuntimeCertification.report(
+            List.of(),
+            List.of(),
+            Map.of()
+        );
+
+        assertTrue(report.toJson().contains("\"state\":\"NOT_INSTALLED\""));
+        assertTrue(report.toMarkdown().contains("NOT_INSTALLED"));
+    }
+
+    private PaperIntegrationRegistry.IntegrationStatus diagnosticStatus(String pluginName, String category) {
+        return new PaperIntegrationRegistry.IntegrationStatus(
+            pluginName,
+            category,
+            true,
+            IntegrationSupportState.DIAGNOSTIC_ONLY,
+            IntegrationSupportState.DETECTED,
+            IntegrationSupportState.API_COMPATIBLE,
+            IntegrationSupportState.DIAGNOSTIC_ONLY,
+            null,
+            false,
+            List.of(),
+            Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION)
+        );
     }
 }

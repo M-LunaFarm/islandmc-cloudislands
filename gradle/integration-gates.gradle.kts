@@ -96,7 +96,10 @@ tasks.register("verifyIntegrationMatrix") {
         )
         val reportsDir = integrationJsonReport.get().asFile.parentFile
         reportsDir.mkdirs()
-        val priorityOperationPlugins = setOf("Vault", "LuckPerms", "PlaceholderAPI")
+        val diagnosticPlugins = setOf(
+            "Vault", "PlaceholderAPI", "LuckPerms", "CoreProtect", "WorldEdit", "FastAsyncWorldEdit",
+            "ItemsAdder", "Oraxen", "Nexo", "Slimefun", "RoseStacker", "WildStacker", "AdvancedSpawners", "Plan"
+        )
         fun jsonEscape(value: String): String = buildString {
             value.forEach { character ->
                 when (character) {
@@ -121,11 +124,11 @@ tasks.register("verifyIntegrationMatrix") {
                 append("\"entries\":[")
                 requiredPlugins.forEachIndexed { index, pluginName ->
                     if (index > 0) append(",")
-                    val priority = pluginName in priorityOperationPlugins
-                    val operation = if (priority) "runtime-operation-smoke" else "static-policy-matrix"
-                    val operationState = if (priority) "RUNTIME_NODE_REQUIRED" else "STATIC_POLICY_VERIFIED"
-                    val remediation = if (priority) {
-                        "Run /ciadmin integrations report on a live Paper node with $pluginName installed; OPERATION_FAILED must include runtime evidence and a fix."
+                    val diagnostic = pluginName in diagnosticPlugins
+                    val operation = if (diagnostic) "runtime-detection-and-version-diagnostic" else "static-policy-matrix"
+                    val operationState = if (diagnostic) "DIAGNOSTIC_ONLY" else "STATIC_POLICY_VERIFIED"
+                    val remediation = if (diagnostic) {
+                        "Install $pluginName to inspect detection and version metadata; no lifecycle or state-transfer operation is certified."
                     } else {
                         "Install the plugin only when this hook is needed; static policy, config, softdepend, and registry coverage passed."
                     }
@@ -163,11 +166,11 @@ tasks.register("verifyIntegrationMatrix") {
                 appendLine("| Plugin | State | Version | Operation | Operation state | Remediation |")
                 appendLine("| --- | --- | --- | --- | --- | --- |")
                 requiredPlugins.forEach { pluginName ->
-                    val priority = pluginName in priorityOperationPlugins
-                    val operation = if (priority) "runtime-operation-smoke" else "static-policy-matrix"
-                    val operationState = if (priority) "RUNTIME_NODE_REQUIRED" else "STATIC_POLICY_VERIFIED"
-                    val remediation = if (priority) {
-                        "Run `/ciadmin integrations report` on a live Paper node with $pluginName installed; OPERATION_FAILED must include runtime evidence and a fix."
+                    val diagnostic = pluginName in diagnosticPlugins
+                    val operation = if (diagnostic) "runtime-detection-and-version-diagnostic" else "static-policy-matrix"
+                    val operationState = if (diagnostic) "DIAGNOSTIC_ONLY" else "STATIC_POLICY_VERIFIED"
+                    val remediation = if (diagnostic) {
+                        "Install `$pluginName` to inspect detection and version metadata; no lifecycle or state-transfer operation is certified."
                     } else {
                         "Static policy, config, softdepend, and registry coverage passed."
                     }
@@ -182,7 +185,7 @@ tasks.register("verifyIntegrationMatrix") {
 
 tasks.register("verifyIntegrationRuntimeSmoke") {
     group = "verification"
-    description = "Verifies integration runtime detection and operation-state smoke evidence remains present."
+    description = "Verifies probe-only integrations remain diagnostic and never claim runtime operations."
     dependsOn(tasks.named("verifyIntegrationMatrix"))
     dependsOn(project(":cloudislands-paper").tasks.named("test"))
     val certification = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java")
@@ -193,16 +196,18 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
         val source = certification.asFile.readText()
         val tests = certificationTest.asFile.readText()
         val registrySource = registry.asFile.readText()
-        val requiredPlugins = listOf("Vault", "LuckPerms", "PlaceholderAPI")
+        val requiredAdapters = listOf(
+            "VaultIntegration", "PlaceholderApiIntegration", "LuckPermsIntegration", "CoreProtectIntegration",
+            "WorldEditIntegration", "CustomItemIntegration", "StackerIntegration", "PlanIntegration"
+        )
         val failures = buildList {
-            requiredPlugins.filterNot { source.contains("\"$it\"") && tests.contains("\"$it\"") }.forEach { plugin ->
-                add("Integration runtime certification missing priority plugin $plugin")
+            requiredAdapters.filterNot(registrySource::contains).forEach { adapter ->
+                add("PaperIntegrationRegistry missing diagnostic adapter $adapter")
             }
             if (!source.contains("certifyPriorityPlugins")) add("IntegrationRuntimeCertification must expose certifyPriorityPlugins")
-            if (!tests.contains("priorityRuntimeCertificationRunsOperationSmokeForEveryPriorityPlugin")) add("Integration runtime certification operation-smoke test is missing")
-            if (!tests.contains("priorityRuntimeCertificationRejectsProbeOnlySuccessWithoutOperationEvidence")) add("Integration runtime certification evidence rejection test is missing")
-            if (!tests.contains("roundTripVerified") || !tests.contains("stateArtifactKey")) add("Integration runtime certification must require external operation evidence")
-            if (!registrySource.contains("new VaultIntegration") || !registrySource.contains("new PlaceholderApiIntegration")) add("PaperIntegrationRegistry must wire Vault and PlaceholderAPI adapters")
+            if (!source.contains("private static final List<String> PRIORITY_PLUGINS = List.of()")) add("Probe-only registry must not advertise priority operation certification")
+            if (!tests.contains("probeOnlyRegistryDoesNotAdvertiseOperationCertification")) add("Diagnostic-only no-operation certification test is missing")
+            if (!tests.contains("DIAGNOSTIC_ONLY") || !tests.contains("certificationReportPublishesDiagnosticStateWithoutOperationClaims")) add("Diagnostic report assertions are missing")
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))

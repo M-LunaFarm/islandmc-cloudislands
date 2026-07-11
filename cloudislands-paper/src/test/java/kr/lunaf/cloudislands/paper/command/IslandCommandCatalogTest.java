@@ -131,7 +131,7 @@ class IslandCommandCatalogTest {
     }
 
     @Test
-    void superiorSkyblockStackerPermissionParityIsBackedByEnvironmentAndRuntimeAdapters() throws Exception {
+    void superiorSkyblockStackerPermissionParityUsesCoreEnvironmentWithoutFakeRuntimeStateTransfer() throws Exception {
         String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackerIntegration.java"));
         String registry = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java"));
@@ -139,9 +139,9 @@ class IslandCommandCatalogTest {
 
         assertTrue(parity.contains("superior.island.stacker.*\", \"cloudislands.island.environment\", \"SUPPORTED_VERIFIED\""), "stacker wildcard permission must map to the environment command surface");
         assertTrue(parity.contains("superior.island.stacker.<block-type>\", \"cloudislands.island.environment\", \"COVERED_BY\""), "per-block stacker permission must be covered by the same environment and block-limit surface");
-        assertTrue(stacker.contains("IntegrationCapability.RUNTIME_AUTHORITY"), "Stacker adapters must run as runtime-authoritative integrations");
-        assertTrue(stacker.contains("effective-stack-export"), "Stacker adapters must export effective stacked state");
-        assertTrue(stacker.contains("effective-stack-restore"), "Stacker adapters must restore effective stacked state");
+        assertFalse(stacker.contains("IntegrationCapability.RUNTIME_AUTHORITY"), "Probe-only stacker adapters must not claim runtime authority");
+        assertFalse(stacker.contains("IntegrationCapability.STATE_EXPORT"), "Probe-only stacker adapters must not claim state export");
+        assertFalse(stacker.contains("IntegrationCapability.STATE_RESTORE"), "Probe-only stacker adapters must not claim state restore");
         assertTrue(registry.contains("\"RoseStacker\", \"WildStacker\", \"AdvancedSpawners\""), "Supported stacker plugins must be registered");
         assertTrue(environmentHandler.contains("STACKED_BLOCKS_VISIBLE_LIMIT_KEY"), "Player stacker visibility must persist through Core environment limits");
     }
