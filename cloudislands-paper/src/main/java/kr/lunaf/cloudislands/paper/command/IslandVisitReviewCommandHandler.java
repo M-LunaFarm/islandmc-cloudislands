@@ -86,6 +86,10 @@ final class IslandVisitReviewCommandHandler {
             routeVisitTarget(player, visitTarget.target());
             return true;
         }
+        if (action instanceof GuiAction.PublicIslandPage page) {
+            IslandVisitMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.ReviewSet reviewSet) {
             submitIslandReview(player, reviewSet.islandId(), reviewSet.rating(), reviewSet.comment());
             return true;

@@ -20,6 +20,7 @@ public final class IslandVisitMenu implements Listener {
         "config-v2/ui/menus/visit.yml",
         new GuiMenuDefinition("island.visit", 6, TITLE_KEY, Map.of(
             "open", "island.visit.open",
+            "page", "island.visit.page",
             "public", "island.visit.public.open",
             "random", "island.visit.random",
             "target", "island.visit.target",
@@ -27,6 +28,7 @@ public final class IslandVisitMenu implements Listener {
         ))
     );
     private static final String MENU_ID = MENU.id();
+    private static final int PAGE_SIZE = Math.max(1, GuiMenuRenderer.slots(MENU, "_").size());
     private final MessageRenderer messages;
     private final GuiActionRegistry actions;
 
@@ -48,10 +50,21 @@ public final class IslandVisitMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages) {
+        open(plugin, client, player, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
-        PaperGuiViews.publicIslands(client, 45)
-            .thenAccept(islands -> openSync(plugin, player, session, islands, messages))
+        int safePage = Math.max(0, page);
+        PaperGuiViews.publicIslands(client, safePage * PAGE_SIZE, PAGE_SIZE + 1)
+            .thenAccept(islands -> {
+                if (islands.isEmpty() && safePage > 0) {
+                    open(plugin, client, player, messages, safePage - 1);
+                    return;
+                }
+                openSync(plugin, player, session, islands, messages, safePage);
+            })
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "visit-menu-load-failed", "공개 섬 목록을 불러오지 못했습니다."), "island.visit.open", "island.main.open");
                 return null;
@@ -79,14 +92,16 @@ public final class IslandVisitMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<PublicIslandView> islands, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<PublicIslandView> islands, MessageRenderer messages, int page) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
+            boolean hasNext = islands.size() > PAGE_SIZE;
+            String title = message(messages, MENU.titleKey(), TITLE) + " " + (page + 1);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, title, item -> !List.of("E", "W", "N").contains(item.symbol()));
             if (islands.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
                 List<Integer> islandSlots = GuiMenuRenderer.slots(MENU, "_");
-                for (int index = 0; index < islands.size() && index < islandSlots.size(); index++) {
+                for (int index = 0; index < PAGE_SIZE && index < islands.size(); index++) {
                     PublicIslandView island = islands.get(index);
                     int slot = islandSlots.get(index);
                     MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, island.name(),
@@ -97,6 +112,12 @@ public final class IslandVisitMenu implements Listener {
                             message(messages, "visit-menu-worth", "가치: ") + island.worth(),
                             message(messages, "visit-menu-click-to-visit", "클릭하면 방문합니다.")
                         ))));
+                }
+                if (page > 0) {
+                    setPageItem(inventory, "W", page - 1, messages);
+                }
+                if (hasNext) {
+                    setPageItem(inventory, "N", page + 1, messages);
                 }
             }
             player.openInventory(inventory);
@@ -109,6 +130,12 @@ public final class IslandVisitMenu implements Listener {
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
         GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, int page, MessageRenderer messages) {
+        String key = symbol.equals("W") ? "visit-menu-previous-page" : "visit-menu-next-page";
+        String fallback = symbol.equals("W") ? "이전 페이지" : "다음 페이지";
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages, Map.of("page", Integer.toString(page)), List.of(message(messages, key, fallback)));
     }
 
     private static String shortId(String value) {

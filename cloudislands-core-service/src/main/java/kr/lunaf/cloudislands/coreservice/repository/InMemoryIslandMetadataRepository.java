@@ -302,6 +302,18 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
             .toList();
     }
 
+    @Override
+    public List<UUID> publicIslandIdsPage(int offset, int limit) {
+        return publicAccess.entrySet().stream()
+            .filter(Map.Entry::getValue)
+            .filter(entry -> !locked.getOrDefault(entry.getKey(), false))
+            .map(Map.Entry::getKey)
+            .sorted()
+            .skip(Math.max(0, offset))
+            .limit(Math.max(0, limit))
+            .toList();
+    }
+
     private List<IslandMemberSnapshot> activeMembers(Map<UUID, IslandMemberSnapshot> islandMembers) {
         List<IslandMemberSnapshot> result = new ArrayList<>();
         for (IslandMemberSnapshot member : islandMembers.values()) {

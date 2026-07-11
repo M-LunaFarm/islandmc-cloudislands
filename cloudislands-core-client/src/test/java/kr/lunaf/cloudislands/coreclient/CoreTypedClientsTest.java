@@ -1546,13 +1546,13 @@ class CoreTypedClientsTest {
 
             CoreGuiViews.PlayerProfileView profile = client.playerProfileByName(" Alice ").join();
             CoreGuiViews.PlayerIslandView playerIsland = client.playerIslands(reviewerUuid).join().get(0);
-            CoreGuiViews.PublicIslandView island = client.publicIslands(500).join().get(0);
+            CoreGuiViews.PublicIslandView island = client.publicIslands(35, 500).join().get(0);
             ReviewListView reviews = client.listReviews(islandId, 0).join();
 
             assertEquals(List.of(
                 "profile:{\"lastName\":\"Alice\"}",
                 "player-islands:{\"playerUuid\":\"" + reviewerUuid + "\"}",
-                "public:{\"limit\":100}",
+                "public:{\"offset\":35,\"limit\":100}",
                 "reviews:{\"islandId\":\"" + islandId + "\",\"limit\":1}"
             ), calls);
             assertEquals(islandId.toString(), profile.primaryIslandId());

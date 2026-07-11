@@ -68,7 +68,8 @@ public final class IslandCatalogRoutes implements RouteGroup {
     private void publicIslands(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         int limit = queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 27), 1, 54);
-        List<IslandSnapshot> islands = metadataRepository.publicIslandIds(limit).stream()
+        int offset = queryInteger(exchange, "offset", JsonFields.integer(body, "offset", 0), 0, 100_000);
+        List<IslandSnapshot> islands = metadataRepository.publicIslandIdsPage(offset, limit).stream()
             .map(islandRepository::findById)
             .flatMap(Optional::stream)
             .sorted(Comparator.comparingLong(IslandSnapshot::level).reversed().thenComparing(IslandSnapshot::name))

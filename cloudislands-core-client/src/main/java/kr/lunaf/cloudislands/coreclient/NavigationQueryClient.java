@@ -11,5 +11,11 @@ public interface NavigationQueryClient {
 
     CompletableFuture<List<CoreGuiViews.PublicIslandView>> publicIslands(int limit);
 
+    default CompletableFuture<List<CoreGuiViews.PublicIslandView>> publicIslands(int offset, int limit) {
+        int safeOffset = Math.max(0, offset);
+        return publicIslands(Math.min(100, safeOffset + Math.max(1, limit)))
+            .thenApply(islands -> islands.stream().skip(safeOffset).limit(Math.max(1, limit)).toList());
+    }
+
     CompletableFuture<ReviewListView> listReviews(UUID islandId, int limit);
 }

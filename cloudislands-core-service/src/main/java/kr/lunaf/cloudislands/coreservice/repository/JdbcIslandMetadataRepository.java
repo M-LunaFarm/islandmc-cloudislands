@@ -622,6 +622,25 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         }
     }
 
+    @Override
+    public List<UUID> publicIslandIdsPage(int offset, int limit) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                 "SELECT id FROM islands WHERE public_access = true AND locked = false AND deleted_at IS NULL ORDER BY created_at DESC, id ASC LIMIT ? OFFSET ?")) {
+            statement.setInt(1, Math.max(0, limit));
+            statement.setInt(2, Math.max(0, offset));
+            try (ResultSet rs = statement.executeQuery()) {
+                List<UUID> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add((UUID) rs.getObject("id"));
+                }
+                return result;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read public island page", exception);
+        }
+    }
+
     private String upsertMemberSql(Connection connection) throws SQLException {
         if (mysqlLike(connection)) {
             return "INSERT INTO island_members(island_id, player_uuid, role, trusted_expires_at) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE role = VALUES(role), trusted_expires_at = VALUES(trusted_expires_at)";

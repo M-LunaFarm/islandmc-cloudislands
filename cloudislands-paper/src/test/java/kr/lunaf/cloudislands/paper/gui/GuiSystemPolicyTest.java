@@ -343,7 +343,8 @@ class GuiSystemPolicyTest {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
             assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())")
                 || List.of("IslandBanMenu", "IslandMyIslandsMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())")
-                || List.of("IslandInviteMenu", "IslandSnapshotMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())"),
+                || List.of("IslandInviteMenu", "IslandSnapshotMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
+                || menuName.equals("IslandVisitMenu") && menu.contains("!List.of(\"E\", \"W\", \"N\").contains(item.symbol())"),
                 menuName + " must hide configured dynamic placeholders during normal render");
             assertTrue(menu.contains("GuiMenuRenderer.setSymbolItem(inventory, MENU, \"E\""), menuName + " must render the configured empty placeholder when the list is empty");
         }
@@ -450,6 +451,8 @@ class GuiSystemPolicyTest {
         String snapshots = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandSnapshotMenu.java"));
         assertTrue(snapshots.contains("effectivePolicy.retainedSnapshotCount()"), "snapshot GUI must query the configured retention horizon instead of only the latest 20 records");
         assertTrue(snapshots.contains("int maxPage = Math.max(0, (snapshots.size() - 1) / pageSize)"), "retained snapshots must remain reachable through pagination");
+        String visits = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandVisitMenu.java"));
+        assertTrue(visits.contains("PaperGuiViews.publicIslands(client, safePage * PAGE_SIZE, PAGE_SIZE + 1)"), "public island discovery must request stable server-side pages with a next-page sentinel");
     }
 
     @Test

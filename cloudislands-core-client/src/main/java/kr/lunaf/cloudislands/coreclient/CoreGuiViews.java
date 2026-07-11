@@ -77,6 +77,10 @@ public final class CoreGuiViews {
         return client.navigation().publicIslands(limit);
     }
 
+    public static CompletableFuture<List<PublicIslandView>> publicIslands(CoreApiClient client, int offset, int limit) {
+        return client.navigation().publicIslands(offset, limit);
+    }
+
     public static CompletableFuture<List<BanView>> islandBans(CoreApiClient client, UUID islandId) {
         return client.members().bans(islandId);
     }

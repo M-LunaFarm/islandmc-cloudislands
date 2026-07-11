@@ -782,7 +782,7 @@ class CoreMutationContextTest {
             assertEquals("{\"limit\":10}", requestBodies.get("rankLevel"));
             assertEquals("{\"limit\":11}", requestBodies.get("rankWorth"));
             assertEquals("{\"limit\":12}", requestBodies.get("rankReviews"));
-            assertEquals("{\"limit\":13}", requestBodies.get("publicIslands"));
+            assertEquals("{\"offset\":0,\"limit\":13}", requestBodies.get("publicIslands"));
             assertEquals("{\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"minecraft:emerald\\\"block\",\"worth\":\"100.50\",\"levelPoints\":20,\"limit\":64}", requestBodies.get("blockValue"));
         } finally {
             server.stop(0);

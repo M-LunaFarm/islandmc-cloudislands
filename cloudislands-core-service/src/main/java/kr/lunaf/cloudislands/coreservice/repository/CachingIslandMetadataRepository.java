@@ -298,6 +298,11 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
         return delegate.publicIslandIds(limit);
     }
 
+    @Override
+    public List<UUID> publicIslandIdsPage(int offset, int limit) {
+        return delegate.publicIslandIdsPage(offset, limit);
+    }
+
     public long failuresTotal() {
         return failures.get();
     }

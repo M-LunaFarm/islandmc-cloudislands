@@ -63,4 +63,11 @@ public interface IslandMetadataRepository {
     boolean isPublicAccess(UUID islandId);
     void setPublicAccess(UUID islandId, boolean publicAccess);
     List<UUID> publicIslandIds(int limit);
+    default List<UUID> publicIslandIdsPage(int offset, int limit) {
+        int safeOffset = Math.max(0, offset);
+        return publicIslandIds(safeOffset + Math.max(0, limit)).stream()
+            .skip(safeOffset)
+            .limit(Math.max(0, limit))
+            .toList();
+    }
 }

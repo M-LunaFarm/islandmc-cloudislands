@@ -59,6 +59,10 @@ public final class PaperGuiViews {
         return CoreGuiViews.publicIslands(client, limit).thenApply(views -> views.stream().map(PaperGuiViews::publicIsland).toList());
     }
 
+    public static CompletableFuture<List<PublicIslandView>> publicIslands(CoreApiClient client, int offset, int limit) {
+        return CoreGuiViews.publicIslands(client, offset, limit).thenApply(views -> views.stream().map(PaperGuiViews::publicIsland).toList());
+    }
+
     public static CompletableFuture<List<BanView>> islandBans(CoreApiClient client, UUID islandId) {
         return CoreGuiViews.islandBans(client, islandId).thenApply(views -> views.stream().map(PaperGuiViews::ban).toList());
     }

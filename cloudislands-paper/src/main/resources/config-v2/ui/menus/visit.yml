@@ -7,7 +7,7 @@ layout:
   - "____E____"
   - "_________"
   - "_________"
-  - "P...O...."
+  - "PW..O.N.."
 items:
   E:
     material: BARRIER
@@ -49,8 +49,19 @@ items:
     fallback-lore:
       - "/섬 방문"
     action: open
+  W:
+    material: ARROW
+    name-key: visit-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: visit-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
 actions:
   open: island.visit.open
+  page: island.visit.page
   public: island.visit.public.open
   random: island.visit.random
   target: island.visit.target

@@ -134,6 +134,7 @@ public final class GuiActionParser {
         "island.upgrades.list",
         "island.upgrades.open",
         "island.visit.open",
+        "island.visit.page",
         "island.visit.public.category",
         "island.visit.public.open",
         "island.visit.random",
@@ -358,6 +359,9 @@ public final class GuiActionParser {
                 ));
                 case "island.snapshots.page" -> Optional.of(new GuiAction.SnapshotPage(
                     UUID.fromString(required(safeData, "islandId")),
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
+                case "island.visit.page" -> Optional.of(new GuiAction.PublicIslandPage(
                     nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.review.set" -> Optional.of(new GuiAction.ReviewSet(

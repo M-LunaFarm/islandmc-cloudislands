@@ -31,7 +31,12 @@ public final class JdkNavigationQueryClient implements NavigationQueryClient {
 
     @Override
     public CompletableFuture<List<CoreGuiViews.PublicIslandView>> publicIslands(int limit) {
-        return core.postBody("/v1/islands/public", CoreJsonPayload.object("limit", boundedLimit(limit)))
+        return publicIslands(0, limit);
+    }
+
+    @Override
+    public CompletableFuture<List<CoreGuiViews.PublicIslandView>> publicIslands(int offset, int limit) {
+        return core.postBody("/v1/islands/public", CoreJsonPayload.object("offset", Math.max(0, offset), "limit", boundedLimit(limit)))
             .thenApply(CoreResponseBody::value)
             .thenApply(JdkNavigationQueryClient::publicIslandViews);
     }
