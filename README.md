@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.22`
+Version: `1.1.23`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.22`
+Current release: `v1.1.23`
 
-Built for the CloudIslands 1.1.22 baseline.
+Built for the CloudIslands 1.1.23 baseline.
 
-Release notes for `v1.1.22`:
+Release notes for `v1.1.23`:
+
+- complete template catalog: the Paper island-creation menu no longer drops
+  enabled templates after its first 14 slots
+- permission-aware comparison retained: locked templates remain visible as
+  barriers with their required permission on every page instead of disappearing
+- confirmation integrity: selecting a template from any page still reloads its
+  current Core metadata before the dedicated create confirmation screen
+- dynamic page bounds: enabling, disabling, adding, or removing templates while
+  the menu is open clamps navigation against the latest enabled catalog
+- localized navigation: previous and next template controls are available in
+  Korean and English menu configurations
+
+Release notes carried forward from `v1.1.22`:
 
 - complete custom-role management: islands with more than 17 built-in and
   custom roles can browse and manage the entire role catalog in Paper
@@ -944,7 +957,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.22`.
+Current read: production-readiness baseline `v1.1.23`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
