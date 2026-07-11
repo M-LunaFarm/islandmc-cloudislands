@@ -65,6 +65,8 @@ public final class ProtectionDecisionPolicy {
             "BlockIgniteEvent",
             "BlockBurnEvent",
             "BlockSpreadEvent",
+            "BlockGrowEvent",
+            "BlockBreakBlockEvent",
             "LeavesDecayEvent",
             "FluidLevelChangeEvent",
             "BlockFromToEvent"

@@ -49,6 +49,8 @@ class ProtectionDecisionPolicyTest {
         assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("BlockDispenseEvent"));
         assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("EntityTargetLivingEntityEvent"));
         assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("RaidTriggerEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("BlockGrowEvent"));
+        assertTrue(ProtectionDecisionPolicy.protectedEvents().contains("BlockBreakBlockEvent"));
         assertTrue(ProtectionDecisionPolicy.protectedEvent("block_break_event"));
         assertTrue(ProtectionDecisionPolicy.protectedEvent("BlockFromToEvent"));
     }

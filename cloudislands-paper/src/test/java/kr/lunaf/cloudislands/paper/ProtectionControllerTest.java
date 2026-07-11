@@ -231,6 +231,18 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void naturalSpreadGrowthAndDependentBreaksKeepAccurateBlockDeltas() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("BlockSpreadPolicy.fireSpread"));
+        assertTrue(listener.contains("onSpreadCount(BlockSpreadEvent event)"));
+        assertTrue(listener.contains("onBlockGrowCount(BlockGrowEvent event)"));
+        assertTrue(listener.contains("event.getBlock().getType() != event.getNewState().getType()"));
+        assertTrue(listener.contains("onDependentBlockBreak(BlockBreakBlockEvent event)"));
+        assertTrue(listener.contains("blockDeltas.broken(islandId, event.getBlock())"));
+    }
+
+    @Test
     void roleCatalogUsesRoleKeysForDefaultSuggestions() {
         LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
         cache.putRoleDefinition(ISLAND, "builder");

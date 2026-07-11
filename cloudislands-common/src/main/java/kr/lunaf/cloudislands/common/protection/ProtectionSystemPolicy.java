@@ -49,6 +49,8 @@ public final class ProtectionSystemPolicy {
             "BlockIgniteEvent",
             "BlockBurnEvent",
             "BlockSpreadEvent",
+            "BlockGrowEvent",
+            "BlockBreakBlockEvent",
             "LeavesDecayEvent",
             "FluidLevelChangeEvent",
             "BlockFromToEvent"

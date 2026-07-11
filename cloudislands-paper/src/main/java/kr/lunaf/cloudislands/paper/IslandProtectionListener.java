@@ -4,9 +4,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import io.papermc.paper.event.block.BlockBreakBlockEvent;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
+import kr.lunaf.cloudislands.common.protection.BlockSpreadPolicy;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionCheckEvent;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import net.kyori.adventure.text.Component;
@@ -36,6 +38,7 @@ import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFertilizeEvent;
 import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
@@ -546,11 +549,26 @@ public final class IslandProtectionListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed();
-        event.setCancelled(!allowed);
-        if (allowed) {
+        if (BlockSpreadPolicy.fireSpread(event.getSource().getType().name(), event.getNewState().getType().name())) {
+            event.setCancelled(!protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onSpreadCount(BlockSpreadEvent event) {
+        reportBlockReplacement(event.getBlock(), event.getNewState().getType());
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockGrowCount(BlockGrowEvent event) {
+        if (event.getBlock().getType() != event.getNewState().getType()) {
             reportBlockReplacement(event.getBlock(), event.getNewState().getType());
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onDependentBlockBreak(BlockBreakBlockEvent event) {
+        protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -762,4 +780,5 @@ public final class IslandProtectionListener implements Listener {
     private IslandFlag liquidFlag(Material type) {
         return type == Material.LAVA ? IslandFlag.LAVA_FLOW : IslandFlag.WATER_FLOW;
     }
+
 }
