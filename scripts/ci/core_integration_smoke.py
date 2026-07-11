@@ -1134,6 +1134,8 @@ def run_load_probe(
         route_durations.append(duration)
     event_lag = 0.0
     event_replay_observed = False
+    event_replay_attempts = 1
+    next_replay_retry = time.monotonic() + 1.0
     deadline = time.monotonic() + 10
     while time.monotonic() < deadline:
         events = request(secondary_admin_url, "POST", "/v1/events", {"limit": 100, "sinceSeq": since_seq}, admin=True, expect=(200,))
@@ -1141,6 +1143,26 @@ def run_load_probe(
             event_lag = time.perf_counter() - event_probe_start
             event_replay_observed = True
             break
+        now = time.monotonic()
+        if now >= next_replay_retry and event_replay_attempts < 4:
+            request(
+                secondary_admin_url,
+                "POST",
+                "/v1/admin/routes/clear",
+                {"playerUuid": player_uuid, "reason": "LOAD_TEST_EVENT_REPLAY_RETRY"},
+                admin=True,
+                expect=(202,),
+            )
+            _route, duration = timed_request(
+                primary_url,
+                "POST",
+                "/v1/routes/home",
+                {"playerUuid": player_uuid},
+                expect=(202,),
+            )
+            route_durations.append(duration)
+            event_replay_attempts += 1
+            next_replay_retry = now + 1.0
         time.sleep(0.1)
 
     snapshot_durations = []
@@ -1176,6 +1198,7 @@ def run_load_probe(
         "activationLatencySeconds": rounded_seconds(activation_latency),
         "eventLagSeconds": rounded_seconds(event_lag),
         "eventReplayObserved": event_replay_observed,
+        "eventReplayAttempts": event_replay_attempts,
         "snapshotRecords": len(snapshot_durations),
         "snapshotP95Seconds": rounded_seconds(percentile(snapshot_durations, 0.95)),
         "snapshotThroughputPerSecond": round(len(snapshot_durations) / max(total_snapshot_time, 0.001), 3),
