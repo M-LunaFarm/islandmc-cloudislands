@@ -147,6 +147,10 @@ final class IslandEnvironmentCommandHandler {
             setLimit(player, limitSet.limitKey(), limitSet.value());
             return true;
         }
+        if (action instanceof GuiAction.LimitPage page) {
+            IslandLimitMenu.open(plugin, coreApiClient, player, page.islandId(), runtime.messagesFor(player), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.BorderColorSet colorSet) {
             setBorderFlag(player, IslandFlag.BORDER_COLOR, IslandBorderRuntimePolicy.normalizeColor(colorSet.color()), true);
             return true;

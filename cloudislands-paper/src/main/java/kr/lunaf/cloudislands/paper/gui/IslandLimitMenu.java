@@ -22,6 +22,7 @@ public final class IslandLimitMenu implements Listener {
         "config-v2/ui/menus/limits.yml",
         new GuiMenuDefinition("island.limits", 6, TITLE_KEY, Map.of(
             "open", "island.limits.open",
+            "page", "island.limits.page",
             "list", "island.limits.list",
             "set", "island.limit.set",
             "main", "island.main.open",
@@ -50,10 +51,14 @@ public final class IslandLimitMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE));
         PaperGuiViews.islandLimits(client, islandId)
-            .thenAccept(limits -> openSync(plugin, player, session, limits, messages))
+            .thenAccept(limits -> openSync(plugin, player, session, islandId, page, limits, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, TITLE_KEY, TITLE), message(messages, "limit-menu-load-failed", "섬 제한을 불러오지 못했습니다."), "island.limits.open", "island.settings.open");
                 return null;
@@ -76,7 +81,7 @@ public final class IslandLimitMenu implements Listener {
         String actionId = GuiItems.actionId(event.getCurrentItem());
         if (!actionId.isBlank()) {
             player.closeInventory();
-            actions.execute(player, GuiActions.from(actionId).orElse(null), GuiClick.from(event));
+            actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
             return;
         }
         Map<String, String> data = GuiItems.data(event.getCurrentItem());
@@ -91,19 +96,35 @@ public final class IslandLimitMenu implements Listener {
         actions.execute(player, new GuiAction.LimitSet(limitKey, nextValue), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<LimitView> limits, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, int requestedPage, List<LimitView> limits, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             List<Integer> limitSlots = GuiMenuRenderer.slots(MENU, "_");
-            List<LimitView> visibleLimits = limits.stream().limit(limitSlots.size()).toList();
+            int pageSize = Math.max(1, limitSlots.size());
+            int maxPage = Math.max(0, (limits.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages,
+                TITLE + " (" + (page + 1) + "/" + (maxPage + 1) + ")",
+                item -> !List.of("E", "_", "P", "N").contains(item.symbol()));
+            List<LimitView> visibleLimits = limits.stream().skip((long) page * pageSize).limit(pageSize).toList();
             for (int index = 0; index < visibleLimits.size(); index++) {
                 inventory.setItem(limitSlots.get(index), limitItem(visibleLimits.get(index), messages));
             }
             if (limits.isEmpty()) {
                 setEmptyItem(inventory, messages);
             }
+            if (page > 0) {
+                setPageItem(inventory, "P", islandId, page - 1, messages);
+            }
+            if (page < maxPage) {
+                setPageItem(inventory, "N", islandId, page + 1, messages);
+            }
             player.openInventory(inventory);
         });
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, int page, MessageRenderer messages) {
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("islandId", islandId.toString(), "page", Integer.toString(page)), List.of());
     }
 
     private static ItemStack limitItem(LimitView limit, MessageRenderer messages) {

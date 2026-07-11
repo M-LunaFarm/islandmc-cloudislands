@@ -342,7 +342,7 @@ class GuiSystemPolicyTest {
         )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
             assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())")
-                || menuName.equals("IslandHomeMenu") && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
+                || List.of("IslandHomeMenu", "IslandLimitMenu", "IslandUpgradeMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
                 || List.of("IslandBanMenu", "IslandMyIslandsMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())")
                 || List.of("IslandInviteMenu", "IslandSnapshotMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"_\", \"P\", \"N\").contains(item.symbol())")
                 || menuName.equals("IslandVisitMenu") && menu.contains("!List.of(\"E\", \"W\", \"N\").contains(item.symbol())")
@@ -470,6 +470,12 @@ class GuiSystemPolicyTest {
         String warps = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandWarpMenu.java"));
         assertTrue(warps.contains("int maxPage = publicMenu ? 0 : Math.max(0, (warps.size() - 1) / pageSize)"), "private warps beyond the first GUI page must remain reachable");
         assertTrue(warps.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "warp page actions must retain authoritative island context");
+        String upgrades = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandUpgradeMenu.java"));
+        assertTrue(upgrades.contains("int maxPage = Math.max(0, (upgrades.size() - 1) / pageSize)"), "configured upgrades beyond the first GUI page must remain purchasable");
+        assertTrue(upgrades.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "upgrade page actions must retain authoritative island context");
+        String limits = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandLimitMenu.java"));
+        assertTrue(limits.contains("int maxPage = Math.max(0, (limits.size() - 1) / pageSize)"), "configured limits beyond the first GUI page must remain adjustable");
+        assertTrue(limits.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "limit page actions must retain authoritative island context");
     }
 
     @Test

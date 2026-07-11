@@ -7,7 +7,7 @@ layout:
   - "____E____"
   - "_________"
   - "_________"
-  - "B...R...S"
+  - "BP..RN..S"
 items:
   _:
     material: BEACON
@@ -86,6 +86,16 @@ items:
     fallback-lore:
       - "/섬 은행"
     action: bank
+  P:
+    material: ARROW
+    name-key: upgrade-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: upgrade-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
   R:
     material: CLOCK
     name-key: upgrade-menu-refresh-name
@@ -106,6 +116,7 @@ items:
     action: settings
 actions:
   open: island.upgrades.open
+  page: island.upgrades.page
   list: island.upgrades.list
   purchase: island.upgrade.purchase
   bank: island.bank.open

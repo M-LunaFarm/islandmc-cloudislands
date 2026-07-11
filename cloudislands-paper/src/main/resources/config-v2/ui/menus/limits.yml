@@ -7,7 +7,7 @@ layout:
   - "____E____"
   - "_________"
   - "_________"
-  - "M...R...S"
+  - "MP..RN..S"
 items:
   E:
     material: BARRIER
@@ -31,6 +31,16 @@ items:
     fallback-lore:
       - "/섬 메뉴"
     action: main
+  P:
+    material: ARROW
+    name-key: limit-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: limit-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
   R:
     material: CLOCK
     name-key: limit-menu-refresh-name
@@ -51,6 +61,7 @@ items:
     action: back
 actions:
   open: island.limits.open
+  page: island.limits.page
   list: island.limits.list
   set: island.limit.set
   main: island.main.open

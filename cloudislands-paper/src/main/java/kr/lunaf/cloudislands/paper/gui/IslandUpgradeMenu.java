@@ -21,6 +21,7 @@ public final class IslandUpgradeMenu implements Listener {
         "config-v2/ui/menus/upgrades.yml",
         new GuiMenuDefinition("island.upgrades", 6, "menu.upgrades.title", Map.of(
             "open", "island.upgrades.open",
+            "page", "island.upgrades.page",
             "list", "island.upgrades.list",
             "purchase", "island.upgrade.purchase",
             "bank", "island.bank.open",
@@ -50,10 +51,14 @@ public final class IslandUpgradeMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandUpgrades(client, islandId)
-            .thenAccept(upgrades -> openSync(plugin, player, session, upgrades, messages))
+            .thenAccept(upgrades -> openSync(plugin, player, session, islandId, page, upgrades, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "upgrade-menu-load-failed", "섬 업그레이드를 불러오지 못했습니다."), "island.upgrades.open", "island.settings.open");
                 return null;
@@ -88,19 +93,35 @@ public final class IslandUpgradeMenu implements Listener {
         actions.execute(player, new GuiAction.UpgradePurchase(key), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<UpgradeView> upgrades, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, int requestedPage, List<UpgradeView> upgrades, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()) && !"_".equals(item.symbol()));
             List<Integer> upgradeSlots = GuiMenuRenderer.slots(MENU, "_");
-            List<UpgradeView> visibleUpgrades = upgrades.stream().limit(upgradeSlots.size()).toList();
+            int pageSize = Math.max(1, upgradeSlots.size());
+            int maxPage = Math.max(0, (upgrades.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages,
+                TITLE + " (" + (page + 1) + "/" + (maxPage + 1) + ")",
+                item -> !List.of("E", "_", "P", "N").contains(item.symbol()));
+            List<UpgradeView> visibleUpgrades = upgrades.stream().skip((long) page * pageSize).limit(pageSize).toList();
             for (int index = 0; index < visibleUpgrades.size(); index++) {
                 inventory.setItem(upgradeSlots.get(index), upgradeItem(visibleUpgrades.get(index), messages));
             }
             if (upgrades.isEmpty()) {
                 setEmptyItem(inventory, messages);
             }
+            if (page > 0) {
+                setPageItem(inventory, "P", islandId, page - 1, messages);
+            }
+            if (page < maxPage) {
+                setPageItem(inventory, "N", islandId, page + 1, messages);
+            }
             player.openInventory(inventory);
         });
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, int page, MessageRenderer messages) {
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("islandId", islandId.toString(), "page", Integer.toString(page)), List.of());
     }
 
     private static ItemStack upgradeItem(UpgradeView upgrade, MessageRenderer messages) {

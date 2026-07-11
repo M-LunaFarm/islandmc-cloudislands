@@ -185,6 +185,10 @@ final class IslandProgressionCommandHandler {
             purchaseUpgrade(player, upgradePurchase.upgradeKey());
             return true;
         }
+        if (action instanceof GuiAction.UpgradePage page) {
+            IslandUpgradeMenu.open(plugin, coreApiClient, player, page.islandId(), runtime.messagesFor(player), page.page());
+            return true;
+        }
         if (action instanceof GuiAction.RankingList rankingList) {
             listRanking(player, rankingList.worth(), 10);
             return true;

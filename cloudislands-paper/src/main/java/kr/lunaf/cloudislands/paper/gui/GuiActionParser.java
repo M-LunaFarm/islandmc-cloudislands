@@ -86,6 +86,7 @@ public final class GuiActionParser {
         "island.limit.set",
         "island.limits.list",
         "island.limits.open",
+        "island.limits.page",
         "island.list.open",
         "island.list.page",
         "island.lock.toggle",
@@ -137,6 +138,7 @@ public final class GuiActionParser {
         "island.upgrade.purchase",
         "island.upgrades.list",
         "island.upgrades.open",
+        "island.upgrades.page",
         "island.visit.open",
         "island.visit.page",
         "island.visit.public.category",
@@ -383,6 +385,14 @@ public final class GuiActionParser {
                     nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.warehouse.page" -> Optional.of(new GuiAction.WarehousePage(
+                    UUID.fromString(required(safeData, "islandId")),
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
+                case "island.upgrades.page" -> Optional.of(new GuiAction.UpgradePage(
+                    UUID.fromString(required(safeData, "islandId")),
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
+                case "island.limits.page" -> Optional.of(new GuiAction.LimitPage(
                     UUID.fromString(required(safeData, "islandId")),
                     nonNegativeInteger(required(safeData, "page"))
                 ));
