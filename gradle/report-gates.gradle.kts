@@ -321,10 +321,11 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "Gameplay and permission flags are represented in the domain",
         "Paper protection listeners and cache paths have unit coverage",
         "Bukkit-facing behavior is kept inside Paper runtime code",
-        "unit verified; real-player destructive-action smoke is not part of CI",
+        "unit verified; Paper policy tests cover bounded asynchronous safe returns after boundary escape",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/ProtectionControllerTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/platform/world/SafeTeleportPolicyTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/IslandGameplayFlagListener.java",
             "cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/permission/defaults/DefaultIslandPermissionsTest.java"
         ),
