@@ -334,12 +334,11 @@ public final class MachineListener implements Listener {
             return;
         }
         if (event.getAction() == Action.RIGHT_CLICK_BLOCK) {
-            itemFactory.machineType(event.getItem()).ifPresent(typeId -> {
+            Optional<String> heldMachineType = itemFactory.machineType(event.getItem());
+            if (heldMachineType.isPresent()) {
                 event.setCancelled(true);
                 Block target = event.getClickedBlock().getRelative(event.getBlockFace());
-                installMachine(event.getPlayer(), typeId, target, event.getBlockFace(), true, event.getHand(), false);
-            });
-            if (event.isCancelled()) {
+                installMachine(event.getPlayer(), heldMachineType.get(), target, event.getBlockFace(), true, event.getHand(), false);
                 return;
             }
         }

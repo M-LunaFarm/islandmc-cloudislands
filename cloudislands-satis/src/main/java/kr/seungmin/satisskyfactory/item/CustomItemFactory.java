@@ -2,7 +2,9 @@ package kr.seungmin.satisskyfactory.item;
 
 import kr.seungmin.satisskyfactory.model.MachineDefinition;
 import kr.seungmin.satisskyfactory.machine.MachineDefinitionService;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -47,10 +49,13 @@ public final class CustomItemFactory {
     public ItemStack machineItem(MachineDefinition definition, int amount) {
         ItemStack stack = new ItemStack(definition.material(), Math.max(1, amount));
         ItemMeta meta = stack.getItemMeta();
-        meta.setDisplayName(ChatColor.GOLD + definition.displayName());
-        meta.setLore(List.of(ChatColor.GRAY + "SatisSkyFactory machine", ChatColor.DARK_GRAY + definition.typeId()));
+        meta.displayName(label(definition.displayName(), NamedTextColor.GOLD));
+        meta.lore(List.of(
+            label("SatisSkyFactory machine", NamedTextColor.GRAY),
+            label(definition.typeId(), NamedTextColor.DARK_GRAY)
+        ));
         if (definition.customModelData() > 0) {
-            meta.setCustomModelData(definition.customModelData());
+            setCustomModelData(meta, definition.customModelData());
         }
         meta.getPersistentDataContainer().set(machineTypeKey, PersistentDataType.STRING, definition.typeId());
         meta.getPersistentDataContainer().set(machineTierKey, PersistentDataType.INTEGER, definition.tier());
@@ -62,12 +67,12 @@ public final class CustomItemFactory {
     public ItemStack factoryItem(ItemDefinition item, int amount) {
         ItemStack stack = new ItemStack(item.material(), Math.max(1, amount));
         ItemMeta meta = stack.getItemMeta();
-        meta.setDisplayName(ChatColor.WHITE + item.displayName());
+        meta.displayName(label(item.displayName(), NamedTextColor.WHITE));
         if (item.customModelData() > 0) {
-            meta.setCustomModelData(item.customModelData());
+            setCustomModelData(meta, item.customModelData());
         }
         if (item.virtualOnly() || item.basePrice() > 0 || !item.tags().isEmpty()) {
-            meta.setLore(itemLore(item));
+            meta.lore(itemLore(item));
         }
         meta.getPersistentDataContainer().set(itemIdKey, PersistentDataType.STRING, item.id());
         meta.getPersistentDataContainer().set(legacyFactoryItemKey, PersistentDataType.STRING, item.id());
@@ -116,17 +121,27 @@ public final class CustomItemFactory {
         return Optional.ofNullable(pdc.get(legacyFactoryItemKey, PersistentDataType.STRING));
     }
 
-    private List<String> itemLore(ItemDefinition item) {
-        java.util.ArrayList<String> lore = new java.util.ArrayList<>();
+    private List<Component> itemLore(ItemDefinition item) {
+        java.util.ArrayList<Component> lore = new java.util.ArrayList<>();
         if (item.virtualOnly()) {
-            lore.add(ChatColor.DARK_GRAY + "Virtual factory item");
+            lore.add(label("Virtual factory item", NamedTextColor.DARK_GRAY));
         }
         if (item.basePrice() > 0) {
-            lore.add(ChatColor.GRAY + "Base price: " + item.basePrice());
+            lore.add(label("Base price: " + item.basePrice(), NamedTextColor.GRAY));
         }
         if (!item.tags().isEmpty()) {
-            lore.add(ChatColor.DARK_GRAY + "Tags: " + String.join(", ", item.tags()));
+            lore.add(label("Tags: " + String.join(", ", item.tags()), NamedTextColor.DARK_GRAY));
         }
         return lore;
+    }
+
+    private static Component label(String text, NamedTextColor color) {
+        return Component.text(text == null ? "" : text, color).decoration(TextDecoration.ITALIC, false);
+    }
+
+    private static void setCustomModelData(ItemMeta meta, int value) {
+        var component = meta.getCustomModelDataComponent();
+        component.setFloats(List.of((float) value));
+        meta.setCustomModelDataComponent(component);
     }
 }
