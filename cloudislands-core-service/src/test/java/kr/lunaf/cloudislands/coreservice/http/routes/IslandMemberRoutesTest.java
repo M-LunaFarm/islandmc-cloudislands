@@ -193,6 +193,43 @@ class IslandMemberRoutesTest {
     }
 
     @Test
+    void coopCapacityIsIndependentFromPermanentTeamCapacity() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000131");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000132");
+        UUID memberUuid = UUID.fromString("00000000-0000-0000-0000-000000000133");
+        UUID coopUuid = UUID.fromString("00000000-0000-0000-0000-000000000134");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "coop-capacity");
+        limits.set(islandId, "MEMBERS", 1L, ownerUuid);
+        limits.set(islandId, GameplayParityPolicy.roleLimitKey("TRUSTED"), 1L, ownerUuid);
+
+        new IslandMemberRoutes(
+            islands,
+            metadata,
+            limits,
+            new InMemoryIslandPermissionRuleRepository(),
+            new InMemoryPlayerProfileRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryAuditLogger(),
+            events
+        ).register(handlers::put);
+
+        handle(handlers, "/v1/admin/islands/members/add", memberBody(islandId, memberUuid, "MEMBER"), 202, "MEMBER_ADDED");
+        handleAccepted(handlers, "/v1/islands/members/set", setRoleBody(islandId, ownerUuid, coopUuid, "TRUSTED"), 202);
+        handleError(handlers, "/v1/islands/members/set", setRoleBody(islandId, ownerUuid, memberUuid, "TRUSTED"), 409, "ALREADY_ISLAND_MEMBER");
+        handleError(handlers, "/v1/islands/members/set", setRoleBody(islandId, ownerUuid, coopUuid, "MEMBER"), 409, "MEMBER_LIMIT");
+
+        assertEquals("MEMBER", metadata.members(islandId).stream().filter(member -> member.playerUuid().equals(memberUuid)).findFirst().orElseThrow().effectiveRoleKey());
+        assertEquals("TRUSTED", metadata.members(islandId).stream().filter(member -> member.playerUuid().equals(coopUuid)).findFirst().orElseThrow().effectiveRoleKey());
+        assertEquals(1L, events.countByType("ISLAND_COOP_ADDED"));
+        assertEquals(0L, events.countByType("ISLAND_COOP_REMOVED"));
+    }
+
+    @Test
     void rendersMemberContracts() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
@@ -317,6 +354,10 @@ class IslandMemberRoutesTest {
 
     private static String temporaryTrustBody(UUID islandId, UUID actorUuid, UUID playerUuid) {
         return "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"durationSeconds\":3600}";
+    }
+
+    private static String setRoleBody(UUID islandId, UUID actorUuid, UUID playerUuid, String roleKey) {
+        return "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"playerUuid\":\"" + playerUuid + "\",\"roleKey\":\"" + roleKey + "\"}";
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

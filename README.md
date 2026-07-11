@@ -568,7 +568,8 @@ Release notes for `v1.0.1`:
 - temporary co-op integrity: permanent members can no longer be overwritten by
   expiring `TRUSTED` membership, existing temporary co-op access can be renewed,
   SS2 `uncoop` removes that access, and admin co-op limits enforce the dedicated
-  `ROLE_LIMIT:TRUSTED` capacity instead of consuming the permanent team limit
+  `ROLE_LIMIT:TRUSTED` capacity instead of consuming the permanent team limit;
+  `untrust` removes co-op access and `coops` opens the management surface
 - Core migration compatibility: SuperiorSkyblock2 import remains a CloudIslands
   Core/Paper/Velocity operation; `cloudislands-satis` no longer exposes legacy
   import or rollback commands

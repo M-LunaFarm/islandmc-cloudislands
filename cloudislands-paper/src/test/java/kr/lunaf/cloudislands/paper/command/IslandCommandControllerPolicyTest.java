@@ -418,6 +418,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adapter.contains("Map.entry(\"close\", new Mapping(\"private\", \"비공개\"))"), "SS2 close must route to island private access");
         assertTrue(adapter.contains("Map.entry(\"open\", new Mapping(\"public\", \"공개\"))"), "SS2 open must route to island public access");
         assertTrue(adapter.contains("Map.entry(\"uncoop\", new Mapping(\"kick\", \"추방\"))"), "SS2 uncoop must remove temporary cooperation instead of promoting it to permanent membership");
+        assertTrue(adapter.contains("Map.entry(\"coops\", new Mapping(\"members\", \"멤버\"))"), "SS2 coops must open the member/co-op management surface");
         assertTrue(adapter.contains("AdminAliasGuidance"), "SS2 admin aliases must be guidance-only, not player command translations");
         assertTrue(adapter.contains("admin(\"purge\", \"island delete <island> --confirm\", true)"), "dangerous SS2 admin aliases must point at ciadmin confirmation flows");
         assertTrue(router.contains("sendLegacyAdminAliasGuidance(player, adminGuidance);"), "legacy admin aliases must get ciadmin guidance before normal player routing");
@@ -815,6 +816,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("private void listIslandMembers(Player player)"), "member list execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void listIslandBans(Player player)"), "ban list execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void removeIslandMember(Player player, String target)"), "member removal execution belongs in IslandMembershipCommandHandler");
+        assertFalse(membershipHandler.contains("setIslandMemberRole(player, args[1], \"MEMBER\", message(\"member-role-untrust-action-label\""), "untrust must remove co-op access instead of turning a co-op into a permanent member");
         assertTrue(membershipHandler.contains("private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage)"), "member role execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("permissionExceptionCommand(memberDetail.playerUuid().toString()"), "member detail must expose the individual permission exception entrypoint");
         assertTrue(membershipHandler.contains("IslandPermission.BUILD.name()"), "member detail must show a concrete build permission exception example");

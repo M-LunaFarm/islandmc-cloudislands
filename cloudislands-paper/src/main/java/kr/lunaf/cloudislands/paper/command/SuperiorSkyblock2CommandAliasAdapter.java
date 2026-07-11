@@ -42,6 +42,7 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         Map.entry("teleport", new Mapping("home", "홈")),
         Map.entry("chest", new Mapping("chest", "창고")),
         Map.entry("team", new Mapping("members", "멤버")),
+        Map.entry("coops", new Mapping("members", "멤버")),
         Map.entry("panel", new Mapping("menu", "메뉴")),
         Map.entry("disband", new Mapping("delete", "삭제")),
         Map.entry("rankup", new Mapping("upgrade-buy", "업그레이드구매")),

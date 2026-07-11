@@ -12,7 +12,7 @@ public final class CacheInvalidationPlan {
     public static Set<CacheTarget> targetsFor(CloudIslandEventType eventType) {
         return switch (eventType) {
             case ISLAND_CREATED -> EnumSet.of(CacheTarget.PLAYER_ISLAND, CacheTarget.RUNTIME, CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.ROUTE, CacheTarget.SUMMARY);
-            case ISLAND_MEMBER_JOINED, ISLAND_MEMBER_LEFT, ISLAND_MEMBER_CHANGED, ISLAND_MEMBER_ROLE_CHANGED -> EnumSet.of(CacheTarget.PLAYER_ISLAND, CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
+            case ISLAND_MEMBER_JOINED, ISLAND_MEMBER_LEFT, ISLAND_MEMBER_CHANGED, ISLAND_MEMBER_ROLE_CHANGED, ISLAND_COOP_ADDED, ISLAND_COOP_REMOVED -> EnumSet.of(CacheTarget.PLAYER_ISLAND, CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
             case ISLAND_OWNERSHIP_CHANGED -> EnumSet.of(CacheTarget.PLAYER_ISLAND, CacheTarget.MEMBERS, CacheTarget.PERMISSIONS, CacheTarget.SUMMARY);
             case ISLAND_RENAMED -> EnumSet.of(CacheTarget.ROUTE, CacheTarget.SUMMARY);
             case ISLAND_INVITE_CHANGED -> EnumSet.of(CacheTarget.INVITES, CacheTarget.SUMMARY);

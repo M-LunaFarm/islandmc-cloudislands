@@ -112,7 +112,7 @@ final class IslandMembershipCommandHandler {
                 runtime.message(player, message("input-untrust-player-required", "신뢰 해제할 플레이어를 입력해주세요."));
                 return true;
             }
-            setIslandMemberRole(player, args[1], "MEMBER", message("member-role-untrust-action-label", "섬 신뢰 해제"));
+            removeIslandMember(player, args[1]);
             return true;
         }
         if (subcommand.equals("promote") || subcommand.equals("승급")) {

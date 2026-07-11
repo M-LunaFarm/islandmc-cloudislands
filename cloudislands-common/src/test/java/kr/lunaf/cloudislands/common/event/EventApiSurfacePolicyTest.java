@@ -27,6 +27,8 @@ class EventApiSurfacePolicyTest {
                 "IslandVisitEvent",
                 "IslandMemberJoinEvent",
                 "IslandMemberLeaveEvent",
+                "IslandCoopAddEvent",
+                "IslandCoopRemoveEvent",
                 "IslandRoleChangeEvent",
                 "IslandFlagChangeEvent",
                 "IslandPermissionCheckEvent",
@@ -51,6 +53,8 @@ class EventApiSurfacePolicyTest {
         assertEquals(CloudIslandEventType.ISLAND_DELETED, EventApiSurfacePolicy.globalTypeForLocalEvent("IslandDeleteEvent"));
         assertEquals(CloudIslandEventType.ISLAND_ACTIVATED, EventApiSurfacePolicy.globalTypeForLocalEvent("IslandActivateEvent"));
         assertEquals(CloudIslandEventType.ISLAND_VISITED, EventApiSurfacePolicy.globalTypeForLocalEvent("IslandVisitEvent"));
+        assertEquals(CloudIslandEventType.ISLAND_COOP_ADDED, EventApiSurfacePolicy.globalTypeForLocalEvent("IslandCoopAddEvent"));
+        assertEquals(CloudIslandEventType.ISLAND_COOP_REMOVED, EventApiSurfacePolicy.globalTypeForLocalEvent("IslandCoopRemoveEvent"));
         assertEquals(CloudIslandEventType.ISLAND_LEVEL_UPDATED, EventApiSurfacePolicy.globalTypeForLocalEvent("IslandLevelRecalculateEvent"));
         assertEquals(CloudIslandEventType.ISLAND_UPGRADE, EventApiSurfacePolicy.globalTypeForLocalEvent("IslandUpgradeEvent"));
         assertNull(EventApiSurfacePolicy.globalTypeForLocalEvent("UnknownEvent"));

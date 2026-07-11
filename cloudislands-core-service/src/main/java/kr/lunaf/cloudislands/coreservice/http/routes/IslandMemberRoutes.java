@@ -112,7 +112,11 @@ public final class IslandMemberRoutes implements RouteGroup {
             return;
         }
         boolean existingMember = currentMember != null;
-        if (!existingMember && members.size() >= limitValue(islandId, "MEMBERS", 3L)) {
+        if (roleKey.equals(CoreRoleKeys.TRUSTED) && existingMember && !currentRoleKey.equals(CoreRoleKeys.TRUSTED)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ALREADY_ISLAND_MEMBER", "Island members cannot also be co-op players"));
+            return;
+        }
+        if (addsTeamMember(currentRoleKey, roleKey) && teamMemberCount(members) >= limitValue(islandId, "MEMBERS", 3L)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
             return;
         }
@@ -126,6 +130,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         events.publish(existingMember ? CloudIslandEventType.ISLAND_MEMBER_ROLE_CHANGED.name() : CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), existingMember
             ? Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "oldRole", currentRoleKey, "oldRoleKey", currentRoleKey, "newRole", roleKey, "newRoleKey", roleKey)
             : Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", roleKey, "roleKey", roleKey));
+        publishCoopTransition(islandId, playerUuid, currentRoleKey, roleKey);
         events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", roleKey, "roleKey", roleKey));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
@@ -154,10 +159,6 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ALREADY_ISLAND_MEMBER", "Permanent island members cannot be converted to temporary trusted members"));
             return;
         }
-        if (!existingMember && members.size() >= limitValue(islandId, "MEMBERS", 3L)) {
-            CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
-            return;
-        }
         if (!renewingTemporaryTrust && roleLimitReached(islandId, members, currentRoleKey, CoreRoleKeys.TRUSTED)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
             return;
@@ -181,6 +182,7 @@ public final class IslandMemberRoutes implements RouteGroup {
             "newRoleKey", CoreRoleKeys.TRUSTED,
             "expiresAt", expiresAt.toString()
         ));
+        publishCoopTransition(islandId, playerUuid, currentRoleKey, CoreRoleKeys.TRUSTED);
         events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "role", CoreRoleKeys.TRUSTED, "roleKey", CoreRoleKeys.TRUSTED, "expiresAt", expiresAt.toString()));
         CoreHttpResponses.write(exchange, 202, temporaryTrustJson(islandId, playerUuid, expiresAt, seconds));
     }
@@ -222,6 +224,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         metadataRepository.removeMember(islandId, playerUuid);
         audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
         islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_REMOVE", Map.of("playerUuid", playerUuid.toString()));
+        publishCoopTransition(islandId, playerUuid, member == null ? "" : member.effectiveRoleKey(), "");
         events.publish(CloudIslandEventType.ISLAND_MEMBER_LEFT.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
         events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
@@ -247,6 +250,10 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner role is protected"));
             return;
         }
+        if (addsTeamMember(oldRoleKey, roleKey) && teamMemberCount(members) >= limitValue(islandId, "MEMBERS", 3L)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
+            return;
+        }
         if (roleLimitReached(islandId, members, oldRoleKey, roleKey)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
             return;
@@ -254,6 +261,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         metadataRepository.upsertMemberKey(islandId, playerUuid, roleKey);
         adminMemberAudit(islandId, playerUuid, "ISLAND_MEMBER_ADMIN_ADD", Map.of("oldRoleKey", oldRoleKey, "newRoleKey", roleKey));
         publishAdminMemberSet(islandId, playerUuid, oldRoleKey, roleKey, current != null);
+        publishCoopTransition(islandId, playerUuid, oldRoleKey, roleKey);
         CoreHttpResponses.write(exchange, 202, memberActionJson("MEMBER_ADDED"));
     }
 
@@ -272,6 +280,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         }
         metadataRepository.removeMember(islandId, playerUuid);
         adminMemberAudit(islandId, playerUuid, "ISLAND_MEMBER_ADMIN_KICK", Map.of("oldRoleKey", current == null ? "" : current.effectiveRoleKey()));
+        publishCoopTransition(islandId, playerUuid, current == null ? "" : current.effectiveRoleKey(), "");
         events.publish(CloudIslandEventType.ISLAND_MEMBER_LEFT.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
         events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString()));
         CoreHttpResponses.write(exchange, 202, memberActionJson("MEMBER_KICKED"));
@@ -309,6 +318,10 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_ROLE_UNAVAILABLE", "No legacy admin role step is available"));
             return;
         }
+        if (addsTeamMember(oldRoleKey, newRoleKey) && teamMemberCount(members) >= limitValue(islandId, "MEMBERS", 3L)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
+            return;
+        }
         if (roleLimitReached(islandId, members, oldRoleKey, newRoleKey)) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
             return;
@@ -316,6 +329,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         metadataRepository.upsertMemberKey(islandId, playerUuid, newRoleKey);
         adminMemberAudit(islandId, playerUuid, direction.equals("promote") ? "ISLAND_MEMBER_ADMIN_PROMOTE" : "ISLAND_MEMBER_ADMIN_DEMOTE", Map.of("oldRoleKey", oldRoleKey, "newRoleKey", newRoleKey));
         publishAdminMemberSet(islandId, playerUuid, oldRoleKey, newRoleKey, true);
+        publishCoopTransition(islandId, playerUuid, oldRoleKey, newRoleKey);
         CoreHttpResponses.write(exchange, 202, memberActionJson(direction.equals("promote") ? "MEMBER_PROMOTED" : "MEMBER_DEMOTED"));
     }
 
@@ -414,6 +428,30 @@ public final class IslandMemberRoutes implements RouteGroup {
             .filter(member -> member.effectiveRoleKey().equals(newRoleKey))
             .count();
         return count >= limit;
+    }
+
+    private static boolean addsTeamMember(String currentRoleKey, String newRoleKey) {
+        return !teamMemberRole(currentRoleKey) && teamMemberRole(newRoleKey);
+    }
+
+    private static boolean teamMemberRole(String roleKey) {
+        return roleKey != null && !roleKey.isBlank() && !roleKey.equals(CoreRoleKeys.TRUSTED);
+    }
+
+    private static long teamMemberCount(List<IslandMemberSnapshot> members) {
+        return members.stream().filter(member -> teamMemberRole(member.effectiveRoleKey())).count();
+    }
+
+    private void publishCoopTransition(UUID islandId, UUID playerUuid, String oldRoleKey, String newRoleKey) {
+        boolean wasCoop = CoreRoleKeys.TRUSTED.equals(oldRoleKey);
+        boolean isCoop = CoreRoleKeys.TRUSTED.equals(newRoleKey);
+        if (wasCoop == isCoop) {
+            return;
+        }
+        events.publish(
+            (isCoop ? CloudIslandEventType.ISLAND_COOP_ADDED : CloudIslandEventType.ISLAND_COOP_REMOVED).name(),
+            Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "roleKey", CoreRoleKeys.TRUSTED)
+        );
     }
 
     static String membersJson(List<IslandMemberSnapshot> members) {

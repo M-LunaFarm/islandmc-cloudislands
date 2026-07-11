@@ -45,7 +45,7 @@ class SuperiorSkyblock2CommandAliasAdapterTest {
 
     @Test
     void exposesMajorLegacyAliasesForPolicyCoverage() {
-        for (String alias : java.util.List.of("top", "values", "value", "counts", "recalc", "missions", "ratings", "setwarp", "delwarp", "teleport", "chest", "team", "panel", "disband", "rankup", "close", "open", "uncoop", "permissions", "border")) {
+        for (String alias : java.util.List.of("top", "values", "value", "counts", "recalc", "missions", "ratings", "setwarp", "delwarp", "teleport", "chest", "team", "coops", "panel", "disband", "rankup", "close", "open", "uncoop", "permissions", "border")) {
             assertTrue(SuperiorSkyblock2CommandAliasAdapter.knownAlias(alias), alias);
         }
     }
