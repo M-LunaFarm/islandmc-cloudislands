@@ -15,6 +15,7 @@ import kr.seungmin.satisskyfactory.node.ResourceNodeService;
 import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.storage.StorageService;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -364,19 +365,19 @@ public final class AdminFactoryCommand {
     }
 
     private void showFeatures(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-features-title"));
-        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-catalog", "value", SatisFeatureGateResolver.featureKeysMetadata())));
-        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-root-gates", "value", SatisFeatureGateResolver.rootGateMetadata())));
-        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-config-roots", "value", SatisFeatureGateResolver.featureRootMetadata())));
-        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-aliases", "value", SatisFeatureGateResolver.aliasMetadata())));
-        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-dependencies", "value", SatisFeatureGateResolver.dependencyMetadata())));
-        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-config-gate-policy", "value", SatisFeatureGateResolver.configGatePolicy())));
-        sender.sendMessage(messages.raw("admin-integration-entry", Map.of("key", "feature-disable-policy", "value", SatisFeatureGateResolver.disablePolicy())));
+        messages.sendRaw(sender, "admin-features-title");
+        messages.sendRaw(sender, "admin-integration-entry", Map.of("key", "feature-catalog", "value", SatisFeatureGateResolver.featureKeysMetadata()));
+        messages.sendRaw(sender, "admin-integration-entry", Map.of("key", "feature-root-gates", "value", SatisFeatureGateResolver.rootGateMetadata()));
+        messages.sendRaw(sender, "admin-integration-entry", Map.of("key", "feature-config-roots", "value", SatisFeatureGateResolver.featureRootMetadata()));
+        messages.sendRaw(sender, "admin-integration-entry", Map.of("key", "feature-aliases", "value", SatisFeatureGateResolver.aliasMetadata()));
+        messages.sendRaw(sender, "admin-integration-entry", Map.of("key", "feature-dependencies", "value", SatisFeatureGateResolver.dependencyMetadata()));
+        messages.sendRaw(sender, "admin-integration-entry", Map.of("key", "feature-config-gate-policy", "value", SatisFeatureGateResolver.configGatePolicy()));
+        messages.sendRaw(sender, "admin-integration-entry", Map.of("key", "feature-disable-policy", "value", SatisFeatureGateResolver.disablePolicy()));
         for (String feature : FEATURE_KEYS) {
-            sender.sendMessage(messages.raw("admin-features-entry", Map.of(
+            messages.sendRaw(sender, "admin-features-entry", Map.of(
                     "feature", feature,
                     "enabled", Boolean.toString(enabled(feature))
-            )));
+            ));
         }
         Map<String, String> details = featureDetails();
         List.of(
@@ -439,10 +440,10 @@ public final class AdminFactoryCommand {
         ).forEach(key -> {
             String value = details.get(key);
             if (value != null && !value.isBlank()) {
-                sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                messages.sendRaw(sender, "admin-integration-entry", Map.of(
                         "key", key,
                         "value", value
-                )));
+                ));
             }
         });
     }
@@ -468,7 +469,7 @@ public final class AdminFactoryCommand {
     }
 
     private void showIntegration(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-integration-title"));
+        messages.sendRaw(sender, "admin-integration-title");
         Map<String, String> metadata;
         try {
             metadata = integrationMetadata == null ? Map.of() : integrationMetadata.get();
@@ -477,14 +478,14 @@ public final class AdminFactoryCommand {
         }
         metadata.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                .forEach(entry -> messages.sendRaw(sender, "admin-integration-entry", Map.of(
                         "key", entry.getKey(),
                         "value", entry.getValue()
-                ))));
+                )));
     }
 
     private void showAddonState(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-integration-title"));
+        messages.sendRaw(sender, "admin-integration-title");
         Map<String, String> state;
         try {
             state = addonState == null ? Map.of() : addonState.get();
@@ -1161,18 +1162,19 @@ public final class AdminFactoryCommand {
         }
         visible.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                .forEach(entry -> messages.sendRaw(sender, "admin-integration-entry", Map.of(
                         "key", entry.getKey(),
                         "value", entry.getValue()
-                ))));
+                )));
     }
 
     private void help(CommandSender sender, String label, int page) {
         List<String> commands = visibleHelpCommands(label, sender);
         CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, adminNavigationCommand(label), commandListPageSize);
-        sender.sendMessage(messages.raw("admin-command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))) + " commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX);
+        sender.sendMessage(messages.rawComponent("admin-command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages())))
+                .append(Component.text(" commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX)));
         for (String command : CommandListPolicy.commandLines(commandPage)) {
-            sender.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
+            messages.sendRaw(sender, "command-list-entry", Map.of("command", command));
         }
     }
 

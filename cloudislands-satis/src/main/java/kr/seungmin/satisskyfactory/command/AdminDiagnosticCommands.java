@@ -28,7 +28,7 @@ final class AdminDiagnosticCommands {
     }
 
     void showDoctor(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-doctor-title"));
+        messages.sendRaw(sender, "admin-doctor-title");
         Map<String, String> state = diagnosticState();
         Map<String, String> summary = new LinkedHashMap<>();
         summary.put("runtime", runtimeStatus(state));
@@ -44,7 +44,7 @@ final class AdminDiagnosticCommands {
     }
 
     void showDatabase(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-database-title"));
+        messages.sendRaw(sender, "admin-database-title");
         Map<String, String> state = diagnosticState();
         printSelected(sender, state, List.of(
                 "local.database-active-backend",
@@ -75,7 +75,7 @@ final class AdminDiagnosticCommands {
     }
 
     void showRuntime(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-runtime-title"));
+        messages.sendRaw(sender, "admin-runtime-title");
         Map<String, String> state = diagnosticState();
         printSelected(sender, state, List.of(
                 "runtime-addon-status",
@@ -103,7 +103,7 @@ final class AdminDiagnosticCommands {
     }
 
     void showRoutes(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-routes-title"));
+        messages.sendRaw(sender, "admin-routes-title");
         Map<String, String> state = diagnosticState();
         printSelected(sender, state, List.of(
                 "runtime-route-events-gate",
@@ -123,7 +123,7 @@ final class AdminDiagnosticCommands {
     }
 
     void showSupport(CommandSender sender) {
-        sender.sendMessage(messages.raw("admin-support-title"));
+        messages.sendRaw(sender, "admin-support-title");
         Map<String, String> state = diagnosticState();
         Map<String, String> summary = new LinkedHashMap<>();
         summary.put("support-command", "/factory admin state");
@@ -287,10 +287,10 @@ final class AdminDiagnosticCommands {
     private void printSection(CommandSender sender, Map<String, String> values) {
         values.entrySet().stream()
                 .sorted(Map.Entry.comparingByKey())
-                .forEach(entry -> sender.sendMessage(messages.raw("admin-integration-entry", Map.of(
+                .forEach(entry -> messages.sendRaw(sender, "admin-integration-entry", Map.of(
                         "key", entry.getKey(),
                         "value", entry.getValue()
-                ))));
+                )));
     }
 
     private String firstNonBlank(String first, String fallback) {

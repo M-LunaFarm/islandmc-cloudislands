@@ -299,7 +299,7 @@ public final class FactoryGuiService {
         MachineDefinition definition = definitions.get(machine.typeId()).orElse(null);
         List<Component> lore = new ArrayList<>();
         lore.add(gray("gui-type", "유형: {type}", Map.of("type", machine.typeId())));
-        lore.add(label(messages.raw("machine-status", Map.of("status", machine.status().name())), NamedTextColor.GRAY));
+        lore.add(label(messages.rawPlain("machine-status", Map.of("status", machine.status().name())), NamedTextColor.GRAY));
         lore.add(gray("gui-wear", "마모도: {wear}", Map.of("wear", NumberFormatter.ratio(machine.wear()))));
         lore.add(gray("gui-island", "섬: {island}", Map.of("island", machine.islandUuid().toString())));
         if (definition != null) {
@@ -676,12 +676,12 @@ public final class FactoryGuiService {
     }
 
     private String text(String key, String fallback) {
-        String value = messages.raw(key);
+        String value = messages.rawPlain(key);
         return value.equals(key) ? fallback : value;
     }
 
     private String text(String key, String fallback, Map<String, String> placeholders) {
-        String value = messages.raw(key, placeholders);
+        String value = messages.rawPlain(key, placeholders);
         return value.equals(key) ? replace(fallback, placeholders) : value;
     }
 

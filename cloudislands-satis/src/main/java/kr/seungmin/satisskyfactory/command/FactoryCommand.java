@@ -25,6 +25,7 @@ import kr.seungmin.satisskyfactory.power.PowerNetworkService;
 import kr.seungmin.satisskyfactory.research.ResearchService;
 import kr.seungmin.satisskyfactory.storage.StorageService;
 import kr.seungmin.satisskyfactory.util.NumberFormatter;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -572,9 +573,10 @@ public final class FactoryCommand implements CommandExecutor, TabCompleter {
     private void help(Player player, String label, int page) {
         List<String> commands = visibleHelpCommands(label, player);
         CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, label + " command list", commandListPageSize);
-        player.sendMessage(messages.raw("command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages()))) + " commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX);
+        player.sendMessage(messages.rawComponent("command-list-title", Map.of("page", String.valueOf(commandPage.page()), "pages", String.valueOf(commandPage.pages())))
+                .append(Component.text(" commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX)));
         for (String command : CommandListPolicy.commandLines(commandPage)) {
-            player.sendMessage(messages.raw("command-list-entry", Map.of("command", command)));
+            messages.sendRaw(player, "command-list-entry", Map.of("command", command));
         }
     }
 
