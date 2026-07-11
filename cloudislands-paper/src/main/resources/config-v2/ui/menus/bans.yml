@@ -7,7 +7,7 @@ layout:
   - "____E____"
   - "_________"
   - "_________"
-  - "....R...S"
+  - "P...R.N.S"
 items:
   E:
     material: BARRIER
@@ -45,9 +45,20 @@ items:
     fallback-lore:
       - "/섬 설정"
     action: settings
+  P:
+    material: ARROW
+    name-key: ban-menu-previous-page
+    fallback-name: 이전 페이지
+    action: page
+  N:
+    material: ARROW
+    name-key: ban-menu-next-page
+    fallback-name: 다음 페이지
+    action: page
 actions:
   open: island.bans.open
   list: island.bans.list
+  page: island.bans.page
   pardon-prepare: island.ban.pardon.prepare
   pardon-confirm: island.ban.pardon.confirm
   back: island.members.open

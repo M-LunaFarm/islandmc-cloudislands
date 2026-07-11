@@ -51,6 +51,7 @@ public final class GuiActionParser {
         "island.bank.withdraw",
         "island.bans.list",
         "island.bans.open",
+        "island.bans.page",
         "island.border.color.set",
         "island.border.open",
         "island.biome.open",
@@ -344,6 +345,10 @@ public final class GuiActionParser {
                     required(safeData, "target")
                 ));
                 case "island.list.page" -> Optional.of(new GuiAction.IslandListPage(
+                    nonNegativeInteger(required(safeData, "page"))
+                ));
+                case "island.bans.page" -> Optional.of(new GuiAction.BanPage(
+                    UUID.fromString(required(safeData, "islandId")),
                     nonNegativeInteger(required(safeData, "page"))
                 ));
                 case "island.review.set" -> Optional.of(new GuiAction.ReviewSet(

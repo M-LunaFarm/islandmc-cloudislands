@@ -23,6 +23,7 @@ public final class IslandBanMenu implements Listener {
         new GuiMenuDefinition("island.bans", 6, "menu.bans.title", Map.of(
             "open", "island.bans.open",
             "list", "island.bans.list",
+            "page", "island.bans.page",
             "pardon-prepare", "island.ban.pardon.prepare",
             "pardon-confirm", ConfirmationTokenPolicy.BAN_PARDON_CONFIRM_ACTION,
             "back", "island.members.open",
@@ -51,10 +52,14 @@ public final class IslandBanMenu implements Listener {
     }
 
     public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages) {
+        open(plugin, client, player, islandId, messages, 0);
+    }
+
+    public static void open(Plugin plugin, CoreApiClient client, Player player, UUID islandId, MessageRenderer messages, int page) {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.islandBans(client, islandId)
-            .thenAccept(bans -> openSync(plugin, player, session, bans, messages))
+            .thenAccept(bans -> openSync(plugin, player, session, islandId, bans, messages, page))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "ban-menu-load-failed", "섬 밴 목록을 불러오지 못했습니다."), "island.bans.open", "island.settings.open");
                 return null;
@@ -105,15 +110,26 @@ public final class IslandBanMenu implements Listener {
         player.sendMessage("- " + message(messages, "ban-menu-expires-at", "만료 시각: ") + fallback(data.get("expiresAt"), message(messages, "ban-menu-no-expire", "만료 없음")));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<BanView> bans, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, UUID islandId, List<BanView> bans, MessageRenderer messages, int requestedPage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> !"E".equals(item.symbol()));
+            List<Integer> banSlots = GuiMenuRenderer.slots(MENU, "_");
+            int pageSize = Math.max(1, banSlots.size());
+            int maxPage = Math.max(0, (bans.size() - 1) / pageSize);
+            int page = Math.max(0, Math.min(requestedPage, maxPage));
+            String title = message(messages, MENU.titleKey(), TITLE) + " " + (page + 1) + "/" + (maxPage + 1);
+            Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, title, item -> !List.of("E", "P", "N").contains(item.symbol()));
             if (bans.isEmpty()) {
                 setEmptyItem(inventory, messages);
             } else {
-                List<Integer> banSlots = GuiMenuRenderer.slots(MENU, "_");
-                for (int index = 0; index < bans.size() && index < banSlots.size(); index++) {
-                    inventory.setItem(banSlots.get(index), banItem(bans.get(index), messages));
+                int offset = page * pageSize;
+                for (int index = 0; index < pageSize && offset + index < bans.size(); index++) {
+                    inventory.setItem(banSlots.get(index), banItem(bans.get(offset + index), messages));
+                }
+                if (page > 0) {
+                    setPageItem(inventory, "P", islandId, page - 1, messages);
+                }
+                if (page < maxPage) {
+                    setPageItem(inventory, "N", islandId, page + 1, messages);
                 }
             }
             player.openInventory(inventory);
@@ -143,6 +159,13 @@ public final class IslandBanMenu implements Listener {
 
     private static void setEmptyItem(Inventory inventory, MessageRenderer messages) {
         GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
+    }
+
+    private static void setPageItem(Inventory inventory, String symbol, UUID islandId, int page, MessageRenderer messages) {
+        String key = symbol.equals("P") ? "ban-menu-previous-page" : "ban-menu-next-page";
+        String fallback = symbol.equals("P") ? "이전 페이지" : "다음 페이지";
+        GuiMenuRenderer.setSymbolItem(inventory, MENU, symbol, messages,
+            Map.of("islandId", islandId.toString(), "page", Integer.toString(page)), List.of(message(messages, key, fallback)));
     }
 
     private static String shortUuid(String uuid) {

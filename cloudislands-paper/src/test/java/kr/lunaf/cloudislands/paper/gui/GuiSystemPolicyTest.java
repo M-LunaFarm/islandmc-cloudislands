@@ -342,7 +342,7 @@ class GuiSystemPolicyTest {
         )) {
             String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/" + menuName + ".java"));
             assertTrue(menu.contains("item -> !\"E\".equals(item.symbol())")
-                || menuName.equals("IslandMyIslandsMenu") && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())"),
+                || List.of("IslandBanMenu", "IslandMyIslandsMenu").contains(menuName) && menu.contains("!List.of(\"E\", \"P\", \"N\").contains(item.symbol())"),
                 menuName + " must hide configured dynamic placeholders during normal render");
             assertTrue(menu.contains("GuiMenuRenderer.setSymbolItem(inventory, MENU, \"E\""), menuName + " must render the configured empty placeholder when the list is empty");
         }
@@ -441,6 +441,9 @@ class GuiSystemPolicyTest {
         assertTrue(myIslands.contains("int maxPage = Math.max(0, (islands.size() - 1) / pageSize)"), "my-islands must paginate memberships instead of silently truncating them");
         assertTrue(myIslands.contains("setPageItem(inventory, \"N\", page + 1"), "my-islands must expose a next-page action when more memberships exist");
         assertFalse(myIslands.contains("\"GRASS_BLOCK\""), "my-islands entries must not keep a Java fallback material");
+        String bans = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandBanMenu.java"));
+        assertTrue(bans.contains("int maxPage = Math.max(0, (bans.size() - 1) / pageSize)"), "ban management must paginate instead of hiding older bans");
+        assertTrue(bans.contains("Map.of(\"islandId\", islandId.toString(), \"page\""), "ban page actions must retain authoritative island context");
     }
 
     @Test
