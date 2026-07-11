@@ -18,6 +18,10 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.named<JavaCompile>("compileJava") {
+    options.compilerArgs.add("-Werror")
+}
+
 tasks.processResources {
     filteringCharset = "UTF-8"
     inputs.property("projectVersion", project.version)
