@@ -50,7 +50,7 @@ final class IslandLifecycleCommandHandler {
             createIsland(player, args.length > 1 ? args[1] : "default");
             return true;
         }
-        if (subcommand.equals("delete") || subcommand.equals("삭제")) {
+        if (subcommand.equals("delete") || subcommand.equals("disband") || subcommand.equals("삭제")) {
             if (args.length > 1 && args[1].equalsIgnoreCase("confirm")) {
                 deleteIsland(player);
             } else {

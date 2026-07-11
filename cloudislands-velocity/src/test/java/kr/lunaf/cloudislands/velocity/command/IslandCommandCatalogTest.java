@@ -168,6 +168,16 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void disbandPreservesDestructiveConfirmationOnVelocity() throws Exception {
+        String dispatcher = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"));
+
+        assertTrue(IslandCommandCatalog.playerCommands().contains("섬 disband confirm"));
+        assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"disband\")"));
+        assertTrue(dispatcher.contains("if (!destructiveConfirmed(args))"));
+        assertTrue(dispatcher.contains("sendDestructiveConfirmationRequired(player, \"섬 삭제 confirm\")"));
+    }
+
+    @Test
     void velocityCommandHelpUsesClickableAdventureComponents() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));
 

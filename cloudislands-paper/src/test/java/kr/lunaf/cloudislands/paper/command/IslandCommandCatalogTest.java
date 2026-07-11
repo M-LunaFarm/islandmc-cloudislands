@@ -206,6 +206,17 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void superiorSkyblockDisbandIsCanonicalAndConfirmationGuarded() throws Exception {
+        String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java"));
+
+        assertTrue(IslandCommandCatalog.SUBCOMMANDS.contains("disband"));
+        assertEquals(IslandCommandPermission.DELETE, IslandCommandPermission.fromSubcommand("disband"));
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 disband confirm"));
+        assertTrue(handler.contains("subcommand.equals(\"disband\")"));
+        assertTrue(handler.contains("args[1].equalsIgnoreCase(\"confirm\")"), "disband must reuse the explicit destructive confirmation gate");
+    }
+
+    @Test
     void superiorSkyblockStackerPermissionParityUsesCoreEnvironmentWithoutFakeRuntimeStateTransfer() throws Exception {
         String parity = Files.readString(Path.of("../gradle/report-gates.gradle.kts"));
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackerIntegration.java"));

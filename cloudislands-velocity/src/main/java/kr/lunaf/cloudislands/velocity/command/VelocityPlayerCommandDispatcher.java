@@ -387,7 +387,7 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerRouting.resetIsland(player, islandId, reason);
             return;
         }
-        if (args[0].equalsIgnoreCase("delete") || args[0].equals("삭제")) {
+        if (args[0].equalsIgnoreCase("delete") || args[0].equalsIgnoreCase("disband") || args[0].equals("삭제")) {
             if (!destructiveConfirmed(args)) {
                 sendDestructiveConfirmationRequired(player, "섬 삭제 confirm");
                 return;

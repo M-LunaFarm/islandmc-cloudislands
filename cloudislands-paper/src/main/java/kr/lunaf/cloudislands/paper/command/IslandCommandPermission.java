@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
 public enum IslandCommandPermission {
     MENU("cloudislands.island.menu", "help", "도움말", "commands", "command", "command-list", "명령어", "명령어목록", "menu", "panel", "manager", "cp", "메뉴", "info", "info-target", "show", "정보", "list", "my", "my-islands", "목록", "내섬"),
     CREATE("cloudislands.island.create", "create", "생성", "create-menu", "templates", "생성메뉴", "템플릿"),
-    DELETE("cloudislands.island.delete", "delete", "삭제"),
+    DELETE("cloudislands.island.delete", "delete", "disband", "삭제"),
     RESET("cloudislands.island.reset", "reset", "리셋", "danger", "위험작업"),
     HOME("cloudislands.island.home", "home", "teleport", "tp", "go", "homes", "home-menu", "home-list", "홈", "홈관리", "홈목록"),
     SET_HOME("cloudislands.island.sethome", "sethome", "setteleport", "setspawnpoint", "셋홈"),
