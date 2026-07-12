@@ -83,6 +83,24 @@ class MissionRewardServiceTest {
         assertEquals("999999999999999999.99", bank.balance(ISLAND_ID).balance());
     }
 
+    @Test
+    void limitRewardAtBigintCapacityFailsWithoutWrappingOrChangingLimit() {
+        InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
+        limits.set(ISLAND_ID, "HOPPER", Long.MAX_VALUE, ACTOR_UUID);
+        MissionRewardService rewards = new MissionRewardService(null, limits, null, null);
+
+        MissionRewardService.MissionRewardResult result = rewards.apply(mission("LIMIT_INCREASE", "HOPPER 1"), ACTOR_UUID);
+
+        assertFalse(result.applied());
+        assertEquals("LIMIT_REWARD_CAPACITY", result.code());
+        assertEquals(Long.toString(Long.MAX_VALUE), result.details().get("value"));
+        assertEquals(Long.MAX_VALUE, limits.list(ISLAND_ID).stream()
+            .filter(limit -> limit.limitKey().equals("HOPPER"))
+            .findFirst()
+            .orElseThrow()
+            .value());
+    }
+
     private static IslandMissionSnapshot mission(String rewardType, String reward) {
         return new IslandMissionSnapshot(
             ISLAND_ID,

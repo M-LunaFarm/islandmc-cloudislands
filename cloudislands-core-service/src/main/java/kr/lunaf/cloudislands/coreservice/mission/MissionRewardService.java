@@ -130,6 +130,13 @@ public final class MissionRewardService {
             .mapToLong(IslandLimitSnapshot::value)
             .findFirst()
             .orElse(0L);
+        if (current > Long.MAX_VALUE - parsed.amount()) {
+            return new MissionRewardResult(false, "LIMIT_REWARD_CAPACITY", "", Map.of(
+                "limitKey", parsed.key(),
+                "value", Long.toString(current),
+                "amount", Long.toString(parsed.amount())
+            ));
+        }
         IslandLimitSnapshot updated = limitRepository.set(snapshot.islandId(), parsed.key(), current + parsed.amount(), actorUuid);
         return new MissionRewardResult(true, "LIMIT_INCREASED", "", Map.of(
             "limitKey", updated.limitKey(),
