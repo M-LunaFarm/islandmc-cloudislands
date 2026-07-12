@@ -69,9 +69,9 @@ class IslandWarpRoutesTest {
         UUID actorUuid = UUID.randomUUID();
         IslandLocation location = new IslandLocation("world", 0.5D, 80.0D, 0.5D, 0.0F, 0.0F);
 
-        assertEquals("APPLIED", metadata.upsertHomeWithLimit(islandId, "main", location, actorUuid, 1L));
+        assertEquals("CREATED", metadata.upsertHomeWithLimit(islandId, "main", location, actorUuid, 1L));
         assertEquals("HOME_LIMIT", metadata.upsertHomeWithLimit(islandId, "second", location, actorUuid, 1L));
-        assertEquals("APPLIED", metadata.upsertHomeWithLimit(islandId, "main", location, actorUuid, 1L));
+        assertEquals("UPDATED", metadata.upsertHomeWithLimit(islandId, "main", location, actorUuid, 1L));
         assertEquals("CREATED", metadata.upsertWarpWithLimit(islandId, "shop", location, false, actorUuid, "market", 1L));
         assertEquals("WARP_LIMIT", metadata.upsertWarpWithLimit(islandId, "second", location, false, actorUuid, "default", 1L));
         assertEquals("UPDATED", metadata.upsertWarpWithLimit(islandId, "shop", location, true, actorUuid, "market", 1L));

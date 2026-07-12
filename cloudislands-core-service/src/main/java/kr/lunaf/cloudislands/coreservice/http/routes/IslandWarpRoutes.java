@@ -108,14 +108,15 @@ public final class IslandWarpRoutes implements RouteGroup {
             return;
         }
         String result = metadataRepository.upsertHomeWithLimit(islandId, name, location(body), actorUuid, limitValue(islandId, "HOMES", 1L));
-        if (!"APPLIED".equals(result)) {
+        if (!result.equals("APPLIED") && !result.equals("CREATED") && !result.equals("UPDATED")) {
             String message = result.equals("HOME_LIMIT") ? "Island home limit was reached" : "Island was not found";
             CoreHttpResponses.write(exchange, 409, ApiResponses.error(result, message));
             return;
         }
-        audit.log(actorUuid, "PLAYER", "ISLAND_HOME_SET", "ISLAND", islandId.toString(), Map.of("name", name));
-        islandLogs.append(islandId, actorUuid, "ISLAND_HOME_SET", Map.of("name", name));
-        events.publish(CloudIslandEventType.ISLAND_HOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
+        String operation = result.equals("CREATED") ? "HOME_CREATE" : result.equals("UPDATED") ? "HOME_UPDATE" : "HOME_SET";
+        audit.log(actorUuid, "PLAYER", "ISLAND_HOME_SET", "ISLAND", islandId.toString(), Map.of("name", name, "operation", operation));
+        islandLogs.append(islandId, actorUuid, "ISLAND_HOME_SET", Map.of("name", name, "operation", operation));
+        events.publish(CloudIslandEventType.ISLAND_HOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", operation));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
 

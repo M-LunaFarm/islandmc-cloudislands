@@ -670,8 +670,8 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 connection.rollback();
                 return "ISLAND_NOT_FOUND";
             }
-            if (!namedResourceExists(connection, "island_homes", islandId, normalizedName)
-                && namedResourceCount(connection, "island_homes", islandId) >= Math.max(0L, maxHomes)) {
+            boolean existingHome = namedResourceExists(connection, "island_homes", islandId, normalizedName);
+            if (!existingHome && namedResourceCount(connection, "island_homes", islandId) >= Math.max(0L, maxHomes)) {
                 connection.rollback();
                 return "HOME_LIMIT";
             }
@@ -688,7 +688,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 statement.executeUpdate();
             }
             connection.commit();
-            return "APPLIED";
+            return existingHome ? "UPDATED" : "CREATED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to upsert island home within limit", exception);
         }

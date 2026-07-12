@@ -256,11 +256,12 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     public synchronized String upsertHomeWithLimit(UUID islandId, String name, IslandLocation location, UUID createdBy, long maxHomes) {
         Map<String, IslandHomeSnapshot> islandHomes = homes.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
         String normalizedName = normalizeResourceName(name);
-        if (!islandHomes.containsKey(normalizedName) && islandHomes.size() >= Math.max(0L, maxHomes)) {
+        boolean existingHome = islandHomes.containsKey(normalizedName);
+        if (!existingHome && islandHomes.size() >= Math.max(0L, maxHomes)) {
             return "HOME_LIMIT";
         }
         upsertHome(islandId, normalizedName, location, createdBy);
-        return "APPLIED";
+        return existingHome ? "UPDATED" : "CREATED";
     }
 
     @Override
