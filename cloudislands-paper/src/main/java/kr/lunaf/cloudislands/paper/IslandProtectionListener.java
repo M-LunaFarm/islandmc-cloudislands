@@ -23,6 +23,7 @@ import org.bukkit.entity.Axolotl;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Chicken;
 import org.bukkit.entity.Fish;
+import org.bukkit.entity.ItemFrame;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Steerable;
@@ -254,7 +255,10 @@ public final class IslandProtectionListener implements Listener {
     public void onDamage(EntityDamageByEntityEvent event) {
         Player player = attackingPlayer(event.getDamager());
         if (player != null) {
-            event.setCancelled(denied(player, event.getEntity().getLocation().getBlock(), event.getEntity() instanceof Player ? IslandPermission.ATTACK_PLAYER : IslandPermission.ATTACK_MOB));
+            IslandPermission permission = event.getEntity() instanceof ItemFrame ? IslandPermission.ITEM_FRAME
+                : event.getEntity().getType() == EntityType.PAINTING ? IslandPermission.PAINTING
+                : event.getEntity() instanceof Player ? IslandPermission.ATTACK_PLAYER : IslandPermission.ATTACK_MOB;
+            event.setCancelled(denied(player, event.getEntity().getLocation().getBlock(), permission));
         }
     }
 
@@ -341,7 +345,8 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onHangingPlace(HangingPlaceEvent event) {
-        IslandPermission permission = event.getEntity().getType() == EntityType.PAINTING ? IslandPermission.PAINTING : IslandPermission.BUILD;
+        IslandPermission permission = event.getEntity() instanceof ItemFrame ? IslandPermission.ITEM_FRAME
+            : event.getEntity().getType() == EntityType.PAINTING ? IslandPermission.PAINTING : IslandPermission.BUILD;
         boolean blocked = denied(event.getPlayer(), event.getBlock(), permission);
         event.setCancelled(blocked);
         if (!blocked) {
@@ -353,7 +358,8 @@ public final class IslandProtectionListener implements Listener {
     public void onHangingBreak(HangingBreakByEntityEvent event) {
         Player player = attackingPlayer(event.getRemover());
         if (player != null) {
-            IslandPermission permission = event.getEntity().getType() == EntityType.PAINTING ? IslandPermission.PAINTING : IslandPermission.BREAK;
+            IslandPermission permission = event.getEntity() instanceof ItemFrame ? IslandPermission.ITEM_FRAME
+                : event.getEntity().getType() == EntityType.PAINTING ? IslandPermission.PAINTING : IslandPermission.BREAK;
             boolean blocked = denied(player, event.getEntity().getLocation().getBlock(), permission);
             event.setCancelled(blocked);
             if (!blocked) {
@@ -703,6 +709,9 @@ public final class IslandProtectionListener implements Listener {
 
     private IslandPermission entityInteractionPermission(Player player, org.bukkit.entity.Entity entity, org.bukkit.inventory.EquipmentSlot hand) {
         Material held = player.getInventory().getItem(hand).getType();
+        if (entity instanceof ItemFrame) {
+            return IslandPermission.ITEM_FRAME;
+        }
         if (held == Material.NAME_TAG) {
             return IslandPermission.NAME_ENTITY;
         }

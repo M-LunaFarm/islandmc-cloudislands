@@ -198,6 +198,17 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void itemFramesUseOneDedicatedPermissionAcrossInteractDamagePlaceAndBreak() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("entity instanceof ItemFrame"));
+        assertTrue(listener.contains("event.getEntity() instanceof ItemFrame"));
+        assertTrue(listener.contains("IslandPermission.ITEM_FRAME"));
+        assertTrue(listener.contains("onHangingPlace(HangingPlaceEvent event)"));
+        assertTrue(listener.contains("onHangingBreak(HangingBreakByEntityEvent event)"));
+    }
+
+    @Test
     void projectilesFrostWalkerAndRemainingPhysicalInteractionsAreProtected() throws Exception {
         String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
 

@@ -171,6 +171,7 @@ public final class ProtectionController {
                 IGNITE_CREEPER,
                 NAME_ENTITY,
                 SCULK_SENSOR,
+                ITEM_FRAME,
                 TURTLE_EGG_TRAMPLE -> IslandFlag.VISITOR_INTERACT;
             case OPEN_CONTAINER -> IslandFlag.VISITOR_CONTAINER;
             case PICKUP_ITEM -> IslandFlag.VISITOR_PICKUP;

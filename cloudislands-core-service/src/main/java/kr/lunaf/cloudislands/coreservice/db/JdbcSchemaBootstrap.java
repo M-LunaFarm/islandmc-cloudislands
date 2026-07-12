@@ -95,7 +95,8 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V74__island_warp_world_name.sql",
         "/db/migration/V75__player_disband_quota.sql",
         "/db/migration/V76__server_node_heartbeat_metadata.sql",
-        "/db/migration/V77__island_permission_key_expansion.sql"
+        "/db/migration/V77__island_permission_key_expansion.sql",
+        "/db/migration/V78__extensible_permission_key_guards.sql"
     };
 
     private enum Dialect {

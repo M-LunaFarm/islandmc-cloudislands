@@ -64,6 +64,7 @@ public final class IslandPermissionSystemPolicy {
             IslandPermission.CHORUS_FRUIT,
             IslandPermission.BREAK_SPAWNER,
             IslandPermission.PAINTING,
+            IslandPermission.ITEM_FRAME,
             IslandPermission.TURTLE_EGG_TRAMPLE,
             IslandPermission.WIND_CHARGE,
             IslandPermission.IGNITE_CREEPER,

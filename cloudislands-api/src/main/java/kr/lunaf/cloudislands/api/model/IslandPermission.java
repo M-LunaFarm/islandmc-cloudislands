@@ -30,6 +30,7 @@ public enum IslandPermission {
     CHORUS_FRUIT,
     BREAK_SPAWNER,
     PAINTING,
+    ITEM_FRAME,
     TURTLE_EGG_TRAMPLE,
     WIND_CHARGE,
     IGNITE_CREEPER,

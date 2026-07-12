@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import kr.lunaf.cloudislands.api.model.IslandPermission;
 import org.junit.jupiter.api.Test;
 
 class JdbcSchemaBootstrapTest {
@@ -35,7 +34,7 @@ class JdbcSchemaBootstrapTest {
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
-        assertEquals("postgresql-migration-chain:77", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
+        assertEquals("postgresql-migration-chain:78", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
     }
 
@@ -45,9 +44,20 @@ class JdbcSchemaBootstrapTest {
             String migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
             assertTrue(migration.contains("DROP CONSTRAINT IF EXISTS chk_island_permissions_key_known"));
             assertTrue(migration.contains("DROP CONSTRAINT IF EXISTS chk_island_permission_override_key_known"));
-            for (IslandPermission permission : IslandPermission.values()) {
-                assertEquals(2, occurrences(migration, "'" + permission.name() + "'"), permission.name());
-            }
+            assertEquals(2, occurrences(migration, "'BUILD'"));
+            assertEquals(2, occurrences(migration, "'DEPOSIT_BANK'"));
+        }
+    }
+
+    @Test
+    void extensiblePermissionGuardsAcceptFutureEnumKeysWithoutAnotherAllowlistMigration() throws IOException {
+        try (var input = JdbcSchemaBootstrapTest.class.getResourceAsStream("/db/migration/V78__extensible_permission_key_guards.sql")) {
+            String migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+            assertTrue(migration.contains("DROP CONSTRAINT IF EXISTS chk_island_permissions_key_known"));
+            assertTrue(migration.contains("DROP CONSTRAINT IF EXISTS chk_island_permission_override_key_known"));
+            assertEquals(2, occurrences(migration, "permission_key ~ '^[A-Z][A-Z0-9_]{0,63}$'"));
+            assertTrue(migration.contains("chk_island_permissions_key_format"));
+            assertTrue(migration.contains("chk_island_permission_override_key_format"));
         }
     }
 
