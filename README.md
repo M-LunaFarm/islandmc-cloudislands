@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.92`
+Version: `1.1.93`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.92`
+Current release: `v1.1.93`
 
-Built for the CloudIslands 1.1.92 baseline.
+Built for the CloudIslands 1.1.93 baseline.
 
-Release notes for `v1.1.92`:
+Release notes for `v1.1.93`:
+
+- operator home recovery: `/ciadmin island delhome <island> <home>` removes a
+  stale or invalid home without requiring an online owner or player permission
+- typed admin endpoint: `/v1/admin/islands/homes/delete` is exposed through the
+  compatible Core home/warp command client
+- precise recovery failures: missing islands return `ISLAND_NOT_FOUND` while a
+  missing named home returns `HOME_NOT_FOUND`
+- accountable operations: successful operator removal records
+  `ISLAND_HOME_ADMIN_DELETE` and emits `HOME_ADMIN_DELETE` cache evidence
+- admin completion and help now advertise both `delhome` and `deletehome`
+
+Release notes carried forward from `v1.1.92`:
 
 - complete home lifecycle: players can now delete named or default homes and
   immediately reclaim the released home slot
@@ -1862,7 +1874,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.92`.
+Current read: production-readiness baseline `v1.1.93`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
