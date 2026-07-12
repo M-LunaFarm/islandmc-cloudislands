@@ -17,6 +17,8 @@ final class IslandCommandMessages {
         Map.entry("ECONOMY_REFUND_FAILED", "failure-code-economy-refund-failed"),
         Map.entry("CORE_CREATE_FAILED_REFUNDED", "failure-code-core-create-failed-refunded"),
         Map.entry("CREATE_IN_PROGRESS", "failure-code-create-in-progress"),
+        Map.entry("ROUTE_TICKET_UNAVAILABLE", "failure-code-route-ticket-unavailable"),
+        Map.entry("FAILED_CREATE_TEMPLATE_MISMATCH", "failure-code-failed-create-template-mismatch"),
         Map.entry("TEMPLATE_PERMISSION_DENIED", "failure-code-template-permission-denied")
     );
 

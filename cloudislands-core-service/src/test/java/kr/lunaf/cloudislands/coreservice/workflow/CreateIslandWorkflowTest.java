@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.common.routing.NodeLoad;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
+import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
@@ -178,15 +179,67 @@ class CreateIslandWorkflowTest {
         assertEquals("-7.5", result.ticket().payload().get("localZ"));
     }
 
-    private CreateIslandWorkflow workflow(InMemoryIslandRepository islands, InMemoryIslandRuntimeRepository runtimes, InMemoryPlayerProfileRepository profiles, InMemoryIslandJobPublisher jobs, InMemoryRouteTicketStore tickets) {
+    @Test
+    void failedQueuePublishFailsPreparingTicketAndCanRetrySameIsland() {
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC));
+        IslandJobPublisher failingJobs = _job -> {
+            throw new IllegalStateException("queue unavailable");
+        };
+
+        CreateIslandResult failed = workflow(islands, runtimes, profiles, failingJobs, tickets).create(OWNER, "default");
+
+        assertFalse(failed.accepted());
+        assertEquals("JOB_QUEUE_UNAVAILABLE", failed.code());
+        assertEquals(IslandState.ERROR_CREATING, failed.island().state());
+        assertEquals(RouteTicketState.FAILED, tickets.findLatestForPlayer(OWNER).orElseThrow().state());
+
+        InMemoryIslandJobPublisher recoveredJobs = new InMemoryIslandJobPublisher();
+        CreateIslandResult retried = workflow(islands, runtimes, profiles, recoveredJobs, tickets).create(OWNER, "default");
+
+        assertTrue(retried.accepted());
+        assertEquals(failed.island().islandId(), retried.island().islandId());
+        assertEquals(1, recoveredJobs.snapshot().size());
+        assertEquals(RouteTicketState.PREPARING, retried.ticket().state());
+    }
+
+    @Test
+    void failedCreateCannotBeRetriedWithAFreeOrDifferentTemplate() {
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryRouteTicketStore tickets = new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC));
+        InMemoryIslandTemplateRepository templates = new InMemoryIslandTemplateRepository();
+        IslandTemplateSnapshot defaultTemplate = templates.find("default").orElseThrow();
+        templates.upsert(new IslandTemplateSnapshot(
+            "starter", "Starter", "", "default", true, defaultTemplate.minNodeVersion(), "", "GRASS_BLOCK", 0,
+            "", "", "", 0L, 3, 300, 0.5D, 100.0D, 0.5D, 180.0F, 0.0F, "default", "normal",
+            "minecraft:plains", "BLUE", "0", "0", 0, List.of(), Instant.EPOCH, Instant.EPOCH
+        ));
+        IslandJobPublisher failingJobs = _job -> {
+            throw new IllegalStateException("queue unavailable");
+        };
+        CreateIslandWorkflow failedWorkflow = workflow(islands, runtimes, profiles, failingJobs, tickets, new RecordingEvents(), templates);
+
+        assertEquals("JOB_QUEUE_UNAVAILABLE", failedWorkflow.create(OWNER, "default").code());
+
+        CreateIslandResult mismatch = workflow(islands, runtimes, profiles, new InMemoryIslandJobPublisher(), tickets, new RecordingEvents(), templates).create(OWNER, "starter");
+
+        assertFalse(mismatch.accepted());
+        assertEquals("FAILED_CREATE_TEMPLATE_MISMATCH", mismatch.code());
+    }
+
+    private CreateIslandWorkflow workflow(InMemoryIslandRepository islands, InMemoryIslandRuntimeRepository runtimes, InMemoryPlayerProfileRepository profiles, IslandJobPublisher jobs, InMemoryRouteTicketStore tickets) {
         return workflow(islands, runtimes, profiles, jobs, tickets, new RecordingEvents());
     }
 
-    private CreateIslandWorkflow workflow(InMemoryIslandRepository islands, InMemoryIslandRuntimeRepository runtimes, InMemoryPlayerProfileRepository profiles, InMemoryIslandJobPublisher jobs, InMemoryRouteTicketStore tickets, GlobalEventPublisher events) {
+    private CreateIslandWorkflow workflow(InMemoryIslandRepository islands, InMemoryIslandRuntimeRepository runtimes, InMemoryPlayerProfileRepository profiles, IslandJobPublisher jobs, InMemoryRouteTicketStore tickets, GlobalEventPublisher events) {
         return workflow(islands, runtimes, profiles, jobs, tickets, events, new InMemoryIslandTemplateRepository());
     }
 
-    private CreateIslandWorkflow workflow(InMemoryIslandRepository islands, InMemoryIslandRuntimeRepository runtimes, InMemoryPlayerProfileRepository profiles, InMemoryIslandJobPublisher jobs, InMemoryRouteTicketStore tickets, GlobalEventPublisher events, InMemoryIslandTemplateRepository templates) {
+    private CreateIslandWorkflow workflow(InMemoryIslandRepository islands, InMemoryIslandRuntimeRepository runtimes, InMemoryPlayerProfileRepository profiles, IslandJobPublisher jobs, InMemoryRouteTicketStore tickets, GlobalEventPublisher events, InMemoryIslandTemplateRepository templates) {
         return new CreateIslandWorkflow(
             islands,
             new InMemoryIslandMetadataRepository(),

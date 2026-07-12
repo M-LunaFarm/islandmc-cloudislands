@@ -129,6 +129,8 @@ failure-code-economy-refund-failed: "섬 생성 실패 후 비용 환불에 실�
 failure-code-economy-refund-failed-hint: " 중복 요청하지 말고 관리자에게 거래 로그 확인을 요청하세요."
 failure-code-core-create-failed-refunded: "섬 생성 요청에 실패해 결제 금액을 환불했습니다."
 failure-code-create-in-progress: "이미 섬 생성 요청을 처리하고 있습니다."
+failure-code-route-ticket-unavailable: "이동 티켓을 준비하지 못해 섬 생성을 중단했습니다. 결제 금액이 있었다면 환불됩니다."
+failure-code-failed-create-template-mismatch: "실패한 섬 생성은 처음 선택한 템플릿으로만 재시도할 수 있습니다."
 failure-code-insufficient-items: "섬 창고 수량이 부족합니다."
 failure-code-insufficient-items-hint: " 창고 수량을 확인하거나 입금 후 다시 시도하세요."
 failure-code-maintenance-hint: " 관리자에게 /ciadmin doctor 결과를 확인해달라고 요청하세요."

@@ -34,6 +34,8 @@ public final class VelocityMessages {
         values.put("island-create-failed", "섬 생성에 실패했습니다.");
         values.put("island-create-template-permission-denied", "이 섬 템플릿을 사용할 권한이 없습니다.");
         values.put("island-create-paid-paper-required", "유료 섬 템플릿은 결제 보호를 위해 Paper 서버에서 생성해주세요.");
+        values.put("island-create-retry-template-mismatch", "실패한 섬 생성은 처음 선택한 템플릿으로만 재시도할 수 있습니다.");
+        values.put("island-create-route-ticket-unavailable", "이동 티켓을 준비하지 못해 섬 생성을 중단했습니다.");
         values.put("island-home-preparing", "섬을 준비하고 있습니다.");
         values.put("island-visit-preparing", "방문할 섬을 준비하고 있습니다.");
         values.put("island-route-moving", "섬으로 이동 중입니다.");

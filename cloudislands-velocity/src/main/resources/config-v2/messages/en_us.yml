@@ -8,3 +8,5 @@ errors:
   service-unavailable: "The island service is temporarily unavailable."
 island-create-template-permission-denied: "You do not have permission to use this island template."
 island-create-paid-paper-required: "Create paid island templates from a Paper server so payment can be protected."
+island-create-retry-template-mismatch: "A failed island creation can only be retried with its original template."
+island-create-route-ticket-unavailable: "Island creation was stopped because its route ticket could not be prepared."

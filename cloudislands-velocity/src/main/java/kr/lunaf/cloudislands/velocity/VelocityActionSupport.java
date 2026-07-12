@@ -192,6 +192,8 @@ abstract class VelocityActionSupport {
             case "ALREADY_HAS_ISLAND" -> messages.text("island-create-already-has-island");
             case "TEMPLATE_UNAVAILABLE" -> messages.text("island-create-template-unavailable");
             case "CREATE_LOCKED" -> messages.text("island-create-locked");
+            case "FAILED_CREATE_TEMPLATE_MISMATCH" -> messages.text("island-create-retry-template-mismatch");
+            case "ROUTE_TICKET_UNAVAILABLE" -> messages.text("island-create-route-ticket-unavailable");
             case "NODE_UNAVAILABLE" -> messages.text("island-create-node-unavailable");
             case "JOB_QUEUE_UNAVAILABLE", "RECOVERY_UNAVAILABLE" -> messages.text("island-service-maintenance");
             default -> messages.text("island-create-failed");

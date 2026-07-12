@@ -97,10 +97,17 @@ public final class CreateIslandWorkflow {
             return new CreateIslandResult(false, "CREATE_LOCKED", null, null);
         }
         try {
-        if (islands.findByOwner(ownerUuid).isPresent()) {
+        IslandSnapshot existingIsland = islands.findByOwner(ownerUuid).orElse(null);
+        boolean retryingFailedCreate = existingIsland != null
+            && existingIsland.state() == IslandState.ERROR_CREATING
+            && normalizedTemplate.equals(islands.templateId(existingIsland.islandId()).orElse(""));
+        if (existingIsland != null && !retryingFailedCreate) {
             releaseCreationLock(lease);
-            publishTicketFailure(ownerUuid, null, "ALREADY_HAS_ISLAND");
-            return new CreateIslandResult(false, "ALREADY_HAS_ISLAND", null, null);
+            String code = existingIsland.state() == IslandState.ERROR_CREATING
+                ? "FAILED_CREATE_TEMPLATE_MISMATCH"
+                : "ALREADY_HAS_ISLAND";
+            publishTicketFailure(ownerUuid, existingIsland.islandId(), code);
+            return new CreateIslandResult(false, code, existingIsland, null);
         }
         List<NodeLoad> nodeSnapshot = nodes.snapshot();
         NodeLoad node = allocator.selectReadyNode(nodeSnapshot, Instant.now(), normalizedTemplate, template.minNodeVersion(), islandPool).orElse(null);
@@ -110,14 +117,18 @@ public final class CreateIslandWorkflow {
             publishTicketFailure(ownerUuid, null, code);
             return new CreateIslandResult(false, code, null, null);
         }
-        UUID islandId = UUID.randomUUID();
-        IslandSnapshot island = islands.createOwnedIsland(islandId, ownerUuid, normalizedTemplate, defaultIslandName(islandId));
-        if (template.defaultIslandSize() != island.size()) {
-            islands.updateStats(islandId, template.defaultIslandSize(), island.level(), island.worth());
-            island = islands.findById(islandId).orElse(island);
+        UUID islandId = retryingFailedCreate ? existingIsland.islandId() : UUID.randomUUID();
+        IslandSnapshot island = retryingFailedCreate
+            ? existingIsland
+            : islands.createOwnedIsland(islandId, ownerUuid, normalizedTemplate, defaultIslandName(islandId));
+        if (!retryingFailedCreate) {
+            if (template.defaultIslandSize() != island.size()) {
+                islands.updateStats(islandId, template.defaultIslandSize(), island.level(), island.worth());
+                island = islands.findById(islandId).orElse(island);
+            }
+            metadata.upsertMemberKey(islandId, ownerUuid, CoreRoleKeys.OWNER);
+            playerProfiles.setPrimaryIsland(ownerUuid, islandId);
         }
-        metadata.upsertMemberKey(islandId, ownerUuid, CoreRoleKeys.OWNER);
-        playerProfiles.setPrimaryIsland(ownerUuid, islandId);
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime;
         try {
             runtime = kr.lunaf.cloudislands.coreservice.IslandPlacement.markActivating(islandId, node.nodeId(), runtimes);
@@ -129,13 +140,28 @@ public final class CreateIslandWorkflow {
                 events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", IslandState.ERROR_CREATING.name(), "reason", "PLACEMENT_UNAVAILABLE", "targetNode", node.nodeId()));
                 return new CreateIslandResult(false, "PLACEMENT_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
             }
+            islands.setState(islandId, IslandState.CREATING);
+            island = islands.findById(islandId).orElse(island);
         } catch (RuntimeException exception) {
             releaseCreationLock(lease);
             islands.setState(islandId, IslandState.ERROR_CREATING);
             runtimes.setState(islandId, IslandState.ERROR_CREATING);
+            failPreparingTickets(islandId, node.nodeId(), "ROUTE_TICKET_UNAVAILABLE");
             publishTicketFailure(ownerUuid, islandId, "PLACEMENT_UNAVAILABLE");
             events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", IslandState.ERROR_CREATING.name(), "reason", "PLACEMENT_UNAVAILABLE", "targetNode", node.nodeId()));
             return new CreateIslandResult(false, "PLACEMENT_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
+        }
+        String targetServerName = node.velocityServerName() == null || node.velocityServerName().isBlank() ? node.nodeId() : node.velocityServerName();
+        RouteTicket ticket;
+        try {
+            ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), runtime.activeWorld(), RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), routePayload(targetServerName, template)));
+        } catch (RuntimeException exception) {
+            releaseCreationLock(lease);
+            islands.setState(islandId, IslandState.ERROR_CREATING);
+            runtimes.setState(islandId, IslandState.ERROR_CREATING);
+            publishTicketFailure(ownerUuid, islandId, "ROUTE_TICKET_UNAVAILABLE");
+            events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", IslandState.ERROR_CREATING.name(), "reason", "ROUTE_TICKET_UNAVAILABLE", "targetNode", node.nodeId()));
+            return new CreateIslandResult(false, "ROUTE_TICKET_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
         }
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.CREATE_ISLAND, islandId, node.nodeId(), 0, createJobPayload(template, ownerUuid, island, runtime), Instant.now()));
@@ -143,13 +169,12 @@ public final class CreateIslandWorkflow {
             releaseCreationLock(lease);
             islands.setState(islandId, IslandState.ERROR_CREATING);
             runtimes.setState(islandId, IslandState.ERROR_CREATING);
+            failPreparingTickets(islandId, node.nodeId(), "JOB_QUEUE_UNAVAILABLE");
             publishTicketFailure(ownerUuid, islandId, "JOB_QUEUE_UNAVAILABLE");
             events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", IslandState.ERROR_CREATING.name(), "reason", "JOB_QUEUE_UNAVAILABLE", "targetNode", node.nodeId()));
             return new CreateIslandResult(false, "JOB_QUEUE_UNAVAILABLE", islands.findById(islandId).orElse(island), null);
         }
-        events.publish(CloudIslandEventType.ISLAND_CREATED.name(), Map.of("islandId", islandId.toString(), "ownerUuid", ownerUuid.toString(), "targetNode", node.nodeId()));
-        String targetServerName = node.velocityServerName() == null || node.velocityServerName().isBlank() ? node.nodeId() : node.velocityServerName();
-        RouteTicket ticket = tickets.save(new RouteTicket(UUID.randomUUID(), ownerUuid, RouteAction.HOME, islandId, node.nodeId(), runtime.activeWorld(), RouteTicketState.PREPARING, Instant.now().plus(routePreparingTicketTtl), UUID.randomUUID().toString(), routePayload(targetServerName, template)));
+        events.publish(CloudIslandEventType.ISLAND_CREATED.name(), Map.of("islandId", islandId.toString(), "ownerUuid", ownerUuid.toString(), "targetNode", node.nodeId(), "retry", Boolean.toString(retryingFailedCreate)));
         events.publish(CloudIslandEventType.ROUTE_TICKET_CREATED.name(), Map.of("ticketId", ticket.ticketId().toString(), "islandId", islandId.toString(), "playerUuid", ownerUuid.toString(), "action", ticket.action().name(), "targetNode", ticket.targetNode(), "targetServerName", ticket.payload().getOrDefault("targetServerName", ticket.targetNode()), "state", ticket.state().name()));
         releaseCreationLock(lease);
         return new CreateIslandResult(true, "CREATING", island, ticket);
@@ -210,6 +235,14 @@ public final class CreateIslandWorkflow {
             "action", RouteAction.HOME.name(),
             "reason", reason
         ));
+    }
+
+    private void failPreparingTickets(UUID islandId, String targetNode, String reason) {
+        try {
+            tickets.markFailedForIsland(islandId, targetNode, reason);
+        } catch (RuntimeException ignored) {
+            // Preserve the authoritative creation failure even if ticket cleanup is unavailable.
+        }
     }
 
     private static boolean isMigrationInputOnlyTemplate(String templateId) {

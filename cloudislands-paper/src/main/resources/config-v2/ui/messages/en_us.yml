@@ -129,6 +129,8 @@ failure-code-economy-refund-failed: "Island creation failed and the cost refund 
 failure-code-economy-refund-failed-hint: " Do not retry repeatedly. Ask an administrator to inspect the transaction log."
 failure-code-core-create-failed-refunded: "Island creation failed, so the creation cost was refunded."
 failure-code-create-in-progress: "An island creation request is already being processed."
+failure-code-route-ticket-unavailable: "Island creation was stopped because its route ticket could not be prepared. Any charged cost will be refunded."
+failure-code-failed-create-template-mismatch: "A failed island creation can only be retried with its original template."
 failure-code-insufficient-items: "The island warehouse does not have enough items."
 failure-code-insufficient-items-hint: " Check the warehouse amount or deposit items before trying again."
 failure-code-maintenance-hint: " Ask an administrator to review /ciadmin doctor."
