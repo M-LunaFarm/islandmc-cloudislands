@@ -775,6 +775,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(handler.contains("teamChatModes.toggle(player.getUniqueId())"), "no-argument teamchat must toggle mode like canonical SS2");
         assertTrue(handler.contains("teamChatModes.set(player.getUniqueId(), true)") && handler.contains("teamChatModes.set(player.getUniqueId(), false)"), "explicit on/off modes must be deterministic");
         assertTrue(listener.contains("event.setCancelled(true)"), "team-mode chat must not leak to global chat viewers");
+        assertTrue(listener.contains("@EventHandler(priority = EventPriority.LOWEST)"), "team chat must be cancelled before ordinary chat integrations observe it");
+        assertTrue(listener.contains("event.viewers().clear()"), "team chat must remove the global audience even if another plugin re-enables the event");
+        assertTrue(listener.contains("@EventHandler(priority = EventPriority.HIGHEST)"), "team chat isolation must be reasserted after intermediate plugins");
+        assertTrue(listener.contains("event.renderer((_source, _sourceDisplayName, _message, _viewer) -> Component.empty())"), "team chat must fail closed to an empty renderer");
         assertTrue(listener.contains("PaperSchedulers.run(plugin, () -> sendTeamChat"), "async chat must return to the Paper scheduler before location access");
         assertTrue(listener.contains("communicationCommands().sendChat(islandId, player.getUniqueId(), \"TEAM\""), "team-mode messages must use the typed Core team-chat channel");
         assertTrue(listener.contains("teamChatModes.clear(event.getPlayer().getUniqueId())"), "disconnects must clear local chat mode state");

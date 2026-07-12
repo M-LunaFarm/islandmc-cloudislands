@@ -11,6 +11,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
@@ -46,10 +47,14 @@ public final class PaperChatListener implements Listener {
         this.teamChatModes = teamChatModes;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onAsyncChat(AsyncChatEvent event) {
-        if (teamChatModes != null && teamChatModes.enabled(event.getPlayer().getUniqueId()) && plugin != null && coreApiClient != null && protection != null) {
-            event.setCancelled(true);
+        if (teamChatEnabled(event)) {
+            boolean alreadyCancelled = event.isCancelled();
+            isolateTeamChat(event);
+            if (alreadyCancelled) {
+                return;
+            }
             String message = PlainTextComponentSerializer.plainText().serialize(event.message());
             PaperSchedulers.run(plugin, () -> sendTeamChat(event.getPlayer(), message));
             return;
@@ -58,6 +63,13 @@ public final class PaperChatListener implements Listener {
             chatLine(viewerLocale(viewer), sourceDisplayName, message)
         );
         sendAdminSpyLine(event);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST)
+    public void enforceTeamChatIsolation(AsyncChatEvent event) {
+        if (teamChatEnabled(event)) {
+            isolateTeamChat(event);
+        }
     }
 
     @EventHandler
@@ -76,6 +88,20 @@ public final class PaperChatListener implements Listener {
                 }),
             () -> player.sendMessage(Component.text("섬 안에서만 팀 채팅 모드를 사용할 수 있습니다."))
         );
+    }
+
+    private boolean teamChatEnabled(AsyncChatEvent event) {
+        return teamChatModes != null
+            && teamChatModes.enabled(event.getPlayer().getUniqueId())
+            && plugin != null
+            && coreApiClient != null
+            && protection != null;
+    }
+
+    private static void isolateTeamChat(AsyncChatEvent event) {
+        event.setCancelled(true);
+        event.viewers().clear();
+        event.renderer((_source, _sourceDisplayName, _message, _viewer) -> Component.empty());
     }
 
     private Component chatLine(String locale, Component playerName, Component chatMessage) {
