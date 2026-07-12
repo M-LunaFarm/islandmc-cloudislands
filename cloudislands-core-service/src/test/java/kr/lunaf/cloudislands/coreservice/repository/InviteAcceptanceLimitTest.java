@@ -15,7 +15,7 @@ class InviteAcceptanceLimitTest {
     @Test
     void jdbcAcceptanceLocksIslandAndChecksLimitInsideTransaction() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
-        int start = source.indexOf("public boolean acceptInvite(UUID inviteId, UUID playerUuid, long maxMembers)");
+        int start = source.indexOf("public String acceptInviteResult(UUID inviteId, UUID playerUuid, long maxMembers)");
         int end = source.indexOf("public boolean declineInvite", start);
         String acceptance = source.substring(start, end);
 
@@ -23,6 +23,8 @@ class InviteAcceptanceLimitTest {
         org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("teamMemberCount(connection, invite.islandId()) >= Math.max(0L, maxMembers)"));
         org.junit.jupiter.api.Assertions.assertTrue(acceptance.indexOf("lockInvite(connection, inviteId)") < acceptance.indexOf("teamMemberCount(connection, invite.islandId())"));
         org.junit.jupiter.api.Assertions.assertTrue(acceptance.indexOf("teamMemberCount(connection, invite.islandId())") < acceptance.indexOf("connection.commit();"));
+        org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("return \"MEMBER_LIMIT\";"));
+        org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("return \"ISLAND_NOT_FOUND\";"));
     }
 
     @Test

@@ -300,30 +300,35 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public boolean acceptInvite(UUID inviteId, UUID playerUuid) {
-        return acceptInvite(inviteId, playerUuid, Long.MAX_VALUE);
+        return "APPLIED".equals(acceptInviteResult(inviteId, playerUuid, Long.MAX_VALUE));
     }
 
     @Override
     public boolean acceptInvite(UUID inviteId, UUID playerUuid, long maxMembers) {
+        return "APPLIED".equals(acceptInviteResult(inviteId, playerUuid, maxMembers));
+    }
+
+    @Override
+    public String acceptInviteResult(UUID inviteId, UUID playerUuid, long maxMembers) {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             IslandInviteSnapshot invite = lockInvite(connection, inviteId);
             if (invite == null || !invite.targetUuid().equals(playerUuid) || !invite.state().equals("PENDING") || !invite.expiresAt().isAfter(Instant.now())) {
                 connection.rollback();
-                return false;
+                return "INVITE_UNAVAILABLE";
             }
             try (PreparedStatement lockIsland = connection.prepareStatement("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
                 lockIsland.setObject(1, invite.islandId());
                 try (ResultSet result = lockIsland.executeQuery()) {
                     if (!result.next()) {
                         connection.rollback();
-                        return false;
+                        return "ISLAND_NOT_FOUND";
                     }
                 }
             }
             if (!teamMemberExists(connection, invite.islandId(), playerUuid) && teamMemberCount(connection, invite.islandId()) >= Math.max(0L, maxMembers)) {
                 connection.rollback();
-                return false;
+                return "MEMBER_LIMIT";
             }
             try (PreparedStatement update = connection.prepareStatement("UPDATE island_invites SET state = 'ACCEPTED' WHERE id = ?");
                  PreparedStatement member = connection.prepareStatement(acceptInviteMemberSql(connection));
@@ -341,7 +346,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 primary.executeUpdate();
             }
             connection.commit();
-            return true;
+            return "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to accept island invite", exception);
         }

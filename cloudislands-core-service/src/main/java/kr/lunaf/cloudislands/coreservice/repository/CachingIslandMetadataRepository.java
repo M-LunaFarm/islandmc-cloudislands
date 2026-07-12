@@ -133,13 +133,18 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     @Override
     public boolean acceptInvite(UUID inviteId, UUID playerUuid, long maxMembers) {
-        boolean accepted = delegate.acceptInvite(inviteId, playerUuid, maxMembers);
-        if (accepted) {
+        return "APPLIED".equals(acceptInviteResult(inviteId, playerUuid, maxMembers));
+    }
+
+    @Override
+    public String acceptInviteResult(UUID inviteId, UUID playerUuid, long maxMembers) {
+        String result = delegate.acceptInviteResult(inviteId, playerUuid, maxMembers);
+        if ("APPLIED".equals(result)) {
             for (IslandMemberSnapshot member : delegate.islandsForMember(playerUuid)) {
                 cacheMembers(member.islandId(), delegate.members(member.islandId()));
             }
         }
-        return accepted;
+        return result;
     }
 
     @Override

@@ -51,6 +51,9 @@ public interface IslandMetadataRepository {
     default boolean acceptInvite(UUID inviteId, UUID playerUuid, long maxMembers) {
         return acceptInvite(inviteId, playerUuid);
     }
+    default String acceptInviteResult(UUID inviteId, UUID playerUuid, long maxMembers) {
+        return acceptInvite(inviteId, playerUuid, maxMembers) ? "APPLIED" : "INVITE_UNAVAILABLE";
+    }
     boolean declineInvite(UUID inviteId, UUID playerUuid);
     boolean isBanned(UUID islandId, UUID playerUuid);
     List<IslandBanSnapshot> bans(UUID islandId);

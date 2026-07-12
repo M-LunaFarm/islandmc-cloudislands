@@ -126,15 +126,8 @@ public final class IslandVisitorRoutes implements RouteGroup {
                 return;
             }
         }
-        boolean accepted = metadataRepository.acceptInvite(inviteId, playerUuid, maxMembers);
-        if (!accepted && invite.isPresent()) {
-            UUID inviteIslandId = invite.get().islandId();
-            boolean existingMember = existingTeamMember(inviteIslandId, playerUuid);
-            if (!existingMember && teamMemberCount(inviteIslandId) >= maxMembers) {
-                CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
-                return;
-            }
-        }
+        String result = metadataRepository.acceptInviteResult(inviteId, playerUuid, maxMembers);
+        boolean accepted = "APPLIED".equals(result);
         audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_ACCEPT", "INVITE", inviteId.toString(), Map.of("accepted", Boolean.toString(accepted)));
         events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
         if (accepted) {
@@ -145,7 +138,10 @@ public final class IslandVisitorRoutes implements RouteGroup {
             events.publish(CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "role", CoreRoleKeys.MEMBER, "roleKey", CoreRoleKeys.MEMBER));
             events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString()));
         }
-        CoreHttpResponses.write(exchange, accepted ? 202 : 409, accepted ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing, expired, or not pending"));
+        String errorMessage = result.equals("MEMBER_LIMIT") ? "Island member limit was reached"
+            : result.equals("ISLAND_NOT_FOUND") ? "Island was not found"
+            : "Invite is missing, expired, or not pending";
+        CoreHttpResponses.write(exchange, accepted ? 202 : 409, accepted ? ApiResponses.ok(true) : ApiResponses.error(result, errorMessage));
     }
 
     private void declineInvite(HttpExchange exchange) throws IOException {
