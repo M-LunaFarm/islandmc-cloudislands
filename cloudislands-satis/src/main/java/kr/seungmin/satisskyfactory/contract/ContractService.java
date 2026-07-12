@@ -338,31 +338,43 @@ public final class ContractService {
         }
         String rewardKey = contractRewardIdempotencyKey(island, owner, active.contractId(), template);
         if (template.money() > 0) {
-            DatabaseService.EconomyLedgerClaim claim = database.beginEconomyLedger(
-                    island.islandUuid(), playerUuid(owner), "CONTRACT_REWARD", template.money(), template.id(), rewardKey);
+            DatabaseService.EconomyLedgerClaim claim;
+            try {
+                claim = database.beginEconomyLedger(
+                        island.islandUuid(), playerUuid(owner), "CONTRACT_REWARD", template.money(), template.id(), rewardKey);
+            } catch (RuntimeException claimFailure) {
+                rollbackCompletion(island, inventory, template, previousResearch, previousReputation, previousDebt);
+                return false;
+            }
             if (claim == DatabaseService.EconomyLedgerClaim.STARTED) {
                 if (!economy.deposit(owner, template.money())) {
-                    database.failEconomyLedger(rewardKey);
-                    island.researchPoints(previousResearch);
-                    island.reputation(previousReputation);
-                    island.maintenanceDebt(previousDebt);
-                    islandSaver.test(island);
-                    restoreCompletionInventory(inventory, template);
+                    try {
+                        database.failEconomyLedger(rewardKey);
+                    } catch (RuntimeException ignored) {
+                        // Local contract rollback must continue during a ledger outage.
+                    }
+                    rollbackCompletion(island, inventory, template, previousResearch, previousReputation, previousDebt);
                     return false;
                 }
                 try {
                     database.addLedger(island.islandUuid(), "CONTRACT_REWARD", template.money(), template.id());
                     database.completeEconomyLedger(rewardKey);
                 } catch (RuntimeException exception) {
-                    database.compensateEconomyLedger(rewardKey);
-                    throw exception;
+                    try {
+                        economy.withdraw(owner, template.money());
+                    } catch (RuntimeException ignored) {
+                        // Durable compensation state below remains authoritative.
+                    }
+                    try {
+                        database.compensateEconomyLedger(rewardKey);
+                    } catch (RuntimeException ignored) {
+                        // A secondary outage must not prevent local reward rollback.
+                    }
+                    rollbackCompletion(island, inventory, template, previousResearch, previousReputation, previousDebt);
+                    return false;
                 }
             } else if (claim != DatabaseService.EconomyLedgerClaim.COMPLETED) {
-                island.researchPoints(previousResearch);
-                island.reputation(previousReputation);
-                island.maintenanceDebt(previousDebt);
-                islandSaver.test(island);
-                restoreCompletionInventory(inventory, template);
+                rollbackCompletion(island, inventory, template, previousResearch, previousReputation, previousDebt);
                 return false;
             }
         }
@@ -386,6 +398,23 @@ public final class ContractService {
 
     private boolean restoreCompletionInventory(VirtualInventory inventory, ContractTemplate template) {
         return inventory.exchange(template.itemRewards(), template.required()) && storage.saveIfAllowed(inventory);
+    }
+
+    private void rollbackCompletion(FactoryIsland island, VirtualInventory inventory, ContractTemplate template,
+                                    long research, long reputation, long debt) {
+        island.researchPoints(research);
+        island.reputation(reputation);
+        island.maintenanceDebt(debt);
+        try {
+            islandSaver.test(island);
+        } catch (RuntimeException ignored) {
+            // Continue with item rollback even when island persistence is unavailable.
+        }
+        try {
+            restoreCompletionInventory(inventory, template);
+        } catch (RuntimeException ignored) {
+            // The unresolved ledger state keeps the failure visible for reconciliation.
+        }
     }
 
     private boolean writesEnabled() {

@@ -13,6 +13,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.List;
 import java.util.UUID;
 
@@ -89,6 +91,69 @@ class ContractFlowServiceTest {
             assertEquals(0.0, economy.deposited());
             assertFalse(database.loadContracts(islandUuid, "COMPLETED").isEmpty());
             assertEquals(DatabaseService.EconomyLedgerClaim.COMPLETED, database.economyLedgerClaim(key));
+        }
+    }
+
+    @Test
+    void postPayoutLedgerFailureReversesAllContractRewards() throws Exception {
+        try (DatabaseHandle handle = openDatabase("contract-ledger-write-failure")) {
+            DatabaseService database = handle.database();
+            StorageService storage = new StorageService(database, 1000);
+            TrackingEconomy economy = new TrackingEconomy();
+            economy.withdrawSucceeds = true;
+            ContractService contracts = new ContractService(storage, economy, database, new IslandBoostService(null));
+            contracts.load(load("contracts.yml"));
+
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000002021");
+            FactoryIsland island = new FactoryIsland(islandUuid, UUID.fromString("00000000-0000-0000-0000-000000002022"));
+            VirtualInventory inventory = storage.islandStorage(islandUuid);
+            assertTrue(inventory.add("bread_box", 32));
+            storage.save(inventory);
+            ContractService.ActiveContract contract = contracts.activeContracts(island).stream()
+                    .filter(candidate -> candidate.template().id().equals("bread_supply"))
+                    .findFirst().orElseThrow();
+            try (Connection connection = database.connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_contract_ledger BEFORE INSERT ON ledger WHEN NEW.type = 'CONTRACT_REWARD' BEGIN SELECT RAISE(FAIL, 'forced ledger failure'); END");
+            }
+
+            assertTrue(contracts.completeContract(island, null, contract.contractId()).isEmpty());
+
+            String key = "CONTRACT_REWARD:" + islandUuid + ":system:" + contract.contractId()
+                    + ":bread_supply:" + contract.template().money();
+            assertEquals(DatabaseService.EconomyLedgerClaim.NEEDS_COMPENSATION, database.economyLedgerClaim(key));
+            assertEquals(32L, storage.islandStorage(islandUuid).amount("bread_box"));
+            assertEquals(0L, island.researchPoints());
+            assertEquals(0L, island.reputation());
+            assertEquals(0.0, economy.deposited());
+            assertEquals(35000.0, economy.withdrawn());
+        }
+    }
+
+    @Test
+    void contractClaimFailureRestoresItemsAndProgressWithoutPaying() throws Exception {
+        try (DatabaseHandle handle = openDatabase("contract-claim-failure")) {
+            DatabaseService database = handle.database();
+            StorageService storage = new StorageService(database, 1000);
+            TrackingEconomy economy = new TrackingEconomy();
+            ContractService contracts = new ContractService(storage, economy, database, new IslandBoostService(null));
+            contracts.load(load("contracts.yml"));
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000002031");
+            FactoryIsland island = new FactoryIsland(islandUuid, UUID.fromString("00000000-0000-0000-0000-000000002032"));
+            VirtualInventory inventory = storage.islandStorage(islandUuid);
+            assertTrue(inventory.add("bread_box", 32));
+            storage.save(inventory);
+            ContractService.ActiveContract contract = contracts.activeContracts(island).stream()
+                    .filter(candidate -> candidate.template().id().equals("bread_supply"))
+                    .findFirst().orElseThrow();
+            try (Connection connection = database.connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_contract_claim BEFORE INSERT ON satis_economy_ledger BEGIN SELECT RAISE(FAIL, 'forced claim failure'); END");
+            }
+
+            assertTrue(contracts.completeContract(island, null, contract.contractId()).isEmpty());
+            assertEquals(32L, storage.islandStorage(islandUuid).amount("bread_box"));
+            assertEquals(0L, island.researchPoints());
+            assertEquals(0L, island.reputation());
+            assertEquals(0.0, economy.deposited());
         }
     }
 
@@ -300,6 +365,8 @@ class ContractFlowServiceTest {
 
     private static final class TrackingEconomy implements EconomyService {
         private double deposited;
+        private double withdrawn;
+        private boolean withdrawSucceeds;
 
         @Override
         public boolean deposit(OfflinePlayer player, double amount) {
@@ -309,7 +376,12 @@ class ContractFlowServiceTest {
 
         @Override
         public boolean withdraw(OfflinePlayer player, double amount) {
-            return false;
+            if (!withdrawSucceeds) {
+                return false;
+            }
+            deposited -= amount;
+            withdrawn += amount;
+            return true;
         }
 
         @Override
@@ -324,6 +396,10 @@ class ContractFlowServiceTest {
 
         double deposited() {
             return deposited;
+        }
+
+        double withdrawn() {
+            return withdrawn;
         }
     }
 }
