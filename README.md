@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.102`
+Version: `1.1.103`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,18 +606,29 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.102`
+Current release: `v1.1.103`
 
-Built for the CloudIslands 1.1.102 baseline.
+Built for the CloudIslands 1.1.103 baseline.
 
-Release notes for `v1.1.102`:
+Release notes for `v1.1.103`:
+
+- all-or-authoritative list caches: any malformed row now invalidates the whole
+  Redis payload so Core reloads the complete durable list
+- no partial-data exposure: one corrupt ranking, mission, snapshot, log, limit,
+  upgrade, or template row can no longer silently hide only that record
+- shared completeness guard compares encoded non-empty rows with successfully
+  parsed rows before accepting a cache hit
+- regression coverage verifies valid, fully corrupt, and partially corrupt
+  payload behavior
+
+Release notes carried forward from `v1.1.102`:
 
 - self-healing list caches: fully corrupt non-empty Redis payloads now become
   cache misses so Core reloads authoritative data instead of returning `[]`
 - broad production coverage for ranking, missions, snapshots, island logs,
   limits, upgrades, and templates
-- partial recovery remains intact: mixed payloads still retain every valid row
-  while skipping only corrupt entries
+- corrupt payloads fall back to authoritative storage instead of exposing an
+  incomplete list
 - regression coverage verifies corrupt template payload fallback and valid
   cache-hit preservation
 
@@ -1981,7 +1992,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.102`.
+Current read: production-readiness baseline `v1.1.103`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
