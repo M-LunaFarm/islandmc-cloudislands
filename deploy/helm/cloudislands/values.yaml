@@ -35,6 +35,7 @@ core:
   adminPort: 9443
   adminListenerEnabled: true
   publicAdminApiEnabled: false
+  adminPermissions: "audit-read"
   allowInsecurePublicHttp: false
 
 velocity:

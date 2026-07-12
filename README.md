@@ -200,6 +200,10 @@ Production security:
 - require Core API token or mTLS for every Paper, Velocity, and admin client
 - strip spoofable forwarding headers at the trusted proxy boundary
 - keep `cloudislands.admin.*` permissions scoped to operators
+- set `CI_ADMIN_PERMISSIONS` on Compose deployments or
+  `core.adminPermissions` in Helm to the server-side permissions actually
+  required; the secure default is `audit-read`, and island mutation commands
+  additionally require `island-manage`
 
 Backup and restore:
 

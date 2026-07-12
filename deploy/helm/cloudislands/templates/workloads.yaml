@@ -31,6 +31,8 @@ spec:
               value: {{ .Values.core.adminListenerEnabled | quote }}
             - name: CI_PUBLIC_ADMIN_API_ENABLED
               value: {{ .Values.core.publicAdminApiEnabled | quote }}
+            - name: CI_ADMIN_PERMISSIONS
+              value: {{ .Values.core.adminPermissions | quote }}
             - name: CI_ALLOW_INSECURE_PUBLIC_HTTP
               value: {{ .Values.core.allowInsecurePublicHttp | quote }}
             - name: CI_DATABASE_TYPE
