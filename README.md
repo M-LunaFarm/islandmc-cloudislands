@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.94`
+Version: `1.1.95`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.94`
+Current release: `v1.1.95`
 
-Built for the CloudIslands 1.1.94 baseline.
+Built for the CloudIslands 1.1.95 baseline.
 
-Release notes for `v1.1.94`:
+Release notes for `v1.1.95`:
+
+- inventory-authoritative warehouse mutations: deposits and withdrawals run
+  only on Paper where the player's actual inventory can be changed atomically
+- no proxy item duplication: Velocity can no longer credit Core warehouse
+  stock without first removing the deposited items
+- no proxy item loss: Velocity can no longer debit warehouse stock without
+  delivering the withdrawn items to a real inventory
+- read/write boundary: warehouse listing remains available on Velocity while
+  mutation commands are forwarded to Paper or safely refused
+- corrected regression contract replaces the old requirement that proxy-side
+  warehouse mutations directly execute
+
+Release notes carried forward from `v1.1.94`:
 
 - no synthetic proxy locations: Velocity no longer persists homes or warps at
   a hard-coded shard coordinate when it cannot observe a Bukkit location
@@ -1887,7 +1900,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.94`.
+Current read: production-readiness baseline `v1.1.95`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
