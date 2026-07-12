@@ -117,6 +117,13 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public boolean removeMemberAndClearPrimaryResult(UUID islandId, UUID playerUuid) {
+        boolean removed = delegate.removeMemberAndClearPrimaryResult(islandId, playerUuid);
+        cacheMembers(islandId, delegate.members(islandId));
+        return removed;
+    }
+
+    @Override
     public IslandInviteSnapshot createInvite(UUID islandId, UUID inviterUuid, UUID targetUuid) {
         return delegate.createInvite(islandId, inviterUuid, targetUuid);
     }

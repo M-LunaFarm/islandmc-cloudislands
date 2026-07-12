@@ -86,10 +86,17 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public void removeMember(UUID islandId, UUID playerUuid) {
+        removeMemberAndClearPrimaryResult(islandId, playerUuid);
+    }
+
+    @Override
+    public synchronized boolean removeMemberAndClearPrimaryResult(UUID islandId, UUID playerUuid) {
         Map<UUID, IslandMemberSnapshot> islandMembers = members.get(islandId);
-        if (islandMembers != null) {
-            islandMembers.remove(playerUuid);
+        IslandMemberSnapshot current = islandMembers == null ? null : islandMembers.get(playerUuid);
+        if (current == null || expired(current)) {
+            return false;
         }
+        return islandMembers.remove(playerUuid, current);
     }
 
     @Override

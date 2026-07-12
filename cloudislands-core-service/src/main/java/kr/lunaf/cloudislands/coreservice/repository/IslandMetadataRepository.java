@@ -45,6 +45,10 @@ public interface IslandMetadataRepository {
     default void removeMemberAndClearPrimary(UUID islandId, UUID playerUuid) {
         removeMember(islandId, playerUuid);
     }
+    default boolean removeMemberAndClearPrimaryResult(UUID islandId, UUID playerUuid) {
+        removeMemberAndClearPrimary(islandId, playerUuid);
+        return true;
+    }
     IslandInviteSnapshot createInvite(UUID islandId, UUID inviterUuid, UUID targetUuid);
     List<IslandInviteSnapshot> pendingInvites(UUID targetUuid);
     boolean acceptInvite(UUID inviteId, UUID playerUuid);

@@ -250,10 +250,17 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be removed as a member"));
             return;
         }
+        if (member == null) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("MEMBER_NOT_FOUND", "Island member was not found"));
+            return;
+        }
         if (!actorUuid.equals(playerUuid) && !requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_MEMBERS)) {
             return;
         }
-        metadataRepository.removeMemberAndClearPrimary(islandId, playerUuid);
+        if (!metadataRepository.removeMemberAndClearPrimaryResult(islandId, playerUuid)) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("MEMBER_NOT_FOUND", "Island member was not found"));
+            return;
+        }
         clearPrimaryIslandIfSelected(islandId, playerUuid);
         audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_REMOVE", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
         islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_REMOVE", Map.of("playerUuid", playerUuid.toString()));
@@ -331,7 +338,10 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("OWNER_ROLE_PROTECTED", "Island owner cannot be removed as a member"));
             return;
         }
-        metadataRepository.removeMemberAndClearPrimary(islandId, playerUuid);
+        if (current == null || !metadataRepository.removeMemberAndClearPrimaryResult(islandId, playerUuid)) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("MEMBER_NOT_FOUND", "Island member was not found"));
+            return;
+        }
         clearPrimaryIslandIfSelected(islandId, playerUuid);
         adminMemberAudit(islandId, playerUuid, "ISLAND_MEMBER_ADMIN_KICK", Map.of("oldRoleKey", current == null ? "" : current.effectiveRoleKey()));
         publishCoopTransition(islandId, playerUuid, current == null ? "" : current.effectiveRoleKey(), "");

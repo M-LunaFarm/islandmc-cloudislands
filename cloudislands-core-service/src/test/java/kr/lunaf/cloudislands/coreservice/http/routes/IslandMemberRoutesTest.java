@@ -156,6 +156,40 @@ class IslandMemberRoutesTest {
     }
 
     @Test
+    void missingMemberRemovalDoesNotPublishGhostLeaveEvents() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000125");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000126");
+        UUID missingUuid = UUID.fromString("00000000-0000-0000-0000-000000000127");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "truthful-member-removal");
+
+        new IslandMemberRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            new InMemoryPlayerProfileRepository(),
+            new InMemoryIslandLogRepository(),
+            audit,
+            events
+        ).register(handlers::put);
+
+        String selfRemoval = "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + missingUuid + "\",\"actorUuid\":\"" + missingUuid + "\"}";
+        String adminRemoval = "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + missingUuid + "\"}";
+        handleError(handlers, "/v1/islands/members/remove", selfRemoval, 404, "MEMBER_NOT_FOUND");
+        handleError(handlers, "/v1/admin/islands/members/kick", adminRemoval, 404, "MEMBER_NOT_FOUND");
+
+        assertEquals(0L, events.countByType("ISLAND_MEMBER_LEFT"));
+        assertEquals(0L, events.countByType("ISLAND_MEMBER_CHANGED"));
+        assertFalse(audit.toJson().contains("ISLAND_MEMBER_REMOVE"));
+        assertFalse(audit.toJson().contains("ISLAND_MEMBER_ADMIN_KICK"));
+    }
+
+    @Test
     void ownershipTransferNeverClearsTheFormerOwnersSelectedIsland() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
 
@@ -179,7 +213,7 @@ class IslandMemberRoutesTest {
     void jdbcMemberRemovalClearsOnlyTheRemovedIslandPrimaryInTheSameTransaction() throws Exception {
         String metadata = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
         String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
-        int operation = metadata.indexOf("public void removeMemberAndClearPrimary(");
+        int operation = metadata.indexOf("public boolean removeMemberAndClearPrimaryResult(");
         int commit = metadata.indexOf("connection.commit();", operation);
 
         assertTrue(operation >= 0 && commit > operation);
@@ -188,7 +222,8 @@ class IslandMemberRoutesTest {
         assertTrue(transaction.contains("primary_island_id = NULL"));
         assertTrue(transaction.contains("primary_island_id = ?"), "removing another island must not clear an unrelated selected island");
         assertTrue(transaction.contains("NOT EXISTS (SELECT 1 FROM islands"), "an authoritative owner must never lose its selected island through metadata cleanup");
-        assertEquals(2, routes.split(java.util.regex.Pattern.quote("metadataRepository.removeMemberAndClearPrimary(islandId, playerUuid)"), -1).length - 1);
+        assertTrue(transaction.contains("boolean removed = member.executeUpdate() > 0"), "the transaction must report whether a membership row was actually removed");
+        assertEquals(2, routes.split(java.util.regex.Pattern.quote("metadataRepository.removeMemberAndClearPrimaryResult(islandId, playerUuid)"), -1).length - 1);
     }
 
     @Test
