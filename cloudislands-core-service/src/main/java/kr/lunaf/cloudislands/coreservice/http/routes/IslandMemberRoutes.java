@@ -130,7 +130,12 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
             return;
         }
-        metadataRepository.upsertMemberKey(islandId, playerUuid, roleKey);
+        if (addsTeamMember(currentRoleKey, roleKey)) {
+            metadataRepository.upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey);
+            initializePrimaryIslandIfEmpty(islandId, playerUuid);
+        } else {
+            metadataRepository.upsertMemberKey(islandId, playerUuid, roleKey);
+        }
         audit.log(actorUuid, "PLAYER", "ISLAND_MEMBER_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "role", roleKey, "roleKey", roleKey));
         islandLogs.append(islandId, actorUuid, "ISLAND_MEMBER_SET", Map.of("playerUuid", playerUuid.toString(), "role", roleKey, "roleKey", roleKey));
         events.publish(existingMember ? CloudIslandEventType.ISLAND_MEMBER_ROLE_CHANGED.name() : CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), existingMember
@@ -264,7 +269,12 @@ public final class IslandMemberRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ROLE_LIMIT", "Island role limit was reached"));
             return;
         }
-        metadataRepository.upsertMemberKey(islandId, playerUuid, roleKey);
+        if (addsTeamMember(oldRoleKey, roleKey)) {
+            metadataRepository.upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey);
+            initializePrimaryIslandIfEmpty(islandId, playerUuid);
+        } else {
+            metadataRepository.upsertMemberKey(islandId, playerUuid, roleKey);
+        }
         adminMemberAudit(islandId, playerUuid, "ISLAND_MEMBER_ADMIN_ADD", Map.of("oldRoleKey", oldRoleKey, "newRoleKey", roleKey));
         publishAdminMemberSet(islandId, playerUuid, oldRoleKey, roleKey, current != null);
         publishCoopTransition(islandId, playerUuid, oldRoleKey, roleKey);
@@ -560,6 +570,12 @@ public final class IslandMemberRoutes implements RouteGroup {
     private void clearPrimaryIslandIfSelected(UUID islandId, UUID playerUuid) {
         if (playerProfiles.find(playerUuid).primaryIslandId().filter(islandId::equals).isPresent()) {
             playerProfiles.clearPrimaryIsland(playerUuid);
+        }
+    }
+
+    private void initializePrimaryIslandIfEmpty(UUID islandId, UUID playerUuid) {
+        if (playerProfiles != null && playerProfiles.find(playerUuid).primaryIslandId().isEmpty()) {
+            playerProfiles.setPrimaryIsland(playerUuid, islandId);
         }
     }
 

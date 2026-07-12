@@ -111,11 +111,11 @@ class IslandMemberRoutesTest {
 
         handle(handlers, "/v1/admin/islands/members/add", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\",\"roleKey\":\"MEMBER\"}", 202, "MEMBER_ADDED");
         assertEquals("MEMBER", metadata.members(islandId).get(0).effectiveRoleKey());
+        assertEquals(islandId, profiles.find(playerUuid).primaryIslandId().orElseThrow());
         handle(handlers, "/v1/admin/islands/members/promote", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "MEMBER_PROMOTED");
         assertEquals("MODERATOR", metadata.members(islandId).get(0).effectiveRoleKey());
         handle(handlers, "/v1/admin/islands/members/demote", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "MEMBER_DEMOTED");
         assertEquals("MEMBER", metadata.members(islandId).get(0).effectiveRoleKey());
-        profiles.setPrimaryIsland(playerUuid, islandId);
         handle(handlers, "/v1/admin/islands/members/kick", "{\"islandId\":\"" + islandId + "\",\"playerUuid\":\"" + playerUuid + "\"}", 202, "MEMBER_KICKED");
         assertTrue(metadata.members(islandId).isEmpty());
         assertTrue(profiles.find(playerUuid).primaryIslandId().isEmpty(), "a removed member must not retain the removed island as their selected island");
@@ -189,6 +189,21 @@ class IslandMemberRoutesTest {
         assertTrue(transaction.contains("primary_island_id = ?"), "removing another island must not clear an unrelated selected island");
         assertTrue(transaction.contains("NOT EXISTS (SELECT 1 FROM islands"), "an authoritative owner must never lose its selected island through metadata cleanup");
         assertEquals(2, routes.split(java.util.regex.Pattern.quote("metadataRepository.removeMemberAndClearPrimary(islandId, playerUuid)"), -1).length - 1);
+    }
+
+    @Test
+    void jdbcDirectTeamAddInitializesOnlyAnEmptyPrimaryInTheSameTransaction() throws Exception {
+        String repository = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
+        int operation = repository.indexOf("public void upsertMemberKeyAndInitializePrimary(");
+        int commit = repository.indexOf("connection.commit();", operation);
+
+        assertTrue(operation >= 0 && commit > operation);
+        String transaction = repository.substring(operation, commit);
+        assertTrue(transaction.contains("upsertMemberSql(connection)"));
+        assertTrue(transaction.contains("ensurePlayerProfileSql(connection)"));
+        assertTrue(transaction.contains("primary_island_id IS NULL"));
+        assertEquals(2, routes.split(java.util.regex.Pattern.quote("metadataRepository.upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey)"), -1).length - 1);
     }
 
     @Test

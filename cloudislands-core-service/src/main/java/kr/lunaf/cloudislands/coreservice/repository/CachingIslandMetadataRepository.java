@@ -85,6 +85,12 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public void upsertMemberKeyAndInitializePrimary(UUID islandId, UUID playerUuid, String roleKey) {
+        delegate.upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey);
+        cacheMembers(islandId, delegate.members(islandId));
+    }
+
+    @Override
     public void removeMember(UUID islandId, UUID playerUuid) {
         delegate.removeMember(islandId, playerUuid);
         cacheMembers(islandId, delegate.members(islandId));

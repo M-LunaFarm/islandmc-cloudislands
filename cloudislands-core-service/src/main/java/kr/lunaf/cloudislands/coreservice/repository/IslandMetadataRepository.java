@@ -19,6 +19,9 @@ public interface IslandMetadataRepository {
     List<IslandMemberSnapshot> islandsForMember(UUID playerUuid);
     boolean isMember(UUID islandId, UUID playerUuid);
     void upsertMemberKey(UUID islandId, UUID playerUuid, String roleKey);
+    default void upsertMemberKeyAndInitializePrimary(UUID islandId, UUID playerUuid, String roleKey) {
+        upsertMemberKey(islandId, playerUuid, roleKey);
+    }
     @Deprecated(forRemoval = false)
     default void upsertMember(UUID islandId, UUID playerUuid, IslandRole role) {
         upsertMemberKey(islandId, playerUuid, role == null ? "" : role.name());

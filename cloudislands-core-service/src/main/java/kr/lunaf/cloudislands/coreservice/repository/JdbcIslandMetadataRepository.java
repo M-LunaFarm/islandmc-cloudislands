@@ -92,6 +92,31 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public void upsertMemberKeyAndInitializePrimary(UUID islandId, UUID playerUuid, String roleKey) {
+        String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement member = connection.prepareStatement(upsertMemberSql(connection));
+                 PreparedStatement ensureProfile = connection.prepareStatement(ensurePlayerProfileSql(connection));
+                 PreparedStatement primary = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = ?, updated_at = now() WHERE uuid = ? AND primary_island_id IS NULL")) {
+                member.setObject(1, islandId);
+                member.setObject(2, playerUuid);
+                member.setString(3, normalizedRoleKey);
+                member.setObject(4, null);
+                member.executeUpdate();
+                ensureProfile.setObject(1, playerUuid);
+                ensureProfile.executeUpdate();
+                primary.setObject(1, islandId);
+                primary.setObject(2, playerUuid);
+                primary.executeUpdate();
+            }
+            connection.commit();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to add island member and initialize primary island", exception);
+        }
+    }
+
+    @Override
     @Deprecated(forRemoval = false)
     @SuppressWarnings("deprecation")
     public void upsertMember(UUID islandId, UUID playerUuid, IslandRole role, Instant expiresAt) {
