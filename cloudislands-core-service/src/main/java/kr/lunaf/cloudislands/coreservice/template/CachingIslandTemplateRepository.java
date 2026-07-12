@@ -60,6 +60,24 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
         return changed;
     }
 
+    @Override
+    public boolean delete(String templateId) {
+        boolean deleted = delegate.delete(templateId);
+        if (deleted) {
+            cache(delegate.list());
+        }
+        return deleted;
+    }
+
+    @Override
+    public boolean reorder(String templateId, int sortOrder) {
+        boolean reordered = delegate.reorder(templateId, sortOrder);
+        if (reordered) {
+            cache(delegate.list());
+        }
+        return reordered;
+    }
+
     public long failuresTotal() {
         return failures.get();
     }

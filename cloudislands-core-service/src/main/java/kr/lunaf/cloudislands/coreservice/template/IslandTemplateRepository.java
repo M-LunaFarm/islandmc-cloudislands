@@ -16,13 +16,9 @@ public interface IslandTemplateRepository {
 
     boolean setEnabled(String templateId, boolean enabled);
 
-    default boolean delete(String templateId) {
-        return false;
-    }
+    boolean delete(String templateId);
 
-    default boolean reorder(String templateId, int sortOrder) {
-        return false;
-    }
+    boolean reorder(String templateId, int sortOrder);
 
     default boolean enabled(String templateId) {
         return find(templateId).map(IslandTemplateSnapshot::enabled).orElse(false);
