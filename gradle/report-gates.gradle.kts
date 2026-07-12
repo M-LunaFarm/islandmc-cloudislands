@@ -367,10 +367,10 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     FeatureParityEntry(
         "bank/economy/missions/challenges/generators/limits",
         "IMPLEMENTED_VERIFIED",
-        "bank safety, economy hooks, mission triggers/rewards, challenges, generator rules, and limits have verification gates",
+        "bank safety, conflict-safe upgrade charging with compensating refunds, economy hooks, mission triggers/rewards, challenges, generator rules, and limits have verification gates",
         "Paper mission listeners, bank rollback UX, and generator listeners have targeted tests",
         "version-neutral plus Paper/Satis runtime boundaries",
-        "verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward, generator, and economy safety gates cover the remaining scope",
+        "verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; upgrade CAS/refund tests and reward, generator, and economy safety gates cover the remaining scope",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/IslandMissionProgressListener.java",

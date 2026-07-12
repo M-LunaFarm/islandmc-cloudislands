@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.49`
+Version: `1.1.50`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -597,7 +597,7 @@ integration verification.
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, default-compatible natural flags, shard-safe player time/weather overrides, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
-| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
+| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; upgrade CAS/refund tests and reward, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
@@ -606,11 +606,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.49`
+Current release: `v1.1.50`
 
-Built for the CloudIslands 1.1.49 baseline.
+Built for the CloudIslands 1.1.50 baseline.
 
-Release notes for `v1.1.49`:
+Release notes for `v1.1.50`:
+
+- conflict-safe upgrade purchases: every level change now uses an atomic
+  expected-level comparison instead of an unconditional overwrite
+- multi-Core correctness: concurrent purchases for the same island and upgrade
+  can no longer both charge while writing the same resulting level
+- automatic payment compensation: a level conflict or storage write failure
+  refunds the already withdrawn island-bank cost
+- explicit incident codes: refunded and refund-failed outcomes are distinguished
+  so operators can alert on the rare case that automatic compensation also fails
+- cache convergence: the Redis upgrade projection refreshes from authoritative
+  storage after both successful and rejected compare-and-set attempts
+- real topology proof: PostgreSQL, Redis, MinIO, and dual-Core Integration passed
+  with the atomic purchase repository active
+
+Release notes carried forward from `v1.1.49`:
 
 - dedicated leash permission: attaching and detaching leads now consistently
   require `LEASH` instead of sharing the broad `INTERACT` permission
@@ -1311,7 +1326,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.49`.
+Current read: production-readiness baseline `v1.1.50`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
