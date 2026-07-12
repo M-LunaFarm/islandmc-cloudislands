@@ -293,6 +293,16 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public synchronized String setFlagResult(UUID islandId, IslandFlag flag, String value) {
+        Map<IslandFlag, String> islandFlags = flags.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
+        if (java.util.Objects.equals(islandFlags.get(flag), value)) {
+            return "UNCHANGED";
+        }
+        islandFlags.put(flag, value);
+        return "APPLIED";
+    }
+
+    @Override
     public boolean resetFlags(UUID islandId) {
         return flags.remove(islandId) != null;
     }

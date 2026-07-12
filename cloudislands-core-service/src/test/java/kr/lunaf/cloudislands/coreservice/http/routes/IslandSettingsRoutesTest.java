@@ -43,6 +43,20 @@ import org.junit.jupiter.api.Test;
 
 class IslandSettingsRoutesTest {
     @Test
+    void jdbcFlagWritesCompareInsideTheIslandTransaction() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        int operation = source.indexOf("public String setFlagResult(");
+        int nextMethod = source.indexOf("\n    @Override", operation + 20);
+        String transaction = source.substring(operation, nextMethod);
+
+        assertTrue(transaction.contains("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE"));
+        assertTrue(transaction.contains("SELECT flag_value FROM island_flags WHERE island_id = ? AND flag_key = ? FOR UPDATE"));
+        assertTrue(transaction.contains("return \"UNCHANGED\";"));
+        assertTrue(transaction.contains("return \"ISLAND_NOT_FOUND\";"));
+        assertTrue(transaction.contains("connection.commit();"));
+    }
+
+    @Test
     void jdbcRenameDistinguishesUnchangedDuplicateAndMissingOutcomes() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandRepository.java"));
         int operation = source.indexOf("public String renameResult(");
@@ -180,6 +194,40 @@ class IslandSettingsRoutesTest {
         assertEquals(2, logs.list(islandId, 10).size());
         assertTrue(audit.toJson().contains("ISLAND_LOCK_SET"));
         assertTrue(audit.toJson().contains("ISLAND_ACCESS_SET"));
+    }
+
+    @Test
+    void repeatedFlagWritesAndEmptyResetsAreIdempotent() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000097");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000098");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Idempotent Flags");
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandSettingsRoutes(islands, metadata, new InMemoryIslandPermissionRuleRepository(), logs, audit, events).register(handlers::put);
+
+        String flagBody = "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + ownerUuid + "\",\"flag\":\"FLY\",\"value\":\"true\"}";
+        String resetBody = "{\"islandId\":\"" + islandId + "\"}";
+        TestExchange firstSet = exchange(flagBody);
+        TestExchange secondSet = exchange(flagBody);
+        TestExchange firstReset = exchange(resetBody);
+        TestExchange secondReset = exchange(resetBody);
+        handlers.get("/v1/islands/flags/set").handle(firstSet);
+        handlers.get("/v1/islands/flags/set").handle(secondSet);
+        handlers.get("/v1/admin/islands/flags/reset").handle(firstReset);
+        handlers.get("/v1/admin/islands/flags/reset").handle(secondReset);
+
+        assertEquals(202, firstSet.status());
+        assertEquals(200, secondSet.status());
+        assertTrue(secondSet.body().contains("ISLAND_FLAG_UNCHANGED"));
+        assertEquals(202, firstReset.status());
+        assertEquals(200, secondReset.status());
+        assertTrue(secondReset.body().contains("ISLAND_FLAGS_UNCHANGED"));
+        assertEquals(2L, events.countByType(CloudIslandEventType.ISLAND_FLAG_CHANGED.name()));
+        assertEquals(2, logs.list(islandId, 10).size());
     }
 
     @Test

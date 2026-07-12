@@ -85,6 +85,10 @@ public interface IslandMetadataRepository {
     }
     IslandFlagsSnapshot flags(UUID islandId);
     void setFlag(UUID islandId, IslandFlag flag, String value);
+    default String setFlagResult(UUID islandId, IslandFlag flag, String value) {
+        setFlag(islandId, flag, value);
+        return "APPLIED";
+    }
     boolean resetFlags(UUID islandId);
     IslandBiomeSnapshot biome(UUID islandId);
     void setBiome(UUID islandId, String biomeKey, UUID updatedBy);

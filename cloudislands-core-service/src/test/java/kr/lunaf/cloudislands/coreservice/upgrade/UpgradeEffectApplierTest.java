@@ -44,12 +44,15 @@ class UpgradeEffectApplierTest {
         InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
         InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
 
-        new UpgradeEffectApplier(new InMemoryIslandLimitRepository(), new InMemoryIslandRepository(), metadata, logs, events)
-            .apply(ISLAND_ID, OWNER_ID, new UpgradeRule("fly", UpgradeType.FLY_ACCESS, 1, BigDecimal.ZERO, BigDecimal.ONE), UpgradeType.FLY_ACCESS, 1);
+        UpgradeEffectApplier applier = new UpgradeEffectApplier(new InMemoryIslandLimitRepository(), new InMemoryIslandRepository(), metadata, logs, events);
+        UpgradeRule rule = new UpgradeRule("fly", UpgradeType.FLY_ACCESS, 1, BigDecimal.ZERO, BigDecimal.ONE);
+        applier.apply(ISLAND_ID, OWNER_ID, rule, UpgradeType.FLY_ACCESS, 1);
+        applier.apply(ISLAND_ID, OWNER_ID, rule, UpgradeType.FLY_ACCESS, 1);
 
         assertEquals("true", metadata.flags(ISLAND_ID).values().get(IslandFlag.FLY));
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_FLAG_CHANGED.name()));
         assertTrue(logs.list(ISLAND_ID, 10).stream().anyMatch(record -> record.action().equals("ISLAND_UPGRADE_EFFECT") && record.payload().get("effect").equals("FLY_ACCESS")));
+        assertTrue(logs.list(ISLAND_ID, 10).stream().anyMatch(record -> "UNCHANGED".equals(record.payload().get("result"))));
     }
 
     @Test

@@ -250,6 +250,13 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public String setFlagResult(UUID islandId, IslandFlag flag, String value) {
+        String result = delegate.setFlagResult(islandId, flag, value);
+        cacheFlags(delegate.flags(islandId));
+        return result;
+    }
+
+    @Override
     public boolean resetFlags(UUID islandId) {
         boolean removed = delegate.resetFlags(islandId);
         cacheFlags(delegate.flags(islandId));

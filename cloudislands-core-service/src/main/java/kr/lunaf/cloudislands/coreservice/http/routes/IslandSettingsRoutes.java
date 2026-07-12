@@ -213,7 +213,15 @@ public final class IslandSettingsRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_FLAGS)) {
             return;
         }
-        metadataRepository.setFlag(islandId, flag, value);
+        String result = metadataRepository.setFlagResult(islandId, flag, value);
+        if (result.equals("ISLAND_NOT_FOUND")) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        if (result.equals("UNCHANGED")) {
+            CoreHttpResponses.write(exchange, 200, settingsActionJson("ISLAND_FLAG_UNCHANGED"));
+            return;
+        }
         audit.log(actorUuid, "PLAYER", "ISLAND_FLAG_SET", "ISLAND", islandId.toString(), Map.of("flag", flag.name(), "value", value));
         islandLogs.append(islandId, actorUuid, "ISLAND_FLAG_SET", Map.of("flag", flag.name(), "value", value));
         events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "flag", flag.name(), "value", value));
@@ -229,7 +237,15 @@ public final class IslandSettingsRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
             return;
         }
-        metadataRepository.setFlag(islandId, flag, value);
+        String result = metadataRepository.setFlagResult(islandId, flag, value);
+        if (result.equals("UNCHANGED")) {
+            CoreHttpResponses.write(exchange, 200, settingsActionJson("ISLAND_FLAG_UNCHANGED"));
+            return;
+        }
+        if (result.equals("ISLAND_NOT_FOUND")) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
         audit.log(EMPTY_UUID, "ADMIN", "ISLAND_FLAG_ADMIN_SET", "ISLAND", islandId.toString(), Map.of("flag", flag.name(), "value", value));
         islandLogs.append(islandId, EMPTY_UUID, "ISLAND_FLAG_ADMIN_SET", Map.of("flag", flag.name(), "value", value));
         events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "flag", flag.name(), "value", value));
@@ -244,6 +260,10 @@ public final class IslandSettingsRoutes implements RouteGroup {
             return;
         }
         boolean removed = metadataRepository.resetFlags(islandId);
+        if (!removed) {
+            CoreHttpResponses.write(exchange, 200, settingsActionJson("ISLAND_FLAGS_UNCHANGED"));
+            return;
+        }
         audit.log(EMPTY_UUID, "ADMIN", "ISLAND_FLAGS_ADMIN_RESET", "ISLAND", islandId.toString(), Map.of("removed", Boolean.toString(removed)));
         islandLogs.append(islandId, EMPTY_UUID, "ISLAND_FLAGS_ADMIN_RESET", Map.of("removed", Boolean.toString(removed)));
         events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "operation", "FLAGS_RESET", "removed", Boolean.toString(removed)));

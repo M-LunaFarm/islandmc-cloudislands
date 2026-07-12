@@ -130,8 +130,10 @@ public final class UpgradeEffectApplier {
             return;
         }
         String value = type == UpgradeType.BORDER_COLOR_UNLOCK ? "blue" : "true";
-        metadata.setFlag(islandId, flag, value);
-        events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "flag", flag.name(), "value", value));
-        islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_EFFECT", Map.of("effect", type.name(), "flag", flag.name(), "value", value));
+        String result = metadata.setFlagResult(islandId, flag, value);
+        if (result.equals("APPLIED")) {
+            events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "flag", flag.name(), "value", value));
+        }
+        islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_EFFECT", Map.of("effect", type.name(), "flag", flag.name(), "value", value, "result", result));
     }
 }

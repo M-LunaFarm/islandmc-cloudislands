@@ -641,12 +641,40 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public void setFlag(UUID islandId, IslandFlag flag, String value) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(setFlagSql(connection))) {
-            statement.setObject(1, islandId);
-            statement.setString(2, flag.name());
-            statement.setString(3, value);
-            statement.executeUpdate();
+        setFlagResult(islandId, flag, value);
+    }
+
+    @Override
+    public String setFlagResult(UUID islandId, IslandFlag flag, String value) {
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement island = connection.prepareStatement("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+                island.setObject(1, islandId);
+                try (ResultSet result = island.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        return "ISLAND_NOT_FOUND";
+                    }
+                }
+            }
+            try (PreparedStatement current = connection.prepareStatement("SELECT flag_value FROM island_flags WHERE island_id = ? AND flag_key = ? FOR UPDATE")) {
+                current.setObject(1, islandId);
+                current.setString(2, flag.name());
+                try (ResultSet result = current.executeQuery()) {
+                    if (result.next() && java.util.Objects.equals(result.getString("flag_value"), value)) {
+                        connection.commit();
+                        return "UNCHANGED";
+                    }
+                }
+            }
+            try (PreparedStatement statement = connection.prepareStatement(setFlagSql(connection))) {
+                statement.setObject(1, islandId);
+                statement.setString(2, flag.name());
+                statement.setString(3, value);
+                statement.executeUpdate();
+            }
+            connection.commit();
+            return "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to set island flag", exception);
         }
