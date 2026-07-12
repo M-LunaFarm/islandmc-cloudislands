@@ -4,7 +4,7 @@ import java.util.List;
 import kr.lunaf.cloudislands.api.CloudIslandsApiContract;
 
 public final class VersionCompatibilityPolicy {
-    public static final String CLOUDISLANDS_RUNTIME_VERSION = "1.1.99";
+    public static final String CLOUDISLANDS_RUNTIME_VERSION = "1.1.100";
     public static final String API_RUNTIME_VERSION = CloudIslandsApiContract.RUNTIME_API_VERSION;
     public static final String SUPPORTED_JAVA_VERSION = "21";
     public static final String SUPPORTED_PAPER_VERSION = "1.21.11";
