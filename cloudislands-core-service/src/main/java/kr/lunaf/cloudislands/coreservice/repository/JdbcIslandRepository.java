@@ -203,7 +203,7 @@ public final class JdbcIslandRepository implements IslandRepository {
                 return false;
             }
             try (PreparedStatement island = connection.prepareStatement("UPDATE islands SET owner_uuid = ?, updated_at = now() WHERE id = ? AND owner_uuid = ? AND deleted_at IS NULL");
-                 PreparedStatement oldOwner = connection.prepareStatement("UPDATE island_members SET role = 'CO_OWNER' WHERE island_id = ? AND player_uuid = ? AND role = 'OWNER'");
+                 PreparedStatement oldOwner = connection.prepareStatement(coOwnerMemberUpsertSql(connection));
                  PreparedStatement newOwner = connection.prepareStatement(ownerMemberUpsertSql(connection))) {
                 island.setObject(1, newOwnerUuid);
                 island.setObject(2, islandId);
@@ -218,6 +218,7 @@ public final class JdbcIslandRepository implements IslandRepository {
                 newOwner.setObject(1, islandId);
                 newOwner.setObject(2, newOwnerUuid);
                 newOwner.executeUpdate();
+                setPrimaryIsland(connection, newOwnerUuid, islandId);
             }
             connection.commit();
             return true;
@@ -284,6 +285,13 @@ public final class JdbcIslandRepository implements IslandRepository {
             return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'OWNER') ON DUPLICATE KEY UPDATE role = 'OWNER'";
         }
         return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'OWNER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = 'OWNER'";
+    }
+
+    private String coOwnerMemberUpsertSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'CO_OWNER') ON DUPLICATE KEY UPDATE role = 'CO_OWNER'";
+        }
+        return "INSERT INTO island_members(island_id, player_uuid, role) VALUES (?, ?, 'CO_OWNER') ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = 'CO_OWNER'";
     }
 
     private boolean mysqlLike(Connection connection) throws SQLException {

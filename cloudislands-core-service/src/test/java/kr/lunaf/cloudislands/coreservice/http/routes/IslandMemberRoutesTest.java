@@ -164,6 +164,18 @@ class IslandMemberRoutesTest {
     }
 
     @Test
+    void jdbcOwnershipTransferCommitsNewOwnerPrimaryIslandAtomically() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandRepository.java"));
+        int transfer = source.indexOf("public boolean transferOwnership(");
+        int commit = source.indexOf("connection.commit();", transfer);
+        int primary = source.indexOf("setPrimaryIsland(connection, newOwnerUuid, islandId);", transfer);
+
+        assertTrue(transfer >= 0);
+        assertTrue(primary > transfer && primary < commit, "new owner primary island must update before the ownership transaction commits");
+        assertTrue(source.substring(transfer, commit).contains("coOwnerMemberUpsertSql(connection)"), "former owner must remain a co-owner even when its membership projection was missing");
+    }
+
+    @Test
     void roleLimitBlocksAdminAddAndPromotionIntoLimitedRole() throws Exception {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000111");
         UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000112");
