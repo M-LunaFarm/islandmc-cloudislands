@@ -131,6 +131,7 @@ failure-code-core-create-failed-refunded: "Island creation failed, so the creati
 failure-code-create-in-progress: "An island creation request is already being processed."
 failure-code-route-ticket-unavailable: "Island creation was stopped because its route ticket could not be prepared. Any charged cost will be refunded."
 failure-code-failed-create-template-mismatch: "A failed island creation can only be retried with its original template."
+failure-code-paid-template-settlement-required: "Paid templates must be created through the payment-protected island creation menu."
 failure-code-insufficient-items: "The island warehouse does not have enough items."
 failure-code-insufficient-items-hint: " Check the warehouse amount or deposit items before trying again."
 failure-code-maintenance-hint: " Ask an administrator to review /ciadmin doctor."

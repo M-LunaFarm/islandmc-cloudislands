@@ -157,7 +157,12 @@ class CreateIslandWorkflowTest {
         ));
         CreateIslandWorkflow workflow = workflow(islands, runtimes, profiles, jobs, tickets, new RecordingEvents(), templates);
 
-        CreateIslandResult result = workflow.create(OWNER, "hardcore");
+        CreateIslandResult unapproved = workflow.create(OWNER, "hardcore");
+        assertFalse(unapproved.accepted());
+        assertEquals("PAID_TEMPLATE_SETTLEMENT_REQUIRED", unapproved.code());
+        assertTrue(jobs.snapshot().isEmpty());
+
+        CreateIslandResult result = workflow.create(OWNER, "hardcore", true);
 
         assertTrue(result.accepted());
         assertEquals(192, result.island().size());

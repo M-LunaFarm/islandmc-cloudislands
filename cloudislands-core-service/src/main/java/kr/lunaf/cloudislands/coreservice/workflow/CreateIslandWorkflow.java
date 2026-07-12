@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.coreservice.workflow;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -80,6 +81,10 @@ public final class CreateIslandWorkflow {
     }
 
     public CreateIslandResult create(UUID ownerUuid, String templateId) {
+        return create(ownerUuid, templateId, false);
+    }
+
+    public CreateIslandResult create(UUID ownerUuid, String templateId, boolean economySettlementManaged) {
         String normalizedTemplate = templateId == null || templateId.isBlank() ? "default" : templateId.trim().toLowerCase(Locale.ROOT);
         events.publish(CloudIslandEventType.ISLAND_PRE_CREATE.name(), Map.of("ownerUuid", ownerUuid.toString(), "templateId", normalizedTemplate));
         if (isMigrationInputOnlyTemplate(normalizedTemplate)) {
@@ -90,6 +95,10 @@ public final class CreateIslandWorkflow {
         if (template == null || !template.enabled()) {
             publishTicketFailure(ownerUuid, null, "TEMPLATE_UNAVAILABLE");
             return new CreateIslandResult(false, "TEMPLATE_UNAVAILABLE", null, null);
+        }
+        if (paidTemplate(template) && !economySettlementManaged) {
+            publishTicketFailure(ownerUuid, null, "PAID_TEMPLATE_SETTLEMENT_REQUIRED");
+            return new CreateIslandResult(false, "PAID_TEMPLATE_SETTLEMENT_REQUIRED", null, null);
         }
         RedisPlayerCreationLock.Lease lease = acquireCreationLock(ownerUuid);
         if (playerCreationLock != null && lease == null) {
@@ -247,6 +256,14 @@ public final class CreateIslandWorkflow {
 
     private static boolean isMigrationInputOnlyTemplate(String templateId) {
         return "superiorskyblock2".equalsIgnoreCase(templateId == null ? "" : templateId.trim());
+    }
+
+    private static boolean paidTemplate(IslandTemplateSnapshot template) {
+        try {
+            return new BigDecimal(template.creationCost()).signum() > 0;
+        } catch (RuntimeException exception) {
+            return true;
+        }
     }
 
     private static boolean placementMissing(kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot runtime) {

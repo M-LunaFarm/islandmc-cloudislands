@@ -180,7 +180,7 @@ final class IslandLifecycleCommandHandler {
                 if (!charged) {
                     return CompletableFuture.completedFuture(new CreateIslandResult(false, "ECONOMY_CHARGE_FAILED", null, null));
                 }
-                return creationUseCase.create(player.getUniqueId(), templateId, runtime::mutate)
+                return creationUseCase.createWithManagedEconomySettlement(player.getUniqueId(), templateId, runtime::mutate)
                     .thenCompose(result -> result.accepted()
                         ? CompletableFuture.completedFuture(result)
                         : refundCreateCost(player, creationCost, template.id()).thenApply(_ignored -> result)

@@ -32,10 +32,18 @@ public final class IslandCreationUseCase {
     }
 
     public CompletableFuture<CreateIslandResult> create(UUID playerUuid, String templateId, MutationRunner runner) {
+        return create(playerUuid, templateId, false, runner);
+    }
+
+    public CompletableFuture<CreateIslandResult> createWithManagedEconomySettlement(UUID playerUuid, String templateId, MutationRunner runner) {
+        return create(playerUuid, templateId, true, runner);
+    }
+
+    private CompletableFuture<CreateIslandResult> create(UUID playerUuid, String templateId, boolean economySettlementManaged, MutationRunner runner) {
         requirePlayer(playerUuid);
         requireRunner(runner);
         String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
-        return runner.mutate("island.create", () -> lifecycleCommands.createIsland(playerUuid, normalizedTemplateId));
+        return runner.mutate("island.create", () -> lifecycleCommands.createIsland(playerUuid, normalizedTemplateId, economySettlementManaged));
     }
 
     public CompletableFuture<DeleteIslandResult> delete(UUID playerUuid, UUID islandId, IdempotentMutationRunner runner) {

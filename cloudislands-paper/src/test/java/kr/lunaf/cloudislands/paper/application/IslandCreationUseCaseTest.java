@@ -23,12 +23,15 @@ class IslandCreationUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000020");
 
         assertEquals("CREATED", useCase.create(playerUuid, "", mutationRunner(calls)).join().code());
+        assertEquals("CREATED", useCase.createWithManagedEconomySettlement(playerUuid, "paid", mutationRunner(calls)).join().code());
         assertEquals(islandId, useCase.delete(playerUuid, islandId, idempotentRunner(calls)).join().islandId());
         assertEquals("RESET_QUEUED", useCase.resetAction(islandId, playerUuid, "", idempotentRunner(calls)).join().code());
 
         assertEquals(List.of(
             "audit:island.create",
-            "createIsland:default",
+            "createIsland:default:false",
+            "audit:island.create",
+            "createIsland:paid:true",
             "audit-idempotent:island.delete",
             "deleteIsland:" + islandId,
             "audit-idempotent:island.reset",
@@ -44,7 +47,7 @@ class IslandCreationUseCaseTest {
                 case "lifecycle" -> (IslandLifecycleCommandClient) _proxy;
                 case "createIsland" -> {
                     String templateId = args[1] == null || args[1].toString().isBlank() ? "default" : args[1].toString().trim();
-                    calls.add("createIsland:" + templateId);
+                    calls.add("createIsland:" + templateId + ":" + args[2]);
                     yield CompletableFuture.completedFuture(new CreateIslandResult(true, "CREATED", null, null));
                 }
                 case "deleteIsland" -> {

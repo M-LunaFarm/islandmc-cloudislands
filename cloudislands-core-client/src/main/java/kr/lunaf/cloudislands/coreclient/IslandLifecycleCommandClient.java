@@ -8,6 +8,10 @@ import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 public interface IslandLifecycleCommandClient {
     CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId);
 
+    default CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId, boolean economySettlementManaged) {
+        return createIsland(playerUuid, templateId);
+    }
+
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID playerUuid, UUID islandId);
 
     CompletableFuture<IslandLifecycleActionView> resetIsland(UUID islandId, UUID actorUuid, String reason);

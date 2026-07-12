@@ -18,9 +18,14 @@ final class JdkIslandLifecycleCommandClient implements IslandLifecycleCommandCli
 
     @Override
     public CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId) {
+        return createIsland(playerUuid, templateId, false);
+    }
+
+    @Override
+    public CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId, boolean economySettlementManaged) {
         requireId(playerUuid, "playerUuid");
         String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
-        return core.postBody("/v1/islands", CoreJsonPayload.object("playerUuid", playerUuid, "templateId", normalizedTemplateId))
+        return core.postBody("/v1/islands", CoreJsonPayload.object("playerUuid", playerUuid, "templateId", normalizedTemplateId, "economySettlementManaged", economySettlementManaged))
             .thenApply(CoreResponseBody::value)
             .thenApply(JdkIslandLifecycleCommandClient::createIslandResult);
     }

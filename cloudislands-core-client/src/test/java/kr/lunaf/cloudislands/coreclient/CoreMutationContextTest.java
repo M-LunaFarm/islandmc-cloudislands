@@ -149,7 +149,10 @@ class CoreMutationContextTest {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
 
             client.createIsland(playerUuid, "template\"one").join();
-            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"templateId\":\"template\\\"one\"}", requestBodies.get("create"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"templateId\":\"template\\\"one\",\"economySettlementManaged\":false}", requestBodies.get("create"));
+
+            client.lifecycle().createIsland(playerUuid, "paid", true).join();
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"templateId\":\"paid\",\"economySettlementManaged\":true}", requestBodies.get("create"));
 
             client.lifecycle().resetIsland(islandId, actorUuid, "reset \"reason\"").join();
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"reason\":\"reset \\\"reason\\\"\"}", requestBodies.get("reset"));
