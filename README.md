@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.98`
+Version: `1.1.99`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.98`
+Current release: `v1.1.99`
 
-Built for the CloudIslands 1.1.98 baseline.
+Built for the CloudIslands 1.1.99 baseline.
 
-Release notes for `v1.1.98`:
+Release notes for `v1.1.99`:
+
+- reliable ranking exclusions with Redis: admin ignore and unignore operations
+  now reach the durable ranking repository through the production cache wrapper
+- immediate ranking refresh: changing an exclusion bumps the shared ranking
+  cache version so previously cached level and worth boards cannot stay stale
+- fail-closed repository contract: ignore reads and writes are mandatory for
+  every ranking repository implementation instead of silently becoming no-ops
+- regression coverage verifies ignore and unignore behavior with the Redis
+  wrapper enabled even when Redis itself is temporarily unavailable
+
+Release notes carried forward from `v1.1.98`:
 
 - exact public-island page ordering: eligible islands are globally ordered by
   level descending, name, and stable ID before offset and limit are applied
@@ -1937,7 +1948,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.98`.
+Current read: production-readiness baseline `v1.1.99`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
