@@ -50,6 +50,27 @@ class DirtyRankingRecalculationTaskTest {
     }
 
     @Test
+    void emptyFullScanResetsAnExistingRankingSnapshotToZero() {
+        InMemoryRankingRepository rankings = new InMemoryRankingRepository();
+        InMemoryIslandLevelRepository levels = new InMemoryIslandLevelRepository();
+        DirtyRankingRecalculationTask task = task(rankings, levels, new InMemoryIslandMetadataRepository(), new InMemoryGlobalEventPublisher());
+
+        levels.putBlockValue("minecraft:diamond_block", new RankingRecalculationService.BlockValue(new BigDecimal("1000.00"), 10L, 0L));
+        levels.replaceBlockCounts(ISLAND, Map.of("minecraft:diamond_block", 250L));
+        rankings.markDirty(ISLAND);
+        task.runOnce();
+        assertEquals(new BigDecimal("250000.00"), rankings.topByWorth(10).get(0).worth());
+
+        levels.replaceBlockCounts(ISLAND, Map.of());
+        rankings.markDirty(ISLAND);
+        task.runOnce();
+
+        IslandRankSnapshot reset = rankings.topByWorth(10).get(0);
+        assertEquals(0L, reset.level());
+        assertEquals(0, BigDecimal.ZERO.compareTo(reset.worth()));
+    }
+
+    @Test
     void dirtyQueueProcessesOnlyBatchLimitPerRun() {
         InMemoryRankingRepository rankings = new InMemoryRankingRepository();
         InMemoryIslandLevelRepository levels = new InMemoryIslandLevelRepository();

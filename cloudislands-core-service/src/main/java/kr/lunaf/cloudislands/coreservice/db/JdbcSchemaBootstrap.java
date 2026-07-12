@@ -96,7 +96,12 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V75__player_disband_quota.sql",
         "/db/migration/V76__server_node_heartbeat_metadata.sql",
         "/db/migration/V77__island_permission_key_expansion.sql",
-        "/db/migration/V78__extensible_permission_key_guards.sql"
+        "/db/migration/V78__extensible_permission_key_guards.sql",
+        "/db/migration/V79__island_ranking_dirty_queue.sql"
+    };
+    private static final String[] MYSQL_MIGRATIONS = {
+        MYSQL_COMPATIBLE_SCHEMA_RESOURCE,
+        "/db/mysql/V2__island_ranking_dirty_queue.sql"
     };
 
     private enum Dialect {
@@ -111,7 +116,9 @@ public final class JdbcSchemaBootstrap {
         try (Connection connection = dataSource.getConnection()) {
             String productFamily = databaseProductFamily(connection.getMetaData().getDatabaseProductName());
             if ("MYSQL".equals(productFamily) || "MARIADB".equals(productFamily)) {
-                return apply(connection, Dialect.MYSQL, MYSQL_COMPATIBLE_SCHEMA_ID, MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
+                boolean applied = apply(connection, Dialect.MYSQL, MYSQL_COMPATIBLE_SCHEMA_ID, MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
+                applied |= apply(connection, Dialect.MYSQL, migrationId(MYSQL_MIGRATIONS[1]), MYSQL_MIGRATIONS[1]);
+                return applied;
             }
             if ("POSTGRESQL".equals(productFamily)) {
                 return applyAll(connection, Dialect.POSTGRESQL, POSTGRESQL_MIGRATIONS);
@@ -139,7 +146,7 @@ public final class JdbcSchemaBootstrap {
     public static String schemaResourceForProduct(String productName) {
         String productFamily = databaseProductFamily(productName);
         if ("MYSQL".equals(productFamily) || "MARIADB".equals(productFamily)) {
-            return MYSQL_COMPATIBLE_SCHEMA_RESOURCE;
+            return "mysql-compatible-migration-chain:" + MYSQL_MIGRATIONS.length;
         }
         if ("POSTGRESQL".equals(productFamily)) {
             return "postgresql-migration-chain:" + POSTGRESQL_MIGRATIONS.length;

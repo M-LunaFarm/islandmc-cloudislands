@@ -21,7 +21,7 @@ public final class JdbcRankingRepository implements RankingRepository {
     @Override
     public void markDirty(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_block_counts SET dirty = true WHERE island_id = ?")) {
+             PreparedStatement statement = connection.prepareStatement(RankingDirtyQueueSql.mark(mysqlLike(connection)))) {
             statement.setObject(1, islandId);
             statement.executeUpdate();
         } catch (SQLException exception) {
@@ -32,22 +32,33 @@ public final class JdbcRankingRepository implements RankingRepository {
     @Override
     public List<UUID> drainDirty(int limit) {
         List<UUID> result = new ArrayList<>();
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement select = connection.prepareStatement("SELECT DISTINCT island_id FROM island_block_counts WHERE dirty = true LIMIT ?")) {
-            select.setInt(1, Math.max(1, limit));
-            try (ResultSet rs = select.executeQuery()) {
-                while (rs.next()) {
-                    result.add((UUID) rs.getObject("island_id"));
+        try (Connection connection = dataSource.getConnection()) {
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try {
+                try (PreparedStatement select = connection.prepareStatement(RankingDirtyQueueSql.SELECT_FOR_DRAIN)) {
+                    select.setInt(1, Math.max(1, limit));
+                    try (ResultSet rs = select.executeQuery()) {
+                        while (rs.next()) {
+                            result.add(uuid(rs.getObject("island_id")));
+                        }
+                    }
                 }
-            }
-            try (PreparedStatement update = connection.prepareStatement("UPDATE island_block_counts SET dirty = false WHERE island_id = ?")) {
-                for (UUID islandId : result) {
-                    update.setObject(1, islandId);
-                    update.addBatch();
+                try (PreparedStatement delete = connection.prepareStatement(RankingDirtyQueueSql.DELETE)) {
+                    for (UUID islandId : result) {
+                        delete.setObject(1, islandId);
+                        delete.addBatch();
+                    }
+                    delete.executeBatch();
                 }
-                update.executeBatch();
+                connection.commit();
+                return result;
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
             }
-            return result;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to drain dirty island rankings", exception);
         }
@@ -56,12 +67,16 @@ public final class JdbcRankingRepository implements RankingRepository {
     @Override
     public long dirtyCount() {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT COUNT(DISTINCT island_id) FROM island_block_counts WHERE dirty = true");
+             PreparedStatement statement = connection.prepareStatement(RankingDirtyQueueSql.COUNT);
              ResultSet rs = statement.executeQuery()) {
             return rs.next() ? rs.getLong(1) : 0L;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to count dirty island rankings", exception);
         }
+    }
+
+    private UUID uuid(Object value) {
+        return value instanceof UUID uuid ? uuid : UUID.fromString(String.valueOf(value));
     }
 
     @Override

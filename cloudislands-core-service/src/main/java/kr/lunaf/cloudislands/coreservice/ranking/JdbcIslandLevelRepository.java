@@ -19,13 +19,23 @@ public final class JdbcIslandLevelRepository implements IslandLevelRepository {
 
     @Override
     public void addBlockDelta(UUID islandId, String materialKey, long delta) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(addBlockDeltaSql(connection))) {
-            statement.setObject(1, islandId);
-            statement.setString(2, materialKey);
-            statement.setLong(3, delta);
-            statement.setLong(4, delta);
-            statement.executeUpdate();
+        try (Connection connection = dataSource.getConnection()) {
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement(addBlockDeltaSql(connection))) {
+                statement.setObject(1, islandId);
+                statement.setString(2, materialKey);
+                statement.setLong(3, delta);
+                statement.setLong(4, delta);
+                statement.executeUpdate();
+                markRankingDirty(connection, islandId);
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
+            }
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to update island block count", exception);
         }
@@ -37,7 +47,7 @@ public final class JdbcIslandLevelRepository implements IslandLevelRepository {
             boolean autoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
             try (PreparedStatement delete = connection.prepareStatement("DELETE FROM island_block_counts WHERE island_id = ?");
-                 PreparedStatement insert = connection.prepareStatement("INSERT INTO island_block_counts(island_id, material_key, amount, dirty) VALUES (?, ?, ?, true)")) {
+                 PreparedStatement insert = connection.prepareStatement("INSERT INTO island_block_counts(island_id, material_key, amount) VALUES (?, ?, ?)")) {
                 delete.setObject(1, islandId);
                 delete.executeUpdate();
                 for (Map.Entry<String, Long> entry : counts.entrySet()) {
@@ -50,6 +60,7 @@ public final class JdbcIslandLevelRepository implements IslandLevelRepository {
                     insert.addBatch();
                 }
                 insert.executeBatch();
+                markRankingDirty(connection, islandId);
                 connection.commit();
             } catch (SQLException exception) {
                 connection.rollback();
@@ -114,9 +125,17 @@ public final class JdbcIslandLevelRepository implements IslandLevelRepository {
 
     private String addBlockDeltaSql(Connection connection) throws SQLException {
         if (mysqlLike(connection)) {
-            return "INSERT INTO island_block_counts(island_id, material_key, amount, dirty) VALUES (?, ?, GREATEST(0, ?), true) ON DUPLICATE KEY UPDATE amount = GREATEST(0, amount + ?), dirty = true, updated_at = now()";
+            return "INSERT INTO island_block_counts(island_id, material_key, amount) VALUES (?, ?, GREATEST(0, ?)) ON DUPLICATE KEY UPDATE amount = GREATEST(0, amount + ?), updated_at = now()";
         }
-        return "INSERT INTO island_block_counts(island_id, material_key, amount, dirty) VALUES (?, ?, GREATEST(0, ?), true) ON CONFLICT (island_id, material_key) DO UPDATE SET amount = GREATEST(0, island_block_counts.amount + ?), dirty = true, updated_at = now()";
+        return "INSERT INTO island_block_counts(island_id, material_key, amount) VALUES (?, ?, GREATEST(0, ?)) ON CONFLICT (island_id, material_key) DO UPDATE SET amount = GREATEST(0, island_block_counts.amount + ?), updated_at = now()";
+    }
+
+    private void markRankingDirty(Connection connection, UUID islandId) throws SQLException {
+        String sql = RankingDirtyQueueSql.mark(mysqlLike(connection));
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setObject(1, islandId);
+            statement.executeUpdate();
+        }
     }
 
     private String putBlockValueSql(Connection connection) throws SQLException {

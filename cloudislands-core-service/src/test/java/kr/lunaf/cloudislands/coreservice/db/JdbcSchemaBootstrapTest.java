@@ -22,19 +22,13 @@ class JdbcSchemaBootstrapTest {
         assertEquals("mariadb-uses-mysql-compatible-core-schema-bootstrap", JdbcSchemaBootstrap.MARIADB_SCHEMA_POLICY);
         assertEquals("/db/mysql/V1__cloudislands_mysql_schema.sql", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
         assertEquals("mysql-v1", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_ID);
-        assertEquals(
-            JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_RESOURCE,
-            JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server")
-        );
-        assertEquals(
-            JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_RESOURCE,
-            JdbcSchemaBootstrap.schemaResourceForProduct("MySQL")
-        );
+        assertEquals("mysql-compatible-migration-chain:2", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
+        assertEquals("mysql-compatible-migration-chain:2", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
     }
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
-        assertEquals("postgresql-migration-chain:78", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
+        assertEquals("postgresql-migration-chain:79", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
     }
 
