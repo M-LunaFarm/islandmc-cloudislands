@@ -330,8 +330,8 @@ public final class ContractService {
         long previousResearch = island.researchPoints();
         long previousReputation = island.reputation();
         long previousDebt = island.maintenanceDebt();
-        island.researchPoints(island.researchPoints() + template.research());
-        island.reputation(island.reputation() + template.reputation());
+        island.addResearchPoints(template.research());
+        island.addReputation(template.reputation());
         if (template.debtRelief() > 0 && maintenanceEnabled()) {
             island.maintenanceDebt(Math.max(0, island.maintenanceDebt() - template.debtRelief()));
         }

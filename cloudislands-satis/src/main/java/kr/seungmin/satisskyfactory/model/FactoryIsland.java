@@ -62,7 +62,12 @@ public final class FactoryIsland {
     }
 
     public void researchPoints(long researchPoints) {
-        this.researchPoints = researchPoints;
+        this.researchPoints = Math.max(0L, researchPoints);
+    }
+
+    public long addResearchPoints(long amount) {
+        researchPoints = saturatingNonNegativeAdd(researchPoints, amount);
+        return researchPoints;
     }
 
     public long reputation() {
@@ -70,7 +75,12 @@ public final class FactoryIsland {
     }
 
     public void reputation(long reputation) {
-        this.reputation = reputation;
+        this.reputation = Math.max(0L, reputation);
+    }
+
+    public long addReputation(long amount) {
+        reputation = saturatingNonNegativeAdd(reputation, amount);
+        return reputation;
     }
 
     public long maintenanceDebt() {
@@ -78,7 +88,20 @@ public final class FactoryIsland {
     }
 
     public void maintenanceDebt(long maintenanceDebt) {
-        this.maintenanceDebt = maintenanceDebt;
+        this.maintenanceDebt = Math.max(0L, maintenanceDebt);
+    }
+
+    public long addMaintenanceDebt(long amount) {
+        maintenanceDebt = saturatingNonNegativeAdd(maintenanceDebt, amount);
+        return maintenanceDebt;
+    }
+
+    private static long saturatingNonNegativeAdd(long current, long amount) {
+        try {
+            return Math.max(0L, Math.addExact(current, amount));
+        } catch (ArithmeticException overflow) {
+            return amount > 0L ? Long.MAX_VALUE : 0L;
+        }
     }
 
     public MaintenanceStatus maintenanceStatus() {

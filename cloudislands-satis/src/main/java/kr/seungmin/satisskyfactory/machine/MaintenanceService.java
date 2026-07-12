@@ -152,7 +152,8 @@ public final class MaintenanceService {
         double paid = economy.withdrawMaintenance(owner, rawIsland, due);
         long shortage = Math.max(0, due - Math.round(paid));
         if (shortage > 0) {
-            island.maintenanceDebt(Math.min(debtLimit(due), island.maintenanceDebt() + shortage));
+            island.addMaintenanceDebt(shortage);
+            island.maintenanceDebt(Math.min(debtLimit(due), island.maintenanceDebt()));
         } else {
             island.maintenanceDebt(Math.max(0, island.maintenanceDebt() - Math.round(paid - due)));
         }

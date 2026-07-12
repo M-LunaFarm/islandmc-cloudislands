@@ -107,7 +107,7 @@ public final class ResearchService {
         if (amount <= 0) {
             return false;
         }
-        island.researchPoints(Math.max(0, island.researchPoints() + amount));
+        island.addResearchPoints(amount);
         return true;
     }
 
