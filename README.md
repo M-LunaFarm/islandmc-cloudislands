@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.112`
+Version: `1.1.113`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.112`
+Current release: `v1.1.113`
 
-Built for the CloudIslands 1.1.112 baseline.
+Built for the CloudIslands 1.1.113 baseline.
 
-Release notes for `v1.1.112`:
+Release notes for `v1.1.113`:
+
+- overflow-safe ranking math: extreme block counts and configured level points
+  now saturate at `BIGINT` capacity instead of wrapping into invalid values
+- database-safe island worth: calculated worth is normalized to `DECIMAL(20,2)`
+  precision and capped before snapshot persistence, preventing endless dirty
+  retries caused by numeric overflow
+- cache/event consistency: per-block worth is normalized before calculation so
+  in-memory, Redis, event payloads, PostgreSQL, and MySQL snapshots agree
+- MySQL/MariaDB ranking reads now convert `CHAR(36)` island identifiers instead
+  of assuming the JDBC driver returns PostgreSQL-style UUID objects
+
+Release notes carried forward from `v1.1.112`:
 
 - empty-island ranking correctness: clearing every counted block now queues a
   durable recalculation and resets stale level/worth snapshots to zero
@@ -2105,7 +2117,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.112`.
+Current read: production-readiness baseline `v1.1.113`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,

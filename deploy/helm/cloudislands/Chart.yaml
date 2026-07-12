@@ -3,4 +3,4 @@ name: cloudislands
 description: CloudIslands distributed Skyblock control plane and runtime nodes
 type: application
 version: 0.1.0
-appVersion: 1.1.112
+appVersion: 1.1.113
