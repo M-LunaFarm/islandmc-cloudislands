@@ -60,11 +60,11 @@ class CachingIslandTemplateRepositoryTest {
         assertTrue(CachingIslandTemplateRepository.decodeCached("not-a-template-row").isEmpty());
 
         IslandTemplateSnapshot template = new IslandTemplateSnapshot("classic", "Classic", true, "1.21");
+        String encoded = CachingIslandTemplateRepository.encode(List.of(template));
+        assertTrue(CachingIslandTemplateRepository.decodeCached(encoded + "corrupt-row\n").isEmpty());
         assertEquals(
             List.of(template),
-            CachingIslandTemplateRepository.decodeCached(
-                CachingIslandTemplateRepository.encode(List.of(template))
-            ).orElseThrow()
+            CachingIslandTemplateRepository.decodeCached(encoded).orElseThrow()
         );
     }
 }

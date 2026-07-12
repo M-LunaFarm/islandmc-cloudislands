@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.coreservice.redis.RedisListCachePayload;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingIslandUpgradeRepository implements IslandUpgradeRepository {
@@ -79,7 +80,7 @@ public final class CachingIslandUpgradeRepository implements IslandUpgradeReposi
                 return Optional.empty();
             }
             List<IslandUpgradeSnapshot> parsed = parse(value);
-            return parsed.isEmpty() ? Optional.empty() : Optional.of(parsed);
+            return RedisListCachePayload.complete(value, parsed);
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
             return Optional.empty();

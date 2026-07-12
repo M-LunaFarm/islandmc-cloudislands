@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.coreservice.redis.RedisListCachePayload;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingIslandLogRepository implements IslandLogRepository {
@@ -67,7 +68,7 @@ public final class CachingIslandLogRepository implements IslandLogRepository {
                 return Optional.empty();
             }
             List<IslandLogRecord> parsed = parse(value);
-            return parsed.isEmpty() ? Optional.empty() : Optional.of(parsed);
+            return RedisListCachePayload.complete(value, parsed);
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
             return Optional.empty();

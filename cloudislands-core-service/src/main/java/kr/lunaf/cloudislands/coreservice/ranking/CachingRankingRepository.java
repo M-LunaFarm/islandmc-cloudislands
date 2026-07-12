@@ -11,6 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.coreservice.redis.RedisListCachePayload;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingRankingRepository implements RankingRepository {
@@ -114,7 +115,7 @@ public final class CachingRankingRepository implements RankingRepository {
                 return Optional.empty();
             }
             List<IslandRankSnapshot> parsed = parse(value);
-            return parsed.isEmpty() ? Optional.empty() : Optional.of(parsed);
+            return RedisListCachePayload.complete(value, parsed);
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
             return Optional.empty();

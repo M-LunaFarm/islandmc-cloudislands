@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.coreservice.redis.RedisListCachePayload;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingIslandMissionRepository implements IslandMissionRepository {
@@ -138,7 +139,7 @@ public final class CachingIslandMissionRepository implements IslandMissionReposi
                 return Optional.empty();
             }
             List<IslandMissionSnapshot> parsed = parse(value);
-            return parsed.isEmpty() ? Optional.empty() : Optional.of(parsed);
+            return RedisListCachePayload.complete(value, parsed);
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
             return Optional.empty();

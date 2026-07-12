@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.coreservice.redis.RedisListCachePayload;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 
 public final class CachingIslandTemplateRepository implements IslandTemplateRepository {
@@ -144,7 +145,7 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
             return Optional.empty();
         }
         List<IslandTemplateSnapshot> parsed = parse(value);
-        return parsed.isEmpty() ? Optional.empty() : Optional.of(parsed);
+        return RedisListCachePayload.complete(value, parsed);
     }
 
     static List<IslandTemplateSnapshot> parse(String value) {

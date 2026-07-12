@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.common.failure.RedisOutagePolicy;
+import kr.lunaf.cloudislands.coreservice.redis.RedisListCachePayload;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
@@ -117,7 +118,7 @@ public final class CachingIslandSnapshotRepository implements IslandSnapshotRepo
                 return Optional.empty();
             }
             List<IslandSnapshotRecord> parsed = parse(value);
-            return parsed.isEmpty() ? Optional.empty() : Optional.of(parsed);
+            return RedisListCachePayload.complete(value, parsed);
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
             return Optional.empty();
