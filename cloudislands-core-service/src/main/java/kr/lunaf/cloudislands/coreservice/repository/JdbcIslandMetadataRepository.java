@@ -795,8 +795,8 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 connection.rollback();
                 return "ISLAND_NOT_FOUND";
             }
-            if (!namedResourceExists(connection, "island_warps", islandId, normalizedName)
-                && namedResourceCount(connection, "island_warps", islandId) >= Math.max(0L, maxWarps)) {
+            boolean existingWarp = namedResourceExists(connection, "island_warps", islandId, normalizedName);
+            if (!existingWarp && namedResourceCount(connection, "island_warps", islandId) >= Math.max(0L, maxWarps)) {
                 connection.rollback();
                 return "WARP_LIMIT";
             }
@@ -815,7 +815,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 statement.executeUpdate();
             }
             connection.commit();
-            return "APPLIED";
+            return existingWarp ? "UPDATED" : "CREATED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to upsert island warp within limit", exception);
         }

@@ -307,11 +307,12 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     public synchronized String upsertWarpWithLimit(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category, long maxWarps) {
         Map<String, IslandWarpSnapshot> islandWarps = warps.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
         String normalizedName = normalizeResourceName(name);
-        if (!islandWarps.containsKey(normalizedName) && islandWarps.size() >= Math.max(0L, maxWarps)) {
+        boolean existingWarp = islandWarps.containsKey(normalizedName);
+        if (!existingWarp && islandWarps.size() >= Math.max(0L, maxWarps)) {
             return "WARP_LIMIT";
         }
         upsertWarp(islandId, normalizedName, location, publicAccess, createdBy, category);
-        return "APPLIED";
+        return existingWarp ? "UPDATED" : "CREATED";
     }
 
     @Override

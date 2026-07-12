@@ -143,14 +143,15 @@ public final class IslandWarpRoutes implements RouteGroup {
             islandId, name, warpLocation, publicAccess, actorUuid, category,
             limitValue(islandId, "WARPS", 1L)
         );
-        if (!"APPLIED".equals(result)) {
+        if (!result.equals("APPLIED") && !result.equals("CREATED") && !result.equals("UPDATED")) {
             String message = result.equals("WARP_LIMIT") ? "Island warp limit was reached" : "Island was not found";
             CoreHttpResponses.write(exchange, 409, ApiResponses.error(result, message));
             return;
         }
+        boolean createdWarp = result.equals("CREATED") || result.equals("APPLIED") && !existingWarp;
         audit.log(actorUuid, "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess), "category", IslandWarpSnapshot.normalizeCategory(category)));
         islandLogs.append(islandId, actorUuid, "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess), "category", IslandWarpSnapshot.normalizeCategory(category)));
-        if (!existingWarp) {
+        if (createdWarp) {
             events.publish(CloudIslandEventType.ISLAND_WARP_CREATED.name(), Map.of(
                 "islandId", islandId.toString(),
                 "name", name,
@@ -163,7 +164,7 @@ public final class IslandWarpRoutes implements RouteGroup {
                 "category", IslandWarpSnapshot.normalizeCategory(category)
             ));
         }
-        events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", existingWarp ? "WARP_UPDATE" : "WARP_CREATE", "category", IslandWarpSnapshot.normalizeCategory(category)));
+        events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", createdWarp ? "WARP_CREATE" : "WARP_UPDATE", "category", IslandWarpSnapshot.normalizeCategory(category)));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
 
