@@ -23,7 +23,10 @@ public final class InMemoryIslandLevelRepository implements IslandLevelRepositor
 
     @Override
     public void addBlockDelta(UUID islandId, String materialKey, long delta) {
-        counts.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).merge(materialKey, delta, (current, change) -> Math.max(0L, current + change));
+        counts.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
+            .compute(materialKey, (_key, current) -> current == null
+                ? Math.max(0L, delta)
+                : saturatingNonNegativeAdd(current, delta));
     }
 
     @Override
@@ -53,5 +56,13 @@ public final class InMemoryIslandLevelRepository implements IslandLevelRepositor
             return;
         }
         values.put(materialKey.trim(), value);
+    }
+
+    private static long saturatingNonNegativeAdd(long current, long delta) {
+        try {
+            return Math.max(0L, Math.addExact(current, delta));
+        } catch (ArithmeticException overflow) {
+            return delta > 0L ? Long.MAX_VALUE : 0L;
+        }
     }
 }

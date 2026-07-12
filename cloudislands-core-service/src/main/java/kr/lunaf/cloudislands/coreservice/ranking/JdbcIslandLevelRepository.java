@@ -125,9 +125,9 @@ public final class JdbcIslandLevelRepository implements IslandLevelRepository {
 
     private String addBlockDeltaSql(Connection connection) throws SQLException {
         if (mysqlLike(connection)) {
-            return "INSERT INTO island_block_counts(island_id, material_key, amount) VALUES (?, ?, GREATEST(0, ?)) ON DUPLICATE KEY UPDATE amount = GREATEST(0, amount + ?), updated_at = now()";
+            return "INSERT INTO island_block_counts(island_id, material_key, amount) VALUES (?, ?, GREATEST(0, ?)) ON DUPLICATE KEY UPDATE amount = CAST(LEAST(9223372036854775807, GREATEST(0, CAST(amount AS DECIMAL(20,0)) + CAST(? AS DECIMAL(20,0)))) AS SIGNED), updated_at = now()";
         }
-        return "INSERT INTO island_block_counts(island_id, material_key, amount) VALUES (?, ?, GREATEST(0, ?)) ON CONFLICT (island_id, material_key) DO UPDATE SET amount = GREATEST(0, island_block_counts.amount + ?), updated_at = now()";
+        return "INSERT INTO island_block_counts(island_id, material_key, amount) VALUES (?, ?, GREATEST(0, ?)) ON CONFLICT (island_id, material_key) DO UPDATE SET amount = CAST(LEAST(9223372036854775807, GREATEST(0, CAST(island_block_counts.amount AS NUMERIC) + CAST(? AS NUMERIC))) AS BIGINT), updated_at = now()";
     }
 
     private void markRankingDirty(Connection connection, UUID islandId) throws SQLException {
