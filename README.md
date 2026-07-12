@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.120`
+Version: `1.1.121`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.120`
+Current release: `v1.1.121`
 
-Built for the CloudIslands 1.1.120 baseline.
+Built for the CloudIslands 1.1.121 baseline.
 
-Release notes for `v1.1.120`:
+Release notes for `v1.1.121`:
+
+- concurrency-safe monotonic limits: upgrade effects now use an atomic
+  repository-level `setAtLeast` operation instead of read-then-set
+- PostgreSQL conditional upserts and MySQL/MariaDB `GREATEST` upserts preserve
+  a higher concurrent mission or administrative grant
+- lower requests leave both the stored limit and its authoritative updater
+  unchanged
+- Redis limit caches are invalidated after writes instead of replacing them
+  with a potentially stale full-list snapshot
+- a 1,000-writer concurrency regression proves convergence to the highest limit
+
+Release notes carried forward from `v1.1.120`:
 
 - monotonic upgrade effects: applying or recalculating a limit upgrade never
   reduces capacity already earned from missions or granted by administrators
@@ -2193,7 +2205,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.120`.
+Current read: production-readiness baseline `v1.1.121`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
