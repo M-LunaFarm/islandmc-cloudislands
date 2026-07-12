@@ -115,8 +115,11 @@ public interface IslandMetadataRepository {
     }
     void setWarpPublicAccess(UUID islandId, String name, boolean publicAccess);
     default boolean setWarpPublicAccessResult(UUID islandId, String name, boolean publicAccess) {
+        return !"WARP_NOT_FOUND".equals(setWarpPublicAccessMutationResult(islandId, name, publicAccess));
+    }
+    default String setWarpPublicAccessMutationResult(UUID islandId, String name, boolean publicAccess) {
         setWarpPublicAccess(islandId, name, publicAccess);
-        return true;
+        return "APPLIED";
     }
     void deleteWarp(UUID islandId, String name);
     default boolean deleteWarpResult(UUID islandId, String name) {

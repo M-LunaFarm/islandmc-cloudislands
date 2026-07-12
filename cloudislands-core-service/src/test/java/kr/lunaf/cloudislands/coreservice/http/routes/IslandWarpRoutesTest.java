@@ -84,17 +84,63 @@ class IslandWarpRoutesTest {
         UUID actorUuid = UUID.randomUUID();
         IslandLocation location = new IslandLocation("world", 0.5D, 80.0D, 0.5D, 0.0F, 0.0F);
 
-        assertTrue(!metadata.setWarpPublicAccessResult(islandId, "missing", true));
+        assertEquals("WARP_NOT_FOUND", metadata.setWarpPublicAccessMutationResult(islandId, "missing", true));
         assertTrue(!metadata.deleteWarpResult(islandId, "missing"));
         metadata.upsertWarp(islandId, "shop", location, false, actorUuid, "market");
-        assertTrue(metadata.setWarpPublicAccessResult(islandId, "shop", true));
+        assertEquals("APPLIED", metadata.setWarpPublicAccessMutationResult(islandId, "shop", true));
+        assertEquals("UNCHANGED", metadata.setWarpPublicAccessMutationResult(islandId, "shop", true));
         assertTrue(metadata.warp(islandId, "shop").orElseThrow().publicAccess());
         assertTrue(metadata.deleteWarpResult(islandId, "shop"));
         assertTrue(!metadata.deleteWarpResult(islandId, "shop"));
 
         String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandWarpRoutes.java"));
         assertEquals(2, routes.split(java.util.regex.Pattern.quote("metadataRepository.deleteWarpResult(islandId, name)"), -1).length - 1);
-        assertTrue(routes.contains("metadataRepository.setWarpPublicAccessResult(islandId, name, publicAccess)"));
+        assertTrue(routes.contains("metadataRepository.setWarpPublicAccessMutationResult(islandId, name, publicAccess)"));
+
+        String jdbc = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        int operation = jdbc.indexOf("public String setWarpPublicAccessMutationResult(");
+        int nextMethod = jdbc.indexOf("\n    @Override", operation + 20);
+        String transaction = jdbc.substring(operation, nextMethod);
+        assertTrue(transaction.contains("SELECT public_access FROM island_warps WHERE island_id = ? AND name = ? FOR UPDATE"));
+        assertTrue(transaction.contains("return \"UNCHANGED\";"));
+        assertTrue(transaction.contains("return \"WARP_NOT_FOUND\";"));
+        assertTrue(transaction.contains("connection.commit();"));
+    }
+
+    @Test
+    void repeatedWarpAccessSkipsDuplicateLogsAndEvents() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000311");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000312");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Warp Access Test");
+        metadata.upsertWarp(islandId, "shop", new IslandLocation("world", 1.0D, 65.0D, 2.0D, 90.0F, 0.0F), false, ownerUuid, "shop");
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandWarpRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            logs,
+            audit,
+            events
+        ).register(handlers::put);
+
+        TestExchange changed = exchange("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + ownerUuid + "\",\"name\":\"shop\",\"publicAccess\":true}");
+        handlers.get("/v1/islands/warps/access").handle(changed);
+        TestExchange unchanged = exchange("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + ownerUuid + "\",\"name\":\"shop\",\"publicAccess\":true}");
+        handlers.get("/v1/islands/warps/access").handle(unchanged);
+
+        assertEquals(202, changed.status());
+        assertTrue(changed.body().contains("\"code\":\"WARP_PUBLIC\""));
+        assertEquals(200, unchanged.status());
+        assertTrue(unchanged.body().contains("\"code\":\"WARP_PUBLIC\""));
+        assertEquals(1, logs.list(islandId, 10).size());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_WARP_CHANGED.name()));
+        assertEquals(1, audit.toJson().split("ISLAND_WARP_ACCESS_SET", -1).length - 1);
     }
 
     @Test

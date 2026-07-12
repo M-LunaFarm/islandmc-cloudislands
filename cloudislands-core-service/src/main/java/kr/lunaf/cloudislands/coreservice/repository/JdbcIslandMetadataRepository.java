@@ -1003,12 +1003,41 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public boolean setWarpPublicAccessResult(UUID islandId, String name, boolean publicAccess) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_warps SET public_access = ? WHERE island_id = ? AND name = ?")) {
-            statement.setBoolean(1, publicAccess);
-            statement.setObject(2, islandId);
-            statement.setString(3, normalizeResourceName(name));
-            return statement.executeUpdate() > 0;
+        return !"WARP_NOT_FOUND".equals(setWarpPublicAccessMutationResult(islandId, name, publicAccess));
+    }
+
+    @Override
+    public String setWarpPublicAccessMutationResult(UUID islandId, String name, boolean publicAccess) {
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            String normalizedName = normalizeResourceName(name);
+            boolean currentAccess;
+            try (PreparedStatement current = connection.prepareStatement("SELECT public_access FROM island_warps WHERE island_id = ? AND name = ? FOR UPDATE")) {
+                current.setObject(1, islandId);
+                current.setString(2, normalizedName);
+                try (ResultSet result = current.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        return "WARP_NOT_FOUND";
+                    }
+                    currentAccess = result.getBoolean("public_access");
+                }
+            }
+            if (currentAccess == publicAccess) {
+                connection.commit();
+                return "UNCHANGED";
+            }
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE island_warps SET public_access = ? WHERE island_id = ? AND name = ?")) {
+                statement.setBoolean(1, publicAccess);
+                statement.setObject(2, islandId);
+                statement.setString(3, normalizedName);
+                if (statement.executeUpdate() == 0) {
+                    connection.rollback();
+                    return "WARP_NOT_FOUND";
+                }
+            }
+            connection.commit();
+            return "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to update island warp access", exception);
         }

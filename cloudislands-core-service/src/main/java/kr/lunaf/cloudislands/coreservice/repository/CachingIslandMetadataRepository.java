@@ -372,9 +372,16 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     @Override
     public boolean setWarpPublicAccessResult(UUID islandId, String name, boolean publicAccess) {
-        boolean updated = delegate.setWarpPublicAccessResult(islandId, name, publicAccess);
-        cacheWarps(islandId, delegate.warps(islandId));
-        return updated;
+        return !"WARP_NOT_FOUND".equals(setWarpPublicAccessMutationResult(islandId, name, publicAccess));
+    }
+
+    @Override
+    public String setWarpPublicAccessMutationResult(UUID islandId, String name, boolean publicAccess) {
+        String result = delegate.setWarpPublicAccessMutationResult(islandId, name, publicAccess);
+        if ("APPLIED".equals(result)) {
+            cacheWarps(islandId, delegate.warps(islandId));
+        }
+        return result;
     }
 
     @Override

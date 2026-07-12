@@ -220,18 +220,20 @@ public final class IslandWarpRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
             return;
         }
-        if (metadataRepository.warp(islandId, name).isEmpty()) {
+        String result = metadataRepository.setWarpPublicAccessMutationResult(islandId, name, publicAccess);
+        if ("WARP_NOT_FOUND".equals(result)) {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
             return;
         }
-        if (!metadataRepository.setWarpPublicAccessResult(islandId, name, publicAccess)) {
-            CoreHttpResponses.write(exchange, 404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
+        String code = publicAccess ? "WARP_PUBLIC" : "WARP_PRIVATE";
+        if ("UNCHANGED".equals(result)) {
+            CoreHttpResponses.write(exchange, 200, SimpleJson.stringify(Map.of("accepted", true, "code", code)));
             return;
         }
         audit.log(actorUuid, "PLAYER", "ISLAND_WARP_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
         islandLogs.append(islandId, actorUuid, "ISLAND_WARP_ACCESS_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
         events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", "WARP_ACCESS_SET", "publicAccess", Boolean.toString(publicAccess)));
-        CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+        CoreHttpResponses.write(exchange, 202, SimpleJson.stringify(Map.of("accepted", true, "code", code)));
     }
 
     private boolean requireIslandPermission(HttpExchange exchange, UUID islandId, UUID actorUuid, IslandPermission permission) throws IOException {

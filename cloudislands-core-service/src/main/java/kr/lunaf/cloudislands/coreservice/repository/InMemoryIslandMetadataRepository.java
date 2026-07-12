@@ -413,19 +413,33 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public boolean setWarpPublicAccessResult(UUID islandId, String name, boolean publicAccess) {
+        return !"WARP_NOT_FOUND".equals(setWarpPublicAccessMutationResult(islandId, name, publicAccess));
+    }
+
+    @Override
+    public synchronized String setWarpPublicAccessMutationResult(UUID islandId, String name, boolean publicAccess) {
         Map<String, IslandWarpSnapshot> islandWarps = warps.get(islandId);
         if (islandWarps == null) {
-            return false;
+            return "WARP_NOT_FOUND";
         }
-        return islandWarps.computeIfPresent(normalizeResourceName(name), (_key, warp) -> new IslandWarpSnapshot(
-            warp.islandId(),
-            warp.name(),
-            warp.location(),
+        String normalizedName = normalizeResourceName(name);
+        IslandWarpSnapshot current = islandWarps.get(normalizedName);
+        if (current == null) {
+            return "WARP_NOT_FOUND";
+        }
+        if (current.publicAccess() == publicAccess) {
+            return "UNCHANGED";
+        }
+        islandWarps.put(normalizedName, new IslandWarpSnapshot(
+            current.islandId(),
+            current.name(),
+            current.location(),
             publicAccess,
-            warp.createdBy(),
-            warp.createdAt(),
-            warp.category()
-        )) != null;
+            current.createdBy(),
+            current.createdAt(),
+            current.category()
+        ));
+        return "APPLIED";
     }
 
     @Override
