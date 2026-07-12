@@ -20,6 +20,7 @@ final class IslandCommandMessages {
         Map.entry("ROUTE_TICKET_UNAVAILABLE", "failure-code-route-ticket-unavailable"),
         Map.entry("FAILED_CREATE_TEMPLATE_MISMATCH", "failure-code-failed-create-template-mismatch"),
         Map.entry("PAID_TEMPLATE_SETTLEMENT_REQUIRED", "failure-code-paid-template-settlement-required"),
+        Map.entry("PAID_TEMPLATE_PRICE_CHANGED", "failure-code-paid-template-price-changed"),
         Map.entry("TEMPLATE_PERMISSION_DENIED", "failure-code-template-permission-denied")
     );
 

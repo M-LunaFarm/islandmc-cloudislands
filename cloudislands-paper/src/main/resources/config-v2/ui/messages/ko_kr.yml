@@ -132,6 +132,7 @@ failure-code-create-in-progress: "이미 섬 생성 요청을 처리하고 있�
 failure-code-route-ticket-unavailable: "이동 티켓을 준비하지 못해 섬 생성을 중단했습니다. 결제 금액이 있었다면 환불됩니다."
 failure-code-failed-create-template-mismatch: "실패한 섬 생성은 처음 선택한 템플릿으로만 재시도할 수 있습니다."
 failure-code-paid-template-settlement-required: "유료 템플릿은 결제 보호가 적용된 섬 생성 메뉴에서 생성해야 합니다."
+failure-code-paid-template-price-changed: "결제 중 템플릿 가격이 변경되어 금액을 환불했습니다. 최신 가격을 확인한 뒤 다시 시도해주세요."
 failure-code-insufficient-items: "섬 창고 수량이 부족합니다."
 failure-code-insufficient-items-hint: " 창고 수량을 확인하거나 입금 후 다시 시도하세요."
 failure-code-maintenance-hint: " 관리자에게 /ciadmin doctor 결과를 확인해달라고 요청하세요."

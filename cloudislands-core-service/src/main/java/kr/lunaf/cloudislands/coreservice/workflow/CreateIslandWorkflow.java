@@ -85,6 +85,10 @@ public final class CreateIslandWorkflow {
     }
 
     public CreateIslandResult create(UUID ownerUuid, String templateId, boolean economySettlementManaged) {
+        return create(ownerUuid, templateId, economySettlementManaged, "");
+    }
+
+    public CreateIslandResult create(UUID ownerUuid, String templateId, boolean economySettlementManaged, String settledCreationCost) {
         String normalizedTemplate = templateId == null || templateId.isBlank() ? "default" : templateId.trim().toLowerCase(Locale.ROOT);
         events.publish(CloudIslandEventType.ISLAND_PRE_CREATE.name(), Map.of("ownerUuid", ownerUuid.toString(), "templateId", normalizedTemplate));
         if (isMigrationInputOnlyTemplate(normalizedTemplate)) {
@@ -99,6 +103,10 @@ public final class CreateIslandWorkflow {
         if (paidTemplate(template) && !economySettlementManaged) {
             publishTicketFailure(ownerUuid, null, "PAID_TEMPLATE_SETTLEMENT_REQUIRED");
             return new CreateIslandResult(false, "PAID_TEMPLATE_SETTLEMENT_REQUIRED", null, null);
+        }
+        if (paidTemplate(template) && !settledCostMatches(template, settledCreationCost)) {
+            publishTicketFailure(ownerUuid, null, "PAID_TEMPLATE_PRICE_CHANGED");
+            return new CreateIslandResult(false, "PAID_TEMPLATE_PRICE_CHANGED", null, null);
         }
         RedisPlayerCreationLock.Lease lease = acquireCreationLock(ownerUuid);
         if (playerCreationLock != null && lease == null) {
@@ -263,6 +271,16 @@ public final class CreateIslandWorkflow {
             return new BigDecimal(template.creationCost()).signum() > 0;
         } catch (RuntimeException exception) {
             return true;
+        }
+    }
+
+    private static boolean settledCostMatches(IslandTemplateSnapshot template, String settledCreationCost) {
+        try {
+            BigDecimal configured = new BigDecimal(template.creationCost());
+            BigDecimal settled = new BigDecimal(settledCreationCost == null ? "" : settledCreationCost.trim());
+            return configured.signum() > 0 && configured.compareTo(settled) == 0;
+        } catch (RuntimeException exception) {
+            return false;
         }
     }
 

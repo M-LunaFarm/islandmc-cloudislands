@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.application;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
@@ -32,18 +33,21 @@ public final class IslandCreationUseCase {
     }
 
     public CompletableFuture<CreateIslandResult> create(UUID playerUuid, String templateId, MutationRunner runner) {
-        return create(playerUuid, templateId, false, runner);
+        return create(playerUuid, templateId, false, "", runner);
     }
 
-    public CompletableFuture<CreateIslandResult> createWithManagedEconomySettlement(UUID playerUuid, String templateId, MutationRunner runner) {
-        return create(playerUuid, templateId, true, runner);
+    public CompletableFuture<CreateIslandResult> createWithManagedEconomySettlement(UUID playerUuid, String templateId, BigDecimal settledCreationCost, MutationRunner runner) {
+        if (settledCreationCost == null || settledCreationCost.signum() <= 0) {
+            throw new IllegalArgumentException("settledCreationCost must be positive");
+        }
+        return create(playerUuid, templateId, true, settledCreationCost.toPlainString(), runner);
     }
 
-    private CompletableFuture<CreateIslandResult> create(UUID playerUuid, String templateId, boolean economySettlementManaged, MutationRunner runner) {
+    private CompletableFuture<CreateIslandResult> create(UUID playerUuid, String templateId, boolean economySettlementManaged, String settledCreationCost, MutationRunner runner) {
         requirePlayer(playerUuid);
         requireRunner(runner);
         String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
-        return runner.mutate("island.create", () -> lifecycleCommands.createIsland(playerUuid, normalizedTemplateId, economySettlementManaged));
+        return runner.mutate("island.create", () -> lifecycleCommands.createIsland(playerUuid, normalizedTemplateId, economySettlementManaged, settledCreationCost));
     }
 
     public CompletableFuture<DeleteIslandResult> delete(UUID playerUuid, UUID islandId, IdempotentMutationRunner runner) {

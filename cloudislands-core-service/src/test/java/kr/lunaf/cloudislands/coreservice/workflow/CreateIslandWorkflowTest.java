@@ -162,7 +162,11 @@ class CreateIslandWorkflowTest {
         assertEquals("PAID_TEMPLATE_SETTLEMENT_REQUIRED", unapproved.code());
         assertTrue(jobs.snapshot().isEmpty());
 
-        CreateIslandResult result = workflow.create(OWNER, "hardcore", true);
+        CreateIslandResult staleQuote = workflow.create(OWNER, "hardcore", true, "200");
+        assertFalse(staleQuote.accepted());
+        assertEquals("PAID_TEMPLATE_PRICE_CHANGED", staleQuote.code());
+
+        CreateIslandResult result = workflow.create(OWNER, "hardcore", true, "250.00");
 
         assertTrue(result.accepted());
         assertEquals(192, result.island().size());

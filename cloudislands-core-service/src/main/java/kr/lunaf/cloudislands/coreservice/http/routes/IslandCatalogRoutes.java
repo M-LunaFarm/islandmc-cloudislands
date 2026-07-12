@@ -82,7 +82,8 @@ public final class IslandCatalogRoutes implements RouteGroup {
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         String templateId = JsonFields.text(body, "templateId", "default");
         boolean economySettlementManaged = JsonFields.bool(body, "economySettlementManaged", false);
-        CreateIslandResult result = createIsland.create(playerUuid, templateId, economySettlementManaged);
+        String settledCreationCost = JsonFields.text(body, "settledCreationCost", "");
+        CreateIslandResult result = createIsland.create(playerUuid, templateId, economySettlementManaged, settledCreationCost);
         if (result.accepted() && result.island() != null) {
             metadataRepository.upsertMemberKey(result.island().islandId(), playerUuid, CoreRoleKeys.OWNER);
             islandLogs.append(result.island().islandId(), playerUuid, "ISLAND_CREATE", Map.of("templateId", templateId));

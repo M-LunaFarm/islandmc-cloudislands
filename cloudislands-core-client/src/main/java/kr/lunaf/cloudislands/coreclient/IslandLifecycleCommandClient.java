@@ -12,6 +12,10 @@ public interface IslandLifecycleCommandClient {
         return createIsland(playerUuid, templateId);
     }
 
+    default CompletableFuture<CreateIslandResult> createIsland(UUID playerUuid, String templateId, boolean economySettlementManaged, String settledCreationCost) {
+        return createIsland(playerUuid, templateId, economySettlementManaged);
+    }
+
     CompletableFuture<DeleteIslandResult> deleteIsland(UUID playerUuid, UUID islandId);
 
     CompletableFuture<IslandLifecycleActionView> resetIsland(UUID islandId, UUID actorUuid, String reason);
