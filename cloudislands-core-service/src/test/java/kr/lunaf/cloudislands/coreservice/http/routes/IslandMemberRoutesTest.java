@@ -130,6 +130,55 @@ class IslandMemberRoutesTest {
     }
 
     @Test
+    void identicalPermanentRoleWritesAreIdempotent() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000105");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000106");
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000107");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "idempotent-role-write");
+
+        new IslandMemberRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            new InMemoryPlayerProfileRepository(),
+            new InMemoryIslandLogRepository(),
+            audit,
+            events
+        ).register(handlers::put);
+
+        String body = memberBody(islandId, playerUuid, "MEMBER");
+        handle(handlers, "/v1/admin/islands/members/add", body, 202, "MEMBER_ADDED");
+        handle(handlers, "/v1/admin/islands/members/add", body, 200, "MEMBER_UNCHANGED");
+
+        assertEquals(1L, events.countByType("ISLAND_MEMBER_JOINED"));
+        assertEquals(0L, events.countByType("ISLAND_MEMBER_ROLE_CHANGED"));
+        assertEquals(1, occurrences(audit.toJson(), "ISLAND_MEMBER_ADMIN_ADD"));
+    }
+
+    @Test
+    void inMemoryLimitedUpsertsMatchAuthoritativeResults() {
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+
+        assertEquals("APPLIED", metadata.upsertMemberKeyAndInitializePrimary(islandId, first, "MEMBER", 1L, 1L));
+        assertEquals("UNCHANGED", metadata.upsertMemberKeyAndInitializePrimary(islandId, first, "MEMBER", 1L, 1L));
+        assertEquals("MEMBER_LIMIT", metadata.upsertMemberKeyAndInitializePrimary(islandId, second, "MEMBER", 1L, 1L));
+
+        UUID roleIsland = UUID.randomUUID();
+        assertEquals("APPLIED", metadata.upsertMemberKeyWithRoleLimit(roleIsland, first, "MODERATOR", null, 1L));
+        assertEquals("UNCHANGED", metadata.upsertMemberKeyWithRoleLimit(roleIsland, first, "MODERATOR", null, 1L));
+        assertEquals("ROLE_LIMIT", metadata.upsertMemberKeyWithRoleLimit(roleIsland, second, "MODERATOR", null, 1L));
+    }
+
+    @Test
     void authoritativeOwnerCannotSelfRemoveWhenMembershipProjectionIsMissing() throws Exception {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000121");
         UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000122");
@@ -250,14 +299,16 @@ class IslandMemberRoutesTest {
         String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
         int operation = repository.indexOf("public String upsertMemberKeyWithRoleLimit(");
         int commit = repository.indexOf("connection.commit();", operation);
+        int nextMethod = repository.indexOf("\n    @Override", commit);
 
-        assertTrue(operation >= 0 && commit > operation);
-        String transaction = repository.substring(operation, commit);
+        assertTrue(operation >= 0 && commit > operation && nextMethod > commit);
+        String transaction = repository.substring(operation, nextMethod);
         assertTrue(transaction.contains("SELECT id FROM islands"));
         assertTrue(transaction.contains("FOR UPDATE"), "concurrent role changes must serialize on the island row");
-        assertTrue(transaction.contains("currentMemberRole(connection, islandId, playerUuid)"));
+        assertTrue(transaction.contains("currentMemberState(connection, islandId, playerUuid)"));
         assertTrue(transaction.contains("roleMemberCount(connection, islandId, normalizedRoleKey)"));
         assertTrue(transaction.contains("!normalizedRoleKey.equals(currentRole)"), "renewing the same temporary role must not consume another slot");
+        assertTrue(transaction.contains("return unchanged ? \"UNCHANGED\" : \"APPLIED\""));
         assertEquals(4, routes.split(java.util.regex.Pattern.quote("metadataRepository.upsertMemberKeyWithRoleLimit("), -1).length - 1);
     }
 
@@ -532,6 +583,10 @@ class IslandMemberRoutesTest {
         assertEquals(roleKey, SimpleJson.text(member.get("role")));
         assertEquals(roleKey, SimpleJson.text(member.get("roleKey")));
         assertTrue(!SimpleJson.text(member.get("joinedAt")).isBlank());
+    }
+
+    private static int occurrences(String source, String needle) {
+        return (source.length() - source.replace(needle, "").length()) / needle.length();
     }
 
     private static void handle(Map<String, HttpHandler> handlers, String path, String body, int expectedStatus, String expectedCode) throws Exception {

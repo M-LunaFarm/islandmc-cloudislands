@@ -85,6 +85,44 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public synchronized String upsertMemberKeyAndInitializePrimary(UUID islandId, UUID playerUuid, String roleKey, long maxMembers, long maxRoleMembers) {
+        String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
+        IslandMemberSnapshot current = members.getOrDefault(islandId, Map.of()).get(playerUuid);
+        String currentRole = current == null || expired(current) ? "" : current.effectiveRoleKey();
+        boolean addingTeamMember = !kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(currentRole)
+            && kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(normalizedRoleKey);
+        if (addingTeamMember && activeMembers(members.getOrDefault(islandId, Map.of())).stream()
+                .filter(member -> kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(member.effectiveRoleKey())).count() >= Math.max(0L, maxMembers)) {
+            return "MEMBER_LIMIT";
+        }
+        if (!normalizedRoleKey.equals(currentRole) && activeMembers(members.getOrDefault(islandId, Map.of())).stream()
+                .filter(member -> normalizedRoleKey.equals(member.effectiveRoleKey())).count() >= Math.max(0L, maxRoleMembers)) {
+            return "ROLE_LIMIT";
+        }
+        boolean unchanged = current != null && !expired(current) && normalizedRoleKey.equals(currentRole) && current.expiresAt() == null;
+        if (!unchanged) {
+            upsertMemberKey(islandId, playerUuid, normalizedRoleKey, null);
+        }
+        return unchanged ? "UNCHANGED" : "APPLIED";
+    }
+
+    @Override
+    public synchronized String upsertMemberKeyWithRoleLimit(UUID islandId, UUID playerUuid, String roleKey, Instant expiresAt, long maxRoleMembers) {
+        String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
+        IslandMemberSnapshot current = members.getOrDefault(islandId, Map.of()).get(playerUuid);
+        String currentRole = current == null || expired(current) ? "" : current.effectiveRoleKey();
+        if (!normalizedRoleKey.equals(currentRole) && activeMembers(members.getOrDefault(islandId, Map.of())).stream()
+                .filter(member -> normalizedRoleKey.equals(member.effectiveRoleKey())).count() >= Math.max(0L, maxRoleMembers)) {
+            return "ROLE_LIMIT";
+        }
+        boolean unchanged = current != null && !expired(current) && normalizedRoleKey.equals(currentRole) && expiresAt == null && current.expiresAt() == null;
+        if (!unchanged) {
+            upsertMemberKey(islandId, playerUuid, normalizedRoleKey, expiresAt);
+        }
+        return unchanged ? "UNCHANGED" : "APPLIED";
+    }
+
+    @Override
     public void removeMember(UUID islandId, UUID playerUuid) {
         removeMemberAndClearPrimaryResult(islandId, playerUuid);
     }

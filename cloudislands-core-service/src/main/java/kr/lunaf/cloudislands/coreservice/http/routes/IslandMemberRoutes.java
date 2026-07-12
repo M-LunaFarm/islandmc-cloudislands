@@ -136,6 +136,10 @@ public final class IslandMemberRoutes implements RouteGroup {
                 limitValue(islandId, "MEMBERS", 3L),
                 limitValue(islandId, GameplayParityPolicy.roleLimitKey(roleKey), defaultRoleLimit(roleKey))
             );
+            if ("UNCHANGED".equals(applied)) {
+                CoreHttpResponses.write(exchange, 200, memberActionJson("MEMBER_UNCHANGED"));
+                return;
+            }
             if (!"APPLIED".equals(applied)) {
                 CoreHttpResponses.write(exchange, 409, ApiResponses.error(applied, applied.equals("ROLE_LIMIT") ? "Island role limit was reached" : "Island member limit was reached"));
                 return;
@@ -146,6 +150,10 @@ public final class IslandMemberRoutes implements RouteGroup {
                 islandId, playerUuid, roleKey, null,
                 limitValue(islandId, GameplayParityPolicy.roleLimitKey(roleKey), defaultRoleLimit(roleKey))
             );
+            if ("UNCHANGED".equals(applied)) {
+                CoreHttpResponses.write(exchange, 200, memberActionJson("MEMBER_UNCHANGED"));
+                return;
+            }
             if (!"APPLIED".equals(applied)) {
                 CoreHttpResponses.write(exchange, 409, ApiResponses.error(applied, applied.equals("ROLE_LIMIT") ? "Island role limit was reached" : "Island was not found"));
                 return;
@@ -304,6 +312,10 @@ public final class IslandMemberRoutes implements RouteGroup {
                 limitValue(islandId, "MEMBERS", 3L),
                 limitValue(islandId, GameplayParityPolicy.roleLimitKey(roleKey), defaultRoleLimit(roleKey))
             );
+            if ("UNCHANGED".equals(applied)) {
+                CoreHttpResponses.write(exchange, 200, memberActionJson("MEMBER_UNCHANGED"));
+                return;
+            }
             if (!"APPLIED".equals(applied)) {
                 CoreHttpResponses.write(exchange, 409, ApiResponses.error(applied, applied.equals("ROLE_LIMIT") ? "Island role limit was reached" : "Island member limit was reached"));
                 return;
@@ -314,6 +326,10 @@ public final class IslandMemberRoutes implements RouteGroup {
                 islandId, playerUuid, roleKey, null,
                 limitValue(islandId, GameplayParityPolicy.roleLimitKey(roleKey), defaultRoleLimit(roleKey))
             );
+            if ("UNCHANGED".equals(applied)) {
+                CoreHttpResponses.write(exchange, 200, memberActionJson("MEMBER_UNCHANGED"));
+                return;
+            }
             if (!"APPLIED".equals(applied)) {
                 CoreHttpResponses.write(exchange, 409, ApiResponses.error(applied, applied.equals("ROLE_LIMIT") ? "Island role limit was reached" : "Island was not found"));
                 return;

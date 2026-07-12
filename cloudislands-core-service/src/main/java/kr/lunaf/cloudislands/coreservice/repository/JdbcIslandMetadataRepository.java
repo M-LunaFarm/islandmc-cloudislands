@@ -94,7 +94,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     @Override
     public void upsertMemberKeyAndInitializePrimary(UUID islandId, UUID playerUuid, String roleKey) {
         String result = upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey, Long.MAX_VALUE, Long.MAX_VALUE);
-        if (!"APPLIED".equals(result)) {
+        if (!"APPLIED".equals(result) && !"UNCHANGED".equals(result)) {
             throw new IllegalStateException("unexpected member limit result: " + result);
         }
     }
@@ -113,7 +113,9 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                     }
                 }
             }
-            String currentRole = currentMemberRole(connection, islandId, playerUuid);
+            CurrentMemberState current = currentMemberState(connection, islandId, playerUuid);
+            String currentRole = current.roleKey();
+            boolean unchanged = current.present() && normalizedRoleKey.equals(currentRole) && current.expiresAt() == null;
             boolean addingTeamMember = !kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(currentRole)
                 && kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(normalizedRoleKey);
             if (addingTeamMember && teamMemberCount(connection, islandId) >= Math.max(0L, maxMembers)) {
@@ -127,11 +129,13 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             try (PreparedStatement member = connection.prepareStatement(upsertMemberSql(connection));
                  PreparedStatement ensureProfile = connection.prepareStatement(ensurePlayerProfileSql(connection));
                  PreparedStatement primary = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = ?, updated_at = now() WHERE uuid = ? AND primary_island_id IS NULL")) {
-                member.setObject(1, islandId);
-                member.setObject(2, playerUuid);
-                member.setString(3, normalizedRoleKey);
-                member.setObject(4, null);
-                member.executeUpdate();
+                if (!unchanged) {
+                    member.setObject(1, islandId);
+                    member.setObject(2, playerUuid);
+                    member.setString(3, normalizedRoleKey);
+                    member.setObject(4, null);
+                    member.executeUpdate();
+                }
                 ensureProfile.setObject(1, playerUuid);
                 ensureProfile.executeUpdate();
                 primary.setObject(1, islandId);
@@ -139,20 +143,31 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 primary.executeUpdate();
             }
             connection.commit();
-            return "APPLIED";
+            return unchanged ? "UNCHANGED" : "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to add island member and initialize primary island", exception);
         }
     }
 
     private static String currentMemberRole(Connection connection, UUID islandId, UUID playerUuid) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT role FROM island_members WHERE island_id = ? AND player_uuid = ? FOR UPDATE")) {
+        return currentMemberState(connection, islandId, playerUuid).roleKey();
+    }
+
+    private static CurrentMemberState currentMemberState(Connection connection, UUID islandId, UUID playerUuid) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT role, trusted_expires_at FROM island_members WHERE island_id = ? AND player_uuid = ? FOR UPDATE")) {
             statement.setObject(1, islandId);
             statement.setObject(2, playerUuid);
             try (ResultSet result = statement.executeQuery()) {
-                return result.next() ? result.getString("role") : "";
+                if (!result.next()) {
+                    return new CurrentMemberState(false, "", null);
+                }
+                java.sql.Timestamp expiresAt = result.getTimestamp("trusted_expires_at");
+                return new CurrentMemberState(true, result.getString("role"), expiresAt == null ? null : expiresAt.toInstant());
             }
         }
+    }
+
+    private record CurrentMemberState(boolean present, String roleKey, Instant expiresAt) {
     }
 
     private static long roleMemberCount(Connection connection, UUID islandId, String roleKey) throws SQLException {
@@ -201,20 +216,24 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                     }
                 }
             }
-            String currentRole = currentMemberRole(connection, islandId, playerUuid);
+            CurrentMemberState current = currentMemberState(connection, islandId, playerUuid);
+            String currentRole = current.roleKey();
+            boolean unchanged = current.present() && normalizedRoleKey.equals(currentRole) && expiresAt == null && current.expiresAt() == null;
             if (!normalizedRoleKey.equals(currentRole) && roleMemberCount(connection, islandId, normalizedRoleKey) >= Math.max(0L, maxRoleMembers)) {
                 connection.rollback();
                 return "ROLE_LIMIT";
             }
-            try (PreparedStatement member = connection.prepareStatement(upsertMemberSql(connection))) {
-                member.setObject(1, islandId);
-                member.setObject(2, playerUuid);
-                member.setString(3, normalizedRoleKey);
-                member.setObject(4, expiresAt == null ? null : java.sql.Timestamp.from(expiresAt));
-                member.executeUpdate();
+            if (!unchanged) {
+                try (PreparedStatement member = connection.prepareStatement(upsertMemberSql(connection))) {
+                    member.setObject(1, islandId);
+                    member.setObject(2, playerUuid);
+                    member.setString(3, normalizedRoleKey);
+                    member.setObject(4, expiresAt == null ? null : java.sql.Timestamp.from(expiresAt));
+                    member.executeUpdate();
+                }
             }
             connection.commit();
-            return "APPLIED";
+            return unchanged ? "UNCHANGED" : "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to upsert island member within role limit", exception);
         }
