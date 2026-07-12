@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.63`
+Version: `1.1.64`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.63`
+Current release: `v1.1.64`
 
-Built for the CloudIslands 1.1.63 baseline.
+Built for the CloudIslands 1.1.64 baseline.
 
-Release notes for `v1.1.63`:
+Release notes for `v1.1.64`:
+
+- concurrency-safe member caps: direct team joins serialize on the island row
+  before rechecking limits
+- no last-slot overbooking: simultaneous owner/admin additions cannot both
+  consume the final `MEMBERS` slot
+- atomic role caps: the target role count is rechecked inside the same
+  transaction, returning `ROLE_LIMIT` when full
+- precise transition counting: moves between existing team roles do not consume
+  another global member slot
+- fail-safe responses: the transaction returns `MEMBER_LIMIT`, `ROLE_LIMIT`, or
+  `ISLAND_NOT_FOUND` without partially writing membership or primary state
+
+Release notes carried forward from `v1.1.63`:
 
 - direct-add home readiness: owner role assignment and admin member add now
   initialize an empty primary island as part of the member transaction
@@ -1539,7 +1552,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.63`.
+Current read: production-readiness baseline `v1.1.64`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
