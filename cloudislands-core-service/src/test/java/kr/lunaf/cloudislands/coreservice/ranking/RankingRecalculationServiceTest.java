@@ -69,9 +69,51 @@ class RankingRecalculationServiceTest {
             -50L
         );
 
-        assertEquals(BigDecimal.ZERO, value.worth());
+        assertEquals(new BigDecimal("0.00"), value.worth());
         assertEquals(0L, value.levelPoints());
         assertEquals(0L, value.limit());
+    }
+
+    @Test
+    void saturatesExtremeCountsWithinJdbcSnapshotNumericBounds() {
+        InMemoryRankingRepository rankings = new InMemoryRankingRepository();
+        RankingRecalculationService service = new RankingRecalculationService(
+            rankings,
+            new InMemoryGlobalEventPublisher(),
+            "floor(total_level_points / 1)",
+            "SUM_BLOCK_VALUES"
+        );
+
+        IslandRankSnapshot snapshot = service.recalculate(
+            ISLAND,
+            Map.of("minecraft:diamond_block", Long.MAX_VALUE),
+            Map.of("minecraft:diamond_block", new RankingRecalculationService.BlockValue(
+                new BigDecimal("999999999999999999.99"),
+                Long.MAX_VALUE,
+                0L
+            )),
+            Integer.MAX_VALUE
+        );
+
+        assertEquals(Long.MAX_VALUE, snapshot.level());
+        assertEquals(RankingRecalculationService.MAX_STORABLE_WORTH, snapshot.worth());
+        assertEquals(Integer.MAX_VALUE, snapshot.memberCount());
+    }
+
+    @Test
+    void roundsWorthToTheDatabaseScaleBeforePublishingAndCaching() {
+        InMemoryRankingRepository rankings = new InMemoryRankingRepository();
+        RankingRecalculationService service = new RankingRecalculationService(rankings, new InMemoryGlobalEventPublisher());
+
+        IslandRankSnapshot snapshot = service.recalculate(
+            ISLAND,
+            Map.of("minecraft:diamond_block", 3L),
+            Map.of("minecraft:diamond_block", new RankingRecalculationService.BlockValue(new BigDecimal("0.005"), 0L, 0L)),
+            1
+        );
+
+        assertEquals(new BigDecimal("0.03"), snapshot.worth());
+        assertEquals(snapshot.worth(), rankings.topByWorth(1).getFirst().worth());
     }
 
     @Test

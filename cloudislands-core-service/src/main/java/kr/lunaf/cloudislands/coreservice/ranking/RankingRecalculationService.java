@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.ranking;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
@@ -12,6 +13,7 @@ public final class RankingRecalculationService {
     public static final String BLOCK_VALUE_POLICY = "config-loaded-values-plus-admin-api-overrides-worth-level-limit";
     public static final String FULL_SCAN_POLICY = "periodic-full-scan-replaces-block-counts-and-marks-island-dirty";
     public static final String CACHE_POLICY = "ranking-snapshot-query-backed-by-postgresql-and-redis-ranking-cache";
+    public static final BigDecimal MAX_STORABLE_WORTH = new BigDecimal("999999999999999999.99");
 
     private final RankingRepository rankings;
     private final GlobalEventPublisher events;
@@ -42,9 +44,10 @@ public final class RankingRecalculationService {
                 continue;
             }
             long counted = value.limit() <= 0 ? Math.max(0L, entry.getValue()) : Math.max(0L, Math.min(entry.getValue(), value.limit()));
-            worth = worth.add(value.worth().multiply(BigDecimal.valueOf(counted)));
-            levelPoints += value.levelPoints() * counted;
+            worth = saturatingWorthAdd(worth, value.worth().multiply(BigDecimal.valueOf(counted)));
+            levelPoints = saturatingAdd(levelPoints, saturatingMultiply(value.levelPoints(), counted));
         }
+        worth = worth.setScale(2, RoundingMode.HALF_UP);
         IslandRankSnapshot snapshot = new IslandRankSnapshot(islandId, Math.floorDiv(levelPoints, levelPointsDivisor), worth, Math.max(0, memberCount), Instant.now());
         rankings.save(snapshot);
         events.publish(CloudIslandEventType.ISLAND_LEVEL_UPDATED.name(), Map.of("islandId", islandId.toString(), "level", Long.toString(snapshot.level()), "worth", snapshot.worth().toPlainString(), "levelFormula", levelFormulaExpression));
@@ -62,6 +65,26 @@ public final class RankingRecalculationService {
 
     public long levelPointsDivisor() {
         return levelPointsDivisor;
+    }
+
+    private static long saturatingMultiply(long left, long right) {
+        try {
+            return Math.multiplyExact(left, right);
+        } catch (ArithmeticException ignored) {
+            return Long.MAX_VALUE;
+        }
+    }
+
+    private static long saturatingAdd(long left, long right) {
+        if (Long.MAX_VALUE - left < right) {
+            return Long.MAX_VALUE;
+        }
+        return left + right;
+    }
+
+    private static BigDecimal saturatingWorthAdd(BigDecimal current, BigDecimal contribution) {
+        BigDecimal sum = current.add(contribution);
+        return sum.compareTo(MAX_STORABLE_WORTH) > 0 ? MAX_STORABLE_WORTH : sum;
     }
 
     private static long parseLevelPointsDivisor(String expression) {
@@ -93,7 +116,8 @@ public final class RankingRecalculationService {
 
     public record BlockValue(BigDecimal worth, long levelPoints, long limit) {
         public BlockValue {
-            worth = worth == null || worth.signum() < 0 ? BigDecimal.ZERO : worth;
+            worth = worth == null || worth.signum() < 0 ? BigDecimal.ZERO : worth.min(MAX_STORABLE_WORTH);
+            worth = worth.setScale(2, RoundingMode.HALF_UP);
             levelPoints = Math.max(0L, levelPoints);
             limit = Math.max(0L, limit);
         }

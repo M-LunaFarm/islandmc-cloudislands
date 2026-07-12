@@ -157,7 +157,7 @@ public final class JdbcRankingRepository implements RankingRepository {
             try (ResultSet rs = statement.executeQuery()) {
                 List<IslandRankSnapshot> result = new ArrayList<>();
                 while (rs.next()) {
-                    result.add(new IslandRankSnapshot((UUID) rs.getObject("island_id"), rs.getLong("level"), rs.getBigDecimal("worth"), rs.getInt("member_count"), rs.getTimestamp("updated_at").toInstant()));
+                    result.add(new IslandRankSnapshot(uuid(rs.getObject("island_id")), rs.getLong("level"), rs.getBigDecimal("worth"), rs.getInt("member_count"), rs.getTimestamp("updated_at").toInstant()));
                 }
                 return result;
             }

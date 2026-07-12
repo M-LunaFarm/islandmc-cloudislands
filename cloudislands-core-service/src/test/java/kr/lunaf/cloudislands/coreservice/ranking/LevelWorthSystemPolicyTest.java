@@ -51,7 +51,7 @@ class LevelWorthSystemPolicyTest {
     }
 
     private void assertBlockValue(RankingRecalculationService.BlockValue value, String worth, long levelPoints, long limit) {
-        assertEquals(new BigDecimal(worth), value.worth());
+        assertEquals(new BigDecimal(worth).setScale(2), value.worth());
         assertEquals(levelPoints, value.levelPoints());
         assertEquals(limit, value.limit());
     }
