@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.113`
+Version: `1.1.114`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.113`
+Current release: `v1.1.114`
 
-Built for the CloudIslands 1.1.113 baseline.
+Built for the CloudIslands 1.1.114 baseline.
 
-Release notes for `v1.1.113`:
+Release notes for `v1.1.114`:
+
+- complete MySQL/MariaDB actor UUID reads: `created_by`, `updated_by`, and
+  `moderated_by` `CHAR(36)` values now convert to Java UUIDs like PostgreSQL
+- fixes runtime `ClassCastException` risks while loading snapshots, homes,
+  warps, biomes, and island limits
+- nullable UUIDs and both text/binary driver representations are preserved
+  safely, while non-UUID fields such as job `locked_by` remain strings
+- schema-wide regression coverage checks every MySQL `CHAR(36)` UUID column
+  against the dialect conversion policy
+
+Release notes carried forward from `v1.1.113`:
 
 - overflow-safe ranking math: extreme block counts and configured level points
   now saturate at `BIGINT` capacity instead of wrapping into invalid values
@@ -2117,7 +2128,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.113`.
+Current read: production-readiness baseline `v1.1.114`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
