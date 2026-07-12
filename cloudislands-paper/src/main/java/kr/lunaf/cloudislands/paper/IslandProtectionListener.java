@@ -24,6 +24,7 @@ import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Chicken;
 import org.bukkit.entity.Fish;
 import org.bukkit.entity.ItemFrame;
+import org.bukkit.entity.LeashHitch;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Steerable;
@@ -255,9 +256,8 @@ public final class IslandProtectionListener implements Listener {
     public void onDamage(EntityDamageByEntityEvent event) {
         Player player = attackingPlayer(event.getDamager());
         if (player != null) {
-            IslandPermission permission = event.getEntity() instanceof ItemFrame ? IslandPermission.ITEM_FRAME
-                : event.getEntity().getType() == EntityType.PAINTING ? IslandPermission.PAINTING
-                : event.getEntity() instanceof Player ? IslandPermission.ATTACK_PLAYER : IslandPermission.ATTACK_MOB;
+            IslandPermission permission = event.getEntity() instanceof Player ? IslandPermission.ATTACK_PLAYER
+                : hangingPermission(event.getEntity(), IslandPermission.ATTACK_MOB);
             event.setCancelled(denied(player, event.getEntity().getLocation().getBlock(), permission));
         }
     }
@@ -345,8 +345,7 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onHangingPlace(HangingPlaceEvent event) {
-        IslandPermission permission = event.getEntity() instanceof ItemFrame ? IslandPermission.ITEM_FRAME
-            : event.getEntity().getType() == EntityType.PAINTING ? IslandPermission.PAINTING : IslandPermission.BUILD;
+        IslandPermission permission = hangingPermission(event.getEntity(), IslandPermission.BUILD);
         boolean blocked = denied(event.getPlayer(), event.getBlock(), permission);
         event.setCancelled(blocked);
         if (!blocked) {
@@ -358,8 +357,7 @@ public final class IslandProtectionListener implements Listener {
     public void onHangingBreak(HangingBreakByEntityEvent event) {
         Player player = attackingPlayer(event.getRemover());
         if (player != null) {
-            IslandPermission permission = event.getEntity() instanceof ItemFrame ? IslandPermission.ITEM_FRAME
-                : event.getEntity().getType() == EntityType.PAINTING ? IslandPermission.PAINTING : IslandPermission.BREAK;
+            IslandPermission permission = hangingPermission(event.getEntity(), IslandPermission.BREAK);
             boolean blocked = denied(player, event.getEntity().getLocation().getBlock(), permission);
             event.setCancelled(blocked);
             if (!blocked) {
@@ -449,12 +447,12 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onLeash(PlayerLeashEntityEvent event) {
-        event.setCancelled(denied(event.getPlayer(), event.getEntity().getLocation().getBlock(), IslandPermission.INTERACT));
+        event.setCancelled(denied(event.getPlayer(), event.getEntity().getLocation().getBlock(), IslandPermission.LEASH));
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onUnleash(PlayerUnleashEntityEvent event) {
-        event.setCancelled(denied(event.getPlayer(), event.getEntity().getLocation().getBlock(), IslandPermission.INTERACT));
+        event.setCancelled(denied(event.getPlayer(), event.getEntity().getLocation().getBlock(), IslandPermission.LEASH));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -712,6 +710,9 @@ public final class IslandProtectionListener implements Listener {
         if (entity instanceof ItemFrame) {
             return IslandPermission.ITEM_FRAME;
         }
+        if (entity instanceof LeashHitch) {
+            return IslandPermission.LEASH;
+        }
         if (held == Material.NAME_TAG) {
             return IslandPermission.NAME_ENTITY;
         }
@@ -740,6 +741,19 @@ public final class IslandProtectionListener implements Listener {
             return IslandPermission.ENTITY_RIDE;
         }
         return IslandPermission.INTERACT;
+    }
+
+    private static IslandPermission hangingPermission(org.bukkit.entity.Entity entity, IslandPermission fallback) {
+        if (entity instanceof ItemFrame) {
+            return IslandPermission.ITEM_FRAME;
+        }
+        if (entity instanceof LeashHitch) {
+            return IslandPermission.LEASH;
+        }
+        if (entity.getType() == EntityType.PAINTING) {
+            return IslandPermission.PAINTING;
+        }
+        return fallback;
     }
 
     private IslandPermission interactionPermission(Material type) {

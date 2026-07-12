@@ -189,7 +189,7 @@ class ProtectionControllerTest {
         String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
 
         assertTrue(listener.contains("Material.SPAWNER ? IslandPermission.BREAK_SPAWNER"));
-        assertTrue(listener.contains("EntityType.PAINTING ? IslandPermission.PAINTING"));
+        assertTrue(listener.contains("entity.getType() == EntityType.PAINTING"));
         assertTrue(listener.contains("Material.TURTLE_EGG"));
         assertTrue(listener.contains("IslandPermission.TURTLE_EGG_TRAMPLE"));
         assertTrue(listener.contains("EntityType.WIND_CHARGE"));
@@ -202,10 +202,22 @@ class ProtectionControllerTest {
         String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
 
         assertTrue(listener.contains("entity instanceof ItemFrame"));
-        assertTrue(listener.contains("event.getEntity() instanceof ItemFrame"));
+        assertTrue(listener.contains("hangingPermission(event.getEntity(), IslandPermission.ATTACK_MOB)"));
+        assertTrue(listener.contains("hangingPermission(event.getEntity(), IslandPermission.BUILD)"));
+        assertTrue(listener.contains("hangingPermission(event.getEntity(), IslandPermission.BREAK)"));
         assertTrue(listener.contains("IslandPermission.ITEM_FRAME"));
         assertTrue(listener.contains("onHangingPlace(HangingPlaceEvent event)"));
         assertTrue(listener.contains("onHangingBreak(HangingBreakByEntityEvent event)"));
+    }
+
+    @Test
+    void leashActionsAndKnotDamageUseOneDedicatedPermission() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("entity instanceof LeashHitch"));
+        assertTrue(listener.contains("onLeash(PlayerLeashEntityEvent event)"));
+        assertTrue(listener.contains("onUnleash(PlayerUnleashEntityEvent event)"));
+        assertTrue(listener.contains("IslandPermission.LEASH"));
     }
 
     @Test

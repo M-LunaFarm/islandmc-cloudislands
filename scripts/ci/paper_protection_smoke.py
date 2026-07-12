@@ -16,6 +16,7 @@ REQUIRED_LISTENER_MARKERS = {
     "explosion": ["EntityExplodeEvent", "BlockExplodeEvent", "explosionAllowed"],
     "entity_damage": ["EntityDamageByEntityEvent", "ATTACK_PLAYER", "ATTACK_MOB"],
     "item_frame_armor_stand": ["HangingPlaceEvent", "PlayerArmorStandManipulateEvent"],
+    "leash_hitch": ["PlayerLeashEntityEvent", "PlayerUnleashEntityEvent", "LeashHitch", "IslandPermission.LEASH"],
     "redstone_piston": ["BlockPistonExtendEvent", "BlockPistonRetractEvent", "USE_REDSTONE"],
     "audit_event": ["IslandPermissionCheckEvent", "PaperEvents.call"],
     "deny_message": ["sendDenyMessage", "sendActionBar"],

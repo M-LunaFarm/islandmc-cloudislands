@@ -68,6 +68,7 @@ class DefaultIslandPermissionsTest {
             IslandPermission.BREAK_SPAWNER,
             IslandPermission.PAINTING,
             IslandPermission.ITEM_FRAME,
+            IslandPermission.LEASH,
             IslandPermission.TURTLE_EGG_TRAMPLE,
             IslandPermission.WIND_CHARGE,
             IslandPermission.IGNITE_CREEPER,

@@ -31,6 +31,7 @@ public enum IslandPermission {
     BREAK_SPAWNER,
     PAINTING,
     ITEM_FRAME,
+    LEASH,
     TURTLE_EGG_TRAMPLE,
     WIND_CHARGE,
     IGNITE_CREEPER,

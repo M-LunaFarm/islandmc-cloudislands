@@ -172,6 +172,7 @@ public final class ProtectionController {
                 NAME_ENTITY,
                 SCULK_SENSOR,
                 ITEM_FRAME,
+                LEASH,
                 TURTLE_EGG_TRAMPLE -> IslandFlag.VISITOR_INTERACT;
             case OPEN_CONTAINER -> IslandFlag.VISITOR_CONTAINER;
             case PICKUP_ITEM -> IslandFlag.VISITOR_PICKUP;
