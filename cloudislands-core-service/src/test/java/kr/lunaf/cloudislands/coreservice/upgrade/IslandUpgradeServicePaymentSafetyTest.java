@@ -27,7 +27,7 @@ class IslandUpgradeServicePaymentSafetyTest {
 
         assertFalse(result.accepted());
         assertEquals("UPGRADE_CONFLICT_REFUNDED", result.code());
-        assertEquals("100", bank.balance(ISLAND).balance());
+        assertEquals("100.00", bank.balance(ISLAND).balance());
     }
 
     @Test
@@ -39,7 +39,7 @@ class IslandUpgradeServicePaymentSafetyTest {
 
         assertFalse(result.accepted());
         assertEquals("UPGRADE_WRITE_FAILED_REFUNDED", result.code());
-        assertEquals("100", bank.balance(ISLAND).balance());
+        assertEquals("100.00", bank.balance(ISLAND).balance());
     }
 
     @Test
@@ -64,7 +64,7 @@ class IslandUpgradeServicePaymentSafetyTest {
         UpgradePurchaseResult result = service.purchase(ISLAND, "size");
 
         assertTrue(result.accepted());
-        assertEquals("90", bank.balance(ISLAND).balance());
+        assertEquals("90.00", bank.balance(ISLAND).balance());
         assertEquals(Map.of("minecraft:diamond", 4L, "minecraft:emerald", 1L), warehouseAmounts(warehouse));
     }
 
@@ -78,7 +78,7 @@ class IslandUpgradeServicePaymentSafetyTest {
 
         assertFalse(result.accepted());
         assertEquals("ITEM_PAYMENT_INSUFFICIENT_ITEMS_REFUNDED", result.code());
-        assertEquals("100", bank.balance(ISLAND).balance());
+        assertEquals("100.00", bank.balance(ISLAND).balance());
         assertEquals(Map.of("minecraft:diamond", 8L, "minecraft:emerald", 1L), warehouseAmounts(warehouse));
     }
 

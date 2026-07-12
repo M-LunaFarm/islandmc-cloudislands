@@ -205,7 +205,7 @@ class ProgressionRoutesTest {
 
         assertTrue(routes.settleMissionCompletion(completed, actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE"));
 
-        assertEquals("5", bank.balance(islandId).balance());
+        assertEquals("5.00", bank.balance(islandId).balance());
         IslandMissionSnapshot next = missions.progress(islandId, actorUuid, "repeat_reward", "MISSION", 1L).orElseThrow();
         assertEquals(1L, next.progress());
         assertEquals(false, next.completed());

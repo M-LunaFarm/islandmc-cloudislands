@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.mission;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
@@ -27,7 +28,7 @@ class MissionRewardServiceTest {
         MissionRewardService rewards = new MissionRewardService(bank, limits, generators, permissions);
 
         assertEquals("BANK_DEPOSITED", rewards.apply(mission("BANK_DEPOSIT", "250 coins"), ACTOR_UUID).code());
-        assertEquals("250", bank.balance(ISLAND_ID).balance());
+        assertEquals("250.00", bank.balance(ISLAND_ID).balance());
 
         MissionRewardService.MissionRewardResult limit = rewards.apply(mission("LIMIT_INCREASE", "HOPPER 25"), ACTOR_UUID);
         assertEquals("LIMIT_INCREASED", limit.code());
@@ -67,6 +68,19 @@ class MissionRewardServiceTest {
         assertEquals("minecraft:diamond", item.details().get("materialKey"));
         assertEquals("12", item.details().get("amount"));
         assertEquals(12L, warehouse.list(ISLAND_ID, 10).getFirst().amount());
+    }
+
+    @Test
+    void bankRewardAtStorageCapacityFailsWithoutChangingBalance() {
+        InMemoryIslandBankRepository bank = new InMemoryIslandBankRepository();
+        bank.deposit(ISLAND_ID, kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository.MAX_STORABLE_BALANCE);
+        MissionRewardService rewards = new MissionRewardService(bank, null, null, null);
+
+        MissionRewardService.MissionRewardResult result = rewards.apply(mission("BANK_DEPOSIT", "1 coin"), ACTOR_UUID);
+
+        assertFalse(result.applied());
+        assertEquals("BANK_LIMIT", result.code());
+        assertEquals("999999999999999999.99", bank.balance(ISLAND_ID).balance());
     }
 
     private static IslandMissionSnapshot mission(String rewardType, String reward) {

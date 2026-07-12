@@ -73,8 +73,8 @@ public final class MissionRewardService {
             return MissionRewardResult.skipped("INVALID_BANK_REWARD");
         }
         try {
-            var deposited = bankRepository.deposit(snapshot.islandId(), amount.get());
-            return new MissionRewardResult(true, "BANK_DEPOSITED", deposited.balance(), Map.of("amount", amount.get().toPlainString()));
+            var deposited = bankRepository.deposit(snapshot.islandId(), amount.get(), IslandBankRepository.MAX_STORABLE_BALANCE);
+            return new MissionRewardResult(deposited.accepted(), deposited.accepted() ? "BANK_DEPOSITED" : deposited.code(), deposited.snapshot().balance(), Map.of("amount", amount.get().toPlainString()));
         } catch (RuntimeException exception) {
             return MissionRewardResult.skipped("BANK_REWARD_FAILED");
         }

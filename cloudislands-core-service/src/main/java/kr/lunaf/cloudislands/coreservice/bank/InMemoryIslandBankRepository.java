@@ -18,44 +18,41 @@ public final class InMemoryIslandBankRepository implements IslandBankRepository 
 
     @Override
     public synchronized IslandBankSnapshot deposit(UUID islandId, BigDecimal amount) {
-        if (!IslandBankRepository.positiveAmount(amount)) {
-            return snapshot(islandId);
-        }
-        balances.merge(islandId, amount, BigDecimal::add);
-        updatedAt.put(islandId, Instant.now());
-        return snapshot(islandId);
+        return deposit(islandId, amount, IslandBankRepository.MAX_STORABLE_BALANCE).snapshot();
     }
 
     @Override
     public synchronized BankChangeResult deposit(UUID islandId, BigDecimal amount, BigDecimal maxBalance) {
-        if (!IslandBankRepository.positiveAmount(amount)) {
+        BigDecimal normalized = IslandBankRepository.normalizeAmount(amount);
+        if (normalized == null) {
             return new BankChangeResult(false, "INVALID_AMOUNT", snapshot(islandId));
         }
-        BigDecimal current = balances.getOrDefault(islandId, BigDecimal.ZERO);
+        BigDecimal current = balances.getOrDefault(islandId, BigDecimal.ZERO.setScale(2));
         BigDecimal limit = IslandBankRepository.effectiveMaxBalance(maxBalance);
-        if (limit != null && current.add(amount).compareTo(limit) > 0) {
+        if (current.add(normalized).compareTo(limit) > 0) {
             return new BankChangeResult(false, "BANK_LIMIT", snapshot(islandId));
         }
-        balances.put(islandId, current.add(amount));
+        balances.put(islandId, current.add(normalized));
         updatedAt.put(islandId, Instant.now());
         return new BankChangeResult(true, "DEPOSITED", snapshot(islandId));
     }
 
     @Override
     public synchronized BankChangeResult withdraw(UUID islandId, BigDecimal amount) {
-        if (!IslandBankRepository.positiveAmount(amount)) {
+        BigDecimal normalized = IslandBankRepository.normalizeAmount(amount);
+        if (normalized == null) {
             return new BankChangeResult(false, "INVALID_AMOUNT", snapshot(islandId));
         }
-        BigDecimal current = balances.getOrDefault(islandId, BigDecimal.ZERO);
-        if (current.compareTo(amount) < 0) {
+        BigDecimal current = balances.getOrDefault(islandId, BigDecimal.ZERO.setScale(2));
+        if (current.compareTo(normalized) < 0) {
             return new BankChangeResult(false, "INSUFFICIENT_FUNDS", snapshot(islandId));
         }
-        balances.put(islandId, current.subtract(amount));
+        balances.put(islandId, current.subtract(normalized));
         updatedAt.put(islandId, Instant.now());
         return new BankChangeResult(true, "WITHDRAWN", snapshot(islandId));
     }
 
     private IslandBankSnapshot snapshot(UUID islandId) {
-        return new IslandBankSnapshot(islandId, balances.getOrDefault(islandId, BigDecimal.ZERO).toPlainString(), updatedAt.getOrDefault(islandId, Instant.EPOCH));
+        return new IslandBankSnapshot(islandId, balances.getOrDefault(islandId, BigDecimal.ZERO.setScale(2)).toPlainString(), updatedAt.getOrDefault(islandId, Instant.EPOCH));
     }
 }

@@ -29,24 +29,13 @@ public final class JdbcIslandBankRepository implements IslandBankRepository {
 
     @Override
     public IslandBankSnapshot deposit(UUID islandId, BigDecimal amount) {
-        try (Connection connection = dataSource.getConnection()) {
-            ensureRow(connection, islandId);
-            if (IslandBankRepository.positiveAmount(amount)) {
-                try (PreparedStatement statement = connection.prepareStatement("UPDATE island_bank SET balance = balance + ?, updated_at = now() WHERE island_id = ?")) {
-                    statement.setBigDecimal(1, amount);
-                    statement.setObject(2, islandId);
-                    statement.executeUpdate();
-                }
-            }
-            return snapshot(connection, islandId);
-        } catch (SQLException exception) {
-            throw new IllegalStateException("failed to deposit island bank", exception);
-        }
+        return deposit(islandId, amount, IslandBankRepository.MAX_STORABLE_BALANCE).snapshot();
     }
 
     @Override
     public BankChangeResult deposit(UUID islandId, BigDecimal amount, BigDecimal maxBalance) {
-        if (!IslandBankRepository.positiveAmount(amount)) {
+        BigDecimal normalized = IslandBankRepository.normalizeAmount(amount);
+        if (normalized == null) {
             return new BankChangeResult(false, "INVALID_AMOUNT", balance(islandId));
         }
         try (Connection connection = dataSource.getConnection()) {
@@ -54,12 +43,12 @@ public final class JdbcIslandBankRepository implements IslandBankRepository {
             ensureRow(connection, islandId);
             BigDecimal current = lockedBalance(connection, islandId);
             BigDecimal limit = IslandBankRepository.effectiveMaxBalance(maxBalance);
-            if (limit != null && current.add(amount).compareTo(limit) > 0) {
+            if (current.add(normalized).compareTo(limit) > 0) {
                 connection.rollback();
                 return new BankChangeResult(false, "BANK_LIMIT", new IslandBankSnapshot(islandId, current.toPlainString(), Instant.now()));
             }
             try (PreparedStatement statement = connection.prepareStatement("UPDATE island_bank SET balance = balance + ?, updated_at = now() WHERE island_id = ?")) {
-                statement.setBigDecimal(1, amount);
+                statement.setBigDecimal(1, normalized);
                 statement.setObject(2, islandId);
                 statement.executeUpdate();
             }
@@ -73,19 +62,20 @@ public final class JdbcIslandBankRepository implements IslandBankRepository {
 
     @Override
     public BankChangeResult withdraw(UUID islandId, BigDecimal amount) {
-        if (!IslandBankRepository.positiveAmount(amount)) {
+        BigDecimal normalized = IslandBankRepository.normalizeAmount(amount);
+        if (normalized == null) {
             return new BankChangeResult(false, "INVALID_AMOUNT", balance(islandId));
         }
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             ensureRow(connection, islandId);
             BigDecimal current = lockedBalance(connection, islandId);
-            if (current.compareTo(amount) < 0) {
+            if (current.compareTo(normalized) < 0) {
                 connection.rollback();
                 return new BankChangeResult(false, "INSUFFICIENT_FUNDS", new IslandBankSnapshot(islandId, current.toPlainString(), Instant.now()));
             }
             try (PreparedStatement statement = connection.prepareStatement("UPDATE island_bank SET balance = balance - ?, updated_at = now() WHERE island_id = ?")) {
-                statement.setBigDecimal(1, amount);
+                statement.setBigDecimal(1, normalized);
                 statement.setObject(2, islandId);
                 statement.executeUpdate();
             }
