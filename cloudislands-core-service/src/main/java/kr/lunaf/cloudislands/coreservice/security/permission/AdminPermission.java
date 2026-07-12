@@ -14,6 +14,7 @@ public enum AdminPermission {
     ISLAND_DELETE,
     ISLAND_REPAIR,
     ISLAND_TELEPORT,
+    ISLAND_MANAGE,
     AUDIT_READ,
     JOB_MANAGE,
     ROUTE_MANAGE,

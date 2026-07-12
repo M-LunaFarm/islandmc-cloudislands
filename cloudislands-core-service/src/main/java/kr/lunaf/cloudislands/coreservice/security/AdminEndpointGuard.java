@@ -10,6 +10,18 @@ import kr.lunaf.cloudislands.coreservice.security.permission.AdminPermission;
 import kr.lunaf.cloudislands.coreservice.security.permission.AdminPermissionPolicy;
 
 public final class AdminEndpointGuard {
+    private static final Set<String> ISLAND_MANAGEMENT_PATHS = Set.of(
+        "/v1/admin/islands/bank/deposit", "/v1/admin/islands/bank/withdraw",
+        "/v1/admin/islands/biome/set", "/v1/admin/islands/flags/reset", "/v1/admin/islands/flags/set",
+        "/v1/admin/islands/generator/add", "/v1/admin/islands/generator/clear", "/v1/admin/islands/generator/set",
+        "/v1/admin/islands/homes/delete", "/v1/admin/islands/limits/add", "/v1/admin/islands/limits/set",
+        "/v1/admin/islands/members/add", "/v1/admin/islands/members/demote", "/v1/admin/islands/members/kick",
+        "/v1/admin/islands/members/promote", "/v1/admin/islands/members/setleader",
+        "/v1/admin/islands/missions/complete", "/v1/admin/islands/missions/progress", "/v1/admin/islands/name",
+        "/v1/admin/islands/permissions/reset", "/v1/admin/islands/permissions/set",
+        "/v1/admin/islands/upgrades/purchase", "/v1/admin/islands/upgrades/recalculate",
+        "/v1/admin/islands/warps/delete"
+    );
     private final String adminToken;
     private final boolean adminApiEnabled;
     private final boolean publicAdminApiEnabled;
@@ -105,6 +117,9 @@ public final class AdminEndpointGuard {
 
     private AdminPermission permissionFor(String path) {
         if (path.startsWith("/v1/admin/islands/")) {
+            if (ISLAND_MANAGEMENT_PATHS.contains(path)) {
+                return AdminPermission.ISLAND_MANAGE;
+            }
             if (path.endsWith("/activate")) {
                 return AdminPermission.ISLAND_ACTIVATE;
             }
@@ -155,10 +170,11 @@ public final class AdminEndpointGuard {
             case "/v1/admin/jobs/list", "/v1/admin/jobs/retry", "/v1/admin/jobs/cancel", "/v1/admin/jobs/recover" -> AdminPermission.JOB_MANAGE;
             case "/v1/admin/routes/debug", "/v1/admin/routes/ticket", "/v1/admin/routes/clear" -> AdminPermission.ROUTE_MANAGE;
             case "/v1/admin/cache/clear", "/v1/admin/reload" -> AdminPermission.CACHE_CLEAR;
-            case "/v1/admin/migrations/superiorskyblock2/scan", "/v1/admin/migrations/superiorskyblock2/dryrun", "/v1/admin/migrations/superiorskyblock2/report", "/v1/admin/migrations/superiorskyblock2/extract", "/v1/admin/migrations/superiorskyblock2/import", "/v1/admin/migrations/superiorskyblock2/verify", "/v1/admin/migrations/superiorskyblock2/compare", "/v1/admin/migrations/superiorskyblock2/rollback" -> AdminPermission.MIGRATION_MANAGE;
-            case "/v1/admin/players/info", "/v1/admin/players/setisland", "/v1/admin/players/clearisland" -> AdminPermission.PLAYER_MANAGE;
+            case "/v1/admin/migrations/superiorskyblock2/scan", "/v1/admin/migrations/superiorskyblock2/dryrun", "/v1/admin/migrations/superiorskyblock2/report", "/v1/admin/migrations/superiorskyblock2/extract", "/v1/admin/migrations/superiorskyblock2/import", "/v1/admin/migrations/superiorskyblock2/verify", "/v1/admin/migrations/superiorskyblock2/compare", "/v1/admin/migrations/superiorskyblock2/approve", "/v1/admin/migrations/superiorskyblock2/rollback", "/v1/admin/migrations/superiorskyblock2/rollback-plan", "/v1/admin/migrations/superiorskyblock2/unlock" -> AdminPermission.MIGRATION_MANAGE;
+            case "/v1/admin/players/info", "/v1/admin/players/setisland", "/v1/admin/players/clearisland", "/v1/admin/players/adddisbands", "/v1/admin/players/setdisbands" -> AdminPermission.PLAYER_MANAGE;
             case "/v1/admin/templates/list", "/v1/admin/templates/get", "/v1/admin/templates/upsert", "/v1/admin/templates/import-bundle", "/v1/admin/templates/verify-bundle", "/v1/admin/templates/enable", "/v1/admin/templates/disable", "/v1/admin/templates/delete", "/v1/admin/templates/reorder" -> AdminPermission.TEMPLATE_MANAGE;
             case "/v1/admin/reviews/moderation", "/v1/admin/reviews/moderate" -> AdminPermission.MODERATION_MANAGE;
+            case "/v1/admin/rankings/ignore", "/v1/admin/generators/reload", "/v1/admin/generators/set" -> AdminPermission.ECONOMY_MANAGE;
             case "/v1/admin/storage", "/v1/admin/nodes/list", "/v1/admin/nodes/info", "/v1/admin/nodes/islands" -> AdminPermission.AUDIT_READ;
             case "/v1/admin/nodes/drain", "/v1/admin/nodes/sweep" -> AdminPermission.NODE_DRAIN;
             case "/v1/admin/nodes/undrain" -> AdminPermission.NODE_UNDRAIN;

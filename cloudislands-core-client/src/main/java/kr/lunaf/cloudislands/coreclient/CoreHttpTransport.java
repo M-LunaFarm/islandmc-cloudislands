@@ -133,6 +133,9 @@ final class CoreHttpTransport {
         if (path.startsWith("/v1/admin/block-values")) {
             return "ECONOMY_MANAGE";
         }
+        if (path.equals("/v1/admin/rankings/ignore") || path.startsWith("/v1/admin/generators/")) {
+            return "ECONOMY_MANAGE";
+        }
         if (path.startsWith("/v1/admin/nodes/")) {
             if (path.endsWith("/drain") || path.endsWith("/sweep")) {
                 return "NODE_DRAIN";
@@ -149,6 +152,9 @@ final class CoreHttpTransport {
             return "AUDIT_READ";
         }
         if (path.startsWith("/v1/admin/islands/")) {
+            if (path.equals("/v1/admin/islands/homes/delete") || path.equals("/v1/admin/islands/warps/delete")) {
+                return "ISLAND_MANAGE";
+            }
             if (path.endsWith("/activate")) {
                 return "ISLAND_ACTIVATE";
             }
@@ -182,7 +188,10 @@ final class CoreHttpTransport {
             if (path.endsWith("/tp")) {
                 return "ISLAND_TELEPORT";
             }
-            return "AUDIT_READ";
+            if (path.endsWith("/info") || path.endsWith("/where")) {
+                return "AUDIT_READ";
+            }
+            return "ISLAND_MANAGE";
         }
         return path.startsWith("/v1/admin") ? "AUDIT_READ" : "";
     }

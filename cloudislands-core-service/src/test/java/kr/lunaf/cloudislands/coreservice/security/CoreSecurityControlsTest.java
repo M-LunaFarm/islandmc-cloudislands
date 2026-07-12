@@ -305,6 +305,33 @@ class CoreSecurityControlsTest {
     }
 
     @Test
+    void registeredIslandManagementEndpointsAreNotPermanentlyDenied() {
+        AdminEndpointGuard islandManager = new AdminEndpointGuard("admin-secret", true, "island-manage");
+        AdminEndpointGuard auditOnly = new AdminEndpointGuard("admin-secret", true, "audit-read");
+        var authenticated = exchange("127.0.0.1", "X-CloudIslands-Admin-Token", "admin-secret");
+
+        for (String path : java.util.List.of(
+                "/v1/admin/islands/members/add",
+                "/v1/admin/islands/permissions/set",
+                "/v1/admin/islands/bank/deposit",
+                "/v1/admin/islands/generator/set",
+                "/v1/admin/islands/homes/delete",
+                "/v1/admin/islands/warps/delete")) {
+            assertTrue(islandManager.allowed(path, authenticated), path);
+            assertFalse(auditOnly.allowed(path, authenticated), path);
+        }
+    }
+
+    @Test
+    void specializedRegisteredAdminEndpointsHaveExplicitPermissions() {
+        var authenticated = exchange("127.0.0.1", "X-CloudIslands-Admin-Token", "admin-secret");
+
+        assertTrue(new AdminEndpointGuard("admin-secret", true, "economy-manage").allowed("/v1/admin/rankings/ignore", authenticated));
+        assertTrue(new AdminEndpointGuard("admin-secret", true, "player-manage").allowed("/v1/admin/players/setdisbands", authenticated));
+        assertTrue(new AdminEndpointGuard("admin-secret", true, "migration-manage").allowed("/v1/admin/migrations/superiorskyblock2/approve", authenticated));
+    }
+
+    @Test
     void adminPermissionDefaultsDoNotGrantWildcard() {
         AdminEndpointGuard guard = new AdminEndpointGuard("admin-secret", true);
 
