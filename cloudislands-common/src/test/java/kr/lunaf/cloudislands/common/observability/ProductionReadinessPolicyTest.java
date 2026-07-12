@@ -276,6 +276,16 @@ class ProductionReadinessPolicyTest {
         assertTrue(smoke.contains("seen_ready and len(seen_expected) == len(expected)"));
     }
 
+    @Test
+    void clusterLoadProbeKeepsItsActiveNodeFreshWhileAwaitingEventReplay() throws Exception {
+        String smoke = Files.readString(repositoryRoot().resolve("scripts/ci/core_integration_smoke.py"));
+
+        assertTrue(smoke.contains("deadline = time.monotonic() + 60"));
+        assertTrue(smoke.contains("event_replay_attempts < 20"));
+        assertTrue(smoke.contains("heartbeat(secondary_url, active_node, active_server_name, state=\"READY\", active_islands=1)"));
+        assertTrue(smoke.contains("eventReplayObserved\", False"));
+    }
+
     private static Path repositoryRoot() {
         Path path = Path.of("").toAbsolutePath();
         while (path != null && !Files.exists(path.resolve("settings.gradle.kts"))) {

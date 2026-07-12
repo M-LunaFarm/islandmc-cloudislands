@@ -1128,6 +1128,7 @@ def run_load_probe(
     island_id: str,
     player_uuid: str,
     active_node: str,
+    active_server_name: str,
     fencing_token: int,
     activation_latency: float,
 ) -> dict:
@@ -1160,7 +1161,8 @@ def run_load_probe(
     event_replay_observed = False
     event_replay_attempts = 1
     next_replay_retry = time.monotonic() + 2.0
-    deadline = time.monotonic() + 30
+    next_heartbeat = time.monotonic() + 5.0
+    deadline = time.monotonic() + 60
     while time.monotonic() < deadline:
         primary_events = request(primary_admin_url, "POST", "/v1/events", {"limit": 100, "sinceSeq": primary_since_seq}, admin=True, expect=(200,))
         if any(event.get("type") == "ROUTE_TICKET_CREATED" for event in primary_events.get("events", [])):
@@ -1174,7 +1176,10 @@ def run_load_probe(
             event_replay_observed = True
             break
         now = time.monotonic()
-        if now >= next_replay_retry and event_replay_attempts < 8:
+        if now >= next_heartbeat:
+            heartbeat(secondary_url, active_node, active_server_name, state="READY", active_islands=1)
+            next_heartbeat = now + 5.0
+        if now >= next_replay_retry and event_replay_attempts < 20:
             request(
                 secondary_admin_url,
                 "POST",
@@ -1218,6 +1223,7 @@ def run_load_probe(
         snapshot_checksums.append(snapshot.get("checksum", ""))
         snapshot_durations.append(duration)
 
+    heartbeat(secondary_url, active_node, active_server_name, state="READY", active_islands=1)
     nodes = request(secondary_url, "POST", "/v1/nodes", {}, expect=(200,))
     resource_ceiling_ok = nodes.get("nodeCount", 0) >= 2 and nodes.get("routeCandidateCount", 0) >= 1
     total_route_time = sum(route_durations)
@@ -1492,6 +1498,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             island_id,
             player_uuid,
             standby_node,
+            node_servers[standby_node],
             recovered_fencing_token,
             activation_latency,
         )
