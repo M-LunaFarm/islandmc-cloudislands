@@ -14,6 +14,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import javax.sql.DataSource;
+import kr.lunaf.cloudislands.common.json.JsonCodec;
+import kr.lunaf.cloudislands.common.json.JsonCodecException;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
@@ -350,49 +352,31 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
         ));
     }
 
-    private Map<String, String> payload(String json) {
+    static Map<String, String> payload(String json) {
         if (json == null || json.isBlank()) {
             return Map.of();
         }
-        String trimmed = json.trim();
-        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
-            trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
-        }
-        if (trimmed.isBlank()) {
+        try {
+            Map<String, Object> decoded = JsonCodec.readObject(json);
+            LinkedHashMap<String, String> values = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> entry : decoded.entrySet()) {
+                values.put(entry.getKey(), entry.getValue() == null ? "" : String.valueOf(entry.getValue()));
+            }
+            return Map.copyOf(values);
+        } catch (JsonCodecException exception) {
             return Map.of();
         }
-        LinkedHashMap<String, String> values = new LinkedHashMap<>();
-        for (String pair : trimmed.split(",")) {
-            int colon = pair.indexOf(':');
-            if (colon > 0) {
-                values.put(unquote(pair.substring(0, colon)), unquote(pair.substring(colon + 1)));
+    }
+
+    static String toJson(Map<String, String> payload) {
+        LinkedHashMap<String, String> normalized = new LinkedHashMap<>();
+        if (payload != null) {
+            for (Map.Entry<String, String> entry : payload.entrySet()) {
+                if (entry.getKey() != null) {
+                    normalized.put(entry.getKey(), entry.getValue() == null ? "" : entry.getValue());
+                }
             }
         }
-        return Map.copyOf(values);
-    }
-
-    private String toJson(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, String> entry : payload.entrySet()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
-        }
-        return builder.append('}').toString();
-    }
-
-    private String unquote(String value) {
-        String trimmed = value.trim();
-        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
-            trimmed = trimmed.substring(1, trimmed.length() - 1);
-        }
-        return trimmed.replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private String escape(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+        return JsonCodec.write(normalized);
     }
 }
