@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.79`
+Version: `1.1.80`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.79`
+Current release: `v1.1.80`
 
-Built for the CloudIslands 1.1.79 baseline.
+Built for the CloudIslands 1.1.80 baseline.
 
-Release notes for `v1.1.79`:
+Release notes for `v1.1.80`:
+
+- truthful member removals: player leave and administrator kick requests now
+  return `MEMBER_NOT_FOUND` when no active membership was actually removed
+- ghost-event prevention: rejected removals no longer publish
+  `ISLAND_MEMBER_LEFT` or `ISLAND_MEMBER_CHANGED`, nor create misleading audit
+  and island-log entries
+- race-safe persistence: JDBC deletion reports its affected-row result inside
+  the primary-island cleanup transaction and excludes expired temporary trust
+  rows from successful member removals
+- repository parity: JDBC, cached, and synchronized in-memory repositories
+  expose the same compatibility-preserving removal-result contract
+
+Release notes carried forward from `v1.1.79`:
 
 - authoritative home outcomes: the locked home upsert returns `CREATED` or
   `UPDATED` after checking the stored named row
@@ -1712,7 +1725,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.79`.
+Current read: production-readiness baseline `v1.1.80`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
