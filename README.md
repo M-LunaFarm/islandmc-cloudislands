@@ -211,6 +211,9 @@ Production security:
 - supplied Compose and Helm topologies enable admin routes on the internal Core
   service because Paper and Velocity call that URL; keep the Core bind private,
   and never enable this path on an Internet-exposed listener
+- internal deployment templates default to an explicit full current-operator
+  permission profile rather than `*`; this makes shipped admin commands usable
+  while keeping every future permission opt-in
 
 Backup and restore:
 

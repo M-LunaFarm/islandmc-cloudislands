@@ -98,7 +98,7 @@ services:
       CI_ADMIN_LISTENER_ENABLED: ${CI_ADMIN_LISTENER_ENABLED:-true}
       # Paper/Velocity admin clients use the internal core-api listener.
       CI_PUBLIC_ADMIN_API_ENABLED: ${CI_PUBLIC_ADMIN_API_ENABLED:-true}
-      CI_ADMIN_PERMISSIONS: ${CI_ADMIN_PERMISSIONS:-audit-read}
+      CI_ADMIN_PERMISSIONS: ${CI_ADMIN_PERMISSIONS:-node-drain,node-undrain,node-kick,node-shutdown,island-activate,island-deactivate,island-migrate,island-snapshot,island-restore,island-quarantine,island-delete,island-repair,island-teleport,island-manage,audit-read,job-manage,route-manage,cache-clear,migration-manage,player-manage,economy-manage,template-manage,moderation-manage}
       CI_ALLOW_INSECURE_PUBLIC_HTTP: "true"
       CI_AUTH_MODE: TOKEN_REQUIRED
       CI_REQUIRE_MTLS: "false"
@@ -160,7 +160,7 @@ services:
       CI_ADMIN_LISTENER_ENABLED: ${CI_ADMIN_LISTENER_ENABLED:-true}
       # Paper/Velocity admin clients use the internal core-api listener.
       CI_PUBLIC_ADMIN_API_ENABLED: ${CI_PUBLIC_ADMIN_API_ENABLED:-true}
-      CI_ADMIN_PERMISSIONS: ${CI_ADMIN_PERMISSIONS:-audit-read}
+      CI_ADMIN_PERMISSIONS: ${CI_ADMIN_PERMISSIONS:-node-drain,node-undrain,node-kick,node-shutdown,island-activate,island-deactivate,island-migrate,island-snapshot,island-restore,island-quarantine,island-delete,island-repair,island-teleport,island-manage,audit-read,job-manage,route-manage,cache-clear,migration-manage,player-manage,economy-manage,template-manage,moderation-manage}
       CI_ALLOW_INSECURE_PUBLIC_HTTP: "true"
       CI_AUTH_MODE: TOKEN_REQUIRED
       CI_REQUIRE_MTLS: "false"

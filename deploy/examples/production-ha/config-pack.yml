@@ -31,6 +31,8 @@ runtime:
 security:
   # The Core service is internal-only; Paper/Velocity admin clients use this listener.
   public-admin-api-enabled: true
+  # Explicit current operator profile; avoid * so future permissions stay opt-in.
+  admin-permissions: node-drain,node-undrain,node-kick,node-shutdown,island-activate,island-deactivate,island-migrate,island-snapshot,island-restore,island-quarantine,island-delete,island-repair,island-teleport,island-manage,audit-read,job-manage,route-manage,cache-clear,migration-manage,player-manage,economy-manage,template-manage,moderation-manage
   allow-insecure-public-http: false
   mtls-trusted-proxy-required: true
   topology-names-hidden-from-players: true

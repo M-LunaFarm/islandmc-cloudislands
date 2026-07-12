@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpPrincipal;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
 import kr.lunaf.cloudislands.coreservice.http.NodeScopedRequestGuard;
+import kr.lunaf.cloudislands.coreservice.security.permission.AdminPermission;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
@@ -17,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -363,6 +365,25 @@ class CoreSecurityControlsTest {
 
         assertFalse(registered.isEmpty());
         assertEquals(List.of(), denied, "registered admin routes missing explicit guard permissions");
+    }
+
+    @Test
+    void helmOperatorProfileExplicitlyCoversEveryCurrentAdminPermission() throws IOException {
+        Path current = Path.of(System.getProperty("user.dir")).toAbsolutePath();
+        while (current != null && !Files.exists(current.resolve("settings.gradle.kts"))) {
+            current = current.getParent();
+        }
+        assertTrue(current != null);
+        String values = Files.readString(current.resolve("deploy/helm/cloudislands/values.yaml"));
+        var matcher = Pattern.compile("adminPermissions:\\s*\"([^\"]+)\"").matcher(values);
+        assertTrue(matcher.find());
+        EnumSet<AdminPermission> configured = EnumSet.noneOf(AdminPermission.class);
+        for (String token : matcher.group(1).split(",")) {
+            configured.add(AdminPermission.valueOf(token.trim().replace('-', '_').toUpperCase(java.util.Locale.ROOT)));
+        }
+
+        assertEquals(EnumSet.allOf(AdminPermission.class), configured);
+        assertFalse(matcher.group(1).contains("*"));
     }
 
     @Test

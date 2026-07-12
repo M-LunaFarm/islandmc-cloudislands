@@ -36,7 +36,8 @@ core:
   adminListenerEnabled: true
   # Required for Paper/Velocity admin clients that use the internal ClusterIP Core service.
   publicAdminApiEnabled: true
-  adminPermissions: "audit-read"
+  # Explicit current operator profile; unlike *, future permissions are not auto-granted.
+  adminPermissions: "node-drain,node-undrain,node-kick,node-shutdown,island-activate,island-deactivate,island-migrate,island-snapshot,island-restore,island-quarantine,island-delete,island-repair,island-teleport,island-manage,audit-read,job-manage,route-manage,cache-clear,migration-manage,player-manage,economy-manage,template-manage,moderation-manage"
   allowInsecurePublicHttp: false
 
 velocity:
