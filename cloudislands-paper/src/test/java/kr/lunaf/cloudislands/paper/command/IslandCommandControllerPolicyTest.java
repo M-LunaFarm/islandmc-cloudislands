@@ -646,7 +646,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(settingsHandler.contains("lower.equals(\"clear\")"));
         assertTrue(flags.contains("SOCIAL_DISCORD"));
         assertTrue(flags.contains("SOCIAL_PAYPAL"));
-        assertTrue(coreRoutes.contains("metadataRepository.setFlag(islandId, flag, value)"), "social metadata must persist through the audited Core island flag path");
+        assertTrue(coreRoutes.contains("metadataRepository.setFlagResult(islandId, flag, value)"), "social metadata must persist through the audited idempotent Core island flag path");
         assertTrue(completer.contains("first.equals(\"setdiscord\")"));
         assertTrue(completer.contains("first.equals(\"setpaypal\")"));
         assertTrue(koMessages.contains("social-discord-action-label:"));
