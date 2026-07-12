@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.91`
+Version: `1.1.92`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.91`
+Current release: `v1.1.92`
 
-Built for the CloudIslands 1.1.91 baseline.
+Built for the CloudIslands 1.1.92 baseline.
 
-Release notes for `v1.1.91`:
+Release notes for `v1.1.92`:
+
+- complete home lifecycle: players can now delete named or default homes and
+  immediately reclaim the released home slot
+- end-to-end typed contract: `/v1/islands/homes/delete`, Core client, public
+  Java API, Paper API, and Velocity execution share `HOME_DELETED`
+- Paper and proxy commands: `delhome`, `deletehome`, `home-delete`, and
+  `홈삭제` work with optional names and the existing set-home permission
+- authoritative deletion evidence: successful removal writes one audit entry,
+  one island log, and one `ISLAND_HOME_CHANGED` event with `HOME_DELETE`
+- compatibility-safe API growth: default interface methods preserve existing
+  third-party command-service and Core-client implementations
+
+Release notes carried forward from `v1.1.91`:
 
 - idempotent home and warp sets: identical location/configuration requests
   return 200 without rewriting creator metadata or timestamps
@@ -1849,7 +1862,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.91`.
+Current read: production-readiness baseline `v1.1.92`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
