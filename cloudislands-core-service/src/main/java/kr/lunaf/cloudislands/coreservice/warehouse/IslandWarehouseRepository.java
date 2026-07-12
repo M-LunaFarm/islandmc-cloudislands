@@ -9,5 +9,9 @@ public interface IslandWarehouseRepository {
     ChangeResult withdraw(UUID islandId, String materialKey, long amount);
     List<IslandWarehouseItemSnapshot> list(UUID islandId, int limit);
 
+    static boolean exceedsCapacity(long current, long deposit) {
+        return current < 0L || deposit <= 0L || current > Long.MAX_VALUE - deposit;
+    }
+
     record ChangeResult(boolean accepted, String code, IslandWarehouseItemSnapshot item) {}
 }

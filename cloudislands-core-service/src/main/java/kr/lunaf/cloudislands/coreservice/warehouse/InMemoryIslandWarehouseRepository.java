@@ -18,7 +18,10 @@ public final class InMemoryIslandWarehouseRepository implements IslandWarehouseR
             return new ChangeResult(false, "INVALID_AMOUNT", snapshot(islandId, key));
         }
         IslandWarehouseItemSnapshot current = snapshot(islandId, key);
-        IslandWarehouseItemSnapshot updated = new IslandWarehouseItemSnapshot(islandId, key, Math.addExact(current.amount(), amount), Instant.now());
+        if (IslandWarehouseRepository.exceedsCapacity(current.amount(), amount)) {
+            return new ChangeResult(false, "WAREHOUSE_LIMIT", current);
+        }
+        IslandWarehouseItemSnapshot updated = new IslandWarehouseItemSnapshot(islandId, key, current.amount() + amount, Instant.now());
         items.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(key, updated);
         return new ChangeResult(true, "DEPOSITED", updated);
     }

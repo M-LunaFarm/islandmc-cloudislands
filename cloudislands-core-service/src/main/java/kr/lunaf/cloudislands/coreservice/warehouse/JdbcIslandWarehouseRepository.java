@@ -27,14 +27,32 @@ public final class JdbcIslandWarehouseRepository implements IslandWarehouseRepos
             return new ChangeResult(false, "INVALID_AMOUNT", snapshot(islandId, key));
         }
         try (Connection connection = dataSource.getConnection()) {
-            try (PreparedStatement statement = connection.prepareStatement(depositSql(connection))) {
-                statement.setObject(1, islandId);
-                statement.setString(2, key);
-                statement.setLong(3, amount);
-                statement.setLong(4, amount);
-                statement.executeUpdate();
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try {
+                ensureRow(connection, islandId, key);
+                long current = lockedAmount(connection, islandId, key);
+                if (IslandWarehouseRepository.exceedsCapacity(current, amount)) {
+                    connection.rollback();
+                    return new ChangeResult(false, "WAREHOUSE_LIMIT", new IslandWarehouseItemSnapshot(islandId, key, current, Instant.now()));
+                }
+                try (PreparedStatement statement = connection.prepareStatement(
+                    "UPDATE island_warehouse SET amount = amount + ?, updated_at = now() WHERE island_id = ? AND material_key = ?"
+                )) {
+                    statement.setLong(1, amount);
+                    statement.setObject(2, islandId);
+                    statement.setString(3, key);
+                    statement.executeUpdate();
+                }
+                IslandWarehouseItemSnapshot updated = snapshot(connection, islandId, key);
+                connection.commit();
+                return new ChangeResult(true, "DEPOSITED", updated);
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
             }
-            return new ChangeResult(true, "DEPOSITED", snapshot(islandId, key));
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to deposit island warehouse item", exception);
         }
@@ -79,23 +97,48 @@ public final class JdbcIslandWarehouseRepository implements IslandWarehouseRepos
         }
     }
 
-    private String depositSql(Connection connection) throws SQLException {
-        if (mysqlLike(connection)) {
-            return "INSERT INTO island_warehouse(island_id, material_key, amount) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE amount = amount + ?, updated_at = CURRENT_TIMESTAMP(6)";
+    private void ensureRow(Connection connection, UUID islandId, String materialKey) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(ensureRowSql(connection))) {
+            statement.setObject(1, islandId);
+            statement.setString(2, materialKey);
+            statement.executeUpdate();
         }
-        return "INSERT INTO island_warehouse(island_id, material_key, amount) VALUES (?, ?, ?) ON CONFLICT (island_id, material_key) DO UPDATE SET amount = island_warehouse.amount + ?, updated_at = now()";
+    }
+
+    private String ensureRowSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT IGNORE INTO island_warehouse(island_id, material_key, amount) VALUES (?, ?, 0)";
+        }
+        return "INSERT INTO island_warehouse(island_id, material_key, amount) VALUES (?, ?, 0) ON CONFLICT (island_id, material_key) DO NOTHING";
+    }
+
+    private long lockedAmount(Connection connection, UUID islandId, String materialKey) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+            "SELECT amount FROM island_warehouse WHERE island_id = ? AND material_key = ? FOR UPDATE"
+        )) {
+            statement.setObject(1, islandId);
+            statement.setString(2, materialKey);
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? rs.getLong("amount") : 0L;
+            }
+        }
     }
 
     private IslandWarehouseItemSnapshot snapshot(UUID islandId, String materialKey) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT island_id, material_key, amount, updated_at FROM island_warehouse WHERE island_id = ? AND material_key = ?")) {
+        try (Connection connection = dataSource.getConnection()) {
+            return snapshot(connection, islandId, materialKey);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island warehouse item", exception);
+        }
+    }
+
+    private IslandWarehouseItemSnapshot snapshot(Connection connection, UUID islandId, String materialKey) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT island_id, material_key, amount, updated_at FROM island_warehouse WHERE island_id = ? AND material_key = ?")) {
             statement.setObject(1, islandId);
             statement.setString(2, materialKey);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? snapshot(rs) : new IslandWarehouseItemSnapshot(islandId, materialKey, 0L, Instant.EPOCH);
             }
-        } catch (SQLException exception) {
-            throw new IllegalStateException("failed to read island warehouse item", exception);
         }
     }
 
