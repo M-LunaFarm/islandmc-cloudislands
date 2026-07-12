@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.73`
+Version: `1.1.74`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.73`
+Current release: `v1.1.74`
 
-Built for the CloudIslands 1.1.73 baseline.
+Built for the CloudIslands 1.1.74 baseline.
 
-Release notes for `v1.1.73`:
+Release notes for `v1.1.74`:
+
+- database-safe resource names: home and warp creation rejects empty,
+  whitespace-only, control-character, and over-32-character names before SQL
+- actionable client errors: invalid inputs return `INVALID_HOME_NAME` or
+  `INVALID_WARP_NAME` with player-safe Korean messages instead of a server 500
+- localized home capacity: `HOME_LIMIT` now has an explicit Korean player
+  message and domain error category alongside `WARP_LIMIT`
+- international names preserved: valid visible Unicode names remain supported
+  within the database length boundary
+
+Release notes carried forward from `v1.1.73`:
 
 - functional home upgrades: the `HOMES` limit produced by `HOME_LIMIT`
   upgrades is now enforced by the home creation endpoint
@@ -1646,7 +1657,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.73`.
+Current read: production-readiness baseline `v1.1.74`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
