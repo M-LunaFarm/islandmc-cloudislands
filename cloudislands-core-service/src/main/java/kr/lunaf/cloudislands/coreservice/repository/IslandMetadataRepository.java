@@ -65,6 +65,10 @@ public interface IslandMetadataRepository {
     void pardonVisitor(UUID islandId, UUID playerUuid);
     boolean isLocked(UUID islandId);
     void setLocked(UUID islandId, boolean locked);
+    default boolean setLockedResult(UUID islandId, boolean locked) {
+        setLocked(islandId, locked);
+        return true;
+    }
     IslandFlagsSnapshot flags(UUID islandId);
     void setFlag(UUID islandId, IslandFlag flag, String value);
     boolean resetFlags(UUID islandId);

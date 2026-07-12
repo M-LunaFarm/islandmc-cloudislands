@@ -526,11 +526,16 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public void setLocked(UUID islandId, boolean locked) {
+        setLockedResult(islandId, locked);
+    }
+
+    @Override
+    public boolean setLockedResult(UUID islandId, boolean locked) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET locked = ?, updated_at = now() WHERE id = ?")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET locked = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL")) {
             statement.setBoolean(1, locked);
             statement.setObject(2, islandId);
-            statement.executeUpdate();
+            return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to update island lock state", exception);
         }

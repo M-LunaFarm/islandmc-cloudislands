@@ -14,6 +14,10 @@ public interface IslandRepository {
     void setState(UUID islandId, IslandState state);
     void updateStats(UUID islandId, int size, long level, String worth);
     void setPublicAccess(UUID islandId, boolean publicAccess);
+    default boolean setPublicAccessResult(UUID islandId, boolean publicAccess) {
+        setPublicAccess(islandId, publicAccess);
+        return true;
+    }
     boolean rename(UUID islandId, String name);
     boolean markDeleted(UUID islandId, UUID requesterUuid);
     Optional<IslandSnapshot> restoreDeleted(UUID islandId);

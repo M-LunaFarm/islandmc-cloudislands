@@ -89,6 +89,15 @@ public final class CachingIslandRepository implements IslandRepository {
     }
 
     @Override
+    public boolean setPublicAccessResult(UUID islandId, boolean publicAccess) {
+        boolean updated = delegate.setPublicAccessResult(islandId, publicAccess);
+        if (updated) {
+            delegate.findById(islandId).ifPresent(this::cache);
+        }
+        return updated;
+    }
+
+    @Override
     public boolean rename(UUID islandId, String name) {
         boolean renamed = delegate.rename(islandId, name);
         if (renamed) {

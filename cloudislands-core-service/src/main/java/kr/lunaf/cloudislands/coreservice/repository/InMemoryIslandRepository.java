@@ -74,11 +74,19 @@ public final class InMemoryIslandRepository implements IslandRepository {
 
     @Override
     public void setPublicAccess(UUID islandId, boolean publicAccess) {
-        IslandSnapshot island = byIslandId.get(islandId);
-        if (island == null || island.state() == IslandState.DELETED) {
+        if (!setPublicAccessResult(islandId, publicAccess)) {
             throw new IllegalStateException("island not found");
         }
+    }
+
+    @Override
+    public boolean setPublicAccessResult(UUID islandId, boolean publicAccess) {
+        IslandSnapshot island = byIslandId.get(islandId);
+        if (island == null || island.state() == IslandState.DELETED) {
+            return false;
+        }
         byIslandId.put(islandId, new IslandSnapshot(island.islandId(), island.ownerUuid(), island.name(), island.state(), island.size(), island.level(), island.worth(), publicAccess, island.createdAt(), Instant.now()));
+        return true;
     }
 
     @Override

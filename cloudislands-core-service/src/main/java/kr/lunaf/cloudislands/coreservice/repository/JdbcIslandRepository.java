@@ -145,11 +145,16 @@ public final class JdbcIslandRepository implements IslandRepository {
 
     @Override
     public void setPublicAccess(UUID islandId, boolean publicAccess) {
+        setPublicAccessResult(islandId, publicAccess);
+    }
+
+    @Override
+    public boolean setPublicAccessResult(UUID islandId, boolean publicAccess) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("UPDATE islands SET public_access = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL")) {
             statement.setBoolean(1, publicAccess);
             statement.setObject(2, islandId);
-            statement.executeUpdate();
+            return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to update island public access", exception);
         }

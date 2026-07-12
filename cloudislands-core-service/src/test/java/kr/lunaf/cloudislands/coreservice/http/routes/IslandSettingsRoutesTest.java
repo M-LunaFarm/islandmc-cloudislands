@@ -16,6 +16,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,6 +42,28 @@ import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandSettingsRoutesTest {
+    @Test
+    void lockAndAccessMutationsUseAffectedRowResults() throws Exception {
+        String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutes.java"));
+        String metadata = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        String islands = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandRepository.java"));
+
+        assertTrue(routes.contains("metadataRepository.setLockedResult(islandId, locked)"));
+        assertTrue(routes.contains("islandRepository.setPublicAccessResult(islandId, publicAccess)"));
+        assertTrue(metadata.contains("public boolean setLockedResult("));
+        assertTrue(metadata.contains("UPDATE islands SET locked = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL"));
+        assertTrue(metadata.contains("return statement.executeUpdate() > 0;"));
+        assertTrue(islands.contains("public boolean setPublicAccessResult("));
+
+        InMemoryIslandRepository repository = new InMemoryIslandRepository();
+        UUID missing = UUID.randomUUID();
+        assertTrue(!repository.setPublicAccessResult(missing, true));
+        UUID islandId = UUID.randomUUID();
+        repository.createOwnedIsland(islandId, UUID.randomUUID(), "default", "Access Result");
+        assertTrue(repository.setPublicAccessResult(islandId, true));
+        assertTrue(repository.findById(islandId).orElseThrow().publicAccess());
+    }
+
     @Test
     void registersIslandSettingsEndpointGroup() {
         List<String> paths = new ArrayList<>();

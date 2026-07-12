@@ -201,6 +201,12 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public boolean setLockedResult(UUID islandId, boolean locked) {
+        setLocked(islandId, locked);
+        return true;
+    }
+
+    @Override
     public IslandFlagsSnapshot flags(UUID islandId) {
         Map<IslandFlag, String> islandFlags = flags.get(islandId);
         return new IslandFlagsSnapshot(islandId, islandFlags == null ? Map.of() : Map.copyOf(islandFlags));
