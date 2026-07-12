@@ -242,12 +242,13 @@ class IslandWarpRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(9, paths.size());
+        assertEquals(10, paths.size());
         assertTrue(paths.contains("/v1/islands/warps"));
         assertTrue(paths.contains("/v1/islands/public-warps"));
         assertTrue(paths.contains("/v1/islands/homes"));
         assertTrue(paths.contains("/v1/islands/homes/set"));
         assertTrue(paths.contains("/v1/islands/homes/delete"));
+        assertTrue(paths.contains("/v1/admin/islands/homes/delete"));
         assertTrue(paths.contains("/v1/islands/warps/set"));
         assertTrue(paths.contains("/v1/islands/warps/delete"));
         assertTrue(paths.contains("/v1/admin/islands/warps/delete"));
@@ -265,6 +266,7 @@ class IslandWarpRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/homes"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/homes/set"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/homes/delete"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/homes/delete"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/warps/set"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/warps/delete"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/warps/delete"));
@@ -373,6 +375,48 @@ class IslandWarpRoutesTest {
         assertEquals("ISLAND_WARP_ADMIN_DELETE", logs.list(islandId, 10).get(0).action());
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_WARP_DELETED.name()));
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_WARP_CHANGED.name()));
+    }
+
+    @Test
+    void adminDeleteHomeBypassesPlayerPermissionAndEmitsOperatorAudit() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000341");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000342");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Admin Home Test");
+        metadata.upsertHome(islandId, "recovery", new IslandLocation("world", 1.0D, 65.0D, 2.0D, 0.0F, 0.0F), ownerUuid);
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandWarpRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            logs,
+            audit,
+            events
+        ).register(handlers::put);
+
+        TestExchange accepted = exchange("{\"islandId\":\"" + islandId + "\",\"name\":\"recovery\"}");
+        handlers.get("/v1/admin/islands/homes/delete").handle(accepted);
+
+        assertEquals(202, accepted.status());
+        assertTrue(accepted.body().contains("\"code\":\"HOME_DELETED\""));
+        assertTrue(metadata.home(islandId, "recovery").isEmpty());
+        assertTrue(audit.toJson().contains("ISLAND_HOME_ADMIN_DELETE"));
+        assertEquals("ISLAND_HOME_ADMIN_DELETE", logs.list(islandId, 10).get(0).action());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_HOME_CHANGED.name()));
+
+        TestExchange missingHome = exchange("{\"islandId\":\"" + islandId + "\",\"name\":\"recovery\"}");
+        handlers.get("/v1/admin/islands/homes/delete").handle(missingHome);
+        TestExchange missingIsland = exchange("{\"islandId\":\"" + UUID.randomUUID() + "\",\"name\":\"recovery\"}");
+        handlers.get("/v1/admin/islands/homes/delete").handle(missingIsland);
+        assertEquals(404, missingHome.status());
+        assertTrue(missingHome.body().contains("HOME_NOT_FOUND"));
+        assertEquals(404, missingIsland.status());
+        assertTrue(missingIsland.body().contains("ISLAND_NOT_FOUND"));
     }
 
     private TestExchange exchange(String body) {

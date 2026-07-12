@@ -64,6 +64,7 @@ public final class IslandWarpRoutes implements RouteGroup {
         registry.routePost("/v1/islands/homes", this::homes);
         registry.routePost("/v1/islands/homes/set", this::setHome);
         registry.routePost("/v1/islands/homes/delete", this::deleteHome);
+        registry.routePost("/v1/admin/islands/homes/delete", this::adminDeleteHome);
         registry.routePost("/v1/islands/warps/set", this::setWarp);
         registry.routePost("/v1/islands/warps/delete", this::deleteWarp);
         registry.routePost("/v1/admin/islands/warps/delete", this::adminDeleteWarp);
@@ -188,6 +189,24 @@ public final class IslandWarpRoutes implements RouteGroup {
         audit.log(actorUuid, "PLAYER", "ISLAND_HOME_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
         islandLogs.append(islandId, actorUuid, "ISLAND_HOME_DELETE", Map.of("name", name));
         events.publish(CloudIslandEventType.ISLAND_HOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", "HOME_DELETE"));
+        CoreHttpResponses.write(exchange, 202, SimpleJson.stringify(Map.of("accepted", true, "code", "HOME_DELETED")));
+    }
+
+    private void adminDeleteHome(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        String name = normalizeResourceName(JsonFields.text(body, "name", "default"));
+        if (islandRepository.findById(islandId).isEmpty()) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        if (!metadataRepository.deleteHomeResult(islandId, name)) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("HOME_NOT_FOUND", "Island home was not found"));
+            return;
+        }
+        audit.log(EMPTY_UUID, "ADMIN", "ISLAND_HOME_ADMIN_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
+        islandLogs.append(islandId, EMPTY_UUID, "ISLAND_HOME_ADMIN_DELETE", Map.of("name", name));
+        events.publish(CloudIslandEventType.ISLAND_HOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "name", name, "operation", "HOME_ADMIN_DELETE"));
         CoreHttpResponses.write(exchange, 202, SimpleJson.stringify(Map.of("accepted", true, "code", "HOME_DELETED")));
     }
 

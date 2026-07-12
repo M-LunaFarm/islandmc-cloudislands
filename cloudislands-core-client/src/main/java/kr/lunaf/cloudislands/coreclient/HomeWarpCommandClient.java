@@ -11,6 +11,10 @@ public interface HomeWarpCommandClient {
         return CompletableFuture.failedFuture(new UnsupportedOperationException("home deletion is not supported by this client"));
     }
 
+    default CompletableFuture<HomeWarpActionView> adminDeleteHome(UUID islandId, String name) {
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("admin home deletion is not supported by this client"));
+    }
+
     default CompletableFuture<HomeWarpActionView> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess) {
         return setWarp(islandId, actorUuid, name, location, publicAccess, "");
     }

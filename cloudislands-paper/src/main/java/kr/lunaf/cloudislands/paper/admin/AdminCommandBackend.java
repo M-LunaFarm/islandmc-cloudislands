@@ -1681,6 +1681,14 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             run(sender, "Island delwarp", coreApiClient.homeWarpCommands().adminDeleteWarp(islandId, args[3]).thenApply(result -> homeWarpActionMessage("Island delwarp", islandId, args[3], result)));
             return true;
         }
+        if (args[1].equalsIgnoreCase("delhome") || args[1].equalsIgnoreCase("deletehome")) {
+            if (args.length < 4) {
+                sender.sendMessage(adminText("admin-command-island-home-required", "홈 이름을 입력해주세요."));
+                return true;
+            }
+            run(sender, "Island delhome", coreApiClient.homeWarpCommands().adminDeleteHome(islandId, args[3]).thenApply(result -> homeWarpActionMessage("Island delhome", islandId, args[3], result)));
+            return true;
+        }
         if (args[1].equalsIgnoreCase("setgenerator")) {
             if (args.length < 5) {
                 sendCommandUsage(sender, List.of("/ciadmin island setgenerator <islandUuid|islandName> <generatorKey> <level>"));
@@ -2868,6 +2876,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island setchestrow <islandUuid|islandName> <rows>",
             "/ciadmin island rename <islandUuid|islandName> <name>",
             "/ciadmin island setbiome <islandUuid|islandName> <biomeKey>",
+            "/ciadmin island delhome <islandUuid|islandName> <home>",
             "/ciadmin island delwarp <islandUuid|islandName> <warp>",
             "/ciadmin island setgenerator <islandUuid|islandName> <generatorKey> <level>",
             "/ciadmin island addgenerator <islandUuid|islandName> <levels> [generatorKey]",

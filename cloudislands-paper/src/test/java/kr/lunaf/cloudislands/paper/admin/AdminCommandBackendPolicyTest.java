@@ -331,6 +331,13 @@ class AdminCommandBackendPolicyTest {
         assertTrue(catalog.contains("\"delwarp\""), "Admin warp deletion must be cataloged for completion");
         assertTrue(source.contains("coreApiClient.homeWarpCommands().adminDeleteWarp(islandId, args[3])"), "Admin warp deletion must use the typed home/warp client");
         assertTrue(homeWarpClient.contains("adminDeleteWarp(UUID islandId, String name)"), "Home/warp client must expose admin delete");
+        assertTrue(adminSurface.contains("ciadmin island delhome <island> <home>"), "Admin home deletion must be listed in help");
+        assertTrue(catalog.contains("\"delhome\""), "Admin home deletion must be cataloged for completion");
+        assertTrue(source.contains("coreApiClient.homeWarpCommands().adminDeleteHome(islandId, args[3])"), "Admin home deletion must use the typed home/warp client");
+        assertTrue(homeWarpClient.contains("adminDeleteHome(UUID islandId, String name)"), "Home/warp client must expose admin home delete");
+        assertTrue(jdkHomeWarpClient.contains("postResultBody(\"/v1/admin/islands/homes/delete\""), "JDK home/warp client must call admin home delete endpoint");
+        assertTrue(coreRoutes.contains("/v1/admin/islands/homes/delete"), "Core home routes must register admin delete");
+        assertTrue(coreRoutes.contains("ISLAND_HOME_ADMIN_DELETE"), "Core admin home delete route must audit operator mutation");
         assertTrue(jdkHomeWarpClient.contains("postResultBody(\"/v1/admin/islands/warps/delete\""), "JDK home/warp client must call admin delete endpoint");
         assertTrue(coreRoutes.contains("/v1/admin/islands/warps/delete"), "Core warp routes must register admin delete");
         assertTrue(coreRoutes.contains("ISLAND_WARP_ADMIN_DELETE"), "Core admin delete route must audit operator mutation");
