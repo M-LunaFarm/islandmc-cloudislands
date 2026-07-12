@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.114`
+Version: `1.1.115`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.114`
+Current release: `v1.1.115`
 
-Built for the CloudIslands 1.1.114 baseline.
+Built for the CloudIslands 1.1.115 baseline.
 
-Release notes for `v1.1.114`:
+Release notes for `v1.1.115`:
+
+- lossless island activity logs: structured payloads now use the shared bounded
+  JSON codec instead of splitting stored JSON on commas
+- reasons, messages, names, and metadata containing commas, colons, quotes,
+  backslashes, control characters, Korean text, or emoji round-trip unchanged
+- null payload values normalize predictably and invalid legacy payloads fail
+  closed to an empty map without breaking the complete log history response
+- PostgreSQL and MySQL/MariaDB continue using their native JSON storage paths
+  with identical decoded payload behavior
+
+Release notes carried forward from `v1.1.114`:
 
 - complete MySQL/MariaDB actor UUID reads: `created_by`, `updated_by`, and
   `moderated_by` `CHAR(36)` values now convert to Java UUIDs like PostgreSQL
@@ -2128,7 +2139,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.114`.
+Current read: production-readiness baseline `v1.1.115`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
