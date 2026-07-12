@@ -251,6 +251,16 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         Instant now = Instant.now();
         Instant expiresAt = now.plusSeconds(86400);
         try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement lockIsland = connection.prepareStatement("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+                lockIsland.setObject(1, islandId);
+                try (ResultSet result = lockIsland.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        throw new IllegalArgumentException("island was not found");
+                    }
+                }
+            }
             try (PreparedStatement expire = connection.prepareStatement("UPDATE island_invites SET state = 'EXPIRED' WHERE island_id = ? AND target_uuid = ? AND state = 'PENDING'")) {
                 expire.setObject(1, islandId);
                 expire.setObject(2, targetUuid);
@@ -263,6 +273,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 statement.setObject(4, targetUuid);
                 statement.setObject(5, java.sql.Timestamp.from(expiresAt));
                 statement.executeUpdate();
+                connection.commit();
                 return new IslandInviteSnapshot(inviteId, islandId, inviterUuid, targetUuid, "PENDING", now, expiresAt);
             }
         } catch (SQLException exception) {

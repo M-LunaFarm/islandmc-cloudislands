@@ -58,6 +58,21 @@ class IslandVisitorRoutesTest {
     }
 
     @Test
+    void jdbcInviteReplacementSerializesAndCommitsExpirationWithInsertion() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        int create = source.indexOf("public IslandInviteSnapshot createInvite(");
+        int commit = source.indexOf("connection.commit();", create);
+
+        assertTrue(create >= 0 && commit > create);
+        String transaction = source.substring(create, commit);
+        assertTrue(transaction.contains("connection.setAutoCommit(false)"));
+        assertTrue(transaction.contains("SELECT id FROM islands"));
+        assertTrue(transaction.contains("FOR UPDATE"), "concurrent replacements must serialize before expiring the pending invite");
+        assertTrue(transaction.contains("UPDATE island_invites SET state = 'EXPIRED'"));
+        assertTrue(transaction.contains("INSERT INTO island_invites"));
+    }
+
+    @Test
     void registersIslandVisitorEndpointGroup() {
         List<String> paths = new ArrayList<>();
         IslandVisitorRoutes routes = new IslandVisitorRoutes(null, null, null, null, null, null, null);
