@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.129`
+Version: `1.1.130`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.129`
+Current release: `v1.1.130`
 
-Built for the CloudIslands 1.1.129 baseline.
+Built for the CloudIslands 1.1.130 baseline.
 
-Release notes for `v1.1.129`:
+Release notes for `v1.1.130`:
+
+- overflow-proof Satis virtual inventories: multi-item used capacity now
+  saturates at `Long.MAX_VALUE` instead of wrapping and exposing phantom space
+- inventory capacity is normalized non-negative, blank item identifiers are
+  rejected, and per-item additions use checked arithmetic before mutation
+- contract reward space uses exact `BigInteger` totals for required and rewarded
+  items, so extreme multi-item contracts cannot bypass the capacity gate
+- regressions cover corrupted over-capacity snapshots, exact maximum fills,
+  rejected post-capacity writes, invalid identifiers, and negative capacities
+
+Release notes carried forward from `v1.1.129`:
 
 - bounded Satis island progression: research points, reputation, and maintenance
   debt now share a non-negative saturating `long` mutation contract
@@ -2292,7 +2303,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.129`.
+Current read: production-readiness baseline `v1.1.130`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
