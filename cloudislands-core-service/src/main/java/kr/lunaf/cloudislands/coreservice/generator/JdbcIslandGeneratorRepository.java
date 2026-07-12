@@ -50,6 +50,22 @@ public final class JdbcIslandGeneratorRepository implements IslandGeneratorRepos
     }
 
     @Override
+    public IslandGeneratorSnapshot addProfile(UUID islandId, String generatorKey, int levels) {
+        IslandGeneratorSnapshot initial = new IslandGeneratorSnapshot(islandId, generatorKey, saturatingLevelAdd(1, levels), Instant.now());
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(addProfileSql(connection))) {
+            statement.setObject(1, initial.islandId());
+            statement.setString(2, initial.generatorKey());
+            statement.setInt(3, initial.level());
+            statement.setInt(4, levels);
+            statement.executeUpdate();
+            return profile(islandId);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to add island generator levels", exception);
+        }
+    }
+
+    @Override
     public List<GeneratorRuleSnapshot> rules(String generatorKey) {
         String key = generatorKey == null || generatorKey.isBlank() ? "default" : generatorKey.trim().toLowerCase();
         List<GeneratorRuleSnapshot> result = readRules(key);
@@ -131,6 +147,21 @@ public final class JdbcIslandGeneratorRepository implements IslandGeneratorRepos
             return "INSERT INTO island_generator_profiles(island_id, generator_key, level) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE generator_key = VALUES(generator_key), level = VALUES(level), updated_at = now()";
         }
         return "INSERT INTO island_generator_profiles(island_id, generator_key, level) VALUES (?, ?, ?) ON CONFLICT (island_id) DO UPDATE SET generator_key = EXCLUDED.generator_key, level = EXCLUDED.level, updated_at = now()";
+    }
+
+    private String addProfileSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_generator_profiles(island_id, generator_key, level) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE generator_key = VALUES(generator_key), level = CAST(LEAST(2147483647, GREATEST(1, CAST(level AS DECIMAL(11,0)) + CAST(? AS DECIMAL(11,0)))) AS SIGNED), updated_at = now()";
+        }
+        return "INSERT INTO island_generator_profiles(island_id, generator_key, level) VALUES (?, ?, ?) ON CONFLICT (island_id) DO UPDATE SET generator_key = EXCLUDED.generator_key, level = CAST(LEAST(2147483647, GREATEST(1, CAST(island_generator_profiles.level AS BIGINT) + CAST(? AS BIGINT))) AS INTEGER), updated_at = now()";
+    }
+
+    private static int saturatingLevelAdd(int current, int levels) {
+        try {
+            return Math.max(1, Math.addExact(current, levels));
+        } catch (ArithmeticException overflow) {
+            return levels > 0 ? Integer.MAX_VALUE : 1;
+        }
     }
 
     private String insertRuleSql(Connection connection) throws SQLException {

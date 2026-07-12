@@ -32,6 +32,15 @@ public final class InMemoryIslandGeneratorRepository implements IslandGeneratorR
     }
 
     @Override
+    public IslandGeneratorSnapshot addProfile(UUID islandId, String generatorKey, int levels) {
+        return profiles.compute(islandId, (_islandId, current) -> {
+            int currentLevel = current == null ? 1 : current.level();
+            int nextLevel = saturatingLevelAdd(currentLevel, levels);
+            return new IslandGeneratorSnapshot(islandId, generatorKey, nextLevel, Instant.now());
+        });
+    }
+
+    @Override
     public List<GeneratorRuleSnapshot> rules(String generatorKey) {
         String key = safeGeneratorKey(generatorKey);
         List<GeneratorRuleSnapshot> result = rules.getOrDefault(key, List.of());
@@ -51,5 +60,13 @@ public final class InMemoryIslandGeneratorRepository implements IslandGeneratorR
 
     private static String safeGeneratorKey(String generatorKey) {
         return generatorKey == null || generatorKey.isBlank() ? "default" : generatorKey.trim().toLowerCase();
+    }
+
+    private static int saturatingLevelAdd(int current, int levels) {
+        try {
+            return Math.max(1, Math.addExact(current, levels));
+        } catch (ArithmeticException overflow) {
+            return levels > 0 ? Integer.MAX_VALUE : 1;
+        }
     }
 }

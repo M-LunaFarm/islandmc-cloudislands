@@ -38,6 +38,11 @@ public final class CachingIslandGeneratorRepository implements IslandGeneratorRe
     }
 
     @Override
+    public IslandGeneratorSnapshot addProfile(UUID islandId, String generatorKey, int levels) {
+        return cacheProfile(delegate.addProfile(islandId, generatorKey, levels));
+    }
+
+    @Override
     public List<GeneratorRuleSnapshot> rules(String generatorKey) {
         String key = safeGeneratorKey(generatorKey);
         Optional<List<GeneratorRuleSnapshot>> cached = cachedRules(key);

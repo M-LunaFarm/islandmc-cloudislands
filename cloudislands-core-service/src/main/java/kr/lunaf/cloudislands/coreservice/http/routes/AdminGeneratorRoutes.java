@@ -98,7 +98,7 @@ public final class AdminGeneratorRoutes implements RouteGroup {
         IslandGeneratorSnapshot current = generators.profile(islandId);
         String generatorKey = safeGeneratorKey(JsonFields.text(body, "generatorKey", current.generatorKey()));
         int delta = Math.max(1, JsonFields.integer(body, "levels", JsonFields.integer(body, "delta", 1)));
-        IslandGeneratorSnapshot snapshot = generators.setProfile(islandId, generatorKey, Math.max(1, current.level() + delta));
+        IslandGeneratorSnapshot snapshot = generators.addProfile(islandId, generatorKey, delta);
         auditIslandGenerator(islandId, snapshot, "ISLAND_GENERATOR_ADMIN_ADD", "ADD");
         CoreHttpResponses.write(exchange, 202, GeneratorRoutes.generatorJson(snapshot));
     }
