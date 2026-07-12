@@ -17,6 +17,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -92,6 +94,64 @@ class EconomyFlowServiceTest {
             assertEquals(DatabaseService.EconomyLedgerClaim.FAILED,
                     database.economyLedgerClaim("MARKET_SELL:" + islandUuid + ":system:flour:10:" + dateKey + ":0:0:0"));
             assertEquals(0, database.marketDailySold("flour", dateKey));
+            assertEquals(10, storage.islandStorage(islandUuid).amount("flour"));
+            assertEquals(0.0, economy.deposited());
+        }
+    }
+
+    @Test
+    void marketLedgerFailureReversesPayoutAndRestoresInventory() throws Exception {
+        try (DatabaseHandle handle = openDatabase("market-ledger-write-failure")) {
+            DatabaseService database = handle.database();
+            StorageService storage = new StorageService(database, 1000);
+            ItemRegistry items = new ItemRegistry();
+            items.load(load("items.yml"));
+            TrackingEconomy economy = new TrackingEconomy();
+            economy.withdrawSucceeds = true;
+            MarketService market = new MarketService(storage, economy, database, items);
+            market.load(load("market.yml"));
+
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000001021");
+            FactoryIsland island = new FactoryIsland(islandUuid, UUID.fromString("00000000-0000-0000-0000-000000001022"));
+            VirtualInventory inventory = storage.islandStorage(islandUuid);
+            assertTrue(inventory.add("flour", 10));
+            storage.save(inventory);
+            try (Connection connection = database.connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_market_ledger BEFORE INSERT ON ledger WHEN NEW.type = 'MARKET_SELL' BEGIN SELECT RAISE(FAIL, 'forced ledger failure'); END");
+            }
+
+            assertTrue(market.sell(island, null, "flour", 10).isEmpty());
+
+            String dateKey = LocalDate.now(ZoneId.systemDefault()).toString();
+            String key = "MARKET_SELL:" + islandUuid + ":system:flour:10:" + dateKey + ":0:0:0";
+            assertEquals(DatabaseService.EconomyLedgerClaim.NEEDS_COMPENSATION, database.economyLedgerClaim(key));
+            assertEquals(10, storage.islandStorage(islandUuid).amount("flour"));
+            assertEquals(0.0, economy.deposited());
+            assertEquals(810.0, economy.withdrawn());
+        }
+    }
+
+    @Test
+    void marketClaimFailureDoesNotLeakRemovedInventoryOrException() throws Exception {
+        try (DatabaseHandle handle = openDatabase("market-claim-failure")) {
+            DatabaseService database = handle.database();
+            StorageService storage = new StorageService(database, 1000);
+            ItemRegistry items = new ItemRegistry();
+            items.load(load("items.yml"));
+            TrackingEconomy economy = new TrackingEconomy();
+            MarketService market = new MarketService(storage, economy, database, items);
+            market.load(load("market.yml"));
+
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000001031");
+            FactoryIsland island = new FactoryIsland(islandUuid, UUID.fromString("00000000-0000-0000-0000-000000001032"));
+            VirtualInventory inventory = storage.islandStorage(islandUuid);
+            assertTrue(inventory.add("flour", 10));
+            storage.save(inventory);
+            try (Connection connection = database.connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_market_claim BEFORE INSERT ON satis_economy_ledger BEGIN SELECT RAISE(FAIL, 'forced claim failure'); END");
+            }
+
+            assertTrue(market.sell(island, null, "flour", 10).isEmpty());
             assertEquals(10, storage.islandStorage(islandUuid).amount("flour"));
             assertEquals(0.0, economy.deposited());
         }
@@ -445,6 +505,8 @@ class EconomyFlowServiceTest {
         private boolean depositSucceeds = true;
         private double maintenancePaid;
         private double maintenanceWithdrawn;
+        private boolean withdrawSucceeds;
+        private double withdrawn;
 
         private TrackingEconomy() {
         }
@@ -464,7 +526,12 @@ class EconomyFlowServiceTest {
 
         @Override
         public boolean withdraw(OfflinePlayer player, double amount) {
-            return false;
+            if (!withdrawSucceeds) {
+                return false;
+            }
+            deposited -= amount;
+            withdrawn += amount;
+            return true;
         }
 
         @Override
@@ -495,6 +562,10 @@ class EconomyFlowServiceTest {
 
         double maintenanceWithdrawn() {
             return maintenanceWithdrawn;
+        }
+
+        double withdrawn() {
+            return withdrawn;
         }
     }
 }

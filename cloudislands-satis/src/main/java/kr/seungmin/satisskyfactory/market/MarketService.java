@@ -177,7 +177,12 @@ public final class MarketService {
             inventory.add(itemId, amount);
             return Optional.empty();
         }
-        Optional<SellResult> result = payout(island, owner, "MARKET_SELL", itemId, amount);
+        Optional<SellResult> result;
+        try {
+            result = payout(island, owner, "MARKET_SELL", itemId, amount);
+        } catch (RuntimeException payoutFailure) {
+            result = Optional.empty();
+        }
         if (result.isEmpty()) {
             if (!restoreSoldInventory(inventory, itemId, amount)) {
                 inventory.remove(itemId, amount);
@@ -202,7 +207,11 @@ public final class MarketService {
         if (amount <= 0 || !prices.containsKey(itemId) || marketBlocked(island)) {
             return Optional.empty();
         }
-        return payout(island, owner, "MARKET_SELL_HAND", itemId, amount);
+        try {
+            return payout(island, owner, "MARKET_SELL_HAND", itemId, amount);
+        } catch (RuntimeException payoutFailure) {
+            return Optional.empty();
+        }
     }
 
     public Map<String, Long> prices() {
@@ -248,6 +257,7 @@ public final class MarketService {
         PriceCalculator.Factors factors = calculator().factors(itemId, amount, serverSold, personalSold);
         long gross = calculator().finalPrice(itemId, amount, serverSold, personalSold);
         long debtRepaid = 0;
+        long previousDebt = island.maintenanceDebt();
         if (maintenanceEnabled() && island.maintenanceDebt() > 0) {
             double repayRate = island.maintenanceStatus() == MaintenanceStatus.LOCKED ? lockedDebtRepayRate : debtRepayRate;
             debtRepaid = Math.min(island.maintenanceDebt(), Math.round(gross * clamp(repayRate, 0.0, 1.0)));
@@ -262,7 +272,6 @@ public final class MarketService {
             return Optional.empty();
         }
         if (debtRepaid > 0) {
-            long previousDebt = island.maintenanceDebt();
             island.maintenanceDebt(island.maintenanceDebt() - debtRepaid);
             if (!islandSaver.test(island)) {
                 island.maintenanceDebt(previousDebt);
@@ -272,7 +281,7 @@ public final class MarketService {
         }
         if (paid > 0 && !economy.deposit(owner, paid)) {
             if (debtRepaid > 0) {
-                island.maintenanceDebt(island.maintenanceDebt() + debtRepaid);
+                island.maintenanceDebt(previousDebt);
                 islandSaver.test(island);
             }
             database.failEconomyLedger(idempotencyKey);
@@ -286,8 +295,27 @@ public final class MarketService {
             }
             database.completeEconomyLedger(idempotencyKey);
         } catch (RuntimeException exception) {
-            database.compensateEconomyLedger(idempotencyKey);
-            throw exception;
+            if (paid > 0) {
+                try {
+                    economy.withdraw(owner, paid);
+                } catch (RuntimeException ignored) {
+                    // The durable compensation state below remains authoritative for operators.
+                }
+            }
+            if (debtRepaid > 0) {
+                island.maintenanceDebt(previousDebt);
+                try {
+                    islandSaver.test(island);
+                } catch (RuntimeException ignored) {
+                    // The previous debt remains in memory and the ledger records reconciliation work.
+                }
+            }
+            try {
+                database.compensateEconomyLedger(idempotencyKey);
+            } catch (RuntimeException ignored) {
+                // A database outage must not prevent the caller from restoring sold inventory.
+            }
+            return Optional.empty();
         }
         return Optional.of(new SellResult(gross, paid, debtRepaid, factors.serverDemandFactor(), factors.personalFactor(), factors.qualityFactor()));
     }
