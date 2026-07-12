@@ -3,10 +3,14 @@ package kr.lunaf.cloudislands.velocity;
 import static kr.lunaf.cloudislands.velocity.routing.VelocityTargetResolver.parseUuid;
 
 import com.velocitypowered.api.proxy.Player;
+import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
+import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.coreclient.TemplateView;
 import net.kyori.adventure.text.Component;
 
 public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
@@ -18,11 +22,24 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
         if (!allowPlayerAction(player, CREATE_COOLDOWN, "섬 생성 요청이 너무 빠릅니다. 잠시 후 다시 시도해주세요.")) {
             return;
         }
-        progressPresenter.status(player, messages.text("island-create-node-search"), messages.text("island-create-starting"));
-        coreApiClient.lifecycle().createIsland(player.getUniqueId(), templateId).thenAccept(result -> {
+        String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
+        coreApiClient.templates().get(normalizedTemplateId).thenCompose(template -> {
+            if (!templateAllowed(player, template)) {
+                player.sendMessage(messages.component("island-create-template-permission-denied"));
+                return CompletableFuture.completedFuture(policyHandled());
+            }
+            if (paidTemplate(template)) {
+                player.sendMessage(messages.component("island-create-paid-paper-required"));
+                return CompletableFuture.completedFuture(policyHandled());
+            }
+            progressPresenter.status(player, messages.text("island-create-node-search"), messages.text("island-create-starting"));
+            return coreApiClient.lifecycle().createIsland(player.getUniqueId(), normalizedTemplateId);
+        }).thenAccept(result -> {
+            if (result != null && "VELOCITY_POLICY_HANDLED".equals(result.code())) {
+                return;
+            }
             if (result == null || !result.accepted()) {
-                String code = result == null ? "FAILED" : result.code();
-                player.sendMessage(Component.text(messageForCreateFailure(code)));
+                player.sendMessage(Component.text(messageForCreateFailure(result == null ? "FAILED" : result.code())));
                 return;
             }
             progressPresenter.status(player, messages.text("island-create-restoring"), messages.text("island-route-moving"));
@@ -33,6 +50,22 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
             player.sendMessage(messages.component("island-service-maintenance"));
             return null;
         });
+    }
+
+    static boolean templateAllowed(Player player, TemplateView template) {
+        return template.requiredPermission().isBlank() || player.hasPermission(template.requiredPermission());
+    }
+
+    static boolean paidTemplate(TemplateView template) {
+        try {
+            return new BigDecimal(template.creationCost()).signum() > 0;
+        } catch (RuntimeException exception) {
+            return true;
+        }
+    }
+
+    private static CreateIslandResult policyHandled() {
+        return new CreateIslandResult(false, "VELOCITY_POLICY_HANDLED", null, null);
     }
 
     public void deleteIsland(Player player, UUID islandId) {

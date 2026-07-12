@@ -80,4 +80,17 @@ class VelocityPlayerRoutingActionsTest {
         assertTrue(routing.contains("progressPresenter.status(player, messages.text(\"island-home-preparing\"), messages.text(\"island-route-moving\"))"), "home must show wait state before requesting a ticket");
         assertTrue(routing.contains("progressPresenter.status(player, messages.text(\"island-visit-preparing\"), messages.text(\"island-route-moving\"))"), "visit/warp flows must show wait state before requesting a ticket");
     }
+
+    @Test
+    void proxyCreationCannotBypassTemplatePermissionOrPayment() throws Exception {
+        String routing = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerRoutingActions.java"));
+        String messages = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/message/VelocityMessages.java"));
+
+        assertTrue(routing.contains("coreApiClient.templates().get(normalizedTemplateId)"), "Velocity must load the authoritative template before create");
+        assertTrue(routing.contains("player.hasPermission(template.requiredPermission())"), "Velocity must enforce template permissions");
+        assertTrue(routing.contains("paidTemplate(template)"), "Velocity must identify paid templates before Core create");
+        assertTrue(routing.contains("island-create-paid-paper-required"), "Paid templates must be redirected to the economy-safe Paper path");
+        assertTrue(messages.contains("island-create-template-permission-denied"));
+        assertTrue(messages.contains("island-create-paid-paper-required"));
+    }
 }

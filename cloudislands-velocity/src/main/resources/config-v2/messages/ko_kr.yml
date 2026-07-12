@@ -6,3 +6,5 @@ route:
 errors:
   no-permission: "권한이 없습니다."
   service-unavailable: "섬 서비스에 일시적으로 연결할 수 없습니다."
+island-create-template-permission-denied: "이 섬 템플릿을 사용할 권한이 없습니다."
+island-create-paid-paper-required: "유료 섬 템플릿은 결제 보호를 위해 Paper 서버에서 생성해주세요."
