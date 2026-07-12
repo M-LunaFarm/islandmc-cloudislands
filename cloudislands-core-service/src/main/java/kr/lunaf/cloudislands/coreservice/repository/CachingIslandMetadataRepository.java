@@ -201,6 +201,13 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public String pardonVisitorResult(UUID islandId, UUID playerUuid) {
+        String result = delegate.pardonVisitorResult(islandId, playerUuid);
+        cacheBans(islandId, delegate.bans(islandId));
+        return result;
+    }
+
+    @Override
     public boolean isLocked(UUID islandId) {
         return delegate.isLocked(islandId);
     }

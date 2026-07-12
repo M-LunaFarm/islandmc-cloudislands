@@ -67,6 +67,10 @@ public interface IslandMetadataRepository {
         return "APPLIED";
     }
     void pardonVisitor(UUID islandId, UUID playerUuid);
+    default String pardonVisitorResult(UUID islandId, UUID playerUuid) {
+        pardonVisitor(islandId, playerUuid);
+        return "APPLIED";
+    }
     boolean isLocked(UUID islandId);
     void setLocked(UUID islandId, boolean locked);
     default boolean setLockedResult(UUID islandId, boolean locked) {

@@ -197,7 +197,12 @@ public final class IslandVisitorRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.BAN_VISITOR)) {
             return;
         }
-        metadataRepository.pardonVisitor(islandId, playerUuid);
+        String result = metadataRepository.pardonVisitorResult(islandId, playerUuid);
+        if (!"APPLIED".equals(result)) {
+            String message = result.equals("ISLAND_NOT_FOUND") ? "Island was not found" : "Visitor ban was not found";
+            CoreHttpResponses.write(exchange, result.equals("BAN_NOT_FOUND") ? 404 : 409, ApiResponses.error(result, message));
+            return;
+        }
         audit.log(actorUuid, "PLAYER", "ISLAND_VISITOR_PARDON", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString()));
         islandLogs.append(islandId, actorUuid, "ISLAND_VISITOR_PARDON", Map.of("playerUuid", playerUuid.toString()));
         events.publish(CloudIslandEventType.ISLAND_VISITOR_BAN_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "banned", Boolean.toString(false)));

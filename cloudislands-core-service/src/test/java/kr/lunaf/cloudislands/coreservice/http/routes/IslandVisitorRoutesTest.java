@@ -59,23 +59,41 @@ class IslandVisitorRoutesTest {
     @Test
     void visitorPardonUsesTheSameIslandLockAsBan() throws Exception {
         String jdbc = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
-        int operation = jdbc.indexOf("public void pardonVisitor(");
+        int operation = jdbc.indexOf("public String pardonVisitorResult(");
         int commit = jdbc.indexOf("connection.commit();", operation);
+        int nextMethod = jdbc.indexOf("\n    @Override", commit);
 
-        assertTrue(operation >= 0 && commit > operation);
-        String transaction = jdbc.substring(operation, commit);
+        assertTrue(operation >= 0 && commit > operation && nextMethod > commit);
+        String transaction = jdbc.substring(operation, nextMethod);
         assertTrue(transaction.contains("connection.setAutoCommit(false)"));
         assertTrue(transaction.contains("SELECT id FROM islands"));
         assertTrue(transaction.contains("FOR UPDATE"), "ban and pardon must serialize through the same island row");
         assertTrue(transaction.contains("DELETE FROM island_bans"));
+        assertTrue(transaction.contains("statement.executeUpdate() > 0"));
+        assertTrue(transaction.contains("return removed ? \"APPLIED\" : \"BAN_NOT_FOUND\""));
 
         InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
         UUID visitorUuid = UUID.randomUUID();
+        assertEquals("BAN_NOT_FOUND", metadata.pardonVisitorResult(islandId, visitorUuid));
         assertEquals("APPLIED", metadata.banVisitorResult(islandId, actorUuid, visitorUuid, "test"));
-        metadata.pardonVisitor(islandId, visitorUuid);
+        assertEquals("APPLIED", metadata.pardonVisitorResult(islandId, visitorUuid));
+        assertEquals("BAN_NOT_FOUND", metadata.pardonVisitorResult(islandId, visitorUuid));
         assertTrue(!metadata.isBanned(islandId, visitorUuid));
+    }
+
+    @Test
+    void missingPardonCannotPublishAFalseBanChange() throws Exception {
+        String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutes.java"));
+        int operation = routes.indexOf("String result = metadataRepository.pardonVisitorResult(islandId, playerUuid)");
+        int guard = routes.indexOf("if (!\"APPLIED\".equals(result))", operation);
+        int audit = routes.indexOf("ISLAND_VISITOR_PARDON", operation);
+        int event = routes.indexOf("ISLAND_VISITOR_BAN_CHANGED", audit);
+
+        assertTrue(operation >= 0 && guard > operation);
+        assertTrue(guard < audit && guard < event, "missing bans must return before audit and change events");
+        assertTrue(routes.substring(guard, audit).contains("BAN_NOT_FOUND"));
     }
 
     @Test

@@ -204,10 +204,13 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public synchronized void pardonVisitor(UUID islandId, UUID playerUuid) {
+        pardonVisitorResult(islandId, playerUuid);
+    }
+
+    @Override
+    public synchronized String pardonVisitorResult(UUID islandId, UUID playerUuid) {
         Map<UUID, IslandBanSnapshot> islandBans = bans.get(islandId);
-        if (islandBans != null) {
-            islandBans.remove(playerUuid);
-        }
+        return islandBans != null && islandBans.remove(playerUuid) != null ? "APPLIED" : "BAN_NOT_FOUND";
     }
 
     @Override
