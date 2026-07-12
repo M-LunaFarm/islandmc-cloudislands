@@ -596,7 +596,11 @@ tasks.register("verifyMissionRewardCoverage") {
         val deliveryTests = paperDeliveryTest.asFile.readText()
         val requiredTypes = listOf("BANK_DEPOSIT", "COMMAND", "ITEM", "UPGRADE_DISCOUNT", "PERMISSION_TEMPORARY", "LIMIT_INCREASE", "GENERATOR_TIER")
         val missingTypes = requiredTypes.filterNot(source::contains)
-        val missingTests = listOf("appliesCoreBackedMissionRewards", "queuesPaperDeliveredMissionRewards").filterNot(tests::contains)
+        val missingTests = listOf(
+            "appliesCoreBackedMissionRewards",
+            "queuesCommandRewardsButRequiresDurableStorageForItems",
+            "depositsItemRewardsIntoDurableIslandWarehouse"
+        ).filterNot(tests::contains)
         val missingDelivery = listOf("COMMAND_REWARD_QUEUED", "ITEM_REWARD_QUEUED", "dispatchCommand(plugin.getServer().getConsoleSender(), command)", "player.getInventory().addItem").filterNot(delivery::contains)
         val missingDeliveryTests = listOf("commandRewardReplacesPlayerAndUuidPlaceholders", "itemRewardParsesNamespacedMaterialAndClampsAmount").filterNot(deliveryTests::contains)
         val failures = buildList {

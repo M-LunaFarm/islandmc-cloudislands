@@ -35,6 +35,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradeRule;
+import kr.lunaf.cloudislands.coreservice.warehouse.IslandWarehouseRepository;
 
 public final class ProgressionRoutes implements RouteGroup {
     private final RankingRepository rankingRepository;
@@ -63,7 +64,37 @@ public final class ProgressionRoutes implements RouteGroup {
             IslandLogRepository islandLogs,
             AuditLogger audit,
             GlobalEventPublisher events) {
-        this(rankingRepository, upgradePolicy, levelRepository, missionRepository, null, limitRepository, null, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events);
+        this(rankingRepository, upgradePolicy, levelRepository, missionRepository, null, limitRepository, null, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events, null);
+    }
+
+    public ProgressionRoutes(
+            RankingRepository rankingRepository,
+            UpgradePolicy upgradePolicy,
+            IslandLevelRepository levelRepository,
+            IslandMissionRepository missionRepository,
+            IslandBankRepository bankRepository,
+            IslandLimitRepository limitRepository,
+            IslandGeneratorRepository generatorRepository,
+            IslandRepository islandRepository,
+            IslandMetadataRepository metadataRepository,
+            IslandPermissionRuleRepository permissionRules,
+            IslandLogRepository islandLogs,
+            AuditLogger audit,
+            GlobalEventPublisher events,
+            IslandWarehouseRepository warehouseRepository) {
+        this.rankingRepository = rankingRepository;
+        this.upgradePolicy = upgradePolicy;
+        this.levelRepository = levelRepository;
+        this.missionRepository = missionRepository;
+        this.bankRepository = bankRepository;
+        this.limitRepository = limitRepository;
+        this.islandRepository = islandRepository;
+        this.metadataRepository = metadataRepository;
+        this.permissionRules = permissionRules;
+        this.islandLogs = islandLogs;
+        this.audit = audit;
+        this.events = events;
+        this.missionRewards = new MissionRewardService(bankRepository, limitRepository, generatorRepository, permissionRules, warehouseRepository);
     }
 
     public ProgressionRoutes(
@@ -80,19 +111,7 @@ public final class ProgressionRoutes implements RouteGroup {
             IslandLogRepository islandLogs,
             AuditLogger audit,
             GlobalEventPublisher events) {
-        this.rankingRepository = rankingRepository;
-        this.upgradePolicy = upgradePolicy;
-        this.levelRepository = levelRepository;
-        this.missionRepository = missionRepository;
-        this.bankRepository = bankRepository;
-        this.limitRepository = limitRepository;
-        this.islandRepository = islandRepository;
-        this.metadataRepository = metadataRepository;
-        this.permissionRules = permissionRules;
-        this.islandLogs = islandLogs;
-        this.audit = audit;
-        this.events = events;
-        this.missionRewards = new MissionRewardService(bankRepository, limitRepository, generatorRepository, permissionRules);
+        this(rankingRepository, upgradePolicy, levelRepository, missionRepository, bankRepository, limitRepository, generatorRepository, islandRepository, metadataRepository, permissionRules, islandLogs, audit, events, null);
     }
 
     @Override
@@ -336,6 +355,17 @@ public final class ProgressionRoutes implements RouteGroup {
         }
         audit.log(actorUuid, actorType, successAction, "ISLAND", snapshot.islandId().toString(), missionCompleteFields(snapshot, reward, actorUuid));
         islandLogs.append(snapshot.islandId(), actorUuid, successAction, missionCompleteFields(snapshot, reward, actorUuid));
+        if (reward.code().equals("ITEM_DEPOSITED_TO_WAREHOUSE")) {
+            events.publish(CloudIslandEventType.ISLAND_WAREHOUSE_CHANGED.name(), Map.of(
+                "islandId", snapshot.islandId().toString(),
+                "actorUuid", actorUuid.toString(),
+                "actorType", actorType,
+                "operation", "MISSION_REWARD_DEPOSIT",
+                "materialKey", reward.details().getOrDefault("materialKey", ""),
+                "amount", reward.details().getOrDefault("amount", "0"),
+                "balance", reward.details().getOrDefault("warehouseBalance", "0")
+            ));
+        }
         events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), actorType.equals("ADMIN")
             ? missionCompleteEventFields(snapshot, reward, actorUuid, actorType)
             : missionCompleteEventFields(snapshot, reward, actorUuid));

@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.coreservice.bank.InMemoryIslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.generator.InMemoryIslandGeneratorRepository;
 import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.warehouse.InMemoryIslandWarehouseRepository;
 import org.junit.jupiter.api.Test;
 
 class MissionRewardServiceTest {
@@ -42,7 +43,7 @@ class MissionRewardServiceTest {
     }
 
     @Test
-    void queuesPaperDeliveredMissionRewards() {
+    void queuesCommandRewardsButRequiresDurableStorageForItems() {
         MissionRewardService rewards = new MissionRewardService(null, null, null, null);
 
         MissionRewardService.MissionRewardResult command = rewards.apply(mission("COMMAND", "give %player% diamond 1"), ACTOR_UUID);
@@ -50,9 +51,22 @@ class MissionRewardServiceTest {
 
         assertEquals("COMMAND_REWARD_QUEUED", command.code());
         assertEquals("give %player% diamond 1", command.details().get("command"));
-        assertEquals("ITEM_REWARD_QUEUED", item.code());
-        assertEquals("minecraft:diamond 1", item.details().get("item"));
+        assertEquals("WAREHOUSE_REPOSITORY_UNAVAILABLE", item.code());
         assertEquals("UPGRADE_DISCOUNT_RECORDED", rewards.apply(mission("UPGRADE_DISCOUNT", "generator 10% 1h"), ACTOR_UUID).code());
+    }
+
+    @Test
+    void depositsItemRewardsIntoDurableIslandWarehouse() {
+        InMemoryIslandWarehouseRepository warehouse = new InMemoryIslandWarehouseRepository();
+        MissionRewardService rewards = new MissionRewardService(null, null, null, null, warehouse);
+
+        MissionRewardService.MissionRewardResult item = rewards.apply(mission("ITEM", "minecraft:diamond 12"), ACTOR_UUID);
+
+        assertTrue(item.applied());
+        assertEquals("ITEM_DEPOSITED_TO_WAREHOUSE", item.code());
+        assertEquals("minecraft:diamond", item.details().get("materialKey"));
+        assertEquals("12", item.details().get("amount"));
+        assertEquals(12L, warehouse.list(ISLAND_ID, 10).getFirst().amount());
     }
 
     private static IslandMissionSnapshot mission(String rewardType, String reward) {

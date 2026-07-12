@@ -14,22 +14,34 @@ import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.generator.IslandGeneratorRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.warehouse.IslandWarehouseRepository;
 
 public final class MissionRewardService {
     private final IslandBankRepository bankRepository;
     private final IslandLimitRepository limitRepository;
     private final IslandGeneratorRepository generatorRepository;
     private final IslandPermissionRuleRepository permissionRules;
+    private final IslandWarehouseRepository warehouseRepository;
 
     public MissionRewardService(
             IslandBankRepository bankRepository,
             IslandLimitRepository limitRepository,
             IslandGeneratorRepository generatorRepository,
             IslandPermissionRuleRepository permissionRules) {
+        this(bankRepository, limitRepository, generatorRepository, permissionRules, null);
+    }
+
+    public MissionRewardService(
+            IslandBankRepository bankRepository,
+            IslandLimitRepository limitRepository,
+            IslandGeneratorRepository generatorRepository,
+            IslandPermissionRuleRepository permissionRules,
+            IslandWarehouseRepository warehouseRepository) {
         this.bankRepository = bankRepository;
         this.limitRepository = limitRepository;
         this.generatorRepository = generatorRepository;
         this.permissionRules = permissionRules;
+        this.warehouseRepository = warehouseRepository;
     }
 
     public MissionRewardResult apply(IslandMissionSnapshot snapshot, UUID actorUuid) {
@@ -43,7 +55,7 @@ public final class MissionRewardService {
         return switch (rewardType) {
             case "BANK_DEPOSIT" -> bankDeposit(snapshot);
             case "COMMAND" -> queued("COMMAND_REWARD_QUEUED", "command", snapshot.reward());
-            case "ITEM" -> queued("ITEM_REWARD_QUEUED", "item", snapshot.reward());
+            case "ITEM" -> warehouseItem(snapshot);
             case "UPGRADE_DISCOUNT" -> queued("UPGRADE_DISCOUNT_RECORDED", "discount", snapshot.reward());
             case "PERMISSION_TEMPORARY" -> permissionTemporary(snapshot, actorUuid);
             case "LIMIT_INCREASE" -> limitIncrease(snapshot, actorUuid);
@@ -79,6 +91,29 @@ public final class MissionRewardService {
             return new MissionRewardResult(true, "PERMISSION_TEMPORARY_GRANTED", "", Map.of("permission", permission.name()));
         } catch (IllegalArgumentException exception) {
             return MissionRewardResult.skipped("INVALID_PERMISSION_REWARD");
+        }
+    }
+
+    private MissionRewardResult warehouseItem(IslandMissionSnapshot snapshot) {
+        if (warehouseRepository == null) {
+            return MissionRewardResult.skipped("WAREHOUSE_REPOSITORY_UNAVAILABLE");
+        }
+        RewardKeyAmount parsed = rewardKeyAmount(snapshot.reward(), "");
+        if (parsed.key().isBlank() || parsed.amount() <= 0L) {
+            return MissionRewardResult.skipped("INVALID_ITEM_REWARD");
+        }
+        try {
+            IslandWarehouseRepository.ChangeResult deposited = warehouseRepository.deposit(snapshot.islandId(), parsed.key(), parsed.amount());
+            if (!deposited.accepted()) {
+                return MissionRewardResult.skipped("ITEM_REWARD_" + deposited.code());
+            }
+            return new MissionRewardResult(true, "ITEM_DEPOSITED_TO_WAREHOUSE", "", Map.of(
+                "materialKey", deposited.item().materialKey(),
+                "amount", Long.toString(parsed.amount()),
+                "warehouseBalance", Long.toString(deposited.item().amount())
+            ));
+        } catch (RuntimeException exception) {
+            return MissionRewardResult.skipped("ITEM_REWARD_FAILED");
         }
     }
 

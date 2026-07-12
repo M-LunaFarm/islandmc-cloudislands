@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.mission.InMemoryIslandMissionRepository;
+import kr.lunaf.cloudislands.coreservice.warehouse.InMemoryIslandWarehouseRepository;
 import org.junit.jupiter.api.Test;
 
 class ProgressionRoutesTest {
@@ -208,6 +209,29 @@ class ProgressionRoutesTest {
         IslandMissionSnapshot next = missions.progress(islandId, actorUuid, "repeat_reward", "MISSION", 1L).orElseThrow();
         assertEquals(1L, next.progress());
         assertEquals(false, next.completed());
+    }
+
+    @Test
+    void itemRewardIsDurablyDepositedAndPublishesWarehouseEvent() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        InMemoryIslandMissionRepository missions = new InMemoryIslandMissionRepository();
+        missions.registerProviderDefinitions("test", List.of(
+            new MissionProviderDefinitionSnapshot("test", "item_reward", "MISSION", "", "Item", "", "BLOCK_BREAK", "*", 1L, "ITEM", "DIAMOND 3", false, false, true, null)
+        ));
+        IslandMissionSnapshot completed = missions.complete(islandId, actorUuid, "item_reward", "MISSION").orElseThrow();
+        InMemoryIslandWarehouseRepository warehouse = new InMemoryIslandWarehouseRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        ProgressionRoutes routes = new ProgressionRoutes(
+            null, null, null, missions, null, null, null, null, null, null,
+            new InMemoryIslandLogRepository(), new InMemoryAuditLogger(), events, warehouse
+        );
+
+        assertTrue(routes.settleMissionCompletion(completed, actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE"));
+
+        assertEquals(3L, warehouse.list(islandId, 10).getFirst().amount());
+        assertEquals(1L, events.countByType("ISLAND_WAREHOUSE_CHANGED"));
+        assertEquals(1L, events.countByType("ISLAND_MISSION_COMPLETED"));
     }
 
     private static ProgressionRoutes routesForSettlement(InMemoryIslandMissionRepository missions, InMemoryIslandBankRepository bank) {
