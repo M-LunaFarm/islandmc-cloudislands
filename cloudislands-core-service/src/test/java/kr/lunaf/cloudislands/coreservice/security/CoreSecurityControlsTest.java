@@ -13,9 +13,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -329,6 +334,35 @@ class CoreSecurityControlsTest {
         assertTrue(new AdminEndpointGuard("admin-secret", true, "economy-manage").allowed("/v1/admin/rankings/ignore", authenticated));
         assertTrue(new AdminEndpointGuard("admin-secret", true, "player-manage").allowed("/v1/admin/players/setdisbands", authenticated));
         assertTrue(new AdminEndpointGuard("admin-secret", true, "migration-manage").allowed("/v1/admin/migrations/superiorskyblock2/approve", authenticated));
+    }
+
+    @Test
+    void everyRegisteredStaticAdminRouteHasAnExplicitGuardPermission() throws IOException {
+        Pattern registration = Pattern.compile("registry\\.route(?:Post|Get|Delete)\\(\\s*\"([^\"]+)\"");
+        Path sourceRoot = Path.of("src/main/java");
+        List<String> registered = new ArrayList<>();
+        try (var sources = Files.walk(sourceRoot)) {
+            for (Path source : sources.filter(path -> path.toString().endsWith(".java")).toList()) {
+                var matcher = registration.matcher(Files.readString(source));
+                while (matcher.find()) {
+                    String path = matcher.group(1);
+                    if (path.startsWith("/v1/admin") || path.equals("/v1/audit") || path.equals("/v1/events") || path.equals("/metrics")) {
+                        registered.add(path);
+                    }
+                }
+            }
+        }
+
+        AdminEndpointGuard wildcard = new AdminEndpointGuard("admin-secret", true, "*");
+        var authenticated = exchange("127.0.0.1", "X-CloudIslands-Admin-Token", "admin-secret");
+        List<String> denied = registered.stream()
+            .distinct()
+            .sorted()
+            .filter(path -> !wildcard.allowed(path, authenticated))
+            .toList();
+
+        assertFalse(registered.isEmpty());
+        assertEquals(List.of(), denied, "registered admin routes missing explicit guard permissions");
     }
 
     @Test
