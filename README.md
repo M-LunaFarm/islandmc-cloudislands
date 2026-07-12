@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.77`
+Version: `1.1.78`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.77`
+Current release: `v1.1.78`
 
-Built for the CloudIslands 1.1.77 baseline.
+Built for the CloudIslands 1.1.78 baseline.
 
-Release notes for `v1.1.77`:
+Release notes for `v1.1.78`:
+
+- authoritative warp outcomes: the locked upsert transaction now returns
+  `CREATED` or `UPDATED` after checking the stored named row
+- duplicate-event prevention: simultaneous requests for the same new warp emit
+  `WARP_CREATED` only for the transaction that actually inserted it
+- accurate change operations: the later serialized request publishes
+  `WARP_UPDATE` instead of relying on a stale route-level existence read
+- repository parity: JDBC and synchronized in-memory implementations expose the
+  same creation-state result while retaining fallback compatibility
+
+Release notes carried forward from `v1.1.77`:
 
 - locale-stable resource keys: home and warp names use `Locale.ROOT` instead of
   the host JVM locale for every create, lookup, update, access, and delete path
@@ -1690,7 +1701,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.77`.
+Current read: production-readiness baseline `v1.1.78`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
