@@ -709,12 +709,40 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public void setBiome(UUID islandId, String biomeKey, UUID updatedBy) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(setBiomeSql(connection))) {
-            statement.setObject(1, islandId);
-            statement.setString(2, biomeKey);
-            statement.setObject(3, updatedBy);
-            statement.executeUpdate();
+        setBiomeResult(islandId, biomeKey, updatedBy);
+    }
+
+    @Override
+    public String setBiomeResult(UUID islandId, String biomeKey, UUID updatedBy) {
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement island = connection.prepareStatement("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+                island.setObject(1, islandId);
+                try (ResultSet result = island.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        return "ISLAND_NOT_FOUND";
+                    }
+                }
+            }
+            try (PreparedStatement current = connection.prepareStatement("SELECT biome_key FROM island_biomes WHERE island_id = ? FOR UPDATE")) {
+                current.setObject(1, islandId);
+                try (ResultSet result = current.executeQuery()) {
+                    String currentBiome = result.next() ? result.getString("biome_key") : "minecraft:plains";
+                    if (java.util.Objects.equals(currentBiome, biomeKey)) {
+                        connection.commit();
+                        return "UNCHANGED";
+                    }
+                }
+            }
+            try (PreparedStatement statement = connection.prepareStatement(setBiomeSql(connection))) {
+                statement.setObject(1, islandId);
+                statement.setString(2, biomeKey);
+                statement.setObject(3, updatedBy);
+                statement.executeUpdate();
+            }
+            connection.commit();
+            return "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to set island biome", exception);
         }

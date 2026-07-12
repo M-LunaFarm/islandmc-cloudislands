@@ -168,12 +168,15 @@ public final class IslandSettingsRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.SET_BIOME)) {
             return;
         }
-        String currentBiomeKey = metadataRepository.biome(islandId).biomeKey();
-        if (currentBiomeKey.equals(biomeKey.get())) {
+        String result = metadataRepository.setBiomeResult(islandId, biomeKey.get(), actorUuid);
+        if ("ISLAND_NOT_FOUND".equals(result)) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        if ("UNCHANGED".equals(result)) {
             CoreHttpResponses.write(exchange, 202, biomeSetJson(islandId, actorUuid, biomeKey.get(), "BIOME_UNCHANGED"));
             return;
         }
-        metadataRepository.setBiome(islandId, biomeKey.get(), actorUuid);
         audit.log(actorUuid, "PLAYER", "ISLAND_BIOME_SET", "ISLAND", islandId.toString(), Map.of("biomeKey", biomeKey.get()));
         islandLogs.append(islandId, actorUuid, "ISLAND_BIOME_SET", Map.of("biomeKey", biomeKey.get()));
         events.publish(CloudIslandEventType.ISLAND_BIOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "biomeKey", biomeKey.get()));
@@ -192,12 +195,15 @@ public final class IslandSettingsRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
             return;
         }
-        String currentBiomeKey = metadataRepository.biome(islandId).biomeKey();
-        if (currentBiomeKey.equals(biomeKey.get())) {
+        String result = metadataRepository.setBiomeResult(islandId, biomeKey.get(), EMPTY_UUID);
+        if ("ISLAND_NOT_FOUND".equals(result)) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        if ("UNCHANGED".equals(result)) {
             CoreHttpResponses.write(exchange, 202, biomeSetJson(islandId, EMPTY_UUID, biomeKey.get(), "BIOME_UNCHANGED"));
             return;
         }
-        metadataRepository.setBiome(islandId, biomeKey.get(), EMPTY_UUID);
         audit.log(EMPTY_UUID, "ADMIN", "ISLAND_BIOME_ADMIN_SET", "ISLAND", islandId.toString(), Map.of("biomeKey", biomeKey.get()));
         islandLogs.append(islandId, EMPTY_UUID, "ISLAND_BIOME_ADMIN_SET", Map.of("biomeKey", biomeKey.get()));
         events.publish(CloudIslandEventType.ISLAND_BIOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "biomeKey", biomeKey.get()));

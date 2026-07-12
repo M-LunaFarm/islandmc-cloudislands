@@ -92,6 +92,10 @@ public interface IslandMetadataRepository {
     boolean resetFlags(UUID islandId);
     IslandBiomeSnapshot biome(UUID islandId);
     void setBiome(UUID islandId, String biomeKey, UUID updatedBy);
+    default String setBiomeResult(UUID islandId, String biomeKey, UUID updatedBy) {
+        setBiome(islandId, biomeKey, updatedBy);
+        return "APPLIED";
+    }
     List<IslandHomeSnapshot> homes(UUID islandId);
     java.util.Optional<IslandHomeSnapshot> home(UUID islandId, String name);
     void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy);

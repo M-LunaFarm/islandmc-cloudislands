@@ -274,6 +274,11 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public String setBiomeResult(UUID islandId, String biomeKey, UUID updatedBy) {
+        return delegate.setBiomeResult(islandId, biomeKey, updatedBy);
+    }
+
+    @Override
     public List<IslandHomeSnapshot> homes(UUID islandId) {
         Optional<List<IslandHomeSnapshot>> cached = cachedHomes(islandId);
         if (cached.isPresent()) {

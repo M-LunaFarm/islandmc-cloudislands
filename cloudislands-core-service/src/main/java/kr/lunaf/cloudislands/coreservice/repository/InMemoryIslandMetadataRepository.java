@@ -314,7 +314,16 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public void setBiome(UUID islandId, String biomeKey, UUID updatedBy) {
+        setBiomeResult(islandId, biomeKey, updatedBy);
+    }
+
+    @Override
+    public synchronized String setBiomeResult(UUID islandId, String biomeKey, UUID updatedBy) {
+        if (biome(islandId).biomeKey().equals(biomeKey)) {
+            return "UNCHANGED";
+        }
         biomes.put(islandId, new IslandBiomeSnapshot(islandId, biomeKey, updatedBy, Instant.now()));
+        return "APPLIED";
     }
 
     @Override

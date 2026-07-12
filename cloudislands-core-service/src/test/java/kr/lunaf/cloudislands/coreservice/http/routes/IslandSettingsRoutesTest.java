@@ -43,6 +43,28 @@ import org.junit.jupiter.api.Test;
 
 class IslandSettingsRoutesTest {
     @Test
+    void biomeWritesCompareInsideTheIslandTransaction() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        int operation = source.indexOf("public String setBiomeResult(");
+        int nextMethod = source.indexOf("\n    @Override", operation + 20);
+        String transaction = source.substring(operation, nextMethod);
+
+        assertTrue(transaction.contains("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE"));
+        assertTrue(transaction.contains("SELECT biome_key FROM island_biomes WHERE island_id = ? FOR UPDATE"));
+        assertTrue(transaction.contains("return \"UNCHANGED\";"));
+        assertTrue(transaction.contains("return \"ISLAND_NOT_FOUND\";"));
+        assertTrue(transaction.contains("connection.commit();"));
+
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        assertEquals("UNCHANGED", metadata.setBiomeResult(islandId, "minecraft:plains", actorUuid));
+        assertEquals("APPLIED", metadata.setBiomeResult(islandId, "minecraft:desert", actorUuid));
+        assertEquals("UNCHANGED", metadata.setBiomeResult(islandId, "minecraft:desert", UUID.randomUUID()));
+        assertEquals(actorUuid, metadata.biome(islandId).updatedBy());
+    }
+
+    @Test
     void jdbcFlagWritesCompareInsideTheIslandTransaction() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
         int operation = source.indexOf("public String setFlagResult(");
