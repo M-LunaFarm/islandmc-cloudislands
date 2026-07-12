@@ -386,6 +386,14 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 connection.rollback();
                 return false;
             }
+            if (!invite.expiresAt().isAfter(Instant.now())) {
+                try (PreparedStatement expired = connection.prepareStatement("UPDATE island_invites SET state = 'EXPIRED' WHERE id = ?")) {
+                    expired.setObject(1, inviteId);
+                    expired.executeUpdate();
+                }
+                connection.commit();
+                return false;
+            }
             try (PreparedStatement statement = connection.prepareStatement("UPDATE island_invites SET state = 'DECLINED' WHERE id = ?")) {
                 statement.setObject(1, inviteId);
                 statement.executeUpdate();

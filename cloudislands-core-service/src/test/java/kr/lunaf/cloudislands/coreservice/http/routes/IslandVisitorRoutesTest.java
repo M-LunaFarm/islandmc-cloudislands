@@ -83,6 +83,22 @@ class IslandVisitorRoutesTest {
     }
 
     @Test
+    void expiredInviteCannotBeDeclinedAsIfItWereStillUsable() throws Exception {
+        String jdbc = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        String memory = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/InMemoryIslandMetadataRepository.java"));
+        int decline = jdbc.indexOf("public boolean declineInvite(");
+        int nextMethod = jdbc.indexOf("\n    @Override", decline + 20);
+        String transaction = jdbc.substring(decline, nextMethod);
+
+        assertTrue(transaction.contains("!invite.expiresAt().isAfter(Instant.now())"));
+        assertTrue(transaction.contains("UPDATE island_invites SET state = 'EXPIRED'"));
+        assertTrue(transaction.indexOf("state = 'EXPIRED'") < transaction.indexOf("state = 'DECLINED'"));
+        assertTrue(transaction.contains("connection.commit();"), "expired state cleanup must commit while decline still returns false");
+        assertTrue(memory.contains("public synchronized boolean declineInvite("));
+        assertTrue(memory.contains("\"EXPIRED\", invite.createdAt(), invite.expiresAt()"));
+    }
+
+    @Test
     void registersIslandVisitorEndpointGroup() {
         List<String> paths = new ArrayList<>();
         IslandVisitorRoutes routes = new IslandVisitorRoutes(null, null, null, null, null, null, null);
