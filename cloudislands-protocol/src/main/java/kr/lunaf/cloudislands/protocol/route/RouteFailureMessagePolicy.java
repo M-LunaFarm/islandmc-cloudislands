@@ -41,6 +41,9 @@ public final class RouteFailureMessagePolicy {
             case "WARP_NOT_FOUND" -> "해당 워프를 찾을 수 없습니다.";
             case "WARP_PRIVATE" -> "해당 워프는 공개 상태가 아닙니다.";
             case "WARP_LIMIT" -> "섬 워프 한도에 도달했습니다.";
+            case "HOME_LIMIT" -> "섬 홈 한도에 도달했습니다.";
+            case "INVALID_HOME_NAME" -> "홈 이름은 1~32자의 표시 가능한 문자여야 합니다.";
+            case "INVALID_WARP_NAME" -> "워프 이름은 1~32자의 표시 가능한 문자여야 합니다.";
             case "ISLAND_MIGRATING" -> "섬 서버를 최적화하는 중입니다. 잠시 후 자동으로 이동됩니다.";
             case "ISLAND_PREPARING" -> "섬을 준비하는 중입니다. 잠시 후 다시 시도해주세요.";
             case "ISLAND_RESTORING" -> "섬 스냅샷을 복원하는 중입니다. 잠시 후 다시 시도해주세요.";
@@ -89,6 +92,9 @@ public final class RouteFailureMessagePolicy {
                 "WARP_NOT_FOUND",
                 "WARP_PRIVATE",
                 "WARP_LIMIT",
+                "HOME_LIMIT",
+                "INVALID_HOME_NAME",
+                "INVALID_WARP_NAME",
                 "RECOVERY_REQUIRED",
                 "ISLAND_PERMISSION_DENIED",
                 "MEMBER_LIMIT",

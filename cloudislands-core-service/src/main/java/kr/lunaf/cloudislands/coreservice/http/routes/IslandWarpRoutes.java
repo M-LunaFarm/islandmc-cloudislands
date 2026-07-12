@@ -103,6 +103,10 @@ public final class IslandWarpRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.SET_HOME)) {
             return;
         }
+        if (!validResourceName(name)) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_HOME_NAME", "Home name must be 1-32 visible characters"));
+            return;
+        }
         String result = metadataRepository.upsertHomeWithLimit(islandId, name, location(body), actorUuid, limitValue(islandId, "HOMES", 1L));
         if (!"APPLIED".equals(result)) {
             String message = result.equals("HOME_LIMIT") ? "Island home limit was reached" : "Island was not found";
@@ -123,6 +127,10 @@ public final class IslandWarpRoutes implements RouteGroup {
         boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
+            return;
+        }
+        if (!validResourceName(name)) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_WARP_NAME", "Warp name must be 1-32 visible characters"));
             return;
         }
         boolean existingWarp = metadataRepository.warps(islandId).stream().anyMatch(warp -> warp.name().equalsIgnoreCase(name));
@@ -261,6 +269,13 @@ public final class IslandWarpRoutes implements RouteGroup {
             (float) JsonFields.decimal(body, "yaw", 0.0D),
             (float) JsonFields.decimal(body, "pitch", 0.0D)
         );
+    }
+
+    static boolean validResourceName(String name) {
+        if (name == null || name.isBlank() || name.length() > 32) {
+            return false;
+        }
+        return name.codePoints().noneMatch(Character::isISOControl);
     }
 
     static String homesJson(List<IslandHomeSnapshot> homes) {

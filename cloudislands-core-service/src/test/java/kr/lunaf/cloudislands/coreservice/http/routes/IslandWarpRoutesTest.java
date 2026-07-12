@@ -121,6 +121,17 @@ class IslandWarpRoutesTest {
     }
 
     @Test
+    void validatesHomeAndWarpNamesBeforeDatabasePersistence() {
+        assertTrue(IslandWarpRoutes.validResourceName("default"));
+        assertTrue(IslandWarpRoutes.validResourceName("public market"));
+        assertTrue(IslandWarpRoutes.validResourceName("가게"));
+        assertTrue(!IslandWarpRoutes.validResourceName(""));
+        assertTrue(!IslandWarpRoutes.validResourceName(" "));
+        assertTrue(!IslandWarpRoutes.validResourceName("a".repeat(33)));
+        assertTrue(!IslandWarpRoutes.validResourceName("bad\nname"));
+    }
+
+    @Test
     void rendersHomeAndWarpContracts() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID actorUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
