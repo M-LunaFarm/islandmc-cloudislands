@@ -54,4 +54,17 @@ class CachingIslandTemplateRepositoryTest {
         assertEquals(Instant.EPOCH, cached.createdAt());
         assertEquals(Instant.EPOCH, cached.updatedAt());
     }
+
+    @Test
+    void treatsFullyCorruptNonEmptyCacheAsMiss() {
+        assertTrue(CachingIslandTemplateRepository.decodeCached("not-a-template-row").isEmpty());
+
+        IslandTemplateSnapshot template = new IslandTemplateSnapshot("classic", "Classic", true, "1.21");
+        assertEquals(
+            List.of(template),
+            CachingIslandTemplateRepository.decodeCached(
+                CachingIslandTemplateRepository.encode(List.of(template))
+            ).orElseThrow()
+        );
+    }
 }

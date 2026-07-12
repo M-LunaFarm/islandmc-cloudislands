@@ -116,7 +116,8 @@ public final class CachingIslandSnapshotRepository implements IslandSnapshotRepo
             if (value == null || value.isBlank()) {
                 return Optional.empty();
             }
-            return Optional.of(parse(value));
+            List<IslandSnapshotRecord> parsed = parse(value);
+            return parsed.isEmpty() ? Optional.empty() : Optional.of(parsed);
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
             return Optional.empty();

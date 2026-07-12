@@ -94,10 +94,7 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
     private Optional<List<IslandTemplateSnapshot>> cached() {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             String value = redis.command("GET", RedisKeys.templates());
-            if (value == null || value.isBlank()) {
-                return Optional.empty();
-            }
-            return Optional.of(parse(value));
+            return decodeCached(value);
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
             return Optional.empty();
@@ -140,6 +137,14 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
                 .append('\n');
         }
         return out.toString();
+    }
+
+    static Optional<List<IslandTemplateSnapshot>> decodeCached(String value) {
+        if (value == null || value.isBlank()) {
+            return Optional.empty();
+        }
+        List<IslandTemplateSnapshot> parsed = parse(value);
+        return parsed.isEmpty() ? Optional.empty() : Optional.of(parsed);
     }
 
     static List<IslandTemplateSnapshot> parse(String value) {
