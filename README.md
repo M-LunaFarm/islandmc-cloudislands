@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.55`
+Version: `1.1.56`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.55`
+Current release: `v1.1.56`
 
-Built for the CloudIslands 1.1.55 baseline.
+Built for the CloudIslands 1.1.56 baseline.
 
-Release notes for `v1.1.55`:
+Release notes for `v1.1.56`:
+
+- proxy payment bypass closure: Velocity now loads the authoritative template
+  before issuing a Core island-create mutation
+- permission parity: template `requiredPermission` is enforced consistently on
+  both Paper and Velocity command paths
+- paid-template safety: Velocity refuses paid templates and directs players to
+  the Paper path where Vault withdrawal and compensation are available
+- fail-closed pricing: malformed creation costs are treated as paid instead of
+  silently becoming free
+- localized operator experience: Korean and English proxy messages explain the
+  permission denial and payment-safe creation route
+
+Release notes carried forward from `v1.1.55`:
 
 - duplicate-charge protection: a per-player in-flight guard covers template
   lookup, economy withdrawal, Core creation, and compensation settlement
@@ -1425,7 +1438,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.55`.
+Current read: production-readiness baseline `v1.1.56`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
