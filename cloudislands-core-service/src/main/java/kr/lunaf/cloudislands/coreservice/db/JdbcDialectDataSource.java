@@ -143,7 +143,7 @@ public final class JdbcDialectDataSource implements DataSource {
         return (ResultSet) Proxy.newProxyInstance(ResultSet.class.getClassLoader(), new Class<?>[] { ResultSet.class }, handler);
     }
 
-    private Object toUuid(Object value) {
+    static Object toUuid(Object value) {
         if (value instanceof UUID) {
             return value;
         }
@@ -161,7 +161,7 @@ public final class JdbcDialectDataSource implements DataSource {
         return null;
     }
 
-    private boolean uuidColumn(Object[] args) {
+    static boolean uuidColumn(Object[] args) {
         if (args == null || args.length != 1 || !(args[0] instanceof String column)) {
             return false;
         }
@@ -169,10 +169,13 @@ public final class JdbcDialectDataSource implements DataSource {
         return normalized.equals("id")
             || normalized.endsWith("_id")
             || normalized.equals("uuid")
-            || normalized.endsWith("_uuid");
+            || normalized.endsWith("_uuid")
+            || normalized.equals("created_by")
+            || normalized.equals("updated_by")
+            || normalized.equals("moderated_by");
     }
 
-    private boolean uuidText(String value) {
+    private static boolean uuidText(String value) {
         return value.length() == 36
             && value.charAt(8) == '-'
             && value.charAt(13) == '-'
