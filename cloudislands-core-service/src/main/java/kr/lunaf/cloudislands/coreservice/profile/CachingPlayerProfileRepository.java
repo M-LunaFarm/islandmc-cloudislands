@@ -45,41 +45,54 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
 
     @Override
     public PlayerIslandProfile touch(UUID playerUuid, String lastName) {
-        return cache(delegate.touch(playerUuid, lastName));
+        return mutated(delegate.touch(playerUuid, lastName));
     }
 
     @Override
     public PlayerIslandProfile touch(UUID playerUuid, String lastName, String locale) {
-        return cache(delegate.touch(playerUuid, lastName, locale));
+        return mutated(delegate.touch(playerUuid, lastName, locale));
     }
 
     @Override
     public PlayerIslandProfile setLocale(UUID playerUuid, String locale) {
-        return cache(delegate.setLocale(playerUuid, locale));
+        return mutated(delegate.setLocale(playerUuid, locale));
     }
 
     @Override
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
-        return cache(delegate.setPrimaryIsland(playerUuid, islandId));
+        return mutated(delegate.setPrimaryIsland(playerUuid, islandId));
     }
 
     @Override
     public PlayerIslandProfile clearPrimaryIsland(UUID playerUuid) {
-        return cache(delegate.clearPrimaryIsland(playerUuid));
+        return mutated(delegate.clearPrimaryIsland(playerUuid));
     }
 
     @Override
     public PlayerIslandProfile setDisbandsRemaining(UUID playerUuid, int value) {
-        return cache(delegate.setDisbandsRemaining(playerUuid, value));
+        return mutated(delegate.setDisbandsRemaining(playerUuid, value));
     }
 
     @Override
     public PlayerIslandProfile addDisbandsRemaining(UUID playerUuid, int delta) {
-        return cache(delegate.addDisbandsRemaining(playerUuid, delta));
+        return mutated(delegate.addDisbandsRemaining(playerUuid, delta));
     }
 
     public long failuresTotal() {
         return failures.get();
+    }
+
+    private PlayerIslandProfile mutated(PlayerIslandProfile profile) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("DEL", RedisKeys.playerProfile(profile.playerUuid()));
+            redis.command("DEL", RedisKeys.playerIsland(profile.playerUuid()));
+            if (profile.lastName() != null && !profile.lastName().isBlank()) {
+                redis.command("DEL", RedisKeys.playerNameProfile(profile.lastName()));
+            }
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
+        return profile;
     }
 
     private PlayerIslandProfile cache(PlayerIslandProfile profile) {

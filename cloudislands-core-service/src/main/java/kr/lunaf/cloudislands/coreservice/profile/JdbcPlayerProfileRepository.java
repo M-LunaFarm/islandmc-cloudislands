@@ -133,7 +133,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     public PlayerIslandProfile addDisbandsRemaining(UUID playerUuid, int delta) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET disbands_remaining = GREATEST(0, disbands_remaining + ?), updated_at = now() WHERE uuid = ?")) {
+             PreparedStatement statement = connection.prepareStatement(addDisbandsSql(connection))) {
             statement.setInt(1, delta);
             statement.setObject(2, playerUuid);
             statement.executeUpdate();
@@ -172,6 +172,13 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             return "INSERT IGNORE INTO player_profiles(uuid) VALUES (?)";
         }
         return "INSERT INTO player_profiles(uuid) VALUES (?) ON CONFLICT (uuid) DO NOTHING";
+    }
+
+    private String addDisbandsSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "UPDATE player_profiles SET disbands_remaining = CAST(LEAST(2147483647, GREATEST(0, CAST(disbands_remaining AS DECIMAL(11,0)) + CAST(? AS DECIMAL(11,0)))) AS SIGNED), updated_at = now() WHERE uuid = ?";
+        }
+        return "UPDATE player_profiles SET disbands_remaining = CAST(LEAST(2147483647, GREATEST(0, CAST(disbands_remaining AS BIGINT) + CAST(? AS BIGINT))) AS INTEGER), updated_at = now() WHERE uuid = ?";
     }
 
     private boolean mysqlLike(Connection connection) throws SQLException {
