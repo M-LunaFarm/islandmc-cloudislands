@@ -40,6 +40,17 @@ public final class CachingRankingRepository implements RankingRepository {
     }
 
     @Override
+    public void setIgnored(UUID islandId, boolean ignored) {
+        delegate.setIgnored(islandId, ignored);
+        bumpVersion();
+    }
+
+    @Override
+    public boolean isIgnored(UUID islandId) {
+        return delegate.isIgnored(islandId);
+    }
+
+    @Override
     public void save(IslandRankSnapshot snapshot) {
         delegate.save(snapshot);
         bumpVersion();

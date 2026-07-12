@@ -7,11 +7,8 @@ public interface RankingRepository {
     void markDirty(UUID islandId);
     List<UUID> drainDirty(int limit);
     long dirtyCount();
-    default void setIgnored(UUID islandId, boolean ignored) {
-    }
-    default boolean isIgnored(UUID islandId) {
-        return false;
-    }
+    void setIgnored(UUID islandId, boolean ignored);
+    boolean isIgnored(UUID islandId);
     void save(IslandRankSnapshot snapshot);
     List<IslandRankSnapshot> topByLevel(int limit);
     List<IslandRankSnapshot> topByWorth(int limit);
