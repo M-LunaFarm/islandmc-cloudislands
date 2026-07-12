@@ -15,6 +15,8 @@ final class IslandCommandMessages {
         Map.entry("INSUFFICIENT_ITEMS", "failure-code-insufficient-items"),
         Map.entry("ECONOMY_CHARGE_FAILED", "failure-code-economy-charge-failed"),
         Map.entry("ECONOMY_REFUND_FAILED", "failure-code-economy-refund-failed"),
+        Map.entry("CORE_CREATE_FAILED_REFUNDED", "failure-code-core-create-failed-refunded"),
+        Map.entry("CREATE_IN_PROGRESS", "failure-code-create-in-progress"),
         Map.entry("TEMPLATE_PERMISSION_DENIED", "failure-code-template-permission-denied")
     );
 

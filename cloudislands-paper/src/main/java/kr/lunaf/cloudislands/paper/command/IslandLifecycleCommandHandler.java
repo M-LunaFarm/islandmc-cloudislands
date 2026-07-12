@@ -28,6 +28,7 @@ final class IslandLifecycleCommandHandler {
     private final EconomyBridge economyBridge;
     private final IslandCreationUseCase creationUseCase;
     private final Runtime runtime;
+    private final PendingIslandCreationOperations pendingCreations = new PendingIslandCreationOperations();
 
     IslandLifecycleCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this(plugin, coreApiClient, null, runtime);
@@ -135,6 +136,11 @@ final class IslandLifecycleCommandHandler {
     }
 
     private void createIsland(Player player, String templateId) {
+        UUID playerUuid = player.getUniqueId();
+        if (!pendingCreations.acquire(playerUuid)) {
+            runtime.message(player, runtime.playerCodeMessage("CREATE_IN_PROGRESS", message("create-progress-in-progress", "이미 섬 생성 요청을 처리하고 있습니다.")));
+            return;
+        }
         MessageRenderer messages = runtime.messagesFor(player);
         GuiStateMenus.openSaving(plugin, player, messages, message("create-progress-title", "섬 생성 요청 중"));
         String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
@@ -157,7 +163,8 @@ final class IslandLifecycleCommandHandler {
                 GuiStateMenus.openError(plugin, player, messages, message("create-progress-title", "섬 생성 요청 중"), detail, "island.create.open", "island.create.open");
                 runtime.message(player, detail);
                 return null;
-            });
+            })
+            .whenComplete((_ignored, _error) -> pendingCreations.release(playerUuid));
     }
 
     private CompletableFuture<CreateIslandResult> createWithTemplateCost(Player player, String templateId, TemplateView template) {
@@ -178,7 +185,9 @@ final class IslandLifecycleCommandHandler {
                         ? CompletableFuture.completedFuture(result)
                         : refundCreateCost(player, creationCost, template.id()).thenApply(_ignored -> result)
                             .exceptionally(_refundError -> new CreateIslandResult(false, "ECONOMY_REFUND_FAILED", result.island(), result.ticket())))
-                    .exceptionallyCompose(error -> refundCreateCost(player, creationCost, template.id()).thenCompose(_ignored -> CompletableFuture.failedFuture(error)));
+                    .exceptionallyCompose(error -> refundCreateCost(player, creationCost, template.id())
+                        .thenApply(_ignored -> new CreateIslandResult(false, "CORE_CREATE_FAILED_REFUNDED", null, null))
+                        .exceptionally(_refundError -> new CreateIslandResult(false, "ECONOMY_REFUND_FAILED", null, null)));
             });
     }
 

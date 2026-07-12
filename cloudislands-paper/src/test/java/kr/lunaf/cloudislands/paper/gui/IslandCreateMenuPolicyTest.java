@@ -71,6 +71,9 @@ class IslandCreateMenuPolicyTest {
         assertTrue(handler.contains("refundCreateCost(player, creationCost, template.id())"), "Failed Core create must refund the player");
         assertTrue(handler.contains("ECONOMY_CHARGE_FAILED"), "Charge failures must be user-visible");
         assertTrue(handler.contains("ECONOMY_REFUND_FAILED"), "Refund failures must be user-visible");
+        assertTrue(handler.contains("pendingCreations.acquire(playerUuid)"), "Create flow must reject duplicate in-flight requests before charging");
+        assertTrue(handler.contains("pendingCreations.release(playerUuid)"), "Create flow must release its player lock after settlement");
+        assertTrue(handler.contains("CORE_CREATE_FAILED_REFUNDED"), "Core exceptions with a successful refund must be explicit");
         assertTrue(messages.contains("ECONOMY_CHARGE_FAILED"), "Charge failure must have a player-safe message");
         assertTrue(messages.contains("ECONOMY_REFUND_FAILED"), "Refund failure must have a player-safe message");
     }
