@@ -1175,7 +1175,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     public List<UUID> publicIslandIdsPage(int offset, int limit) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(
-                 "SELECT id FROM islands WHERE public_access = true AND locked = false AND deleted_at IS NULL ORDER BY created_at DESC, id ASC LIMIT ? OFFSET ?")) {
+                 "SELECT id FROM islands WHERE public_access = true AND locked = false AND deleted_at IS NULL ORDER BY level DESC, name ASC, id ASC LIMIT ? OFFSET ?")) {
             statement.setInt(1, Math.max(0, limit));
             statement.setInt(2, Math.max(0, offset));
             try (ResultSet rs = statement.executeQuery()) {
