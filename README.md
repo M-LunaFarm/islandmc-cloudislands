@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.52`
+Version: `1.1.53`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -597,7 +597,7 @@ integration verification.
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, default-compatible natural flags, shard-safe player time/weather overrides, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
-| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening and repeatable reset, while upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
+| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery, while upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
@@ -606,11 +606,30 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.52`
+Current release: `v1.1.53`
 
-Built for the CloudIslands 1.1.52 baseline.
+Built for the CloudIslands 1.1.53 baseline.
 
-Release notes for `v1.1.52`:
+Release notes for `v1.1.53`:
+
+- durable item rewards: `ITEM` mission rewards are now deposited by Core into
+  the island warehouse instead of relying on an online player event consumer
+- offline and failover safe: rewards remain available when the player is
+  offline, changes Paper nodes, or reconnects after event-stream delay
+- authoritative settlement: mission completion is accepted only after the
+  warehouse deposit succeeds; deposit failure reopens the mission for retry
+- normalized item input: namespaced and Bukkit-style reward material keys use
+  the same normalization rules as ordinary warehouse deposits
+- observable delivery: successful item rewards record material, amount, and
+  resulting warehouse balance in mission audit fields
+- addon consistency: Core publishes both `ISLAND_WAREHOUSE_CHANGED` and
+  `ISLAND_MISSION_COMPLETED` after durable item delivery
+- rolling-upgrade compatibility: Paper retains the legacy queued-item listener
+  for older Core nodes while new nodes emit the durable warehouse reward code
+- real topology proof: PostgreSQL, Redis, MinIO, and dual-Core Integration passed
+  with durable warehouse mission rewards enabled
+
+Release notes carried forward from `v1.1.52`:
 
 - retry-safe mission rewards: mission completion is no longer left permanently
   committed when its configured reward cannot be applied
@@ -1373,7 +1392,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.52`.
+Current read: production-readiness baseline `v1.1.53`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
