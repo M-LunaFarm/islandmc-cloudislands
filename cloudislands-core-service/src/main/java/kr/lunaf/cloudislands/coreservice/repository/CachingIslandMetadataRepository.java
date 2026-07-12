@@ -330,9 +330,23 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public boolean setWarpPublicAccessResult(UUID islandId, String name, boolean publicAccess) {
+        boolean updated = delegate.setWarpPublicAccessResult(islandId, name, publicAccess);
+        cacheWarps(islandId, delegate.warps(islandId));
+        return updated;
+    }
+
+    @Override
     public void deleteWarp(UUID islandId, String name) {
         delegate.deleteWarp(islandId, name);
         cacheWarps(islandId, delegate.warps(islandId));
+    }
+
+    @Override
+    public boolean deleteWarpResult(UUID islandId, String name) {
+        boolean deleted = delegate.deleteWarpResult(islandId, name);
+        cacheWarps(islandId, delegate.warps(islandId));
+        return deleted;
     }
 
     @Override

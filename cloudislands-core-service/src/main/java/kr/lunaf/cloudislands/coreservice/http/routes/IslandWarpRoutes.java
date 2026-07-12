@@ -175,7 +175,10 @@ public final class IslandWarpRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
             return;
         }
-        metadataRepository.deleteWarp(islandId, name);
+        if (!metadataRepository.deleteWarpResult(islandId, name)) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
+            return;
+        }
         audit.log(actorUuid, "PLAYER", "ISLAND_WARP_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
         islandLogs.append(islandId, actorUuid, "ISLAND_WARP_DELETE", Map.of("name", name));
         events.publish(CloudIslandEventType.ISLAND_WARP_DELETED.name(), Map.of("islandId", islandId.toString(), "name", name));
@@ -195,7 +198,10 @@ public final class IslandWarpRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
             return;
         }
-        metadataRepository.deleteWarp(islandId, name);
+        if (!metadataRepository.deleteWarpResult(islandId, name)) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
+            return;
+        }
         audit.log(EMPTY_UUID, "ADMIN", "ISLAND_WARP_ADMIN_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
         islandLogs.append(islandId, EMPTY_UUID, "ISLAND_WARP_ADMIN_DELETE", Map.of("name", name));
         events.publish(CloudIslandEventType.ISLAND_WARP_DELETED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "name", name));
@@ -216,7 +222,10 @@ public final class IslandWarpRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
             return;
         }
-        metadataRepository.setWarpPublicAccess(islandId, name, publicAccess);
+        if (!metadataRepository.setWarpPublicAccessResult(islandId, name, publicAccess)) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("WARP_NOT_FOUND", "Island warp was not found"));
+            return;
+        }
         audit.log(actorUuid, "PLAYER", "ISLAND_WARP_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
         islandLogs.append(islandId, actorUuid, "ISLAND_WARP_ACCESS_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess)));
         events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", "WARP_ACCESS_SET", "publicAccess", Boolean.toString(publicAccess)));

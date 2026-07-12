@@ -88,7 +88,15 @@ public interface IslandMetadataRepository {
         return "APPLIED";
     }
     void setWarpPublicAccess(UUID islandId, String name, boolean publicAccess);
+    default boolean setWarpPublicAccessResult(UUID islandId, String name, boolean publicAccess) {
+        setWarpPublicAccess(islandId, name, publicAccess);
+        return true;
+    }
     void deleteWarp(UUID islandId, String name);
+    default boolean deleteWarpResult(UUID islandId, String name) {
+        deleteWarp(islandId, name);
+        return true;
+    }
     boolean isPublicAccess(UUID islandId);
     void setPublicAccess(UUID islandId, boolean publicAccess);
     List<UUID> publicIslandIds(int limit);
