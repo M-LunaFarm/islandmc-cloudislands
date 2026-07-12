@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.100`
+Version: `1.1.101`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.100`
+Current release: `v1.1.101`
 
-Built for the CloudIslands 1.1.100 baseline.
+Built for the CloudIslands 1.1.101 baseline.
 
-Release notes for `v1.1.100`:
+Release notes for `v1.1.101`:
+
+- lossless template caching: `createdAt` and `updatedAt` now survive Redis
+  serialization instead of becoming Unix epoch values on cache hits
+- consistent template APIs: database reads and cached reads now expose the same
+  lifecycle timestamps to admin tools and creation-menu consumers
+- rolling-upgrade compatibility: existing 28-field Redis rows remain readable
+  while new 30-field rows preserve both timestamps
+- regression coverage verifies current-format round trips and legacy cache-row
+  fallback behavior
+
+Release notes carried forward from `v1.1.100`:
 
 - reliable template administration with Redis: delete and reorder operations
   now reach the durable template repository through the production cache layer
@@ -1959,7 +1970,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.100`.
+Current read: production-readiness baseline `v1.1.101`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
