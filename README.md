@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.87`
+Version: `1.1.88`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.87`
+Current release: `v1.1.88`
 
-Built for the CloudIslands 1.1.87 baseline.
+Built for the CloudIslands 1.1.88 baseline.
 
-Release notes for `v1.1.87`:
+Release notes for `v1.1.88`:
+
+- idempotent protection flags: repeated values return `ISLAND_FLAG_UNCHANGED`
+  without duplicate protection-cache invalidation events
+- truthful empty resets: resetting an already empty flag set returns
+  `ISLAND_FLAGS_UNCHANGED` without audit or island-log noise
+- transactional comparison: JDBC locks the active island and current flag row
+  before returning `APPLIED`, `UNCHANGED`, or `ISLAND_NOT_FOUND`
+- upgrade replay safety: repeated flag-grant effects retain upgrade evidence but
+  publish `ISLAND_FLAG_CHANGED` only when the stored value changes
+
+Release notes carried forward from `v1.1.87`:
 
 - authoritative rename outcomes: player and administrator routes distinguish
   `APPLIED`, `UNCHANGED`, `ISLAND_NAME_TAKEN`, and `ISLAND_NOT_FOUND`
@@ -1803,7 +1814,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.87`.
+Current read: production-readiness baseline `v1.1.88`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
