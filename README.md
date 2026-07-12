@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.66`
+Version: `1.1.67`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.66`
+Current release: `v1.1.67`
 
-Built for the CloudIslands 1.1.66 baseline.
+Built for the CloudIslands 1.1.67 baseline.
 
-Release notes for `v1.1.66`:
+Release notes for `v1.1.67`:
+
+- authoritative invite outcomes: acceptance now returns the result determined
+  inside the locked database transaction instead of reconstructing it afterward
+- actionable capacity errors: a full island reports `MEMBER_LIMIT` even when
+  another request consumes the last slot during acceptance
+- deleted-island clarity: an invite whose island disappeared reports
+  `ISLAND_NOT_FOUND`; expired, consumed, and wrong-target invites remain
+  `INVITE_UNAVAILABLE`
+- compatibility preserved: existing boolean repository methods delegate to the
+  structured result path and successful cached membership refresh is unchanged
+
+Release notes carried forward from `v1.1.66`:
 
 - transactional invite replacement: expiring an earlier pending invite and
   inserting its replacement now commit as one database operation
@@ -1574,7 +1586,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.66`.
+Current read: production-readiness baseline `v1.1.67`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
