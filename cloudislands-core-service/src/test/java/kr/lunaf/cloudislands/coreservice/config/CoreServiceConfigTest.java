@@ -14,6 +14,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CoreServiceConfigTest {
     @Test
+    void adminPermissionValidationRejectsTyposWithoutRejectingSupportedNames() {
+        assertEquals(List.of(), CoreServiceConfig.adminPermissionViolations("audit-read,island-manage,node-drain"));
+        assertEquals(List.of(), CoreServiceConfig.adminPermissionViolations("*"));
+        assertEquals(List.of("islnad-manage", "unknown"), CoreServiceConfig.adminPermissionViolations("audit-read,islnad-manage,unknown"));
+    }
+
+    @Test
     void mysqlSetupUsesNativeCoreJdbcAuthority() {
         CoreServiceConfig config = config("JDBC", "jdbc:mysql://mysql.internal:3306/cloudislands", "MYSQL", true);
 

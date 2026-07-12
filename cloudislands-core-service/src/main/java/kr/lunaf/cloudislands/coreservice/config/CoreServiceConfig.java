@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.config;
 import kr.lunaf.cloudislands.common.failure.SetupBackendFallbackPolicy;
 import kr.lunaf.cloudislands.coreservice.security.CoreAuthMode;
 import kr.lunaf.cloudislands.coreservice.security.NodeCredentialBindings;
+import kr.lunaf.cloudislands.coreservice.security.permission.AdminPermission;
 import kr.lunaf.cloudislands.storage.StorageBackendPolicy;
 
 import java.io.BufferedReader;
@@ -521,9 +522,36 @@ public record CoreServiceConfig(
 
     public void validateStartupSecurity() {
         validateStartupAuthentication();
+        validateStartupAdminPermissions();
         validateStartupStorage();
         validateStartupNetworkExposure();
         validateStartupMtlsTrustBoundary();
+    }
+
+    public void validateStartupAdminPermissions() {
+        List<String> violations = adminPermissionViolations(adminPermissions);
+        if (!violations.isEmpty()) {
+            throw new IllegalStateException("Unknown CI_ADMIN_PERMISSIONS values: " + String.join(",", violations));
+        }
+    }
+
+    static List<String> adminPermissionViolations(String raw) {
+        if (raw == null || raw.isBlank() || raw.trim().equals("*")) {
+            return List.of();
+        }
+        ArrayList<String> violations = new ArrayList<>();
+        for (String part : raw.split(",")) {
+            String name = part.trim().replace('-', '_').toUpperCase(Locale.ROOT);
+            if (name.isBlank()) {
+                continue;
+            }
+            try {
+                AdminPermission.valueOf(name);
+            } catch (IllegalArgumentException ignored) {
+                violations.add(part.trim());
+            }
+        }
+        return List.copyOf(violations);
     }
 
     public void validateStartupAuthentication() {

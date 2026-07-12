@@ -204,6 +204,8 @@ Production security:
   `core.adminPermissions` in Helm to the server-side permissions actually
   required; the secure default is `audit-read`, and island mutation commands
   additionally require `island-manage`
+- permission names are case-insensitive and accept kebab-case; unknown
+  `CI_ADMIN_PERMISSIONS` values fail Core startup with the invalid names listed
 
 Backup and restore:
 
