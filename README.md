@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.74`
+Version: `1.1.75`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.74`
+Current release: `v1.1.75`
 
-Built for the CloudIslands 1.1.74 baseline.
+Built for the CloudIslands 1.1.75 baseline.
 
-Release notes for `v1.1.74`:
+Release notes for `v1.1.75`:
+
+- truthful warp mutations: delete and public-access updates now return whether
+  a stored row was actually changed instead of always reporting success
+- missing-warp responses: player and admin operations return `WARP_NOT_FOUND`
+  before writing audit entries or publishing change events
+- race-safe admin deletion: the final DELETE affected-row result closes the gap
+  between the admin existence precheck and the mutation
+- repository parity: JDBC, cached, and in-memory implementations preserve the
+  same boolean mutation-result contract
+
+Release notes carried forward from `v1.1.74`:
 
 - database-safe resource names: home and warp creation rejects empty,
   whitespace-only, control-character, and over-32-character names before SQL
@@ -1657,7 +1668,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.74`.
+Current read: production-readiness baseline `v1.1.75`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
