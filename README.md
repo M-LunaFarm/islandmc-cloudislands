@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.131`
+Version: `1.1.132`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.131`
+Current release: `v1.1.132`
 
-Built for the CloudIslands 1.1.131 baseline.
+Built for the CloudIslands 1.1.132 baseline.
 
-Release notes for `v1.1.131`:
+Release notes for `v1.1.132`:
+
+- failure-safe Satis market payouts: economy-claim and post-payout ledger
+  exceptions now return a normal failed sale so stored inventory is restored
+- when Vault was already credited, the service attempts an immediate matching
+  withdrawal and restores maintenance debt before returning control
+- post-credit persistence failures are marked `NEEDS_COMPENSATION`; secondary
+  Vault, island-save, or ledger outages cannot interrupt inventory recovery
+- real SQLite failure triggers cover claim creation failure and ledger failure
+  after payout, asserting no leaked exception, restored stock, and net-zero money
+
+Release notes carried forward from `v1.1.131`:
 
 - atomic Satis contract item settlement: required items and item rewards are now
   validated against a private inventory copy and committed as one exchange
@@ -2314,7 +2325,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.131`.
+Current read: production-readiness baseline `v1.1.132`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
