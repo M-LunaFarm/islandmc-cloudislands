@@ -12,6 +12,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreservice.bank.InMemoryIslandBankRepository;
+import kr.lunaf.cloudislands.coreservice.warehouse.InMemoryIslandWarehouseRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandUpgradeServicePaymentSafetyTest {
@@ -53,6 +54,34 @@ class IslandUpgradeServicePaymentSafetyTest {
         assertEquals(1, repository.find(ISLAND, "size").orElseThrow().level());
     }
 
+    @Test
+    void chargesBankAndMultipleWarehouseItemsTogether() {
+        InMemoryIslandBankRepository bank = fundedBank();
+        InMemoryIslandWarehouseRepository warehouse = fundedWarehouse(8, 3);
+        InMemoryIslandUpgradeRepository upgrades = new InMemoryIslandUpgradeRepository();
+        IslandUpgradeService service = new IslandUpgradeService(upgrades, bank, warehouse, itemPolicy());
+
+        UpgradePurchaseResult result = service.purchase(ISLAND, "size");
+
+        assertTrue(result.accepted());
+        assertEquals("90", bank.balance(ISLAND).balance());
+        assertEquals(Map.of("minecraft:diamond", 4L, "minecraft:emerald", 1L), warehouseAmounts(warehouse));
+    }
+
+    @Test
+    void refundsEarlierPricesWhenLaterItemIsInsufficient() {
+        InMemoryIslandBankRepository bank = fundedBank();
+        InMemoryIslandWarehouseRepository warehouse = fundedWarehouse(8, 1);
+        IslandUpgradeService service = new IslandUpgradeService(new InMemoryIslandUpgradeRepository(), bank, warehouse, itemPolicy());
+
+        UpgradePurchaseResult result = service.purchase(ISLAND, "size");
+
+        assertFalse(result.accepted());
+        assertEquals("ITEM_PAYMENT_INSUFFICIENT_ITEMS_REFUNDED", result.code());
+        assertEquals("100", bank.balance(ISLAND).balance());
+        assertEquals(Map.of("minecraft:diamond", 8L, "minecraft:emerald", 1L), warehouseAmounts(warehouse));
+    }
+
     private static InMemoryIslandBankRepository fundedBank() {
         InMemoryIslandBankRepository bank = new InMemoryIslandBankRepository();
         bank.deposit(ISLAND, new BigDecimal("100"));
@@ -62,6 +91,28 @@ class IslandUpgradeServicePaymentSafetyTest {
     private static UpgradePolicy policy() {
         return new UpgradePolicy(Map.of(
             "size", new UpgradeRule("size", UpgradeType.ISLAND_SIZE, 3, new BigDecimal("10"), BigDecimal.ONE)
+        ));
+    }
+
+    private static UpgradePolicy itemPolicy() {
+        UpgradeRule rule = new UpgradeRule(
+            "size", UpgradeType.ISLAND_SIZE, 3, new BigDecimal("10"), BigDecimal.ONE,
+            Map.of(), Map.of(), Map.of(1, Map.of("DIAMOND", 4L, "minecraft:emerald", 2L))
+        );
+        return new UpgradePolicy(Map.of("size", rule));
+    }
+
+    private static InMemoryIslandWarehouseRepository fundedWarehouse(long diamonds, long emeralds) {
+        InMemoryIslandWarehouseRepository warehouse = new InMemoryIslandWarehouseRepository();
+        warehouse.deposit(ISLAND, "DIAMOND", diamonds);
+        warehouse.deposit(ISLAND, "EMERALD", emeralds);
+        return warehouse;
+    }
+
+    private static Map<String, Long> warehouseAmounts(InMemoryIslandWarehouseRepository warehouse) {
+        return warehouse.list(ISLAND, 100).stream().collect(java.util.stream.Collectors.toMap(
+            kr.lunaf.cloudislands.api.model.IslandWarehouseItemSnapshot::materialKey,
+            kr.lunaf.cloudislands.api.model.IslandWarehouseItemSnapshot::amount
         ));
     }
 

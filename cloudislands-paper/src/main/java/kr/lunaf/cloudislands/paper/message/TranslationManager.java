@@ -910,6 +910,9 @@ public final class TranslationManager {
         values.put("upgrade-menu-type", "유형: ");
         values.put("upgrade-menu-current-level", "현재 레벨: ");
         values.put("upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다.");
+        values.put("upgrade-menu-max-level", "최대 레벨에 도달했습니다.");
+        values.put("upgrade-menu-bank-cost", "섬 은행 비용: ");
+        values.put("upgrade-menu-item-cost", "섬 창고 비용: ");
         values.put("upgrade-menu-bank-name", "섬 은행");
         values.put("upgrade-menu-bank-command", "/섬 은행");
         values.put("upgrade-menu-refresh-name", "새로고침");

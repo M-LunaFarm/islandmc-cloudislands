@@ -14,9 +14,9 @@ import org.junit.jupiter.api.Test;
 class UpgradePolicyContractTest {
     @Test
     void exposesConfigDrivenUpgradeAndEconomyContracts() {
-        assertEquals("config-driven-upgrade-rules-with-bank-withdraw-and-limit-application", UpgradePolicy.CONFIG_DRIVEN_POLICY);
-        assertEquals("validate-rule-and-cost>withdraw-bank>compare-and-set-level>refund-on-conflict-or-write-failure", IslandUpgradeService.PURCHASE_POLICY);
-        assertEquals("economy-bridge-or-island-bank-withdraw-with-compensating-refund-before-upgrade-level-commit", IslandUpgradeService.ECONOMY_ABSTRACTION_POLICY);
+        assertEquals("config-driven-upgrade-rules-with-combined-bank-and-warehouse-item-prices", UpgradePolicy.CONFIG_DRIVEN_POLICY);
+        assertEquals("validate-rule-and-prices>withdraw-bank-and-warehouse-items>compare-and-set-level>refund-all-prices-on-failure", IslandUpgradeService.PURCHASE_POLICY);
+        assertEquals("combined-bank-and-warehouse-item-prices-with-reverse-order-compensating-refunds", IslandUpgradeService.ECONOMY_ABSTRACTION_POLICY);
         assertTrue(UpgradePolicy.SUPPORTED_TYPE_POLICY.contains("ISLAND_SIZE"));
         assertTrue(UpgradePolicy.SUPPORTED_TYPE_POLICY.contains("GENERATOR_LEVEL"));
         assertTrue(UpgradePolicy.SUPPORTED_TYPE_POLICY.contains("BANK_LIMIT"));

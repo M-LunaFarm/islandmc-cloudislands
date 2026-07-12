@@ -7,7 +7,7 @@ import java.util.Map;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 
 public final class UpgradePolicy {
-    public static final String CONFIG_DRIVEN_POLICY = "config-driven-upgrade-rules-with-bank-withdraw-and-limit-application";
+    public static final String CONFIG_DRIVEN_POLICY = "config-driven-upgrade-rules-with-combined-bank-and-warehouse-item-prices";
     public static final String SUPPORTED_TYPE_POLICY = "ISLAND_SIZE,MAX_MEMBERS,MAX_WARPS,HOPPER_LIMIT,SPAWNER_LIMIT,GENERATOR_LEVEL,MOB_LIMIT,CROP_GROWTH,FLY_ACCESS,REDSTONE_LIMIT,BANK_LIMIT,MEMBER_LIMIT,WARP_LIMIT,HOME_LIMIT,BORDER_SIZE,BORDER_COLOR_UNLOCK,BIOME_UNLOCK,KEEP_INVENTORY_ENABLE";
     public static final String EFFECT_APPLICATION_POLICY = "upgrade-levels-drive-size-members-warps-hoppers-spawners-generator-mob-crop-fly-redstone-bank-border-home-biome-keep-inventory-limits-and-flags";
 

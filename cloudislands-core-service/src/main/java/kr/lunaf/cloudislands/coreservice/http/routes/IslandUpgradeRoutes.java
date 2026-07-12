@@ -30,6 +30,7 @@ import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeService;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradeEffectApplier;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePolicy;
 import kr.lunaf.cloudislands.coreservice.upgrade.UpgradePurchaseResult;
+import kr.lunaf.cloudislands.coreservice.upgrade.UpgradeRule;
 
 public final class IslandUpgradeRoutes implements RouteGroup {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
@@ -100,7 +101,7 @@ public final class IslandUpgradeRoutes implements RouteGroup {
 
     private void upgrades(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
-        CoreHttpResponses.write(exchange, 200, upgradesJson(upgradeRepository.list(JsonFields.uuid(body, "islandId", EMPTY_UUID))));
+        CoreHttpResponses.write(exchange, 200, upgradesJson(upgradeRepository.list(JsonFields.uuid(body, "islandId", EMPTY_UUID)), upgradePolicy));
     }
 
     private void purchase(HttpExchange exchange) throws IOException {
@@ -126,7 +127,12 @@ public final class IslandUpgradeRoutes implements RouteGroup {
 
     private void writePurchase(HttpExchange exchange, UUID islandId, UUID actorUuid, String actorType, String action, String upgradeKey) throws IOException {
         UpgradePurchaseResult result = upgradeService.purchase(islandId, upgradeKey);
-        Map<String, String> fields = Map.of("upgradeKey", upgradeKey, "code", result.code(), "cost", result.cost().toPlainString());
+        Map<String, String> fields = Map.of(
+            "upgradeKey", upgradeKey,
+            "code", result.code(),
+            "cost", result.cost().toPlainString(),
+            "itemCosts", SimpleJson.stringify(result.itemCosts())
+        );
         audit.log(actorUuid, actorType, action, "ISLAND", islandId.toString(), fields);
         islandLogs.append(islandId, actorUuid, action, fields);
         if (result.accepted()) {
@@ -205,8 +211,31 @@ public final class IslandUpgradeRoutes implements RouteGroup {
     }
 
     static String upgradesJson(List<IslandUpgradeSnapshot> upgrades) {
+        return upgradesJson(upgrades, null);
+    }
+
+    static String upgradesJson(List<IslandUpgradeSnapshot> upgrades, UpgradePolicy policy) {
         List<Object> renderedUpgrades = new ArrayList<>();
+        Map<String, IslandUpgradeSnapshot> stored = new LinkedHashMap<>();
         for (IslandUpgradeSnapshot upgrade : upgrades) {
+            stored.put(upgrade.upgradeKey(), upgrade);
+        }
+        if (policy != null) {
+            for (UpgradeRule rule : policy.list().stream().sorted(java.util.Comparator.comparing(UpgradeRule::upgradeKey)).toList()) {
+                IslandUpgradeSnapshot upgrade = stored.remove(rule.upgradeKey());
+                int level = upgrade == null ? 0 : upgrade.level();
+                LinkedHashMap<String, Object> values = new LinkedHashMap<>();
+                values.put("upgradeKey", rule.upgradeKey());
+                values.put("type", rule.type());
+                values.put("level", level);
+                values.put("maxLevel", rule.maxLevel());
+                values.put("nextCost", level >= rule.maxLevel() ? "" : rule.costForNextLevel(level).toPlainString());
+                values.put("nextItemCosts", level >= rule.maxLevel() ? Map.of() : rule.itemCostsForNextLevel(level));
+                values.put("updatedAt", upgrade == null ? null : upgrade.updatedAt());
+                renderedUpgrades.add(values);
+            }
+        }
+        for (IslandUpgradeSnapshot upgrade : stored.values()) {
             renderedUpgrades.add(upgradeMap(upgrade));
         }
         return SimpleJson.stringify(Map.of("upgrades", renderedUpgrades));
@@ -217,6 +246,7 @@ public final class IslandUpgradeRoutes implements RouteGroup {
         values.put("accepted", result.accepted());
         values.put("code", result.code());
         values.put("cost", result.cost().toPlainString());
+        values.put("itemCosts", result.itemCosts());
         values.put("upgrade", result.snapshot() == null ? null : upgradeMap(result.snapshot()));
         return SimpleJson.stringify(values);
     }

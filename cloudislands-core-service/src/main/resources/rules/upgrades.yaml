@@ -7,6 +7,10 @@ upgrades:
         size: 100
       2:
         cost: 10000
+        # Optional combined prices can require multiple warehouse materials:
+        # item-costs:
+        #   minecraft:diamond: 16
+        #   minecraft:emerald: 32
         size: 150
       3:
         cost: 50000

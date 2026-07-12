@@ -189,7 +189,7 @@ public final class PaperGuiViews {
     }
 
     private static UpgradeView upgrade(CoreGuiViews.UpgradeView view) {
-        return new UpgradeView(view.key(), view.type(), view.level());
+        return new UpgradeView(view.key(), view.type(), view.level(), view.maxLevel(), view.nextCost(), view.nextItemCosts());
     }
 
     private static MissionView mission(CoreGuiViews.MissionView view) {
@@ -290,7 +290,15 @@ public final class PaperGuiViews {
     public record RoleView(String role, int weight, String displayName) {
     }
 
-    public record UpgradeView(String key, String type, int level) {
+    public record UpgradeView(String key, String type, int level, int maxLevel, String nextCost, java.util.Map<String, String> nextItemCosts) {
+        public UpgradeView(String key, String type, int level) {
+            this(key, type, level, 0, "", java.util.Map.of());
+        }
+
+        public UpgradeView {
+            nextCost = nextCost == null ? "" : nextCost;
+            nextItemCosts = nextItemCosts == null ? java.util.Map.of() : java.util.Map.copyOf(nextItemCosts);
+        }
     }
 
     public record MissionView(String key, String title, long progress, long goal, boolean completed, String reward, String category, String description, String triggerType, String targetKey, String rewardType, boolean repeatable, boolean dailyReset) {

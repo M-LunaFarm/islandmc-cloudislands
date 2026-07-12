@@ -165,7 +165,15 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
         return entries(body, "upgrades").stream()
             .map(object -> {
                 String key = CoreJson.firstText(object, "key", "upgradeKey");
-                return new CoreGuiViews.UpgradeView(key, CoreJson.text(object, "type"), intValue(object, "level"), CoreJson.text(object, "generatorKey"));
+                return new CoreGuiViews.UpgradeView(
+                    key,
+                    CoreJson.text(object, "type"),
+                    intValue(object, "level"),
+                    CoreJson.text(object, "generatorKey"),
+                    intValue(object, "maxLevel"),
+                    CoreJson.text(object, "nextCost"),
+                    CoreJson.stringMap(CoreJson.objectValue(object, "nextItemCosts"))
+                );
             })
             .filter(view -> !view.key().isBlank())
             .toList();

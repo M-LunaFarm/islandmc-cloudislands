@@ -89,6 +89,9 @@ public final class IslandUpgradeMenu implements Listener {
             actions.execute(player, GuiActions.from(actionId, data).orElse(null), GuiClick.from(event));
             return;
         }
+        if (!actionId.equals("island.upgrade.purchase")) {
+            return;
+        }
         player.closeInventory();
         actions.execute(player, new GuiAction.UpgradePurchase(key), GuiClick.from(event));
     }
@@ -125,13 +128,30 @@ public final class IslandUpgradeMenu implements Listener {
     }
 
     private static ItemStack upgradeItem(UpgradeView upgrade, MessageRenderer messages) {
-        GuiButtonState state = GuiButtonState.ENABLED;
-        return GuiItems.action(GuiMenuRenderer.material(MENU, upgrade.type(), "_", "BEACON"), upgrade.key(), "island.upgrade.purchase",
-            Map.of("upgradeKey", upgrade.key()),
-            state.lore(messages),
-            message(messages, "upgrade-menu-type", "유형: ") + upgrade.type(),
-            message(messages, "upgrade-menu-current-level", "현재 레벨: ") + upgrade.level(),
-            message(messages, "upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다."));
+        boolean maxLevel = upgrade.maxLevel() > 0 && upgrade.level() >= upgrade.maxLevel();
+        GuiButtonState state = maxLevel ? GuiButtonState.DISABLED_REQUIREMENT_NOT_MET : GuiButtonState.ENABLED;
+        java.util.ArrayList<String> lore = new java.util.ArrayList<>();
+        lore.add(state.lore(messages));
+        lore.add(message(messages, "upgrade-menu-type", "유형: ") + upgrade.type());
+        lore.add(message(messages, "upgrade-menu-current-level", "현재 레벨: ") + upgrade.level()
+            + (upgrade.maxLevel() > 0 ? "/" + upgrade.maxLevel() : ""));
+        if (maxLevel) {
+            lore.add(message(messages, "upgrade-menu-max-level", "최대 레벨에 도달했습니다."));
+        } else {
+            if (!upgrade.nextCost().isBlank() && !upgrade.nextCost().equals("0")) {
+                lore.add(message(messages, "upgrade-menu-bank-cost", "섬 은행 비용: ") + upgrade.nextCost());
+            }
+            upgrade.nextItemCosts().entrySet().stream().sorted(Map.Entry.comparingByKey())
+                .forEach(entry -> lore.add(message(messages, "upgrade-menu-item-cost", "섬 창고 비용: ") + entry.getKey() + " x" + entry.getValue()));
+            lore.add(message(messages, "upgrade-menu-click-to-buy", "클릭하면 다음 레벨 구매를 요청합니다."));
+        }
+        return GuiItems.action(
+            GuiMenuRenderer.material(MENU, upgrade.type(), "_", "BEACON"),
+            upgrade.key(),
+            maxLevel ? "" : "island.upgrade.purchase",
+            maxLevel ? Map.of() : Map.of("upgradeKey", upgrade.key()),
+            lore.toArray(String[]::new)
+        );
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

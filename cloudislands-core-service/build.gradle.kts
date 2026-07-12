@@ -60,7 +60,7 @@ tasks.jar {
             "CloudIslands-Core-Block-Value-Policy" to "material-worth-level-limit-values-backed-by-core-api",
             "CloudIslands-Core-Level-Worth-Formula" to "level=floor(total_level_points/1000),worth=SUM_BLOCK_VALUES",
             "CloudIslands-Core-Ranking-Snapshot-Table" to "island_rank_snapshots(island_id,level,worth,member_count,updated_at)",
-            "CloudIslands-Core-Upgrade-Policy" to "config-driven-upgrade-rules-with-economy-abstracted-purchase-flow",
+            "CloudIslands-Core-Upgrade-Policy" to "config-driven-combined-bank-and-warehouse-item-prices-with-compensating-refunds",
             "CloudIslands-Core-Upgrade-Rule-Resource" to "rules/upgrades.yaml",
             "CloudIslands-Core-Upgrade-Economy-Bridge" to "withdraw,deposit,balance-return-completable-future",
             "CloudIslands-Core-Failure-Policy" to "node-down-recovery-required-core-down-degraded-active-play-redis-down-db-source-object-storage-down-local-active-play-retry-save",

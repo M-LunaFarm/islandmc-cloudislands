@@ -87,6 +87,27 @@ class IslandUpgradeRoutesTest {
     }
 
     @Test
+    void listsUnpurchasedRulesWithNextBankAndItemPrices() {
+        UpgradeRule rule = new UpgradeRule(
+            "size", UpgradeType.ISLAND_SIZE, 3, new BigDecimal("2500"), BigDecimal.ONE,
+            Map.of(), Map.of(), Map.of(1, Map.of("DIAMOND", 4L, "EMERALD", 2L))
+        );
+
+        Map<?, ?> response = SimpleJson.object(SimpleJson.parse(
+            IslandUpgradeRoutes.upgradesJson(List.of(), new UpgradePolicy(Map.of("size", rule)))
+        ));
+        Map<?, ?> upgrade = SimpleJson.object(SimpleJson.list(response.get("upgrades")).get(0));
+
+        assertEquals("size", SimpleJson.text(upgrade.get("upgradeKey")));
+        assertEquals(0, ((Number) upgrade.get("level")).intValue());
+        assertEquals(3, ((Number) upgrade.get("maxLevel")).intValue());
+        assertEquals("2500", SimpleJson.text(upgrade.get("nextCost")));
+        Map<?, ?> itemCosts = SimpleJson.object(upgrade.get("nextItemCosts"));
+        assertEquals(4, ((Number) itemCosts.get("minecraft:diamond")).intValue());
+        assertEquals(2, ((Number) itemCosts.get("minecraft:emerald")).intValue());
+    }
+
+    @Test
     void recalculatesStoredUpgradeEffectsAgainstIslandState() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000201");
         UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000202");

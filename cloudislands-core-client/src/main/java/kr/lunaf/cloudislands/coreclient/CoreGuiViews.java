@@ -317,15 +317,22 @@ public final class CoreGuiViews {
     public record RoleView(String role, int weight, String displayName) {
     }
 
-    public record UpgradeView(String key, String type, int level, String generatorKey) {
+    public record UpgradeView(String key, String type, int level, String generatorKey, int maxLevel, String nextCost, Map<String, String> nextItemCosts) {
         public UpgradeView(String key, String type, int level) {
-            this(key, type, level, "");
+            this(key, type, level, "", 0, "", Map.of());
+        }
+
+        public UpgradeView(String key, String type, int level, String generatorKey) {
+            this(key, type, level, generatorKey, 0, "", Map.of());
         }
 
         public UpgradeView {
             key = key == null ? "" : key;
             type = type == null ? "" : type;
             generatorKey = generatorKey == null ? "" : generatorKey;
+            maxLevel = Math.max(0, maxLevel);
+            nextCost = nextCost == null ? "" : nextCost;
+            nextItemCosts = nextItemCosts == null ? Map.of() : Map.copyOf(nextItemCosts);
         }
     }
 
