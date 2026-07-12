@@ -54,15 +54,11 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
     }
 
     public void depositWarehouse(Player player, UUID islandId, String materialKey, long amount) {
-        withResolvedIsland(player, islandId, "창고를 확인할 섬을 찾지 못했습니다.", "창고에 입금하지 못했습니다.",
-            resolved -> sendTextResult(player, coreApiClient.warehouseCommands().deposit(resolved, player.getUniqueId(), materialKey, amount)
-                .thenApply(result -> "창고 입금: code=" + result.code() + " material=" + result.materialKey() + " amount=" + result.amount()), "창고에 입금하지 못했습니다."));
+        player.sendMessage(Component.text("창고 입금은 실제 인벤토리를 확인할 수 있는 Paper 서버에서만 실행할 수 있습니다."));
     }
 
     public void withdrawWarehouse(Player player, UUID islandId, String materialKey, long amount) {
-        withResolvedIsland(player, islandId, "창고를 확인할 섬을 찾지 못했습니다.", "창고에서 출금하지 못했습니다.",
-            resolved -> sendTextResult(player, coreApiClient.warehouseCommands().withdraw(resolved, player.getUniqueId(), materialKey, amount)
-                .thenApply(result -> "창고 출금: code=" + result.code() + " material=" + result.materialKey() + " amount=" + result.amount()), "창고에서 출금하지 못했습니다."));
+        player.sendMessage(Component.text("창고 출금은 실제 인벤토리를 변경할 수 있는 Paper 서버에서만 실행할 수 있습니다."));
     }
 
     private static String warehouseMessage(List<WarehouseItemView> items) {
