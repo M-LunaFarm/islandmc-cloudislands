@@ -13,5 +13,7 @@ class RedisListCachePayloadTest {
         assertTrue(RedisListCachePayload.complete("row-1\ncorrupt-row\n", List.of("one")).isEmpty());
         assertTrue(RedisListCachePayload.complete("corrupt-row", List.of()).isEmpty());
         assertTrue(RedisListCachePayload.complete("", List.of()).isEmpty());
+        assertEquals(List.of(), RedisListCachePayload.complete(RedisListCachePayload.emptyPayload(), List.of()).orElseThrow());
+        assertTrue(RedisListCachePayload.complete(RedisListCachePayload.emptyPayload() + "\ncorrupt-row", List.of()).isEmpty());
     }
 }

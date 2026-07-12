@@ -147,6 +147,9 @@ public final class CachingIslandMissionRepository implements IslandMissionReposi
     }
 
     private static String encode(List<IslandMissionSnapshot> missions) {
+        if (missions.isEmpty()) {
+            return RedisListCachePayload.emptyPayload();
+        }
         StringBuilder out = new StringBuilder();
         for (IslandMissionSnapshot mission : missions) {
             out.append(mission.islandId()).append('|')

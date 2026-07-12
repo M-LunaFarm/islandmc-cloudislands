@@ -131,6 +131,9 @@ public final class CachingRankingRepository implements RankingRepository {
     }
 
     private static String encode(List<IslandRankSnapshot> snapshots) {
+        if (snapshots.isEmpty()) {
+            return RedisListCachePayload.emptyPayload();
+        }
         StringBuilder out = new StringBuilder();
         for (IslandRankSnapshot snapshot : snapshots) {
             out.append(snapshot.islandId()).append('|')

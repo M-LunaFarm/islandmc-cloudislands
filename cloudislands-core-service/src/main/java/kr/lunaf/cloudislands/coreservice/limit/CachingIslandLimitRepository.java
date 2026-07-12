@@ -67,6 +67,9 @@ public final class CachingIslandLimitRepository implements IslandLimitRepository
     }
 
     private static String encode(List<IslandLimitSnapshot> limits) {
+        if (limits.isEmpty()) {
+            return RedisListCachePayload.emptyPayload();
+        }
         StringBuilder out = new StringBuilder();
         for (IslandLimitSnapshot limit : limits) {
             out.append(limit.islandId()).append('|')

@@ -76,6 +76,9 @@ public final class CachingIslandLogRepository implements IslandLogRepository {
     }
 
     private static String encode(List<IslandLogRecord> logs) {
+        if (logs.isEmpty()) {
+            return RedisListCachePayload.emptyPayload();
+        }
         StringBuilder out = new StringBuilder();
         for (IslandLogRecord log : logs) {
             out.append(log.logId()).append('|')

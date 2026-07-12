@@ -103,6 +103,9 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
     }
 
     static String encode(List<IslandTemplateSnapshot> templates) {
+        if (templates.isEmpty()) {
+            return RedisListCachePayload.emptyPayload();
+        }
         StringBuilder out = new StringBuilder();
         for (IslandTemplateSnapshot template : templates) {
             out.append(encodeText(template.id())).append('|')

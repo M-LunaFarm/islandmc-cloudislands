@@ -88,6 +88,9 @@ public final class CachingIslandUpgradeRepository implements IslandUpgradeReposi
     }
 
     private static String encode(List<IslandUpgradeSnapshot> upgrades) {
+        if (upgrades.isEmpty()) {
+            return RedisListCachePayload.emptyPayload();
+        }
         StringBuilder out = new StringBuilder();
         for (IslandUpgradeSnapshot upgrade : upgrades) {
             out.append(upgrade.islandId()).append('|')

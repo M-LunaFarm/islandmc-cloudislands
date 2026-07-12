@@ -67,4 +67,14 @@ class CachingIslandTemplateRepositoryTest {
             CachingIslandTemplateRepository.decodeCached(encoded).orElseThrow()
         );
     }
+
+    @Test
+    void preservesAnAuthoritativeEmptyTemplateListAsCacheHit() {
+        assertEquals(
+            List.of(),
+            CachingIslandTemplateRepository.decodeCached(
+                CachingIslandTemplateRepository.encode(List.of())
+            ).orElseThrow()
+        );
+    }
 }

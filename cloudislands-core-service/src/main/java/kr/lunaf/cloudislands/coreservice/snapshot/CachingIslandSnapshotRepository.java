@@ -126,6 +126,9 @@ public final class CachingIslandSnapshotRepository implements IslandSnapshotRepo
     }
 
     private static String encode(List<IslandSnapshotRecord> snapshots) {
+        if (snapshots.isEmpty()) {
+            return RedisListCachePayload.emptyPayload();
+        }
         StringBuilder out = new StringBuilder();
         for (IslandSnapshotRecord snapshot : snapshots) {
             out.append(snapshot.snapshotId()).append('|')
