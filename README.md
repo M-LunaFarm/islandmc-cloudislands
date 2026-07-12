@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.121`
+Version: `1.1.122`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.121`
+Current release: `v1.1.122`
 
-Built for the CloudIslands 1.1.121 baseline.
+Built for the CloudIslands 1.1.122 baseline.
 
-Release notes for `v1.1.121`:
+Release notes for `v1.1.122`:
+
+- truthful upgrade compensation: bank refunds now inspect the checked deposit
+  result instead of treating every non-throwing call as success
+- if another transaction fills the island bank between payment and refund, the
+  purchase returns `_REFUND_FAILED` rather than incorrectly reporting `_REFUNDED`
+- the existing balance remains authoritative and the failure code makes manual
+  operator reconciliation visible instead of hiding lost compensation
+- a concurrent-capacity regression covers the payment, intervening deposit,
+  rejected refund, and final status sequence
+
+Release notes carried forward from `v1.1.121`:
 
 - concurrency-safe monotonic limits: upgrade effects now use an atomic
   repository-level `setAtLeast` operation instead of read-then-set
@@ -2205,7 +2216,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.121`.
+Current read: production-readiness baseline `v1.1.122`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
