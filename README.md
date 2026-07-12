@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.59`
+Version: `1.1.60`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.59`
+Current release: `v1.1.60`
 
-Built for the CloudIslands 1.1.59 baseline.
+Built for the CloudIslands 1.1.60 baseline.
 
-Release notes for `v1.1.59`:
+Release notes for `v1.1.60`:
+
+- atomic ownership transfer: island owner UUID, former-owner `CO_OWNER`,
+  new-owner `OWNER`, and new-owner primary island now commit together
+- crash-window closure: Core cannot commit ownership and then stop before the
+  new owner receives the island as their selected `/is home` destination
+- migrated-data repair: the former owner role uses an upsert, preserving them
+  as co-owner even when an older import omitted its membership projection
+- dual-database parity: PostgreSQL and MySQL/MariaDB receive equivalent owner
+  and co-owner upsert semantics
+- cache-compatible completion: the route-level profile update remains as a
+  harmless cache refresh after the authoritative JDBC transaction
+
+Release notes carried forward from `v1.1.59`:
 
 - settled-price binding: Paper sends the exact amount successfully withdrawn
   from Vault with the managed Core creation request
@@ -1487,7 +1500,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.59`.
+Current read: production-readiness baseline `v1.1.60`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
