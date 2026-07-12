@@ -55,18 +55,18 @@ public final class UpgradeEffectApplier {
     private void applyLimitEffect(UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {
         java.util.OptionalLong configuredValue = rule == null ? java.util.OptionalLong.empty() : rule.limitValueForLevel(level);
         IslandLimitSnapshot snapshot = switch (type) {
-            case ISLAND_SIZE -> limits.set(islandId, "SIZE", configuredValue.orElse(100L + Math.max(0L, level - 1L) * 50L), actorUuid);
-            case MAX_MEMBERS, MEMBER_LIMIT -> limits.set(islandId, "MEMBERS", configuredValue.orElse(3L + Math.max(0L, level - 1L) * 2L), actorUuid);
-            case MAX_WARPS, WARP_LIMIT -> limits.set(islandId, "WARPS", configuredValue.orElse(Math.max(1L, level)), actorUuid);
-            case HOME_LIMIT -> limits.set(islandId, "HOMES", configuredValue.orElse(Math.max(1L, level)), actorUuid);
-            case BORDER_SIZE -> limits.set(islandId, "BORDER", configuredValue.orElse(100L + Math.max(0L, level - 1L) * 50L), actorUuid);
-            case BIOME_UNLOCK -> limits.set(islandId, "BIOME_UNLOCK", configuredValue.orElse(Math.max(1L, level)), actorUuid);
-            case HOPPER_LIMIT -> limits.set(islandId, "HOPPER", configuredValue.orElse(Math.max(1L, level) * 50L), actorUuid);
-            case SPAWNER_LIMIT -> limits.set(islandId, "SPAWNER", configuredValue.orElse(Math.max(1L, level) * 25L), actorUuid);
-            case MOB_LIMIT -> limits.set(islandId, "ENTITY", configuredValue.orElse(Math.max(1L, level) * 200L), actorUuid);
-            case REDSTONE_LIMIT -> limits.set(islandId, "REDSTONE", configuredValue.orElse(Math.max(1L, level) * 512L), actorUuid);
-            case BANK_LIMIT -> limits.set(islandId, "BANK", configuredValue.orElse(Math.max(1L, level) * 100000L), actorUuid);
-            case CROP_GROWTH -> limits.set(islandId, "CROP_GROWTH", configuredValue.orElse(Math.max(1L, level)), actorUuid);
+            case ISLAND_SIZE -> setMonotonicLimit(islandId, "SIZE", configuredValue.orElse(100L + Math.max(0L, level - 1L) * 50L), actorUuid);
+            case MAX_MEMBERS, MEMBER_LIMIT -> setMonotonicLimit(islandId, "MEMBERS", configuredValue.orElse(3L + Math.max(0L, level - 1L) * 2L), actorUuid);
+            case MAX_WARPS, WARP_LIMIT -> setMonotonicLimit(islandId, "WARPS", configuredValue.orElse(Math.max(1L, level)), actorUuid);
+            case HOME_LIMIT -> setMonotonicLimit(islandId, "HOMES", configuredValue.orElse(Math.max(1L, level)), actorUuid);
+            case BORDER_SIZE -> setMonotonicLimit(islandId, "BORDER", configuredValue.orElse(100L + Math.max(0L, level - 1L) * 50L), actorUuid);
+            case BIOME_UNLOCK -> setMonotonicLimit(islandId, "BIOME_UNLOCK", configuredValue.orElse(Math.max(1L, level)), actorUuid);
+            case HOPPER_LIMIT -> setMonotonicLimit(islandId, "HOPPER", configuredValue.orElse(Math.max(1L, level) * 50L), actorUuid);
+            case SPAWNER_LIMIT -> setMonotonicLimit(islandId, "SPAWNER", configuredValue.orElse(Math.max(1L, level) * 25L), actorUuid);
+            case MOB_LIMIT -> setMonotonicLimit(islandId, "ENTITY", configuredValue.orElse(Math.max(1L, level) * 200L), actorUuid);
+            case REDSTONE_LIMIT -> setMonotonicLimit(islandId, "REDSTONE", configuredValue.orElse(Math.max(1L, level) * 512L), actorUuid);
+            case BANK_LIMIT -> setMonotonicLimit(islandId, "BANK", configuredValue.orElse(Math.max(1L, level) * 100000L), actorUuid);
+            case CROP_GROWTH -> setMonotonicLimit(islandId, "CROP_GROWTH", configuredValue.orElse(Math.max(1L, level)), actorUuid);
             case GENERATOR_LEVEL, FLY_ACCESS, BORDER_COLOR_UNLOCK, KEEP_INVENTORY_ENABLE -> null;
         };
         if (snapshot == null) {
@@ -77,6 +77,15 @@ public final class UpgradeEffectApplier {
         }
         events.publish(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name(), Map.of("islandId", islandId.toString(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
         islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_EFFECT", Map.of("effect", type.name(), "limitKey", snapshot.limitKey(), "value", Long.toString(snapshot.value())));
+    }
+
+    private IslandLimitSnapshot setMonotonicLimit(UUID islandId, String limitKey, long requested, UUID actorUuid) {
+        long current = limits.list(islandId).stream()
+            .filter(limit -> limit.limitKey().equals(limitKey))
+            .mapToLong(IslandLimitSnapshot::value)
+            .findFirst()
+            .orElse(0L);
+        return limits.set(islandId, limitKey, Math.max(current, requested), actorUuid);
     }
 
     private void applyGeneratorEffect(UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {

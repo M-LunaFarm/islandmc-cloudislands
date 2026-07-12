@@ -97,6 +97,26 @@ class UpgradeEffectApplierTest {
         assertEquals(2L, events.countByType(CloudIslandEventType.ISLAND_FLAG_CHANGED.name()));
     }
 
+    @Test
+    void upgradeEffectsNeverReduceLimitsEarnedFromMissionsOrAdministration() {
+        InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
+        limits.set(ISLAND_ID, "HOPPER", 75L, OWNER_ID);
+        limits.set(ISLAND_ID, "BANK", 500_000L, OWNER_ID);
+        UpgradeEffectApplier applier = new UpgradeEffectApplier(
+            limits,
+            new InMemoryIslandRepository(),
+            new InMemoryIslandMetadataRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryGlobalEventPublisher()
+        );
+
+        applier.apply(ISLAND_ID, OWNER_ID, new UpgradeRule("hopper", UpgradeType.HOPPER_LIMIT, 5, BigDecimal.ZERO, BigDecimal.ONE), UpgradeType.HOPPER_LIMIT, 1);
+        applier.apply(ISLAND_ID, OWNER_ID, new UpgradeRule("bank", UpgradeType.BANK_LIMIT, 5, BigDecimal.ZERO, BigDecimal.ONE), UpgradeType.BANK_LIMIT, 1);
+
+        assertEquals(75L, limitValue(limits, "HOPPER"));
+        assertEquals(500_000L, limitValue(limits, "BANK"));
+    }
+
     private static long limitValue(InMemoryIslandLimitRepository limits, String limitKey) {
         return limits.list(ISLAND_ID).stream()
             .filter(limit -> limit.limitKey().equals(limitKey))
