@@ -1,5 +1,6 @@
 package kr.seungmin.satisskyfactory.contract;
 
+import java.math.BigInteger;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.economy.EconomyService;
 import kr.seungmin.satisskyfactory.machine.IslandBoostService;
@@ -315,9 +316,8 @@ public final class ContractService {
         if (!template.required().entrySet().stream().allMatch(entry -> inventory.amount(entry.getKey()) >= entry.getValue())) {
             return false;
         }
-        long netSpace = template.itemRewards().values().stream().mapToLong(Long::longValue).sum()
-                - template.required().values().stream().mapToLong(Long::longValue).sum();
-        if (netSpace > 0 && !inventory.canAdd("__contract_reward_space__", netSpace)) {
+        BigInteger netSpace = exactTotal(template.itemRewards()).subtract(exactTotal(template.required()));
+        if (netSpace.signum() > 0 && netSpace.compareTo(BigInteger.valueOf(inventory.remainingCapacity())) > 0) {
             return false;
         }
         template.required().forEach((item, amount) -> inventory.remove(item, amount));
@@ -377,6 +377,16 @@ public final class ContractService {
         }
         database.saveContract(storedContract(active.contract().completed(template.required())));
         return true;
+    }
+
+    private static BigInteger exactTotal(Map<String, Long> items) {
+        BigInteger total = BigInteger.ZERO;
+        for (Long amount : items == null ? Map.<String, Long>of().values() : items.values()) {
+            if (amount != null && amount > 0L) {
+                total = total.add(BigInteger.valueOf(amount));
+            }
+        }
+        return total;
     }
 
     private String contractRewardIdempotencyKey(FactoryIsland island, OfflinePlayer owner, UUID contractId, ContractTemplate template) {

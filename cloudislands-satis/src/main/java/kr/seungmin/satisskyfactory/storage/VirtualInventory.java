@@ -17,7 +17,7 @@ public final class VirtualInventory {
         this.islandUuid = islandUuid;
         this.holderType = holderType;
         this.holderId = holderId;
-        this.capacity = capacity;
+        this.capacity = Math.max(0L, capacity);
     }
 
     public UUID inventoryId() { return inventoryId; }
@@ -28,7 +28,15 @@ public final class VirtualInventory {
     public synchronized Map<String, Long> items() { return Map.copyOf(items); }
 
     public synchronized long used() {
-        return items.values().stream().mapToLong(Long::longValue).sum();
+        long total = 0L;
+        for (long amount : items.values()) {
+            try {
+                total = Math.addExact(total, Math.max(0L, amount));
+            } catch (ArithmeticException overflow) {
+                return Long.MAX_VALUE;
+            }
+        }
+        return total;
     }
 
     public synchronized long remainingCapacity() {
@@ -40,23 +48,31 @@ public final class VirtualInventory {
     }
 
     public synchronized long amount(String itemId) {
+        if (itemId == null || itemId.isBlank()) {
+            return 0L;
+        }
         return items.getOrDefault(itemId, 0L);
     }
 
     public synchronized boolean canAdd(String itemId, long amount) {
-        return amount >= 0 && amount <= remainingCapacity();
+        return itemId != null && !itemId.isBlank() && amount >= 0 && amount <= remainingCapacity();
     }
 
     public synchronized boolean add(String itemId, long amount) {
         if (amount <= 0 || !canAdd(itemId, amount)) {
             return false;
         }
-        items.merge(itemId, amount, Long::sum);
+        long current = amount(itemId);
+        try {
+            items.put(itemId, Math.addExact(current, amount));
+        } catch (ArithmeticException overflow) {
+            return false;
+        }
         return true;
     }
 
     public synchronized boolean remove(String itemId, long amount) {
-        if (amount <= 0 || amount(itemId) < amount) {
+        if (itemId == null || itemId.isBlank() || amount <= 0 || amount(itemId) < amount) {
             return false;
         }
         long next = amount(itemId) - amount;
@@ -69,6 +85,9 @@ public final class VirtualInventory {
     }
 
     public synchronized void set(String itemId, long amount) {
+        if (itemId == null || itemId.isBlank()) {
+            return;
+        }
         if (amount <= 0) {
             items.remove(itemId);
         } else {

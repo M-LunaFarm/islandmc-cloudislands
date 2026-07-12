@@ -78,6 +78,25 @@ class VirtualInventoryTest {
         assertFalse(inventory.canAdd("iron_ore", Long.MAX_VALUE));
     }
 
+    @Test
+    void corruptedOrExtremeCountsCannotCreatePhantomCapacity() {
+        VirtualInventory inventory = inventory(Long.MAX_VALUE);
+        inventory.set("first", Long.MAX_VALUE);
+        inventory.set("second", Long.MAX_VALUE);
+
+        assertEquals(Long.MAX_VALUE, inventory.used());
+        assertEquals(0L, inventory.remainingCapacity());
+        assertFalse(inventory.add("third", 1L));
+        assertFalse(inventory.add("", 1L));
+
+        VirtualInventory exact = inventory(Long.MAX_VALUE);
+        assertTrue(exact.add("first", Long.MAX_VALUE - 1L));
+        assertTrue(exact.add("first", 1L));
+        assertFalse(exact.add("first", 1L));
+        assertEquals(Long.MAX_VALUE, exact.amount("first"));
+        assertEquals(0L, inventory(-1L).capacity());
+    }
+
     private VirtualInventory inventory(long capacity) {
         UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
         return new VirtualInventory(UUID.randomUUID(), islandUuid, "ISLAND", islandUuid.toString(), capacity);
