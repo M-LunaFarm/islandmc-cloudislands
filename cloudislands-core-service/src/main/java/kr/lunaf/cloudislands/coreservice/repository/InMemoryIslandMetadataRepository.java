@@ -163,9 +163,23 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
-    public void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
+    public synchronized void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
         bans.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
             .put(playerUuid, new IslandBanSnapshot(islandId, playerUuid, actorUuid, reason == null ? "" : reason, Instant.now(), null));
+    }
+
+    @Override
+    public synchronized String banVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
+        String currentRole = members(islandId).stream()
+            .filter(member -> member.playerUuid().equals(playerUuid))
+            .map(IslandMemberSnapshot::effectiveRoleKey)
+            .findFirst()
+            .orElse("");
+        if (kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.memberRole(currentRole)) {
+            return "VISITOR_BAN_DENIED";
+        }
+        banVisitor(islandId, actorUuid, playerUuid, reason);
+        return "APPLIED";
     }
 
     @Override

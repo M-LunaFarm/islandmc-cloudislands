@@ -21,9 +21,41 @@ import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandVisitorRoutesTest {
+    @Test
+    void visitorBanRechecksMembershipInsideTheLockedTransaction() throws Exception {
+        String jdbc = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutes.java"));
+        int operation = jdbc.indexOf("public String banVisitorResult(");
+        int commit = jdbc.indexOf("connection.commit();", operation);
+
+        assertTrue(operation >= 0 && commit > operation);
+        String transaction = jdbc.substring(operation, commit);
+        assertTrue(transaction.contains("SELECT owner_uuid FROM islands"));
+        assertTrue(transaction.contains("FOR UPDATE"));
+        assertTrue(transaction.contains("currentMemberRole(connection, islandId, playerUuid)"));
+        assertTrue(transaction.contains("CoreRoleKeys.memberRole(currentRole)"));
+        assertTrue(transaction.contains("banVisitorSql(connection)"));
+        assertTrue(routes.contains("metadataRepository.banVisitorResult(islandId, actorUuid, playerUuid, reason)"));
+        assertTrue(!routes.contains("metadataRepository.removeMember(islandId, playerUuid)"));
+    }
+
+    @Test
+    void inMemoryVisitorBanCannotRemoveOrBanAnExistingMember() {
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        UUID memberUuid = UUID.randomUUID();
+        metadata.upsertMemberKey(islandId, memberUuid, "MEMBER");
+
+        assertEquals("VISITOR_BAN_DENIED", metadata.banVisitorResult(islandId, actorUuid, memberUuid, "race"));
+        assertEquals(1, metadata.members(islandId).size());
+        assertTrue(!metadata.isBanned(islandId, memberUuid));
+    }
+
     @Test
     void visitorSanctionsRejectAuthoritativeOwnersAndTeamMembers() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutes.java"));

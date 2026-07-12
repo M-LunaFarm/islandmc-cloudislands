@@ -445,13 +445,43 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(banVisitorSql(connection))) {
-            statement.setObject(1, islandId);
-            statement.setObject(2, playerUuid);
-            statement.setObject(3, actorUuid);
-            statement.setString(4, reason);
-            statement.executeUpdate();
+        String result = banVisitorResult(islandId, actorUuid, playerUuid, reason);
+        if (!"APPLIED".equals(result)) {
+            throw new IllegalStateException("visitor ban rejected: " + result);
+        }
+    }
+
+    @Override
+    public String banVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement island = connection.prepareStatement("SELECT owner_uuid FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+                island.setObject(1, islandId);
+                try (ResultSet result = island.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        return "ISLAND_NOT_FOUND";
+                    }
+                    if (playerUuid.equals((UUID) result.getObject("owner_uuid"))) {
+                        connection.rollback();
+                        return "VISITOR_BAN_DENIED";
+                    }
+                }
+            }
+            String currentRole = currentMemberRole(connection, islandId, playerUuid);
+            if (kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.memberRole(currentRole)) {
+                connection.rollback();
+                return "VISITOR_BAN_DENIED";
+            }
+            try (PreparedStatement statement = connection.prepareStatement(banVisitorSql(connection))) {
+                statement.setObject(1, islandId);
+                statement.setObject(2, playerUuid);
+                statement.setObject(3, actorUuid);
+                statement.setString(4, reason);
+                statement.executeUpdate();
+            }
+            connection.commit();
+            return "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to ban island visitor", exception);
         }

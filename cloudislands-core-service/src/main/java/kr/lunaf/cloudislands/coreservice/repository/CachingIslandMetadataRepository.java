@@ -181,6 +181,13 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public String banVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
+        String result = delegate.banVisitorResult(islandId, actorUuid, playerUuid, reason);
+        cacheBans(islandId, delegate.bans(islandId));
+        return result;
+    }
+
+    @Override
     public void pardonVisitor(UUID islandId, UUID playerUuid) {
         delegate.pardonVisitor(islandId, playerUuid);
         cacheBans(islandId, delegate.bans(islandId));

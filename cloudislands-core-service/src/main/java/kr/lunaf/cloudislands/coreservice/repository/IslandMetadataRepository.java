@@ -58,6 +58,10 @@ public interface IslandMetadataRepository {
     boolean isBanned(UUID islandId, UUID playerUuid);
     List<IslandBanSnapshot> bans(UUID islandId);
     void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);
+    default String banVisitorResult(UUID islandId, UUID actorUuid, UUID playerUuid, String reason) {
+        banVisitor(islandId, actorUuid, playerUuid, reason);
+        return "APPLIED";
+    }
     void pardonVisitor(UUID islandId, UUID playerUuid);
     boolean isLocked(UUID islandId);
     void setLocked(UUID islandId, boolean locked);
