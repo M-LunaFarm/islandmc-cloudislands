@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.velocity;
 
 import com.velocitypowered.api.proxy.Player;
 import java.util.UUID;
-import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import net.kyori.adventure.text.Component;
 
@@ -261,9 +260,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void setHome(Player player, UUID islandId, String name) {
-        IslandLocation defaultHome = new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
-        withResolvedIsland(player, islandId, "홈을 설정할 섬을 찾지 못했습니다.", "섬 홈을 설정하지 못했습니다.",
-            resolved -> sendTextResult(player, coreApiClient.homeWarpCommands().setHome(resolved, player.getUniqueId(), name, defaultHome).thenApply(result -> islandMessages.homeWarpAction("섬 홈 설정", result)), "섬 홈을 설정하지 못했습니다."));
+        player.sendMessage(Component.text("홈 설정은 현재 위치를 확인할 수 있는 Paper 서버에서만 실행할 수 있습니다."));
     }
 
     public void deleteHome(Player player, UUID islandId, String name) {

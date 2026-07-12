@@ -7,7 +7,6 @@ import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
@@ -288,9 +287,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
-        IslandLocation defaultLocation = new IslandLocation("ci_shard_001", 0.5D, 100.0D, 0.5D, 180.0F, 0.0F);
-        withResolvedIsland(player, islandId, "워프를 설정할 섬을 찾지 못했습니다.", "섬 워프를 설정하지 못했습니다.",
-            resolved -> sendTextResult(player, coreApiClient.homeWarpCommands().setWarp(resolved, player.getUniqueId(), name, defaultLocation, publicAccess).thenApply(result -> islandMessages.homeWarpAction("섬 워프 설정", result)), "섬 워프를 설정하지 못했습니다."));
+        player.sendMessage(Component.text("워프 설정은 현재 위치를 확인할 수 있는 Paper 서버에서만 실행할 수 있습니다."));
     }
 
     public void deleteWarp(Player player, UUID islandId, String name) {

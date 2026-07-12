@@ -91,6 +91,19 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void locationMutationsNeverPersistSyntheticProxyCoordinates() throws Exception {
+        String plugin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/CloudIslandsVelocityPlugin.java"));
+        String memberships = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerMembershipActions.java"));
+        String routing = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerRoutingActions.java"));
+
+        assertTrue(plugin.contains("CommandExecuteEvent.CommandResult.denied()"), "Paper-local commands must be denied when no backend server exists");
+        assertFalse(memberships.contains("new IslandLocation(\"ci_shard_001\""), "Velocity must not invent a home location");
+        assertFalse(routing.contains("new IslandLocation(\"ci_shard_001\""), "Velocity must not invent a warp location");
+        assertFalse(memberships.contains("homeWarpCommands().setHome("), "Velocity must not persist homes without a Paper location");
+        assertFalse(routing.contains("homeWarpCommands().setWarp("), "Velocity must not persist warps without a Paper location");
+    }
+
+    @Test
     void playerCommandCatalogIncludesGoalCommandsOnePerLine() {
         List<String> commands = IslandCommandCatalog.playerCommands();
 
