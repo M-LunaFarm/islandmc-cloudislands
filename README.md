@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.105`
+Version: `1.1.106`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.105`
+Current release: `v1.1.106`
 
-Built for the CloudIslands 1.1.105 baseline.
+Built for the CloudIslands 1.1.106 baseline.
 
-Release notes for `v1.1.105`:
+Release notes for `v1.1.106`:
+
+- admin-route permission coverage gate: Core tests now extract every statically
+  registered admin route and require an explicit server guard permission
+- future-proof fail-close behavior: adding an admin API without updating its
+  permission mapping fails `:cloudislands-core-service:check`
+- dynamic island and node routes remain covered by their dedicated
+  least-privilege suffix tests
+- current route audit confirms every registered static admin endpoint is usable
+  under its configured permission instead of being permanently denied
+
+Release notes carried forward from `v1.1.105`:
 
 - usable registered admin APIs: previously unmapped island management,
   ranking, generator, player-disband, and migration routes no longer fail with
@@ -2015,7 +2026,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.105`.
+Current read: production-readiness baseline `v1.1.106`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
