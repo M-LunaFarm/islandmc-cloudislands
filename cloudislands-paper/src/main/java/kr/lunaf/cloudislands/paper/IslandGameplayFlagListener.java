@@ -1,10 +1,14 @@
 package kr.lunaf.cloudislands.paper;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
+import org.bukkit.WeatherType;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Ambient;
 import org.bukkit.entity.Animals;
@@ -29,6 +33,7 @@ public final class IslandGameplayFlagListener implements Listener {
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
     private final AdminFlightOverrides adminFlightOverrides;
+    private final Map<UUID, EnvironmentOverride> environmentOverrides = new ConcurrentHashMap<>();
 
     public IslandGameplayFlagListener(ProtectionController protection) {
         this(protection, null);
@@ -52,10 +57,11 @@ public final class IslandGameplayFlagListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {
         Player player = event.getPlayer();
+        Block block = event.getTo() == null ? player.getLocation().getBlock() : event.getTo().getBlock();
+        updateEnvironment(player, block);
         if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
             return;
         }
-        Block block = event.getTo() == null ? player.getLocation().getBlock() : event.getTo().getBlock();
         boolean allowed = adminFlightAllowed(player) || (protection.islandAt(block).isPresent() && islandFlagAllowed(block, IslandFlag.FLY));
         player.setAllowFlight(allowed);
         if (!allowed && player.isFlying()) {
@@ -79,11 +85,13 @@ public final class IslandGameplayFlagListener implements Listener {
     @EventHandler
     public void onChangedWorld(PlayerChangedWorldEvent event) {
         updateFlight(event.getPlayer());
+        updateEnvironment(event.getPlayer(), event.getPlayer().getLocation().getBlock());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         clearManagedFlight(event.getPlayer());
+        clearEnvironment(event.getPlayer());
     }
 
     @EventHandler
@@ -196,5 +204,68 @@ public final class IslandGameplayFlagListener implements Listener {
 
     private boolean adminFlightAllowed(Player player) {
         return adminFlightOverrides != null && adminFlightOverrides.enabled(player);
+    }
+
+    private void updateEnvironment(Player player, Block block) {
+        EnvironmentOverride desired = environmentOverride(block);
+        EnvironmentOverride previous = environmentOverrides.put(player.getUniqueId(), desired);
+        if (desired.equals(previous)) {
+            return;
+        }
+        switch (desired.time()) {
+            case DAY -> player.setPlayerTime(1000L, false);
+            case MIDDLE_DAY -> player.setPlayerTime(6000L, false);
+            case NIGHT -> player.setPlayerTime(13000L, false);
+            case MIDDLE_NIGHT -> player.setPlayerTime(18000L, false);
+            case DEFAULT -> player.resetPlayerTime();
+        }
+        switch (desired.weather()) {
+            case RAIN -> player.setPlayerWeather(WeatherType.DOWNFALL);
+            case SHINY -> player.setPlayerWeather(WeatherType.CLEAR);
+            case DEFAULT -> player.resetPlayerWeather();
+        }
+    }
+
+    private EnvironmentOverride environmentOverride(Block block) {
+        if (protection.islandAt(block).isEmpty()) {
+            return EnvironmentOverride.DEFAULT;
+        }
+        TimeOverride time = flag(block, IslandFlag.ALWAYS_MIDDLE_DAY) ? TimeOverride.MIDDLE_DAY
+            : flag(block, IslandFlag.ALWAYS_DAY) ? TimeOverride.DAY
+            : flag(block, IslandFlag.ALWAYS_MIDDLE_NIGHT) ? TimeOverride.MIDDLE_NIGHT
+            : flag(block, IslandFlag.ALWAYS_NIGHT) ? TimeOverride.NIGHT
+            : TimeOverride.DEFAULT;
+        WeatherOverride weather = flag(block, IslandFlag.ALWAYS_RAIN) ? WeatherOverride.RAIN
+            : flag(block, IslandFlag.ALWAYS_SHINY) ? WeatherOverride.SHINY
+            : WeatherOverride.DEFAULT;
+        return new EnvironmentOverride(time, weather);
+    }
+
+    private boolean flag(Block block, IslandFlag flag) {
+        return protection.checkSystemFlag(block, flag).allowed();
+    }
+
+    private void clearEnvironment(Player player) {
+        environmentOverrides.remove(player.getUniqueId());
+        player.resetPlayerTime();
+        player.resetPlayerWeather();
+    }
+
+    private enum TimeOverride {
+        DEFAULT,
+        DAY,
+        MIDDLE_DAY,
+        NIGHT,
+        MIDDLE_NIGHT
+    }
+
+    private enum WeatherOverride {
+        DEFAULT,
+        RAIN,
+        SHINY
+    }
+
+    private record EnvironmentOverride(TimeOverride time, WeatherOverride weather) {
+        private static final EnvironmentOverride DEFAULT = new EnvironmentOverride(TimeOverride.DEFAULT, WeatherOverride.DEFAULT);
     }
 }

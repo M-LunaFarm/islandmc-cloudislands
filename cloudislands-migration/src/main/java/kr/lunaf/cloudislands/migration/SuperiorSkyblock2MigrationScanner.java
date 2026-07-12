@@ -47,7 +47,8 @@ public final class SuperiorSkyblock2MigrationScanner {
         "locked", "islocked", "settings.locked",
         "pvp", "mobspawn", "animalspawn", "monsterspawn", "firespread", "explosion", "creeperdamage", "tntdamage",
         "witherdamage", "endermangrief", "waterflow", "lavaflow", "icemelt", "leafdecay", "cropsgrowth", "treegrowth",
-        "egglay", "ghastfireball", "visitorinteract",
+        "egglay", "ghastfireball", "alwaysday", "alwaysmiddleday", "alwaysnight", "alwaysmiddlenight", "alwaysrain",
+        "alwaysshiny", "visitorinteract",
         "visitorcontainer", "visitorpickup", "visitordrop", "visitorpvp", "fly", "keepinventory", "publicwarps",
         "sizeupgrade", "islandsizeupgrade", "membersupgrade", "memberupgrade", "warpsupgrade", "warpupgrade",
         "hoppersupgrade", "hopperupgrade", "spawnersupgrade", "spawnerupgrade", "generatorupgrade", "oregeneratorlevel",
@@ -500,6 +501,12 @@ public final class SuperiorSkyblock2MigrationScanner {
         addFlag(content, flags, "TREE_GROWTH", "treeGrowth");
         addFlag(content, flags, "EGG_LAY", "eggLay");
         addFlag(content, flags, "GHAST_FIREBALL", "ghastFireball");
+        addFlag(content, flags, "ALWAYS_DAY", "alwaysDay");
+        addFlag(content, flags, "ALWAYS_MIDDLE_DAY", "alwaysMiddleDay");
+        addFlag(content, flags, "ALWAYS_NIGHT", "alwaysNight");
+        addFlag(content, flags, "ALWAYS_MIDDLE_NIGHT", "alwaysMiddleNight");
+        addFlag(content, flags, "ALWAYS_RAIN", "alwaysRain");
+        addFlag(content, flags, "ALWAYS_SHINY", "alwaysShiny");
         addFlag(content, flags, "VISITOR_INTERACT", "visitorInteract");
         addFlag(content, flags, "VISITOR_CONTAINER", "visitorContainer");
         addFlag(content, flags, "VISITOR_PICKUP", "visitorPickup");

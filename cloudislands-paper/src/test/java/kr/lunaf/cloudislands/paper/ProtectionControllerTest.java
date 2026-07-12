@@ -267,6 +267,23 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void perPlayerTimeAndWeatherOverridesDoNotMutateSharedShardWorlds() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandGameplayFlagListener.java"));
+
+        assertTrue(listener.contains("player.setPlayerTime(1000L, false)"));
+        assertTrue(listener.contains("player.setPlayerTime(6000L, false)"));
+        assertTrue(listener.contains("player.setPlayerTime(13000L, false)"));
+        assertTrue(listener.contains("player.setPlayerTime(18000L, false)"));
+        assertTrue(listener.contains("player.setPlayerWeather(WeatherType.DOWNFALL)"));
+        assertTrue(listener.contains("player.setPlayerWeather(WeatherType.CLEAR)"));
+        assertTrue(listener.contains("player.resetPlayerTime()"));
+        assertTrue(listener.contains("player.resetPlayerWeather()"));
+        assertTrue(listener.contains("environmentOverrides.put(player.getUniqueId(), desired)"));
+        assertFalse(listener.contains("block.getWorld().setTime"));
+        assertFalse(listener.contains("block.getWorld().setStorm"));
+    }
+
+    @Test
     void roleCatalogUsesRoleKeysForDefaultSuggestions() {
         LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
         cache.putRoleDefinition(ISLAND, "builder");
