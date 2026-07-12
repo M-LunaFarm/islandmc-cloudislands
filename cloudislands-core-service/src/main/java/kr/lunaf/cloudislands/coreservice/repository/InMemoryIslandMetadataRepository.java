@@ -89,8 +89,15 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
-    public IslandInviteSnapshot createInvite(UUID islandId, UUID inviterUuid, UUID targetUuid) {
-        IslandInviteSnapshot invite = new IslandInviteSnapshot(UUID.randomUUID(), islandId, inviterUuid, targetUuid, "PENDING", Instant.now(), Instant.now().plusSeconds(86400));
+    public synchronized IslandInviteSnapshot createInvite(UUID islandId, UUID inviterUuid, UUID targetUuid) {
+        Instant now = Instant.now();
+        for (Map.Entry<UUID, IslandInviteSnapshot> entry : invites.entrySet()) {
+            IslandInviteSnapshot current = entry.getValue();
+            if (current.islandId().equals(islandId) && current.targetUuid().equals(targetUuid) && current.state().equals("PENDING")) {
+                invites.put(entry.getKey(), new IslandInviteSnapshot(current.inviteId(), current.islandId(), current.inviterUuid(), current.targetUuid(), "EXPIRED", current.createdAt(), current.expiresAt()));
+            }
+        }
+        IslandInviteSnapshot invite = new IslandInviteSnapshot(UUID.randomUUID(), islandId, inviterUuid, targetUuid, "PENDING", now, now.plusSeconds(86400));
         invites.put(invite.inviteId(), invite);
         return invite;
     }

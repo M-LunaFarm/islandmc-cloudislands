@@ -13,6 +13,22 @@ import org.junit.jupiter.api.Test;
 
 class InviteAcceptanceLimitTest {
     @Test
+    void inMemoryReinviteLeavesOnlyTheNewestPendingInvite() {
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID inviterUuid = UUID.randomUUID();
+        UUID targetUuid = UUID.randomUUID();
+
+        UUID first = metadata.createInvite(islandId, inviterUuid, targetUuid).inviteId();
+        UUID second = metadata.createInvite(islandId, inviterUuid, targetUuid).inviteId();
+
+        assertEquals(1, metadata.pendingInvites(targetUuid).size());
+        assertEquals(second, metadata.pendingInvites(targetUuid).getFirst().inviteId());
+        org.junit.jupiter.api.Assertions.assertFalse(metadata.acceptInvite(first, targetUuid, 3L));
+        org.junit.jupiter.api.Assertions.assertTrue(metadata.acceptInvite(second, targetUuid, 3L));
+    }
+
+    @Test
     void jdbcAcceptanceLocksIslandAndChecksLimitInsideTransaction() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
         int start = source.indexOf("public String acceptInviteResult(UUID inviteId, UUID playerUuid, long maxMembers)");
