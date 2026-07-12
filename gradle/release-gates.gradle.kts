@@ -139,7 +139,13 @@ tasks.register("verifyReleaseGateCoverage") {
         if (clearIndex < 0 || eventBaselineIndex < 0 || clearIndex > eventBaselineIndex) {
             throw GradleException("Core load probe must clear the reused route session before capturing its event replay baseline")
         }
-        for (signal in listOf("LOAD_TEST_EVENT_REPLAY_RETRY", "event_replay_attempts < 8", "eventPublishObserved", "eventReplayAttempts")) {
+        for (signal in listOf(
+            "LOAD_TEST_EVENT_REPLAY_RETRY",
+            "event_replay_attempts < 20",
+            "heartbeat(secondary_url, active_node, active_server_name",
+            "eventPublishObserved",
+            "eventReplayAttempts"
+        )) {
             if (!loadProbe.contains(signal)) {
                 throw GradleException("Core load probe must retry event production while preserving replay evidence: $signal")
             }
