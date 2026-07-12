@@ -32,7 +32,7 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind))) {
             return Optional.empty();
         }
-        if (current.completed() && !current.repeatable()) {
+        if (current.completed()) {
             return Optional.empty();
         }
         IslandMissionSnapshot completed = updated(current, current.goal(), true);
@@ -48,13 +48,33 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind))) {
             return Optional.empty();
         }
-        if (current.completed() && !current.repeatable()) {
+        if (current.completed()) {
             return Optional.empty();
         }
         long nextProgress = Math.min(current.goal(), current.progress() + Math.max(0L, amount));
         IslandMissionSnapshot next = updated(current, nextProgress, nextProgress >= current.goal());
         islandMissions.put(current.missionKey(), next);
         return Optional.of(next);
+    }
+
+    @Override
+    public synchronized boolean reopenAfterRewardFailure(UUID islandId, String missionKey, String kind) {
+        IslandMissionSnapshot current = missions.getOrDefault(islandId, Map.of()).get(missionKey.toLowerCase());
+        if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind)) || !current.completed()) {
+            return false;
+        }
+        missions.get(islandId).put(current.missionKey(), updated(current, Math.max(0L, current.goal() - 1L), false));
+        return true;
+    }
+
+    @Override
+    public synchronized boolean resetRepeatableAfterReward(UUID islandId, String missionKey, String kind) {
+        IslandMissionSnapshot current = missions.getOrDefault(islandId, Map.of()).get(missionKey.toLowerCase());
+        if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind)) || !current.completed() || !current.repeatable()) {
+            return false;
+        }
+        missions.get(islandId).put(current.missionKey(), updated(current, 0L, false));
+        return true;
     }
 
     @Override

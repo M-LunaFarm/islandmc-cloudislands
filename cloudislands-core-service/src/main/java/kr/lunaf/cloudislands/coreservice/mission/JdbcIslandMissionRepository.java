@@ -45,7 +45,7 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
         String safeKey = missionKey.toLowerCase();
         String safeKind = MissionCatalog.normalizeKind(kind);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = goal, completed = true, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? AND (completed = false OR repeatable = true)")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = goal, completed = true, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? AND completed = false")) {
             statement.setObject(1, actorUuid);
             statement.setObject(2, islandId);
             statement.setString(3, safeKey);
@@ -63,7 +63,7 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
         String safeKey = missionKey.toLowerCase();
         String safeKind = MissionCatalog.normalizeKind(kind);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = LEAST(goal, progress + ?), completed = completed OR LEAST(goal, progress + ?) >= goal, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? AND (completed = false OR repeatable = true)")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_missions SET progress = LEAST(goal, progress + ?), completed = LEAST(goal, progress + ?) >= goal, updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? AND completed = false")) {
             statement.setLong(1, safeAmount);
             statement.setLong(2, safeAmount);
             statement.setObject(3, actorUuid);
@@ -73,6 +73,30 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
             return statement.executeUpdate() > 0 ? find(islandId, safeKey, safeKind) : Optional.empty();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to progress island mission", exception);
+        }
+    }
+
+    @Override
+    public boolean reopenAfterRewardFailure(UUID islandId, String missionKey, String kind) {
+        return settleCompletion(islandId, missionKey, kind, false);
+    }
+
+    @Override
+    public boolean resetRepeatableAfterReward(UUID islandId, String missionKey, String kind) {
+        return settleCompletion(islandId, missionKey, kind, true);
+    }
+
+    private boolean settleCompletion(UUID islandId, String missionKey, String kind, boolean repeatableReset) {
+        String sql = repeatableReset
+            ? "UPDATE island_missions SET progress = 0, completed = false, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? AND completed = true AND repeatable = true"
+            : "UPDATE island_missions SET progress = GREATEST(0, goal - 1), completed = false, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? AND completed = true";
+        try (Connection connection = dataSource.getConnection(); PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setObject(1, islandId);
+            statement.setString(2, missionKey.toLowerCase());
+            statement.setString(3, MissionCatalog.normalizeKind(kind));
+            return statement.executeUpdate() == 1;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to settle island mission reward", exception);
         }
     }
 

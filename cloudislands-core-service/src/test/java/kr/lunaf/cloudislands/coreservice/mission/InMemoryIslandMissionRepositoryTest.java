@@ -66,4 +66,36 @@ class InMemoryIslandMissionRepositoryTest {
         assertTrue(secondComplete.isEmpty());
         assertTrue(secondProgress.isEmpty());
     }
+
+    @Test
+    void failedRewardCanReopenCompletionForRetry() {
+        InMemoryIslandMissionRepository repository = new InMemoryIslandMissionRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+
+        assertTrue(repository.complete(islandId, actorUuid, "first_blocks", "MISSION").orElseThrow().completed());
+        assertTrue(repository.reopenAfterRewardFailure(islandId, "first_blocks", "MISSION"));
+
+        var retry = repository.complete(islandId, actorUuid, "first_blocks", "MISSION");
+        assertTrue(retry.isPresent());
+        assertTrue(retry.orElseThrow().completed());
+    }
+
+    @Test
+    void repeatableMissionMustResetBeforeNextProgressCanReward() {
+        InMemoryIslandMissionRepository repository = new InMemoryIslandMissionRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        repository.registerProviderDefinitions("addon.test", List.of(
+            new MissionProviderDefinitionSnapshot("addon.test", "repeat", "MISSION", "", "Repeat", "", "BLOCK_BREAK", "*", 2L, "ITEM", "STONE 1", true, false, true, null)
+        ));
+
+        assertTrue(repository.progress(islandId, actorUuid, "repeat", "MISSION", 2L).orElseThrow().completed());
+        assertTrue(repository.progress(islandId, actorUuid, "repeat", "MISSION", 1L).isEmpty());
+        assertTrue(repository.resetRepeatableAfterReward(islandId, "repeat", "MISSION"));
+
+        var nextCycle = repository.progress(islandId, actorUuid, "repeat", "MISSION", 1L).orElseThrow();
+        assertEquals(1L, nextCycle.progress());
+        assertTrue(!nextCycle.completed());
+    }
 }

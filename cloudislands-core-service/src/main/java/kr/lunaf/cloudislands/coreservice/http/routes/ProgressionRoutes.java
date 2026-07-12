@@ -148,12 +148,10 @@ public final class ProgressionRoutes implements RouteGroup {
                 return;
             }
             java.util.Optional<IslandMissionSnapshot> completed = missionRepository.complete(islandId, actorUuid, missionKey, kind);
-            completed.ifPresent(snapshot -> {
-                MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
-                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward, actorUuid));
-                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", missionCompleteFields(snapshot, reward, actorUuid));
-                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward, actorUuid));
-            });
+            if (completed.isPresent() && !settleMissionCompletion(completed.orElseThrow(), actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE")) {
+                CoreHttpResponses.write(exchange, 409, ApiResponses.error("MISSION_REWARD_SETTLEMENT_FAILED", "Mission reward failed; completion was reopened when safe"));
+                return;
+            }
             CoreHttpResponses.write(exchange, completed.isPresent() ? 202 : 404, completed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
         registry.routePost("/v1/islands/missions/progress", exchange -> {
@@ -176,12 +174,11 @@ public final class ProgressionRoutes implements RouteGroup {
                 "amount", Long.toString(amount),
                 "completed", Boolean.toString(snapshot.completed())
             )));
-            progressed.filter(IslandMissionSnapshot::completed).ifPresent(snapshot -> {
-                MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
-                audit.log(actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward, actorUuid));
-                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_COMPLETE", missionCompleteFields(snapshot, reward, actorUuid));
-                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward, actorUuid));
-            });
+            if (progressed.filter(IslandMissionSnapshot::completed).isPresent()
+                && !settleMissionCompletion(progressed.orElseThrow(), actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE")) {
+                CoreHttpResponses.write(exchange, 409, ApiResponses.error("MISSION_REWARD_SETTLEMENT_FAILED", "Mission reward failed; completion was reopened when safe"));
+                return;
+            }
             CoreHttpResponses.write(exchange, progressed.isPresent() ? 202 : 404, progressed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
         registry.routePost("/v1/admin/islands/missions/complete", exchange -> {
@@ -198,12 +195,10 @@ public final class ProgressionRoutes implements RouteGroup {
                 return;
             }
             java.util.Optional<IslandMissionSnapshot> completed = missionRepository.complete(islandId, actorUuid, missionKey, kind);
-            completed.ifPresent(snapshot -> {
-                MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
-                audit.log(actorUuid, "ADMIN", "ISLAND_MISSION_ADMIN_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward, actorUuid));
-                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_ADMIN_COMPLETE", missionCompleteFields(snapshot, reward, actorUuid));
-                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward, actorUuid, "ADMIN"));
-            });
+            if (completed.isPresent() && !settleMissionCompletion(completed.orElseThrow(), actorUuid, "ADMIN", "ISLAND_MISSION_ADMIN_COMPLETE")) {
+                CoreHttpResponses.write(exchange, 409, ApiResponses.error("MISSION_REWARD_SETTLEMENT_FAILED", "Mission reward failed; completion was reopened when safe"));
+                return;
+            }
             CoreHttpResponses.write(exchange, completed.isPresent() ? 202 : 404, completed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
         registry.routePost("/v1/admin/islands/missions/progress", exchange -> {
@@ -231,12 +226,11 @@ public final class ProgressionRoutes implements RouteGroup {
                 "actorType", "ADMIN",
                 "completed", Boolean.toString(snapshot.completed())
             )));
-            progressed.filter(IslandMissionSnapshot::completed).ifPresent(snapshot -> {
-                MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
-                audit.log(actorUuid, "ADMIN", "ISLAND_MISSION_ADMIN_COMPLETE", "ISLAND", islandId.toString(), missionCompleteFields(snapshot, reward, actorUuid));
-                islandLogs.append(islandId, actorUuid, "ISLAND_MISSION_ADMIN_COMPLETE", missionCompleteFields(snapshot, reward, actorUuid));
-                events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), missionCompleteEventFields(snapshot, reward, actorUuid, "ADMIN"));
-            });
+            if (progressed.filter(IslandMissionSnapshot::completed).isPresent()
+                && !settleMissionCompletion(progressed.orElseThrow(), actorUuid, "ADMIN", "ISLAND_MISSION_ADMIN_COMPLETE")) {
+                CoreHttpResponses.write(exchange, 409, ApiResponses.error("MISSION_REWARD_SETTLEMENT_FAILED", "Mission reward failed; completion was reopened when safe"));
+                return;
+            }
             CoreHttpResponses.write(exchange, progressed.isPresent() ? 202 : 404, progressed.map(ProgressionRoutes::missionJson).orElseGet(() -> ApiResponses.error("MISSION_NOT_FOUND", "Mission was not found")));
         });
         registry.routePost("/v1/islands/limits", exchange -> {
@@ -306,6 +300,46 @@ public final class ProgressionRoutes implements RouteGroup {
     MissionRewardApplication applyMissionReward(IslandMissionSnapshot snapshot, UUID actorUuid) {
         MissionRewardService.MissionRewardResult result = missionRewards.apply(snapshot, actorUuid);
         return new MissionRewardApplication(result.applied(), result.code(), result.balance(), result.details());
+    }
+
+    boolean settleMissionCompletion(IslandMissionSnapshot snapshot, UUID actorUuid, String actorType, String successAction) {
+        MissionRewardApplication reward = applyMissionReward(snapshot, actorUuid);
+        boolean rewardAccepted = reward.applied() || reward.code().equals("NO_REWARD");
+        if (!rewardAccepted) {
+            boolean reopened;
+            try {
+                reopened = missionRepository.reopenAfterRewardFailure(snapshot.islandId(), snapshot.missionKey(), snapshot.kind());
+            } catch (RuntimeException rollbackFailure) {
+                reopened = false;
+            }
+            LinkedHashMap<String, String> fields = new LinkedHashMap<>(missionCompleteFields(snapshot, reward, actorUuid));
+            fields.put("completionReopened", Boolean.toString(reopened));
+            fields.put("settlementCode", reopened ? "REWARD_FAILED_MISSION_REOPENED" : "REWARD_FAILED_REOPEN_FAILED");
+            audit.log(actorUuid, actorType, "ISLAND_MISSION_REWARD_FAILED", "ISLAND", snapshot.islandId().toString(), fields);
+            islandLogs.append(snapshot.islandId(), actorUuid, "ISLAND_MISSION_REWARD_FAILED", fields);
+            return false;
+        }
+        if (snapshot.repeatable()) {
+            boolean reset;
+            try {
+                reset = missionRepository.resetRepeatableAfterReward(snapshot.islandId(), snapshot.missionKey(), snapshot.kind());
+            } catch (RuntimeException resetFailure) {
+                reset = false;
+            }
+            if (!reset) {
+                LinkedHashMap<String, String> fields = new LinkedHashMap<>(missionCompleteFields(snapshot, reward, actorUuid));
+                fields.put("settlementCode", "REWARD_APPLIED_REPEATABLE_RESET_FAILED");
+                audit.log(actorUuid, actorType, "ISLAND_MISSION_REWARD_SETTLEMENT_FAILED", "ISLAND", snapshot.islandId().toString(), fields);
+                islandLogs.append(snapshot.islandId(), actorUuid, "ISLAND_MISSION_REWARD_SETTLEMENT_FAILED", fields);
+                return false;
+            }
+        }
+        audit.log(actorUuid, actorType, successAction, "ISLAND", snapshot.islandId().toString(), missionCompleteFields(snapshot, reward, actorUuid));
+        islandLogs.append(snapshot.islandId(), actorUuid, successAction, missionCompleteFields(snapshot, reward, actorUuid));
+        events.publish(CloudIslandEventType.ISLAND_MISSION_COMPLETED.name(), actorType.equals("ADMIN")
+            ? missionCompleteEventFields(snapshot, reward, actorUuid, actorType)
+            : missionCompleteEventFields(snapshot, reward, actorUuid));
+        return true;
     }
 
     static Optional<java.math.BigDecimal> bankDepositRewardAmount(IslandMissionSnapshot snapshot) {

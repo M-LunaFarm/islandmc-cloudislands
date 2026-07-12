@@ -18,7 +18,11 @@ import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.bank.InMemoryIslandBankRepository;
+import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
+import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
+import kr.lunaf.cloudislands.coreservice.mission.InMemoryIslandMissionRepository;
 import org.junit.jupiter.api.Test;
 
 class ProgressionRoutesTest {
@@ -167,6 +171,50 @@ class ProgressionRoutesTest {
         assertEquals("1250.50", bank.balance(islandId).balance());
         assertEquals("1250.50", ProgressionRoutes.bankDepositRewardAmount(mission).orElseThrow().toPlainString());
         assertTrue(ProgressionRoutes.bankDepositRewardAmount(new IslandMissionSnapshot(islandId, "bad_reward", "MISSION", "Bad", 1L, 1L, true, "coins", Instant.EPOCH)).isEmpty());
+    }
+
+    @Test
+    void rewardFailureReopensMissionInsteadOfLosingCompletion() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        InMemoryIslandMissionRepository missions = new InMemoryIslandMissionRepository();
+        missions.registerProviderDefinitions("test", List.of(
+            new MissionProviderDefinitionSnapshot("test", "broken_reward", "MISSION", "", "Broken", "", "BLOCK_BREAK", "*", 1L, "BANK_DEPOSIT", "not-a-number", false, false, true, null)
+        ));
+        IslandMissionSnapshot completed = missions.complete(islandId, actorUuid, "broken_reward", "MISSION").orElseThrow();
+        ProgressionRoutes routes = routesForSettlement(missions, new InMemoryIslandBankRepository());
+
+        boolean settled = routes.settleMissionCompletion(completed, actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE");
+
+        assertEquals(false, settled);
+        assertTrue(missions.complete(islandId, actorUuid, "broken_reward", "MISSION").isPresent());
+    }
+
+    @Test
+    void successfulRepeatableRewardResetsProgressBeforeNextCycle() {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        InMemoryIslandMissionRepository missions = new InMemoryIslandMissionRepository();
+        missions.registerProviderDefinitions("test", List.of(
+            new MissionProviderDefinitionSnapshot("test", "repeat_reward", "MISSION", "", "Repeat", "", "BLOCK_BREAK", "*", 2L, "BANK_DEPOSIT", "5", true, false, true, null)
+        ));
+        IslandMissionSnapshot completed = missions.progress(islandId, actorUuid, "repeat_reward", "MISSION", 2L).orElseThrow();
+        InMemoryIslandBankRepository bank = new InMemoryIslandBankRepository();
+        ProgressionRoutes routes = routesForSettlement(missions, bank);
+
+        assertTrue(routes.settleMissionCompletion(completed, actorUuid, "PLAYER", "ISLAND_MISSION_COMPLETE"));
+
+        assertEquals("5", bank.balance(islandId).balance());
+        IslandMissionSnapshot next = missions.progress(islandId, actorUuid, "repeat_reward", "MISSION", 1L).orElseThrow();
+        assertEquals(1L, next.progress());
+        assertEquals(false, next.completed());
+    }
+
+    private static ProgressionRoutes routesForSettlement(InMemoryIslandMissionRepository missions, InMemoryIslandBankRepository bank) {
+        return new ProgressionRoutes(
+            null, null, null, missions, bank, null, null, null, null, null,
+            new InMemoryIslandLogRepository(), new InMemoryAuditLogger(), new InMemoryGlobalEventPublisher()
+        );
     }
 
     private static void assertMission(UUID islandId, Map<?, ?> mission) {

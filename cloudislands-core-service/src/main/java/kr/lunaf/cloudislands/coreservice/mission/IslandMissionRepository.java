@@ -13,6 +13,8 @@ public interface IslandMissionRepository {
     }
     Optional<IslandMissionSnapshot> complete(UUID islandId, UUID actorUuid, String missionKey, String kind);
     Optional<IslandMissionSnapshot> progress(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount);
+    boolean reopenAfterRewardFailure(UUID islandId, String missionKey, String kind);
+    boolean resetRepeatableAfterReward(UUID islandId, String missionKey, String kind);
     IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind);
     List<MissionProviderDefinitionSnapshot> listProviderDefinitions(String providerId);
     List<MissionProviderDefinitionSnapshot> registerProviderDefinitions(String providerId, List<MissionProviderDefinitionSnapshot> definitions);

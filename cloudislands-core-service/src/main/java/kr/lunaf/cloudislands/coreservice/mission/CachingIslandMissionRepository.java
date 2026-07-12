@@ -52,6 +52,22 @@ public final class CachingIslandMissionRepository implements IslandMissionReposi
     }
 
     @Override
+    public boolean reopenAfterRewardFailure(UUID islandId, String missionKey, String kind) {
+        String normalized = MissionCatalog.normalizeKind(kind);
+        boolean reopened = delegate.reopenAfterRewardFailure(islandId, missionKey, normalized);
+        cache(islandId, normalized, delegate.list(islandId, normalized));
+        return reopened;
+    }
+
+    @Override
+    public boolean resetRepeatableAfterReward(UUID islandId, String missionKey, String kind) {
+        String normalized = MissionCatalog.normalizeKind(kind);
+        boolean reset = delegate.resetRepeatableAfterReward(islandId, missionKey, normalized);
+        cache(islandId, normalized, delegate.list(islandId, normalized));
+        return reset;
+    }
+
+    @Override
     public IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         String normalized = MissionCatalog.normalizeKind(kind);
         IslandMissionSnapshot imported = delegate.importCompleted(islandId, actorUuid, missionKey, normalized);
