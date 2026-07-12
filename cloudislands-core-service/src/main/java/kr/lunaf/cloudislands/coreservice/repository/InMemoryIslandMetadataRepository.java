@@ -127,26 +127,35 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public synchronized boolean acceptInvite(UUID inviteId, UUID playerUuid) {
-        return acceptInvite(inviteId, playerUuid, Long.MAX_VALUE);
+        return "APPLIED".equals(acceptInviteResult(inviteId, playerUuid, Long.MAX_VALUE));
     }
 
     @Override
     public synchronized boolean acceptInvite(UUID inviteId, UUID playerUuid, long maxMembers) {
+        return "APPLIED".equals(acceptInviteResult(inviteId, playerUuid, maxMembers));
+    }
+
+    @Override
+    public synchronized String acceptInviteResult(UUID inviteId, UUID playerUuid, long maxMembers) {
         IslandInviteSnapshot invite = invites.get(inviteId);
         if (invite == null || !invite.targetUuid().equals(playerUuid) || !invite.state().equals("PENDING") || !invite.expiresAt().isAfter(Instant.now())) {
-            return false;
+            return "INVITE_UNAVAILABLE";
         }
         boolean existingTeamMember = members(invite.islandId()).stream()
             .anyMatch(member -> member.playerUuid().equals(playerUuid) && kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(member.effectiveRoleKey()));
+        if (existingTeamMember) {
+            invites.put(inviteId, new IslandInviteSnapshot(invite.inviteId(), invite.islandId(), invite.inviterUuid(), invite.targetUuid(), "EXPIRED", invite.createdAt(), invite.expiresAt()));
+            return "ALREADY_MEMBER";
+        }
         long teamMemberCount = members(invite.islandId()).stream()
             .filter(member -> kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(member.effectiveRoleKey()))
             .count();
-        if (!existingTeamMember && teamMemberCount >= Math.max(0L, maxMembers)) {
-            return false;
+        if (teamMemberCount >= Math.max(0L, maxMembers)) {
+            return "MEMBER_LIMIT";
         }
         invites.put(inviteId, new IslandInviteSnapshot(invite.inviteId(), invite.islandId(), invite.inviterUuid(), invite.targetUuid(), "ACCEPTED", invite.createdAt(), invite.expiresAt()));
         upsertMemberKey(invite.islandId(), playerUuid, kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.MEMBER);
-        return true;
+        return "APPLIED";
     }
 
     @Override

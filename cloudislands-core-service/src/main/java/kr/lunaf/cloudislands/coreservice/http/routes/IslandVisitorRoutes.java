@@ -90,7 +90,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, inviterUuid, IslandPermission.MANAGE_MEMBERS)) {
             return;
         }
-        boolean existingMember = existingTeamMember(islandId, targetUuid);
+        boolean existingMember = teamMemberOrOwner(islandId, targetUuid);
         if (existingMember) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("ALREADY_MEMBER", "Player is already an island member"));
             return;
@@ -120,8 +120,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
         long maxMembers = invite.map(value -> limitValue(value.islandId(), "MEMBERS", 3L)).orElse(0L);
         if (invite.isPresent()) {
             UUID inviteIslandId = invite.get().islandId();
-            boolean existingMember = existingTeamMember(inviteIslandId, playerUuid);
-            if (!existingMember && teamMemberCount(inviteIslandId) >= limitValue(inviteIslandId, "MEMBERS", 3L)) {
+            if (!teamMemberOrOwner(inviteIslandId, playerUuid) && teamMemberCount(inviteIslandId) >= limitValue(inviteIslandId, "MEMBERS", 3L)) {
                 CoreHttpResponses.write(exchange, 409, ApiResponses.error("MEMBER_LIMIT", "Island member limit was reached"));
                 return;
             }
@@ -140,6 +139,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
         }
         String errorMessage = result.equals("MEMBER_LIMIT") ? "Island member limit was reached"
             : result.equals("ISLAND_NOT_FOUND") ? "Island was not found"
+            : result.equals("ALREADY_MEMBER") ? "Player is already an island member"
             : "Invite is missing, expired, or not pending";
         CoreHttpResponses.write(exchange, accepted ? 202 : 409, accepted ? ApiResponses.ok(true) : ApiResponses.error(result, errorMessage));
     }
@@ -247,11 +247,6 @@ public final class IslandVisitorRoutes implements RouteGroup {
             .map(island -> island.ownerUuid().equals(playerUuid))
             .orElse(false);
         return owner || CoreRoleKeys.memberRole(memberRoleKey(metadataRepository.members(islandId), playerUuid));
-    }
-
-    private boolean existingTeamMember(UUID islandId, UUID playerUuid) {
-        return metadataRepository.members(islandId).stream()
-            .anyMatch(member -> member.playerUuid().equals(playerUuid) && CoreRoleKeys.teamMemberRole(member.effectiveRoleKey()));
     }
 
     private long teamMemberCount(UUID islandId) {

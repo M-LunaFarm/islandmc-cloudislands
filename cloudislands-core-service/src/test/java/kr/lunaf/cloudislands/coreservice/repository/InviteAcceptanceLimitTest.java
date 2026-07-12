@@ -35,12 +35,30 @@ class InviteAcceptanceLimitTest {
         int end = source.indexOf("public boolean declineInvite", start);
         String acceptance = source.substring(start, end);
 
-        org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE"));
+        org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("SELECT owner_uuid FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE"));
         org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("teamMemberCount(connection, invite.islandId()) >= Math.max(0L, maxMembers)"));
+        org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("teamMemberExists(connection, invite.islandId(), playerUuid)"));
+        org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("expireInvite(connection, inviteId)"));
         org.junit.jupiter.api.Assertions.assertTrue(acceptance.indexOf("lockInvite(connection, inviteId)") < acceptance.indexOf("teamMemberCount(connection, invite.islandId())"));
-        org.junit.jupiter.api.Assertions.assertTrue(acceptance.indexOf("teamMemberCount(connection, invite.islandId())") < acceptance.indexOf("connection.commit();"));
+        int capacityCheck = acceptance.indexOf("teamMemberCount(connection, invite.islandId())");
+        org.junit.jupiter.api.Assertions.assertTrue(capacityCheck < acceptance.indexOf("connection.commit();", capacityCheck));
         org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("return \"MEMBER_LIMIT\";"));
         org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("return \"ISLAND_NOT_FOUND\";"));
+        org.junit.jupiter.api.Assertions.assertTrue(acceptance.contains("return \"ALREADY_MEMBER\";"));
+    }
+
+    @Test
+    void acceptingStaleInviteNeverDemotesAnExistingTeamMember() {
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID inviterUuid = UUID.randomUUID();
+        UUID playerUuid = UUID.randomUUID();
+        UUID inviteId = metadata.createInvite(islandId, inviterUuid, playerUuid).inviteId();
+        metadata.upsertMemberKey(islandId, playerUuid, "MODERATOR");
+
+        assertEquals("ALREADY_MEMBER", metadata.acceptInviteResult(inviteId, playerUuid, 3L));
+        assertEquals("MODERATOR", metadata.members(islandId).getFirst().effectiveRoleKey());
+        assertEquals(0, metadata.pendingInvites(playerUuid).size(), "the stale invite must not remain actionable");
     }
 
     @Test

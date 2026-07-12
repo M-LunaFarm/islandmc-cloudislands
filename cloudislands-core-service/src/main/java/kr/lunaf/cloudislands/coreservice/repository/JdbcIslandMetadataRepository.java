@@ -323,16 +323,26 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 connection.rollback();
                 return "INVITE_UNAVAILABLE";
             }
-            try (PreparedStatement lockIsland = connection.prepareStatement("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+            try (PreparedStatement lockIsland = connection.prepareStatement("SELECT owner_uuid FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
                 lockIsland.setObject(1, invite.islandId());
                 try (ResultSet result = lockIsland.executeQuery()) {
                     if (!result.next()) {
                         connection.rollback();
                         return "ISLAND_NOT_FOUND";
                     }
+                    if (playerUuid.equals((UUID) result.getObject("owner_uuid"))) {
+                        expireInvite(connection, inviteId);
+                        connection.commit();
+                        return "ALREADY_MEMBER";
+                    }
                 }
             }
-            if (!teamMemberExists(connection, invite.islandId(), playerUuid) && teamMemberCount(connection, invite.islandId()) >= Math.max(0L, maxMembers)) {
+            if (teamMemberExists(connection, invite.islandId(), playerUuid)) {
+                expireInvite(connection, inviteId);
+                connection.commit();
+                return "ALREADY_MEMBER";
+            }
+            if (teamMemberCount(connection, invite.islandId()) >= Math.max(0L, maxMembers)) {
                 connection.rollback();
                 return "MEMBER_LIMIT";
             }
@@ -355,6 +365,13 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             return "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to accept island invite", exception);
+        }
+    }
+
+    private static void expireInvite(Connection connection, UUID inviteId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("UPDATE island_invites SET state = 'EXPIRED' WHERE id = ?")) {
+            statement.setObject(1, inviteId);
+            statement.executeUpdate();
         }
     }
 

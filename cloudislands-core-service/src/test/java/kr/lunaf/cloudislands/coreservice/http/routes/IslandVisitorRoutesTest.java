@@ -101,9 +101,10 @@ class IslandVisitorRoutesTest {
     void jdbcInviteAcceptanceCommitsMembershipAndInitialPrimaryTogether() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
         int accept = source.indexOf("public String acceptInviteResult(UUID inviteId, UUID playerUuid, long maxMembers)");
-        int commit = source.indexOf("connection.commit();", accept);
+        int acceptedUpdate = source.indexOf("UPDATE island_invites SET state = 'ACCEPTED'", accept);
+        int commit = source.indexOf("connection.commit();", acceptedUpdate);
 
-        assertTrue(accept >= 0 && commit > accept);
+        assertTrue(accept >= 0 && acceptedUpdate > accept && commit > acceptedUpdate);
         String transaction = source.substring(accept, commit);
         assertTrue(transaction.contains("UPDATE island_invites SET state = 'ACCEPTED'"));
         assertTrue(transaction.contains("acceptInviteMemberSql(connection)"));
@@ -118,6 +119,7 @@ class IslandVisitorRoutesTest {
         assertTrue(source.contains("metadataRepository.acceptInviteResult(inviteId, playerUuid, maxMembers)"));
         assertTrue(source.contains("result.equals(\"MEMBER_LIMIT\")"));
         assertTrue(source.contains("result.equals(\"ISLAND_NOT_FOUND\")"));
+        assertTrue(source.contains("result.equals(\"ALREADY_MEMBER\")"));
         assertTrue(source.contains("ApiResponses.error(result, errorMessage)"));
     }
 
