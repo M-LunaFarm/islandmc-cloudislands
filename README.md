@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.54`
+Version: `1.1.55`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,25 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.54`
+Current release: `v1.1.55`
 
-Built for the CloudIslands 1.1.54 baseline.
+Built for the CloudIslands 1.1.55 baseline.
 
-Release notes for `v1.1.54`:
+Release notes for `v1.1.55`:
+
+- duplicate-charge protection: a per-player in-flight guard covers template
+  lookup, economy withdrawal, Core creation, and compensation settlement
+- explicit compensation outcome: Core transport failures now return a clear
+  refunded result after a successful economy rollback
+- refund escalation: a failed rollback is preserved as
+  `ECONOMY_REFUND_FAILED` with localized guidance to stop retrying and inspect
+  the transaction log
+- lock lifecycle proof: unit coverage verifies duplicate rejection and lock
+  reuse only after the prior settlement completes
+- version coverage: the hardened paid-create flow compiles against Paper 1.21,
+  26.1, and 26.2 adapters
+
+Release notes carried forward from `v1.1.54`:
 
 - private team-chat isolation: team-mode messages are cancelled at Paper's
   `LOWEST` priority before ordinary chat integrations process them
@@ -1411,7 +1425,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.54`.
+Current read: production-readiness baseline `v1.1.55`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
