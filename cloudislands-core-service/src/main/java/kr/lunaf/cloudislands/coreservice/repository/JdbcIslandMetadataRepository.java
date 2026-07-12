@@ -807,7 +807,20 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 connection.rollback();
                 return "ISLAND_NOT_FOUND";
             }
-            boolean existingHome = namedResourceExists(connection, "island_homes", islandId, normalizedName);
+            boolean existingHome = false;
+            try (PreparedStatement current = connection.prepareStatement("SELECT world_name, local_x, local_y, local_z, yaw, pitch FROM island_homes WHERE island_id = ? AND name = ? FOR UPDATE")) {
+                current.setObject(1, islandId);
+                current.setString(2, normalizedName);
+                try (ResultSet result = current.executeQuery()) {
+                    if (result.next()) {
+                        existingHome = true;
+                        if (sameLocation(result, location, location.worldName())) {
+                            connection.commit();
+                            return "UNCHANGED";
+                        }
+                    }
+                }
+            }
             if (!existingHome && namedResourceCount(connection, "island_homes", islandId) >= Math.max(0L, maxHomes)) {
                 connection.rollback();
                 return "HOME_LIMIT";
@@ -932,7 +945,24 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 connection.rollback();
                 return "ISLAND_NOT_FOUND";
             }
-            boolean existingWarp = namedResourceExists(connection, "island_warps", islandId, normalizedName);
+            String normalizedCategory = IslandWarpSnapshot.normalizeCategory(category);
+            String normalizedWorldName = normalizeWorldName(islandId, location.worldName());
+            boolean existingWarp = false;
+            try (PreparedStatement current = connection.prepareStatement("SELECT category, world_name, local_x, local_y, local_z, yaw, pitch, public_access FROM island_warps WHERE island_id = ? AND name = ? FOR UPDATE")) {
+                current.setObject(1, islandId);
+                current.setString(2, normalizedName);
+                try (ResultSet result = current.executeQuery()) {
+                    if (result.next()) {
+                        existingWarp = true;
+                        if (sameLocation(result, location, normalizedWorldName)
+                            && result.getBoolean("public_access") == publicAccess
+                            && java.util.Objects.equals(result.getString("category"), normalizedCategory)) {
+                            connection.commit();
+                            return "UNCHANGED";
+                        }
+                    }
+                }
+            }
             if (!existingWarp && namedResourceCount(connection, "island_warps", islandId) >= Math.max(0L, maxWarps)) {
                 connection.rollback();
                 return "WARP_LIMIT";
@@ -940,8 +970,8 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             try (PreparedStatement statement = connection.prepareStatement(upsertWarpSql(connection))) {
                 statement.setObject(1, islandId);
                 statement.setString(2, normalizedName);
-                statement.setString(3, IslandWarpSnapshot.normalizeCategory(category));
-                statement.setString(4, normalizeWorldName(islandId, location.worldName()));
+                statement.setString(3, normalizedCategory);
+                statement.setString(4, normalizedWorldName);
                 statement.setDouble(5, location.localX());
                 statement.setDouble(6, location.localY());
                 statement.setDouble(7, location.localZ());
@@ -967,19 +997,13 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         }
     }
 
-    private static boolean namedResourceExists(Connection connection, String table, UUID islandId, String name) throws SQLException {
-        String sql = switch (table) {
-            case "island_homes" -> "SELECT 1 FROM island_homes WHERE island_id = ? AND name = ?";
-            case "island_warps" -> "SELECT 1 FROM island_warps WHERE island_id = ? AND name = ?";
-            default -> throw new IllegalArgumentException("unsupported limited resource table");
-        };
-        try (PreparedStatement statement = connection.prepareStatement(sql)) {
-            statement.setObject(1, islandId);
-            statement.setString(2, name);
-            try (ResultSet result = statement.executeQuery()) {
-                return result.next();
-            }
-        }
+    private static boolean sameLocation(ResultSet result, IslandLocation location, String worldName) throws SQLException {
+        return java.util.Objects.equals(result.getString("world_name"), worldName)
+            && Double.compare(result.getDouble("local_x"), location.localX()) == 0
+            && Double.compare(result.getDouble("local_y"), location.localY()) == 0
+            && Double.compare(result.getDouble("local_z"), location.localZ()) == 0
+            && Float.compare(result.getFloat("yaw"), location.yaw()) == 0
+            && Float.compare(result.getFloat("pitch"), location.pitch()) == 0;
     }
 
     private static long namedResourceCount(Connection connection, String table, UUID islandId) throws SQLException {

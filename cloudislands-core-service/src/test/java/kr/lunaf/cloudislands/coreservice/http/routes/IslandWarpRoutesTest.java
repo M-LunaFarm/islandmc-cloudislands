@@ -47,34 +47,86 @@ class IslandWarpRoutesTest {
         String jdbc = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
         String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandWarpRoutes.java"));
         int home = jdbc.indexOf("public String upsertHomeWithLimit(");
-        int homeCommit = jdbc.indexOf("connection.commit();", home);
+        int homeEnd = jdbc.indexOf("\n    @Override", home + 20);
         int warp = jdbc.indexOf("public String upsertWarpWithLimit(");
-        int warpCommit = jdbc.indexOf("connection.commit();", warp);
+        int warpEnd = jdbc.indexOf("\n    private static", warp + 20);
 
-        assertTrue(home >= 0 && homeCommit > home);
-        assertTrue(warp >= 0 && warpCommit > warp);
-        assertTrue(jdbc.substring(home, homeCommit).contains("lockIslandForLimitedResource(connection, islandId)"));
-        assertTrue(jdbc.substring(home, homeCommit).contains("namedResourceCount(connection, \"island_homes\", islandId)"));
-        assertTrue(jdbc.substring(warp, warpCommit).contains("lockIslandForLimitedResource(connection, islandId)"));
-        assertTrue(jdbc.substring(warp, warpCommit).contains("namedResourceCount(connection, \"island_warps\", islandId)"));
+        assertTrue(home >= 0 && homeEnd > home);
+        assertTrue(warp >= 0 && warpEnd > warp);
+        assertTrue(jdbc.substring(home, homeEnd).contains("lockIslandForLimitedResource(connection, islandId)"));
+        assertTrue(jdbc.substring(home, homeEnd).contains("namedResourceCount(connection, \"island_homes\", islandId)"));
+        assertTrue(jdbc.substring(warp, warpEnd).contains("lockIslandForLimitedResource(connection, islandId)"));
+        assertTrue(jdbc.substring(warp, warpEnd).contains("namedResourceCount(connection, \"island_warps\", islandId)"));
         assertTrue(routes.contains("metadataRepository.upsertHomeWithLimit("));
         assertTrue(routes.contains("limitValue(islandId, \"HOMES\", 1L)"));
         assertTrue(routes.contains("metadataRepository.upsertWarpWithLimit("));
     }
 
     @Test
-    void inMemoryLimitedResourcesAllowUpdatesButRejectNewSlots() {
+    void inMemoryLimitedResourcesAllowUpdatesButRejectNewSlots() throws Exception {
         InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
         IslandLocation location = new IslandLocation("world", 0.5D, 80.0D, 0.5D, 0.0F, 0.0F);
+        IslandLocation moved = new IslandLocation("world", 1.5D, 80.0D, 0.5D, 0.0F, 0.0F);
 
         assertEquals("CREATED", metadata.upsertHomeWithLimit(islandId, "main", location, actorUuid, 1L));
         assertEquals("HOME_LIMIT", metadata.upsertHomeWithLimit(islandId, "second", location, actorUuid, 1L));
-        assertEquals("UPDATED", metadata.upsertHomeWithLimit(islandId, "main", location, actorUuid, 1L));
+        assertEquals("UNCHANGED", metadata.upsertHomeWithLimit(islandId, "main", location, UUID.randomUUID(), 1L));
+        assertEquals("UPDATED", metadata.upsertHomeWithLimit(islandId, "main", moved, actorUuid, 1L));
         assertEquals("CREATED", metadata.upsertWarpWithLimit(islandId, "shop", location, false, actorUuid, "market", 1L));
         assertEquals("WARP_LIMIT", metadata.upsertWarpWithLimit(islandId, "second", location, false, actorUuid, "default", 1L));
         assertEquals("UPDATED", metadata.upsertWarpWithLimit(islandId, "shop", location, true, actorUuid, "market", 1L));
+        assertEquals("UNCHANGED", metadata.upsertWarpWithLimit(islandId, "shop", location, true, UUID.randomUUID(), "MARKET", 1L));
+
+        String jdbc = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        assertTrue(jdbc.contains("SELECT world_name, local_x, local_y, local_z, yaw, pitch FROM island_homes WHERE island_id = ? AND name = ? FOR UPDATE"));
+        assertTrue(jdbc.contains("SELECT category, world_name, local_x, local_y, local_z, yaw, pitch, public_access FROM island_warps WHERE island_id = ? AND name = ? FOR UPDATE"));
+    }
+
+    @Test
+    void repeatedHomeAndWarpSetsSkipDuplicateLogsAndEvents() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000321");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000322");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Idempotent Locations");
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandWarpRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            logs,
+            audit,
+            events
+        ).register(handlers::put);
+
+        String homeBody = "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + ownerUuid + "\",\"name\":\"main\",\"worldName\":\"world\",\"localX\":1.5,\"localY\":80.0,\"localZ\":2.5}";
+        TestExchange homeCreated = exchange(homeBody);
+        handlers.get("/v1/islands/homes/set").handle(homeCreated);
+        TestExchange homeUnchanged = exchange(homeBody);
+        handlers.get("/v1/islands/homes/set").handle(homeUnchanged);
+
+        String warpBody = "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + ownerUuid + "\",\"name\":\"shop\",\"category\":\"Market\",\"worldName\":\"world\",\"localX\":3.5,\"localY\":80.0,\"localZ\":4.5}";
+        TestExchange warpCreated = exchange(warpBody);
+        handlers.get("/v1/islands/warps/set").handle(warpCreated);
+        TestExchange warpUnchanged = exchange(warpBody);
+        handlers.get("/v1/islands/warps/set").handle(warpUnchanged);
+
+        assertEquals(202, homeCreated.status());
+        assertEquals(200, homeUnchanged.status());
+        assertEquals(202, warpCreated.status());
+        assertEquals(200, warpUnchanged.status());
+        assertEquals(2, logs.list(islandId, 10).size());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_HOME_CHANGED.name()));
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_WARP_CREATED.name()));
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_WARP_CHANGED.name()));
+        assertEquals(1, audit.toJson().split("ISLAND_HOME_SET", -1).length - 1);
+        assertEquals(1, audit.toJson().split("ISLAND_WARP_SET", -1).length - 1);
     }
 
     @Test

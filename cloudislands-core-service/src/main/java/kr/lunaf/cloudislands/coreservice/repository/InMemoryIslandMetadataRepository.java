@@ -346,7 +346,11 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     public synchronized String upsertHomeWithLimit(UUID islandId, String name, IslandLocation location, UUID createdBy, long maxHomes) {
         Map<String, IslandHomeSnapshot> islandHomes = homes.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
         String normalizedName = normalizeResourceName(name);
-        boolean existingHome = islandHomes.containsKey(normalizedName);
+        IslandHomeSnapshot current = islandHomes.get(normalizedName);
+        boolean existingHome = current != null;
+        if (existingHome && current.location().equals(location)) {
+            return "UNCHANGED";
+        }
         if (!existingHome && islandHomes.size() >= Math.max(0L, maxHomes)) {
             return "HOME_LIMIT";
         }
@@ -398,11 +402,19 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     public synchronized String upsertWarpWithLimit(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category, long maxWarps) {
         Map<String, IslandWarpSnapshot> islandWarps = warps.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
         String normalizedName = normalizeResourceName(name);
-        boolean existingWarp = islandWarps.containsKey(normalizedName);
+        IslandWarpSnapshot current = islandWarps.get(normalizedName);
+        boolean existingWarp = current != null;
+        String normalizedCategory = IslandWarpSnapshot.normalizeCategory(category);
+        if (existingWarp
+            && current.location().equals(location)
+            && current.publicAccess() == publicAccess
+            && current.category().equals(normalizedCategory)) {
+            return "UNCHANGED";
+        }
         if (!existingWarp && islandWarps.size() >= Math.max(0L, maxWarps)) {
             return "WARP_LIMIT";
         }
-        upsertWarp(islandId, normalizedName, location, publicAccess, createdBy, category);
+        upsertWarp(islandId, normalizedName, location, publicAccess, createdBy, normalizedCategory);
         return existingWarp ? "UPDATED" : "CREATED";
     }
 

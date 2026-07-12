@@ -309,7 +309,9 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     @Override
     public String upsertHomeWithLimit(UUID islandId, String name, IslandLocation location, UUID createdBy, long maxHomes) {
         String result = delegate.upsertHomeWithLimit(islandId, name, location, createdBy, maxHomes);
-        cacheHomes(islandId, delegate.homes(islandId));
+        if ("APPLIED".equals(result) || "CREATED".equals(result) || "UPDATED".equals(result)) {
+            cacheHomes(islandId, delegate.homes(islandId));
+        }
         return result;
     }
 
@@ -360,7 +362,9 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     @Override
     public String upsertWarpWithLimit(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category, long maxWarps) {
         String result = delegate.upsertWarpWithLimit(islandId, name, location, publicAccess, createdBy, category, maxWarps);
-        cacheWarps(islandId, delegate.warps(islandId));
+        if ("APPLIED".equals(result) || "CREATED".equals(result) || "UPDATED".equals(result)) {
+            cacheWarps(islandId, delegate.warps(islandId));
+        }
         return result;
     }
 

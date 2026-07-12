@@ -108,6 +108,10 @@ public final class IslandWarpRoutes implements RouteGroup {
             return;
         }
         String result = metadataRepository.upsertHomeWithLimit(islandId, name, location(body), actorUuid, limitValue(islandId, "HOMES", 1L));
+        if (result.equals("UNCHANGED")) {
+            CoreHttpResponses.write(exchange, 200, ApiResponses.ok(true));
+            return;
+        }
         if (!result.equals("APPLIED") && !result.equals("CREATED") && !result.equals("UPDATED")) {
             String message = result.equals("HOME_LIMIT") ? "Island home limit was reached" : "Island was not found";
             CoreHttpResponses.write(exchange, 409, ApiResponses.error(result, message));
@@ -134,22 +138,21 @@ public final class IslandWarpRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_WARP_NAME", "Warp name must be 1-32 visible characters"));
             return;
         }
-        boolean existingWarp = metadataRepository.warps(islandId).stream().anyMatch(warp -> warp.name().equalsIgnoreCase(name));
-        if (!existingWarp && metadataRepository.warps(islandId).size() >= limitValue(islandId, "WARPS", 1L)) {
-            CoreHttpResponses.write(exchange, 409, ApiResponses.error("WARP_LIMIT", "Island warp limit was reached"));
-            return;
-        }
         IslandLocation warpLocation = location(body);
         String result = metadataRepository.upsertWarpWithLimit(
             islandId, name, warpLocation, publicAccess, actorUuid, category,
             limitValue(islandId, "WARPS", 1L)
         );
+        if (result.equals("UNCHANGED")) {
+            CoreHttpResponses.write(exchange, 200, ApiResponses.ok(true));
+            return;
+        }
         if (!result.equals("APPLIED") && !result.equals("CREATED") && !result.equals("UPDATED")) {
             String message = result.equals("WARP_LIMIT") ? "Island warp limit was reached" : "Island was not found";
             CoreHttpResponses.write(exchange, 409, ApiResponses.error(result, message));
             return;
         }
-        boolean createdWarp = result.equals("CREATED") || result.equals("APPLIED") && !existingWarp;
+        boolean createdWarp = result.equals("CREATED");
         audit.log(actorUuid, "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess), "category", IslandWarpSnapshot.normalizeCategory(category)));
         islandLogs.append(islandId, actorUuid, "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess), "category", IslandWarpSnapshot.normalizeCategory(category)));
         if (createdWarp) {
