@@ -104,7 +104,7 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
         }
     }
 
-    private static String encode(List<IslandTemplateSnapshot> templates) {
+    static String encode(List<IslandTemplateSnapshot> templates) {
         StringBuilder out = new StringBuilder();
         for (IslandTemplateSnapshot template : templates) {
             out.append(encodeText(template.id())).append('|')
@@ -134,13 +134,15 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
                 .append(encodeText(template.bankInitialBalance())).append('|')
                 .append(encodeText(template.creationCost())).append('|')
                 .append(template.sortOrder()).append('|')
-                .append(encodeText(String.join(",", template.tags())))
+                .append(encodeText(String.join(",", template.tags()))).append('|')
+                .append(template.createdAt()).append('|')
+                .append(template.updatedAt())
                 .append('\n');
         }
         return out.toString();
     }
 
-    private static List<IslandTemplateSnapshot> parse(String value) {
+    static List<IslandTemplateSnapshot> parse(String value) {
         List<IslandTemplateSnapshot> templates = new ArrayList<>();
         for (String line : value.split("\\R")) {
             if (line.isBlank()) {
@@ -160,7 +162,7 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
                 }
                 continue;
             }
-            if (parts.length != 28) {
+            if (parts.length != 28 && parts.length != 30) {
                 continue;
             }
             try {
@@ -193,8 +195,8 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
                     decodeText(parts[25]),
                     intValue(parts[26]),
                     tags(decodeText(parts[27])),
-                    java.time.Instant.EPOCH,
-                    java.time.Instant.EPOCH
+                    parts.length == 30 ? instant(parts[28]) : java.time.Instant.EPOCH,
+                    parts.length == 30 ? instant(parts[29]) : java.time.Instant.EPOCH
                 ));
             } catch (RuntimeException ignored) {
                 // Skip corrupt Redis cache rows without discarding every cached template.
@@ -232,6 +234,14 @@ public final class CachingIslandTemplateRepository implements IslandTemplateRepo
             return Double.parseDouble(value);
         } catch (RuntimeException ignored) {
             return 0.0D;
+        }
+    }
+
+    private static java.time.Instant instant(String value) {
+        try {
+            return java.time.Instant.parse(value);
+        } catch (RuntimeException ignored) {
+            return java.time.Instant.EPOCH;
         }
     }
 
