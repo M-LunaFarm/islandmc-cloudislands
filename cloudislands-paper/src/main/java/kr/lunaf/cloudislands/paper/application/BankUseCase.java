@@ -114,7 +114,9 @@ public final class BankUseCase {
                 return economyBridge.deposit(actorUuid, amount, "CloudIslands island bank withdraw")
                     .thenApply(_ignored -> BankOperationResult.success(balance))
                     .exceptionallyCompose(error -> runner.mutateIdempotent("island.bank.withdraw.rollback", () -> bankCommands.deposit(islandId, actorUuid, normalizedAmount))
-                        .thenApply(_ignored -> BankOperationResult.rolledBackAfterEconomyDepositFailure(balance))
+                        .thenApply(rollback -> rollback.accepted()
+                            ? BankOperationResult.rolledBackAfterEconomyDepositFailure(rollback.balance())
+                            : BankOperationResult.rollbackFailedAfterEconomyDepositFailure(rollback.balance()))
                         .exceptionally(_rollbackError -> BankOperationResult.rollbackFailedAfterEconomyDepositFailure(balance)));
             });
     }

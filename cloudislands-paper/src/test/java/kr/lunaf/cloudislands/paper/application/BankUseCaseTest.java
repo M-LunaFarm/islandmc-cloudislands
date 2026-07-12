@@ -165,6 +165,7 @@ class BankUseCaseTest {
         economy.failWithdrawPayout = true;
         ScriptedCoreBank core = new ScriptedCoreBank();
         core.withdrawResult = ScriptedCoreBank.bankChange(true, "", "40");
+        core.depositResult = ScriptedCoreBank.bankChange(true, "", "49");
         BankUseCase useCase = new BankUseCase(coreApiClient(core), economy);
         List<String> auditActions = new ArrayList<>();
 
@@ -179,9 +180,30 @@ class BankUseCaseTest {
         ).join();
 
         assertEquals(BankUseCase.Status.ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE, result.status());
-        assertEquals("40", result.balance());
+        assertEquals("49", result.balance());
         assertEquals(List.of("deposit:9:CloudIslands island bank withdraw"), economy.calls);
         assertEquals(List.of("island.bank.withdraw", "island.bank.withdraw.rollback"), auditActions);
+        assertEquals(List.of("withdraw:9", "deposit:9"), core.calls);
+    }
+
+    @Test
+    void withdrawRejectedRollbackReturnsEscalatedStatus() {
+        FakeEconomy economy = new FakeEconomy(true);
+        economy.failWithdrawPayout = true;
+        ScriptedCoreBank core = new ScriptedCoreBank();
+        core.withdrawResult = ScriptedCoreBank.bankChange(true, "", "40");
+        core.depositResult = ScriptedCoreBank.bankChange(false, "BANK_LIMIT_REACHED", "40");
+        BankUseCase useCase = new BankUseCase(coreApiClient(core), economy);
+
+        BankUseCase.BankOperationResult result = useCase.withdraw(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            new BigDecimal("9"),
+            (_auditAction, operation) -> operation.get()
+        ).join();
+
+        assertEquals(BankUseCase.Status.ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE, result.status());
+        assertEquals("40", result.balance());
         assertEquals(List.of("withdraw:9", "deposit:9"), core.calls);
     }
 
