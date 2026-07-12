@@ -31,6 +31,21 @@ class DatabaseServiceTest {
     Path tempDir;
 
     @Test
+    void sqliteMarketCountersSaturateAtLongMaximum() {
+        UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-0000000000b1");
+        try (DatabaseHandle handle = openDatabase()) {
+            DatabaseService database = handle.database();
+            database.saveMarketDailySnapshot("overflow_item", "2026-07-13", Long.MAX_VALUE - 5L, 1.0D);
+            database.saveMarketPersonalSnapshot(islandUuid, "overflow_item", "2026-07-13", Long.MAX_VALUE - 5L);
+
+            database.recordMarketSale(islandUuid, "overflow_item", "2026-07-13", 10L, 1.0D);
+
+            assertEquals(Long.MAX_VALUE, database.marketDailySold("overflow_item", "2026-07-13"));
+            assertEquals(Long.MAX_VALUE, database.marketPersonalSold(islandUuid, "overflow_item", "2026-07-13"));
+        }
+    }
+
+    @Test
     void migrationCreatesExpectedTablesAndVersion() throws Exception {
         try (DatabaseHandle handle = openDatabase()) {
             try (Connection connection = handle.database().connection();

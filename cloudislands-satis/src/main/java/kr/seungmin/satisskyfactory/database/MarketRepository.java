@@ -62,12 +62,13 @@ final class MarketRepository {
     }
 
     MarketSaleTotals recordSale(UUID islandUuid, String itemId, String dateKey, long amount, double demandFactor) {
+        long normalizedAmount = Math.max(0L, amount);
         try (Connection connection = database.connection()) {
             connection.setAutoCommit(false);
             try (PreparedStatement daily = connection.prepareStatement(recordMarketDailySql())) {
                 daily.setString(1, itemId);
                 daily.setString(2, dateKey);
-                daily.setLong(3, amount);
+                daily.setLong(3, normalizedAmount);
                 daily.setDouble(4, demandFactor);
                 daily.executeUpdate();
             }
@@ -75,7 +76,7 @@ final class MarketRepository {
                 personal.setString(1, islandUuid.toString());
                 personal.setString(2, itemId);
                 personal.setString(3, dateKey);
-                personal.setLong(4, amount);
+                personal.setLong(4, normalizedAmount);
                 personal.executeUpdate();
             }
             long dailySold = dailySold(connection, itemId, dateKey);
@@ -179,7 +180,7 @@ final class MarketRepository {
                     INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
                     VALUES(?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE
-                      sold_amount = sold_amount + VALUES(sold_amount),
+                      sold_amount = CAST(LEAST(9223372036854775807, CAST(sold_amount AS DECIMAL(20,0)) + CAST(VALUES(sold_amount) AS DECIMAL(20,0))) AS SIGNED),
                       demand_factor = VALUES(demand_factor)
                     """;
         }
@@ -187,7 +188,10 @@ final class MarketRepository {
                     INSERT INTO market_daily(item_id, date_key, sold_amount, demand_factor)
                     VALUES(?, ?, ?, ?)
                     ON CONFLICT(item_id, date_key) DO UPDATE SET
-                      sold_amount = sold_amount + excluded.sold_amount,
+                      sold_amount = CASE
+                        WHEN sold_amount > 9223372036854775807 - excluded.sold_amount THEN 9223372036854775807
+                        ELSE sold_amount + excluded.sold_amount
+                      END,
                       demand_factor = excluded.demand_factor
                     """;
     }
@@ -198,14 +202,17 @@ final class MarketRepository {
                     INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
                     VALUES(?, ?, ?, ?)
                     ON DUPLICATE KEY UPDATE
-                      sold_amount = sold_amount + VALUES(sold_amount)
+                      sold_amount = CAST(LEAST(9223372036854775807, CAST(sold_amount AS DECIMAL(20,0)) + CAST(VALUES(sold_amount) AS DECIMAL(20,0))) AS SIGNED)
                     """;
         }
         return """
                     INSERT INTO market_personal_daily(island_uuid, item_id, date_key, sold_amount)
                     VALUES(?, ?, ?, ?)
                     ON CONFLICT(island_uuid, item_id, date_key) DO UPDATE SET
-                      sold_amount = sold_amount + excluded.sold_amount
+                      sold_amount = CASE
+                        WHEN sold_amount > 9223372036854775807 - excluded.sold_amount THEN 9223372036854775807
+                        ELSE sold_amount + excluded.sold_amount
+                      END
                     """;
     }
 

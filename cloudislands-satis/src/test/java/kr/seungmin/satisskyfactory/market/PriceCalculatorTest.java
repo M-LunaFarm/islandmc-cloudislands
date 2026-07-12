@@ -60,6 +60,33 @@ class PriceCalculatorTest {
         assertEquals(1.0, calculator.factors("tagged_scrap", 1, 500, 1).qualityFactor());
     }
 
+    @Test
+    void pricesSaturateInsteadOfWrappingNegative() {
+        PriceCalculator calculator = new PriceCalculator(
+                new ItemRegistry(),
+                Map.of("expensive", Long.MAX_VALUE),
+                Map.of("expensive", 1L),
+                Map.of(),
+                Map.of(),
+                List.of(),
+                false,
+                1,
+                1.0,
+                1.0,
+                1.0
+        );
+
+        assertEquals(Long.MAX_VALUE, calculator.basePrice("expensive", Long.MAX_VALUE));
+        assertEquals(Long.MAX_VALUE, calculator.finalPrice("expensive", Long.MAX_VALUE, Long.MAX_VALUE, Long.MAX_VALUE));
+        assertEquals(0L, calculator.basePrice("expensive", -1L));
+
+        PriceCalculator malformedFactor = new PriceCalculator(
+                new ItemRegistry(), Map.of("expensive", 10L), Map.of("expensive", 1L),
+                Map.of("expensive", Double.NaN), Map.of(), List.of(), false, 1,
+                1.0, 1.0, 1.0);
+        assertEquals(0L, malformedFactor.finalPrice("expensive", 1L, 1L, 1L));
+    }
+
     @SuppressWarnings("unchecked")
     private void register(ItemRegistry items, ItemDefinition item) throws Exception {
         Field field = ItemRegistry.class.getDeclaredField("items");

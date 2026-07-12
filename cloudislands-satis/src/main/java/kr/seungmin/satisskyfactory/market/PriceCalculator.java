@@ -2,6 +2,8 @@ package kr.seungmin.satisskyfactory.market;
 
 import kr.seungmin.satisskyfactory.item.ItemRegistry;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -45,13 +47,18 @@ public final class PriceCalculator {
     }
 
     public long basePrice(String itemId, long amount) {
-        return Math.max(0, Math.round(prices.getOrDefault(itemId, 0L) * amount));
+        return boundedPrice(BigDecimal.valueOf(prices.getOrDefault(itemId, 0L))
+                .multiply(BigDecimal.valueOf(amount)));
     }
 
     public long finalPrice(String itemId, long amount, long serverSoldWithAmount, long personalSoldWithAmount) {
         Factors factors = factors(itemId, amount, serverSoldWithAmount, personalSoldWithAmount);
-        return Math.max(0, Math.round(prices.getOrDefault(itemId, 0L) * amount
-                * factors.serverDemandFactor() * factors.personalFactor() * factors.qualityFactor()));
+        BigDecimal value = BigDecimal.valueOf(prices.getOrDefault(itemId, 0L))
+                .multiply(BigDecimal.valueOf(amount))
+                .multiply(BigDecimal.valueOf(safeFactor(factors.serverDemandFactor())))
+                .multiply(BigDecimal.valueOf(safeFactor(factors.personalFactor())))
+                .multiply(BigDecimal.valueOf(safeFactor(factors.qualityFactor())));
+        return boundedPrice(value);
     }
 
     public Factors factors(String itemId, long amount, long serverSoldWithAmount, long personalSoldWithAmount) {
@@ -93,5 +100,19 @@ public final class PriceCalculator {
 
     private double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private static long boundedPrice(BigDecimal value) {
+        if (value == null || value.signum() <= 0) {
+            return 0L;
+        }
+        BigDecimal rounded = value.setScale(0, RoundingMode.HALF_UP);
+        return rounded.compareTo(BigDecimal.valueOf(Long.MAX_VALUE)) >= 0
+                ? Long.MAX_VALUE
+                : rounded.longValue();
+    }
+
+    private static double safeFactor(double value) {
+        return Double.isFinite(value) && value > 0.0D ? value : 0.0D;
     }
 }

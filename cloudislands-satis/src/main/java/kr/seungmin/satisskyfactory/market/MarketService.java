@@ -151,8 +151,8 @@ public final class MarketService {
         return calculator().finalPrice(
                 itemId,
                 amount,
-                database.marketDailySold(itemId, dateKey) + amount,
-                database.marketPersonalSold(islandUuid, itemId, dateKey) + amount
+                saturatingNonNegativeAdd(database.marketDailySold(itemId, dateKey), amount),
+                saturatingNonNegativeAdd(database.marketPersonalSold(islandUuid, itemId, dateKey), amount)
         );
     }
 
@@ -243,8 +243,8 @@ public final class MarketService {
         String dateKey = dateKey();
         long previousServerSold = database.marketDailySold(itemId, dateKey);
         long previousPersonalSold = database.marketPersonalSold(island.islandUuid(), itemId, dateKey);
-        long serverSold = previousServerSold + amount;
-        long personalSold = previousPersonalSold + amount;
+        long serverSold = saturatingNonNegativeAdd(previousServerSold, amount);
+        long personalSold = saturatingNonNegativeAdd(previousPersonalSold, amount);
         PriceCalculator.Factors factors = calculator().factors(itemId, amount, serverSold, personalSold);
         long gross = calculator().finalPrice(itemId, amount, serverSold, personalSold);
         long debtRepaid = 0;
@@ -365,6 +365,14 @@ public final class MarketService {
 
     private double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
+    }
+
+    private static long saturatingNonNegativeAdd(long current, long amount) {
+        try {
+            return Math.max(0L, Math.addExact(current, amount));
+        } catch (ArithmeticException overflow) {
+            return amount > 0L ? Long.MAX_VALUE : 0L;
+        }
     }
 
     private PriceCalculator calculator() {
