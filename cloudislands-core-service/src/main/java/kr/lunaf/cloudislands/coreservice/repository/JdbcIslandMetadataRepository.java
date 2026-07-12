@@ -93,9 +93,37 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public void upsertMemberKeyAndInitializePrimary(UUID islandId, UUID playerUuid, String roleKey) {
+        String result = upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey, Long.MAX_VALUE, Long.MAX_VALUE);
+        if (!"APPLIED".equals(result)) {
+            throw new IllegalStateException("unexpected member limit result: " + result);
+        }
+    }
+
+    @Override
+    public String upsertMemberKeyAndInitializePrimary(UUID islandId, UUID playerUuid, String roleKey, long maxMembers, long maxRoleMembers) {
         String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
+            try (PreparedStatement lock = connection.prepareStatement("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+                lock.setObject(1, islandId);
+                try (ResultSet result = lock.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        return "ISLAND_NOT_FOUND";
+                    }
+                }
+            }
+            String currentRole = currentMemberRole(connection, islandId, playerUuid);
+            boolean addingTeamMember = !kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(currentRole)
+                && kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys.teamMemberRole(normalizedRoleKey);
+            if (addingTeamMember && teamMemberCount(connection, islandId) >= Math.max(0L, maxMembers)) {
+                connection.rollback();
+                return "MEMBER_LIMIT";
+            }
+            if (!normalizedRoleKey.equals(currentRole) && roleMemberCount(connection, islandId, normalizedRoleKey) >= Math.max(0L, maxRoleMembers)) {
+                connection.rollback();
+                return "ROLE_LIMIT";
+            }
             try (PreparedStatement member = connection.prepareStatement(upsertMemberSql(connection));
                  PreparedStatement ensureProfile = connection.prepareStatement(ensurePlayerProfileSql(connection));
                  PreparedStatement primary = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = ?, updated_at = now() WHERE uuid = ? AND primary_island_id IS NULL")) {
@@ -111,8 +139,29 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 primary.executeUpdate();
             }
             connection.commit();
+            return "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to add island member and initialize primary island", exception);
+        }
+    }
+
+    private static String currentMemberRole(Connection connection, UUID islandId, UUID playerUuid) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT role FROM island_members WHERE island_id = ? AND player_uuid = ? FOR UPDATE")) {
+            statement.setObject(1, islandId);
+            statement.setObject(2, playerUuid);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? result.getString("role") : "";
+            }
+        }
+    }
+
+    private static long roleMemberCount(Connection connection, UUID islandId, String roleKey) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT count(*) FROM island_members WHERE island_id = ? AND role = ? AND (trusted_expires_at IS NULL OR trusted_expires_at > CURRENT_TIMESTAMP)")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, roleKey);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? result.getLong(1) : 0L;
+            }
         }
     }
 

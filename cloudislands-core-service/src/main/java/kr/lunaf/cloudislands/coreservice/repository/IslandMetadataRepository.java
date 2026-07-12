@@ -22,6 +22,10 @@ public interface IslandMetadataRepository {
     default void upsertMemberKeyAndInitializePrimary(UUID islandId, UUID playerUuid, String roleKey) {
         upsertMemberKey(islandId, playerUuid, roleKey);
     }
+    default String upsertMemberKeyAndInitializePrimary(UUID islandId, UUID playerUuid, String roleKey, long maxMembers, long maxRoleMembers) {
+        upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey);
+        return "APPLIED";
+    }
     @Deprecated(forRemoval = false)
     default void upsertMember(UUID islandId, UUID playerUuid, IslandRole role) {
         upsertMemberKey(islandId, playerUuid, role == null ? "" : role.name());

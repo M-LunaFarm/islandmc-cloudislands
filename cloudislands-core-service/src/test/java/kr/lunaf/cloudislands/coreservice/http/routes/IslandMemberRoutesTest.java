@@ -203,7 +203,10 @@ class IslandMemberRoutesTest {
         assertTrue(transaction.contains("upsertMemberSql(connection)"));
         assertTrue(transaction.contains("ensurePlayerProfileSql(connection)"));
         assertTrue(transaction.contains("primary_island_id IS NULL"));
-        assertEquals(2, routes.split(java.util.regex.Pattern.quote("metadataRepository.upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey)"), -1).length - 1);
+        assertEquals(2, routes.split(java.util.regex.Pattern.quote("metadataRepository.upsertMemberKeyAndInitializePrimary("), -1).length - 1);
+        assertTrue(transaction.contains("FOR UPDATE"), "concurrent joins must serialize on the island row");
+        assertTrue(transaction.contains("teamMemberCount(connection, islandId)"));
+        assertTrue(transaction.contains("roleMemberCount(connection, islandId, normalizedRoleKey)"));
     }
 
     @Test

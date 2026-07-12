@@ -131,7 +131,15 @@ public final class IslandMemberRoutes implements RouteGroup {
             return;
         }
         if (addsTeamMember(currentRoleKey, roleKey)) {
-            metadataRepository.upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey);
+            String applied = metadataRepository.upsertMemberKeyAndInitializePrimary(
+                islandId, playerUuid, roleKey,
+                limitValue(islandId, "MEMBERS", 3L),
+                limitValue(islandId, GameplayParityPolicy.roleLimitKey(roleKey), defaultRoleLimit(roleKey))
+            );
+            if (!"APPLIED".equals(applied)) {
+                CoreHttpResponses.write(exchange, 409, ApiResponses.error(applied, applied.equals("ROLE_LIMIT") ? "Island role limit was reached" : "Island member limit was reached"));
+                return;
+            }
             initializePrimaryIslandIfEmpty(islandId, playerUuid);
         } else {
             metadataRepository.upsertMemberKey(islandId, playerUuid, roleKey);
@@ -270,7 +278,15 @@ public final class IslandMemberRoutes implements RouteGroup {
             return;
         }
         if (addsTeamMember(oldRoleKey, roleKey)) {
-            metadataRepository.upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey);
+            String applied = metadataRepository.upsertMemberKeyAndInitializePrimary(
+                islandId, playerUuid, roleKey,
+                limitValue(islandId, "MEMBERS", 3L),
+                limitValue(islandId, GameplayParityPolicy.roleLimitKey(roleKey), defaultRoleLimit(roleKey))
+            );
+            if (!"APPLIED".equals(applied)) {
+                CoreHttpResponses.write(exchange, 409, ApiResponses.error(applied, applied.equals("ROLE_LIMIT") ? "Island role limit was reached" : "Island member limit was reached"));
+                return;
+            }
             initializePrimaryIslandIfEmpty(islandId, playerUuid);
         } else {
             metadataRepository.upsertMemberKey(islandId, playerUuid, roleKey);
