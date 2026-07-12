@@ -73,6 +73,26 @@ public final class JdbcIslandLimitRepository implements IslandLimitRepository {
         }
     }
 
+    @Override
+    public IslandLimitSnapshot add(UUID islandId, String limitKey, long delta, UUID updatedBy) {
+        seedDefaults(islandId);
+        String normalizedKey = normalize(limitKey);
+        long initialValue = Math.max(0L, delta);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(addSql(connection))) {
+            statement.setObject(1, islandId);
+            statement.setString(2, normalizedKey);
+            statement.setLong(3, initialValue);
+            statement.setObject(4, updatedBy);
+            statement.setLong(5, delta);
+            statement.executeUpdate();
+            IslandLimitSnapshot saved = find(connection, islandId, normalizedKey);
+            return saved == null ? new IslandLimitSnapshot(islandId, normalizedKey, initialValue, updatedBy, Instant.now()) : saved;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to add island limit", exception);
+        }
+    }
+
     private void seedDefaults(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(insertDefaultSql(connection))) {
@@ -113,6 +133,13 @@ public final class JdbcIslandLimitRepository implements IslandLimitRepository {
             return "INSERT INTO island_limits(island_id, limit_key, limit_value, updated_by) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE updated_by = IF(VALUES(limit_value) > limit_value, VALUES(updated_by), updated_by), updated_at = IF(VALUES(limit_value) > limit_value, CURRENT_TIMESTAMP, updated_at), limit_value = GREATEST(limit_value, VALUES(limit_value))";
         }
         return "INSERT INTO island_limits(island_id, limit_key, limit_value, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, limit_key) DO UPDATE SET limit_value = EXCLUDED.limit_value, updated_by = EXCLUDED.updated_by, updated_at = now() WHERE island_limits.limit_value < EXCLUDED.limit_value";
+    }
+
+    private String addSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_limits(island_id, limit_key, limit_value, updated_by) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE limit_value = CAST(LEAST(9223372036854775807, GREATEST(0, CAST(limit_value AS DECIMAL(20,0)) + CAST(? AS DECIMAL(20,0)))) AS SIGNED), updated_by = VALUES(updated_by), updated_at = CURRENT_TIMESTAMP";
+        }
+        return "INSERT INTO island_limits(island_id, limit_key, limit_value, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, limit_key) DO UPDATE SET limit_value = CAST(LEAST(9223372036854775807, GREATEST(0, CAST(island_limits.limit_value AS NUMERIC) + CAST(? AS NUMERIC))) AS BIGINT), updated_by = EXCLUDED.updated_by, updated_at = now()";
     }
 
     private String insertDefaultSql(Connection connection) throws SQLException {

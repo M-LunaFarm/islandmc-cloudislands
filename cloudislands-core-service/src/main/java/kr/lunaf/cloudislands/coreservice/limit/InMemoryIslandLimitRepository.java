@@ -41,6 +41,26 @@ public final class InMemoryIslandLimitRepository implements IslandLimitRepositor
         return snapshot;
     }
 
+    @Override
+    public synchronized IslandLimitSnapshot add(UUID islandId, String limitKey, long delta, UUID updatedBy) {
+        seedDefaults(islandId);
+        String key = normalize(limitKey);
+        IslandLimitSnapshot current = limits.getOrDefault(islandId, Map.of()).get(key);
+        long currentValue = current == null ? 0L : current.value();
+        long nextValue = saturatingNonNegativeAdd(currentValue, delta);
+        IslandLimitSnapshot snapshot = new IslandLimitSnapshot(islandId, key, nextValue, updatedBy, Instant.now());
+        limits.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(key, snapshot);
+        return snapshot;
+    }
+
+    private static long saturatingNonNegativeAdd(long current, long delta) {
+        try {
+            return Math.max(0L, Math.addExact(current, delta));
+        } catch (ArithmeticException overflow) {
+            return delta > 0L ? Long.MAX_VALUE : 0L;
+        }
+    }
+
     private void seedDefaults(UUID islandId) {
         Map<String, IslandLimitSnapshot> islandLimits = limits.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
         putDefault(islandLimits, islandId, "SIZE", 100L);

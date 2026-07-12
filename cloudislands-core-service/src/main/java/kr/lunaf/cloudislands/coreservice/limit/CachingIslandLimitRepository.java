@@ -46,6 +46,13 @@ public final class CachingIslandLimitRepository implements IslandLimitRepository
         return snapshot;
     }
 
+    @Override
+    public IslandLimitSnapshot add(UUID islandId, String limitKey, long delta, UUID updatedBy) {
+        IslandLimitSnapshot snapshot = delegate.add(islandId, limitKey, delta, updatedBy);
+        invalidate(islandId);
+        return snapshot;
+    }
+
     private void invalidate(UUID islandId) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             redis.command("DEL", RedisKeys.islandLimits(islandId));

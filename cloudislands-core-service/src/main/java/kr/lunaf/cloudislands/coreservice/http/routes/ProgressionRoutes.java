@@ -288,9 +288,28 @@ public final class ProgressionRoutes implements RouteGroup {
             }
             String limitKey = JsonFields.text(body, "limitKey", "HOPPER");
             long delta = JsonFields.longValue(body, "delta", JsonFields.longValue(body, "value", 0L));
-            var snapshot = setAdminLimit(islandId, limitKey, Math.max(0L, currentLimitValue(islandId, limitKey) + delta), "ADD");
+            var snapshot = addAdminLimit(islandId, limitKey, delta);
             CoreHttpResponses.write(exchange, 202, limitJson(snapshot));
         });
+    }
+
+    private kr.lunaf.cloudislands.api.model.IslandLimitSnapshot addAdminLimit(UUID islandId, String limitKey, long delta) {
+        UUID actorUuid = new UUID(0L, 0L);
+        var snapshot = limitRepository.add(islandId, limitKey, delta, actorUuid);
+        if (snapshot.limitKey().equals("SIZE")) {
+            applyIslandSize(islandId, snapshot.value());
+        }
+        Map<String, String> fields = Map.of("limitKey", snapshot.limitKey(), "delta", Long.toString(delta), "value", Long.toString(snapshot.value()), "operation", "ADD");
+        audit.log(actorUuid, "ADMIN", "ISLAND_LIMIT_ADMIN_ADD", "ISLAND", islandId.toString(), fields);
+        islandLogs.append(islandId, actorUuid, "ISLAND_LIMIT_ADMIN_ADD", fields);
+        events.publish(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name(), Map.of(
+            "islandId", islandId.toString(),
+            "actorType", "ADMIN",
+            "limitKey", snapshot.limitKey(),
+            "value", Long.toString(snapshot.value()),
+            "operation", "ADD"
+        ));
+        return snapshot;
     }
 
     private static int queryInteger(HttpExchange exchange, String key, int fallback, int min, int max) {
@@ -430,15 +449,6 @@ public final class ProgressionRoutes implements RouteGroup {
             "operation", operation
         ));
         return snapshot;
-    }
-
-    private long currentLimitValue(UUID islandId, String limitKey) {
-        String normalized = kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.normalizeIslandLimitKey(limitKey);
-        return limitRepository.list(islandId).stream()
-            .filter(limit -> limit.limitKey().equalsIgnoreCase(normalized))
-            .findFirst()
-            .map(kr.lunaf.cloudislands.api.model.IslandLimitSnapshot::value)
-            .orElse(0L);
     }
 
     private void applyIslandSize(UUID islandId, long size) {
