@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.56`
+Version: `1.1.57`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,31 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.56`
+Current release: `v1.1.57`
 
-Built for the CloudIslands 1.1.56 baseline.
+Built for the CloudIslands 1.1.57 baseline.
 
-Release notes for `v1.1.56`:
+Release notes for `v1.1.57`:
+
+- no free-island ambiguity: Core persists the PREPARING route ticket before
+  publishing the create job, so a ticket-store failure cannot leave a running
+  creation after Paper refunds the player
+- failed-ticket settlement: job queue rejection moves the prepared ticket to
+  `FAILED` and records `ERROR_CREATING` with an operator-visible reason
+- automatic recovery: retrying the original template resumes the same failed
+  island ID instead of returning permanent `ALREADY_HAS_ISLAND`
+- price-policy preservation: an `ERROR_CREATING` island cannot be retried with
+  a different or free template
+- localized recovery guidance: Paper and Velocity distinguish unavailable
+  route tickets from failed-create template mismatches
+- Paper 26 boot evidence: CI recognizes both the legacy `Done (` marker and
+  Paper 26's `Done preparing level` marker while still requiring CloudIslands
+  plugin activation, eliminating a four-minute false failure
+- stable multi-Core load evidence: the replay probe refreshes the active Paper
+  node heartbeat while waiting for Redis delivery and keeps the remote-event
+  assertion strict across slower CI runners
+
+Release notes carried forward from `v1.1.56`:
 
 - proxy payment bypass closure: Velocity now loads the authoritative template
   before issuing a Core island-create mutation
@@ -1438,7 +1458,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.56`.
+Current read: production-readiness baseline `v1.1.57`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
