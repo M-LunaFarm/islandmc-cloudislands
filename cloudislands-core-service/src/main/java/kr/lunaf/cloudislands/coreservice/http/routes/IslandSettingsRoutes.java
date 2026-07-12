@@ -11,7 +11,6 @@ import kr.lunaf.cloudislands.api.model.IslandBiomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandFlagsSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.AuditLogger;
@@ -101,14 +100,15 @@ public final class IslandSettingsRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ISLAND_NAME", "Island name must be 2-32 visible characters"));
             return;
         }
-        Optional<IslandSnapshot> duplicate = islandRepository.findByName(name);
-        if (duplicate.isPresent() && !duplicate.get().islandId().equals(islandId)) {
-            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ISLAND_NAME_TAKEN", "Island name is already used"));
+        String result = islandRepository.renameResult(islandId, name);
+        if (result.equals("UNCHANGED")) {
+            CoreHttpResponses.write(exchange, 200, renameJson(islandId, name, "ISLAND_NAME_UNCHANGED"));
             return;
         }
-        boolean renamed = islandRepository.rename(islandId, name);
-        if (!renamed) {
-            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ISLAND_RENAME_DENIED", "Island was not renamed"));
+        if (!result.equals("APPLIED")) {
+            int status = result.equals("ISLAND_NOT_FOUND") ? 404 : 409;
+            String message = result.equals("ISLAND_NAME_TAKEN") ? "Island name is already used" : result.equals("ISLAND_NOT_FOUND") ? "Island was not found" : "Island was not renamed";
+            CoreHttpResponses.write(exchange, status, ApiResponses.error(result.equals("RENAME_DENIED") ? "ISLAND_RENAME_DENIED" : result, message));
             return;
         }
         audit.log(actorUuid, "PLAYER", "ISLAND_RENAME", "ISLAND", islandId.toString(), Map.of("name", name));
@@ -129,14 +129,15 @@ public final class IslandSettingsRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_ISLAND_NAME", "Island name must be 2-32 visible characters"));
             return;
         }
-        Optional<IslandSnapshot> duplicate = islandRepository.findByName(name);
-        if (duplicate.isPresent() && !duplicate.get().islandId().equals(islandId)) {
-            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ISLAND_NAME_TAKEN", "Island name is already used"));
+        String result = islandRepository.renameResult(islandId, name);
+        if (result.equals("UNCHANGED")) {
+            CoreHttpResponses.write(exchange, 200, renameJson(islandId, name, "ISLAND_NAME_UNCHANGED"));
             return;
         }
-        boolean renamed = islandRepository.rename(islandId, name);
-        if (!renamed) {
-            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ISLAND_RENAME_DENIED", "Island was not renamed"));
+        if (!result.equals("APPLIED")) {
+            int status = result.equals("ISLAND_NOT_FOUND") ? 404 : 409;
+            String message = result.equals("ISLAND_NAME_TAKEN") ? "Island name is already used" : result.equals("ISLAND_NOT_FOUND") ? "Island was not found" : "Island was not renamed";
+            CoreHttpResponses.write(exchange, status, ApiResponses.error(result.equals("RENAME_DENIED") ? "ISLAND_RENAME_DENIED" : result, message));
             return;
         }
         audit.log(EMPTY_UUID, "ADMIN", "ISLAND_ADMIN_RENAME", "ISLAND", islandId.toString(), Map.of("name", name));
@@ -294,8 +295,13 @@ public final class IslandSettingsRoutes implements RouteGroup {
     }
 
     static String renameJson(UUID islandId, String name) {
+        return renameJson(islandId, name, "ISLAND_RENAMED");
+    }
+
+    static String renameJson(UUID islandId, String name, String code) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("accepted", true);
+        values.put("code", code);
         values.put("islandId", islandId);
         values.put("name", name);
         return SimpleJson.stringify(values);

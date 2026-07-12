@@ -99,22 +99,30 @@ public final class InMemoryIslandRepository implements IslandRepository {
 
     @Override
     public boolean rename(UUID islandId, String name) {
+        return "APPLIED".equals(renameResult(islandId, name));
+    }
+
+    @Override
+    public synchronized String renameResult(UUID islandId, String name) {
         String normalized = name == null ? "" : name.trim();
         if (normalized.isBlank()) {
-            return false;
+            return "RENAME_DENIED";
         }
         IslandSnapshot island = byIslandId.get(islandId);
         if (island == null || island.state() == IslandState.DELETED) {
-            return false;
+            return "ISLAND_NOT_FOUND";
+        }
+        if (island.name().equals(normalized)) {
+            return "UNCHANGED";
         }
         boolean duplicate = byIslandId.values().stream()
             .filter(value -> value.state() != IslandState.DELETED)
             .anyMatch(value -> !value.islandId().equals(islandId) && value.name().equalsIgnoreCase(normalized));
         if (duplicate) {
-            return false;
+            return "ISLAND_NAME_TAKEN";
         }
         byIslandId.put(islandId, new IslandSnapshot(island.islandId(), island.ownerUuid(), normalized, island.state(), island.size(), island.level(), island.worth(), island.publicAccess(), island.createdAt(), Instant.now()));
-        return true;
+        return "APPLIED";
     }
 
     @Override

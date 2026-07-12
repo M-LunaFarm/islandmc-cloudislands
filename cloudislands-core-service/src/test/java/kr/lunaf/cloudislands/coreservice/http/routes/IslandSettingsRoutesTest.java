@@ -43,6 +43,21 @@ import org.junit.jupiter.api.Test;
 
 class IslandSettingsRoutesTest {
     @Test
+    void jdbcRenameDistinguishesUnchangedDuplicateAndMissingOutcomes() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandRepository.java"));
+        int operation = source.indexOf("public String renameResult(");
+        int nextMethod = source.indexOf("\n    @Override", operation + 20);
+        String transaction = source.substring(operation, nextMethod);
+
+        assertTrue(transaction.contains("SELECT name FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE"));
+        assertTrue(transaction.contains("SELECT 1 FROM islands WHERE lower(name) = lower(?)"));
+        assertTrue(transaction.contains("return \"UNCHANGED\";"));
+        assertTrue(transaction.contains("return \"ISLAND_NAME_TAKEN\";"));
+        assertTrue(transaction.contains("return \"ISLAND_NOT_FOUND\";"));
+        assertTrue(transaction.contains("uniqueViolation(exception)"), "the unique index must arbitrate concurrent cross-island renames");
+    }
+
+    @Test
     void lockAndAccessMutationsUseAffectedRowResults() throws Exception {
         String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutes.java"));
         String metadata = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
@@ -285,6 +300,8 @@ class IslandSettingsRoutesTest {
 
         TestExchange accepted = exchange("{\"islandId\":\"" + islandId + "\",\"name\":\"Renamed By Admin\"}");
         handlers.get("/v1/admin/islands/name").handle(accepted);
+        TestExchange unchanged = exchange("{\"islandId\":\"" + islandId + "\",\"name\":\"Renamed By Admin\"}");
+        handlers.get("/v1/admin/islands/name").handle(unchanged);
 
         assertEquals(202, accepted.status());
         assertTrue(accepted.body().contains("\"accepted\":true"));
@@ -293,6 +310,14 @@ class IslandSettingsRoutesTest {
         assertTrue(audit.toJson().contains("ISLAND_ADMIN_RENAME"));
         assertEquals("ISLAND_ADMIN_RENAME", logs.list(islandId, 10).get(0).action());
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RENAMED.name()));
+        assertEquals(200, unchanged.status());
+        assertTrue(unchanged.body().contains("ISLAND_NAME_UNCHANGED"));
+        assertEquals(1, logs.list(islandId, 10).size());
+
+        UUID otherIslandId = UUID.fromString("00000000-0000-0000-0000-000000000205");
+        islands.createOwnedIsland(otherIslandId, UUID.fromString("00000000-0000-0000-0000-000000000206"), "default", "Other Island");
+        assertEquals("ISLAND_NAME_TAKEN", islands.renameResult(otherIslandId, "renamed by admin"));
+        assertEquals("ISLAND_NOT_FOUND", islands.renameResult(UUID.randomUUID(), "Missing Island"));
     }
 
     @Test

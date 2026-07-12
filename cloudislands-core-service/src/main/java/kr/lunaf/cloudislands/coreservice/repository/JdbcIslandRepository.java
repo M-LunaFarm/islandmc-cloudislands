@@ -189,16 +189,65 @@ public final class JdbcIslandRepository implements IslandRepository {
 
     @Override
     public boolean rename(UUID islandId, String name) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET name = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL AND NOT EXISTS (SELECT 1 FROM islands i2 WHERE lower(i2.name) = lower(?) AND i2.id <> ? AND i2.deleted_at IS NULL)")) {
-            statement.setString(1, name);
-            statement.setObject(2, islandId);
-            statement.setString(3, name);
-            statement.setObject(4, islandId);
-            return statement.executeUpdate() > 0;
+        return "APPLIED".equals(renameResult(islandId, name));
+    }
+
+    @Override
+    public String renameResult(UUID islandId, String name) {
+        String normalized = name == null ? "" : name.trim();
+        if (normalized.isBlank()) {
+            return "RENAME_DENIED";
+        }
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement lock = connection.prepareStatement("SELECT name FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+                lock.setObject(1, islandId);
+                try (ResultSet result = lock.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        return "ISLAND_NOT_FOUND";
+                    }
+                    if (normalized.equals(result.getString("name"))) {
+                        connection.commit();
+                        return "UNCHANGED";
+                    }
+                }
+            }
+            try (PreparedStatement duplicate = connection.prepareStatement("SELECT 1 FROM islands WHERE lower(name) = lower(?) AND id <> ? AND deleted_at IS NULL")) {
+                duplicate.setString(1, normalized);
+                duplicate.setObject(2, islandId);
+                try (ResultSet result = duplicate.executeQuery()) {
+                    if (result.next()) {
+                        connection.rollback();
+                        return "ISLAND_NAME_TAKEN";
+                    }
+                }
+            }
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE islands SET name = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL")) {
+                statement.setString(1, normalized);
+                statement.setObject(2, islandId);
+                if (statement.executeUpdate() == 0) {
+                    connection.rollback();
+                    return "ISLAND_NOT_FOUND";
+                }
+            }
+            connection.commit();
+            return "APPLIED";
         } catch (SQLException exception) {
+            if (uniqueViolation(exception)) {
+                return "ISLAND_NAME_TAKEN";
+            }
             throw new IllegalStateException("failed to rename island", exception);
         }
+    }
+
+    private static boolean uniqueViolation(SQLException exception) {
+        for (SQLException current = exception; current != null; current = current.getNextException()) {
+            if ("23505".equals(current.getSQLState()) || "23000".equals(current.getSQLState()) && current.getErrorCode() == 1062) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

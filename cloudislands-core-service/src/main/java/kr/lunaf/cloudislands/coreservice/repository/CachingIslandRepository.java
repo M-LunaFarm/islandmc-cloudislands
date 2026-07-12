@@ -114,6 +114,13 @@ public final class CachingIslandRepository implements IslandRepository {
     }
 
     @Override
+    public String renameResult(UUID islandId, String name) {
+        String result = delegate.renameResult(islandId, name);
+        delegate.findById(islandId).ifPresent(this::cache);
+        return result;
+    }
+
+    @Override
     public boolean markDeleted(UUID islandId, UUID requesterUuid) {
         Optional<IslandSnapshot> current = delegate.findById(islandId);
         boolean deleted = delegate.markDeleted(islandId, requesterUuid);

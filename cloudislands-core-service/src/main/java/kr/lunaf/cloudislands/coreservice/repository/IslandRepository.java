@@ -22,6 +22,9 @@ public interface IslandRepository {
         return setPublicAccessResult(islandId, publicAccess) ? "APPLIED" : "ISLAND_NOT_FOUND";
     }
     boolean rename(UUID islandId, String name);
+    default String renameResult(UUID islandId, String name) {
+        return rename(islandId, name) ? "APPLIED" : "RENAME_DENIED";
+    }
     boolean markDeleted(UUID islandId, UUID requesterUuid);
     Optional<IslandSnapshot> restoreDeleted(UUID islandId);
     boolean transferOwnership(UUID islandId, UUID currentOwnerUuid, UUID newOwnerUuid);
