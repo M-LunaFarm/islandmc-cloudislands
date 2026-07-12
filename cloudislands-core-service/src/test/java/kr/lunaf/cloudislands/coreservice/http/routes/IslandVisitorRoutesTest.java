@@ -160,16 +160,33 @@ class IslandVisitorRoutesTest {
     void expiredInviteCannotBeDeclinedAsIfItWereStillUsable() throws Exception {
         String jdbc = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
         String memory = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/InMemoryIslandMetadataRepository.java"));
-        int decline = jdbc.indexOf("public boolean declineInvite(");
+        int decline = jdbc.indexOf("public String declineInviteResult(");
         int nextMethod = jdbc.indexOf("\n    @Override", decline + 20);
         String transaction = jdbc.substring(decline, nextMethod);
 
         assertTrue(transaction.contains("!invite.expiresAt().isAfter(Instant.now())"));
         assertTrue(transaction.contains("UPDATE island_invites SET state = 'EXPIRED'"));
         assertTrue(transaction.indexOf("state = 'EXPIRED'") < transaction.indexOf("state = 'DECLINED'"));
-        assertTrue(transaction.contains("connection.commit();"), "expired state cleanup must commit while decline still returns false");
-        assertTrue(memory.contains("public synchronized boolean declineInvite("));
+        assertTrue(transaction.contains("return \"EXPIRED\";"));
+        assertTrue(transaction.contains("return \"APPLIED\";"));
+        assertTrue(transaction.contains("connection.commit();"), "expired state cleanup must commit with a precise result");
+        assertTrue(memory.contains("public synchronized String declineInviteResult("));
         assertTrue(memory.contains("\"EXPIRED\", invite.createdAt(), invite.expiresAt()"));
+    }
+
+    @Test
+    void unavailableInviteDeclineCannotPublishAChangeEvent() throws Exception {
+        String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutes.java"));
+        int operation = routes.indexOf("String result = metadataRepository.declineInviteResult(inviteId, playerUuid)");
+        int unavailable = routes.indexOf("ApiResponses.error(\"INVITE_UNAVAILABLE\"", operation);
+        int nextMethod = routes.indexOf("\n    private void setBan", operation);
+
+        assertTrue(operation >= 0 && unavailable > operation && nextMethod > unavailable);
+        String declineRoute = routes.substring(operation, nextMethod);
+        assertEquals(1, occurrences(declineRoute, "ISLAND_INVITE_CHANGED"), "only an applied decline may publish a change event");
+        assertTrue(declineRoute.indexOf("if (declined)") < declineRoute.indexOf("ISLAND_INVITE_CHANGED"));
+        assertTrue(declineRoute.indexOf("ISLAND_INVITE_CHANGED") < declineRoute.indexOf("INVITE_UNAVAILABLE"));
+        assertTrue(declineRoute.contains("INVITE_EXPIRED"));
     }
 
     @Test

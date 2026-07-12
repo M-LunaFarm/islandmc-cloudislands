@@ -160,16 +160,21 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public synchronized boolean declineInvite(UUID inviteId, UUID playerUuid) {
+        return "APPLIED".equals(declineInviteResult(inviteId, playerUuid));
+    }
+
+    @Override
+    public synchronized String declineInviteResult(UUID inviteId, UUID playerUuid) {
         IslandInviteSnapshot invite = invites.get(inviteId);
         if (invite == null || !invite.targetUuid().equals(playerUuid) || !invite.state().equals("PENDING")) {
-            return false;
+            return "INVITE_UNAVAILABLE";
         }
         if (!invite.expiresAt().isAfter(Instant.now())) {
             invites.put(inviteId, new IslandInviteSnapshot(invite.inviteId(), invite.islandId(), invite.inviterUuid(), invite.targetUuid(), "EXPIRED", invite.createdAt(), invite.expiresAt()));
-            return false;
+            return "EXPIRED";
         }
         invites.put(inviteId, new IslandInviteSnapshot(invite.inviteId(), invite.islandId(), invite.inviterUuid(), invite.targetUuid(), "DECLINED", invite.createdAt(), invite.expiresAt()));
-        return true;
+        return "APPLIED";
     }
 
     @Override

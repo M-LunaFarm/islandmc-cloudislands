@@ -150,13 +150,20 @@ public final class IslandVisitorRoutes implements RouteGroup {
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         Optional<IslandInviteSnapshot> invite = metadataRepository.pendingInvites(playerUuid).stream().filter(value -> value.inviteId().equals(inviteId)).findFirst();
         String islandId = invite.map(value -> value.islandId().toString()).orElse("");
-        boolean declined = metadataRepository.declineInvite(inviteId, playerUuid);
-        audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_DECLINE", "INVITE", inviteId.toString(), Map.of("declined", Boolean.toString(declined)));
+        String result = metadataRepository.declineInviteResult(inviteId, playerUuid);
+        boolean declined = result.equals("APPLIED");
         if (declined) {
+            audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_DECLINE", "INVITE", inviteId.toString(), Map.of("declined", "true"));
             invite.ifPresent(value -> islandLogs.append(value.islandId(), playerUuid, "ISLAND_INVITE_DECLINE", Map.of("inviteId", inviteId.toString(), "declined", "true")));
+            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "state", "DECLINED", "declined", "true"));
+            CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+            return;
         }
-        events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "declined", Boolean.toString(declined)));
-        CoreHttpResponses.write(exchange, declined ? 202 : 409, declined ? ApiResponses.ok(true) : ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing or not pending"));
+        if (result.equals("EXPIRED")) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("INVITE_EXPIRED", "Invite has expired"));
+            return;
+        }
+        CoreHttpResponses.write(exchange, 409, ApiResponses.error("INVITE_UNAVAILABLE", "Invite is missing or not pending"));
     }
 
     private void setBan(HttpExchange exchange) throws IOException {

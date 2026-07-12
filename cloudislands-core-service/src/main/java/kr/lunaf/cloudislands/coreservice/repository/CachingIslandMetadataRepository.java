@@ -160,6 +160,11 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public String declineInviteResult(UUID inviteId, UUID playerUuid) {
+        return delegate.declineInviteResult(inviteId, playerUuid);
+    }
+
+    @Override
     public boolean isBanned(UUID islandId, UUID playerUuid) {
         Optional<List<IslandBanSnapshot>> cached = cachedBans(islandId);
         if (cached.isPresent()) {

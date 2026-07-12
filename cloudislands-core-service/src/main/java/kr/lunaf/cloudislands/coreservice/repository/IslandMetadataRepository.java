@@ -59,6 +59,9 @@ public interface IslandMetadataRepository {
         return acceptInvite(inviteId, playerUuid, maxMembers) ? "APPLIED" : "INVITE_UNAVAILABLE";
     }
     boolean declineInvite(UUID inviteId, UUID playerUuid);
+    default String declineInviteResult(UUID inviteId, UUID playerUuid) {
+        return declineInvite(inviteId, playerUuid) ? "APPLIED" : "INVITE_UNAVAILABLE";
+    }
     boolean isBanned(UUID islandId, UUID playerUuid);
     List<IslandBanSnapshot> bans(UUID islandId);
     void banVisitor(UUID islandId, UUID actorUuid, UUID playerUuid, String reason);

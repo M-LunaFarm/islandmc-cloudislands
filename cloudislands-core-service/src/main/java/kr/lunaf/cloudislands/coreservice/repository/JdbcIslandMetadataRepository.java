@@ -402,12 +402,17 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public boolean declineInvite(UUID inviteId, UUID playerUuid) {
+        return "APPLIED".equals(declineInviteResult(inviteId, playerUuid));
+    }
+
+    @Override
+    public String declineInviteResult(UUID inviteId, UUID playerUuid) {
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             IslandInviteSnapshot invite = lockInvite(connection, inviteId);
             if (invite == null || !invite.targetUuid().equals(playerUuid) || !invite.state().equals("PENDING")) {
                 connection.rollback();
-                return false;
+                return "INVITE_UNAVAILABLE";
             }
             if (!invite.expiresAt().isAfter(Instant.now())) {
                 try (PreparedStatement expired = connection.prepareStatement("UPDATE island_invites SET state = 'EXPIRED' WHERE id = ?")) {
@@ -415,14 +420,14 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                     expired.executeUpdate();
                 }
                 connection.commit();
-                return false;
+                return "EXPIRED";
             }
             try (PreparedStatement statement = connection.prepareStatement("UPDATE island_invites SET state = 'DECLINED' WHERE id = ?")) {
                 statement.setObject(1, inviteId);
                 statement.executeUpdate();
             }
             connection.commit();
-            return true;
+            return "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to decline island invite", exception);
         }
