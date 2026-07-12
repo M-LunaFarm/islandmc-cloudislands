@@ -65,6 +65,29 @@ public final class JdbcIslandUpgradeRepository implements IslandUpgradeRepositor
         }
     }
 
+    @Override
+    public Optional<IslandUpgradeSnapshot> advanceLevel(UUID islandId, String upgradeKey, UpgradeType type, int expectedLevel, int newLevel) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(advanceLevelSql(connection, expectedLevel))) {
+            if (expectedLevel > 0) {
+                statement.setInt(1, newLevel);
+                statement.setObject(2, islandId);
+                statement.setString(3, upgradeKey);
+                statement.setInt(4, expectedLevel);
+            } else {
+                statement.setObject(1, islandId);
+                statement.setString(2, upgradeKey);
+                statement.setInt(3, newLevel);
+            }
+            if (statement.executeUpdate() != 1) {
+                return Optional.empty();
+            }
+            return Optional.of(new IslandUpgradeSnapshot(islandId, upgradeKey, type, newLevel, Instant.now()));
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to advance island upgrade", exception);
+        }
+    }
+
     private IslandUpgradeSnapshot map(ResultSet rs) throws SQLException {
         String key = rs.getString("upgrade_key");
         return new IslandUpgradeSnapshot((UUID) rs.getObject("island_id"), key, UpgradePolicy.typeFor(key), rs.getInt("level"), rs.getTimestamp("updated_at").toInstant());
@@ -75,6 +98,16 @@ public final class JdbcIslandUpgradeRepository implements IslandUpgradeRepositor
             return "INSERT INTO island_upgrades(island_id, upgrade_key, level) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE level = VALUES(level), updated_at = now()";
         }
         return "INSERT INTO island_upgrades(island_id, upgrade_key, level) VALUES (?, ?, ?) ON CONFLICT (island_id, upgrade_key) DO UPDATE SET level = EXCLUDED.level, updated_at = now()";
+    }
+
+    private String advanceLevelSql(Connection connection, int expectedLevel) throws SQLException {
+        if (expectedLevel > 0) {
+            return "UPDATE island_upgrades SET level = ?, updated_at = now() WHERE island_id = ? AND upgrade_key = ? AND level = ?";
+        }
+        if (mysqlLike(connection)) {
+            return "INSERT IGNORE INTO island_upgrades(island_id, upgrade_key, level) VALUES (?, ?, ?)";
+        }
+        return "INSERT INTO island_upgrades(island_id, upgrade_key, level) VALUES (?, ?, ?) ON CONFLICT (island_id, upgrade_key) DO NOTHING";
     }
 
     private boolean mysqlLike(Connection connection) throws SQLException {

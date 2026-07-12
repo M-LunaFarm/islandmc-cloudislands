@@ -15,8 +15,8 @@ class UpgradePolicyContractTest {
     @Test
     void exposesConfigDrivenUpgradeAndEconomyContracts() {
         assertEquals("config-driven-upgrade-rules-with-bank-withdraw-and-limit-application", UpgradePolicy.CONFIG_DRIVEN_POLICY);
-        assertEquals("validate-rule-max-level-cost-withdraw-bank-before-upgrade-level-write", IslandUpgradeService.PURCHASE_POLICY);
-        assertEquals("economy-bridge-or-island-bank-withdraw-before-upgrade-level-commit", IslandUpgradeService.ECONOMY_ABSTRACTION_POLICY);
+        assertEquals("validate-rule-and-cost>withdraw-bank>compare-and-set-level>refund-on-conflict-or-write-failure", IslandUpgradeService.PURCHASE_POLICY);
+        assertEquals("economy-bridge-or-island-bank-withdraw-with-compensating-refund-before-upgrade-level-commit", IslandUpgradeService.ECONOMY_ABSTRACTION_POLICY);
         assertTrue(UpgradePolicy.SUPPORTED_TYPE_POLICY.contains("ISLAND_SIZE"));
         assertTrue(UpgradePolicy.SUPPORTED_TYPE_POLICY.contains("GENERATOR_LEVEL"));
         assertTrue(UpgradePolicy.SUPPORTED_TYPE_POLICY.contains("BANK_LIMIT"));

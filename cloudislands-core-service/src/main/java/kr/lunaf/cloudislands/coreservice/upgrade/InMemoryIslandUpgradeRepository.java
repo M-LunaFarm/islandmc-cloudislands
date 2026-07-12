@@ -29,4 +29,13 @@ public final class InMemoryIslandUpgradeRepository implements IslandUpgradeRepos
         upgrades.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(upgradeKey, snapshot);
         return snapshot;
     }
+
+    @Override
+    public synchronized Optional<IslandUpgradeSnapshot> advanceLevel(UUID islandId, String upgradeKey, UpgradeType type, int expectedLevel, int newLevel) {
+        int currentLevel = find(islandId, upgradeKey).map(IslandUpgradeSnapshot::level).orElse(0);
+        if (currentLevel != expectedLevel) {
+            return Optional.empty();
+        }
+        return Optional.of(setLevel(islandId, upgradeKey, type, newLevel));
+    }
 }

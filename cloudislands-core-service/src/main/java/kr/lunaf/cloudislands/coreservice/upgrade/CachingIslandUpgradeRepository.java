@@ -52,6 +52,13 @@ public final class CachingIslandUpgradeRepository implements IslandUpgradeReposi
         return snapshot;
     }
 
+    @Override
+    public Optional<IslandUpgradeSnapshot> advanceLevel(UUID islandId, String upgradeKey, UpgradeType type, int expectedLevel, int newLevel) {
+        Optional<IslandUpgradeSnapshot> snapshot = delegate.advanceLevel(islandId, upgradeKey, type, expectedLevel, newLevel);
+        cache(islandId, delegate.list(islandId));
+        return snapshot;
+    }
+
     public long failuresTotal() {
         return failures.get();
     }

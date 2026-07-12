@@ -10,4 +10,5 @@ public interface IslandUpgradeRepository {
     Optional<IslandUpgradeSnapshot> find(UUID islandId, String upgradeKey);
     List<IslandUpgradeSnapshot> list(UUID islandId);
     IslandUpgradeSnapshot setLevel(UUID islandId, String upgradeKey, UpgradeType type, int level);
+    Optional<IslandUpgradeSnapshot> advanceLevel(UUID islandId, String upgradeKey, UpgradeType type, int expectedLevel, int newLevel);
 }

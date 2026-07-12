@@ -7,7 +7,7 @@ public final class UpgradeSystemPolicy {
     public static final String CONFIG_SOURCE_POLICY =
             "upgrades-are-loaded-from-rules-upgrades-yaml-or-configured-override-file";
     public static final String PURCHASE_FLOW_POLICY =
-            "validate-rule>validate-max-level>resolve-cost>withdraw-economy-or-bank>write-upgrade-level>apply-effect";
+            "validate-rule>validate-max-level>resolve-cost>withdraw-economy-or-bank>compare-and-set-upgrade-level>refund-on-conflict-or-write-failure>apply-effect";
     public static final String ECONOMY_BRIDGE_POLICY =
             "economy-integration-is-async-withdraw-deposit-balance-abstraction";
 
