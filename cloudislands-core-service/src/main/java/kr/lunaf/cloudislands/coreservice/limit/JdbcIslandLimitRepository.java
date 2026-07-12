@@ -55,6 +55,24 @@ public final class JdbcIslandLimitRepository implements IslandLimitRepository {
         }
     }
 
+    @Override
+    public IslandLimitSnapshot setAtLeast(UUID islandId, String limitKey, long minimumValue, UUID updatedBy) {
+        String normalizedKey = normalize(limitKey);
+        long normalizedValue = Math.max(0L, minimumValue);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(setAtLeastSql(connection))) {
+            statement.setObject(1, islandId);
+            statement.setString(2, normalizedKey);
+            statement.setLong(3, normalizedValue);
+            statement.setObject(4, updatedBy);
+            statement.executeUpdate();
+            IslandLimitSnapshot saved = find(connection, islandId, normalizedKey);
+            return saved == null ? new IslandLimitSnapshot(islandId, normalizedKey, normalizedValue, updatedBy, Instant.now()) : saved;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to raise island limit", exception);
+        }
+    }
+
     private void seedDefaults(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(insertDefaultSql(connection))) {
@@ -88,6 +106,13 @@ public final class JdbcIslandLimitRepository implements IslandLimitRepository {
             return "INSERT INTO island_limits(island_id, limit_key, limit_value, updated_by) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE limit_value = VALUES(limit_value), updated_by = VALUES(updated_by), updated_at = CURRENT_TIMESTAMP";
         }
         return "INSERT INTO island_limits(island_id, limit_key, limit_value, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, limit_key) DO UPDATE SET limit_value = EXCLUDED.limit_value, updated_by = EXCLUDED.updated_by, updated_at = now()";
+    }
+
+    private String setAtLeastSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_limits(island_id, limit_key, limit_value, updated_by) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE updated_by = IF(VALUES(limit_value) > limit_value, VALUES(updated_by), updated_by), updated_at = IF(VALUES(limit_value) > limit_value, CURRENT_TIMESTAMP, updated_at), limit_value = GREATEST(limit_value, VALUES(limit_value))";
+        }
+        return "INSERT INTO island_limits(island_id, limit_key, limit_value, updated_by) VALUES (?, ?, ?, ?) ON CONFLICT (island_id, limit_key) DO UPDATE SET limit_value = EXCLUDED.limit_value, updated_by = EXCLUDED.updated_by, updated_at = now() WHERE island_limits.limit_value < EXCLUDED.limit_value";
     }
 
     private String insertDefaultSql(Connection connection) throws SQLException {

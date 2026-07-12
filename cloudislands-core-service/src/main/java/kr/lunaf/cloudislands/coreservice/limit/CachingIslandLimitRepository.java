@@ -35,8 +35,23 @@ public final class CachingIslandLimitRepository implements IslandLimitRepository
     @Override
     public IslandLimitSnapshot set(UUID islandId, String limitKey, long value, UUID updatedBy) {
         IslandLimitSnapshot snapshot = delegate.set(islandId, limitKey, value, updatedBy);
-        cache(islandId, delegate.list(islandId));
+        invalidate(islandId);
         return snapshot;
+    }
+
+    @Override
+    public IslandLimitSnapshot setAtLeast(UUID islandId, String limitKey, long minimumValue, UUID updatedBy) {
+        IslandLimitSnapshot snapshot = delegate.setAtLeast(islandId, limitKey, minimumValue, updatedBy);
+        invalidate(islandId);
+        return snapshot;
+    }
+
+    private void invalidate(UUID islandId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            redis.command("DEL", RedisKeys.islandLimits(islandId));
+        } catch (IOException | RuntimeException ignored) {
+            failures.incrementAndGet();
+        }
     }
 
     public long failuresTotal() {

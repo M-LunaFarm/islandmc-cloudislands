@@ -21,9 +21,22 @@ public final class InMemoryIslandLimitRepository implements IslandLimitRepositor
     }
 
     @Override
-    public IslandLimitSnapshot set(UUID islandId, String limitKey, long value, UUID updatedBy) {
+    public synchronized IslandLimitSnapshot set(UUID islandId, String limitKey, long value, UUID updatedBy) {
         String key = normalize(limitKey);
         IslandLimitSnapshot snapshot = new IslandLimitSnapshot(islandId, key, Math.max(0L, value), updatedBy, Instant.now());
+        limits.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(key, snapshot);
+        return snapshot;
+    }
+
+    @Override
+    public synchronized IslandLimitSnapshot setAtLeast(UUID islandId, String limitKey, long minimumValue, UUID updatedBy) {
+        String key = normalize(limitKey);
+        IslandLimitSnapshot current = limits.getOrDefault(islandId, Map.of()).get(key);
+        long currentValue = current == null ? 0L : current.value();
+        if (current != null && currentValue >= minimumValue) {
+            return current;
+        }
+        IslandLimitSnapshot snapshot = new IslandLimitSnapshot(islandId, key, Math.max(0L, minimumValue), updatedBy, Instant.now());
         limits.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).put(key, snapshot);
         return snapshot;
     }

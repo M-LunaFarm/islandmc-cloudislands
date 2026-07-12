@@ -80,12 +80,7 @@ public final class UpgradeEffectApplier {
     }
 
     private IslandLimitSnapshot setMonotonicLimit(UUID islandId, String limitKey, long requested, UUID actorUuid) {
-        long current = limits.list(islandId).stream()
-            .filter(limit -> limit.limitKey().equals(limitKey))
-            .mapToLong(IslandLimitSnapshot::value)
-            .findFirst()
-            .orElse(0L);
-        return limits.set(islandId, limitKey, Math.max(current, requested), actorUuid);
+        return limits.setAtLeast(islandId, limitKey, requested, actorUuid);
     }
 
     private void applyGeneratorEffect(UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {

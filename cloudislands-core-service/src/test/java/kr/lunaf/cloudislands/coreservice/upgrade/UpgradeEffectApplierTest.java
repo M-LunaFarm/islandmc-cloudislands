@@ -6,6 +6,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
@@ -115,6 +117,36 @@ class UpgradeEffectApplierTest {
 
         assertEquals(75L, limitValue(limits, "HOPPER"));
         assertEquals(500_000L, limitValue(limits, "BANK"));
+    }
+
+    @Test
+    void atomicMinimumWritesConvergeToTheHighestConcurrentLimit() throws Exception {
+        InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
+        UUID lowWriter = UUID.fromString("00000000-0000-0000-0000-000000000603");
+        UUID highWriter = UUID.fromString("00000000-0000-0000-0000-000000000604");
+        try (var executor = Executors.newFixedThreadPool(8)) {
+            for (int value = 1; value <= 1_000; value++) {
+                long requested = value;
+                UUID writer = value == 1_000 ? highWriter : lowWriter;
+                executor.submit(() -> limits.setAtLeast(ISLAND_ID, "HOPPER", requested, writer));
+            }
+            executor.shutdown();
+            assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
+        }
+
+        var highest = limits.list(ISLAND_ID).stream()
+            .filter(limit -> limit.limitKey().equals("HOPPER"))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(1_000L, highest.value());
+        assertEquals(highWriter, highest.updatedBy());
+
+        assertEquals(1_000L, limits.setAtLeast(ISLAND_ID, "HOPPER", 50L, lowWriter).value());
+        assertEquals(highWriter, limits.list(ISLAND_ID).stream()
+            .filter(limit -> limit.limitKey().equals("HOPPER"))
+            .findFirst()
+            .orElseThrow()
+            .updatedBy());
     }
 
     private static long limitValue(InMemoryIslandLimitRepository limits, String limitKey) {

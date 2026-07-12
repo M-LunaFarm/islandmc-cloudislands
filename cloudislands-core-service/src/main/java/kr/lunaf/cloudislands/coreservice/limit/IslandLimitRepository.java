@@ -7,4 +7,5 @@ import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 public interface IslandLimitRepository {
     List<IslandLimitSnapshot> list(UUID islandId);
     IslandLimitSnapshot set(UUID islandId, String limitKey, long value, UUID updatedBy);
+    IslandLimitSnapshot setAtLeast(UUID islandId, String limitKey, long minimumValue, UUID updatedBy);
 }
