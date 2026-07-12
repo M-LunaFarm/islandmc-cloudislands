@@ -30,6 +30,10 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     private final Map<UUID, Boolean> publicAccess = new ConcurrentHashMap<>();
     private final Map<UUID, Boolean> locked = new ConcurrentHashMap<>();
 
+    private static String normalizeResourceName(String name) {
+        return name == null ? "" : name.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
     @Override
     public List<IslandMemberSnapshot> members(UUID islandId) {
         return activeMembers(members.getOrDefault(islandId, Map.of()));
@@ -239,19 +243,19 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public java.util.Optional<IslandHomeSnapshot> home(UUID islandId, String name) {
-        return java.util.Optional.ofNullable(homes.getOrDefault(islandId, Map.of()).get(name.toLowerCase()));
+        return java.util.Optional.ofNullable(homes.getOrDefault(islandId, Map.of()).get(normalizeResourceName(name)));
     }
 
     @Override
     public void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy) {
         homes.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
-            .put(name.toLowerCase(), new IslandHomeSnapshot(islandId, name.toLowerCase(), location, createdBy, Instant.now()));
+            .put(normalizeResourceName(name), new IslandHomeSnapshot(islandId, normalizeResourceName(name), location, createdBy, Instant.now()));
     }
 
     @Override
     public synchronized String upsertHomeWithLimit(UUID islandId, String name, IslandLocation location, UUID createdBy, long maxHomes) {
         Map<String, IslandHomeSnapshot> islandHomes = homes.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
-        String normalizedName = name.toLowerCase();
+        String normalizedName = normalizeResourceName(name);
         if (!islandHomes.containsKey(normalizedName) && islandHomes.size() >= Math.max(0L, maxHomes)) {
             return "HOME_LIMIT";
         }
@@ -285,7 +289,7 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
-        return Optional.ofNullable(warps.getOrDefault(islandId, Map.of()).get(name.toLowerCase()));
+        return Optional.ofNullable(warps.getOrDefault(islandId, Map.of()).get(normalizeResourceName(name)));
     }
 
     @Override
@@ -296,13 +300,13 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     @Override
     public void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category) {
         warps.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
-            .put(name.toLowerCase(), new IslandWarpSnapshot(islandId, name.toLowerCase(), location, publicAccess, createdBy, Instant.now(), category));
+            .put(normalizeResourceName(name), new IslandWarpSnapshot(islandId, normalizeResourceName(name), location, publicAccess, createdBy, Instant.now(), category));
     }
 
     @Override
     public synchronized String upsertWarpWithLimit(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category, long maxWarps) {
         Map<String, IslandWarpSnapshot> islandWarps = warps.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
-        String normalizedName = name.toLowerCase();
+        String normalizedName = normalizeResourceName(name);
         if (!islandWarps.containsKey(normalizedName) && islandWarps.size() >= Math.max(0L, maxWarps)) {
             return "WARP_LIMIT";
         }
@@ -321,7 +325,7 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
         if (islandWarps == null) {
             return false;
         }
-        return islandWarps.computeIfPresent(name.toLowerCase(), (_key, warp) -> new IslandWarpSnapshot(
+        return islandWarps.computeIfPresent(normalizeResourceName(name), (_key, warp) -> new IslandWarpSnapshot(
             warp.islandId(),
             warp.name(),
             warp.location(),
@@ -340,7 +344,7 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     @Override
     public boolean deleteWarpResult(UUID islandId, String name) {
         Map<String, IslandWarpSnapshot> islandWarps = warps.get(islandId);
-        return islandWarps != null && islandWarps.remove(name.toLowerCase()) != null;
+        return islandWarps != null && islandWarps.remove(normalizeResourceName(name)) != null;
     }
 
     @Override

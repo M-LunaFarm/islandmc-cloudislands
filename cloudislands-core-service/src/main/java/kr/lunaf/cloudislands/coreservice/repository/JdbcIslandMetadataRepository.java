@@ -633,7 +633,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, world_name, local_x, local_y, local_z, yaw, pitch, created_by, created_at FROM island_homes WHERE island_id = ? AND name = ?")) {
             statement.setObject(1, islandId);
-            statement.setString(2, name.toLowerCase());
+            statement.setString(2, normalizeResourceName(name));
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? java.util.Optional.of(home(rs)) : java.util.Optional.empty();
             }
@@ -647,7 +647,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(upsertHomeSql(connection))) {
             statement.setObject(1, islandId);
-            statement.setString(2, name.toLowerCase());
+            statement.setString(2, normalizeResourceName(name));
             statement.setString(3, location.worldName());
             statement.setDouble(4, location.localX());
             statement.setDouble(5, location.localY());
@@ -663,7 +663,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public String upsertHomeWithLimit(UUID islandId, String name, IslandLocation location, UUID createdBy, long maxHomes) {
-        String normalizedName = name.toLowerCase();
+        String normalizedName = normalizeResourceName(name);
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             if (!lockIslandForLimitedResource(connection, islandId)) {
@@ -748,7 +748,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, category, world_name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? AND name = ?")) {
             statement.setObject(1, islandId);
-            statement.setString(2, name.toLowerCase());
+            statement.setString(2, normalizeResourceName(name));
             try (ResultSet rs = statement.executeQuery()) {
                 if (!rs.next()) {
                     return Optional.empty();
@@ -770,7 +770,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement(upsertWarpSql(connection))) {
             statement.setObject(1, islandId);
-            statement.setString(2, name.toLowerCase());
+            statement.setString(2, normalizeResourceName(name));
             statement.setString(3, IslandWarpSnapshot.normalizeCategory(category));
             statement.setString(4, normalizeWorldName(islandId, location.worldName()));
             statement.setDouble(5, location.localX());
@@ -788,7 +788,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public String upsertWarpWithLimit(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category, long maxWarps) {
-        String normalizedName = name.toLowerCase();
+        String normalizedName = normalizeResourceName(name);
         try (Connection connection = dataSource.getConnection()) {
             connection.setAutoCommit(false);
             if (!lockIslandForLimitedResource(connection, islandId)) {
@@ -870,7 +870,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
              PreparedStatement statement = connection.prepareStatement("UPDATE island_warps SET public_access = ? WHERE island_id = ? AND name = ?")) {
             statement.setBoolean(1, publicAccess);
             statement.setObject(2, islandId);
-            statement.setString(3, name.toLowerCase());
+            statement.setString(3, normalizeResourceName(name));
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to update island warp access", exception);
@@ -887,7 +887,7 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("DELETE FROM island_warps WHERE island_id = ? AND name = ?")) {
             statement.setObject(1, islandId);
-            statement.setString(2, name.toLowerCase());
+            statement.setString(2, normalizeResourceName(name));
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to delete island warp", exception);
@@ -1042,6 +1042,10 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     private static String normalizeWorldName(UUID islandId, String worldName) {
         return worldName == null || worldName.isBlank() ? IslandPlacement.worldName(islandId) : worldName.trim();
+    }
+
+    private static String normalizeResourceName(String name) {
+        return name == null ? "" : name.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     private String publicIslandIdsSql(Connection connection) throws SQLException {

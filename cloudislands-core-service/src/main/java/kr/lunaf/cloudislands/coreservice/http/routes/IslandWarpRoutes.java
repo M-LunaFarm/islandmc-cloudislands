@@ -98,7 +98,7 @@ public final class IslandWarpRoutes implements RouteGroup {
     private void setHome(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
-        String name = JsonFields.text(body, "name", "default").toLowerCase();
+        String name = normalizeResourceName(JsonFields.text(body, "name", "default"));
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.SET_HOME)) {
             return;
@@ -122,7 +122,7 @@ public final class IslandWarpRoutes implements RouteGroup {
     private void setWarp(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
-        String name = JsonFields.text(body, "name", "default").toLowerCase();
+        String name = normalizeResourceName(JsonFields.text(body, "name", "default"));
         String category = JsonFields.text(body, "category", "default");
         boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
@@ -170,7 +170,7 @@ public final class IslandWarpRoutes implements RouteGroup {
     private void deleteWarp(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
-        String name = JsonFields.text(body, "name", "default").toLowerCase();
+        String name = normalizeResourceName(JsonFields.text(body, "name", "default"));
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
             return;
@@ -189,7 +189,7 @@ public final class IslandWarpRoutes implements RouteGroup {
     private void adminDeleteWarp(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
-        String name = JsonFields.text(body, "name", "default").toLowerCase();
+        String name = normalizeResourceName(JsonFields.text(body, "name", "default"));
         if (islandRepository.findById(islandId).isEmpty()) {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
             return;
@@ -212,7 +212,7 @@ public final class IslandWarpRoutes implements RouteGroup {
     private void setWarpAccess(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
-        String name = JsonFields.text(body, "name", "default").toLowerCase();
+        String name = normalizeResourceName(JsonFields.text(body, "name", "default"));
         boolean publicAccess = JsonFields.bool(body, "publicAccess", false);
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_WARPS)) {
@@ -285,6 +285,10 @@ public final class IslandWarpRoutes implements RouteGroup {
             return false;
         }
         return name.codePoints().noneMatch(Character::isISOControl);
+    }
+
+    static String normalizeResourceName(String name) {
+        return name == null ? "" : name.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
     static String homesJson(List<IslandHomeSnapshot> homes) {

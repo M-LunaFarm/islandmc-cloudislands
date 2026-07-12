@@ -152,6 +152,18 @@ class IslandWarpRoutesTest {
     }
 
     @Test
+    void resourceNamesNormalizeIndependentlyOfServerLocale() {
+        java.util.Locale original = java.util.Locale.getDefault();
+        try {
+            java.util.Locale.setDefault(java.util.Locale.forLanguageTag("tr-TR"));
+            assertEquals("shop", IslandWarpRoutes.normalizeResourceName("  SHOP  "));
+            assertEquals("island", IslandWarpRoutes.normalizeResourceName("ISLAND"));
+        } finally {
+            java.util.Locale.setDefault(original);
+        }
+    }
+
+    @Test
     void rendersHomeAndWarpContracts() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID actorUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
