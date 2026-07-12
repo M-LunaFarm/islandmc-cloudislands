@@ -103,7 +103,12 @@ public final class IslandWarpRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.SET_HOME)) {
             return;
         }
-        metadataRepository.upsertHome(islandId, name, location(body), actorUuid);
+        String result = metadataRepository.upsertHomeWithLimit(islandId, name, location(body), actorUuid, limitValue(islandId, "HOMES", 1L));
+        if (!"APPLIED".equals(result)) {
+            String message = result.equals("HOME_LIMIT") ? "Island home limit was reached" : "Island was not found";
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error(result, message));
+            return;
+        }
         audit.log(actorUuid, "PLAYER", "ISLAND_HOME_SET", "ISLAND", islandId.toString(), Map.of("name", name));
         islandLogs.append(islandId, actorUuid, "ISLAND_HOME_SET", Map.of("name", name));
         events.publish(CloudIslandEventType.ISLAND_HOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name));
@@ -126,7 +131,15 @@ public final class IslandWarpRoutes implements RouteGroup {
             return;
         }
         IslandLocation warpLocation = location(body);
-        metadataRepository.upsertWarp(islandId, name, warpLocation, publicAccess, actorUuid, category);
+        String result = metadataRepository.upsertWarpWithLimit(
+            islandId, name, warpLocation, publicAccess, actorUuid, category,
+            limitValue(islandId, "WARPS", 1L)
+        );
+        if (!"APPLIED".equals(result)) {
+            String message = result.equals("WARP_LIMIT") ? "Island warp limit was reached" : "Island was not found";
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error(result, message));
+            return;
+        }
         audit.log(actorUuid, "PLAYER", "ISLAND_WARP_SET", "ISLAND", islandId.toString(), Map.of("name", name, "publicAccess", Boolean.toString(publicAccess), "category", IslandWarpSnapshot.normalizeCategory(category)));
         islandLogs.append(islandId, actorUuid, "ISLAND_WARP_SET", Map.of("name", name, "publicAccess", Boolean.toString(publicAccess), "category", IslandWarpSnapshot.normalizeCategory(category)));
         if (!existingWarp) {

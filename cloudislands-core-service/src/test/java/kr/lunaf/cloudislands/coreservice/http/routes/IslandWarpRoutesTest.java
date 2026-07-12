@@ -16,6 +16,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,6 +42,41 @@ import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandWarpRoutesTest {
+    @Test
+    void homeAndWarpLimitsAreEnforcedInsideTheIslandTransaction() throws Exception {
+        String jdbc = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandWarpRoutes.java"));
+        int home = jdbc.indexOf("public String upsertHomeWithLimit(");
+        int homeCommit = jdbc.indexOf("connection.commit();", home);
+        int warp = jdbc.indexOf("public String upsertWarpWithLimit(");
+        int warpCommit = jdbc.indexOf("connection.commit();", warp);
+
+        assertTrue(home >= 0 && homeCommit > home);
+        assertTrue(warp >= 0 && warpCommit > warp);
+        assertTrue(jdbc.substring(home, homeCommit).contains("lockIslandForLimitedResource(connection, islandId)"));
+        assertTrue(jdbc.substring(home, homeCommit).contains("namedResourceCount(connection, \"island_homes\", islandId)"));
+        assertTrue(jdbc.substring(warp, warpCommit).contains("lockIslandForLimitedResource(connection, islandId)"));
+        assertTrue(jdbc.substring(warp, warpCommit).contains("namedResourceCount(connection, \"island_warps\", islandId)"));
+        assertTrue(routes.contains("metadataRepository.upsertHomeWithLimit("));
+        assertTrue(routes.contains("limitValue(islandId, \"HOMES\", 1L)"));
+        assertTrue(routes.contains("metadataRepository.upsertWarpWithLimit("));
+    }
+
+    @Test
+    void inMemoryLimitedResourcesAllowUpdatesButRejectNewSlots() {
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        IslandLocation location = new IslandLocation("world", 0.5D, 80.0D, 0.5D, 0.0F, 0.0F);
+
+        assertEquals("APPLIED", metadata.upsertHomeWithLimit(islandId, "main", location, actorUuid, 1L));
+        assertEquals("HOME_LIMIT", metadata.upsertHomeWithLimit(islandId, "second", location, actorUuid, 1L));
+        assertEquals("APPLIED", metadata.upsertHomeWithLimit(islandId, "main", location, actorUuid, 1L));
+        assertEquals("APPLIED", metadata.upsertWarpWithLimit(islandId, "shop", location, false, actorUuid, "market", 1L));
+        assertEquals("WARP_LIMIT", metadata.upsertWarpWithLimit(islandId, "second", location, false, actorUuid, "default", 1L));
+        assertEquals("APPLIED", metadata.upsertWarpWithLimit(islandId, "shop", location, true, actorUuid, "market", 1L));
+    }
+
     @Test
     void registersIslandWarpEndpointGroup() {
         List<String> paths = new ArrayList<>();

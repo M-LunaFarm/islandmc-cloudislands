@@ -73,12 +73,20 @@ public interface IslandMetadataRepository {
     List<IslandHomeSnapshot> homes(UUID islandId);
     java.util.Optional<IslandHomeSnapshot> home(UUID islandId, String name);
     void upsertHome(UUID islandId, String name, IslandLocation location, UUID createdBy);
+    default String upsertHomeWithLimit(UUID islandId, String name, IslandLocation location, UUID createdBy, long maxHomes) {
+        upsertHome(islandId, name, location, createdBy);
+        return "APPLIED";
+    }
     List<IslandWarpSnapshot> warps(UUID islandId);
     List<IslandWarpSnapshot> publicWarps(int limit);
     List<IslandWarpSnapshot> publicWarps(int limit, String category, String query);
     Optional<IslandWarpSnapshot> warp(UUID islandId, String name);
     void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy);
     void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category);
+    default String upsertWarpWithLimit(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category, long maxWarps) {
+        upsertWarp(islandId, name, location, publicAccess, createdBy, category);
+        return "APPLIED";
+    }
     void setWarpPublicAccess(UUID islandId, String name, boolean publicAccess);
     void deleteWarp(UUID islandId, String name);
     boolean isPublicAccess(UUID islandId);

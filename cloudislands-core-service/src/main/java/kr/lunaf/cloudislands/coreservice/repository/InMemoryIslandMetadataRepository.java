@@ -243,6 +243,17 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public synchronized String upsertHomeWithLimit(UUID islandId, String name, IslandLocation location, UUID createdBy, long maxHomes) {
+        Map<String, IslandHomeSnapshot> islandHomes = homes.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
+        String normalizedName = name.toLowerCase();
+        if (!islandHomes.containsKey(normalizedName) && islandHomes.size() >= Math.max(0L, maxHomes)) {
+            return "HOME_LIMIT";
+        }
+        upsertHome(islandId, normalizedName, location, createdBy);
+        return "APPLIED";
+    }
+
+    @Override
     public List<IslandWarpSnapshot> warps(UUID islandId) {
         return new ArrayList<>(warps.getOrDefault(islandId, Map.of()).values());
     }
@@ -280,6 +291,17 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     public void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category) {
         warps.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
             .put(name.toLowerCase(), new IslandWarpSnapshot(islandId, name.toLowerCase(), location, publicAccess, createdBy, Instant.now(), category));
+    }
+
+    @Override
+    public synchronized String upsertWarpWithLimit(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category, long maxWarps) {
+        Map<String, IslandWarpSnapshot> islandWarps = warps.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
+        String normalizedName = name.toLowerCase();
+        if (!islandWarps.containsKey(normalizedName) && islandWarps.size() >= Math.max(0L, maxWarps)) {
+            return "WARP_LIMIT";
+        }
+        upsertWarp(islandId, normalizedName, location, publicAccess, createdBy, category);
+        return "APPLIED";
     }
 
     @Override

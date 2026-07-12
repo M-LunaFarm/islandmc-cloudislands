@@ -266,6 +266,13 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public String upsertHomeWithLimit(UUID islandId, String name, IslandLocation location, UUID createdBy, long maxHomes) {
+        String result = delegate.upsertHomeWithLimit(islandId, name, location, createdBy, maxHomes);
+        cacheHomes(islandId, delegate.homes(islandId));
+        return result;
+    }
+
+    @Override
     public List<IslandWarpSnapshot> warps(UUID islandId) {
         Optional<List<IslandWarpSnapshot>> cached = cachedWarps(islandId);
         if (cached.isPresent()) {
@@ -307,6 +314,13 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     public void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category) {
         delegate.upsertWarp(islandId, name, location, publicAccess, createdBy, category);
         cacheWarps(islandId, delegate.warps(islandId));
+    }
+
+    @Override
+    public String upsertWarpWithLimit(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category, long maxWarps) {
+        String result = delegate.upsertWarpWithLimit(islandId, name, location, publicAccess, createdBy, category, maxWarps);
+        cacheWarps(islandId, delegate.warps(islandId));
+        return result;
     }
 
     @Override

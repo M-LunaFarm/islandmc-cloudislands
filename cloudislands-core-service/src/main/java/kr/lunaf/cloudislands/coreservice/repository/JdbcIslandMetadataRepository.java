@@ -657,6 +657,39 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public String upsertHomeWithLimit(UUID islandId, String name, IslandLocation location, UUID createdBy, long maxHomes) {
+        String normalizedName = name.toLowerCase();
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            if (!lockIslandForLimitedResource(connection, islandId)) {
+                connection.rollback();
+                return "ISLAND_NOT_FOUND";
+            }
+            if (!namedResourceExists(connection, "island_homes", islandId, normalizedName)
+                && namedResourceCount(connection, "island_homes", islandId) >= Math.max(0L, maxHomes)) {
+                connection.rollback();
+                return "HOME_LIMIT";
+            }
+            try (PreparedStatement statement = connection.prepareStatement(upsertHomeSql(connection))) {
+                statement.setObject(1, islandId);
+                statement.setString(2, normalizedName);
+                statement.setString(3, location.worldName());
+                statement.setDouble(4, location.localX());
+                statement.setDouble(5, location.localY());
+                statement.setDouble(6, location.localZ());
+                statement.setFloat(7, location.yaw());
+                statement.setFloat(8, location.pitch());
+                statement.setObject(9, createdBy);
+                statement.executeUpdate();
+            }
+            connection.commit();
+            return "APPLIED";
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to upsert island home within limit", exception);
+        }
+    }
+
+    @Override
     public List<IslandWarpSnapshot> warps(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, category, world_name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? ORDER BY name")) {
@@ -745,6 +778,79 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to upsert island warp", exception);
+        }
+    }
+
+    @Override
+    public String upsertWarpWithLimit(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category, long maxWarps) {
+        String normalizedName = name.toLowerCase();
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            if (!lockIslandForLimitedResource(connection, islandId)) {
+                connection.rollback();
+                return "ISLAND_NOT_FOUND";
+            }
+            if (!namedResourceExists(connection, "island_warps", islandId, normalizedName)
+                && namedResourceCount(connection, "island_warps", islandId) >= Math.max(0L, maxWarps)) {
+                connection.rollback();
+                return "WARP_LIMIT";
+            }
+            try (PreparedStatement statement = connection.prepareStatement(upsertWarpSql(connection))) {
+                statement.setObject(1, islandId);
+                statement.setString(2, normalizedName);
+                statement.setString(3, IslandWarpSnapshot.normalizeCategory(category));
+                statement.setString(4, normalizeWorldName(islandId, location.worldName()));
+                statement.setDouble(5, location.localX());
+                statement.setDouble(6, location.localY());
+                statement.setDouble(7, location.localZ());
+                statement.setFloat(8, location.yaw());
+                statement.setFloat(9, location.pitch());
+                statement.setBoolean(10, publicAccess);
+                statement.setObject(11, createdBy);
+                statement.executeUpdate();
+            }
+            connection.commit();
+            return "APPLIED";
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to upsert island warp within limit", exception);
+        }
+    }
+
+    private static boolean lockIslandForLimitedResource(Connection connection, UUID islandId) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+            statement.setObject(1, islandId);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next();
+            }
+        }
+    }
+
+    private static boolean namedResourceExists(Connection connection, String table, UUID islandId, String name) throws SQLException {
+        String sql = switch (table) {
+            case "island_homes" -> "SELECT 1 FROM island_homes WHERE island_id = ? AND name = ?";
+            case "island_warps" -> "SELECT 1 FROM island_warps WHERE island_id = ? AND name = ?";
+            default -> throw new IllegalArgumentException("unsupported limited resource table");
+        };
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setObject(1, islandId);
+            statement.setString(2, name);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next();
+            }
+        }
+    }
+
+    private static long namedResourceCount(Connection connection, String table, UUID islandId) throws SQLException {
+        String sql = switch (table) {
+            case "island_homes" -> "SELECT count(*) FROM island_homes WHERE island_id = ?";
+            case "island_warps" -> "SELECT count(*) FROM island_warps WHERE island_id = ?";
+            default -> throw new IllegalArgumentException("unsupported limited resource table");
+        };
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setObject(1, islandId);
+            try (ResultSet result = statement.executeQuery()) {
+                return result.next() ? result.getLong(1) : 0L;
+            }
         }
     }
 
