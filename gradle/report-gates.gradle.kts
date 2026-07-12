@@ -349,10 +349,10 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     FeatureParityEntry(
         "upgrades/size/border/biome",
         "IMPLEMENTED_VERIFIED",
-        "upgrade effects apply size, limits, fly, generator tier, biome validation, and player border policy",
+        "upgrade effects apply size, limits, fly, generator tier, biome validation, and player border policy with combined bank and warehouse-item prices",
         "Paper commands compile and tests cover command policy plus border runtime calculation",
         "Paper adapter isolates version-sensitive runtime access",
-        "verifyUpgradeEffectCoverage covers Core upgrade effects and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting",
+        "verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java",
