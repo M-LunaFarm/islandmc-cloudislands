@@ -48,12 +48,14 @@ class IslandSettingsRoutesTest {
         String metadata = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
         String islands = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandRepository.java"));
 
-        assertTrue(routes.contains("metadataRepository.setLockedResult(islandId, locked)"));
-        assertTrue(routes.contains("islandRepository.setPublicAccessResult(islandId, publicAccess)"));
-        assertTrue(metadata.contains("public boolean setLockedResult("));
+        assertTrue(routes.contains("metadataRepository.setLockedMutationResult(islandId, locked)"));
+        assertTrue(routes.contains("islandRepository.setPublicAccessMutationResult(islandId, publicAccess)"));
+        assertTrue(metadata.contains("public String setLockedMutationResult("));
+        assertTrue(metadata.contains("SELECT locked FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE"));
         assertTrue(metadata.contains("UPDATE islands SET locked = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL"));
-        assertTrue(metadata.contains("return statement.executeUpdate() > 0;"));
-        assertTrue(islands.contains("public boolean setPublicAccessResult("));
+        assertTrue(metadata.contains("return \"UNCHANGED\";"));
+        assertTrue(islands.contains("public String setPublicAccessMutationResult("));
+        assertTrue(islands.contains("SELECT public_access FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE"));
 
         InMemoryIslandRepository repository = new InMemoryIslandRepository();
         UUID missing = UUID.randomUUID();
@@ -127,6 +129,42 @@ class IslandSettingsRoutesTest {
         assertEquals(202, exchange.status());
         assertTrue(metadata.isPublicAccess(islandId));
         assertTrue(islands.findById(islandId).orElseThrow().publicAccess());
+    }
+
+    @Test
+    void repeatedLockAndAccessWritesAreIdempotent() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000095");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000096");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Idempotent Access");
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandSettingsRoutes(islands, metadata, new InMemoryIslandPermissionRuleRepository(), logs, audit, events).register(handlers::put);
+
+        String lockBody = "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + ownerUuid + "\",\"locked\":true}";
+        String accessBody = "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + ownerUuid + "\",\"publicAccess\":true}";
+        TestExchange firstLock = exchange(lockBody);
+        TestExchange secondLock = exchange(lockBody);
+        TestExchange firstAccess = exchange(accessBody);
+        TestExchange secondAccess = exchange(accessBody);
+        handlers.get("/v1/islands/lock").handle(firstLock);
+        handlers.get("/v1/islands/lock").handle(secondLock);
+        handlers.get("/v1/islands/access").handle(firstAccess);
+        handlers.get("/v1/islands/access").handle(secondAccess);
+
+        assertEquals(202, firstLock.status());
+        assertEquals(200, secondLock.status());
+        assertTrue(secondLock.body().contains("ISLAND_LOCK_UNCHANGED"));
+        assertEquals(202, firstAccess.status());
+        assertEquals(200, secondAccess.status());
+        assertTrue(secondAccess.body().contains("ISLAND_ACCESS_UNCHANGED"));
+        assertEquals(2L, events.countByType(CloudIslandEventType.ISLAND_ACCESS_CHANGED.name()));
+        assertEquals(2, logs.list(islandId, 10).size());
+        assertTrue(audit.toJson().contains("ISLAND_LOCK_SET"));
+        assertTrue(audit.toJson().contains("ISLAND_ACCESS_SET"));
     }
 
     @Test

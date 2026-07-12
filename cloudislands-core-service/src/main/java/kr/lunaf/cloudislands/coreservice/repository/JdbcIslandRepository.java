@@ -150,11 +150,38 @@ public final class JdbcIslandRepository implements IslandRepository {
 
     @Override
     public boolean setPublicAccessResult(UUID islandId, boolean publicAccess) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE islands SET public_access = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL")) {
-            statement.setBoolean(1, publicAccess);
-            statement.setObject(2, islandId);
-            return statement.executeUpdate() > 0;
+        return !"ISLAND_NOT_FOUND".equals(setPublicAccessMutationResult(islandId, publicAccess));
+    }
+
+    @Override
+    public String setPublicAccessMutationResult(UUID islandId, boolean publicAccess) {
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            boolean current;
+            try (PreparedStatement lock = connection.prepareStatement("SELECT public_access FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+                lock.setObject(1, islandId);
+                try (ResultSet result = lock.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        return "ISLAND_NOT_FOUND";
+                    }
+                    current = result.getBoolean("public_access");
+                }
+            }
+            if (current == publicAccess) {
+                connection.commit();
+                return "UNCHANGED";
+            }
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE islands SET public_access = ?, updated_at = now() WHERE id = ? AND deleted_at IS NULL")) {
+                statement.setBoolean(1, publicAccess);
+                statement.setObject(2, islandId);
+                if (statement.executeUpdate() == 0) {
+                    connection.rollback();
+                    return "ISLAND_NOT_FOUND";
+                }
+            }
+            connection.commit();
+            return "APPLIED";
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to update island public access", exception);
         }

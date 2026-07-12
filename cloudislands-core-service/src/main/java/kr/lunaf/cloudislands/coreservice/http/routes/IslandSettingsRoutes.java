@@ -74,8 +74,13 @@ public final class IslandSettingsRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_FLAGS)) {
             return;
         }
-        if (!metadataRepository.setLockedResult(islandId, locked)) {
+        String result = metadataRepository.setLockedMutationResult(islandId, locked);
+        if (result.equals("ISLAND_NOT_FOUND")) {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
+            return;
+        }
+        if (result.equals("UNCHANGED")) {
+            CoreHttpResponses.write(exchange, 200, settingsActionJson("ISLAND_LOCK_UNCHANGED"));
             return;
         }
         audit.log(actorUuid, "PLAYER", "ISLAND_LOCK_SET", "ISLAND", islandId.toString(), Map.of("locked", Boolean.toString(locked)));
@@ -252,11 +257,16 @@ public final class IslandSettingsRoutes implements RouteGroup {
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_FLAGS)) {
             return;
         }
-        if (!islandRepository.setPublicAccessResult(islandId, publicAccess)) {
+        String result = islandRepository.setPublicAccessMutationResult(islandId, publicAccess);
+        if (result.equals("ISLAND_NOT_FOUND")) {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
             return;
         }
         metadataRepository.setPublicAccess(islandId, publicAccess);
+        if (result.equals("UNCHANGED")) {
+            CoreHttpResponses.write(exchange, 200, settingsActionJson("ISLAND_ACCESS_UNCHANGED"));
+            return;
+        }
         audit.log(actorUuid, "PLAYER", "ISLAND_ACCESS_SET", "ISLAND", islandId.toString(), Map.of("publicAccess", Boolean.toString(publicAccess)));
         islandLogs.append(islandId, actorUuid, "ISLAND_ACCESS_SET", Map.of("publicAccess", Boolean.toString(publicAccess)));
         events.publish(CloudIslandEventType.ISLAND_ACCESS_CHANGED.name(), Map.of("islandId", islandId.toString(), "publicAccess", Boolean.toString(publicAccess)));
@@ -289,6 +299,10 @@ public final class IslandSettingsRoutes implements RouteGroup {
         values.put("islandId", islandId);
         values.put("name", name);
         return SimpleJson.stringify(values);
+    }
+
+    static String settingsActionJson(String code) {
+        return SimpleJson.stringify(Map.of("accepted", true, "code", code));
     }
 
     static String flagsJson(IslandFlagsSnapshot flags) {

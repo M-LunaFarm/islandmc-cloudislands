@@ -80,6 +80,9 @@ public interface IslandMetadataRepository {
         setLocked(islandId, locked);
         return true;
     }
+    default String setLockedMutationResult(UUID islandId, boolean locked) {
+        return setLockedResult(islandId, locked) ? "APPLIED" : "ISLAND_NOT_FOUND";
+    }
     IslandFlagsSnapshot flags(UUID islandId);
     void setFlag(UUID islandId, IslandFlag flag, String value);
     boolean resetFlags(UUID islandId);

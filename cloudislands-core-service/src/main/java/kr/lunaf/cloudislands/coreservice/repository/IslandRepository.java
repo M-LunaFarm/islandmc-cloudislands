@@ -18,6 +18,9 @@ public interface IslandRepository {
         setPublicAccess(islandId, publicAccess);
         return true;
     }
+    default String setPublicAccessMutationResult(UUID islandId, boolean publicAccess) {
+        return setPublicAccessResult(islandId, publicAccess) ? "APPLIED" : "ISLAND_NOT_FOUND";
+    }
     boolean rename(UUID islandId, String name);
     boolean markDeleted(UUID islandId, UUID requesterUuid);
     Optional<IslandSnapshot> restoreDeleted(UUID islandId);

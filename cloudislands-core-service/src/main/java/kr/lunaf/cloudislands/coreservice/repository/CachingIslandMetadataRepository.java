@@ -228,6 +228,11 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public String setLockedMutationResult(UUID islandId, boolean locked) {
+        return delegate.setLockedMutationResult(islandId, locked);
+    }
+
+    @Override
     public IslandFlagsSnapshot flags(UUID islandId) {
         Optional<IslandFlagsSnapshot> cached = cachedFlags(islandId);
         if (cached.isPresent()) {

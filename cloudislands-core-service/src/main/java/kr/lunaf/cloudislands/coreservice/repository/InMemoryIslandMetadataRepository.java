@@ -268,8 +268,17 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
 
     @Override
     public boolean setLockedResult(UUID islandId, boolean locked) {
-        setLocked(islandId, locked);
-        return true;
+        return !"ISLAND_NOT_FOUND".equals(setLockedMutationResult(islandId, locked));
+    }
+
+    @Override
+    public synchronized String setLockedMutationResult(UUID islandId, boolean locked) {
+        boolean current = this.locked.getOrDefault(islandId, false);
+        if (current == locked) {
+            return "UNCHANGED";
+        }
+        this.locked.put(islandId, locked);
+        return "APPLIED";
     }
 
     @Override
