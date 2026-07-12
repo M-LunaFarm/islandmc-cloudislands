@@ -89,7 +89,9 @@ public final class IslandUpgradeService {
         }
         if (cost.signum() > 0) {
             try {
-                bankRepository.deposit(islandId, cost);
+                if (!bankRepository.deposit(islandId, cost, IslandBankRepository.MAX_STORABLE_BALANCE).accepted()) {
+                    refundFailed = true;
+                }
             } catch (RuntimeException bankRefundFailure) {
                 refundFailed = true;
             }

@@ -12,6 +12,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.upgrade.IslandUpgradeSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.coreservice.bank.InMemoryIslandBankRepository;
+import kr.lunaf.cloudislands.coreservice.bank.IslandBankRepository;
 import kr.lunaf.cloudislands.coreservice.warehouse.InMemoryIslandWarehouseRepository;
 import org.junit.jupiter.api.Test;
 
@@ -40,6 +41,19 @@ class IslandUpgradeServicePaymentSafetyTest {
         assertFalse(result.accepted());
         assertEquals("UPGRADE_WRITE_FAILED_REFUNDED", result.code());
         assertEquals("100.00", bank.balance(ISLAND).balance());
+    }
+
+    @Test
+    void reportsRefundFailureWhenConcurrentDepositFillsBankCapacity() {
+        FillingAfterWithdrawBank bank = new FillingAfterWithdrawBank();
+        bank.deposit(ISLAND, new BigDecimal("100"));
+        IslandUpgradeService service = new IslandUpgradeService(new RejectingAdvanceRepository(false), bank, policy());
+
+        UpgradePurchaseResult result = service.purchase(ISLAND, "size");
+
+        assertFalse(result.accepted());
+        assertEquals("UPGRADE_CONFLICT_REFUND_FAILED", result.code());
+        assertEquals(IslandBankRepository.MAX_STORABLE_BALANCE.toPlainString(), bank.balance(ISLAND).balance());
     }
 
     @Test
@@ -144,6 +158,35 @@ class IslandUpgradeServicePaymentSafetyTest {
                 throw new IllegalStateException("simulated write failure");
             }
             return Optional.empty();
+        }
+    }
+
+    private static final class FillingAfterWithdrawBank implements IslandBankRepository {
+        private final InMemoryIslandBankRepository delegate = new InMemoryIslandBankRepository();
+
+        @Override
+        public kr.lunaf.cloudislands.api.model.IslandBankSnapshot balance(UUID islandId) {
+            return delegate.balance(islandId);
+        }
+
+        @Override
+        public kr.lunaf.cloudislands.api.model.IslandBankSnapshot deposit(UUID islandId, BigDecimal amount) {
+            return delegate.deposit(islandId, amount);
+        }
+
+        @Override
+        public BankChangeResult deposit(UUID islandId, BigDecimal amount, BigDecimal maxBalance) {
+            return delegate.deposit(islandId, amount, maxBalance);
+        }
+
+        @Override
+        public BankChangeResult withdraw(UUID islandId, BigDecimal amount) {
+            BankChangeResult result = delegate.withdraw(islandId, amount);
+            if (result.accepted()) {
+                BigDecimal remainingCapacity = MAX_STORABLE_BALANCE.subtract(new BigDecimal(result.snapshot().balance()));
+                delegate.deposit(islandId, remainingCapacity, MAX_STORABLE_BALANCE);
+            }
+            return result;
         }
     }
 }
