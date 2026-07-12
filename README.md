@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.126`
+Version: `1.1.127`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.126`
+Current release: `v1.1.127`
 
-Built for the CloudIslands 1.1.126 baseline.
+Built for the CloudIslands 1.1.127 baseline.
 
-Release notes for `v1.1.126`:
+Release notes for `v1.1.127`:
+
+- lossless concurrent player profiles: in-memory partial updates now use one
+  UUID-scoped atomic `compute` instead of independent find-and-put writes
+- login/name/locale/primary-island changes can no longer overwrite a concurrent
+  disband-quota grant, and quota arithmetic saturates from zero to `Integer.MAX_VALUE`
+- PostgreSQL and MySQL/MariaDB use bounded numeric arithmetic for quota grants,
+  preventing `INT` overflow from failing or resetting an operator mutation
+- profile mutations invalidate Redis profile/island/name keys instead of racing
+  stale write snapshots; a 2,000-operation mixed concurrency regression covers it
+
+Release notes carried forward from `v1.1.126`:
 
 - atomic generator level grants: the admin add endpoint now delegates to one
   authoritative repository mutation instead of read-then-set arithmetic
@@ -2259,7 +2270,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.126`.
+Current read: production-readiness baseline `v1.1.127`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
