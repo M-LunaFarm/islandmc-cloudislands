@@ -57,6 +57,28 @@ class IslandVisitorRoutesTest {
     }
 
     @Test
+    void visitorPardonUsesTheSameIslandLockAsBan() throws Exception {
+        String jdbc = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        int operation = jdbc.indexOf("public void pardonVisitor(");
+        int commit = jdbc.indexOf("connection.commit();", operation);
+
+        assertTrue(operation >= 0 && commit > operation);
+        String transaction = jdbc.substring(operation, commit);
+        assertTrue(transaction.contains("connection.setAutoCommit(false)"));
+        assertTrue(transaction.contains("SELECT id FROM islands"));
+        assertTrue(transaction.contains("FOR UPDATE"), "ban and pardon must serialize through the same island row");
+        assertTrue(transaction.contains("DELETE FROM island_bans"));
+
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        UUID visitorUuid = UUID.randomUUID();
+        assertEquals("APPLIED", metadata.banVisitorResult(islandId, actorUuid, visitorUuid, "test"));
+        metadata.pardonVisitor(islandId, visitorUuid);
+        assertTrue(!metadata.isBanned(islandId, visitorUuid));
+    }
+
+    @Test
     void visitorSanctionsRejectAuthoritativeOwnersAndTeamMembers() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutes.java"));
 

@@ -489,11 +489,23 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public void pardonVisitor(UUID islandId, UUID playerUuid) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM island_bans WHERE island_id = ? AND banned_uuid = ?")) {
-            statement.setObject(1, islandId);
-            statement.setObject(2, playerUuid);
-            statement.executeUpdate();
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement island = connection.prepareStatement("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+                island.setObject(1, islandId);
+                try (ResultSet result = island.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        return;
+                    }
+                }
+            }
+            try (PreparedStatement statement = connection.prepareStatement("DELETE FROM island_bans WHERE island_id = ? AND banned_uuid = ?")) {
+                statement.setObject(1, islandId);
+                statement.setObject(2, playerUuid);
+                statement.executeUpdate();
+            }
+            connection.commit();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to pardon island visitor", exception);
         }
