@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.118`
+Version: `1.1.119`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.118`
+Current release: `v1.1.119`
 
-Built for the CloudIslands 1.1.118 baseline.
+Built for the CloudIslands 1.1.119 baseline.
 
-Release notes for `v1.1.118`:
+Release notes for `v1.1.119`:
+
+- overflow-safe mission limit rewards: `LIMIT_INCREASE` checks the remaining
+  `BIGINT` capacity before adding a reward
+- a reward beyond capacity returns `LIMIT_REWARD_CAPACITY` with the current
+  limit and requested amount for operator diagnostics
+- rejected rewards preserve the complete previous island limit instead of
+  wrapping negative or failing a database constraint
+- normal and `Long.MAX_VALUE` boundary reward behavior is covered by the Core
+  mission reward regression suite
+
+Release notes carried forward from `v1.1.118`:
 
 - database-safe island banking: every deposit path now respects the physical
   `DECIMAL(20,2)` maximum of `999999999999999999.99`
@@ -2171,7 +2182,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.118`.
+Current read: production-readiness baseline `v1.1.119`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
