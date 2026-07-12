@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.127`
+Version: `1.1.128`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.127`
+Current release: `v1.1.128`
 
-Built for the CloudIslands 1.1.127 baseline.
+Built for the CloudIslands 1.1.128 baseline.
 
-Release notes for `v1.1.127`:
+Release notes for `v1.1.128`:
+
+- overflow-safe Satis market accounting: quoted and settled server/personal sold
+  totals now saturate without wrapping demand calculations negative
+- base and final prices use bounded decimal multiplication, so extreme configured
+  prices or sale amounts cannot produce a negative or zero overflow payout
+- SQLite and MySQL market upserts atomically saturate both daily counters at
+  `Long.MAX_VALUE`; negative persisted increments are normalized to zero
+- malformed non-finite price factors fail closed to zero instead of throwing in
+  a sale request; real SQLite and calculator extreme-value regressions cover it
+
+Release notes carried forward from `v1.1.127`:
 
 - lossless concurrent player profiles: in-memory partial updates now use one
   UUID-scoped atomic `compute` instead of independent find-and-put writes
@@ -2270,7 +2281,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.127`.
+Current read: production-readiness baseline `v1.1.128`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
