@@ -845,6 +845,23 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public void deleteHome(UUID islandId, String name) {
+        deleteHomeResult(islandId, name);
+    }
+
+    @Override
+    public boolean deleteHomeResult(UUID islandId, String name) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM island_homes WHERE island_id = ? AND name = ?")) {
+            statement.setObject(1, islandId);
+            statement.setString(2, normalizeResourceName(name));
+            return statement.executeUpdate() > 0;
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to delete island home", exception);
+        }
+    }
+
+    @Override
     public List<IslandWarpSnapshot> warps(UUID islandId) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, category, world_name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? ORDER BY name")) {

@@ -130,6 +130,46 @@ class IslandWarpRoutesTest {
     }
 
     @Test
+    void deleteHomeReleasesTheSlotAndEmitsOneAuthoritativeEvent() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000331");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000332");
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Home Delete Test");
+        metadata.upsertHome(islandId, "main", new IslandLocation("world", 1.0D, 65.0D, 2.0D, 0.0F, 0.0F), ownerUuid);
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new IslandWarpRoutes(
+            islands,
+            metadata,
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandPermissionRuleRepository(),
+            logs,
+            audit,
+            events
+        ).register(handlers::put);
+
+        String body = "{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + ownerUuid + "\",\"name\":\"main\"}";
+        TestExchange deleted = exchange(body);
+        handlers.get("/v1/islands/homes/delete").handle(deleted);
+        TestExchange missing = exchange(body);
+        handlers.get("/v1/islands/homes/delete").handle(missing);
+
+        assertEquals(202, deleted.status());
+        assertTrue(deleted.body().contains("\"code\":\"HOME_DELETED\""));
+        assertEquals(404, missing.status());
+        assertTrue(missing.body().contains("\"code\":\"HOME_NOT_FOUND\""));
+        assertTrue(metadata.home(islandId, "main").isEmpty());
+        assertEquals("CREATED", metadata.upsertHomeWithLimit(islandId, "replacement", new IslandLocation("world", 2.0D, 65.0D, 2.0D, 0.0F, 0.0F), ownerUuid, 1L));
+        assertEquals(1, logs.list(islandId, 10).size());
+        assertEquals("ISLAND_HOME_DELETE", logs.list(islandId, 10).get(0).action());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_HOME_CHANGED.name()));
+        assertEquals(1, audit.toJson().split("ISLAND_HOME_DELETE", -1).length - 1);
+    }
+
+    @Test
     void warpMutationsReportWhetherAStoredWarpChanged() throws Exception {
         InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
         UUID islandId = UUID.randomUUID();
@@ -202,11 +242,12 @@ class IslandWarpRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(8, paths.size());
+        assertEquals(9, paths.size());
         assertTrue(paths.contains("/v1/islands/warps"));
         assertTrue(paths.contains("/v1/islands/public-warps"));
         assertTrue(paths.contains("/v1/islands/homes"));
         assertTrue(paths.contains("/v1/islands/homes/set"));
+        assertTrue(paths.contains("/v1/islands/homes/delete"));
         assertTrue(paths.contains("/v1/islands/warps/set"));
         assertTrue(paths.contains("/v1/islands/warps/delete"));
         assertTrue(paths.contains("/v1/admin/islands/warps/delete"));
@@ -223,6 +264,7 @@ class IslandWarpRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/public-warps"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/homes"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/homes/set"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/homes/delete"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/warps/set"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/warps/delete"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/islands/warps/delete"));

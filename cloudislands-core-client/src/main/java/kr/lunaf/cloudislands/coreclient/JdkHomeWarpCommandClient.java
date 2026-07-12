@@ -26,6 +26,15 @@ public final class JdkHomeWarpCommandClient implements HomeWarpCommandClient {
     }
 
     @Override
+    public CompletableFuture<HomeWarpActionView> deleteHome(UUID islandId, UUID actorUuid, String name) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        return core.postResultBody("/v1/islands/homes/delete", CoreJsonPayload.object("islandId", islandId, "actorUuid", actorUuid, "name", normalizeName(name)))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> actionResult(body, "HOME_DELETED"));
+    }
+
+    @Override
     public CompletableFuture<HomeWarpActionView> setWarp(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, String category) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");

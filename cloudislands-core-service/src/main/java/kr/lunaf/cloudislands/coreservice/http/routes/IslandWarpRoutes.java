@@ -63,6 +63,7 @@ public final class IslandWarpRoutes implements RouteGroup {
         registry.routePost("/v1/islands/public-warps", this::publicWarps);
         registry.routePost("/v1/islands/homes", this::homes);
         registry.routePost("/v1/islands/homes/set", this::setHome);
+        registry.routePost("/v1/islands/homes/delete", this::deleteHome);
         registry.routePost("/v1/islands/warps/set", this::setWarp);
         registry.routePost("/v1/islands/warps/delete", this::deleteWarp);
         registry.routePost("/v1/admin/islands/warps/delete", this::adminDeleteWarp);
@@ -170,6 +171,24 @@ public final class IslandWarpRoutes implements RouteGroup {
         }
         events.publish(CloudIslandEventType.ISLAND_WARP_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", createdWarp ? "WARP_CREATE" : "WARP_UPDATE", "category", IslandWarpSnapshot.normalizeCategory(category)));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+    }
+
+    private void deleteHome(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        String name = normalizeResourceName(JsonFields.text(body, "name", "default"));
+        UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
+        if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.SET_HOME)) {
+            return;
+        }
+        if (!metadataRepository.deleteHomeResult(islandId, name)) {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("HOME_NOT_FOUND", "Island home was not found"));
+            return;
+        }
+        audit.log(actorUuid, "PLAYER", "ISLAND_HOME_DELETE", "ISLAND", islandId.toString(), Map.of("name", name));
+        islandLogs.append(islandId, actorUuid, "ISLAND_HOME_DELETE", Map.of("name", name));
+        events.publish(CloudIslandEventType.ISLAND_HOME_CHANGED.name(), Map.of("islandId", islandId.toString(), "name", name, "operation", "HOME_DELETE"));
+        CoreHttpResponses.write(exchange, 202, SimpleJson.stringify(Map.of("accepted", true, "code", "HOME_DELETED")));
     }
 
     private void deleteWarp(HttpExchange exchange) throws IOException {

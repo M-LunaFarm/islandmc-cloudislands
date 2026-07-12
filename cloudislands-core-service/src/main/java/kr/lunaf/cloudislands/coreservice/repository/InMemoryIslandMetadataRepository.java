@@ -359,6 +359,17 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public void deleteHome(UUID islandId, String name) {
+        deleteHomeResult(islandId, name);
+    }
+
+    @Override
+    public boolean deleteHomeResult(UUID islandId, String name) {
+        Map<String, IslandHomeSnapshot> islandHomes = homes.get(islandId);
+        return islandHomes != null && islandHomes.remove(normalizeResourceName(name)) != null;
+    }
+
+    @Override
     public List<IslandWarpSnapshot> warps(UUID islandId) {
         return new ArrayList<>(warps.getOrDefault(islandId, Map.of()).values());
     }

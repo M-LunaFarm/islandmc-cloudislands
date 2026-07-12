@@ -150,6 +150,12 @@ public interface IslandCommandService {
     CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, IslandLocation location);
     CompletableFuture<Void> setHome(UUID islandId, UUID actorUuid, String name, IslandLocation location);
     CompletableFuture<IslandActionResult> setHomeResult(UUID islandId, UUID actorUuid, String name, IslandLocation location);
+    default CompletableFuture<Void> deleteHome(UUID islandId, UUID actorUuid, String name) {
+        return deleteHomeResult(islandId, actorUuid, name).thenApply(_result -> null);
+    }
+    default CompletableFuture<IslandActionResult> deleteHomeResult(UUID islandId, UUID actorUuid, String name) {
+        return CompletableFuture.failedFuture(new UnsupportedOperationException("home deletion is not supported by this implementation"));
+    }
     CompletableFuture<Void> setBiome(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<IslandActionResult> setBiomeResult(UUID islandId, UUID actorUuid, String biomeKey);
     CompletableFuture<Void> setLimit(UUID islandId, UUID actorUuid, String limitKey, long value);

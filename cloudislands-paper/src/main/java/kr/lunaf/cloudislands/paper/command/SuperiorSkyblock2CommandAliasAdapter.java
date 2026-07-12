@@ -79,6 +79,8 @@ public final class SuperiorSkyblock2CommandAliasAdapter {
         Map.entry("ratings", new Mapping("ratings", "후기")),
         Map.entry("setwarp", new Mapping("setwarp", "워프설정")),
         Map.entry("delwarp", new Mapping("warp-delete", "워프삭제")),
+        Map.entry("delhome", new Mapping("home-delete", "홈삭제")),
+        Map.entry("deletehome", new Mapping("home-delete", "홈삭제")),
         Map.entry("teleport", new Mapping("home", "홈")),
         Map.entry("chest", new Mapping("chest", "창고")),
         Map.entry("team", new Mapping("member-list-target", "멤버목록")),

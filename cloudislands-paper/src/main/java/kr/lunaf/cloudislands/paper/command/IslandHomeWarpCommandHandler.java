@@ -57,6 +57,10 @@ final class IslandHomeWarpCommandHandler {
             setHome(player, args.length > 1 ? args[1] : "default");
             return true;
         }
+        if (subcommand.equals("delhome") || subcommand.equals("deletehome") || subcommand.equals("home-delete") || subcommand.equals("홈삭제")) {
+            deleteHome(player, args.length > 1 ? args[1] : "default");
+            return true;
+        }
         if (subcommand.equals("homes") || subcommand.equals("home-menu") || subcommand.equals("홈관리")) {
             openHomeMenu(player);
             return true;
@@ -262,6 +266,21 @@ final class IslandHomeWarpCommandHandler {
                 .thenAccept(result -> runtime.message(player, homeWarpActionMessage("warp-set-action-label", name, result)))
                 .exceptionally(error -> {
                     runtime.message(player, message("warp-set-failed"));
+                    return null;
+                });
+        });
+    }
+
+    private void deleteHome(Player player, String name) {
+        runtime.currentIsland(player, message("home-delete-island-required")).ifPresent(islandId -> {
+            if (!runtime.allowed(player, IslandPermission.SET_HOME)) {
+                runtime.message(player, message("home-delete-denied"));
+                return;
+            }
+            homeWarpUseCase.deleteHomeAction(islandId, player.getUniqueId(), name, runtime::mutateIdempotent)
+                .thenAccept(result -> runtime.message(player, homeWarpActionMessage("home-delete-action-label", name, result)))
+                .exceptionally(error -> {
+                    runtime.message(player, message("home-delete-failed"));
                     return null;
                 });
         });

@@ -149,6 +149,13 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerMembership.setHome(player, islandId, name);
             return;
         }
+        if (args[0].equalsIgnoreCase("delhome") || args[0].equalsIgnoreCase("deletehome") || args[0].equalsIgnoreCase("home-delete") || args[0].equals("홈삭제")) {
+            boolean hasIslandId = args.length > 1 && isUuid(args[1]);
+            UUID islandId = hasIslandId ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
+            String name = args.length > (hasIslandId ? 2 : 1) ? args[hasIslandId ? 2 : 1] : "default";
+            playerMembership.deleteHome(player, islandId, name);
+            return;
+        }
         if (args[0].equalsIgnoreCase("visit") || args[0].equals("방문")) {
             player.sendActionBar(Component.text("방문할 섬을 불러오는 중입니다."));
             if (args.length < 2) {

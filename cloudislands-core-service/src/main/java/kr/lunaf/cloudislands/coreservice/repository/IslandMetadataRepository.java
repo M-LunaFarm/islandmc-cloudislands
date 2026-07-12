@@ -103,6 +103,11 @@ public interface IslandMetadataRepository {
         upsertHome(islandId, name, location, createdBy);
         return "APPLIED";
     }
+    void deleteHome(UUID islandId, String name);
+    default boolean deleteHomeResult(UUID islandId, String name) {
+        deleteHome(islandId, name);
+        return true;
+    }
     List<IslandWarpSnapshot> warps(UUID islandId);
     List<IslandWarpSnapshot> publicWarps(int limit);
     List<IslandWarpSnapshot> publicWarps(int limit, String category, String query);

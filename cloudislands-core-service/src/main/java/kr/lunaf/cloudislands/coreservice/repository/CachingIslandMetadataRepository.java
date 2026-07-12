@@ -316,6 +316,21 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public void deleteHome(UUID islandId, String name) {
+        delegate.deleteHome(islandId, name);
+        cacheHomes(islandId, delegate.homes(islandId));
+    }
+
+    @Override
+    public boolean deleteHomeResult(UUID islandId, String name) {
+        boolean deleted = delegate.deleteHomeResult(islandId, name);
+        if (deleted) {
+            cacheHomes(islandId, delegate.homes(islandId));
+        }
+        return deleted;
+    }
+
+    @Override
     public List<IslandWarpSnapshot> warps(UUID islandId) {
         Optional<List<IslandWarpSnapshot>> cached = cachedWarps(islandId);
         if (cached.isPresent()) {

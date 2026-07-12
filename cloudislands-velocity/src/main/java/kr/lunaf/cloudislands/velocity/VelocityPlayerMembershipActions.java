@@ -266,6 +266,11 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
             resolved -> sendTextResult(player, coreApiClient.homeWarpCommands().setHome(resolved, player.getUniqueId(), name, defaultHome).thenApply(result -> islandMessages.homeWarpAction("섬 홈 설정", result)), "섬 홈을 설정하지 못했습니다."));
     }
 
+    public void deleteHome(Player player, UUID islandId, String name) {
+        withResolvedIsland(player, islandId, "삭제할 홈의 섬을 찾지 못했습니다.", "섬 홈을 삭제하지 못했습니다.",
+            resolved -> sendTextResult(player, coreApiClient.homeWarpCommands().deleteHome(resolved, player.getUniqueId(), name).thenApply(result -> islandMessages.homeWarpAction("섬 홈 삭제", result)), "섬 홈을 삭제하지 못했습니다."));
+    }
+
     public void setLocked(Player player, UUID islandId, boolean locked) {
         withResolvedIsland(player, islandId, "잠금 상태를 변경할 섬을 찾지 못했습니다.", "섬 잠금 상태를 변경하지 못했습니다.",
             resolved -> sendTextResult(player, coreApiClient.settingsCommands().setLocked(resolved, player.getUniqueId(), locked).thenApply(result -> islandMessages.settingsAction(locked ? "섬 잠금" : "섬 잠금 해제", result)), "섬 잠금 상태를 변경하지 못했습니다."));

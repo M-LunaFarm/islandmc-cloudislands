@@ -61,6 +61,14 @@ public final class IslandHomeWarpUseCase {
             .thenApply(IslandHomeWarpUseCase::actionResult);
     }
 
+    public CompletableFuture<HomeWarpActionResult> deleteHomeAction(UUID islandId, UUID actorUuid, String name, IdempotentMutationRunner runner) {
+        requireIsland(islandId);
+        requireActor(actorUuid);
+        requireIdempotentRunner(runner);
+        return runner.mutateIdempotent("island.home.delete", () -> homeWarpCommands.deleteHome(islandId, actorUuid, normalizeName(name)))
+            .thenApply(IslandHomeWarpUseCase::actionResult);
+    }
+
     private CompletableFuture<HomeWarpActionView> setWarpBody(UUID islandId, UUID actorUuid, String name, IslandLocation location, boolean publicAccess, MutationRunner runner) {
         return setWarpBody(islandId, actorUuid, name, location, publicAccess, "", runner);
     }
