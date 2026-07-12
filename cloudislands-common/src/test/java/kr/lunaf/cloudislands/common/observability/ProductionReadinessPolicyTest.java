@@ -268,6 +268,14 @@ class ProductionReadinessPolicyTest {
         assertTrue(release.contains("build/dist/plugins/*.jar"));
     }
 
+    @Test
+    void paperBootSmokeRecognizesLegacyAndModernReadyMarkers() throws Exception {
+        String smoke = Files.readString(repositoryRoot().resolve("scripts/ci/papermc_smoke.py"));
+
+        assertTrue(smoke.contains("ready = [\"Done (\", \"Done preparing level\"]"));
+        assertTrue(smoke.contains("seen_ready and len(seen_expected) == len(expected)"));
+    }
+
     private static Path repositoryRoot() {
         Path path = Path.of("").toAbsolutePath();
         while (path != null && !Files.exists(path.resolve("settings.gradle.kts"))) {

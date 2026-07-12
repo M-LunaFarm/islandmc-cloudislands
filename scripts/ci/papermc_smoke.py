@@ -271,7 +271,9 @@ def main() -> int:
     if args.project == "paper":
         command = prepare_paper(work_dir, plugin, args.java_command)
         expected = ["CloudIslands Paper agent enabled"]
-        ready = ["Done ("]
+        # Paper 1.21 logs the traditional final marker, while Paper 26.1+
+        # reports world readiness as "Done preparing level".
+        ready = ["Done (", "Done preparing level"]
         shutdown = "stop\n"
     else:
         command = prepare_velocity(work_dir, plugin, args.java_command)
