@@ -44,6 +44,20 @@ class IslandVisitorRoutesTest {
     }
 
     @Test
+    void jdbcInviteAcceptanceCommitsMembershipAndInitialPrimaryTogether() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        int accept = source.indexOf("public boolean acceptInvite(UUID inviteId, UUID playerUuid, long maxMembers)");
+        int commit = source.indexOf("connection.commit();", accept);
+
+        assertTrue(accept >= 0 && commit > accept);
+        String transaction = source.substring(accept, commit);
+        assertTrue(transaction.contains("UPDATE island_invites SET state = 'ACCEPTED'"));
+        assertTrue(transaction.contains("acceptInviteMemberSql(connection)"));
+        assertTrue(transaction.contains("ensurePlayerProfileSql(connection)"));
+        assertTrue(transaction.contains("primary_island_id IS NULL"), "accepting another invite must preserve an existing selected island");
+    }
+
+    @Test
     void registersIslandVisitorEndpointGroup() {
         List<String> paths = new ArrayList<>();
         IslandVisitorRoutes routes = new IslandVisitorRoutes(null, null, null, null, null, null, null);

@@ -208,12 +208,19 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
                 return false;
             }
             try (PreparedStatement update = connection.prepareStatement("UPDATE island_invites SET state = 'ACCEPTED' WHERE id = ?");
-                 PreparedStatement member = connection.prepareStatement(acceptInviteMemberSql(connection))) {
+                 PreparedStatement member = connection.prepareStatement(acceptInviteMemberSql(connection));
+                 PreparedStatement ensureProfile = connection.prepareStatement(ensurePlayerProfileSql(connection));
+                 PreparedStatement primary = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = ?, updated_at = now() WHERE uuid = ? AND primary_island_id IS NULL")) {
                 update.setObject(1, inviteId);
                 update.executeUpdate();
                 member.setObject(1, invite.islandId());
                 member.setObject(2, playerUuid);
                 member.executeUpdate();
+                ensureProfile.setObject(1, playerUuid);
+                ensureProfile.executeUpdate();
+                primary.setObject(1, invite.islandId());
+                primary.setObject(2, playerUuid);
+                primary.executeUpdate();
             }
             connection.commit();
             return true;
@@ -677,6 +684,13 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             return "INSERT INTO island_members(island_id, player_uuid, role, trusted_expires_at) VALUES (?, ?, 'MEMBER', NULL) ON DUPLICATE KEY UPDATE role = VALUES(role), trusted_expires_at = NULL";
         }
         return "INSERT INTO island_members(island_id, player_uuid, role, trusted_expires_at) VALUES (?, ?, 'MEMBER', NULL) ON CONFLICT (island_id, player_uuid) DO UPDATE SET role = EXCLUDED.role, trusted_expires_at = NULL";
+    }
+
+    private String ensurePlayerProfileSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT IGNORE INTO player_profiles(uuid) VALUES (?)";
+        }
+        return "INSERT INTO player_profiles(uuid) VALUES (?) ON CONFLICT (uuid) DO NOTHING";
     }
 
     private String banVisitorSql(Connection connection) throws SQLException {
