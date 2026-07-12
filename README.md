@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.70`
+Version: `1.1.71`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,20 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.70`
+Current release: `v1.1.71`
 
-Built for the CloudIslands 1.1.70 baseline.
+Built for the CloudIslands 1.1.71 baseline.
 
-Release notes for `v1.1.70`:
+Release notes for `v1.1.71`:
+
+- deterministic ban/pardon ordering: both operations now serialize through the
+  same island-row lock before mutating the visitor ban record
+- no missed in-flight ban: a later pardon waits for an earlier ban commit and
+  then removes it instead of observing zero rows and leaving the ban active
+- runtime parity: in-memory ban and pardon operations use the same synchronized
+  boundary as the transactional JDBC implementation
+
+Release notes carried forward from `v1.1.70`:
 
 - atomic visitor-ban eligibility: Core locks the island and target membership,
   then rechecks owner and every member role before writing a ban
@@ -1615,7 +1624,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.70`.
+Current read: production-readiness baseline `v1.1.71`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
