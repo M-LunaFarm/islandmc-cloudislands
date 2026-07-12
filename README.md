@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.45`
+Version: `1.1.46`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -594,7 +594,7 @@ integration verification.
 |---|---|---|---|
 | lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify target-island coordinates and bounded safe destinations | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
-| flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, automation and growth boundaries, fire-versus-natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
+| flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, default-compatible crop/tree/egg/ghast flags, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
@@ -606,11 +606,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.45`
+Current release: `v1.1.46`
 
-Built for the CloudIslands 1.1.45 baseline.
+Built for the CloudIslands 1.1.46 baseline.
 
-Release notes for `v1.1.45`:
+Release notes for `v1.1.46`:
+
+- SS2-style natural gameplay flags: islands now expose independent
+  `CROPS_GROWTH`, `TREE_GROWTH`, `EGG_LAY`, and `GHAST_FIREBALL` controls
+- compatibility-safe defaults: existing and migrated islands keep these natural
+  behaviors enabled until an operator or island role explicitly disables them
+- complete event enforcement: crop material growth, structure growth, chicken
+  egg drops, and ghast fireball explosions consult their dedicated local flag
+- granular explosion policy: ghast fireballs still require the general explosion
+  flag and can additionally be disabled without disabling TNT or creepers
+- migration parity: matching SuperiorSkyblock2 flag fields import into the new
+  CloudIslands keys without being reported as unsupported legacy data
+- complete flag contract: the API manifest now includes gameplay, border, and
+  social flags rather than omitting newer keys
+
+Release notes carried forward from `v1.1.45`:
 
 - PostgreSQL permission persistence fixed: V77 expands both role permission and
   player override constraints from the original 30 keys to all 51 runtime keys
@@ -1251,7 +1266,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.45`.
+Current read: production-readiness baseline `v1.1.46`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
