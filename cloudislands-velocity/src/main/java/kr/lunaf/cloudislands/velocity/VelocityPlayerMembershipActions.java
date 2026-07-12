@@ -260,7 +260,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void setHome(Player player, UUID islandId, String name) {
-        player.sendMessage(Component.text("홈 설정은 현재 위치를 확인할 수 있는 Paper 서버에서만 실행할 수 있습니다."));
+        player.sendMessage(messages.component("home-set-paper-required"));
     }
 
     public void deleteHome(Player player, UUID islandId, String name) {
@@ -350,10 +350,10 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void depositBank(Player player, UUID islandId, String amount) {
-        player.sendMessage(Component.text("섬 은행 입금은 경제 플러그인 연동이 필요한 작업이라 Paper Agent에서만 처리합니다."));
+        player.sendMessage(messages.component("bank-deposit-paper-required"));
     }
 
     public void withdrawBank(Player player, UUID islandId, String amount) {
-        player.sendMessage(Component.text("섬 은행 출금은 경제 플러그인 연동이 필요한 작업이라 Paper Agent에서만 처리합니다."));
+        player.sendMessage(messages.component("bank-withdraw-paper-required"));
     }
 }

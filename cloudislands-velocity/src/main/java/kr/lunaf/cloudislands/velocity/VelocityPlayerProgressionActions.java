@@ -54,11 +54,11 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
     }
 
     public void depositWarehouse(Player player, UUID islandId, String materialKey, long amount) {
-        player.sendMessage(Component.text("창고 입금은 실제 인벤토리를 확인할 수 있는 Paper 서버에서만 실행할 수 있습니다."));
+        player.sendMessage(messages.component("warehouse-deposit-paper-required"));
     }
 
     public void withdrawWarehouse(Player player, UUID islandId, String materialKey, long amount) {
-        player.sendMessage(Component.text("창고 출금은 실제 인벤토리를 변경할 수 있는 Paper 서버에서만 실행할 수 있습니다."));
+        player.sendMessage(messages.component("warehouse-withdraw-paper-required"));
     }
 
     private static String warehouseMessage(List<WarehouseItemView> items) {

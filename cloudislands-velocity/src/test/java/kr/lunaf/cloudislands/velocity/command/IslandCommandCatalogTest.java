@@ -112,8 +112,8 @@ class IslandCommandCatalogTest {
         assertTrue(forwarder.contains("\"warehouse-withdraw\""), "warehouse withdrawals must be forwarded to Paper");
         assertFalse(progression.contains("warehouseCommands().deposit("), "Velocity must not credit warehouse items without removing inventory");
         assertFalse(progression.contains("warehouseCommands().withdraw("), "Velocity must not debit warehouse items without delivering inventory");
-        assertTrue(progression.contains("실제 인벤토리를 확인할 수 있는 Paper 서버"));
-        assertTrue(progression.contains("실제 인벤토리를 변경할 수 있는 Paper 서버"));
+        assertTrue(progression.contains("warehouse-deposit-paper-required"));
+        assertTrue(progression.contains("warehouse-withdraw-paper-required"));
     }
 
     @Test

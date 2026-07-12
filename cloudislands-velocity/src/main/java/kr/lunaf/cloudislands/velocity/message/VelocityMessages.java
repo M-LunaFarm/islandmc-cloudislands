@@ -34,6 +34,13 @@ public final class VelocityMessages {
         values.put("island-create-failed", "섬 생성에 실패했습니다.");
         values.put("island-create-template-permission-denied", "이 섬 템플릿을 사용할 권한이 없습니다.");
         values.put("island-create-paid-paper-required", "유료 섬 템플릿은 결제 보호를 위해 Paper 서버에서 생성해주세요.");
+        values.put("paper-local-command-backend-required", "이 명령은 현재 접속 중인 Paper 서버에서만 실행할 수 있습니다.");
+        values.put("home-set-paper-required", "홈 설정은 현재 위치를 확인할 수 있는 Paper 서버에서만 실행할 수 있습니다.");
+        values.put("warp-set-paper-required", "워프 설정은 현재 위치를 확인할 수 있는 Paper 서버에서만 실행할 수 있습니다.");
+        values.put("warehouse-deposit-paper-required", "창고 입금은 실제 인벤토리를 확인할 수 있는 Paper 서버에서만 실행할 수 있습니다.");
+        values.put("warehouse-withdraw-paper-required", "창고 출금은 실제 인벤토리를 변경할 수 있는 Paper 서버에서만 실행할 수 있습니다.");
+        values.put("bank-deposit-paper-required", "섬 은행 입금은 경제 플러그인이 있는 Paper 서버에서만 실행할 수 있습니다.");
+        values.put("bank-withdraw-paper-required", "섬 은행 출금은 경제 플러그인이 있는 Paper 서버에서만 실행할 수 있습니다.");
         values.put("island-create-retry-template-mismatch", "실패한 섬 생성은 처음 선택한 템플릿으로만 재시도할 수 있습니다.");
         values.put("island-create-route-ticket-unavailable", "이동 티켓을 준비하지 못해 섬 생성을 중단했습니다.");
         values.put("island-home-preparing", "섬을 준비하고 있습니다.");

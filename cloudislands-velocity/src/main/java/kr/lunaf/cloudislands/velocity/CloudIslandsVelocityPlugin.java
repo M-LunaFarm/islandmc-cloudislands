@@ -106,7 +106,7 @@ public final class CloudIslandsVelocityPlugin {
         }
         if (player.getCurrentServer().isEmpty()) {
             event.setResult(CommandExecuteEvent.CommandResult.denied());
-            player.sendMessage(net.kyori.adventure.text.Component.text("이 명령은 현재 접속 중인 Paper 서버에서만 실행할 수 있습니다."));
+            player.sendMessage(messages.component("paper-local-command-backend-required"));
             return;
         }
         event.setResult(CommandExecuteEvent.CommandResult.forwardToServer());

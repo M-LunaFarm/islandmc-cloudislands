@@ -287,7 +287,7 @@ public final class VelocityPlayerRoutingActions extends VelocityActionSupport {
     }
 
     public void setWarp(Player player, UUID islandId, String name, boolean publicAccess) {
-        player.sendMessage(Component.text("워프 설정은 현재 위치를 확인할 수 있는 Paper 서버에서만 실행할 수 있습니다."));
+        player.sendMessage(messages.component("warp-set-paper-required"));
     }
 
     public void deleteWarp(Player player, UUID islandId, String name) {
