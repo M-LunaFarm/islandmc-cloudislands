@@ -522,10 +522,21 @@ public record CoreServiceConfig(
 
     public void validateStartupSecurity() {
         validateStartupAuthentication();
+        validateStartupAdminAuthentication();
         validateStartupAdminPermissions();
         validateStartupStorage();
         validateStartupNetworkExposure();
         validateStartupMtlsTrustBoundary();
+    }
+
+    public void validateStartupAdminAuthentication() {
+        if (adminTokenMissing(adminApiEnabled, adminToken)) {
+            throw new IllegalStateException("Admin API is enabled but CI_ADMIN_TOKEN is blank; configure an admin token or set CI_ADMIN_API_ENABLED=false");
+        }
+    }
+
+    static boolean adminTokenMissing(boolean adminApiEnabled, String adminToken) {
+        return adminApiEnabled && (adminToken == null || adminToken.isBlank());
     }
 
     public void validateStartupAdminPermissions() {

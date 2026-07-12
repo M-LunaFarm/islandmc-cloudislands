@@ -170,6 +170,7 @@ security:
     # Env override: CI_NODE_CREDENTIALS. Format: node-a:token-a,node-b:token-b.
     node-credentials: "${CI_NODE_CREDENTIALS}"
     admin-token: "${CI_ADMIN_TOKEN}"
+  # When admin-api-enabled=true, a non-empty admin token is mandatory.
   # Comma-separated AdminPermission names in kebab or enum form, or * for all.
   # Unknown names fail startup instead of silently disabling admin commands.
   admin-permissions: "audit-read"

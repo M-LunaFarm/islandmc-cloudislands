@@ -21,6 +21,14 @@ class CoreServiceConfigTest {
     }
 
     @Test
+    void enabledAdminApiRequiresItsOwnToken() {
+        assertTrue(CoreServiceConfig.adminTokenMissing(true, ""));
+        assertTrue(CoreServiceConfig.adminTokenMissing(true, "   "));
+        assertFalse(CoreServiceConfig.adminTokenMissing(true, "admin-secret"));
+        assertFalse(CoreServiceConfig.adminTokenMissing(false, ""));
+    }
+
+    @Test
     void mysqlSetupUsesNativeCoreJdbcAuthority() {
         CoreServiceConfig config = config("JDBC", "jdbc:mysql://mysql.internal:3306/cloudislands", "MYSQL", true);
 
@@ -528,8 +536,8 @@ class CoreServiceConfigTest {
                 "*",
                 "",
                 "",
-                "",
-                "",
+                "admin-secret",
+                "audit-read",
                 "",
                 "",
                 "",

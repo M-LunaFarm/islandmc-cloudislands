@@ -206,6 +206,8 @@ Production security:
   additionally require `island-manage`
 - permission names are case-insensitive and accept kebab-case; unknown
   `CI_ADMIN_PERMISSIONS` values fail Core startup with the invalid names listed
+- `admin-api-enabled=true` requires a non-empty `CI_ADMIN_TOKEN`; deployments
+  that intentionally omit an admin token must disable the admin API explicitly
 
 Backup and restore:
 
