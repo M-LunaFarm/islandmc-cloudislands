@@ -382,7 +382,8 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
 
     private void cacheBans(UUID islandId, List<IslandBanSnapshot> bans) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("SET", RedisKeys.islandBans(islandId), bansJson(bans), "PX", Long.toString(RedisTtls.ISLAND_METADATA_MILLIS));
+            Instant now = Instant.now();
+            redis.command("SET", RedisKeys.islandBans(islandId), bansJson(bans.stream().filter(ban -> activeBan(ban, now)).toList()), "PX", Long.toString(RedisTtls.ISLAND_METADATA_MILLIS));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
         }
@@ -395,21 +396,29 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
                 return Optional.empty();
             }
             List<IslandBanSnapshot> bans = new ArrayList<>();
+            Instant now = Instant.now();
             for (String object : objects(json)) {
-                bans.add(new IslandBanSnapshot(
+                IslandBanSnapshot ban = new IslandBanSnapshot(
                     JsonFields.uuid(object, "islandId", islandId),
                     JsonFields.uuid(object, "bannedUuid", new UUID(0L, 0L)),
                     JsonFields.uuid(object, "actorUuid", new UUID(0L, 0L)),
                     JsonFields.text(object, "reason", ""),
                     instant(JsonFields.text(object, "createdAt", "")),
                     nullableInstant(JsonFields.text(object, "expiresAt", ""))
-                ));
+                );
+                if (activeBan(ban, now)) {
+                    bans.add(ban);
+                }
             }
             return Optional.of(List.copyOf(bans));
         } catch (IOException | RuntimeException ignored) {
             failures.incrementAndGet();
             return Optional.empty();
         }
+    }
+
+    static boolean activeBan(IslandBanSnapshot ban, Instant now) {
+        return ban.expiresAt() == null || ban.expiresAt().isAfter(now);
     }
 
     private Optional<IslandFlagsSnapshot> cachedFlags(UUID islandId) {
