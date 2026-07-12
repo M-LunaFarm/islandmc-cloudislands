@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.93`
+Version: `1.1.94`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.93`
+Current release: `v1.1.94`
 
-Built for the CloudIslands 1.1.93 baseline.
+Built for the CloudIslands 1.1.94 baseline.
 
-Release notes for `v1.1.93`:
+Release notes for `v1.1.94`:
+
+- no synthetic proxy locations: Velocity no longer persists homes or warps at
+  a hard-coded shard coordinate when it cannot observe a Bukkit location
+- Paper-local enforcement: location-dependent commands are forwarded only when
+  the player has a current backend server
+- safe disconnected behavior: forwarded commands are explicitly denied with an
+  actionable message instead of falling through to a proxy mutation handler
+- defense in depth: direct Velocity set-home/set-warp handlers also refuse to
+  mutate Core state without an authoritative Paper location
+- regression coverage ensures neither Velocity action class can call the typed
+  home/warp setters or construct the old synthetic coordinate
+
+Release notes carried forward from `v1.1.93`:
 
 - operator home recovery: `/ciadmin island delhome <island> <home>` removes a
   stale or invalid home without requiring an online owner or player permission
@@ -1874,7 +1887,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.93`.
+Current read: production-readiness baseline `v1.1.94`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
