@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.78`
+Version: `1.1.79`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.78`
+Current release: `v1.1.79`
 
-Built for the CloudIslands 1.1.78 baseline.
+Built for the CloudIslands 1.1.79 baseline.
 
-Release notes for `v1.1.78`:
+Release notes for `v1.1.79`:
+
+- authoritative home outcomes: the locked home upsert returns `CREATED` or
+  `UPDATED` after checking the stored named row
+- operation-aware observability: audit entries, island logs, and
+  `ISLAND_HOME_CHANGED` payloads include `HOME_CREATE` or `HOME_UPDATE`
+- concurrent accuracy: simultaneous requests for the same home name are
+  classified from serialized database state rather than a route precheck
+- compatibility preserved: existing home-change event consumers safely ignore
+  the additive operation field
+
+Release notes carried forward from `v1.1.78`:
 
 - authoritative warp outcomes: the locked upsert transaction now returns
   `CREATED` or `UPDATED` after checking the stored named row
@@ -1701,7 +1712,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.78`.
+Current read: production-readiness baseline `v1.1.79`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
