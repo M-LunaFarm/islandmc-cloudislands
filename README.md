@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.58`
+Version: `1.1.59`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,25 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.58`
+Current release: `v1.1.59`
 
-Built for the CloudIslands 1.1.58 baseline.
+Built for the CloudIslands 1.1.59 baseline.
 
-Release notes for `v1.1.58`:
+Release notes for `v1.1.59`:
+
+- settled-price binding: Paper sends the exact amount successfully withdrawn
+  from Vault with the managed Core creation request
+- authoritative price comparison: Core compares the settled amount against the
+  current template price numerically, including scale-equivalent values such as
+  `250` and `250.00`
+- admin-race compensation: a price change between catalog display and Core
+  create returns `PAID_TEMPLATE_PRICE_CHANGED`, triggering the existing refund
+- missing-quote fail-closed behavior: a managed flag without a positive settled
+  price no longer authorizes paid creation
+- player guidance: Korean and English messages explain that a changed price was
+  refunded and the latest catalog price should be reviewed
+
+Release notes carried forward from `v1.1.58`:
 
 - Core-enforced paid creation: a paid template now requires an explicit
   economy-settlement-managed create request at the authoritative workflow
@@ -1473,7 +1487,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.58`.
+Current read: production-readiness baseline `v1.1.59`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
