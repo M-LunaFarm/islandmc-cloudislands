@@ -100,12 +100,18 @@ public final class StorageService {
         if (!writesEnabled(inventory)) {
             return false;
         }
-        cache.put(inventory.inventoryId(), inventory);
         if (dirtySaves != null) {
-            dirtySaves.markInventory(inventory);
-            return true;
+            if (!dirtySaves.markInventory(inventory)) {
+                return false;
+            }
+        } else {
+            try {
+                database.saveInventory(inventory);
+            } catch (RuntimeException exception) {
+                return false;
+            }
         }
-        database.saveInventory(inventory);
+        cache.put(inventory.inventoryId(), inventory);
         return true;
     }
 
@@ -113,8 +119,12 @@ public final class StorageService {
         if (!writesEnabled(inventory)) {
             return false;
         }
+        try {
+            database.saveInventory(inventory);
+        } catch (RuntimeException exception) {
+            return false;
+        }
         cache.put(inventory.inventoryId(), inventory);
-        database.saveInventory(inventory);
         return true;
     }
 

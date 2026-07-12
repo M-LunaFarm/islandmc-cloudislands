@@ -179,17 +179,18 @@ public final class DirtySaveService {
         }
     }
 
-    public void markMachine(MachineInstance machine) {
+    public boolean markMachine(MachineInstance machine) {
         if (!enabled(machineWritesEnabled)) {
-            return;
+            return false;
         }
         if (machine == null || machine.machineId() == null) {
-            return;
+            return false;
         }
         if (!runtimeAuthorityReady(machine.islandUuid())) {
-            return;
+            return false;
         }
         machines.put(machine.machineId(), snapshot(machine));
+        return true;
     }
 
     public void forgetMachine(UUID machineId) {
@@ -214,17 +215,18 @@ public final class DirtySaveService {
         machines.clear();
     }
 
-    public void markInventory(VirtualInventory inventory) {
+    public boolean markInventory(VirtualInventory inventory) {
         if (!inventoryWritesEnabled(inventory)) {
-            return;
+            return false;
         }
         if (inventory == null || inventory.inventoryId() == null) {
-            return;
+            return false;
         }
         if (!runtimeAuthorityReady(inventory.islandUuid())) {
-            return;
+            return false;
         }
         inventories.put(inventory.inventoryId(), snapshot(inventory));
+        return true;
     }
 
     public void forgetInventory(UUID inventoryId) {

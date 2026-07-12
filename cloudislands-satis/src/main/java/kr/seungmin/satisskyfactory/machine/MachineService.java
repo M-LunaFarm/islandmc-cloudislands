@@ -116,9 +116,13 @@ public final class MachineService {
         if (!writesEnabled()) {
             return false;
         }
+        try {
+            database.saveMachine(machine);
+        } catch (RuntimeException exception) {
+            return false;
+        }
         machines.put(machine.machineId(), machine);
         byLocation.put(LocationKey.from(machine.location()), machine.machineId());
-        database.saveMachine(machine);
         return true;
     }
 
@@ -129,13 +133,19 @@ public final class MachineService {
         if (!writesEnabled()) {
             return false;
         }
+        if (dirtySaves == null) {
+            try {
+                database.saveMachine(machine);
+            } catch (RuntimeException exception) {
+                return false;
+            }
+        } else {
+            if (!dirtySaves.markMachine(machine)) {
+                return false;
+            }
+        }
         machines.put(machine.machineId(), machine);
         byLocation.put(LocationKey.from(machine.location()), machine.machineId());
-        if (dirtySaves == null) {
-            database.saveMachine(machine);
-        } else {
-            dirtySaves.markMachine(machine);
-        }
         return true;
     }
 

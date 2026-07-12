@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,6 +23,74 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class MachineServiceTest {
     @TempDir
     Path tempDir;
+
+    @Test
+    void failedMachineInsertDoesNotCreateRuntimeGhost() throws Exception {
+        try (DatabaseHandle handle = openDatabase("machine-save-failure")) {
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            UUID machineId = UUID.fromString("00000000-0000-0000-0000-000000004701");
+            MachineInstance machine = new MachineInstance(machineId,
+                    UUID.fromString("00000000-0000-0000-0000-000000004700"),
+                    UUID.fromString("00000000-0000-0000-0000-000000004799"),
+                    "grinder_t1", 1, new BlockKey("world", 7, 64, 0));
+            try (Connection connection = handle.database().connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_machine_save BEFORE INSERT ON machines BEGIN SELECT RAISE(FAIL, 'forced machine failure'); END");
+            }
+
+            assertFalse(machines.save(machine));
+
+            assertTrue(machines.find(machineId).isEmpty());
+            assertTrue(machines.all().isEmpty());
+            assertTrue(handle.database().loadMachines().isEmpty());
+        }
+    }
+
+    @Test
+    void failedInventoryInsertDoesNotCreateRuntimeGhost() throws Exception {
+        try (DatabaseHandle handle = openDatabase("inventory-save-failure")) {
+            StorageService storage = new StorageService(handle.database(), 1000);
+            UUID inventoryId = UUID.fromString("00000000-0000-0000-0000-000000004801");
+            VirtualInventory inventory = new VirtualInventory(inventoryId,
+                    UUID.fromString("00000000-0000-0000-0000-000000004800"),
+                    "MACHINE_INPUT", "00000000-0000-0000-0000-000000004899", 64);
+            try (Connection connection = handle.database().connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_inventory_save BEFORE INSERT ON virtual_inventories BEGIN SELECT RAISE(FAIL, 'forced inventory failure'); END");
+            }
+
+            assertFalse(storage.saveNow(inventory));
+
+            assertTrue(storage.get(inventoryId).isEmpty());
+            assertTrue(handle.database().loadInventory(inventoryId).isEmpty());
+        }
+    }
+
+    @Test
+    void rejectedDirtySaveDoesNotCreateRuntimeGhosts() {
+        try (DatabaseHandle handle = openDatabase("dirty-save-authority-rejected")) {
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            DirtySaveService dirtySaves = new DirtySaveService(null, handle.database());
+            dirtySaves.islandRuntimeAuthority(_islandUuid -> false);
+            storage.dirtySaves(dirtySaves);
+            machines.dirtySaves(dirtySaves);
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000004900");
+            UUID machineId = UUID.fromString("00000000-0000-0000-0000-000000004901");
+            UUID inventoryId = UUID.fromString("00000000-0000-0000-0000-000000004902");
+            MachineInstance machine = new MachineInstance(machineId, islandUuid,
+                    UUID.fromString("00000000-0000-0000-0000-000000004999"),
+                    "grinder_t1", 1, new BlockKey("world", 9, 64, 0));
+            VirtualInventory inventory = new VirtualInventory(inventoryId, islandUuid,
+                    "MACHINE_INPUT", machineId.toString(), 64);
+
+            assertFalse(machines.saveLater(machine));
+            assertFalse(storage.saveIfAllowed(inventory));
+
+            assertTrue(machines.find(machineId).isEmpty());
+            assertTrue(storage.get(inventoryId).isEmpty());
+            assertEquals(0, dirtySaves.pendingWrites());
+        }
+    }
 
     @Test
     void normalRemoveRejectsMachineWithBufferedItems() {
