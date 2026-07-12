@@ -67,7 +67,8 @@ services:
       CI_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
       CI_ADMIN_TOKEN_FILE: /run/secrets/cloudislands_admin_token
       CI_ADMIN_LISTENER_ENABLED: "false"
-      CI_PUBLIC_ADMIN_API_ENABLED: "false"
+      # This Core port is internal to the Compose network and token protected.
+      CI_PUBLIC_ADMIN_API_ENABLED: ${CI_PUBLIC_ADMIN_API_ENABLED:-true}
       CI_ADMIN_PERMISSIONS: ${CI_ADMIN_PERMISSIONS:-audit-read}
     secrets:
       - cloudislands_database_password

@@ -34,7 +34,8 @@ core:
   adminBind: "127.0.0.1"
   adminPort: 9443
   adminListenerEnabled: true
-  publicAdminApiEnabled: false
+  # Required for Paper/Velocity admin clients that use the internal ClusterIP Core service.
+  publicAdminApiEnabled: true
   adminPermissions: "audit-read"
   allowInsecurePublicHttp: false
 

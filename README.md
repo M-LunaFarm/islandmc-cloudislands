@@ -208,6 +208,9 @@ Production security:
   `CI_ADMIN_PERMISSIONS` values fail Core startup with the invalid names listed
 - `admin-api-enabled=true` requires a non-empty `CI_ADMIN_TOKEN`; deployments
   that intentionally omit an admin token must disable the admin API explicitly
+- supplied Compose and Helm topologies enable admin routes on the internal Core
+  service because Paper and Velocity call that URL; keep the Core bind private,
+  and never enable this path on an Internet-exposed listener
 
 Backup and restore:
 

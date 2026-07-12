@@ -29,7 +29,8 @@ runtime:
   storage-endpoint: http://minio:9000
   storage-bucket: cloudislands
 security:
-  public-admin-api-enabled: false
+  # The Core service is internal-only; Paper/Velocity admin clients use this listener.
+  public-admin-api-enabled: true
   allow-insecure-public-http: false
   mtls-trusted-proxy-required: true
   topology-names-hidden-from-players: true
