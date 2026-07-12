@@ -142,6 +142,23 @@ class IslandVisitorRoutesTest {
     }
 
     @Test
+    void inviteAcceptancePublishesOnlyAuthoritativeStateChanges() throws Exception {
+        String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutes.java"));
+        int operation = routes.indexOf("String result = metadataRepository.acceptInviteResult(inviteId, playerUuid, maxMembers)");
+        int nextMethod = routes.indexOf("\n    private void declineInvite", operation);
+
+        assertTrue(operation >= 0 && nextMethod > operation);
+        String acceptRoute = routes.substring(operation, nextMethod);
+        assertEquals(2, occurrences(acceptRoute, "ISLAND_INVITE_CHANGED"), "only accepted and stale-invite expiration outcomes may publish changes");
+        assertTrue(acceptRoute.contains("\"state\", \"ACCEPTED\", \"accepted\", \"true\""));
+        assertTrue(acceptRoute.contains("\"state\", \"EXPIRED\", \"accepted\", \"false\""));
+        assertTrue(acceptRoute.contains("ISLAND_INVITE_EXPIRE"));
+        assertTrue(acceptRoute.indexOf("if (accepted)") < acceptRoute.indexOf("ISLAND_INVITE_ACCEPT"));
+        assertTrue(acceptRoute.indexOf("if (result.equals(\"ALREADY_MEMBER\"))") < acceptRoute.lastIndexOf("ISLAND_INVITE_CHANGED"));
+        assertEquals(2, occurrences(acceptRoute, "ISLAND_INVITE_ACCEPT\""), "only the accepted audit and island log may use the accept action");
+    }
+
+    @Test
     void jdbcInviteReplacementSerializesAndCommitsExpirationWithInsertion() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
         int create = source.indexOf("public IslandInviteSnapshot createInvite(");

@@ -127,21 +127,29 @@ public final class IslandVisitorRoutes implements RouteGroup {
         }
         String result = metadataRepository.acceptInviteResult(inviteId, playerUuid, maxMembers);
         boolean accepted = "APPLIED".equals(result);
-        audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_ACCEPT", "INVITE", inviteId.toString(), Map.of("accepted", Boolean.toString(accepted)));
-        events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "accepted", Boolean.toString(accepted)));
         if (accepted) {
+            audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_ACCEPT", "INVITE", inviteId.toString(), Map.of("accepted", "true"));
+            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "state", "ACCEPTED", "accepted", "true"));
             if (playerProfiles != null && invite.isPresent() && playerProfiles.find(playerUuid).primaryIslandId().isEmpty()) {
                 playerProfiles.setPrimaryIsland(playerUuid, invite.get().islandId());
             }
             invite.ifPresent(value -> islandLogs.append(value.islandId(), playerUuid, "ISLAND_INVITE_ACCEPT", Map.of("inviteId", inviteId.toString(), "accepted", "true")));
             events.publish(CloudIslandEventType.ISLAND_MEMBER_JOINED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "role", CoreRoleKeys.MEMBER, "roleKey", CoreRoleKeys.MEMBER));
             events.publish(CloudIslandEventType.ISLAND_MEMBER_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString()));
+            CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+            return;
+        }
+        if (result.equals("ALREADY_MEMBER")) {
+            Map<String, String> fields = Map.of("inviteId", inviteId.toString(), "reason", "ALREADY_MEMBER", "state", "EXPIRED");
+            audit.log(playerUuid, "PLAYER", "ISLAND_INVITE_EXPIRE", "INVITE", inviteId.toString(), fields);
+            invite.ifPresent(value -> islandLogs.append(value.islandId(), playerUuid, "ISLAND_INVITE_EXPIRE", fields));
+            events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("inviteId", inviteId.toString(), "islandId", islandId, "playerUuid", playerUuid.toString(), "state", "EXPIRED", "accepted", "false", "reason", "ALREADY_MEMBER"));
         }
         String errorMessage = result.equals("MEMBER_LIMIT") ? "Island member limit was reached"
             : result.equals("ISLAND_NOT_FOUND") ? "Island was not found"
             : result.equals("ALREADY_MEMBER") ? "Player is already an island member"
             : "Invite is missing, expired, or not pending";
-        CoreHttpResponses.write(exchange, accepted ? 202 : 409, accepted ? ApiResponses.ok(true) : ApiResponses.error(result, errorMessage));
+        CoreHttpResponses.write(exchange, 409, ApiResponses.error(result, errorMessage));
     }
 
     private void declineInvite(HttpExchange exchange) throws IOException {
