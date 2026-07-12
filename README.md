@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.53`
+Version: `1.1.54`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -598,7 +598,7 @@ integration verification.
 | ranking/level/worth/block values | IMPLEMENTED_VERIFIED | service-level verified | worth economics beyond configured value calculations are not release-certified |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery, while upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
-| chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
+| chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests and LOWEST/HIGHEST private team-chat isolation cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
 | integrations/localization/GUI | PARTIAL_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services and keeps probe-only external adapters diagnostic | Vault and PlaceholderAPI runtime services are executable; external lifecycle and state-transfer operations remain diagnostic until real executors exist |
@@ -606,11 +606,30 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.53`
+Current release: `v1.1.54`
 
-Built for the CloudIslands 1.1.53 baseline.
+Built for the CloudIslands 1.1.54 baseline.
 
-Release notes for `v1.1.53`:
+Release notes for `v1.1.54`:
+
+- private team-chat isolation: team-mode messages are cancelled at Paper's
+  `LOWEST` priority before ordinary chat integrations process them
+- no residual audience: the global viewer set is cleared and the renderer is
+  replaced with an empty fail-closed renderer before routing to Core
+- uncancel protection: isolation is reasserted at `HIGHEST`, preventing an
+  intermediate plugin from restoring global delivery
+- moderation compatibility: a message already cancelled before CloudIslands
+  runs remains blocked and is not forwarded into the private TEAM channel
+- no spy crossover: team-mode messages return before the global admin-spy path;
+  authorized team delivery remains exclusively in Core's `TEAM` channel
+- scheduler safety: the async chat handler still returns to the Paper scheduler
+  before reading player location or invoking the Core communication client
+- version coverage: the hardened listener compiles against Paper 1.21, 26.1,
+  and 26.2 adapters
+- real topology proof: PostgreSQL, Redis, MinIO, and dual-Core Integration passed
+  with private chat isolation enabled
+
+Release notes carried forward from `v1.1.53`:
 
 - durable item rewards: `ITEM` mission rewards are now deposited by Core into
   the island warehouse instead of relying on an online player event consumer
@@ -1392,7 +1411,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.53`.
+Current read: production-readiness baseline `v1.1.54`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
