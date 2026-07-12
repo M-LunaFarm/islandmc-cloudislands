@@ -31,6 +31,9 @@ public interface IslandMetadataRepository {
         upsertMemberKey(islandId, playerUuid, roleKey);
     }
     void removeMember(UUID islandId, UUID playerUuid);
+    default void removeMemberAndClearPrimary(UUID islandId, UUID playerUuid) {
+        removeMember(islandId, playerUuid);
+    }
     IslandInviteSnapshot createInvite(UUID islandId, UUID inviterUuid, UUID targetUuid);
     List<IslandInviteSnapshot> pendingInvites(UUID targetUuid);
     boolean acceptInvite(UUID inviteId, UUID playerUuid);

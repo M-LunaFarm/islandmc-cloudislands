@@ -176,6 +176,22 @@ class IslandMemberRoutesTest {
     }
 
     @Test
+    void jdbcMemberRemovalClearsOnlyTheRemovedIslandPrimaryInTheSameTransaction() throws Exception {
+        String metadata = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
+        int operation = metadata.indexOf("public void removeMemberAndClearPrimary(");
+        int commit = metadata.indexOf("connection.commit();", operation);
+
+        assertTrue(operation >= 0 && commit > operation);
+        String transaction = metadata.substring(operation, commit);
+        assertTrue(transaction.contains("DELETE FROM island_members"));
+        assertTrue(transaction.contains("primary_island_id = NULL"));
+        assertTrue(transaction.contains("primary_island_id = ?"), "removing another island must not clear an unrelated selected island");
+        assertTrue(transaction.contains("NOT EXISTS (SELECT 1 FROM islands"), "an authoritative owner must never lose its selected island through metadata cleanup");
+        assertEquals(2, routes.split(java.util.regex.Pattern.quote("metadataRepository.removeMemberAndClearPrimary(islandId, playerUuid)"), -1).length - 1);
+    }
+
+    @Test
     void roleLimitBlocksAdminAddAndPromotionIntoLimitedRole() throws Exception {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000111");
         UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000112");

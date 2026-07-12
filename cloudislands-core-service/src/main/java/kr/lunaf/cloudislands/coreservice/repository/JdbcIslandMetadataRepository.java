@@ -115,13 +115,26 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
 
     @Override
     public void removeMember(UUID islandId, UUID playerUuid) {
+        removeMemberAndClearPrimary(islandId, playerUuid);
+    }
+
+    @Override
+    public void removeMemberAndClearPrimary(UUID islandId, UUID playerUuid) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("DELETE FROM island_members WHERE island_id = ? AND player_uuid = ? AND role <> 'OWNER'")) {
-            statement.setObject(1, islandId);
-            statement.setObject(2, playerUuid);
-            statement.executeUpdate();
+             PreparedStatement member = connection.prepareStatement("DELETE FROM island_members WHERE island_id = ? AND player_uuid = ? AND role <> 'OWNER'");
+             PreparedStatement profile = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = NULL, updated_at = now() WHERE uuid = ? AND primary_island_id = ? AND NOT EXISTS (SELECT 1 FROM islands WHERE id = ? AND owner_uuid = ? AND deleted_at IS NULL)")) {
+            connection.setAutoCommit(false);
+            member.setObject(1, islandId);
+            member.setObject(2, playerUuid);
+            member.executeUpdate();
+            profile.setObject(1, playerUuid);
+            profile.setObject(2, islandId);
+            profile.setObject(3, islandId);
+            profile.setObject(4, playerUuid);
+            profile.executeUpdate();
+            connection.commit();
         } catch (SQLException exception) {
-            throw new IllegalStateException("failed to remove island member", exception);
+            throw new IllegalStateException("failed to remove island member and clear primary island", exception);
         }
     }
 
