@@ -203,10 +203,27 @@ class IslandMemberRoutesTest {
         assertTrue(transaction.contains("upsertMemberSql(connection)"));
         assertTrue(transaction.contains("ensurePlayerProfileSql(connection)"));
         assertTrue(transaction.contains("primary_island_id IS NULL"));
-        assertEquals(2, routes.split(java.util.regex.Pattern.quote("metadataRepository.upsertMemberKeyAndInitializePrimary("), -1).length - 1);
+        assertEquals(3, routes.split(java.util.regex.Pattern.quote("metadataRepository.upsertMemberKeyAndInitializePrimary("), -1).length - 1);
         assertTrue(transaction.contains("FOR UPDATE"), "concurrent joins must serialize on the island row");
         assertTrue(transaction.contains("teamMemberCount(connection, islandId)"));
         assertTrue(transaction.contains("roleMemberCount(connection, islandId, normalizedRoleKey)"));
+    }
+
+    @Test
+    void jdbcRoleChangesEnforceRoleLimitsInsideTheIslandTransaction() throws Exception {
+        String repository = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        String routes = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutes.java"));
+        int operation = repository.indexOf("public String upsertMemberKeyWithRoleLimit(");
+        int commit = repository.indexOf("connection.commit();", operation);
+
+        assertTrue(operation >= 0 && commit > operation);
+        String transaction = repository.substring(operation, commit);
+        assertTrue(transaction.contains("SELECT id FROM islands"));
+        assertTrue(transaction.contains("FOR UPDATE"), "concurrent role changes must serialize on the island row");
+        assertTrue(transaction.contains("currentMemberRole(connection, islandId, playerUuid)"));
+        assertTrue(transaction.contains("roleMemberCount(connection, islandId, normalizedRoleKey)"));
+        assertTrue(transaction.contains("!normalizedRoleKey.equals(currentRole)"), "renewing the same temporary role must not consume another slot");
+        assertEquals(4, routes.split(java.util.regex.Pattern.quote("metadataRepository.upsertMemberKeyWithRoleLimit("), -1).length - 1);
     }
 
     @Test

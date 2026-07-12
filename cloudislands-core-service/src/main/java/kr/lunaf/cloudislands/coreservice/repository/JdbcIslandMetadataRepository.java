@@ -188,6 +188,39 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public String upsertMemberKeyWithRoleLimit(UUID islandId, UUID playerUuid, String roleKey, Instant expiresAt, long maxRoleMembers) {
+        String normalizedRoleKey = kr.lunaf.cloudislands.coreservice.role.IslandRoleRepository.normalizeRoleKey(roleKey);
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement lock = connection.prepareStatement("SELECT id FROM islands WHERE id = ? AND deleted_at IS NULL FOR UPDATE")) {
+                lock.setObject(1, islandId);
+                try (ResultSet result = lock.executeQuery()) {
+                    if (!result.next()) {
+                        connection.rollback();
+                        return "ISLAND_NOT_FOUND";
+                    }
+                }
+            }
+            String currentRole = currentMemberRole(connection, islandId, playerUuid);
+            if (!normalizedRoleKey.equals(currentRole) && roleMemberCount(connection, islandId, normalizedRoleKey) >= Math.max(0L, maxRoleMembers)) {
+                connection.rollback();
+                return "ROLE_LIMIT";
+            }
+            try (PreparedStatement member = connection.prepareStatement(upsertMemberSql(connection))) {
+                member.setObject(1, islandId);
+                member.setObject(2, playerUuid);
+                member.setString(3, normalizedRoleKey);
+                member.setObject(4, expiresAt == null ? null : java.sql.Timestamp.from(expiresAt));
+                member.executeUpdate();
+            }
+            connection.commit();
+            return "APPLIED";
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to upsert island member within role limit", exception);
+        }
+    }
+
+    @Override
     public void removeMember(UUID islandId, UUID playerUuid) {
         removeMemberAndClearPrimary(islandId, playerUuid);
     }

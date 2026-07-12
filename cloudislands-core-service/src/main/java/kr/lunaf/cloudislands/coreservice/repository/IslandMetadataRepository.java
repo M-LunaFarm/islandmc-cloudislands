@@ -37,6 +37,10 @@ public interface IslandMetadataRepository {
     default void upsertMemberKey(UUID islandId, UUID playerUuid, String roleKey, java.time.Instant expiresAt) {
         upsertMemberKey(islandId, playerUuid, roleKey);
     }
+    default String upsertMemberKeyWithRoleLimit(UUID islandId, UUID playerUuid, String roleKey, java.time.Instant expiresAt, long maxRoleMembers) {
+        upsertMemberKey(islandId, playerUuid, roleKey, expiresAt);
+        return "APPLIED";
+    }
     void removeMember(UUID islandId, UUID playerUuid);
     default void removeMemberAndClearPrimary(UUID islandId, UUID playerUuid) {
         removeMember(islandId, playerUuid);

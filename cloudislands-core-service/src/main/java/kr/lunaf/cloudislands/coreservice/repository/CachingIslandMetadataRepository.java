@@ -85,6 +85,13 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public String upsertMemberKeyWithRoleLimit(UUID islandId, UUID playerUuid, String roleKey, Instant expiresAt, long maxRoleMembers) {
+        String result = delegate.upsertMemberKeyWithRoleLimit(islandId, playerUuid, roleKey, expiresAt, maxRoleMembers);
+        cacheMembers(islandId, delegate.members(islandId));
+        return result;
+    }
+
+    @Override
     public void upsertMemberKeyAndInitializePrimary(UUID islandId, UUID playerUuid, String roleKey) {
         delegate.upsertMemberKeyAndInitializePrimary(islandId, playerUuid, roleKey);
         cacheMembers(islandId, delegate.members(islandId));
