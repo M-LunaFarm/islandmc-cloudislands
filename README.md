@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.84`
+Version: `1.1.85`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.84`
+Current release: `v1.1.85`
 
-Built for the CloudIslands 1.1.84 baseline.
+Built for the CloudIslands 1.1.85 baseline.
 
-Release notes for `v1.1.84`:
+Release notes for `v1.1.85`:
+
+- idempotent role writes: reapplying the same permanent role returns
+  `MEMBER_UNCHANGED` without role-change events, audit entries, or row rewrites
+- authoritative JDBC outcomes: the island-locked transaction compares stored
+  role and temporary-expiry state before returning `APPLIED` or `UNCHANGED`
+- in-memory production parity: synchronized limited upserts now enforce both
+  total team capacity and per-role capacity under concurrent access
+- renewal safety: temporary trust renewals remain real updates while expired
+  memberships are never misclassified as unchanged
+
+Release notes carried forward from `v1.1.84`:
 
 - truthful invite acceptance events: successful joins publish explicit
   `ACCEPTED` state while non-mutating failures publish no change event
@@ -1770,7 +1781,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.84`.
+Current read: production-readiness baseline `v1.1.85`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
