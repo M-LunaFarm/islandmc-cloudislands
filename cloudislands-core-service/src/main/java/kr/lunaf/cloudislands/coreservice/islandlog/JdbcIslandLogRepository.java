@@ -11,6 +11,8 @@ import java.util.Map;
 import java.util.UUID;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandLogRecord;
+import kr.lunaf.cloudislands.common.json.JsonCodec;
+import kr.lunaf.cloudislands.common.json.JsonCodecException;
 
 public final class JdbcIslandLogRepository implements IslandLogRepository {
     private final DataSource dataSource;
@@ -59,47 +61,32 @@ public final class JdbcIslandLogRepository implements IslandLogRepository {
         }
     }
 
-    private String json(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder("{");
-        boolean first = true;
-        for (Map.Entry<String, String> entry : payload.entrySet()) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            builder.append('"').append(escape(entry.getKey())).append("\":\"").append(escape(entry.getValue())).append('"');
-        }
-        return builder.append('}').toString();
-    }
-
-    private Map<String, String> parsePayload(String raw) {
-        if (raw == null || raw.length() < 2) {
-            return Map.of();
-        }
-        String body = raw.substring(1, raw.length() - 1).trim();
-        if (body.isBlank()) {
-            return Map.of();
-        }
-        Map<String, String> result = new LinkedHashMap<>();
-        for (String pair : body.split(",")) {
-            int colon = pair.indexOf(':');
-            if (colon > 0) {
-                result.put(unquote(pair.substring(0, colon)), unquote(pair.substring(colon + 1)));
+    static String json(Map<String, String> payload) {
+        Map<String, String> normalized = new LinkedHashMap<>();
+        if (payload != null) {
+            for (Map.Entry<String, String> entry : payload.entrySet()) {
+                if (entry.getKey() != null) {
+                    normalized.put(entry.getKey(), entry.getValue() == null ? "" : entry.getValue());
+                }
             }
         }
-        return Map.copyOf(result);
+        return JsonCodec.write(normalized);
     }
 
-    private String unquote(String value) {
-        String trimmed = value.trim();
-        if (trimmed.startsWith("\"") && trimmed.endsWith("\"") && trimmed.length() >= 2) {
-            trimmed = trimmed.substring(1, trimmed.length() - 1);
+    static Map<String, String> parsePayload(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Map.of();
         }
-        return trimmed.replace("\\\"", "\"").replace("\\\\", "\\");
-    }
-
-    private String escape(String value) {
-        return value == null ? "" : value.replace("\\", "\\\\").replace("\"", "\\\"");
+        try {
+            Map<String, Object> decoded = JsonCodec.readObject(raw);
+            Map<String, String> result = new LinkedHashMap<>();
+            for (Map.Entry<String, Object> entry : decoded.entrySet()) {
+                result.put(entry.getKey(), entry.getValue() == null ? "" : String.valueOf(entry.getValue()));
+            }
+            return Map.copyOf(result);
+        } catch (JsonCodecException exception) {
+            return Map.of();
+        }
     }
 
     private String insertLogSql(Connection connection) throws SQLException {
