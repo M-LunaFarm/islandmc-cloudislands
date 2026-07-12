@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.109`
+Version: `1.1.110`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -617,11 +617,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.109`
+Current release: `v1.1.110`
 
-Built for the CloudIslands 1.1.109 baseline.
+Built for the CloudIslands 1.1.110 baseline.
 
-Release notes for `v1.1.109`:
+Release notes for `v1.1.110`:
+
+- reachable in-game admin commands: supplied Compose and Helm topologies now
+  enable admin routes on the internal Core listener used by Paper and Velocity
+- fixes valid-token `/ciadmin` calls being permanently rejected because the
+  only enabled admin listener was container-local loopback
+- security boundary preserved: Core remains host-loopback/ClusterIP internal,
+  with admin token, server permissions, request guards, and rate limits intact
+- production HA, single-paper, Helm values, operator guidance, Compose syntax,
+  and deployment regression coverage now agree on the listener contract
+
+Release notes carried forward from `v1.1.109`:
 
 - fail-fast admin authentication: `admin-api-enabled=true` now requires a
   non-empty `CI_ADMIN_TOKEN` before Core starts
@@ -2069,7 +2080,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.109`.
+Current read: production-readiness baseline `v1.1.110`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
