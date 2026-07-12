@@ -111,6 +111,20 @@ public interface IslandMetadataRepository {
     List<IslandWarpSnapshot> warps(UUID islandId);
     List<IslandWarpSnapshot> publicWarps(int limit);
     List<IslandWarpSnapshot> publicWarps(int limit, String category, String query);
+    default List<IslandWarpSnapshot> discoverablePublicWarps(int limit, int offset, String category, String query) {
+        return publicWarps(Math.max(1, limit) + Math.max(0, offset), category, query).stream()
+            .filter(warp -> isPublicAccess(warp.islandId()))
+            .filter(warp -> !isLocked(warp.islandId()))
+            .filter(warp -> {
+                String value = flags(warp.islandId()).values().getOrDefault(IslandFlag.PUBLIC_WARPS, "false");
+                return value.equalsIgnoreCase("true") || value.equalsIgnoreCase("allow")
+                    || value.equalsIgnoreCase("allowed") || value.equalsIgnoreCase("enabled")
+                    || value.equalsIgnoreCase("on");
+            })
+            .skip(Math.max(0, offset))
+            .limit(Math.max(1, limit))
+            .toList();
+    }
     Optional<IslandWarpSnapshot> warp(UUID islandId, String name);
     void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy);
     void upsertWarp(UUID islandId, String name, IslandLocation location, boolean publicAccess, UUID createdBy, String category);

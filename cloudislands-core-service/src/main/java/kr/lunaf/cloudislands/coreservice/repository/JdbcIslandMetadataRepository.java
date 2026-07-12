@@ -911,6 +911,34 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
     }
 
     @Override
+    public List<IslandWarpSnapshot> discoverablePublicWarps(int limit, int offset, String category, String query) {
+        String normalizedCategory = IslandWarpSnapshot.normalizeCategory(category);
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase(java.util.Locale.ROOT);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(discoverablePublicWarpsSql(category, query))) {
+            int index = 1;
+            if (category != null && !category.isBlank()) {
+                statement.setString(index++, normalizedCategory);
+            }
+            if (!normalizedQuery.isBlank()) {
+                statement.setString(index++, "%" + normalizedQuery + "%");
+                statement.setString(index++, "%" + normalizedQuery + "%");
+            }
+            statement.setInt(index++, Math.max(1, limit));
+            statement.setInt(index, Math.max(0, offset));
+            try (ResultSet rs = statement.executeQuery()) {
+                List<IslandWarpSnapshot> result = new ArrayList<>();
+                while (rs.next()) {
+                    result.add(warpSnapshot(rs));
+                }
+                return result;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read discoverable public island warps", exception);
+        }
+    }
+
+    @Override
     public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT island_id, name, category, world_name, local_x, local_y, local_z, yaw, pitch, public_access, created_by, created_at FROM island_warps WHERE island_id = ? AND name = ?")) {
@@ -1238,6 +1266,18 @@ public final class JdbcIslandMetadataRepository implements IslandMetadataReposit
             sql.append(" AND (lower(name) LIKE ? OR lower(category) LIKE ?)");
         }
         sql.append(" ORDER BY created_at DESC LIMIT ?");
+        return sql.toString();
+    }
+
+    private static String discoverablePublicWarpsSql(String category, String query) {
+        StringBuilder sql = new StringBuilder("SELECT w.island_id, w.name, w.category, w.world_name, w.local_x, w.local_y, w.local_z, w.yaw, w.pitch, w.public_access, w.created_by, w.created_at FROM island_warps w JOIN islands i ON i.id = w.island_id JOIN island_flags f ON f.island_id = w.island_id AND f.flag_key = 'PUBLIC_WARPS' WHERE w.public_access = true AND i.public_access = true AND i.locked = false AND i.deleted_at IS NULL AND lower(f.flag_value) IN ('true', 'allow', 'allowed', 'enabled', 'on')");
+        if (category != null && !category.isBlank()) {
+            sql.append(" AND w.category = ?");
+        }
+        if (query != null && !query.isBlank()) {
+            sql.append(" AND (lower(w.name) LIKE ? OR lower(w.category) LIKE ?)");
+        }
+        sql.append(" ORDER BY w.created_at DESC LIMIT ? OFFSET ?");
         return sql.toString();
     }
 

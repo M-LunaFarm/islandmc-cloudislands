@@ -394,6 +394,24 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
     }
 
     @Override
+    public List<IslandWarpSnapshot> discoverablePublicWarps(int limit, int offset, String category, String query) {
+        String normalizedCategory = IslandWarpSnapshot.normalizeCategory(category);
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase(java.util.Locale.ROOT);
+        return warps.values().stream()
+            .flatMap(islandWarps -> islandWarps.values().stream())
+            .filter(IslandWarpSnapshot::publicAccess)
+            .filter(warp -> isPublicAccess(warp.islandId()))
+            .filter(warp -> !isLocked(warp.islandId()))
+            .filter(warp -> flagEnabled(flags(warp.islandId()).values().get(IslandFlag.PUBLIC_WARPS)))
+            .filter(warp -> category == null || category.isBlank() || warp.category().equalsIgnoreCase(normalizedCategory))
+            .filter(warp -> normalizedQuery.isBlank() || warp.name().toLowerCase(java.util.Locale.ROOT).contains(normalizedQuery) || warp.category().toLowerCase(java.util.Locale.ROOT).contains(normalizedQuery))
+            .sorted(java.util.Comparator.comparing(IslandWarpSnapshot::createdAt).reversed())
+            .skip(Math.max(0, offset))
+            .limit(Math.max(1, limit))
+            .toList();
+    }
+
+    @Override
     public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
         return Optional.ofNullable(warps.getOrDefault(islandId, Map.of()).get(normalizeResourceName(name)));
     }
@@ -506,6 +524,12 @@ public final class InMemoryIslandMetadataRepository implements IslandMetadataRep
             .skip(Math.max(0, offset))
             .limit(Math.max(0, limit))
             .toList();
+    }
+
+    private static boolean flagEnabled(String value) {
+        return value != null && (value.equalsIgnoreCase("true") || value.equalsIgnoreCase("allow")
+            || value.equalsIgnoreCase("allowed") || value.equalsIgnoreCase("enabled")
+            || value.equalsIgnoreCase("on"));
     }
 
     private List<IslandMemberSnapshot> activeMembers(Map<UUID, IslandMemberSnapshot> islandMembers) {

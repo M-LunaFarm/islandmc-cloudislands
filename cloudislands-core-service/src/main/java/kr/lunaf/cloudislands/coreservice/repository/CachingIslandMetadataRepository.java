@@ -352,6 +352,11 @@ public final class CachingIslandMetadataRepository implements IslandMetadataRepo
     }
 
     @Override
+    public List<IslandWarpSnapshot> discoverablePublicWarps(int limit, int offset, String category, String query) {
+        return delegate.discoverablePublicWarps(limit, offset, category, query);
+    }
+
+    @Override
     public Optional<IslandWarpSnapshot> warp(UUID islandId, String name) {
         Optional<List<IslandWarpSnapshot>> cached = cachedWarps(islandId);
         if (cached.isPresent()) {

@@ -9,7 +9,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandHomeSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -82,13 +81,7 @@ public final class IslandWarpRoutes implements RouteGroup {
         int offset = queryInteger(exchange, "offset", JsonFields.integer(body, "offset", 0), 0, 10_000);
         String category = queryText(exchange, "category", JsonFields.text(body, "category", ""));
         String query = queryText(exchange, "query", JsonFields.text(body, "query", ""));
-        List<IslandWarpSnapshot> visibleWarps = metadataRepository.publicWarps(Math.min(10_054, offset + limit), category, query).stream()
-            .filter(warp -> metadataRepository.isPublicAccess(warp.islandId()))
-            .filter(warp -> !metadataRepository.isLocked(warp.islandId()))
-            .filter(warp -> islandFlagEnabled(warp.islandId(), IslandFlag.PUBLIC_WARPS))
-            .skip(offset)
-            .limit(limit)
-            .toList();
+        List<IslandWarpSnapshot> visibleWarps = metadataRepository.discoverablePublicWarps(limit, offset, category, query);
         CoreHttpResponses.write(exchange, 200, warpsJson(visibleWarps));
     }
 
@@ -303,15 +296,6 @@ public final class IslandWarpRoutes implements RouteGroup {
             .findFirst()
             .map(kr.lunaf.cloudislands.api.model.IslandLimitSnapshot::value)
             .orElse(fallback);
-    }
-
-    private boolean islandFlagEnabled(UUID islandId, IslandFlag flag) {
-        String value = metadataRepository.flags(islandId).values().getOrDefault(flag, "false");
-        return value.equalsIgnoreCase("true")
-            || value.equalsIgnoreCase("allow")
-            || value.equalsIgnoreCase("allowed")
-            || value.equalsIgnoreCase("enabled")
-            || value.equalsIgnoreCase("on");
     }
 
     static IslandLocation location(String body) {

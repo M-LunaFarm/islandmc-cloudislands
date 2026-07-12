@@ -85,6 +85,36 @@ class IslandWarpRoutesTest {
     }
 
     @Test
+    void publicWarpPaginationFiltersDiscoverabilityBeforeOffsetAndLimit() throws Exception {
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        UUID firstVisible = UUID.fromString("00000000-0000-0000-0000-000000000351");
+        UUID secondVisible = UUID.fromString("00000000-0000-0000-0000-000000000352");
+        UUID hidden = UUID.fromString("00000000-0000-0000-0000-000000000353");
+        UUID actorUuid = UUID.randomUUID();
+        IslandLocation location = new IslandLocation("world", 0.5D, 80.0D, 0.5D, 0.0F, 0.0F);
+
+        for (UUID islandId : List.of(firstVisible, secondVisible, hidden)) {
+            metadata.setFlag(islandId, kr.lunaf.cloudislands.api.model.IslandFlag.PUBLIC_WARPS, "true");
+            metadata.setPublicAccess(islandId, !islandId.equals(hidden));
+        }
+        metadata.upsertWarp(firstVisible, "first", location, true, actorUuid, "market");
+        Thread.sleep(2L);
+        metadata.upsertWarp(secondVisible, "second", location, true, actorUuid, "market");
+        Thread.sleep(2L);
+        metadata.upsertWarp(hidden, "newest-hidden", location, true, actorUuid, "market");
+
+        List<IslandWarpSnapshot> firstPage = metadata.discoverablePublicWarps(1, 0, "market", "");
+        List<IslandWarpSnapshot> secondPage = metadata.discoverablePublicWarps(1, 1, "market", "");
+        assertEquals(List.of("second"), firstPage.stream().map(IslandWarpSnapshot::name).toList());
+        assertEquals(List.of("first"), secondPage.stream().map(IslandWarpSnapshot::name).toList());
+
+        String jdbc = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
+        assertTrue(jdbc.contains("JOIN islands i ON i.id = w.island_id"));
+        assertTrue(jdbc.contains("JOIN island_flags f ON f.island_id = w.island_id"));
+        assertTrue(jdbc.contains("ORDER BY w.created_at DESC LIMIT ? OFFSET ?"));
+    }
+
+    @Test
     void repeatedHomeAndWarpSetsSkipDuplicateLogsAndEvents() throws Exception {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000321");
         UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000322");
