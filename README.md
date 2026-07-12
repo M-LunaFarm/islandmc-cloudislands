@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.72`
+Version: `1.1.73`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.72`
+Current release: `v1.1.73`
 
-Built for the CloudIslands 1.1.72 baseline.
+Built for the CloudIslands 1.1.73 baseline.
 
-Release notes for `v1.1.72`:
+Release notes for `v1.1.73`:
+
+- functional home upgrades: the `HOMES` limit produced by `HOME_LIMIT`
+  upgrades is now enforced by the home creation endpoint
+- atomic last-slot enforcement: home and warp creation lock the island row and
+  count named resources inside the same database transaction
+- update-safe limits: changing an existing named home or warp remains allowed
+  at capacity, while only a genuinely new name consumes a slot
+- concurrent overbooking protection: simultaneous distinct home/warp creates
+  cannot both consume the final configured slot
+- repository parity: JDBC, cached, and in-memory implementations return
+  `HOME_LIMIT`, `WARP_LIMIT`, or `ISLAND_NOT_FOUND` consistently
+
+Release notes carried forward from `v1.1.72`:
 
 - expiry-correct ban cache: cached visitor bans are revalidated against their
   `expiresAt` value on every Redis read instead of lasting until cache TTL
@@ -1633,7 +1646,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.72`.
+Current read: production-readiness baseline `v1.1.73`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
