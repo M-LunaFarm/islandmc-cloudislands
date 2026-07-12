@@ -1,6 +1,5 @@
 package kr.seungmin.satisskyfactory.contract;
 
-import java.math.BigInteger;
 import kr.seungmin.satisskyfactory.database.DatabaseService;
 import kr.seungmin.satisskyfactory.economy.EconomyService;
 import kr.seungmin.satisskyfactory.machine.IslandBoostService;
@@ -313,18 +312,11 @@ public final class ContractService {
         if (inventory == null) {
             return false;
         }
-        if (!template.required().entrySet().stream().allMatch(entry -> inventory.amount(entry.getKey()) >= entry.getValue())) {
+        if (!inventory.exchange(template.required(), template.itemRewards())) {
             return false;
         }
-        BigInteger netSpace = exactTotal(template.itemRewards()).subtract(exactTotal(template.required()));
-        if (netSpace.signum() > 0 && netSpace.compareTo(BigInteger.valueOf(inventory.remainingCapacity())) > 0) {
-            return false;
-        }
-        template.required().forEach((item, amount) -> inventory.remove(item, amount));
-        template.itemRewards().forEach(inventory::add);
         if (!storage.saveIfAllowed(inventory)) {
-            template.itemRewards().forEach((item, amount) -> inventory.remove(item, amount));
-            template.required().forEach(inventory::add);
+            inventory.exchange(template.itemRewards(), template.required());
             return false;
         }
         long previousResearch = island.researchPoints();
@@ -340,8 +332,7 @@ public final class ContractService {
             island.reputation(previousReputation);
             island.maintenanceDebt(previousDebt);
             if (!restoreCompletionInventory(inventory, template)) {
-                template.required().forEach((item, amount) -> inventory.remove(item, amount));
-                template.itemRewards().forEach(inventory::add);
+                inventory.exchange(template.required(), template.itemRewards());
             }
             return false;
         }
@@ -379,16 +370,6 @@ public final class ContractService {
         return true;
     }
 
-    private static BigInteger exactTotal(Map<String, Long> items) {
-        BigInteger total = BigInteger.ZERO;
-        for (Long amount : items == null ? Map.<String, Long>of().values() : items.values()) {
-            if (amount != null && amount > 0L) {
-                total = total.add(BigInteger.valueOf(amount));
-            }
-        }
-        return total;
-    }
-
     private String contractRewardIdempotencyKey(FactoryIsland island, OfflinePlayer owner, UUID contractId, ContractTemplate template) {
         return String.join(":",
                 "CONTRACT_REWARD",
@@ -404,9 +385,7 @@ public final class ContractService {
     }
 
     private boolean restoreCompletionInventory(VirtualInventory inventory, ContractTemplate template) {
-        template.itemRewards().forEach((item, amount) -> inventory.remove(item, amount));
-        template.required().forEach(inventory::add);
-        return storage.saveIfAllowed(inventory);
+        return inventory.exchange(template.itemRewards(), template.required()) && storage.saveIfAllowed(inventory);
     }
 
     private boolean writesEnabled() {

@@ -97,6 +97,27 @@ class VirtualInventoryTest {
         assertEquals(0L, inventory(-1L).capacity());
     }
 
+    @Test
+    void exchangeIsAllOrNothingAcrossRemovalsRewardsAndCapacity() {
+        VirtualInventory inventory = inventory(10L);
+        assertTrue(inventory.add("wheat", 6L));
+        assertTrue(inventory.add("stone", 2L));
+
+        assertTrue(inventory.exchange(Map.of("wheat", 4L), Map.of("bread", 5L)));
+        assertEquals(Map.of("wheat", 2L, "stone", 2L, "bread", 5L), inventory.items());
+
+        Map<String, Long> before = inventory.items();
+        assertFalse(inventory.exchange(Map.of("stone", 3L), Map.of("diamond", 1L)));
+        assertEquals(before, inventory.items());
+        assertFalse(inventory.exchange(Map.of("stone", 1L), Map.of("diamond", Long.MAX_VALUE)));
+        assertEquals(before, inventory.items());
+        assertFalse(inventory.exchange(Map.of("stone", 1L), Map.of("", 1L)));
+        assertEquals(before, inventory.items());
+
+        assertTrue(inventory.exchange(Map.of("bread", 2L), Map.of("bread", 1L)));
+        assertEquals(4L, inventory.amount("bread"));
+    }
+
     private VirtualInventory inventory(long capacity) {
         UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
         return new VirtualInventory(UUID.randomUUID(), islandUuid, "ISLAND", islandUuid.toString(), capacity);

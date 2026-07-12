@@ -1,5 +1,6 @@
 package kr.seungmin.satisskyfactory.storage;
 
+import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -93,5 +94,67 @@ public final class VirtualInventory {
         } else {
             items.put(itemId, amount);
         }
+    }
+
+    public synchronized boolean exchange(Map<String, Long> removals, Map<String, Long> additions) {
+        Map<String, Long> next = new HashMap<>(items);
+        if (!applyRemovals(next, removals) || !applyAdditions(next, additions)) {
+            return false;
+        }
+        BigInteger total = BigInteger.ZERO;
+        for (long amount : next.values()) {
+            total = total.add(BigInteger.valueOf(amount));
+        }
+        if (total.compareTo(BigInteger.valueOf(capacity)) > 0) {
+            return false;
+        }
+        items.clear();
+        items.putAll(next);
+        return true;
+    }
+
+    private static boolean applyRemovals(Map<String, Long> target, Map<String, Long> removals) {
+        for (Map.Entry<String, Long> entry : safe(removals).entrySet()) {
+            String itemId = entry.getKey();
+            Long amount = entry.getValue();
+            if (!valid(itemId, amount)) {
+                return false;
+            }
+            long current = target.getOrDefault(itemId, 0L);
+            if (current < amount) {
+                return false;
+            }
+            long remaining = current - amount;
+            if (remaining == 0L) {
+                target.remove(itemId);
+            } else {
+                target.put(itemId, remaining);
+            }
+        }
+        return true;
+    }
+
+    private static boolean applyAdditions(Map<String, Long> target, Map<String, Long> additions) {
+        for (Map.Entry<String, Long> entry : safe(additions).entrySet()) {
+            String itemId = entry.getKey();
+            Long amount = entry.getValue();
+            if (!valid(itemId, amount)) {
+                return false;
+            }
+            try {
+                target.put(itemId, Math.addExact(target.getOrDefault(itemId, 0L), amount));
+            } catch (ArithmeticException overflow) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static Map<String, Long> safe(Map<String, Long> values) {
+        return values == null ? Map.of() : values;
+    }
+
+    private static boolean valid(String itemId, Long amount) {
+        return itemId != null && !itemId.isBlank() && amount != null && amount > 0L;
     }
 }
