@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.48`
+Version: `1.1.49`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.48`
+Current release: `v1.1.49`
 
-Built for the CloudIslands 1.1.48 baseline.
+Built for the CloudIslands 1.1.49 baseline.
 
-Release notes for `v1.1.48`:
+Release notes for `v1.1.49`:
+
+- dedicated leash permission: attaching and detaching leads now consistently
+  require `LEASH` instead of sharing the broad `INTERACT` permission
+- leash-knot protection: right-clicking or attacking a fence knot and breaking
+  it through Bukkit's hanging-entity path all consult the same `LEASH` grant
+- no combat-policy overlap: attacking a leash knot no longer falls through to
+  `ATTACK_MOB`, so role configuration matches the action players perform
+- compatibility-preserving visitors: visitor lead access continues to follow
+  `VISITOR_INTERACT`, while member and trusted roles can grant it independently
+- future-safe persistence: V78's format-based PostgreSQL guards accept the new
+  key without another table-constraint migration
+- real topology proof: PostgreSQL, Redis, MinIO, and dual-Core Integration passed
+  with the new permission active
+
+Release notes carried forward from `v1.1.48`:
 
 - dedicated item-frame permission: inserting, rotating, damaging, placing, and
   breaking normal or glow item frames now consistently require `ITEM_FRAME`
@@ -1296,7 +1311,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.48`.
+Current read: production-readiness baseline `v1.1.49`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
