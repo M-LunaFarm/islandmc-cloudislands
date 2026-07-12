@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.47`
+Version: `1.1.48`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -606,11 +606,27 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.47`
+Current release: `v1.1.48`
 
-Built for the CloudIslands 1.1.47 baseline.
+Built for the CloudIslands 1.1.48 baseline.
 
-Release notes for `v1.1.47`:
+Release notes for `v1.1.48`:
+
+- dedicated item-frame permission: inserting, rotating, damaging, placing, and
+  breaking normal or glow item frames now consistently require `ITEM_FRAME`
+- no combat-policy overlap: item-frame damage no longer falls through to the
+  generic `ATTACK_MOB` permission
+- compatibility-preserving visitors: visitor item-frame access continues to
+  follow `VISITOR_INTERACT`, while member and trusted roles can grant the new
+  permission independently
+- extensible PostgreSQL guards: V78 replaces hardcoded permission allowlists
+  with trimmed uppercase key-format constraints on roles and player overrides
+- migration-safe future permissions: valid new enum keys no longer require a
+  database constraint migration, while malformed keys remain rejected
+- real topology proof: PostgreSQL, Redis, MinIO, and dual-Core Integration passed
+  with V78 applied
+
+Release notes carried forward from `v1.1.47`:
 
 - complete SS2 time flags: `ALWAYS_DAY`, `ALWAYS_MIDDLE_DAY`, `ALWAYS_NIGHT`,
   and `ALWAYS_MIDDLE_NIGHT` provide deterministic island-local sky time
@@ -1280,7 +1296,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.47`.
+Current read: production-readiness baseline `v1.1.48`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
