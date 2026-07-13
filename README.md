@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.157`
+Version: `1.1.158`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -658,11 +658,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.157`
+Current release: `v1.1.158`
 
-Built for the CloudIslands 1.1.157 baseline.
+Built for the CloudIslands 1.1.158 baseline.
 
-Release notes for `v1.1.157`:
+Release notes for `v1.1.158`:
+
+- entity, hanging, and vehicle limit checks no longer call
+  `World#getEntities()` from spawn events; finite limits and spawner rates use
+  the same fail-closed Core snapshot path as restricted blocks
+- authoritative `cloudislands:limit/entity` reconciliation counts only living,
+  hanging, and vehicle entities, excludes players and dropped items, and uses
+  RoseStacker/WildStacker logical stack amounts
+- spawn, placement, death, hanging-break, and vehicle-destroy deltas are written
+  only after the event's final accepted state, keeping both limit counts and
+  worth/ranking entity-type counts free of cancelled-event drift
+
+Release notes carried forward from `v1.1.157`:
 
 - level-scan futures now remove their in-flight and serialized-write state
   before reporting completion, eliminating a completion-order race exposed by
@@ -2653,7 +2665,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.157`.
+Current read: production-readiness baseline `v1.1.158`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
