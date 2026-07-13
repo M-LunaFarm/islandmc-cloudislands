@@ -208,17 +208,21 @@ tasks.register("verifyIntegrationMatrix") {
 
 tasks.register("verifyIntegrationRuntimeSmoke") {
     group = "verification"
-    description = "Verifies probe-only integrations remain diagnostic and never claim runtime operations."
+    description = "Verifies executable integration services and keeps probe-only adapters diagnostic."
     dependsOn(tasks.named("verifyIntegrationMatrix"))
     dependsOn(project(":cloudislands-paper").tasks.named("test"))
     val certification = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java")
     val certificationTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java")
     val registry = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java")
-    inputs.files(certification, certificationTest, registry)
+    val planRuntime = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/analytics/PlanAnalyticsRuntime.java")
+    val planRuntimeTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/analytics/PlanAnalyticsRuntimePolicyTest.java")
+    inputs.files(certification, certificationTest, registry, planRuntime, planRuntimeTest)
     doLast {
         val source = certification.asFile.readText()
         val tests = certificationTest.asFile.readText()
         val registrySource = registry.asFile.readText()
+        val planRuntimeSource = planRuntime.asFile.readText()
+        val planRuntimeTests = planRuntimeTest.asFile.readText()
         val requiredAdapters = listOf(
             "VaultIntegration", "PlaceholderApiIntegration", "LuckPermsIntegration", "CoreProtectIntegration",
             "WorldEditIntegration", "CustomItemIntegration", "StackerIntegration", "PlanIntegration"
@@ -233,6 +237,9 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
             if (!tests.contains("DIAGNOSTIC_ONLY") || !tests.contains("certificationReportPublishesDiagnosticStateWithoutOperationClaims")) add("Diagnostic report assertions are missing")
             if (!registrySource.contains("IntegrationCapability.RUNTIME_SERVICE")) add("Runtime service integrations must be executable in PaperIntegrationRegistry")
             if (!tests.contains("runtimeServiceResultIsPublishedAsCertifiedOperation")) add("Runtime service certification result test is missing")
+            if (!planRuntimeSource.contains("extensionService.register(extension)") || !planRuntimeSource.contains("caller.updateServerData()")) add("Plan runtime must register and refresh a real data extension")
+            if (!planRuntimeSource.contains("extensionService.unregister(extension)")) add("Plan runtime must unregister its data extension")
+            if (!planRuntimeTests.contains("runtimeRegistersRefreshesAndUnregistersAPlanDataExtension")) add("Plan runtime lifecycle policy test is missing")
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))

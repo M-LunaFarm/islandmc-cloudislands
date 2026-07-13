@@ -8,12 +8,14 @@ val pluginProjectVersion = version.toString()
 dependencies {
     compileOnly(libs.paper.api)
     compileOnly(libs.placeholderapi)
+    compileOnly(libs.plan.api)
     implementation(project(":cloudislands-api"))
     implementation(project(":cloudislands-protocol"))
     implementation(project(":cloudislands-common"))
     implementation(project(":cloudislands-core-client"))
     implementation(project(":cloudislands-storage"))
     testImplementation(libs.junit.jupiter)
+    testImplementation(libs.plan.api)
 }
 
 tasks.test {

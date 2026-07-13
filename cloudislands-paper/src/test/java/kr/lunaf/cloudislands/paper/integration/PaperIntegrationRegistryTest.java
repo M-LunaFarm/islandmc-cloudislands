@@ -99,12 +99,12 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
-    void permissionAndAnalyticsAdaptersAreDiagnosticOnlyUntilExecutorsExist() {
+    void permissionAdapterRemainsDiagnosticWhilePlanIsAnExecutableRuntimeService() {
         LuckPermsIntegration luckPerms = new LuckPermsIntegration(acceptingRuntime());
         PlanIntegration plan = new PlanIntegration(acceptingRuntime());
 
         assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION), luckPerms.capabilities());
-        assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION), plan.capabilities());
+        assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION, IntegrationCapability.RUNTIME_SERVICE), plan.capabilities());
     }
 
     @Test
@@ -131,12 +131,14 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
-    void realVaultAndPlaceholderServicesAreExecutableIntegrations() {
+    void realVaultPlaceholderAndPlanServicesAreExecutableIntegrations() {
         VaultIntegration vault = new VaultIntegration();
         PlaceholderApiIntegration placeholder = new PlaceholderApiIntegration();
+        PlanIntegration plan = new PlanIntegration();
 
         assertTrue(vault.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertTrue(placeholder.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
+        assertTrue(plan.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertEquals(
             IntegrationSupportState.ACTIVE,
             PaperIntegrationRegistry.adapterState(vault, true, IntegrationSupportState.API_COMPATIBLE)
@@ -144,6 +146,10 @@ class PaperIntegrationRegistryTest {
         assertEquals(
             IntegrationSupportState.ACTIVE,
             PaperIntegrationRegistry.adapterState(placeholder, true, IntegrationSupportState.API_COMPATIBLE)
+        );
+        assertEquals(
+            IntegrationSupportState.ACTIVE,
+            PaperIntegrationRegistry.adapterState(plan, true, IntegrationSupportState.API_COMPATIBLE)
         );
     }
 

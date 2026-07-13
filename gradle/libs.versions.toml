@@ -6,6 +6,7 @@ paper-api = "1.21.11-R0.1-SNAPSHOT"
 velocity-api = "3.5.0-SNAPSHOT"
 placeholderapi = "2.11.6"
 vault-api = "1.7"
+plan-api = "5.7.3232"
 junit = "5.10.3"
 shadow = "8.3.6"
 postgresql = "42.7.7"
@@ -20,6 +21,7 @@ paper-api = { module = "io.papermc.paper:paper-api", version.ref = "paper-api" }
 velocity-api = { module = "com.velocitypowered:velocity-api", version.ref = "velocity-api" }
 placeholderapi = { module = "me.clip:placeholderapi", version.ref = "placeholderapi" }
 vault-api = { module = "com.github.MilkBowl:VaultAPI", version.ref = "vault-api" }
+plan-api = { module = "com.github.plan-player-analytics:Plan", version.ref = "plan-api" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }

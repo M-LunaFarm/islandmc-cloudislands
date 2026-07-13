@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.api.PaperCloudIslandsApi;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.economy.VaultEconomyBridge;
+import kr.lunaf.cloudislands.paper.integration.analytics.PlanAnalyticsRuntime;
 import kr.lunaf.cloudislands.paper.placeholder.CloudIslandsPlaceholderExpansion;
 import org.bukkit.plugin.ServicePriority;
 
@@ -18,6 +19,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
     private CloudIslandsApi api;
     private EconomyBridge economyBridge;
     private Object placeholderExpansion;
+    private RuntimeComponent planAnalytics;
 
     private PaperRuntimeServices(CloudIslandsPaperPlugin plugin) {
         this.plugin = plugin;
@@ -28,6 +30,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
         services.registerApi(client, agent, config);
         services.registerEconomy();
         services.registerPlaceholderExpansion(client);
+        services.registerPlanAnalytics(client);
         return services;
     }
 
@@ -37,6 +40,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
 
     @Override
     public void stop() {
+        unregisterPlanAnalytics();
         unregisterPlaceholderExpansion();
         plugin.integrationRegistry().clearRuntimeService("Vault");
         if (api != null) {
@@ -123,6 +127,43 @@ public final class PaperRuntimeServices implements RuntimeComponent {
             expansion.getClass().getMethod("unregister").invoke(expansion);
         } catch (ReflectiveOperationException ignored) {
             // PlaceholderAPI handles plugin-disable cleanup when explicit unregister is unavailable.
+        }
+    }
+
+    private void registerPlanAnalytics(CoreApiClient client) {
+        if (!plugin.getServer().getPluginManager().isPluginEnabled("Plan")) {
+            return;
+        }
+        try {
+            this.planAnalytics = PlanAnalyticsRuntime.start(plugin, client);
+            plugin.integrationRegistry().reportRuntimeService(
+                "Plan",
+                true,
+                "cloudislands-data-extension-registration",
+                java.util.Map.of("identifier", "CloudIslands", "refreshSeconds", "60")
+            );
+            plugin.getLogger().info("Registered Plan data extension: CloudIslands");
+        } catch (LinkageError | RuntimeException error) {
+            plugin.integrationRegistry().reportRuntimeService(
+                "Plan",
+                false,
+                "cloudislands-data-extension-registration",
+                java.util.Map.of("reason", error.getClass().getSimpleName())
+            );
+            plugin.getLogger().warning("Plan was detected but the CloudIslands data extension could not be registered: " + error.getMessage());
+        }
+    }
+
+    private void unregisterPlanAnalytics() {
+        plugin.integrationRegistry().clearRuntimeService("Plan");
+        RuntimeComponent analytics = planAnalytics;
+        planAnalytics = null;
+        if (analytics != null) {
+            try {
+                analytics.stop();
+            } catch (LinkageError | RuntimeException error) {
+                plugin.getLogger().warning("Plan analytics cleanup failed during plugin shutdown: " + error.getMessage());
+            }
         }
     }
 }
