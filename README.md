@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.154`
+Version: `1.1.155`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -658,11 +658,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.154`
+Current release: `v1.1.155`
 
-Built for the CloudIslands 1.1.154 baseline.
+Built for the CloudIslands 1.1.155 baseline.
 
-Release notes for `v1.1.154`:
+Release notes for `v1.1.155`:
+
+- island worth, level, ranking, and reconciled block counts now use logical
+  RoseStacker blocks/spawners/entities, WildStacker barrels/spawners/entities,
+  and AdvancedSpawners spawner amounts instead of counting each stack as one
+- WildStacker barrels are valued using their contained material rather than the
+  cauldron carrier, and overlapping providers use the highest amount rather
+  than double-counting the same position
+- optional APIs remain reflection-isolated with physical-count fallback and
+  live registration status in `/ciadmin integrations report`
+
+Release notes carried forward from `v1.1.154`:
 
 - full island worth/level reconciliation is now split across Paper ticks with
   both a block-count ceiling and a two-millisecond work budget, avoiding a
@@ -2621,7 +2632,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.154`.
+Current read: production-readiness baseline `v1.1.155`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
