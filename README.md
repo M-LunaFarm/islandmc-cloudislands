@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.134`
+Version: `1.1.135`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.134`
+Current release: `v1.1.135`
 
-Built for the CloudIslands 1.1.134 baseline.
+Built for the CloudIslands 1.1.135 baseline.
 
-Release notes for `v1.1.134`:
+Release notes for `v1.1.135`:
+
+- atomic Satis machine removal: the machine row, network links, inventory rows,
+  and inventory items now delete in one database transaction
+- a database failure at any deletion step rolls the complete bundle back, so a
+  machine cannot survive with missing buffers or disappear while buffers remain
+- runtime caches and Core state deletions are published only after the durable
+  transaction commits successfully
+- standalone virtual-inventory removal now follows the same DB-first rule, and
+  SQLite failure-trigger tests prove both cached and durable state remain intact
+
+Release notes carried forward from `v1.1.134`:
 
 - failure-contained Satis persistence: machine and virtual-inventory writes now
   reach durable storage or an accepted dirty-save queue before entering runtime
@@ -2348,7 +2359,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.134`.
+Current read: production-readiness baseline `v1.1.135`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
