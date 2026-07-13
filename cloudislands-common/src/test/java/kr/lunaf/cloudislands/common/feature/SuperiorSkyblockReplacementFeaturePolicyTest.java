@@ -40,6 +40,7 @@ class SuperiorSkyblockReplacementFeaturePolicyTest {
                 Map.entry("island-biome", "섬 바이옴"),
                 Map.entry("island-bank", "섬 은행"),
                 Map.entry("island-chat", "섬 채팅"),
+                Map.entry("local-chat", "로컬 섬 채팅"),
                 Map.entry("team-chat", "팀 채팅"),
                 Map.entry("missions", "미션"),
                 Map.entry("challenges", "챌린지"),
@@ -85,6 +86,7 @@ class SuperiorSkyblockReplacementFeaturePolicyTest {
         assertEquals("economy-upgrades", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("island-bank"));
         assertEquals("world-management", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("island-biome"));
         assertEquals("social", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("team-chat"));
+        assertEquals("social", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("local-chat"));
         assertEquals("progression", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("missions"));
         assertEquals("limits-generation", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("redstone-limits"));
         assertEquals("operations", SuperiorSkyblockReplacementFeaturePolicy.featureDomain("snapshot-rollback"));

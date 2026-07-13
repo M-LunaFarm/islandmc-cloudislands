@@ -46,6 +46,9 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             if (first.equals("teamchat") || first.equals("team-chat") || first.equals("팀채팅")) {
                 addLiteralSuggestions(matches, args[1], List.of("toggle", "mode", "on", "off", "전환", "모드"));
             }
+            if (first.equals("localchat") || first.equals("local-chat") || first.equals("lc") || first.equals("로컬채팅")) {
+                addLiteralSuggestions(matches, args[1], List.of("message"));
+            }
             if (first.equals("biome") || first.equals("biome-menu") || first.equals("biome-info") || first.equals("바이옴") || first.equals("바이옴정보")) {
                 addLiteralSuggestions(matches, args[1], List.of("minecraft:plains", "minecraft:forest", "minecraft:desert", "minecraft:taiga"));
             }

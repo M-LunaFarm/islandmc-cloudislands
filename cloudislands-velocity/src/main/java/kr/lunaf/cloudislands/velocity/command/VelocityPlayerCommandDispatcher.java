@@ -390,6 +390,14 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerProgression.sendIslandChat(player, new UUID(0L, 0L), "ISLAND", joinArgs(args, 1));
             return;
         }
+        if (args[0].equalsIgnoreCase("localchat") || args[0].equalsIgnoreCase("local-chat") || args[0].equalsIgnoreCase("lc") || args[0].equals("로컬채팅")) {
+            if (args.length < 2) {
+                playerProgression.showLocalChatMode(player);
+                return;
+            }
+            playerProgression.sendIslandChat(player, new UUID(0L, 0L), "ISLAND", joinArgs(args, 1));
+            return;
+        }
         if (args[0].equalsIgnoreCase("teamchat") || args[0].equalsIgnoreCase("team-chat") || args[0].equalsIgnoreCase("teamchat-toggle") || args[0].equalsIgnoreCase("tc") || args[0].equals("팀채팅")) {
             if (args[0].equalsIgnoreCase("teamchat-toggle") || args.length > 1 && (args[1].equalsIgnoreCase("toggle") || args[1].equalsIgnoreCase("mode") || args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("off") || args[1].equals("전환") || args[1].equals("모드"))) {
                 playerProgression.showTeamChatMode(player);

@@ -70,6 +70,9 @@ public final class PaperLocalCommandForwarder {
         if (Set.of("teamchat", "team-chat", "teamchat-toggle", "tc", "팀채팅").contains(subcommand)) {
             return arguments.length == 2 || isTeamChatModeArgument(arguments[2]);
         }
+        if (Set.of("localchat", "local-chat", "lc", "로컬채팅").contains(subcommand)) {
+            return arguments.length == 2;
+        }
         if (!PAPER_MENU_SUBCOMMANDS.contains(subcommand)) {
             return false;
         }

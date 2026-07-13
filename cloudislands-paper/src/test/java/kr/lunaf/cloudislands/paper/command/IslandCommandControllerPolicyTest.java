@@ -786,6 +786,18 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void localChatModeRoutesNormalChatThroughCoreIslandChannel() throws Exception {
+        String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandChatLogCommandHandler.java"));
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java"));
+
+        assertTrue(handler.contains("teamChatModes.toggleIsland(player.getUniqueId())"));
+        assertTrue(listener.contains("teamChatModes.islandEnabled(event.getPlayer().getUniqueId())"));
+        assertTrue(listener.contains("PaperSchedulers.run(plugin, () -> sendLocalChat"), "async local chat must return to the Paper scheduler before location access");
+        assertTrue(listener.contains("communicationCommands().sendChat(islandId, player.getUniqueId(), \"ISLAND\""));
+        assertTrue(listener.contains("teamChatEnabled(event) || islandChatEnabled(event)"), "both private modes must be re-isolated at HIGHEST");
+    }
+
+    @Test
     void lifecycleCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String lifecycleHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java"));

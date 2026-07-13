@@ -182,6 +182,7 @@ public final class SuperiorSkyblockReplacementFeaturePolicy {
         features.put("island-biome", "섬 바이옴");
         features.put("island-bank", "섬 은행");
         features.put("island-chat", "섬 채팅");
+        features.put("local-chat", "로컬 섬 채팅");
         features.put("team-chat", "팀 채팅");
         features.put("missions", "미션");
         features.put("challenges", "챌린지");
@@ -229,6 +230,7 @@ public final class SuperiorSkyblockReplacementFeaturePolicy {
         domains.put("island-biome", "world-management");
         domains.put("island-bank", "economy-upgrades");
         domains.put("island-chat", "social");
+        domains.put("local-chat", "social");
         domains.put("team-chat", "social");
         domains.put("missions", "progression");
         domains.put("challenges", "progression");

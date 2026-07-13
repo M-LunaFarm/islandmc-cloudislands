@@ -70,6 +70,14 @@ class PaperLocalCommandForwarderTest {
     }
 
     @Test
+    void forwardsLocalChatModeChangesButKeepsDirectMessagesOnVelocity() {
+        for (String command : List.of("is localchat", "is local-chat", "is lc", "섬 로컬채팅")) {
+            assertTrue(PaperLocalCommandForwarder.shouldForward(command, List.of("is", "섬")), command);
+        }
+        assertFalse(PaperLocalCommandForwarder.shouldForward("is localchat hello island", List.of("is")));
+    }
+
+    @Test
     void keepsGlobalAndReadOnlyCommandsOnVelocity() {
         for (String command : List.of(
                 "is home",

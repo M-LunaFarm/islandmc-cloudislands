@@ -121,15 +121,18 @@ class IslandCommandCatalogTest {
         assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 toggle border"), "SS2-style toggle border help must be advertised");
         assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 toggle blocks"), "SS2-style toggle blocks help must be advertised");
         assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 teamchat toggle"), "Team chat toggle-mode help must be advertised");
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 localchat [message]"), "Local chat mode and direct message help must be advertised");
         assertEquals(IslandCommandPermission.ENVIRONMENT, IslandCommandPermission.fromSubcommand("toggle"), "toggle must use the environment permission policy");
         assertEquals(IslandCommandPermission.ENVIRONMENT, IslandCommandPermission.fromSubcommand("toggleblocks"), "toggleblocks must use the environment permission policy");
         assertEquals(IslandCommandPermission.CHAT, IslandCommandPermission.fromSubcommand("teamchat-toggle"), "teamchat toggle must use the chat permission policy");
+        assertEquals(IslandCommandPermission.CHAT, IslandCommandPermission.fromSubcommand("localchat"), "localchat must use the chat permission policy");
         assertTrue(environmentHandler.contains("handleToggle(Player player, String[] args)"), "toggle border must route through the environment handler");
         assertTrue(environmentHandler.contains("toggleBorderVisibility(player)"), "toggle border must flip current border visibility when no explicit value is supplied");
         assertTrue(environmentHandler.contains("toggleStackedBlockVisibility(player)"), "toggle blocks must flip Core-backed stacked block visibility when no explicit value is supplied");
         assertTrue(environmentHandler.contains("subcommand.equals(\"toggleblocks\")"), "official single-token toggleblocks must route without requiring migration mode");
         assertTrue(environmentHandler.contains("GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY"), "toggle blocks must persist through the shared stacked block limit key");
         assertTrue(chatHandler.contains("isTeamChatToggle(args[1])"), "teamchat toggle mode must be handled before message dispatch");
+        assertTrue(chatHandler.contains("teamChatModes.toggleIsland(player.getUniqueId())"), "localchat without a message must toggle island-local mode");
         assertTrue(completer.contains("List.of(\"border\", \"border-visible\", \"blocks\", \"stacked-blocks\", \"경계\", \"경계표시\", \"블록\", \"스택블록\")"), "toggle completions must expose SS2-style border and blocks targets");
     }
 

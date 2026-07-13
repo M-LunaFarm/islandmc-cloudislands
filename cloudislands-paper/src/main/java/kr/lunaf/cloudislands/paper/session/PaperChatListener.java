@@ -59,6 +59,16 @@ public final class PaperChatListener implements Listener {
             PaperSchedulers.run(plugin, () -> sendTeamChat(event.getPlayer(), message));
             return;
         }
+        if (islandChatEnabled(event)) {
+            boolean alreadyCancelled = event.isCancelled();
+            isolateTeamChat(event);
+            if (alreadyCancelled) {
+                return;
+            }
+            String message = PlainTextComponentSerializer.plainText().serialize(event.message());
+            PaperSchedulers.run(plugin, () -> sendLocalChat(event.getPlayer(), message));
+            return;
+        }
         event.renderer((source, sourceDisplayName, message, viewer) ->
             chatLine(viewerLocale(viewer), sourceDisplayName, message)
         );
@@ -67,7 +77,7 @@ public final class PaperChatListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void enforceTeamChatIsolation(AsyncChatEvent event) {
-        if (teamChatEnabled(event)) {
+        if (teamChatEnabled(event) || islandChatEnabled(event)) {
             isolateTeamChat(event);
         }
     }
@@ -90,9 +100,28 @@ public final class PaperChatListener implements Listener {
         );
     }
 
+    private void sendLocalChat(Player player, String message) {
+        protection.islandAt(player.getLocation().getBlock()).ifPresentOrElse(islandId ->
+            coreApiClient.communicationCommands().sendChat(islandId, player.getUniqueId(), "ISLAND", message)
+                .exceptionally(error -> {
+                    player.sendMessage(Component.text("섬 채팅을 전송하지 못했습니다."));
+                    return null;
+                }),
+            () -> player.sendMessage(Component.text("섬 안에서만 로컬 채팅 모드를 사용할 수 있습니다."))
+        );
+    }
+
     private boolean teamChatEnabled(AsyncChatEvent event) {
         return teamChatModes != null
             && teamChatModes.enabled(event.getPlayer().getUniqueId())
+            && plugin != null
+            && coreApiClient != null
+            && protection != null;
+    }
+
+    private boolean islandChatEnabled(AsyncChatEvent event) {
+        return teamChatModes != null
+            && teamChatModes.islandEnabled(event.getPlayer().getUniqueId())
             && plugin != null
             && coreApiClient != null
             && protection != null;

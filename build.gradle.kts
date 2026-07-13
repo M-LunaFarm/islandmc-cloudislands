@@ -1483,6 +1483,8 @@ tasks.register("verifyChatLogMessageKeyCoverage") {
             "chat-team-required",
             "chat-team-mode-enabled",
             "chat-team-mode-disabled",
+            "chat-local-mode-enabled",
+            "chat-local-mode-disabled",
             "log-list-actor-prefix",
             "log-list-empty",
             "log-list-island-required",

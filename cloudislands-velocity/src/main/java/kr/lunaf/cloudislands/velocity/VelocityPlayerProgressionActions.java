@@ -254,6 +254,10 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
         player.sendMessage(Component.text("팀 채팅 모드: /섬 팀채팅 <message>로 팀 채널에 보낼 수 있습니다."));
     }
 
+    public void showLocalChatMode(Player player) {
+        player.sendMessage(Component.text("로컬 채팅 모드: Paper 서버에서 /섬 localchat으로 전환하거나 /섬 localchat <message>로 현재 섬 채널에 보낼 수 있습니다."));
+    }
+
     private void sendIslandChatResolved(Player player, UUID islandId, String channel, String message, String label) {
         sendTextResult(player, coreApiClient.communicationCommands().sendChat(islandId, player.getUniqueId(), channel, message).thenApply(result -> islandMessages.chatResult(label, result)), label + "을 전송하지 못했습니다.");
     }
