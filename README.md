@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.141`
+Version: `1.1.142`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.141`
+Current release: `v1.1.142`
 
-Built for the CloudIslands 1.1.141 baseline.
+Built for the CloudIslands 1.1.142 baseline.
 
-Release notes for `v1.1.141`:
+Release notes for `v1.1.142`:
+
+- snapshot requests are accepted only while the island runtime is ACTIVE, so a
+  snapshot cannot race an in-progress save, deactivation, or recovery workflow
+- snapshot queue outages preserve the existing active runtime and island state
+  instead of making a still-running island unroutable
+- a failed save restores the exact active node, world, cell, and fencing token
+  when the saved placement is still valid; invalid placement remains explicit
+  ERROR_SAVING recovery work
+- late snapshot failures no longer overwrite a newer lifecycle state such as
+  DEACTIVATING, and failure events now use the real durable event publisher
+  instead of disappearing through an inactive completion buffer
+
+Release notes carried forward from `v1.1.141`:
 
 - island deletion now removes the deleted island's state for every registered
   addon in Core before the authoritative deleted event is published
@@ -2427,7 +2440,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.141`.
+Current read: production-readiness baseline `v1.1.142`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
