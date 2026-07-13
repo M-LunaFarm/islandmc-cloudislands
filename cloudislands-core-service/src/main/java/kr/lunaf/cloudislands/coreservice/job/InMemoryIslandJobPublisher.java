@@ -128,10 +128,18 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
     }
 
     @Override
+    public synchronized boolean hasActiveClaim(UUID jobId) {
+        Instant now = Instant.now();
+        return jobs.stream()
+            .filter(record -> record.job().jobId().equals(jobId))
+            .anyMatch(record -> record.activeClaim(now));
+    }
+
+    @Override
     public synchronized boolean retry(UUID jobId) {
         final boolean[] changed = {false};
         replace(jobId, record -> {
-            if (record.state() == JobState.FAILED || record.state() == JobState.CLAIMED) {
+            if (record.state() == JobState.FAILED || (record.state() == JobState.CLAIMED && !record.activeClaim(Instant.now()))) {
                 changed[0] = true;
                 return record.pending();
             }
@@ -144,7 +152,8 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
     public synchronized boolean cancel(UUID jobId) {
         final boolean[] changed = {false};
         replace(jobId, record -> {
-            if (record.state() == JobState.PENDING || record.state() == JobState.CLAIMED || record.state() == JobState.FAILED) {
+            if (record.state() == JobState.PENDING || record.state() == JobState.FAILED
+                    || (record.state() == JobState.CLAIMED && !record.activeClaim(Instant.now()))) {
                 changed[0] = true;
                 return record.canceled();
             }
@@ -236,6 +245,10 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
     }
 
     private record JobRecord(IslandJob job, JobState state, String lockedBy, Instant lockedUntil, String claimToken, long claimEpoch, int attempts, String errorMessage, Instant updatedAt) {
+        private boolean activeClaim(Instant now) {
+            return state == JobState.CLAIMED && lockedUntil != null && lockedUntil.isAfter(now);
+        }
+
         private JobRecord pending() {
             Map<String, String> payload = new HashMap<>(job.payload());
             payload.remove("lastError");

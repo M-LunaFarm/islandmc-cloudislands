@@ -188,12 +188,25 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     }
 
     @Override
+    public boolean hasActiveClaim(UUID jobId) {
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            return activeClaim(claimedJobs.get(jobId), readClaimHash(redis, jobId), Instant.now());
+        } catch (IOException | RuntimeException exception) {
+            recordRedisFailure();
+            throw new IllegalStateException("failed to inspect active redis island job claim", exception);
+        }
+    }
+
+    @Override
     public boolean retry(UUID jobId) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
             IslandJob job = claimedJobs.get(jobId);
             String streamId = streamIdsByJobId.get(jobId);
+            Map<String, String> storedLease = readClaimHash(redis, jobId);
+            if (activeClaim(job, storedLease, Instant.now())) {
+                return false;
+            }
             if (job == null) {
-                Map<String, String> storedLease = readClaimHash(redis, jobId);
                 java.util.Optional<IslandJob> storedJob = claimedJobFromHash(jobId, storedLease);
                 if (storedJob.isEmpty()) {
                     return false;
@@ -225,8 +238,11 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         IslandJob job = claimedJobs.get(jobId);
         String streamId = streamIdsByJobId.get(jobId);
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            Map<String, String> storedLease = readClaimHash(redis, jobId);
+            if (activeClaim(job, storedLease, Instant.now())) {
+                return false;
+            }
             if (job == null && (streamId == null || streamId.isBlank())) {
-                Map<String, String> storedLease = readClaimHash(redis, jobId);
                 streamId = storedLease.getOrDefault("streamId", "");
                 if (streamId.isBlank() && claimedJobFromHash(jobId, storedLease).isEmpty()) {
                     return false;
@@ -374,6 +390,20 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             && token.equals(claimLease.claimToken())
             && epoch == claimLease.claimEpoch()
             && expiresAt.isAfter(Instant.now());
+    }
+
+    private boolean activeClaim(IslandJob localJob, Map<String, String> storedLease, Instant now) {
+        if (localJob != null && localJob.claimLease() != null && localJob.claimLease().leaseExpiresAt().isAfter(now)) {
+            return true;
+        }
+        if (storedLease == null || storedLease.isEmpty()) {
+            return false;
+        }
+        String expiresAt = storedLease.get("leaseExpiresAt");
+        if (expiresAt == null || expiresAt.isBlank()) {
+            return true;
+        }
+        return parseInstant(expiresAt).isAfter(now);
     }
 
     private java.util.Optional<IslandJob> claimedJobFromHash(UUID jobId, Map<String, String> storedLease) {

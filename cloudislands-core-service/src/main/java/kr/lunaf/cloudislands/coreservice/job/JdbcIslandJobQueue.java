@@ -220,6 +220,20 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
         }
     }
 
+    @Override
+    public boolean hasActiveClaim(UUID jobId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT 1 FROM island_jobs WHERE id = ? AND state = 'CLAIMED' AND locked_until > ?")) {
+            statement.setObject(1, jobId);
+            statement.setObject(2, java.sql.Timestamp.from(clock.instant()));
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next();
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to inspect active jdbc island job claim", exception);
+        }
+    }
+
     public String recoverPending(String nodeId, long minIdleMillis, int maxJobs) {
         if (maxJobs <= 0) {
             return "[]";
@@ -254,8 +268,9 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     @Override
     public boolean retry(UUID jobId) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', retry_count = 0, locked_by = NULL, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, error_message = NULL, updated_at = now() WHERE id = ? AND state IN ('FAILED', 'CLAIMED')")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', retry_count = 0, locked_by = NULL, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, error_message = NULL, updated_at = now() WHERE id = ? AND (state = 'FAILED' OR (state = 'CLAIMED' AND locked_until <= ?))")) {
             statement.setObject(1, jobId);
+            statement.setObject(2, java.sql.Timestamp.from(clock.instant()));
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to retry jdbc island job", exception);
@@ -265,8 +280,9 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     @Override
     public boolean cancel(UUID jobId) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'CANCELED', locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, updated_at = now() WHERE id = ? AND state IN ('PENDING', 'CLAIMED', 'FAILED')")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'CANCELED', locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, updated_at = now() WHERE id = ? AND (state IN ('PENDING', 'FAILED') OR (state = 'CLAIMED' AND locked_until <= ?))")) {
             statement.setObject(1, jobId);
+            statement.setObject(2, java.sql.Timestamp.from(clock.instant()));
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to cancel jdbc island job", exception);

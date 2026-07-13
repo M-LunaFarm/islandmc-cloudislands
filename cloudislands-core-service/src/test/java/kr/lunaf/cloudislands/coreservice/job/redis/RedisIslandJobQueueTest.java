@@ -31,7 +31,7 @@ class RedisIslandJobQueueTest {
         UUID jobId = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
         String streamId = "1700000000000-0";
-        try (FakeRedis redis = FakeRedis.withClaim(jobId, islandId, streamId)) {
+        try (FakeRedis redis = FakeRedis.withExpiredClaim(jobId, islandId, streamId)) {
             RedisIslandJobQueue queue = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
 
             assertTrue(queue.retry(jobId));
@@ -57,7 +57,7 @@ class RedisIslandJobQueueTest {
         UUID jobId = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
         String streamId = "1700000000001-0";
-        try (FakeRedis redis = FakeRedis.withClaim(jobId, islandId, streamId)) {
+        try (FakeRedis redis = FakeRedis.withExpiredClaim(jobId, islandId, streamId)) {
             RedisIslandJobQueue queue = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
 
             assertTrue(queue.cancel(jobId));
@@ -95,6 +95,22 @@ class RedisIslandJobQueueTest {
             int exec = commandIndex(commands, "EXEC", "");
             assertTrue(multi >= 0 && multi < ack && ack < cleanup && cleanup < audit && audit < exec);
             assertTrue(commands.get(audit).contains("JOB_COMPLETED"));
+        }
+    }
+
+    @Test
+    void administrativeActionsDoNotInvalidateActiveRedisLease() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        String streamId = "1700000000008-0";
+        try (FakeRedis redis = FakeRedis.withClaim(jobId, islandId, streamId)) {
+            RedisIslandJobQueue queue = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
+
+            assertTrue(queue.hasActiveClaim(jobId));
+            assertFalse(queue.retry(jobId));
+            assertFalse(queue.cancel(jobId));
+            assertFalse(redis.commands().contains(List.of("XACK", RedisKeys.jobsStream(), "cloudislands-agents", streamId)));
+            assertFalse(redis.commands().contains(List.of("DEL", RedisKeys.jobClaim(jobId))));
         }
     }
 
@@ -242,7 +258,15 @@ class RedisIslandJobQueueTest {
             return withClaim(jobId, islandId, streamId, 7);
         }
 
+        static FakeRedis withExpiredClaim(UUID jobId, UUID islandId, String streamId) throws IOException {
+            return withClaim(jobId, islandId, streamId, 7, Instant.now().minusSeconds(60));
+        }
+
         static FakeRedis withClaim(UUID jobId, UUID islandId, String streamId, int attempt) throws IOException {
+            return withClaim(jobId, islandId, streamId, attempt, Instant.now().plusSeconds(60));
+        }
+
+        static FakeRedis withClaim(UUID jobId, UUID islandId, String streamId, int attempt, Instant leaseExpiresAt) throws IOException {
             ServerSocket server = new ServerSocket(0);
             return new FakeRedis(server, Map.ofEntries(
                 Map.entry("jobId", jobId.toString()),
@@ -250,7 +274,7 @@ class RedisIslandJobQueueTest {
                 Map.entry("claimedByNode", "node-a"),
                 Map.entry("claimToken", "claim-token"),
                 Map.entry("claimEpoch", "7"),
-                Map.entry("leaseExpiresAt", Instant.now().plusSeconds(60).toString()),
+                Map.entry("leaseExpiresAt", leaseExpiresAt.toString()),
                 Map.entry("attempt", Integer.toString(attempt)),
                 Map.entry("type", IslandJobType.SAVE_ISLAND.name()),
                 Map.entry("islandId", islandId.toString()),

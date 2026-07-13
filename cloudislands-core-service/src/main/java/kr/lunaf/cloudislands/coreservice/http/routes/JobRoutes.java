@@ -142,7 +142,13 @@ public final class JobRoutes implements RouteGroup {
         UUID jobId = request.jobId();
         boolean retried = jobs.retry(jobId);
         audit.log(SYSTEM_ACTOR, "ADMIN", "JOB_RETRY", "JOB", jobId.toString(), Map.of("retried", Boolean.toString(retried)));
-        CoreHttpResponses.write(exchange, retried ? 202 : 404, retried ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_RETRIED", "Job was not found or cannot be retried"));
+        if (retried) {
+            CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+        } else if (jobs.hasActiveClaim(jobId)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_ACTIVE_CLAIM", "Job has an active worker claim; wait for completion or recover it after the lease expires"));
+        } else {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("JOB_NOT_RETRIED", "Job was not found or cannot be retried"));
+        }
     }
 
     private void cancel(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
@@ -150,7 +156,13 @@ public final class JobRoutes implements RouteGroup {
         UUID jobId = request.jobId();
         boolean canceled = jobs.cancel(jobId);
         audit.log(SYSTEM_ACTOR, "ADMIN", "JOB_CANCEL", "JOB", jobId.toString(), Map.of("canceled", Boolean.toString(canceled)));
-        CoreHttpResponses.write(exchange, canceled ? 202 : 404, canceled ? ApiResponses.ok(true) : ApiResponses.error("JOB_NOT_CANCELED", "Job was not found or cannot be canceled"));
+        if (canceled) {
+            CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+        } else if (jobs.hasActiveClaim(jobId)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_ACTIVE_CLAIM", "Job has an active worker claim; wait for completion or recover it after the lease expires"));
+        } else {
+            CoreHttpResponses.write(exchange, 404, ApiResponses.error("JOB_NOT_CANCELED", "Job was not found or cannot be canceled"));
+        }
     }
 
     static String jobsJson(IslandJobQueue jobs) {

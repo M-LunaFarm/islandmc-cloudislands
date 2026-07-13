@@ -85,4 +85,17 @@ class InMemoryIslandJobPublisherTest {
         assertFalse(retried.payload().containsKey("lastError"));
         assertFalse(retried.payload().containsKey("attempts"));
     }
+
+    @Test
+    void administrativeActionsDoNotInvalidateActiveWorkerLease() {
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        UUID jobId = UUID.randomUUID();
+        jobs.publish(new IslandJob(jobId, IslandJobType.RESTORE_ISLAND, UUID.randomUUID(), "island-node-1", 0, Map.of(), Instant.EPOCH));
+        JobClaimLease lease = jobs.claim("island-node-1", List.of(IslandJobType.RESTORE_ISLAND), 1).getFirst().claimLease();
+
+        assertTrue(jobs.hasActiveClaim(jobId));
+        assertFalse(jobs.retry(jobId));
+        assertFalse(jobs.cancel(jobId));
+        assertTrue(jobs.findClaimed(jobId, lease).isPresent());
+    }
 }

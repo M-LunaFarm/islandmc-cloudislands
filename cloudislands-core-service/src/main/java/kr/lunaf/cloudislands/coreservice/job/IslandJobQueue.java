@@ -23,6 +23,9 @@ public interface IslandJobQueue extends IslandJobPublisher {
     }
     FailureDisposition failClaimed(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage);
     FailureDisposition failureDisposition(String nodeId, UUID jobId, JobClaimLease claimLease);
+    default boolean hasActiveClaim(UUID jobId) {
+        return false;
+    }
     boolean retry(UUID jobId);
     boolean cancel(UUID jobId);
 

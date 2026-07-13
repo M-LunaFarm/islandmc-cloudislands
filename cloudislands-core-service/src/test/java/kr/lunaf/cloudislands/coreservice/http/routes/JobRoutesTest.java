@@ -34,6 +34,7 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpException;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
@@ -165,6 +166,28 @@ class JobRoutesTest {
         assertTrue(exchange.body().contains("\"code\":\"JOB_CLAIM_MISMATCH\""));
         assertTrue(jobs.findClaimed(jobId, lease).isPresent());
         assertEquals(1L, jobs.countsByState().get("CLAIMED"));
+    }
+
+    @Test
+    void adminRetryAndCancelReportConflictForActiveWorkerClaim() throws Exception {
+        String nodeId = "island-node-1";
+        UUID jobId = UUID.randomUUID();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        jobs.publish(new IslandJob(jobId, IslandJobType.DELETE_ISLAND, UUID.randomUUID(), nodeId, 0, Map.of(), Instant.EPOCH));
+        JobClaimLease lease = jobs.claim(nodeId, List.of(IslandJobType.DELETE_ISLAND), 1).getFirst().claimLease();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new JobRoutes(jobs, null, new InMemoryAuditLogger()).register(handlers::put);
+
+        TestExchange retry = exchange("{\"jobId\":\"" + jobId + "\"}");
+        handlers.get("/v1/admin/jobs/retry").handle(retry);
+        TestExchange cancel = exchange("{\"jobId\":\"" + jobId + "\"}");
+        handlers.get("/v1/admin/jobs/cancel").handle(cancel);
+
+        assertEquals(409, retry.status());
+        assertTrue(retry.body().contains("\"code\":\"JOB_ACTIVE_CLAIM\""));
+        assertEquals(409, cancel.status());
+        assertTrue(cancel.body().contains("\"code\":\"JOB_ACTIVE_CLAIM\""));
+        assertTrue(jobs.findClaimed(jobId, lease).isPresent());
     }
 
     @Test
