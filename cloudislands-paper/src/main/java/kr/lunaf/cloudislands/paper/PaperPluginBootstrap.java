@@ -28,6 +28,7 @@ import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitLifecycleListener;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
 import kr.lunaf.cloudislands.paper.limit.LogicalStackDeltaBridge;
+import kr.lunaf.cloudislands.paper.limit.LogicalEntitySpawnBridge;
 import kr.lunaf.cloudislands.paper.limit.IslandRuntimeStateInvalidator;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.mission.IslandMissionProgressListener;
@@ -134,6 +135,12 @@ final class PaperPluginBootstrap {
                 limitCache,
                 plugin.levelScanService,
                 plugin.messages
+            );
+            LogicalEntitySpawnBridge.register(
+                plugin,
+                plugin.agent.protection(),
+                limitCache,
+                plugin.levelScanService
             );
             plugin.generatorLevels = new GeneratorLevelCache(client, config.generator().defaultKey());
             CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
