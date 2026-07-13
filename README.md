@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.176`
+Version: `1.1.177`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -654,7 +654,7 @@ integration verification.
 | ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
-| chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests and LOWEST/HIGHEST mutually exclusive local/team-chat isolation cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
+| chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus current-visible-visitor classification, Core audit/visitor route tests, and LOWEST/HIGHEST mutually exclusive local/team-chat isolation cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
 | integrations/localization/GUI | PARTIAL_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services including RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation while keeping probe-only adapters diagnostic | Vault, PlaceholderAPI, Plan, vanish, custom-item, and stacker accounting services are executable; external lifecycle and state-transfer operations remain diagnostic until real executors exist |
@@ -662,11 +662,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.176`
+Current release: `v1.1.177`
 
-Built for the CloudIslands 1.1.176 baseline.
+Built for the CloudIslands 1.1.177 baseline.
 
-Release notes for `v1.1.176`:
+Release notes for `v1.1.177`:
+
+- `/섬 visitors` now lists players currently present on the island instead of
+  opening the historical visitor-statistics menu
+- typed Core membership data separates permanent island members from guests and
+  temporary `TRUSTED` cooperators while the existing `/섬 방문통계` workflow remains
+  available for historical totals and recent visits
+- the asynchronous Core lookup returns to the Paper main thread before reading
+  Bukkit online-player, visibility, and island-location state
+- `Player#canSee` filtering keeps vanished staff out of the current visitor list
+- dedicated policy, message-key, command-coverage, and feature-parity gates
+  protect the current-visible-visitor behavior
+
+Release notes carried forward from `v1.1.176`:
 
 - Core now persists one player-scoped warehouse settlement in PostgreSQL or
   MySQL/MariaDB, with PREPARED and ESCROWED transitions guarding inventory

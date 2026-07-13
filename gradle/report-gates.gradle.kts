@@ -421,7 +421,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "chat listener, audit/log routes, visitor stats, and review moderation have verification gates",
         "Paper chat listener compiles under matrix and Core review moderation has route/repository/schema tests",
         "version-neutral where possible",
-        "verifyReviewModerationCoverage plus Core audit/visitor route tests and LOWEST/HIGHEST mutually exclusive local/team-chat isolation cover current workflow",
+        "verifyReviewModerationCoverage plus current-visible-visitor classification, Core audit/visitor route tests, and LOWEST/HIGHEST mutually exclusive local/team-chat isolation cover current workflow",
         "audit log replay is covered in Core tests",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java",
