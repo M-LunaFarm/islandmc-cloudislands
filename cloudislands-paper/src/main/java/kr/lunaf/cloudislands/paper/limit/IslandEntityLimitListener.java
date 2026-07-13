@@ -18,6 +18,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
@@ -158,6 +159,14 @@ public final class IslandEntityLimitListener implements Listener {
         }
         if (IslandEntityLimitKeys.counts(event.getEntity())) {
             recordAcceptedDelta(event.getEntity().getLocation(), -1L);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntityRemoved(EntityRemoveEvent event) {
+        if (EntityRemovalAccountingPolicy.records(event.getCause())
+            && IslandEntityLimitKeys.counts(event.getEntity())) {
+            recordAcceptedDelta(event.getEntity().getLocation(), -stackAmounts.entityAmount(event.getEntity()));
         }
     }
 

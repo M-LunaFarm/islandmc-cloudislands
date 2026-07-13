@@ -12,6 +12,8 @@ import kr.lunaf.cloudislands.common.protection.BlockSpreadPolicy;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionCheckEvent;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
+import kr.lunaf.cloudislands.paper.limit.EntityRemovalAccountingPolicy;
+import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitKeys;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -61,6 +63,7 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityDropItemEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
+import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.PlayerLeashEntityEvent;
@@ -435,6 +438,17 @@ public final class IslandProtectionListener implements Listener {
             return;
         }
         protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntityRemoved(EntityRemoveEvent event) {
+        if (!EntityRemovalAccountingPolicy.records(event.getCause())
+            || !IslandEntityLimitKeys.counts(event.getEntity())
+            || protection.migrating(event.getEntity().getLocation().getBlock())) {
+            return;
+        }
+        protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId ->
+            blockDeltas.entityRemoved(islandId, event.getEntity().getType(), stackAmounts.entityAmount(event.getEntity())));
     }
 
     @EventHandler(ignoreCancelled = true)

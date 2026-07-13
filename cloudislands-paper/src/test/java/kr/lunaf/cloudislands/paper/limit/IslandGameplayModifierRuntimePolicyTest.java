@@ -28,6 +28,10 @@ class IslandGameplayModifierRuntimePolicyTest {
         assertTrue(entityLimits.contains("limitIfReady"), "Finite entity and spawner-rate limits must fail closed while loading");
         assertTrue(entityLimits.contains("blockCountIfReady"), "Entity limits must read the authoritative count snapshot");
         assertTrue(entityLimits.contains("EventPriority.MONITOR"), "Only finally accepted entity events may mutate authoritative counts");
+        assertTrue(entityLimits.contains("onEntityRemoved(EntityRemoveEvent event)"), "Permanent non-death removals must decrement the entity limit count");
+        assertTrue(entityLimits.contains("-stackAmounts.entityAmount(event.getEntity())"), "Stacked natural despawns must remove their full logical amount");
+        assertTrue(protection.contains("onEntityRemoved(EntityRemoveEvent event)"), "Permanent non-death removals must decrement per-type level and worth counts");
+        assertTrue(protection.contains("EntityRemovalAccountingPolicy.records(event.getCause())"), "Chunk unloads and already-accounted removal causes must be deduplicated");
         assertTrue(!entityLimits.contains("getEntities()"), "Entity spawn events must never scan the whole world on the main thread");
         assertTrue(!entityLimits.contains("seedObserved"), "Entity limit enforcement must not maintain a scan-seeded shadow count");
         assertTrue(blockLimits.contains("limitIfReady"), "Restricted placement must fail closed until the Core limit snapshot is ready");

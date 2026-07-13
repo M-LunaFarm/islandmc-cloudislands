@@ -80,7 +80,11 @@ public final class BlockDeltaReporter {
     }
 
     public void entityRemoved(UUID islandId, EntityType entityType) {
-        report(islandId, "entity:" + entityType.getKey(), -1L);
+        entityRemoved(islandId, entityType, 1L);
+    }
+
+    public void entityRemoved(UUID islandId, EntityType entityType, long amount) {
+        report(islandId, "entity:" + entityType.getKey(), -Math.max(1L, amount));
     }
 
     private void report(UUID islandId, Block block, long delta) {
