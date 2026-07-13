@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.166`
+Version: `1.1.167`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -469,10 +469,14 @@ the expansion exposes `%cloudislands_role%`, `is_member`, `is_owner`, `is_coop`,
 `locked`, `creation_time`, and `last_time_updated` (all with the
 `%cloudislands_<key>%` form). `has_island` means permanent team membership;
 `has_associated_island` also includes temporary co-op access.
-SS2-style scoreboard aliases include `bank_format|int|raw`,
+SS2-style scoreboard aliases include `bank_format|int|raw`, `bank_rank`,
 `worth_format|int|raw`, `level_format|int|raw`, `leader`, indexed `member_<n>`,
 and `team_size_online`; formatted values use locale-stable `K`, `M`, `B`, `T`,
-and `Q` suffixes.
+and `Q` suffixes. Indexed `member_<n>`, `coop_<n>`, and `ban_<n>` values follow
+SS2's 1-based positions; `member_0` and explicit `member_index_<n>` remain as
+compatibility forms for existing CloudIslands scoreboards. Player-level
+`chat_state`, `local_chat`, and `team_chat` resolve immediately from the active
+Paper chat mode without waiting for an island cache refresh.
 Core-backed SS2 data aliases also include `biome`, `bans_count`, `bans_list`,
 `home`, `home_x|y|z`, `world`, `warps`, `warps_limit`, and dynamic
 `upgrade_<key>`, `permission_<permission>`, and `flag_<flag>`. Permission
@@ -658,11 +662,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.166`
+Current release: `v1.1.167`
 
-Built for the CloudIslands 1.1.166 baseline.
+Built for the CloudIslands 1.1.167 baseline.
 
-Release notes for `v1.1.166`:
+Release notes for `v1.1.167`:
+
+- SS2-compatible `member_<n>`, `coop_<n>`, and `ban_<n>` placeholders now use
+  the expected 1-based positions with deterministic ordering
+- existing `member_0` behavior remains available, while `member_index_<n>`
+  provides an explicit stable 0-based compatibility form
+- `chat_state`, `local_chat`, and `team_chat` expose the live GLOBAL, ISLAND,
+  or TEAM Paper mode even when no island snapshot has been cached yet
+- `bank_rank` now uses the authoritative bank TOP ranking added in 1.1.165
+- fixed `member_count`, `coop_count`, and `coop_size` being mistaken for indexed
+  placeholders and incorrectly returning an empty string
+
+Release notes carried forward from `v1.1.166`:
 
 - `/is localchat`, `/is lc`, and `/is 로컬채팅` now toggle ordinary Paper chat
   into the current island's local channel, while an inline message sends once
@@ -2769,7 +2785,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.166`.
+Current read: production-readiness baseline `v1.1.167`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
