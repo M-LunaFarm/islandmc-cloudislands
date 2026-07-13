@@ -12,6 +12,7 @@ class IslandGameplayModifierRuntimePolicyTest {
         Path root = Path.of(".");
         String cropGrowth = Files.readString(root.resolve("src/main/java/kr/lunaf/cloudislands/paper/generator/IslandCropGrowthListener.java"));
         String entityLimits = Files.readString(root.resolve("src/main/java/kr/lunaf/cloudislands/paper/limit/IslandEntityLimitListener.java"));
+        String dropScaler = Files.readString(root.resolve("src/main/java/kr/lunaf/cloudislands/paper/limit/MobDropRateScaler.java"));
         String blockLimits = Files.readString(root.resolve("src/main/java/kr/lunaf/cloudislands/paper/limit/IslandLimitListener.java"));
         String protection = Files.readString(root.resolve("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
         String effects = Files.readString(root.resolve("src/main/java/kr/lunaf/cloudislands/paper/limit/IslandEffectApplier.java"));
@@ -20,7 +21,8 @@ class IslandGameplayModifierRuntimePolicyTest {
         assertTrue(cropGrowth.contains("\"RATE:CROP_GROWTH\""), "Crop growth listener must consume the Core crop growth runtime key");
         assertTrue(cropGrowth.contains("event.setCancelled(true)"), "Crop growth rate 0 must fail closed by cancelling natural growth");
         assertTrue(entityLimits.contains("\"RATE:MOB_DROPS\""), "Entity listener must consume the Core mob drops runtime key");
-        assertTrue(entityLimits.contains("drops.clear()"), "Mob drop rate 0 must fail closed by clearing drops");
+        assertTrue(entityLimits.contains("MobDropRateScaler.scale"), "Mob drop rate must use the overflow-safe scaler");
+        assertTrue(dropScaler.contains("drops.clear()"), "Mob drop rate 0 must fail closed by clearing drops");
         assertTrue(entityLimits.contains("\"RATE:SPAWNER_RATES\""), "Entity listener must consume the Core spawner rate runtime key");
         assertTrue(entityLimits.contains("CreatureSpawnEvent.SpawnReason.SPAWNER"), "Spawner rate must apply only to spawner-origin spawns");
         assertTrue(entityLimits.contains("limitIfReady"), "Finite entity and spawner-rate limits must fail closed while loading");

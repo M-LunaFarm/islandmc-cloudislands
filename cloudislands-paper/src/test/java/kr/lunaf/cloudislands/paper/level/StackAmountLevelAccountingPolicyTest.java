@@ -45,6 +45,9 @@ class StackAmountLevelAccountingPolicyTest {
         assertTrue(entityRemovals.contains("EntityStackClearEvent"));
         assertTrue(entityRemovals.contains("EntityUnstackEvent"));
         assertTrue(entityRemovals.contains("onAsynchronousEntityDeath"));
+        assertTrue(entityRemovals.contains("captureSynchronousDeathContext"));
+        assertTrue(entityRemovals.contains("applyRoseMultipleDeathDropRate"));
+        assertTrue(entityRemovals.contains("MobDropRateScaler.scale"));
         assertTrue(bootstrap.contains("LogicalEntityRemovalBridge.register"));
         assertTrue(protection.contains("if (event.isAsynchronous())"));
         assertTrue(entityLimits.contains("if (event.isAsynchronous())"));

@@ -219,26 +219,7 @@ public final class IslandEntityLimitListener implements Listener {
 
     private void applyMobDropRate(UUID islandId, java.util.List<ItemStack> drops) {
         long percent = Math.max(0L, limits.limit(islandId, "RATE:MOB_DROPS", 100L));
-        if (percent == 100L || drops.isEmpty()) {
-            return;
-        }
-        if (percent <= 0L) {
-            drops.clear();
-            return;
-        }
-        drops.removeIf(drop -> scaleDrop(drop, percent) <= 0);
-    }
-
-    private int scaleDrop(ItemStack drop, long percent) {
-        int originalAmount = drop.getAmount();
-        long scaled = originalAmount * percent / 100L;
-        long remainder = originalAmount * percent % 100L;
-        if (remainder > 0 && random.nextInt(100) < remainder) {
-            scaled++;
-        }
-        int amount = (int) Math.min(Math.max(0L, scaled), drop.getMaxStackSize());
-        drop.setAmount(amount);
-        return amount;
+        MobDropRateScaler.scale(drops, percent, random);
     }
 
     private void notifyNearby(Location location, UUID islandId, long current, long limit) {

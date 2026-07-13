@@ -146,7 +146,8 @@ final class PaperPluginBootstrap {
             LogicalEntityRemovalBridge.register(
                 plugin,
                 plugin.agent.protection(),
-                plugin.levelScanService
+                plugin.levelScanService,
+                limitCache
             );
             plugin.generatorLevels = new GeneratorLevelCache(client, config.generator().defaultKey());
             CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
