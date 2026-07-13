@@ -34,6 +34,10 @@ class RedisKeysTest {
         assertEquals("ci:lock:player-create:" + PLAYER, RedisKeys.playerCreateLock(PLAYER));
         assertEquals("ci:lock:island:" + ISLAND, RedisKeys.islandLock(ISLAND));
         assertEquals("ci:lock:activation:" + ISLAND, RedisKeys.activationLock(ISLAND));
+        assertEquals("ci:lock:job-admin:" + ISLAND, RedisKeys.jobAdminLock(ISLAND));
+        assertEquals("ci:job:" + ISLAND + ":claim", RedisKeys.jobClaim(ISLAND));
+        assertEquals("ci:job:" + ISLAND + ":failed", RedisKeys.jobFailure(ISLAND));
+        assertEquals("ci:jobs:failed", RedisKeys.failedJobs());
 
         assertEquals("ci:route-ticket:" + TICKET, RedisKeys.routeTicket(TICKET));
         assertEquals("ci:island:" + ISLAND + ":route-tickets", RedisKeys.islandRouteTickets(ISLAND));

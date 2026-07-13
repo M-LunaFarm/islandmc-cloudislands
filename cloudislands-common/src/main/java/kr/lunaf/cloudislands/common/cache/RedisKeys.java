@@ -49,7 +49,10 @@ public final class RedisKeys {
     public static String islandFencingToken(UUID islandId) { return "ci:island:" + islandId + ":fencing-token"; }
     public static String playerCreateLock(UUID playerUuid) { return "ci:lock:player-create:" + playerUuid; }
     public static String jobClaimLock(String nodeId) { return "ci:lock:job-claim:" + nodeId; }
+    public static String jobAdminLock(UUID jobId) { return "ci:lock:job-admin:" + jobId; }
     public static String jobClaim(UUID jobId) { return "ci:job:" + jobId + ":claim"; }
+    public static String jobFailure(UUID jobId) { return "ci:job:" + jobId + ":failed"; }
+    public static String failedJobs() { return "ci:jobs:failed"; }
     public static String jobsStream() { return "ci:stream:jobs"; }
     public static String eventsStream() { return "ci:stream:events"; }
     public static String auditStream() { return "ci:stream:audit"; }

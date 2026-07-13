@@ -28,6 +28,10 @@ class RedisKeyspacePolicyTest {
                 "ci:lock:player-create:{uuid}",
                 "ci:lock:island:{islandId}",
                 "ci:lock:activation:{islandId}",
+                "ci:lock:job-admin:{jobId}",
+                "ci:job:{jobId}:claim",
+                "ci:job:{jobId}:failed",
+                "ci:jobs:failed",
                 "ci:stream:jobs",
                 "ci:stream:events",
                 "ci:stream:audit"
@@ -36,6 +40,7 @@ class RedisKeyspacePolicyTest {
         );
         assertTrue(RedisKeyspacePolicy.requiredKeyPattern("ci:server:{nodeId}:heartbeat"));
         assertTrue(RedisKeyspacePolicy.requiredKeyPattern(" ci:stream:events "));
+        assertTrue(RedisKeyspacePolicy.requiredKeyPattern("ci:job:{jobId}:failed"));
         assertFalse(RedisKeyspacePolicy.requiredKeyPattern("ci:source-of-truth:islands"));
     }
 

@@ -16,8 +16,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
@@ -115,6 +117,22 @@ class RedisIslandJobQueueTest {
     }
 
     @Test
+    void administrativeLockPreventsDuplicateRedisRetry() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        String streamId = "1700000000010-0";
+        try (FakeRedis redis = FakeRedis.withExpiredClaim(jobId, islandId, streamId)) {
+            redis.holdAdminLock(jobId);
+            RedisIslandJobQueue queue = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
+
+            assertFalse(queue.retry(jobId));
+            assertFalse(redis.commands().stream().anyMatch(command -> command.size() > 1
+                && command.get(0).equals("XADD")
+                && command.get(1).equals(RedisKeys.jobsStream())));
+        }
+    }
+
+    @Test
     void transientFailureAtomicallyRequeuesJobWithinRetryBudget() throws Exception {
         UUID jobId = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
@@ -159,7 +177,54 @@ class RedisIslandJobQueueTest {
                     && command.get(1).equals(RedisKeys.jobsStream())
             ));
             assertTrue(redis.commands().stream().anyMatch(command -> command.contains("JOB_FAILED")));
+            List<List<String>> commands = redis.commands();
+            int multi = commandIndex(commands, "MULTI", "");
+            int persist = commandIndex(commands, "HSET", RedisKeys.jobFailure(jobId));
+            int index = commandIndex(commands, "ZADD", RedisKeys.failedJobs());
+            int ack = commandIndex(commands, "XACK", RedisKeys.jobsStream());
+            int cleanup = commandIndex(commands, "DEL", RedisKeys.jobClaim(jobId));
+            int audit = commandIndex(commands, "XADD", RedisKeys.auditStream());
+            int exec = commandIndex(commands, "EXEC", "");
+            assertTrue(multi >= 0 && multi < persist && persist < index && index < ack && ack < cleanup && cleanup < audit && audit < exec);
             assertEquals(0L, queue.retryAttemptsTotal());
+        }
+    }
+
+    @Test
+    void failedJobCanBeRetriedAfterCoreRestart() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        String streamId = "1700000000009-0";
+        try (FakeRedis redis = FakeRedis.withClaim(jobId, islandId, streamId, 3)) {
+            RedisIslandJobQueue beforeRestart = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
+            JobClaimLease lease = new JobClaimLease(jobId, streamId, "node-a", "claim-token", 7L, Instant.now().plusSeconds(30), 3);
+            assertEquals(IslandJobQueue.FailureDisposition.TERMINAL, beforeRestart.failClaimed("node-a", jobId, lease, "storage unavailable"));
+
+            RedisIslandJobQueue afterRestart = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
+            assertEquals(1L, afterRestart.countsByState().get("FAILED"));
+            assertEquals(jobId.toString(), afterRestart.failedJobs(10).getFirst().get("jobId"));
+            assertEquals("storage unavailable", afterRestart.failedJobs(10).getFirst().get("error"));
+            assertTrue(afterRestart.retry(jobId));
+            assertEquals(0L, afterRestart.countsByState().get("FAILED"));
+            assertTrue(redis.commands().contains(List.of("DEL", RedisKeys.jobFailure(jobId))));
+            assertTrue(redis.commands().contains(List.of("ZREM", RedisKeys.failedJobs(), jobId.toString())));
+            assertTrue(redis.commands().stream().anyMatch(command -> command.size() == 6
+                && command.get(0).equals("SET")
+                && command.get(1).equals(RedisKeys.jobAdminLock(jobId))
+                && command.get(3).equals("NX")
+                && command.get(4).equals("PX")
+                && command.get(5).equals("60000")));
+            assertTrue(redis.commands().stream().anyMatch(command -> command.size() == 5
+                && command.get(0).equals("EVAL")
+                && command.get(3).equals(RedisKeys.jobAdminLock(jobId))));
+            assertTrue(redis.commands().stream().anyMatch(command ->
+                command.size() > 2
+                    && command.get(0).equals("XADD")
+                    && command.get(1).equals(RedisKeys.jobsStream())
+                    && command.contains(jobId.toString())
+                    && command.contains("attempt")
+                    && command.contains("0")
+            ));
         }
     }
 
@@ -240,13 +305,16 @@ class RedisIslandJobQueueTest {
         private final ServerSocket server;
         private final Thread thread;
         private final Map<String, String> claim;
+        private final Map<String, String> failure = Collections.synchronizedMap(new LinkedHashMap<>());
+        private final Set<String> failedJobs = Collections.synchronizedSet(new java.util.LinkedHashSet<>());
+        private final Map<String, String> adminLocks = Collections.synchronizedMap(new LinkedHashMap<>());
         private final List<String> streamJob;
         private final String streamId;
         private final List<List<String>> commands = Collections.synchronizedList(new ArrayList<>());
 
         private FakeRedis(ServerSocket server, Map<String, String> claim, String streamId, List<String> streamJob) {
             this.server = server;
-            this.claim = claim;
+            this.claim = Collections.synchronizedMap(new LinkedHashMap<>(claim));
             this.streamId = streamId;
             this.streamJob = streamJob;
             this.thread = new Thread(this::serve, "fake-redis-job-queue-test");
@@ -311,6 +379,10 @@ class RedisIslandJobQueueTest {
             synchronized (commands) {
                 return List.copyOf(commands);
             }
+        }
+
+        void holdAdminLock(UUID jobId) {
+            adminLocks.put(RedisKeys.jobAdminLock(jobId), "other-core");
         }
 
         private void serve() {
@@ -381,10 +453,53 @@ class RedisIslandJobQueueTest {
         private void writeReply(BufferedOutputStream output, List<String> command) throws IOException {
             String name = command.getFirst();
             if (name.equals("HGETALL")) {
-                writeArray(output, claim);
+                writeArray(output, command.get(1).endsWith(":claim") ? claim : failure);
+            } else if (name.equals("HSET")) {
+                Map<String, String> target = command.get(1).endsWith(":claim") ? claim : failure;
+                for (int index = 2; index + 1 < command.size(); index += 2) {
+                    target.put(command.get(index), command.get(index + 1));
+                }
+                write(output, ":1\r\n");
+            } else if (name.equals("ZADD")) {
+                failedJobs.add(command.get(3));
+                write(output, ":1\r\n");
+            } else if (name.equals("ZREM")) {
+                failedJobs.remove(command.get(2));
+                write(output, ":1\r\n");
+            } else if (name.equals("ZCARD")) {
+                write(output, ":" + failedJobs.size() + "\r\n");
+            } else if (name.equals("ZREVRANGE")) {
+                write(output, "*" + failedJobs.size() + "\r\n");
+                for (String jobId : failedJobs) {
+                    writeBulk(output, jobId);
+                }
+            } else if (name.equals("SET") && command.contains("NX")) {
+                if (adminLocks.putIfAbsent(command.get(1), command.get(2)) == null) {
+                    write(output, "+OK\r\n");
+                } else {
+                    write(output, "$-1\r\n");
+                }
+            } else if (name.equals("EVAL")) {
+                String key = command.get(3);
+                String token = command.get(4);
+                if (token.equals(adminLocks.get(key))) {
+                    adminLocks.remove(key);
+                    write(output, ":1\r\n");
+                } else {
+                    write(output, ":0\r\n");
+                }
             } else if (name.equals("XREADGROUP")) {
                 writeStreamJob(output);
-            } else if (name.equals("XACK") || name.equals("DEL")) {
+            } else if (name.equals("DEL")) {
+                for (int index = 1; index < command.size(); index++) {
+                    if (command.get(index).endsWith(":claim")) {
+                        claim.clear();
+                    } else if (command.get(index).endsWith(":failed")) {
+                        failure.clear();
+                    }
+                }
+                write(output, ":1\r\n");
+            } else if (name.equals("XACK")) {
                 write(output, ":1\r\n");
             } else {
                 write(output, "+OK\r\n");

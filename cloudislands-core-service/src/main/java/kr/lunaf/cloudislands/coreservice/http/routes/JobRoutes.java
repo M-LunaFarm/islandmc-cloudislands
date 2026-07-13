@@ -179,6 +179,7 @@ public final class JobRoutes implements RouteGroup {
             values.put("pending", counts.getOrDefault("PENDING", 0L));
             values.put("claimed", counts.getOrDefault("CLAIMED", 0L));
             values.put("failed", counts.getOrDefault("FAILED", 0L));
+            values.put("failedJobs", redisJobs.failedJobs(100));
             values.put("retryAttempts", redisJobs.retryAttemptsTotal());
             values.put("redisFailures", redisJobs.redisFailuresTotal());
             return SimpleJson.stringify(values);

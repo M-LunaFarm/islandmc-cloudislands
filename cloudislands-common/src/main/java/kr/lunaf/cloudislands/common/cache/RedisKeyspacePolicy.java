@@ -24,6 +24,10 @@ public final class RedisKeyspacePolicy {
         "ci:lock:player-create:{uuid}",
         "ci:lock:island:{islandId}",
         "ci:lock:activation:{islandId}",
+        "ci:lock:job-admin:{jobId}",
+        "ci:job:{jobId}:claim",
+        "ci:job:{jobId}:failed",
+        "ci:jobs:failed",
         "ci:stream:jobs",
         "ci:stream:events",
         "ci:stream:audit"
