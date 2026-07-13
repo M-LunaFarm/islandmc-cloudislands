@@ -24,7 +24,7 @@ tasks.jar {
             "CloudIslands-API-Economy-Bridge" to "withdraw,deposit,balance-with-uuid-amount-reason-contract",
             "CloudIslands-API-Addon-State-Bulk" to "table-and-table-key-value-bulk-save-contracts",
             "CloudIslands-API-Satis-Integration" to "external-addon-or-built-in-compatible-cloudislands-state-authority",
-            "CloudIslands-API-Runtime-Version" to "1.1.167",
+            "CloudIslands-API-Runtime-Version" to "1.1.168",
             "CloudIslands-API-Compatibility-Levels" to "compatible,runtime-too-old,major-version-mismatch,invalid-version",
             "CloudIslands-API-Deprecation-Removal-Policy" to "deprecated-api-removal-requires-major-bump-or-one-full-minor-window"
         )
