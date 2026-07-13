@@ -13,5 +13,7 @@ class ExplosionDeltaFinalityPolicyTest {
 
         assertTrue(listener.contains("priority = EventPriority.MONITOR, ignoreCancelled = true)\n    public void onEntityExplodeAccepted"));
         assertTrue(listener.contains("priority = EventPriority.MONITOR, ignoreCancelled = true)\n    public void onBlockExplodeAccepted"));
+        assertTrue(listener.contains("SoftExplosionProtectionPolicy.isSoft(event.getExplosionResult())"));
+        assertTrue(listener.contains("event.blockList().removeIf(block -> softExplosionDenied(source, block, windCharge))"));
     }
 }

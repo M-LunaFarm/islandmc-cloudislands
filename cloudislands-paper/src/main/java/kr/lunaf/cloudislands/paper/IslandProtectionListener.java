@@ -526,6 +526,14 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
         Player source = attackingPlayer(event.getEntity());
+        if (SoftExplosionProtectionPolicy.isSoft(event.getExplosionResult())) {
+            if (source != null) {
+                boolean windCharge = event.getEntityType() == EntityType.WIND_CHARGE
+                    || event.getEntityType() == EntityType.BREEZE_WIND_CHARGE;
+                event.blockList().removeIf(block -> softExplosionDenied(source, block, windCharge));
+            }
+            return;
+        }
         if (source != null && (event.getEntityType() == EntityType.WIND_CHARGE || event.getEntityType() == EntityType.BREEZE_WIND_CHARGE)
             && denied(source, event.getLocation().getBlock(), IslandPermission.WIND_CHARGE)) {
             event.setCancelled(true);
@@ -537,6 +545,9 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityExplodeAccepted(EntityExplodeEvent event) {
+        if (SoftExplosionProtectionPolicy.isSoft(event.getExplosionResult())) {
+            return;
+        }
         event.blockList().forEach(block ->
             protection.islandAt(block).ifPresent(islandId -> blockDeltas.broken(islandId, block)));
     }
@@ -561,11 +572,17 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockExplode(BlockExplodeEvent event) {
+        if (SoftExplosionProtectionPolicy.isSoft(event.getExplosionResult())) {
+            return;
+        }
         event.blockList().removeIf(block -> !explosionAllowed(block, IslandFlag.EXPLOSION));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockExplodeAccepted(BlockExplodeEvent event) {
+        if (SoftExplosionProtectionPolicy.isSoft(event.getExplosionResult())) {
+            return;
+        }
         event.blockList().forEach(block ->
             protection.islandAt(block).ifPresent(islandId -> blockDeltas.broken(islandId, block)));
     }
@@ -847,6 +864,14 @@ public final class IslandProtectionListener implements Listener {
     private boolean explosionAllowed(Block block, IslandFlag detailFlag) {
         return protection.checkSystemFlag(block, IslandFlag.EXPLOSION).allowed()
             && protection.checkSystemFlag(block, detailFlag).allowed();
+    }
+
+    private boolean softExplosionDenied(Player source, Block block, boolean windCharge) {
+        if (windCharge && denied(source, block, IslandPermission.WIND_CHARGE)) {
+            return true;
+        }
+        IslandPermission permission = SoftExplosionProtectionPolicy.requiredPermission(block.getType());
+        return permission != null && denied(source, block, permission);
     }
 
     private boolean sameIsland(Block source, Block target) {
