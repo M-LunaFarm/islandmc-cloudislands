@@ -1,5 +1,7 @@
 package kr.lunaf.cloudislands.paper.platform.scheduler;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -13,6 +15,22 @@ public final class PaperSchedulers {
 
     public static BukkitTask runAsync(Plugin plugin, Runnable task) {
         return plugin.getServer().getScheduler().runTaskAsynchronously(plugin, task);
+    }
+
+    public static <T> CompletableFuture<T> supply(Plugin plugin, Supplier<T> supplier) {
+        CompletableFuture<T> result = new CompletableFuture<>();
+        try {
+            run(plugin, () -> {
+                try {
+                    result.complete(supplier.get());
+                } catch (RuntimeException | LinkageError error) {
+                    result.completeExceptionally(error);
+                }
+            });
+        } catch (RuntimeException | LinkageError error) {
+            result.completeExceptionally(error);
+        }
+        return result;
     }
 
     public static BukkitTask runLater(Plugin plugin, Runnable task, long delayTicks) {

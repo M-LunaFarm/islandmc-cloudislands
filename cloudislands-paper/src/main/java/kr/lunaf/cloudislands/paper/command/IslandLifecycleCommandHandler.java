@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandDangerMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -145,9 +146,10 @@ final class IslandLifecycleCommandHandler {
         GuiStateMenus.openSaving(plugin, player, messages, message("create-progress-title", "섬 생성 요청 중"));
         String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
         coreApiClient.templates().get(normalizedTemplateId)
-            .thenCompose(template -> canUseTemplate(player, template)
-                ? createWithTemplateCost(player, normalizedTemplateId, template)
-                : CompletableFuture.completedFuture(new CreateIslandResult(false, "TEMPLATE_PERMISSION_DENIED", null, null)))
+            .thenCompose(template -> PaperSchedulers.supply(plugin, () -> canUseTemplate(player, template))
+                .thenCompose(allowed -> allowed
+                    ? createWithTemplateCost(playerUuid, normalizedTemplateId, template)
+                    : CompletableFuture.completedFuture(new CreateIslandResult(false, "TEMPLATE_PERMISSION_DENIED", null, null))))
             .thenAccept(result -> {
                 if (!result.accepted()) {
                     String detail = runtime.playerCodeMessage(result.code(), message("create-progress-start-failed", "섬 생성을 시작하지 못했습니다."));
@@ -167,36 +169,36 @@ final class IslandLifecycleCommandHandler {
             .whenComplete((_ignored, _error) -> pendingCreations.release(playerUuid));
     }
 
-    private CompletableFuture<CreateIslandResult> createWithTemplateCost(Player player, String templateId, TemplateView template) {
+    private CompletableFuture<CreateIslandResult> createWithTemplateCost(UUID playerUuid, String templateId, TemplateView template) {
         BigDecimal creationCost = creationCost(template);
         if (creationCost.signum() <= 0) {
-            return creationUseCase.create(player.getUniqueId(), templateId, runtime::mutate);
+            return creationUseCase.create(playerUuid, templateId, runtime::mutate);
         }
         if (economyBridge == null || economyBridge.providerState() != EconomyProviderState.ACTIVE) {
             return CompletableFuture.completedFuture(new CreateIslandResult(false, "ECONOMY_UNAVAILABLE", null, null));
         }
-        return economyBridge.withdraw(player.getUniqueId(), creationCost, "CloudIslands island creation " + template.id())
+        return economyBridge.withdraw(playerUuid, creationCost, "CloudIslands island creation " + template.id())
             .thenCompose(charged -> {
                 if (!charged) {
                     return CompletableFuture.completedFuture(new CreateIslandResult(false, "ECONOMY_CHARGE_FAILED", null, null));
                 }
-                return creationUseCase.createWithManagedEconomySettlement(player.getUniqueId(), templateId, creationCost, runtime::mutate)
+                return creationUseCase.createWithManagedEconomySettlement(playerUuid, templateId, creationCost, runtime::mutate)
                     .thenCompose(result -> result.accepted()
                         ? CompletableFuture.completedFuture(result)
-                        : refundCreateCost(player, creationCost, template.id()).thenApply(_ignored -> result)
+                        : refundCreateCost(playerUuid, creationCost, template.id()).thenApply(_ignored -> result)
                             .exceptionally(_refundError -> new CreateIslandResult(false, "ECONOMY_REFUND_FAILED", result.island(), result.ticket())))
-                    .exceptionallyCompose(error -> refundCreateCost(player, creationCost, template.id())
+                    .exceptionallyCompose(error -> refundCreateCost(playerUuid, creationCost, template.id())
                         .thenApply(_ignored -> new CreateIslandResult(false, "CORE_CREATE_FAILED_REFUNDED", null, null))
                         .exceptionally(_refundError -> new CreateIslandResult(false, "ECONOMY_REFUND_FAILED", null, null)));
             });
     }
 
-    private CompletableFuture<Void> refundCreateCost(Player player, BigDecimal creationCost, String templateId) {
-        return economyBridge.deposit(player.getUniqueId(), creationCost, "CloudIslands island creation rollback " + templateId);
+    private CompletableFuture<Void> refundCreateCost(UUID playerUuid, BigDecimal creationCost, String templateId) {
+        return economyBridge.deposit(playerUuid, creationCost, "CloudIslands island creation rollback " + templateId);
     }
 
     private static boolean canUseTemplate(Player player, TemplateView template) {
-        return template.requiredPermission().isBlank() || player.hasPermission(template.requiredPermission());
+        return player.isOnline() && (template.requiredPermission().isBlank() || player.hasPermission(template.requiredPermission()));
     }
 
     private static BigDecimal creationCost(TemplateView template) {

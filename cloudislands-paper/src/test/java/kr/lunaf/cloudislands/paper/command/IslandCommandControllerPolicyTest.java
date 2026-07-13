@@ -48,6 +48,15 @@ class IslandCommandControllerPolicyTest {
     }
 
     @Test
+    void schedulerCanReturnMainThreadBukkitValuesToAsyncPipelines() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/platform/scheduler/PaperSchedulers.java"));
+
+        assertTrue(source.contains("public static <T> CompletableFuture<T> supply"));
+        assertTrue(source.contains("result.complete(supplier.get())"));
+        assertTrue(source.contains("result.completeExceptionally(error)"));
+    }
+
+    @Test
     void offlinePlayerNamesUseCoreProfilesInsteadOfInventedBukkitUuids() throws Exception {
         String resolver = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandPlayerResolver.java"));
         String membership = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));

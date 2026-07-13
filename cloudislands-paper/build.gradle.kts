@@ -77,6 +77,7 @@ tasks.shadowJar {
             "CloudIslands-Paper-Degraded-Mode-Policy" to "core-down-active-island-local-protection-and-limited-teleport-object-storage-down-active-local-play",
             "CloudIslands-Paper-Safe-Teleport-Policy" to "async-chunk-load-main-thread-block-scan-centered-destination-boundary-and-final-revalidation",
             "CloudIslands-Paper-Entity-Removal-Accounting" to "despawn-enter-block-out-of-world-transformation-counted;death-break-destroy-deduplicated;chunk-unload-ignored",
+            "CloudIslands-Paper-Async-Player-Access" to "core-completions-return-to-main-thread-before-permission-session-inventory-or-economy-preflight-access",
             "CloudIslands-Paper-Storage-Outage-Policy" to "StorageOutagePolicy-active-islands-stay-local-periodic-and-empty-save-failures-queued-for-retry",
             "CloudIslands-Paper-Storage-Backend-Policy" to "S3-or-MINIO-shared-object-storage-LOCAL_FILESYSTEM-fallback",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",

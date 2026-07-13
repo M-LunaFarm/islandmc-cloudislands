@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.TemplateView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -88,7 +89,10 @@ public final class IslandCreateMenu implements Listener {
         GuiSession session = GuiSessions.begin(player, CONFIRM_MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, "create-confirm-menu-title", "섬 생성 확인"));
         PaperGuiViews.templates(client)
-            .thenAccept(templates -> {
+            .thenAccept(templates -> PaperSchedulers.run(plugin, () -> {
+                if (!GuiSessions.isCurrent(player, session)) {
+                    return;
+                }
                 TemplateView template = templates.stream()
                     .filter(candidate -> candidate.id().equalsIgnoreCase(normalizedTemplateId))
                     .findFirst()
@@ -102,7 +106,7 @@ public final class IslandCreateMenu implements Listener {
                     return;
                 }
                 openConfirmSync(plugin, player, session, template, messages);
-            })
+            }))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, "create-confirm-menu-title", "섬 생성 확인"), message(messages, "create-menu-load-failed", "섬 템플릿을 불러오지 못했습니다."), "island.create.open", "island.create.open");
                 return null;
