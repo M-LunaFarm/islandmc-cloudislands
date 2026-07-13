@@ -66,4 +66,23 @@ class InMemoryIslandJobPublisherTest {
         assertTrue(jobs.complete("island-node-1", jobId, lease));
         assertEquals(0L, jobs.countsByState().get("CLAIMED"));
     }
+
+    @Test
+    void administrativeRetryResetsExhaustedAttemptBudget() {
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        UUID jobId = UUID.randomUUID();
+        jobs.publish(new IslandJob(jobId, IslandJobType.SAVE_ISLAND, UUID.randomUUID(), "island-node-1", 0, Map.of(), Instant.EPOCH));
+        for (int attempt = 1; attempt <= 3; attempt++) {
+            JobClaimLease lease = jobs.claim("island-node-1", List.of(IslandJobType.SAVE_ISLAND), 1).getFirst().claimLease();
+            assertTrue(jobs.fail("island-node-1", jobId, lease, "storage unavailable"));
+        }
+        assertEquals(1L, jobs.countsByState().get("FAILED"));
+
+        assertTrue(jobs.retry(jobId));
+        IslandJob retried = jobs.claim("island-node-1", List.of(IslandJobType.SAVE_ISLAND), 1).getFirst();
+
+        assertEquals(1, retried.claimLease().attempt());
+        assertFalse(retried.payload().containsKey("lastError"));
+        assertFalse(retried.payload().containsKey("attempts"));
+    }
 }

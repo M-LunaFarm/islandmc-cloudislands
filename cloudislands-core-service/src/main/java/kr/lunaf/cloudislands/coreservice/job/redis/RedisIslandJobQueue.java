@@ -201,16 +201,18 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
                 job = storedJob.get();
                 streamId = storedLease.getOrDefault("streamId", "");
             }
-            xaddJob(redis, job, 0);
+            redis.command("MULTI");
+            xaddJob(redis, withoutFailureContext(job), 0);
             if (streamId != null && !streamId.isBlank()) {
                 redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
             }
+            redis.command("DEL", RedisKeys.jobClaim(jobId));
+            redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_RETRIED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
+            redis.command("EXEC");
             claimedJobs.remove(jobId);
             streamIdsByJobId.remove(jobId);
             claimedNodesByJobId.remove(jobId);
-            redis.command("DEL", RedisKeys.jobClaim(jobId));
             retryAttemptsTotal.incrementAndGet();
-            redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_RETRIED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
             return true;
         } catch (IOException | RuntimeException exception) {
             recordRedisFailure();
@@ -536,6 +538,13 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         Map<String, String> payload = new HashMap<>(job.payload());
         payload.put("lastError", errorMessage == null ? "unknown" : errorMessage);
         payload.put("attempts", Integer.toString(Math.max(1, attempts)));
+        return new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(payload), job.createdAt());
+    }
+
+    private IslandJob withoutFailureContext(IslandJob job) {
+        Map<String, String> payload = new HashMap<>(job.payload());
+        payload.remove("lastError");
+        payload.remove("attempts");
         return new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(payload), job.createdAt());
     }
 

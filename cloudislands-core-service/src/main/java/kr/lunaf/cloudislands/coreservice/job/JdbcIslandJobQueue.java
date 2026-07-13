@@ -254,7 +254,7 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     @Override
     public boolean retry(UUID jobId) {
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', locked_by = NULL, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, error_message = NULL, updated_at = now() WHERE id = ? AND state IN ('FAILED', 'CLAIMED')")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = 'PENDING', retry_count = 0, locked_by = NULL, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, error_message = NULL, updated_at = now() WHERE id = ? AND state IN ('FAILED', 'CLAIMED')")) {
             statement.setObject(1, jobId);
             return statement.executeUpdate() > 0;
         } catch (SQLException exception) {

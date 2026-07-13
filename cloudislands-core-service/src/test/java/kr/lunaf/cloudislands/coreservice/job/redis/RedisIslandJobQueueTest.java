@@ -39,11 +39,15 @@ class RedisIslandJobQueueTest {
             assertTrue(redis.commands().contains(List.of("HGETALL", RedisKeys.jobClaim(jobId))));
             assertTrue(redis.commands().contains(List.of("XACK", RedisKeys.jobsStream(), "cloudislands-agents", streamId)));
             assertTrue(redis.commands().contains(List.of("DEL", RedisKeys.jobClaim(jobId))));
+            assertTrue(redis.commands().stream().anyMatch(command -> command.equals(List.of("MULTI"))));
+            assertTrue(redis.commands().stream().anyMatch(command -> command.equals(List.of("EXEC"))));
             assertTrue(redis.commands().stream().anyMatch(command ->
                 command.size() > 2
                     && command.get(0).equals("XADD")
                     && command.get(1).equals(RedisKeys.jobsStream())
                     && command.contains(jobId.toString())
+                    && command.contains("attempt")
+                    && command.contains("0")
             ));
         }
     }

@@ -237,7 +237,11 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
 
     private record JobRecord(IslandJob job, JobState state, String lockedBy, Instant lockedUntil, String claimToken, long claimEpoch, int attempts, String errorMessage, Instant updatedAt) {
         private JobRecord pending() {
-            return new JobRecord(job.withClaimLease(JobClaimLease.unclaimed(job.jobId())), JobState.PENDING, null, null, null, claimEpoch, attempts, null, Instant.now());
+            Map<String, String> payload = new HashMap<>(job.payload());
+            payload.remove("lastError");
+            payload.remove("attempts");
+            IslandJob retriedJob = new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(payload), job.createdAt());
+            return new JobRecord(retriedJob, JobState.PENDING, null, null, null, claimEpoch, 0, null, Instant.now());
         }
 
         private JobRecord canceled() {

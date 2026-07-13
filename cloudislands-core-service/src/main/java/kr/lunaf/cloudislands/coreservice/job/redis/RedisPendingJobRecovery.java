@@ -64,7 +64,7 @@ public final class RedisPendingJobRecovery {
             skipMalformedRecovered(redis, streamId, job);
             return;
         }
-        redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+        redis.command("MULTI");
         redis.command(
             "XADD",
             RedisKeys.jobsStream(),
@@ -75,12 +75,16 @@ public final class RedisPendingJobRecovery {
             "targetNode", job.getOrDefault("targetNode", ""),
             "priority", job.getOrDefault("priority", "0"),
             "createdAt", job.getOrDefault("createdAt", Instant.now().toString()),
+            "attempt", job.getOrDefault("attempt", "0"),
             "payload", job.getOrDefault("payload", "")
         );
+        redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
         redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_RECOVERED_REQUEUED", "jobId", job.getOrDefault("jobId", ""), "streamId", streamId);
+        redis.command("EXEC");
     }
 
     private void skipMalformedRecovered(RedisRespConnection redis, String streamId, Map<String, String> job) throws IOException {
+        redis.command("MULTI");
         redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
         redis.command(
             "XADD",
@@ -90,6 +94,7 @@ public final class RedisPendingJobRecovery {
             "jobId", job.getOrDefault("jobId", ""),
             "streamId", streamId
         );
+        redis.command("EXEC");
     }
 
     private boolean hasRequiredFields(Map<String, String> job) {
