@@ -13,6 +13,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.common.json.JsonCodec;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.redis.RedisRespConnection;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
@@ -23,6 +24,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     private static final String GROUP = "cloudislands-agents";
     private static final int MAX_ATTEMPTS = 3;
     private static final Duration DEFAULT_LEASE_DURATION = Duration.ofSeconds(30L);
+    private static final String PAYLOAD_JSON_PREFIX = "@cloudislands-json-v1@";
     private final URI redisUri;
     private final Duration leaseDuration;
     private final Map<UUID, String> streamIdsByJobId = new ConcurrentHashMap<>();
@@ -810,18 +812,33 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         }
     }
 
-    private String encodePayload(Map<String, String> payload) {
-        StringBuilder builder = new StringBuilder();
-        for (Map.Entry<String, String> entry : payload.entrySet()) {
-            if (!builder.isEmpty()) {
-                builder.append(';');
-            }
-            builder.append(entry.getKey()).append('=').append(entry.getValue().replace(";", "%3B").replace("=", "%3D"));
+    static String encodePayload(Map<String, String> payload) {
+        LinkedHashMap<String, String> normalized = new LinkedHashMap<>();
+        if (payload != null) {
+            payload.forEach((key, value) -> {
+                if (key != null) {
+                    normalized.put(key, value == null ? "" : value);
+                }
+            });
         }
-        return builder.toString();
+        return PAYLOAD_JSON_PREFIX + JsonCodec.write(normalized);
     }
 
-    private Map<String, String> decodePayload(String encoded) {
+    static Map<String, String> decodePayload(String encoded) {
+        if (encoded != null && encoded.startsWith(PAYLOAD_JSON_PREFIX)) {
+            try {
+                Map<String, Object> decoded = JsonCodec.readObject(encoded.substring(PAYLOAD_JSON_PREFIX.length()));
+                LinkedHashMap<String, String> values = new LinkedHashMap<>();
+                decoded.forEach((key, value) -> values.put(key, value == null ? "" : String.valueOf(value)));
+                return Map.copyOf(values);
+            } catch (RuntimeException ignored) {
+                // Fall through for a legacy payload whose first key happens to start with the version marker.
+            }
+        }
+        return decodeLegacyPayload(encoded);
+    }
+
+    private static Map<String, String> decodeLegacyPayload(String encoded) {
         Map<String, String> values = new java.util.HashMap<>();
         if (encoded == null || encoded.isBlank()) {
             return Map.of();

@@ -29,6 +29,30 @@ import org.junit.jupiter.api.Test;
 
 class RedisIslandJobQueueTest {
     @Test
+    void payloadCodecRoundTripsDelimiterPercentNewlineAndUnicodeExactly() {
+        Map<String, String> payload = Map.ofEntries(
+            Map.entry("literal-percent", "%3B/%3D/%25"),
+            Map.entry("delimiter;=key", "value;with=delimiters"),
+            Map.entry("multiline", "first\nsecond\r\nthird"),
+            Map.entry("unicode", "섬-☁-🏝️"),
+            Map.entry("empty", "")
+        );
+
+        String encoded = RedisIslandJobQueue.encodePayload(payload);
+
+        assertFalse(encoded.contains("\n"), "wire payload must not contain literal newlines that corrupt RESP array flattening");
+        assertEquals(payload, RedisIslandJobQueue.decodePayload(encoded));
+    }
+
+    @Test
+    void payloadCodecStillReadsLegacyDelimiterFormat() {
+        assertEquals(
+            Map.of("fencingToken", "7", "path", "a;b=c"),
+            RedisIslandJobQueue.decodePayload("fencingToken=7;path=a%3Bb%3Dc")
+        );
+    }
+
+    @Test
     void retryCanUseRedisClaimHashWithoutLocalClaimState() throws Exception {
         UUID jobId = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();
