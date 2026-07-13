@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.limit.IslandBlockLimitKeys;
+import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitKeys;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
@@ -259,7 +260,11 @@ public final class IslandLevelScanService implements RuntimeComponent {
                     Entity entity = entities.get(entityIndex++);
                     Location location = entity.getLocation();
                     if (cursor.contains(location.getBlockX(), location.getBlockZ())) {
-                        counts.merge(customBlockKeys.entityKey(entity), stackSnapshot.entityAmount(entity), Long::sum);
+                        long amount = stackSnapshot.entityAmount(entity);
+                        counts.merge(customBlockKeys.entityKey(entity), amount, Long::sum);
+                        if (IslandEntityLimitKeys.counts(entity)) {
+                            counts.merge(IslandEntityLimitKeys.COUNT_KEY, amount, Long::sum);
+                        }
                     }
                     checkedEntities++;
                 }

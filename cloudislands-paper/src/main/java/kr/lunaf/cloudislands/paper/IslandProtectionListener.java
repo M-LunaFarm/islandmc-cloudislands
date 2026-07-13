@@ -359,11 +359,13 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onHangingPlace(HangingPlaceEvent event) {
         IslandPermission permission = hangingPermission(event.getEntity(), IslandPermission.BUILD);
-        boolean blocked = denied(event.getPlayer(), event.getBlock(), permission);
-        event.setCancelled(blocked);
-        if (!blocked) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
-        }
+        event.setCancelled(denied(event.getPlayer(), event.getBlock(), permission));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHangingPlaceAccepted(HangingPlaceEvent event) {
+        protection.islandAt(event.getBlock()).ifPresent(islandId ->
+            blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -371,20 +373,14 @@ public final class IslandProtectionListener implements Listener {
         Player player = attackingPlayer(event.getRemover());
         if (player != null) {
             IslandPermission permission = hangingPermission(event.getEntity(), IslandPermission.BREAK);
-            boolean blocked = denied(player, event.getEntity().getLocation().getBlock(), permission);
-            event.setCancelled(blocked);
-            if (!blocked) {
-                protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
-            }
+            event.setCancelled(denied(player, event.getEntity().getLocation().getBlock(), permission));
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onHangingBreakAny(HangingBreakEvent event) {
-        if (event instanceof HangingBreakByEntityEvent) {
-            return;
-        }
-        protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHangingBreakAccepted(HangingBreakEvent event) {
+        protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId ->
+            blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -392,23 +388,29 @@ public final class IslandProtectionListener implements Listener {
         if (event.getPlayer() == null) {
             return;
         }
-        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD);
-        event.setCancelled(blocked);
-        if (!blocked) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
-        }
+        event.setCancelled(denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityPlaceAccepted(EntityPlaceEvent event) {
+        protection.islandAt(event.getBlock()).ifPresent(islandId ->
+            blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
         if (protection.migrating(event.getLocation().getBlock())) {
             event.setCancelled(true);
-            return;
         }
-        protection.islandAt(event.getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onCreatureSpawnAccepted(CreatureSpawnEvent event) {
+        protection.islandAt(event.getLocation().getBlock()).ifPresent(islandId ->
+            blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityDeath(EntityDeathEvent event) {
         if (event.getEntity() instanceof Player) {
             return;
@@ -468,23 +470,24 @@ public final class IslandProtectionListener implements Listener {
         event.setCancelled(denied(event.getPlayer(), event.getEntity().getLocation().getBlock(), IslandPermission.LEASH));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onVehicleCreate(VehicleCreateEvent event) {
-        protection.islandAt(event.getVehicle().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityPlaced(islandId, event.getVehicle().getType()));
+        protection.islandAt(event.getVehicle().getLocation().getBlock()).ifPresent(islandId ->
+            blockDeltas.entityPlaced(islandId, event.getVehicle().getType()));
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onVehicleDestroy(VehicleDestroyEvent event) {
         Player player = attackingPlayer(event.getAttacker());
-        if (player == null) {
-            protection.islandAt(event.getVehicle().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getVehicle().getType()));
-            return;
+        if (player != null) {
+            event.setCancelled(denied(player, event.getVehicle().getLocation().getBlock(), IslandPermission.BREAK));
         }
-        boolean blocked = denied(player, event.getVehicle().getLocation().getBlock(), IslandPermission.BREAK);
-        event.setCancelled(blocked);
-        if (!blocked) {
-            protection.islandAt(event.getVehicle().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getVehicle().getType()));
-        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onVehicleDestroyAccepted(VehicleDestroyEvent event) {
+        protection.islandAt(event.getVehicle().getLocation().getBlock()).ifPresent(islandId ->
+            blockDeltas.entityRemoved(islandId, event.getVehicle().getType()));
     }
 
     @EventHandler(ignoreCancelled = true)

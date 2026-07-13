@@ -23,11 +23,18 @@ class IslandGameplayModifierRuntimePolicyTest {
         assertTrue(entityLimits.contains("drops.clear()"), "Mob drop rate 0 must fail closed by clearing drops");
         assertTrue(entityLimits.contains("\"RATE:SPAWNER_RATES\""), "Entity listener must consume the Core spawner rate runtime key");
         assertTrue(entityLimits.contains("CreatureSpawnEvent.SpawnReason.SPAWNER"), "Spawner rate must apply only to spawner-origin spawns");
+        assertTrue(entityLimits.contains("limitIfReady"), "Finite entity and spawner-rate limits must fail closed while loading");
+        assertTrue(entityLimits.contains("blockCountIfReady"), "Entity limits must read the authoritative count snapshot");
+        assertTrue(entityLimits.contains("EventPriority.MONITOR"), "Only finally accepted entity events may mutate authoritative counts");
+        assertTrue(!entityLimits.contains("getEntities()"), "Entity spawn events must never scan the whole world on the main thread");
+        assertTrue(!entityLimits.contains("seedObserved"), "Entity limit enforcement must not maintain a scan-seeded shadow count");
         assertTrue(blockLimits.contains("limitIfReady"), "Restricted placement must fail closed until the Core limit snapshot is ready");
         assertTrue(blockLimits.contains("blockCountIfReady"), "Restricted placement must use authoritative cached block counts");
         assertTrue(blockLimits.contains("BlockMultiPlaceEvent"), "Multi-block placement must be counted atomically");
         assertTrue(!blockLimits.contains("getLoadedChunks"), "Placement events must never scan loaded chunks on the main thread");
         assertTrue(protection.contains("onBlockPlaceAccepted") && protection.contains("onBlockBreakAccepted"), "Block deltas must be separated from cancellable authorization handlers");
+        assertTrue(protection.contains("onCreatureSpawnAccepted") && protection.contains("onVehicleDestroyAccepted"), "Entity type deltas must be separated from cancellable authorization handlers");
+        assertTrue(protection.contains("onHangingPlaceAccepted") && protection.contains("onHangingBreakAccepted"), "Hanging entity deltas must observe the final event result");
         assertTrue(protection.contains("priority = EventPriority.MONITOR, ignoreCancelled = true"), "Only finally accepted block events may mutate authoritative counts");
         for (String effectKey : new String[] {"EFFECT:SPEED", "EFFECT:HASTE", "EFFECT:JUMP_BOOST", "EFFECT:NIGHT_VISION", "EFFECT:REGENERATION"}) {
             assertTrue(effects.contains(effectKey), effectKey);

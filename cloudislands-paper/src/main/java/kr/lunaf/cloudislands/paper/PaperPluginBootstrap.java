@@ -116,7 +116,9 @@ final class PaperPluginBootstrap {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.boundaryListener);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages, plugin.playerLocales, plugin.adminFlightOverrides));
             IslandLimitListener blockLimitListener = new IslandLimitListener(plugin.agent.protection(), limitCache, plugin.messages);
-            IslandEntityLimitListener entityLimitListener = new IslandEntityLimitListener(plugin.agent.protection(), limitCache, plugin.messages);
+            IslandEntityLimitListener entityLimitListener = new IslandEntityLimitListener(
+                plugin.agent.protection(), limitCache, plugin.messages, plugin.levelScanService
+            );
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, blockLimitListener);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, entityLimitListener);
             plugin.generatorLevels = new GeneratorLevelCache(client, config.generator().defaultKey());

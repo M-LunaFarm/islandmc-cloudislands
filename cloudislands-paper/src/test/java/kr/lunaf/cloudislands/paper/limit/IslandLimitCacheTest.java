@@ -38,6 +38,8 @@ class IslandLimitCacheTest {
                 "minecraft:hopper", 4L,
                 "minecraft:spawner", 9L,
                 "cloudislands:limit/spawner", 14L,
+                "cloudislands:limit/entity", 22L,
+                "entity:minecraft:zombie", 8L,
                 "minecraft:redstone_wire", 3L,
                 "minecraft:oak_button", 2L,
                 "minecraft:stone", 100L
@@ -48,6 +50,7 @@ class IslandLimitCacheTest {
         assertEquals(5L, cache.blockCountIfReady(islandId, "REDSTONE").orElseThrow());
         assertEquals(4L, cache.blockCountIfReady(islandId, "HOPPER").orElseThrow());
         assertEquals(14L, cache.blockCountIfReady(islandId, "SPAWNER").orElseThrow());
+        assertEquals(22L, cache.blockCountIfReady(islandId, "ENTITY").orElseThrow());
 
         cache.recordBlockDelta(islandId, "minecraft:spawner", 3L);
         cache.recordBlockDelta(islandId, "cloudislands:limit/spawner", 3L);
@@ -89,5 +92,24 @@ class IslandLimitCacheTest {
         cache.recordBlockDelta(islandId, "cloudislands:limit/spawner", 3L);
 
         assertEquals(12L, cache.blockCountIfReady(islandId, "SPAWNER").orElseThrow());
+    }
+
+    @Test
+    void firstEntityLimitDeltaMigratesLegacyEntityCounts() {
+        UUID islandId = UUID.randomUUID();
+        IslandLimitCache cache = new IslandLimitCache(
+            ignored -> CompletableFuture.completedFuture(List.of()),
+            ignored -> CompletableFuture.completedFuture(Map.of(
+                "entity:minecraft:zombie", 7L,
+                "entity:minecraft:cow", 3L,
+                "minecraft:stone", 100L
+            ))
+        );
+
+        cache.blockCountIfReady(islandId, "ENTITY");
+        assertEquals(10L, cache.blockCountIfReady(islandId, "ENTITY").orElseThrow());
+        cache.recordBlockDelta(islandId, IslandEntityLimitKeys.COUNT_KEY, 1L);
+
+        assertEquals(11L, cache.blockCountIfReady(islandId, "ENTITY").orElseThrow());
     }
 }

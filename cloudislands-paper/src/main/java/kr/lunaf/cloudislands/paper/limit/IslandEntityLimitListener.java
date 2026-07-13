@@ -1,16 +1,19 @@
 package kr.lunaf.cloudislands.paper.limit;
 
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Random;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.World;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.Location;
+import org.bukkit.entity.Hanging;
+import org.bukkit.entity.Vehicle;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -19,155 +22,171 @@ import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Hanging;
-import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Vehicle;
+import org.bukkit.inventory.ItemStack;
 
 public final class IslandEntityLimitListener implements Listener {
     private static final long NOTICE_COOLDOWN_MILLIS = 3_000L;
     private final ProtectionController protection;
     private final IslandLimitCache limits;
     private final MessageRenderer messages;
-    private final Map<UUID, Long> observedEntities = new ConcurrentHashMap<>();
-    private final Set<UUID> seededEntities = ConcurrentHashMap.newKeySet();
-    private final Map<UUID, Long> lastLimitNotice = new ConcurrentHashMap<>();
+    private final IslandLevelScanService levelScanService;
+    private final Map<String, Long> lastLimitNotice = new ConcurrentHashMap<>();
     private final Random random = new Random();
 
     public IslandEntityLimitListener(ProtectionController protection, IslandLimitCache limits) {
-        this(protection, limits, null);
+        this(protection, limits, null, null);
     }
 
     public IslandEntityLimitListener(ProtectionController protection, IslandLimitCache limits, MessageRenderer messages) {
+        this(protection, limits, messages, null);
+    }
+
+    public IslandEntityLimitListener(
+        ProtectionController protection,
+        IslandLimitCache limits,
+        MessageRenderer messages,
+        IslandLevelScanService levelScanService
+    ) {
         this.protection = protection;
         this.limits = limits;
         this.messages = messages;
+        this.levelScanService = levelScanService;
     }
 
     public void invalidate(UUID islandId) {
-        observedEntities.remove(islandId);
-        seededEntities.remove(islandId);
-        lastLimitNotice.remove(islandId);
+        String prefix = islandId + ":";
+        lastLimitNotice.keySet().removeIf(key -> key.startsWith(prefix));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntitySpawn(EntitySpawnEvent event) {
         if (event.getEntity() instanceof Hanging || event.getEntity() instanceof Vehicle) {
             return;
         }
-        if (!countsForLimit(event.getEntity())) {
+        if (!IslandEntityLimitKeys.counts(event.getEntity())) {
             return;
         }
-        protection.regionAt(event.getLocation().getBlock()).ifPresent(region -> {
-            UUID islandId = region.islandId();
-            if (event instanceof CreatureSpawnEvent creatureSpawn
-                && creatureSpawn.getSpawnReason() == CreatureSpawnEvent.SpawnReason.SPAWNER
-                && !spawnerSpawnAllowed(islandId)) {
-                event.setCancelled(true);
-                return;
-            }
-            seedObserved(event.getEntity().getWorld(), region, event.getEntity());
-            long limit = limits.limit(islandId, "ENTITY", Long.MAX_VALUE);
-            long current = observedEntities.getOrDefault(islandId, 0L);
-            if (current >= limit) {
-                event.setCancelled(true);
-                notifyNearby(event.getLocation(), islandId, current, limit);
-                return;
-            }
-            observedEntities.merge(islandId, 1L, Long::sum);
-        });
+        IslandRegion region = protection.regionAt(event.getLocation().getBlock()).orElse(null);
+        if (region == null) {
+            return;
+        }
+        UUID islandId = region.islandId();
+        if (event instanceof CreatureSpawnEvent creatureSpawn
+            && creatureSpawn.getSpawnReason() == CreatureSpawnEvent.SpawnReason.SPAWNER
+            && !spawnerSpawnAllowed(event.getLocation(), islandId)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!entitySpawnAllowed(event.getLocation(), islandId)) {
+            event.setCancelled(true);
+        }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntitySpawnAccepted(EntitySpawnEvent event) {
+        if (!(event.getEntity() instanceof Hanging) && !(event.getEntity() instanceof Vehicle)
+            && IslandEntityLimitKeys.counts(event.getEntity())) {
+            recordAcceptedDelta(event.getLocation(), 1L);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onHangingPlace(HangingPlaceEvent event) {
         protection.regionAt(event.getEntity().getLocation().getBlock()).ifPresent(region -> {
-            UUID islandId = region.islandId();
-            seedObserved(event.getEntity().getWorld(), region, event.getEntity());
-            long limit = limits.limit(islandId, "ENTITY", Long.MAX_VALUE);
-            long current = observedEntities.getOrDefault(islandId, 0L);
-            if (current >= limit) {
+            if (!entitySpawnAllowed(event.getEntity().getLocation(), region.islandId())) {
                 event.setCancelled(true);
-                notifyNearby(event.getEntity().getLocation(), islandId, current, limit);
-                return;
             }
-            observedEntities.merge(islandId, 1L, Long::sum);
         });
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHangingPlaceAccepted(HangingPlaceEvent event) {
+        recordAcceptedDelta(event.getEntity().getLocation(), 1L);
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onVehicleCreate(VehicleCreateEvent event) {
         protection.regionAt(event.getVehicle().getLocation().getBlock()).ifPresent(region -> {
-            UUID islandId = region.islandId();
-            seedObserved(event.getVehicle().getWorld(), region, event.getVehicle());
-            long limit = limits.limit(islandId, "ENTITY", Long.MAX_VALUE);
-            long current = observedEntities.getOrDefault(islandId, 0L);
-            if (current >= limit) {
-                event.getVehicle().remove();
-                notifyNearby(event.getVehicle().getLocation(), islandId, current, limit);
-                return;
+            if (!entitySpawnAllowed(event.getVehicle().getLocation(), region.islandId())) {
+                event.setCancelled(true);
             }
-            observedEntities.merge(islandId, 1L, Long::sum);
         });
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onVehicleDestroy(VehicleDestroyEvent event) {
-        protection.regionAt(event.getVehicle().getLocation().getBlock()).ifPresent(region -> {
-            seedObserved(event.getVehicle().getWorld(), region, null);
-            observedEntities.merge(region.islandId(), -1L, (left, right) -> Math.max(0L, left + right));
-        });
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onVehicleCreateAccepted(VehicleCreateEvent event) {
+        recordAcceptedDelta(event.getVehicle().getLocation(), 1L);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onVehicleDestroyAccepted(VehicleDestroyEvent event) {
+        recordAcceptedDelta(event.getVehicle().getLocation(), -1L);
     }
 
     @EventHandler
-    public void onEntityDeath(EntityDeathEvent event) {
-        protection.regionAt(event.getEntity().getLocation().getBlock()).ifPresent(region -> {
-            seedObserved(event.getEntity().getWorld(), region, null);
-            observedEntities.merge(region.islandId(), -1L, (left, right) -> Math.max(0L, left + right));
-            applyMobDropRate(region.islandId(), event.getDrops());
-        });
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    public void onHangingBreak(HangingBreakEvent event) {
-        protection.regionAt(event.getEntity().getLocation().getBlock()).ifPresent(region -> {
-            seedObserved(event.getEntity().getWorld(), region, null);
-            observedEntities.merge(region.islandId(), -1L, (left, right) -> Math.max(0L, left + right));
-        });
-    }
-
-    private void seedObserved(World world, IslandRegion region, Entity excludedEntity) {
-        if (!seededEntities.add(region.islandId())) {
-            return;
+    public void onEntityDeathDrops(EntityDeathEvent event) {
+        if (IslandEntityLimitKeys.counts(event.getEntity())) {
+            protection.regionAt(event.getEntity().getLocation().getBlock()).ifPresent(region ->
+                applyMobDropRate(region.islandId(), event.getDrops()));
         }
-        long count = 0L;
-        for (Entity entity : world.getEntities()) {
-            if (!countsForLimit(entity)) {
-                continue;
-            }
-            if (excludedEntity != null && entity.getUniqueId().equals(excludedEntity.getUniqueId())) {
-                continue;
-            }
-            if (region.contains(entity.getWorld().getName(), entity.getLocation().getBlockX(), entity.getLocation().getBlockZ())) {
-                count++;
-            }
-        }
-        observedEntities.put(region.islandId(), count);
     }
 
-    private boolean countsForLimit(Entity entity) {
-        if (entity instanceof Player) {
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntityDeathCount(EntityDeathEvent event) {
+        if (IslandEntityLimitKeys.counts(event.getEntity())) {
+            recordAcceptedDelta(event.getEntity().getLocation(), -1L);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHangingBreakAccepted(HangingBreakEvent event) {
+        recordAcceptedDelta(event.getEntity().getLocation(), -1L);
+    }
+
+    private boolean entitySpawnAllowed(Location location, UUID islandId) {
+        OptionalLong resolvedLimit = limits.limitIfReady(islandId, "ENTITY", Long.MAX_VALUE);
+        if (resolvedLimit.isEmpty()) {
+            notifyLoading(location, islandId, "ENTITY");
             return false;
         }
-        return entity instanceof LivingEntity || entity instanceof Hanging || entity instanceof Vehicle;
+        long limit = resolvedLimit.getAsLong();
+        if (limit == Long.MAX_VALUE) {
+            return true;
+        }
+        OptionalLong resolvedCount = limits.blockCountIfReady(islandId, "ENTITY");
+        if (resolvedCount.isEmpty()) {
+            notifyLoading(location, islandId, "ENTITY");
+            return false;
+        }
+        long current = resolvedCount.getAsLong();
+        if (current >= limit) {
+            notifyNearby(location, islandId, current, limit);
+            return false;
+        }
+        return true;
     }
 
-    private boolean spawnerSpawnAllowed(UUID islandId) {
-        long percent = Math.max(0L, limits.limit(islandId, "RATE:SPAWNER_RATES", 100L));
+    private boolean spawnerSpawnAllowed(Location location, UUID islandId) {
+        OptionalLong resolved = limits.limitIfReady(islandId, "RATE:SPAWNER_RATES", 100L);
+        if (resolved.isEmpty()) {
+            notifyLoading(location, islandId, "RATE:SPAWNER_RATES");
+            return false;
+        }
+        long percent = Math.max(0L, resolved.getAsLong());
         if (percent <= 0L) {
             return false;
         }
         return percent >= 100L || random.nextInt(100) < percent;
+    }
+
+    private void recordAcceptedDelta(Location location, long delta) {
+        protection.regionAt(location.getBlock()).ifPresent(region -> {
+            if (levelScanService != null) {
+                levelScanService.recordBlockDelta(region.islandId(), IslandEntityLimitKeys.COUNT_KEY, delta);
+            } else {
+                limits.recordBlockDelta(region.islandId(), IslandEntityLimitKeys.COUNT_KEY, delta);
+            }
+        });
     }
 
     private void applyMobDropRate(UUID islandId, java.util.List<ItemStack> drops) {
@@ -194,18 +213,40 @@ public final class IslandEntityLimitListener implements Listener {
         return amount;
     }
 
-    private void notifyNearby(org.bukkit.Location location, UUID islandId, long current, long limit) {
-        long now = System.currentTimeMillis();
-        long previous = lastLimitNotice.getOrDefault(islandId, 0L);
-        if (now - previous < NOTICE_COOLDOWN_MILLIS) {
+    private void notifyNearby(Location location, UUID islandId, long current, long limit) {
+        if (!claimNotice(islandId, "ENTITY")) {
             return;
         }
-        lastLimitNotice.put(islandId, now);
         String message = message("limit-reached", "섬 {limit} 제한에 도달했습니다. 현재 {current}/{max}",
             "limit", "엔티티",
             "current", Long.toString(current),
             "max", Long.toString(limit)
         );
+        notifyNearby(location, message);
+    }
+
+    private void notifyLoading(Location location, UUID islandId, String key) {
+        if (!claimNotice(islandId, key + ":loading")) {
+            return;
+        }
+        String name = key.equals("RATE:SPAWNER_RATES") ? "스포너 생성률" : "엔티티";
+        notifyNearby(location, message("limit-data-loading", "섬 {limit} 한도 데이터를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
+            "limit", name
+        ));
+    }
+
+    private boolean claimNotice(UUID islandId, String key) {
+        String noticeKey = islandId + ":" + key;
+        long now = System.currentTimeMillis();
+        long previous = lastLimitNotice.getOrDefault(noticeKey, 0L);
+        if (now - previous < NOTICE_COOLDOWN_MILLIS) {
+            return false;
+        }
+        lastLimitNotice.put(noticeKey, now);
+        return true;
+    }
+
+    private void notifyNearby(Location location, String message) {
         location.getWorld().getPlayers().stream()
             .filter(player -> player.getLocation().getWorld().equals(location.getWorld()))
             .filter(player -> player.getLocation().distanceSquared(location) <= 256.0D)

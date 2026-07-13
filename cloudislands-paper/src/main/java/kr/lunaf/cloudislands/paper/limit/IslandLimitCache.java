@@ -183,6 +183,7 @@ public final class IslandLimitCache {
                 case "HOPPER" -> key.equals("hopper") || key.equals("minecraft:hopper");
                 case "SPAWNER" -> key.equals("spawner") || key.equals("minecraft:spawner");
                 case "REDSTONE" -> isRedstoneKey(key);
+                case "ENTITY" -> key.startsWith("entity:");
                 default -> false;
             };
         }

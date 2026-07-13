@@ -16,6 +16,7 @@ class StackAmountLevelAccountingPolicyTest {
         assertTrue(scans.contains("stackAmounts.snapshot"));
         assertTrue(scans.contains("stackSnapshot.blockAmount(block)"));
         assertTrue(scans.contains("stackSnapshot.entityAmount(entity)"));
+        assertTrue(scans.contains("counts.merge(IslandEntityLimitKeys.COUNT_KEY, amount, Long::sum)"));
         assertTrue(scans.contains("stackSnapshot.blockKeyOverride(block)"));
         assertTrue(runtime.contains("stack-amount-registration"));
         assertTrue(runtime.contains("unregisterStackAmounts"));
