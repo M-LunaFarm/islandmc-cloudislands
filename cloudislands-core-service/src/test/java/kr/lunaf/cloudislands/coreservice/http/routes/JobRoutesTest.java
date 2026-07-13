@@ -31,7 +31,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandSnapshotRecord;
+import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpException;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
@@ -231,6 +233,94 @@ class JobRoutesTest {
     }
 
     @Test
+    void failRoutePreservesRuntimeUntilRetryBudgetIsExhausted() throws Exception {
+        String nodeId = "island-node-1";
+        UUID islandId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        jobs.publish(new IslandJob(jobId, IslandJobType.ACTIVATE_ISLAND, islandId, nodeId, 0, Map.of("fencingToken", "7"), Instant.EPOCH));
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        runtimes.markActivating(islandId, nodeId, "ci_shard_001", 0, 0);
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        JobCompletionService completion = new JobCompletionService(
+            runtimes,
+            events,
+            new InMemorySnapshotRepository(),
+            new InMemoryRouteTicketStore(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC))
+        );
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new JobRoutes(jobs, completion, null).register(handlers::put);
+
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            JobClaimLease lease = jobs.claim(nodeId, List.of(IslandJobType.ACTIVATE_ISLAND), 1).getFirst().claimLease();
+            TestExchange failed = exchange("{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"claimLease\":" + claimLeaseJson(lease) + ",\"error\":\"object storage unavailable\"}");
+
+            handlers.get("/v1/jobs/fail").handle(failed);
+
+            assertEquals(202, failed.status());
+            assertEquals(1L, jobs.countsByState().get("PENDING"));
+            assertEquals(IslandState.ACTIVATING, runtimes.find(islandId).orElseThrow().state());
+            assertEquals(0L, events.countByType("ISLAND_RUNTIME_CHANGED"));
+        }
+
+        JobClaimLease finalLease = jobs.claim(nodeId, List.of(IslandJobType.ACTIVATE_ISLAND), 1).getFirst().claimLease();
+        TestExchange terminal = exchange("{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"claimLease\":" + claimLeaseJson(finalLease) + ",\"error\":\"object storage unavailable\"}");
+
+        handlers.get("/v1/jobs/fail").handle(terminal);
+
+        assertEquals(202, terminal.status());
+        assertEquals(1L, jobs.countsByState().get("FAILED"));
+        assertEquals(IslandState.ERROR_ACTIVATING, runtimes.find(islandId).orElseThrow().state());
+        assertEquals(1L, events.countByType("ISLAND_RUNTIME_CHANGED"));
+    }
+
+    @Test
+    void terminalFailureKeepsClaimUntilFailureStateCanBePublished() throws Exception {
+        String nodeId = "island-node-1";
+        UUID islandId = UUID.randomUUID();
+        UUID jobId = UUID.randomUUID();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        jobs.publish(new IslandJob(jobId, IslandJobType.ACTIVATE_ISLAND, islandId, nodeId, 0, Map.of("fencingToken", "7"), Instant.EPOCH));
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        runtimes.markActivating(islandId, nodeId, "ci_shard_001", 0, 0);
+        FlakyGlobalEventPublisher events = new FlakyGlobalEventPublisher();
+        JobCompletionService completion = new JobCompletionService(
+            runtimes,
+            events,
+            new InMemorySnapshotRepository(),
+            new InMemoryRouteTicketStore(Clock.fixed(Instant.EPOCH, ZoneOffset.UTC))
+        );
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new JobRoutes(jobs, completion, null).register(handlers::put);
+
+        for (int attempt = 1; attempt <= 2; attempt++) {
+            JobClaimLease lease = jobs.claim(nodeId, List.of(IslandJobType.ACTIVATE_ISLAND), 1).getFirst().claimLease();
+            TestExchange retry = exchange("{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"claimLease\":" + claimLeaseJson(lease) + ",\"error\":\"storage unavailable\"}");
+            handlers.get("/v1/jobs/fail").handle(retry);
+            assertEquals(202, retry.status());
+        }
+        JobClaimLease terminalLease = jobs.claim(nodeId, List.of(IslandJobType.ACTIVATE_ISLAND), 1).getFirst().claimLease();
+        String terminalBody = "{\"nodeId\":\"" + nodeId + "\",\"jobId\":\"" + jobId + "\",\"claimLease\":" + claimLeaseJson(terminalLease) + ",\"error\":\"storage unavailable\"}";
+        events.failNext();
+
+        TestExchange failedCommit = exchange(terminalBody);
+        handlers.get("/v1/jobs/fail").handle(failedCommit);
+
+        assertEquals(500, failedCommit.status());
+        assertTrue(failedCommit.body().contains("\"code\":\"JOB_FAILURE_COMMIT_FAILED\""));
+        assertEquals(1L, jobs.countsByState().get("CLAIMED"));
+        assertEquals(0L, jobs.countsByState().get("FAILED"));
+
+        TestExchange replay = exchange(terminalBody);
+        handlers.get("/v1/jobs/fail").handle(replay);
+
+        assertEquals(202, replay.status());
+        assertEquals(0L, jobs.countsByState().get("CLAIMED"));
+        assertEquals(1L, jobs.countsByState().get("FAILED"));
+        assertEquals(1, events.published());
+    }
+
+    @Test
     void claimRouteRejectsInvalidTypedRequestFields() throws Exception {
         Map<String, HttpHandler> handlers = new HashMap<>();
         new JobRoutes(new InMemoryIslandJobPublisher(), null, null).register(handlers::put);
@@ -363,6 +453,16 @@ class JobRoutesTest {
         }
 
         @Override
+        public FailureDisposition failClaimed(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+            return delegate.failClaimed(nodeId, jobId, claimLease, errorMessage);
+        }
+
+        @Override
+        public FailureDisposition failureDisposition(String nodeId, UUID jobId, JobClaimLease claimLease) {
+            return delegate.failureDisposition(nodeId, jobId, claimLease);
+        }
+
+        @Override
         public boolean retry(UUID jobId) {
             return delegate.retry(jobId);
         }
@@ -428,6 +528,28 @@ class JobRoutesTest {
         @Override
         public int pruneRetaining(UUID islandId, Set<Long> retainedSnapshotNos) {
             return 0;
+        }
+    }
+
+    private static final class FlakyGlobalEventPublisher implements GlobalEventPublisher {
+        private boolean failNext;
+        private int published;
+
+        @Override
+        public void publish(String eventType, Map<String, String> fields) {
+            if (failNext) {
+                failNext = false;
+                throw new IllegalStateException("event publisher unavailable");
+            }
+            published++;
+        }
+
+        private void failNext() {
+            failNext = true;
+        }
+
+        private int published() {
+            return published;
         }
     }
 

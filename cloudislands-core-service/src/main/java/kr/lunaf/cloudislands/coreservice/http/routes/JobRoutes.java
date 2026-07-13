@@ -96,11 +96,28 @@ public final class JobRoutes implements RouteGroup {
             return;
         }
         java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId(), request.claimLease());
-        if (claimed.isEmpty() || !jobs.fail(request.nodeId(), request.jobId(), request.claimLease(), request.error())) {
+        if (claimed.isEmpty()) {
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
             return;
         }
-        claimed.ifPresent(job -> completion.failed(job, request.error()));
+        IslandJobQueue.FailureDisposition expected = jobs.failureDisposition(request.nodeId(), request.jobId(), request.claimLease());
+        if (expected == IslandJobQueue.FailureDisposition.REJECTED) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
+            return;
+        }
+        if (expected == IslandJobQueue.FailureDisposition.TERMINAL) {
+            try {
+                completion.failed(claimed.get(), request.error());
+            } catch (RuntimeException exception) {
+                CoreHttpResponses.write(exchange, 500, ApiResponses.error("JOB_FAILURE_COMMIT_FAILED", "Terminal job failure was not committed; retry the claimed job"));
+                return;
+            }
+        }
+        IslandJobQueue.FailureDisposition committed = jobs.failClaimed(request.nodeId(), request.jobId(), request.claimLease(), request.error());
+        if (committed != expected) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job failure disposition changed before it could be committed"));
+            return;
+        }
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
     }
 

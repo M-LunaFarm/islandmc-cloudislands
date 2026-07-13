@@ -210,6 +210,16 @@ class CoreIslandDeleteServiceTest {
         }
 
         @Override
+        public FailureDisposition failClaimed(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+            return FailureDisposition.REJECTED;
+        }
+
+        @Override
+        public FailureDisposition failureDisposition(String nodeId, UUID jobId, JobClaimLease claimLease) {
+            return FailureDisposition.REJECTED;
+        }
+
+        @Override
         public boolean retry(UUID jobId) {
             return false;
         }

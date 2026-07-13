@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 
 public final class RedisIslandJobQueue implements IslandJobQueue {
     private static final String GROUP = "cloudislands-agents";
+    private static final int MAX_ATTEMPTS = 3;
     private static final Duration DEFAULT_LEASE_DURATION = Duration.ofSeconds(30L);
     private final URI redisUri;
     private final Duration leaseDuration;
@@ -54,7 +55,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     @Override
     public void publish(IslandJob job) {
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            redis.command("XADD", RedisKeys.jobsStream(), "*", "jobId", job.jobId().toString(), "type", job.type().name(), "islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "priority", Integer.toString(job.priority()), "createdAt", job.createdAt().toString(), "payload", encodePayload(job.payload()));
+            xaddJob(redis, job, 0);
         } catch (IOException | RuntimeException exception) {
             recordRedisFailure();
             throw new IllegalStateException("failed to publish redis island job", exception);
@@ -113,11 +114,77 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
 
     @Override
     public boolean fail(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
-        boolean acked = ackByJobId(nodeId, jobId, claimLease, "failed", errorMessage);
-        if (acked) {
-            failedJobsTotal.incrementAndGet();
+        return failClaimed(nodeId, jobId, claimLease, errorMessage) != FailureDisposition.REJECTED;
+    }
+
+    @Override
+    public FailureDisposition failClaimed(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+        if (claimLease == null || !claimLease.matches(jobId, nodeId)) {
+            return FailureDisposition.REJECTED;
         }
-        return acked;
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            Map<String, String> storedLease = readClaimHash(redis, jobId);
+            if (!storedLeaseMatches(jobId, claimLease, storedLease)) {
+                return FailureDisposition.REJECTED;
+            }
+            IslandJob job = claimedJobs.get(jobId);
+            if (job == null) {
+                job = claimedJobFromHash(jobId, storedLease).orElse(null);
+            }
+            if (job == null) {
+                return FailureDisposition.REJECTED;
+            }
+            String streamId = streamIdsByJobId.getOrDefault(jobId, storedLease.getOrDefault("streamId", ""));
+            int attempt = Math.max(claimLease.attempt(), parseInt(storedLease.get("attempt"), 1));
+            boolean retryScheduled = attempt < MAX_ATTEMPTS;
+            redis.command("MULTI");
+            if (retryScheduled) {
+                xaddJob(redis, withFailureContext(job, errorMessage, attempt), attempt);
+            }
+            if (!streamId.isBlank()) {
+                redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+            }
+            redis.command("DEL", RedisKeys.jobClaim(jobId));
+            redis.command(
+                "XADD", RedisKeys.auditStream(), "*",
+                "type", retryScheduled ? "JOB_RETRY_SCHEDULED" : "JOB_FAILED",
+                "jobId", jobId.toString(),
+                "streamId", streamId,
+                "attempt", Integer.toString(attempt),
+                "error", errorMessage == null ? "" : errorMessage
+            );
+            redis.command("EXEC");
+            claimedJobs.remove(jobId);
+            streamIdsByJobId.remove(jobId);
+            claimedNodesByJobId.remove(jobId);
+            if (retryScheduled) {
+                retryAttemptsTotal.incrementAndGet();
+                return FailureDisposition.RETRY_SCHEDULED;
+            }
+            failedJobsTotal.incrementAndGet();
+            return FailureDisposition.TERMINAL;
+        } catch (IOException | RuntimeException exception) {
+            recordRedisFailure();
+            throw new IllegalStateException("failed to fail redis island job", exception);
+        }
+    }
+
+    @Override
+    public FailureDisposition failureDisposition(String nodeId, UUID jobId, JobClaimLease claimLease) {
+        if (claimLease == null || !claimLease.matches(jobId, nodeId)) {
+            return FailureDisposition.REJECTED;
+        }
+        try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
+            Map<String, String> storedLease = readClaimHash(redis, jobId);
+            if (!storedLeaseMatches(jobId, claimLease, storedLease)) {
+                return FailureDisposition.REJECTED;
+            }
+            int attempt = Math.max(claimLease.attempt(), parseInt(storedLease.get("attempt"), 1));
+            return attempt < MAX_ATTEMPTS ? FailureDisposition.RETRY_SCHEDULED : FailureDisposition.TERMINAL;
+        } catch (IOException | RuntimeException exception) {
+            recordRedisFailure();
+            throw new IllegalStateException("failed to inspect redis island job failure", exception);
+        }
     }
 
     @Override
@@ -134,7 +201,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
                 job = storedJob.get();
                 streamId = storedLease.getOrDefault("streamId", "");
             }
-            redis.command("XADD", RedisKeys.jobsStream(), "*", "jobId", job.jobId().toString(), "type", job.type().name(), "islandId", job.islandId().toString(), "targetNode", job.targetNode() == null ? "" : job.targetNode(), "priority", Integer.toString(job.priority()), "createdAt", job.createdAt().toString(), "payload", encodePayload(job.payload()));
+            xaddJob(redis, job, 0);
             if (streamId != null && !streamId.isBlank()) {
                 redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
             }
@@ -374,7 +441,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
                 UUID jobId = UUID.fromString(current.get("jobId"));
                 streamIdsByJobId.put(jobId, streamId);
                 IslandJob job = new IslandJob(jobId, type, UUID.fromString(current.get("islandId")), targetNode, parseInt(current.get("priority"), 0), decodePayload(current.getOrDefault("payload", "")), parseInstant(current.get("createdAt")));
-                JobClaimLease claimLease = writeClaimLease(redis, job, streamId, nodeId);
+                JobClaimLease claimLease = writeClaimLease(redis, job, streamId, nodeId, parseInt(current.get("attempt"), 0));
                 IslandJob claimedJob = job.withClaimLease(claimLease);
                 claimedJobs.put(jobId, claimedJob);
                 claimedNodesByJobId.put(jobId, nodeId);
@@ -390,13 +457,13 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
         }
     }
 
-    private JobClaimLease writeClaimLease(RedisRespConnection redis, IslandJob job, String streamId, String nodeId) throws IOException {
+    private JobClaimLease writeClaimLease(RedisRespConnection redis, IslandJob job, String streamId, String nodeId, int previousAttempts) throws IOException {
         UUID jobId = job.jobId();
         String key = RedisKeys.jobClaim(jobId);
         long claimEpoch = parseLong(redis.command("HINCRBY", key, "claimEpoch", "1"), 1L);
         String claimToken = UUID.randomUUID().toString();
         Instant leaseExpiresAt = Instant.now().plus(leaseDuration);
-        int attempt = (int) Math.min(Integer.MAX_VALUE, claimEpoch);
+        int attempt = Math.max(0, previousAttempts) + 1;
         redis.command(
             "HSET",
             key,
@@ -445,9 +512,31 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             "targetNode", targetNode == null ? "" : targetNode,
             "priority", job.getOrDefault("priority", "0"),
             "createdAt", job.getOrDefault("createdAt", Instant.now().toString()),
+            "attempt", job.getOrDefault("attempt", "0"),
             "payload", job.getOrDefault("payload", "")
         );
         redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_REQUEUED_TARGET_MISMATCH", "jobId", job.getOrDefault("jobId", ""), "streamId", streamId, "nodeId", nodeId, "targetNode", targetNode == null ? "" : targetNode);
+    }
+
+    private void xaddJob(RedisRespConnection redis, IslandJob job, int attempts) throws IOException {
+        redis.command(
+            "XADD", RedisKeys.jobsStream(), "*",
+            "jobId", job.jobId().toString(),
+            "type", job.type().name(),
+            "islandId", job.islandId().toString(),
+            "targetNode", job.targetNode() == null ? "" : job.targetNode(),
+            "priority", Integer.toString(job.priority()),
+            "createdAt", job.createdAt().toString(),
+            "attempt", Integer.toString(Math.max(0, attempts)),
+            "payload", encodePayload(job.payload())
+        );
+    }
+
+    private IslandJob withFailureContext(IslandJob job, String errorMessage, int attempts) {
+        Map<String, String> payload = new HashMap<>(job.payload());
+        payload.put("lastError", errorMessage == null ? "unknown" : errorMessage);
+        payload.put("attempts", Integer.toString(Math.max(1, attempts)));
+        return new IslandJob(job.jobId(), job.type(), job.islandId(), job.targetNode(), job.priority(), Map.copyOf(payload), job.createdAt());
     }
 
     private long parseGroupLong(String reply, String key) {

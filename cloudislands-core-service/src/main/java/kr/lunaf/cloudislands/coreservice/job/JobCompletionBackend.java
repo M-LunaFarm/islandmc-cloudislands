@@ -32,6 +32,7 @@ final class JobCompletionBackend {
     private final SnapshotRetentionPolicy snapshotRetentionPolicy;
     private final RedisActivationLock activationLock;
     private final AddonStateRepository addonStates;
+    private final boolean propagateEventFailures;
     static final String ACTIVATION_LOCK_TOKEN_KEY = "activationLockToken";
 
     JobCompletionBackend(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
@@ -64,6 +65,10 @@ final class JobCompletionBackend {
     }
 
     JobCompletionBackend(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock, AddonStateRepository addonStates) {
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, addonStates, false);
+    }
+
+    JobCompletionBackend(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock, AddonStateRepository addonStates, boolean propagateEventFailures) {
         this.runtimes = runtimes;
         this.events = events;
         this.snapshots = snapshots;
@@ -76,6 +81,7 @@ final class JobCompletionBackend {
         this.snapshotKeepLatest = this.snapshotRetentionPolicy.retainedSnapshotCount();
         this.activationLock = activationLock;
         this.addonStates = addonStates;
+        this.propagateEventFailures = propagateEventFailures;
     }
 
     public void completed(IslandJob job) {
@@ -785,7 +791,10 @@ final class JobCompletionBackend {
         }
         try {
             events.publish(eventType, fields);
-        } catch (RuntimeException ignored) {
+        } catch (RuntimeException exception) {
+            if (propagateEventFailures) {
+                throw exception;
+            }
             // Job completion has already committed authoritative runtime/snapshot state.
         }
     }

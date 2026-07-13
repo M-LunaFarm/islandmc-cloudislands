@@ -99,15 +99,32 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
 
     @Override
     public synchronized boolean fail(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
-        final boolean[] changed = {false};
+        return failClaimed(nodeId, jobId, claimLease, errorMessage) != FailureDisposition.REJECTED;
+    }
+
+    @Override
+    public synchronized FailureDisposition failClaimed(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+        final FailureDisposition[] disposition = {FailureDisposition.REJECTED};
         replace(jobId, record -> {
             if (leaseMatches(record, jobId, claimLease) && record.lockedBy().equals(nodeId)) {
-                changed[0] = true;
+                disposition[0] = record.attempts() < MAX_ATTEMPTS
+                    ? FailureDisposition.RETRY_SCHEDULED
+                    : FailureDisposition.TERMINAL;
                 return record.failed(errorMessage);
             }
             return record;
         });
-        return changed[0];
+        return disposition[0];
+    }
+
+    @Override
+    public synchronized FailureDisposition failureDisposition(String nodeId, UUID jobId, JobClaimLease claimLease) {
+        return jobs.stream()
+            .filter(record -> leaseMatches(record, jobId, claimLease))
+            .filter(record -> record.lockedBy().equals(nodeId))
+            .map(record -> record.attempts() < MAX_ATTEMPTS ? FailureDisposition.RETRY_SCHEDULED : FailureDisposition.TERMINAL)
+            .findFirst()
+            .orElse(FailureDisposition.REJECTED);
     }
 
     @Override

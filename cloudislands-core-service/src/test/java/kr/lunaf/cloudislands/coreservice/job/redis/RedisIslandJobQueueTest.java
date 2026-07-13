@@ -1,5 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.job.redis;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedInputStream;
@@ -18,7 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
+import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 import org.junit.jupiter.api.Test;
 
 class RedisIslandJobQueueTest {
@@ -66,6 +70,55 @@ class RedisIslandJobQueueTest {
         }
     }
 
+    @Test
+    void transientFailureAtomicallyRequeuesJobWithinRetryBudget() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        String streamId = "1700000000002-0";
+        try (FakeRedis redis = FakeRedis.withClaim(jobId, islandId, streamId, 1)) {
+            RedisIslandJobQueue queue = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
+            JobClaimLease lease = new JobClaimLease(jobId, streamId, "node-a", "claim-token", 7L, Instant.now().plusSeconds(30), 1);
+
+            assertEquals(IslandJobQueue.FailureDisposition.RETRY_SCHEDULED, queue.failureDisposition("node-a", jobId, lease));
+            IslandJobQueue.FailureDisposition disposition = queue.failClaimed("node-a", jobId, lease, "storage unavailable");
+
+            assertEquals(IslandJobQueue.FailureDisposition.RETRY_SCHEDULED, disposition);
+            assertTrue(redis.commands().stream().anyMatch(command ->
+                command.size() > 2
+                    && command.get(0).equals("XADD")
+                    && command.get(1).equals(RedisKeys.jobsStream())
+                    && command.contains("attempt")
+                    && command.contains("1")
+            ));
+            assertTrue(redis.commands().stream().anyMatch(command -> command.contains("JOB_RETRY_SCHEDULED")));
+            assertTrue(redis.commands().contains(List.of("XACK", RedisKeys.jobsStream(), "cloudislands-agents", streamId)));
+            assertEquals(1L, queue.retryAttemptsTotal());
+        }
+    }
+
+    @Test
+    void exhaustedFailureBudgetTerminatesWithoutRequeue() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        String streamId = "1700000000003-0";
+        try (FakeRedis redis = FakeRedis.withClaim(jobId, islandId, streamId, 3)) {
+            RedisIslandJobQueue queue = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
+            JobClaimLease lease = new JobClaimLease(jobId, streamId, "node-a", "claim-token", 7L, Instant.now().plusSeconds(30), 3);
+
+            assertEquals(IslandJobQueue.FailureDisposition.TERMINAL, queue.failureDisposition("node-a", jobId, lease));
+            IslandJobQueue.FailureDisposition disposition = queue.failClaimed("node-a", jobId, lease, "storage unavailable");
+
+            assertEquals(IslandJobQueue.FailureDisposition.TERMINAL, disposition);
+            assertFalse(redis.commands().stream().anyMatch(command ->
+                command.size() > 2
+                    && command.get(0).equals("XADD")
+                    && command.get(1).equals(RedisKeys.jobsStream())
+            ));
+            assertTrue(redis.commands().stream().anyMatch(command -> command.contains("JOB_FAILED")));
+            assertEquals(0L, queue.retryAttemptsTotal());
+        }
+    }
+
     private static final class FakeRedis implements Closeable {
         private final ServerSocket server;
         private final Thread thread;
@@ -81,6 +134,10 @@ class RedisIslandJobQueueTest {
         }
 
         static FakeRedis withClaim(UUID jobId, UUID islandId, String streamId) throws IOException {
+            return withClaim(jobId, islandId, streamId, 7);
+        }
+
+        static FakeRedis withClaim(UUID jobId, UUID islandId, String streamId, int attempt) throws IOException {
             ServerSocket server = new ServerSocket(0);
             return new FakeRedis(server, Map.ofEntries(
                 Map.entry("jobId", jobId.toString()),
@@ -89,7 +146,7 @@ class RedisIslandJobQueueTest {
                 Map.entry("claimToken", "claim-token"),
                 Map.entry("claimEpoch", "7"),
                 Map.entry("leaseExpiresAt", Instant.now().plusSeconds(60).toString()),
-                Map.entry("attempt", "7"),
+                Map.entry("attempt", Integer.toString(attempt)),
                 Map.entry("type", IslandJobType.SAVE_ISLAND.name()),
                 Map.entry("islandId", islandId.toString()),
                 Map.entry("targetNode", "node-a"),

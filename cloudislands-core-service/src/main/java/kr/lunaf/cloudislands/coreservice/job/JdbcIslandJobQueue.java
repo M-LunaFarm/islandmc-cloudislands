@@ -153,20 +153,70 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
 
     @Override
     public boolean fail(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
+        return failClaimed(nodeId, jobId, claimLease, errorMessage) != FailureDisposition.REJECTED;
+    }
+
+    @Override
+    public FailureDisposition failClaimed(String nodeId, UUID jobId, JobClaimLease claimLease, String errorMessage) {
         if (claimLease == null || !claimLease.matches(jobId, nodeId)) {
-            return false;
+            return FailureDisposition.REJECTED;
         }
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = CASE WHEN retry_count + 1 < max_retries THEN 'PENDING' ELSE 'FAILED' END, retry_count = retry_count + 1, error_message = ?, locked_by = CASE WHEN retry_count + 1 < max_retries THEN NULL ELSE locked_by END, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, updated_at = now() WHERE id = ? AND locked_by = ? AND claim_token = ? AND claim_epoch = ? AND locked_until > ? AND state = 'CLAIMED'")) {
-            statement.setString(1, errorMessage == null ? "unknown" : errorMessage);
-            statement.setObject(2, jobId);
-            statement.setString(3, nodeId);
-            statement.setString(4, claimLease.claimToken());
-            statement.setLong(5, claimLease.claimEpoch());
-            statement.setObject(6, java.sql.Timestamp.from(clock.instant()));
-            return statement.executeUpdate() > 0;
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement("UPDATE island_jobs SET state = CASE WHEN retry_count + 1 < max_retries THEN 'PENDING' ELSE 'FAILED' END, retry_count = retry_count + 1, error_message = ?, locked_by = CASE WHEN retry_count + 1 < max_retries THEN NULL ELSE locked_by END, locked_until = NULL, claim_token = NULL, claim_stream_id = NULL, updated_at = now() WHERE id = ? AND locked_by = ? AND claim_token = ? AND claim_epoch = ? AND locked_until > ? AND state = 'CLAIMED'")) {
+                statement.setString(1, errorMessage == null ? "unknown" : errorMessage);
+                statement.setObject(2, jobId);
+                statement.setString(3, nodeId);
+                statement.setString(4, claimLease.claimToken());
+                statement.setLong(5, claimLease.claimEpoch());
+                statement.setObject(6, java.sql.Timestamp.from(clock.instant()));
+                if (statement.executeUpdate() == 0) {
+                    connection.rollback();
+                    return FailureDisposition.REJECTED;
+                }
+            }
+            FailureDisposition disposition;
+            try (PreparedStatement statement = connection.prepareStatement("SELECT state FROM island_jobs WHERE id = ?")) {
+                statement.setObject(1, jobId);
+                try (ResultSet rs = statement.executeQuery()) {
+                    if (!rs.next()) {
+                        connection.rollback();
+                        return FailureDisposition.REJECTED;
+                    }
+                    disposition = "FAILED".equals(rs.getString("state"))
+                        ? FailureDisposition.TERMINAL
+                        : FailureDisposition.RETRY_SCHEDULED;
+                }
+            }
+            connection.commit();
+            return disposition;
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to fail jdbc island job", exception);
+        }
+    }
+
+    @Override
+    public FailureDisposition failureDisposition(String nodeId, UUID jobId, JobClaimLease claimLease) {
+        if (claimLease == null || !claimLease.matches(jobId, nodeId)) {
+            return FailureDisposition.REJECTED;
+        }
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT retry_count, max_retries FROM island_jobs WHERE id = ? AND locked_by = ? AND claim_token = ? AND claim_epoch = ? AND locked_until > ? AND state = 'CLAIMED'")) {
+            statement.setObject(1, jobId);
+            statement.setString(2, nodeId);
+            statement.setString(3, claimLease.claimToken());
+            statement.setLong(4, claimLease.claimEpoch());
+            statement.setObject(5, java.sql.Timestamp.from(clock.instant()));
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return FailureDisposition.REJECTED;
+                }
+                return rs.getInt("retry_count") + 1 < rs.getInt("max_retries")
+                    ? FailureDisposition.RETRY_SCHEDULED
+                    : FailureDisposition.TERMINAL;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to inspect jdbc island job failure", exception);
         }
     }
 

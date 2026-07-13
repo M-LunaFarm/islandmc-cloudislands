@@ -67,7 +67,7 @@ public final class JobCompletionService {
         JobCompletionOutboxStore safeOutbox = outbox == null ? new InMemoryJobCompletionOutboxStore() : outbox;
         JobCompletionOutboxDispatcher dispatcher = new JobCompletionOutboxDispatcher(safeOutbox, events);
         this.backend = new JobCompletionBackend(runtimes, eventBuffer, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, addonStates);
-        this.failureBackend = new JobCompletionBackend(runtimes, failureEvents, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, addonStates);
+        this.failureBackend = new JobCompletionBackend(runtimes, failureEvents, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, addonStates, true);
         this.coordinator = new JobCompletionCoordinator(backend, eventBuffer, receipts == null ? new InMemoryJobCompletionReceiptStore() : receipts, safeOutbox, dispatcher);
     }
 
