@@ -12,6 +12,8 @@ class StackAmountLevelAccountingPolicyTest {
         String scans = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/level/IslandLevelScanService.java"));
         String runtime = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/bootstrap/PaperRuntimeServices.java"));
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackAmountService.java"));
+        String deltas = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/limit/LogicalStackDeltaBridge.java"));
+        String bootstrap = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"));
 
         assertTrue(scans.contains("stackAmounts.snapshot"));
         assertTrue(scans.contains("stackSnapshot.blockAmount(block)"));
@@ -23,5 +25,11 @@ class StackAmountLevelAccountingPolicyTest {
         assertTrue(stacker.contains("getStackedBlocks"));
         assertTrue(stacker.contains("getStackedBarrels"));
         assertTrue(stacker.contains("getSpawnerAmount"));
+        assertTrue(deltas.contains("BlockStackEvent"));
+        assertTrue(deltas.contains("BlockUnstackEvent"));
+        assertTrue(deltas.contains("SpawnerUnstackEvent"));
+        assertTrue(deltas.contains("BarrelPlaceInventoryEvent"));
+        assertTrue(deltas.contains("BarrelUnstackEvent"));
+        assertTrue(bootstrap.contains("LogicalStackDeltaBridge.register"));
     }
 }
