@@ -43,6 +43,7 @@ public final class CoreHttpRouteRegistrar {
     private final List<RouteDefinition> prefixRoutes = new ArrayList<>();
     private HttpServer server;
     private AuditLogger audit;
+    private CoreIdempotencyStore idempotencyStore = new InMemoryCoreIdempotencyStore();
 
     public CoreHttpRouteRegistrar(
             FixedWindowRateLimiter rateLimiter,
@@ -83,6 +84,13 @@ public final class CoreHttpRouteRegistrar {
 
     public void setAudit(AuditLogger audit) {
         this.audit = audit;
+    }
+
+    public void setIdempotencyStore(CoreIdempotencyStore idempotencyStore) {
+        if (idempotencyStore == null) {
+            throw new IllegalArgumentException("idempotencyStore is required");
+        }
+        this.idempotencyStore = idempotencyStore;
     }
 
     public void route(String path, HttpHandler handler) {
@@ -167,8 +175,16 @@ public final class CoreHttpRouteRegistrar {
             CoreHttpResponses.write(exchange, 415, ApiResponses.error("UNSUPPORTED_MEDIA_TYPE", "Content-Type must be application/json"));
             return;
         }
+        if (CoreIdempotencyExecutor.requested(exchange, method)) {
+            CoreIdempotencyExecutor.execute(exchange, requestPath, route.handler(), idempotencyStore, this::invokeRoute);
+        } else {
+            invokeRoute(exchange, requestPath, route.handler());
+        }
+    }
+
+    private void invokeRoute(HttpExchange exchange, String requestPath, HttpHandler handler) throws IOException {
         try {
-            route.handler().handle(exchange);
+            handler.handle(exchange);
         } catch (CoreHttpException exception) {
             CoreHttpResponses.write(exchange, exception.status(), ApiResponses.error(exception.code(), exception.getMessage()));
         } catch (IllegalStateException exception) {

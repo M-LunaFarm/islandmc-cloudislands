@@ -6,6 +6,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.TimeUnit;
 
 final class CoreHttpTransport {
     private final URI baseUri;
@@ -75,8 +77,42 @@ final class CoreHttpTransport {
     }
 
     private CompletableFuture<CoreHttpResponse> send(HttpRequest request) {
+        return sendOnce(request).handle((response, error) -> {
+            if (error == null) {
+                return CompletableFuture.completedFuture(response);
+            }
+            Throwable cause = unwrap(error);
+            if (!idempotent(request) || !transportFailure(cause)) {
+                return CompletableFuture.<CoreHttpResponse>failedFuture(cause);
+            }
+            return CompletableFuture.runAsync(() -> {
+            }, CompletableFuture.delayedExecutor(50L, TimeUnit.MILLISECONDS)).thenCompose(_ignored -> sendOnce(request));
+        }).thenCompose(future -> future);
+    }
+
+    private CompletableFuture<CoreHttpResponse> sendOnce(HttpRequest request) {
         return httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())
             .thenApply(response -> new CoreHttpResponse(response.statusCode(), response.body()));
+    }
+
+    private static boolean idempotent(HttpRequest request) {
+        return request.headers().firstValue(CoreMutationContext.IDEMPOTENCY_KEY_HEADER)
+            .filter(value -> !value.isBlank())
+            .isPresent();
+    }
+
+    private static boolean transportFailure(Throwable error) {
+        return error instanceof java.io.IOException
+            || error instanceof java.net.http.HttpTimeoutException;
+    }
+
+    private static Throwable unwrap(Throwable error) {
+        Throwable current = error;
+        while ((current instanceof CompletionException || current instanceof java.util.concurrent.ExecutionException)
+                && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     private boolean adminProtected(String path) {

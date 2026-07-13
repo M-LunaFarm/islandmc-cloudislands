@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.http;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -15,7 +16,8 @@ class CoreHttpRequestBodyPolicyTest {
         List<String> violations = new ArrayList<>();
         try (var paths = Files.walk(sourceRoot)) {
             for (Path path : paths.filter(path -> path.toString().endsWith(".java")).toList()) {
-                if (path.getFileName().toString().equals("CoreHttpResponses.java")) {
+                if (path.getFileName().toString().equals("CoreHttpResponses.java")
+                        || path.getFileName().toString().equals("BufferedHttpExchange.java")) {
                     continue;
                 }
                 String source = Files.readString(path);
@@ -28,5 +30,7 @@ class CoreHttpRequestBodyPolicyTest {
         }
 
         assertEquals(List.of(), violations, "Core HTTP handlers must read request bodies through CoreHttpResponses.readBody");
+        String idempotencyExecutor = Files.readString(sourceRoot.resolve("CoreIdempotencyExecutor.java"));
+        assertTrue(idempotencyExecutor.contains("CoreHttpResponses.readBody(exchange)"), "idempotency buffering must enforce the shared request-body limit before replaying the body to a route");
     }
 }

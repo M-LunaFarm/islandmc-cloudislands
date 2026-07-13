@@ -25,6 +25,9 @@ import kr.lunaf.cloudislands.coreservice.event.RedisStreamEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpRequestExecutor;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpRouteRegistrar;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.http.CoreIdempotencyStore;
+import kr.lunaf.cloudislands.coreservice.http.InMemoryCoreIdempotencyStore;
+import kr.lunaf.cloudislands.coreservice.http.JdbcCoreIdempotencyStore;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminIslandLifecycleRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminGeneratorRoutes;
 import kr.lunaf.cloudislands.coreservice.http.routes.AdminNodeRoutes;
@@ -117,6 +120,13 @@ public final class CloudIslandsCoreApplication {
         CoreHttpRouteRegistrar routeRegistrar = infrastructure.routeRegistrar();
         CoreHttpRouteRegistrar adminRouteRegistrar = infrastructure.adminRouteRegistrar();
         DataSource dataSource = infrastructure.dataSource();
+        CoreIdempotencyStore idempotencyStore = config.jdbcRepositories()
+            ? new JdbcCoreIdempotencyStore(dataSource)
+            : new InMemoryCoreIdempotencyStore();
+        routeRegistrar.setIdempotencyStore(idempotencyStore);
+        if (adminRouteRegistrar != null) {
+            adminRouteRegistrar.setIdempotencyStore(idempotencyStore);
+        }
         MeteredDataSource meteredDataSource = infrastructure.meteredDataSource();
         boolean coreJdbcActive = infrastructure.coreJdbcActive();
         RedisStreamEventPublisher redisEventPublisher = infrastructure.redisEventPublisher();

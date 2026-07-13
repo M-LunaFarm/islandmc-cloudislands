@@ -633,6 +633,38 @@ tasks.register("verifyEconomyTransactionSafety") {
     }
 }
 
+tasks.register("verifyCoreMutationIdempotency") {
+    group = "verification"
+    description = "Verifies Core mutation keys are persisted, fingerprinted, replayed, and retried without duplicate execution."
+    dependsOn(project(":cloudislands-core-client").tasks.named("test"))
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    val executor = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/CoreIdempotencyExecutor.java")
+    val jdbcStore = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/JdbcCoreIdempotencyStore.java")
+    val transport = layout.projectDirectory.file("cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/CoreHttpTransport.java")
+    val postgresMigration = layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/migration/V81__core_idempotency.sql")
+    val mysqlMigration = layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/mysql/V4__core_idempotency.sql")
+    val registrarTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/CoreHttpRouteRegistrarTest.java")
+    val clientTest = layout.projectDirectory.file("cloudislands-core-client/src/test/java/kr/lunaf/cloudislands/coreclient/CoreMutationContextTest.java")
+    inputs.files(executor, jdbcStore, transport, postgresMigration, mysqlMigration, registrarTest, clientTest)
+    doLast {
+        val source = listOf(executor, jdbcStore, transport, postgresMigration, mysqlMigration, registrarTest, clientTest)
+            .joinToString("\n") { it.asFile.readText() }
+        val requiredSignals = listOf(
+            "Idempotency-Key",
+            "request_fingerprint",
+            "IDEMPOTENCY_KEY_REUSED",
+            "X-CloudIslands-Idempotent-Replay",
+            "sendOnce(request)",
+            "concurrentDuplicateWaitsForOwnerAndReplaysItsReceipt",
+            "idempotentMutationRetriesOneAmbiguousTransportTimeoutWithTheSameKey"
+        )
+        val missing = requiredSignals.filterNot(source::contains)
+        if (missing.isNotEmpty()) {
+            throw GradleException("Core mutation idempotency evidence missing: ${missing.joinToString(", ")}")
+        }
+    }
+}
+
 tasks.register("verifySatisEconomyLedgerCoverage") {
     group = "verification"
     description = "Verifies Satis economy idempotency ledger schema, service usage, and retry tests remain present."

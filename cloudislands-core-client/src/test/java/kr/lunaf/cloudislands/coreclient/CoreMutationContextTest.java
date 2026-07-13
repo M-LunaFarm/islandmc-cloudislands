@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -95,6 +96,47 @@ class CoreMutationContextTest {
             assertEquals(List.of("req-1"), headers.get(CoreMutationContext.REQUEST_ID_HEADER));
             assertEquals(List.of("idem-1"), headers.get(CoreMutationContext.IDEMPOTENCY_KEY_HEADER));
             assertEquals(List.of("island.reset"), headers.get(CoreMutationContext.AUDIT_ACTION_HEADER));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void idempotentMutationRetriesOneAmbiguousTransportTimeoutWithTheSameKey() throws Exception {
+        AtomicInteger attempts = new AtomicInteger();
+        AtomicInteger mutations = new AtomicInteger();
+        ConcurrentMap<String, Boolean> claimedKeys = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/reset", exchange -> {
+            exchange.getRequestBody().readAllBytes();
+            String key = exchange.getRequestHeaders().getFirst(CoreMutationContext.IDEMPOTENCY_KEY_HEADER);
+            int attempt = attempts.incrementAndGet();
+            if (claimedKeys.putIfAbsent(key, Boolean.TRUE) == null) {
+                mutations.incrementAndGet();
+            }
+            if (attempt == 1) {
+                try {
+                    Thread.sleep(180L);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+            byte[] body = "{\"accepted\":true,\"code\":\"RESET_REQUESTED\"}".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(202, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofMillis(100));
+            CoreMutationMetadata metadata = new CoreMutationMetadata("timeout-request", "timeout-idempotency-key", "island.reset");
+
+            var result = CoreMutationContext.with(metadata, () -> client.lifecycle().resetIsland(UUID.randomUUID(), UUID.randomUUID(), "test")).join();
+
+            assertTrue(result.accepted());
+            assertEquals(2, attempts.get());
+            assertEquals(1, mutations.get());
+            assertEquals(1, claimedKeys.size());
         } finally {
             server.stop(0);
         }

@@ -22,14 +22,28 @@ class JdbcSchemaBootstrapTest {
         assertEquals("mariadb-uses-mysql-compatible-core-schema-bootstrap", JdbcSchemaBootstrap.MARIADB_SCHEMA_POLICY);
         assertEquals("/db/mysql/V1__cloudislands_mysql_schema.sql", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
         assertEquals("mysql-v1", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_ID);
-        assertEquals("mysql-compatible-migration-chain:3", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
-        assertEquals("mysql-compatible-migration-chain:3", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
+        assertEquals("mysql-compatible-migration-chain:4", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
+        assertEquals("mysql-compatible-migration-chain:4", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
     }
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
-        assertEquals("postgresql-migration-chain:80", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
+        assertEquals("postgresql-migration-chain:81", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
+    }
+
+    @Test
+    void idempotencyReceiptSchemaShipsForPostgresqlAndMysql() throws IOException {
+        for (String resource : new String[]{"/db/migration/V81__core_idempotency.sql", "/db/mysql/V4__core_idempotency.sql"}) {
+            try (var input = JdbcSchemaBootstrapTest.class.getResourceAsStream(resource)) {
+                assertTrue(input != null, "missing migration " + resource);
+                String migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+                assertTrue(migration.contains("CREATE TABLE IF NOT EXISTS core_idempotency"));
+                assertTrue(migration.contains("idempotency_key VARCHAR(200) PRIMARY KEY"));
+                assertTrue(migration.contains("request_fingerprint CHAR(64) NOT NULL"));
+                assertTrue(migration.contains("response_body"));
+            }
+        }
     }
 
     @Test

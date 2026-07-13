@@ -11,6 +11,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Clock;
 import java.util.concurrent.Executors;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import kr.lunaf.cloudislands.coreservice.security.AdminEndpointGuard;
 import kr.lunaf.cloudislands.coreservice.security.ApiTokenGuard;
 import kr.lunaf.cloudislands.coreservice.security.CoreApiAuthGuard;
@@ -21,6 +25,154 @@ import kr.lunaf.cloudislands.coreservice.security.MtlsHeaderGuard;
 import org.junit.jupiter.api.Test;
 
 class CoreHttpRouteRegistrarTest {
+    @Test
+    void idempotencyKeyReplaysCompletedMutationWithoutRunningHandlerTwice() throws Exception {
+        try (ServerFixture server = ServerFixture.start()) {
+            AtomicInteger mutations = new AtomicInteger();
+            server.registrar().routePost("/v1/mutate", exchange -> {
+                String body = CoreHttpResponses.readBody(exchange);
+                CoreHttpResponses.write(exchange, 202, "{\"mutation\":" + mutations.incrementAndGet() + ",\"body\":" + quote(body) + "}");
+            });
+
+            HttpRequest firstRequest = server.authorized(HttpRequest.newBuilder(server.uri("/v1/mutate")))
+                .POST(HttpRequest.BodyPublishers.ofString("{\"amount\":10}"))
+                .header("Content-Type", "application/json")
+                .header("Idempotency-Key", "warehouse-123")
+                .build();
+            HttpRequest replayRequest = server.authorized(HttpRequest.newBuilder(server.uri("/v1/mutate")))
+                .POST(HttpRequest.BodyPublishers.ofString("{\"amount\":10}"))
+                .header("Content-Type", "application/json")
+                .header("Idempotency-Key", "warehouse-123")
+                .build();
+
+            HttpResponse<String> first = server.request(firstRequest);
+            HttpResponse<String> replay = server.request(replayRequest);
+
+            assertEquals(202, first.statusCode());
+            assertEquals(first.body(), replay.body());
+            assertEquals("false", first.headers().firstValue("X-CloudIslands-Idempotent-Replay").orElse(""));
+            assertEquals("true", replay.headers().firstValue("X-CloudIslands-Idempotent-Replay").orElse(""));
+            assertEquals(1, mutations.get());
+        }
+    }
+
+    @Test
+    void idempotencyKeyCannotBeReusedForDifferentMutationPayload() throws Exception {
+        try (ServerFixture server = ServerFixture.start()) {
+            AtomicInteger mutations = new AtomicInteger();
+            server.registrar().routePost("/v1/mutate", exchange -> {
+                CoreHttpResponses.readBody(exchange);
+                mutations.incrementAndGet();
+                CoreHttpResponses.write(exchange, 202, "{\"accepted\":true}");
+            });
+
+            HttpResponse<String> first = server.postIdempotent("/v1/mutate", "{\"amount\":10}", "shared-key");
+            HttpResponse<String> conflict = server.postIdempotent("/v1/mutate", "{\"amount\":20}", "shared-key");
+
+            assertEquals(202, first.statusCode());
+            assertEquals(409, conflict.statusCode());
+            assertTrue(conflict.body().contains("IDEMPOTENCY_KEY_REUSED"));
+            assertEquals(1, mutations.get());
+        }
+    }
+
+    @Test
+    void concurrentDuplicateWaitsForOwnerAndReplaysItsReceipt() throws Exception {
+        try (ServerFixture server = ServerFixture.start()) {
+            AtomicInteger mutations = new AtomicInteger();
+            CountDownLatch entered = new CountDownLatch(1);
+            server.registrar().routePost("/v1/slow-mutate", exchange -> {
+                CoreHttpResponses.readBody(exchange);
+                int mutation = mutations.incrementAndGet();
+                entered.countDown();
+                try {
+                    Thread.sleep(150L);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                }
+                CoreHttpResponses.write(exchange, 202, "{\"mutation\":" + mutation + "}");
+            });
+            HttpRequest request = server.authorized(HttpRequest.newBuilder(server.uri("/v1/slow-mutate")))
+                .POST(HttpRequest.BodyPublishers.ofString("{\"amount\":10}"))
+                .header("Content-Type", "application/json")
+                .header("Idempotency-Key", "concurrent-key")
+                .build();
+
+            CompletableFuture<HttpResponse<String>> owner = server.requestAsync(request);
+            assertTrue(entered.await(1L, TimeUnit.SECONDS));
+            HttpResponse<String> duplicate = server.request(request);
+            HttpResponse<String> first = owner.join();
+
+            assertEquals(202, first.statusCode());
+            assertEquals(first.body(), duplicate.body());
+            assertEquals("true", duplicate.headers().firstValue("X-CloudIslands-Idempotent-Replay").orElse(""));
+            assertEquals(1, mutations.get());
+        }
+    }
+
+    @Test
+    void invalidIdempotencyKeyFailsBeforeMutation() throws Exception {
+        try (ServerFixture server = ServerFixture.start()) {
+            AtomicInteger mutations = new AtomicInteger();
+            server.registrar().routePost("/v1/mutate", exchange -> {
+                mutations.incrementAndGet();
+                CoreHttpResponses.write(exchange, 202, "{\"accepted\":true}");
+            });
+
+            HttpResponse<String> response = server.postIdempotent("/v1/mutate", "{}", "contains spaces");
+
+            assertEquals(400, response.statusCode());
+            assertTrue(response.body().contains("INVALID_IDEMPOTENCY_KEY"));
+            assertEquals(0, mutations.get());
+        }
+    }
+
+    @Test
+    void idempotentRequestStillUsesTheGlobalBodyLimit() throws Exception {
+        try (ServerFixture server = ServerFixture.start()) {
+            AtomicInteger mutations = new AtomicInteger();
+            server.registrar().routePost("/v1/mutate", exchange -> {
+                mutations.incrementAndGet();
+                CoreHttpResponses.write(exchange, 202, "{\"accepted\":true}");
+            });
+
+            String oversized = "x".repeat(CoreHttpResponses.MAX_REQUEST_BODY_BYTES + 1);
+            HttpResponse<String> response = server.postIdempotent("/v1/mutate", oversized, "oversized-key");
+
+            assertEquals(413, response.statusCode());
+            assertTrue(response.body().contains("REQUEST_BODY_TOO_LARGE"));
+            assertEquals(0, mutations.get());
+        }
+    }
+
+    @Test
+    void deleteMutationIsIdempotentAndIncludesQueryInItsFingerprint() throws Exception {
+        try (ServerFixture server = ServerFixture.start()) {
+            AtomicInteger mutations = new AtomicInteger();
+            server.registrar().routeMethods("/v1/islands/example", exchange ->
+                CoreHttpResponses.write(exchange, 202, "{\"mutation\":" + mutations.incrementAndGet() + "}"), "DELETE");
+
+            HttpRequest firstRequest = server.authorized(HttpRequest.newBuilder(server.uri("/v1/islands/example?requesterUuid=one")))
+                .DELETE()
+                .header("Idempotency-Key", "delete-key")
+                .build();
+            HttpRequest differentQuery = server.authorized(HttpRequest.newBuilder(server.uri("/v1/islands/example?requesterUuid=two")))
+                .DELETE()
+                .header("Idempotency-Key", "delete-key")
+                .build();
+
+            HttpResponse<String> first = server.request(firstRequest);
+            HttpResponse<String> replay = server.request(firstRequest);
+            HttpResponse<String> conflict = server.request(differentQuery);
+
+            assertEquals(202, first.statusCode());
+            assertEquals(first.body(), replay.body());
+            assertEquals(409, conflict.statusCode());
+            assertTrue(conflict.body().contains("IDEMPOTENCY_KEY_REUSED"));
+            assertEquals(1, mutations.get());
+        }
+    }
+
     @Test
     void exactRoutesDoNotMatchLongerClaimStylePaths() throws Exception {
         try (ServerFixture server = ServerFixture.start()) {
@@ -261,6 +413,18 @@ class CoreHttpRouteRegistrarTest {
             return client.send(request, HttpResponse.BodyHandlers.ofString());
         }
 
+        CompletableFuture<HttpResponse<String>> requestAsync(HttpRequest request) {
+            return client.sendAsync(request, HttpResponse.BodyHandlers.ofString());
+        }
+
+        HttpResponse<String> postIdempotent(String path, String body, String key) throws Exception {
+            return request(authorized(HttpRequest.newBuilder(uri(path)))
+                .POST(HttpRequest.BodyPublishers.ofString(body))
+                .header("Content-Type", "application/json")
+                .header("Idempotency-Key", key)
+                .build());
+        }
+
         HttpRequest.Builder authorized(HttpRequest.Builder builder) {
             return builder
                 .header("Authorization", "Bearer core-secret")
@@ -271,5 +435,9 @@ class CoreHttpRouteRegistrarTest {
         public void close() {
             server.stop(0);
         }
+    }
+
+    private static String quote(String value) {
+        return "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\"";
     }
 }
