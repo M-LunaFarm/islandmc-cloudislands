@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.139`
+Version: `1.1.140`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.139`
+Current release: `v1.1.140`
 
-Built for the CloudIslands 1.1.139 baseline.
+Built for the CloudIslands 1.1.140 baseline.
 
-Release notes for `v1.1.139`:
+Release notes for `v1.1.140`:
+
+- compensated Satis relocation metadata: lifecycle synchronization now captures
+  the full active/pending placement checkpoint before moving addon components
+- if the final factory-island metadata save is rejected, successfully remapped
+  machines and resource nodes are moved back to their exact original coordinates
+- the in-memory island placement and pending markers are restored with the same
+  checkpoint, preventing restart-time duplicate deltas after metadata failure
+- machine network indexes are rebuilt after compensation, and relocation success
+  audit state is published only after the authoritative island save succeeds
+
+Release notes carried forward from `v1.1.139`:
 
 - retryable Satis relocation: a failed enabled machine or resource-node remap
   now preserves its original world/center as pending recovery state
@@ -2403,7 +2414,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.139`.
+Current read: production-readiness baseline `v1.1.140`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
