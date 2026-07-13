@@ -7,6 +7,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.RedisActivationLock;
+import kr.lunaf.cloudislands.coreservice.addon.AddonStateRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
@@ -30,6 +31,7 @@ final class JobCompletionBackend {
     private final int snapshotKeepLatest;
     private final SnapshotRetentionPolicy snapshotRetentionPolicy;
     private final RedisActivationLock activationLock;
+    private final AddonStateRepository addonStates;
     static final String ACTIVATION_LOCK_TOKEN_KEY = "activationLockToken";
 
     JobCompletionBackend(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
@@ -57,6 +59,11 @@ final class JobCompletionBackend {
     }
 
     JobCompletionBackend(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock) {
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl,
+                snapshotRetentionPolicy, activationLock, null);
+    }
+
+    JobCompletionBackend(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock, AddonStateRepository addonStates) {
         this.runtimes = runtimes;
         this.events = events;
         this.snapshots = snapshots;
@@ -68,6 +75,7 @@ final class JobCompletionBackend {
         this.snapshotRetentionPolicy = snapshotRetentionPolicy == null ? SnapshotRetentionPolicy.defaultPolicy() : snapshotRetentionPolicy.normalized();
         this.snapshotKeepLatest = this.snapshotRetentionPolicy.retainedSnapshotCount();
         this.activationLock = activationLock;
+        this.addonStates = addonStates;
     }
 
     public void completed(IslandJob job) {
@@ -147,6 +155,9 @@ final class JobCompletionBackend {
             }
             runtimes.setState(job.islandId(), IslandState.DELETING);
             setIslandState(job.islandId(), IslandState.DELETING);
+            if (addonStates != null) {
+                addonStates.clearIslandAcrossAddons(job.islandId());
+            }
             runtimes.setState(job.islandId(), IslandState.DELETED);
             markIslandDeleted(job);
             clearOwnerPrimaryIsland(job);

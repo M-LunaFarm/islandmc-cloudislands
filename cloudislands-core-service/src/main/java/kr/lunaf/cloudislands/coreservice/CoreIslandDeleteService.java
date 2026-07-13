@@ -6,6 +6,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.coreservice.addon.AddonStateRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
@@ -26,6 +27,7 @@ final class CoreIslandDeleteService {
     private final GlobalEventPublisher events;
     private final IslandSnapshotRepository snapshotRepository;
     private final SnapshotRetentionPolicy snapshotRetentionPolicy;
+    private final AddonStateRepository addonStates;
 
     CoreIslandDeleteService(
             IslandStorage deleteStorage,
@@ -36,6 +38,20 @@ final class CoreIslandDeleteService {
             GlobalEventPublisher events,
             IslandSnapshotRepository snapshotRepository,
             SnapshotRetentionPolicy snapshotRetentionPolicy) {
+        this(deleteStorage, islandRepository, playerProfiles, runtimeRepository, jobs, events,
+                snapshotRepository, snapshotRetentionPolicy, null);
+    }
+
+    CoreIslandDeleteService(
+            IslandStorage deleteStorage,
+            IslandRepository islandRepository,
+            PlayerProfileRepository playerProfiles,
+            IslandRuntimeRepository runtimeRepository,
+            IslandJobQueue jobs,
+            GlobalEventPublisher events,
+            IslandSnapshotRepository snapshotRepository,
+            SnapshotRetentionPolicy snapshotRetentionPolicy,
+            AddonStateRepository addonStates) {
         this.deleteStorage = deleteStorage;
         this.islandRepository = islandRepository;
         this.playerProfiles = playerProfiles;
@@ -44,6 +60,7 @@ final class CoreIslandDeleteService {
         this.events = events;
         this.snapshotRepository = snapshotRepository;
         this.snapshotRetentionPolicy = snapshotRetentionPolicy;
+        this.addonStates = addonStates;
     }
 
     DeleteIslandResult requestIslandDelete(UUID islandId, UUID ownerUuid, UUID requesterUuid, String reason) {
@@ -95,7 +112,27 @@ final class CoreIslandDeleteService {
         }
         islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETING);
         runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.DELETING);
+        if (!clearAddonIslandState(islandId)) {
+            islandRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
+            runtimeRepository.setState(islandId, kr.lunaf.cloudislands.api.model.IslandState.RECOVERY_REQUIRED);
+            events.publish(CloudIslandEventType.ISLAND_RECOVERY_REQUIRED.name(), Map.of(
+                    "islandId", islandId.toString(),
+                    "reason", "delete-addon-state-cleanup-failed"));
+            return "DELETE_ADDON_STATE_CLEANUP_FAILED";
+        }
         return islandRepository.markDeleted(islandId, ownerUuid) ? "DELETED" : "DELETE_MARK_FAILED";
+    }
+
+    private boolean clearAddonIslandState(UUID islandId) {
+        if (addonStates == null) {
+            return true;
+        }
+        try {
+            addonStates.clearIslandAcrossAddons(islandId);
+            return true;
+        } catch (RuntimeException exception) {
+            return false;
+        }
     }
 
     private boolean backupInactiveStorageBeforeDelete(UUID islandId, String reason) {

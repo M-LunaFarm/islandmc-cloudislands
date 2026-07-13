@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.api.model.DeleteIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
+import kr.lunaf.cloudislands.coreservice.addon.InMemoryAddonStateRepository;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
@@ -71,6 +72,30 @@ class CoreIslandDeleteServiceTest {
         assertTrue(islands.findById(ISLAND_ID).isEmpty());
         assertTrue(profiles.find(OWNER_UUID).primaryIslandId().isEmpty());
         assertEquals(IslandState.DELETING, runtimes.find(ISLAND_ID).orElseThrow().state());
+    }
+
+    @Test
+    void inactiveIslandDeleteClearsEveryAddonIslandStateBeforePublishingDeleted() {
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryAddonStateRepository addonStates = new InMemoryAddonStateRepository();
+        islands.createOwnedIsland(ISLAND_ID, OWNER_UUID, "default", "owner-island");
+        islands.setState(ISLAND_ID, IslandState.INACTIVE_READY);
+        addonStates.putIsland("cloudislands-satis", ISLAND_ID, java.util.Map.of("machine", "running"));
+        addonStates.putIsland("quests", ISLAND_ID, java.util.Map.of("chapter", "four"));
+        CoreIslandDeleteService service = new CoreIslandDeleteService(
+                null, islands, profiles, runtimes, new InMemoryIslandJobPublisher(), events,
+                new InMemoryIslandSnapshotRepository(), SnapshotRetentionPolicy.defaultPolicy(), addonStates);
+
+        DeleteIslandResult result = service.requestIslandDelete(ISLAND_ID, OWNER_UUID, OWNER_UUID, "test-delete");
+
+        assertTrue(result.accepted());
+        assertEquals("DELETED", result.code());
+        assertEquals(java.util.Map.of(), addonStates.listIsland("cloudislands-satis", ISLAND_ID));
+        assertEquals(java.util.Map.of(), addonStates.listIsland("quests", ISLAND_ID));
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_DELETED.name()));
     }
 
     @Test

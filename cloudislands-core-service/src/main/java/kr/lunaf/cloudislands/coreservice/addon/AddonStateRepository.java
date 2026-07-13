@@ -99,6 +99,7 @@ public interface AddonStateRepository {
     Map<String, String> removeIslandPrefix(String addonId, UUID islandId, String keyPrefix);
     Map<String, String> replaceIslandPrefix(String addonId, UUID islandId, String keyPrefix, Map<String, String> values);
     void clearIsland(String addonId, UUID islandId);
+    void clearIslandAcrossAddons(UUID islandId);
 
     static String safeAddonId(String addonId) {
         String value = addonId == null ? "" : addonId.trim();

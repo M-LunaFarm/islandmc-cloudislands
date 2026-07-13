@@ -333,6 +333,17 @@ public final class JdbcAddonStateRepository implements AddonStateRepository {
         }
     }
 
+    @Override
+    public void clearIslandAcrossAddons(UUID islandId) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("DELETE FROM addon_island_state WHERE island_id = ?")) {
+            statement.setObject(1, AddonStateRepository.safeIslandId(islandId));
+            statement.executeUpdate();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to clear island state across addons", exception);
+        }
+    }
+
     private Map<String, String> safeValues(Map<String, String> values) {
         if (values == null || values.isEmpty()) {
             return Map.of();

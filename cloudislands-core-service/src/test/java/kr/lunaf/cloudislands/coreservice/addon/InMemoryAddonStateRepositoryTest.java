@@ -89,6 +89,24 @@ class InMemoryAddonStateRepositoryTest {
     }
 
     @Test
+    void islandDeletionClearRemovesEveryAddonWithoutTouchingOtherIslandsOrGlobalState() {
+        InMemoryAddonStateRepository repository = new InMemoryAddonStateRepository();
+        UUID deletedIsland = UUID.fromString("00000000-0000-0000-0000-000000000705");
+        UUID retainedIsland = UUID.fromString("00000000-0000-0000-0000-000000000706");
+        repository.put("cloudislands-satis", Map.of("runtime-status", "ready"));
+        repository.putIsland("cloudislands-satis", deletedIsland, Map.of("machine", "running"));
+        repository.putIsland("quests", deletedIsland, Map.of("chapter", "four"));
+        repository.putIsland("cloudislands-satis", retainedIsland, Map.of("machine", "idle"));
+
+        repository.clearIslandAcrossAddons(deletedIsland);
+
+        assertEquals(Map.of(), repository.listIsland("cloudislands-satis", deletedIsland));
+        assertEquals(Map.of(), repository.listIsland("quests", deletedIsland));
+        assertEquals(Map.of("machine", "idle"), repository.listIsland("cloudislands-satis", retainedIsland));
+        assertEquals(Map.of("runtime-status", "ready"), repository.list("cloudislands-satis"));
+    }
+
+    @Test
     void tableStateKeyRejectsKeysLongerThanStorageLimit() {
         String table = "machines";
         String key = "x".repeat(AddonStateRepository.MAX_KEY_LENGTH);

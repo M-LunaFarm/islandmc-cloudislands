@@ -191,7 +191,7 @@ public final class CloudIslandsCoreApplication {
             Path.of(config.storageLocalPath()),
             lifecycle
         );
-        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, completionEvents, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock, completionReceipts, completionOutbox);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, completionEvents, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock, completionReceipts, completionOutbox, addonStates);
         PrometheusMetricsRenderer metrics = CoreMetricsFactory.create(
             config,
             coreJdbcActive,
@@ -247,7 +247,7 @@ public final class CloudIslandsCoreApplication {
         CoreHttpRuntime httpRuntime = new CoreHttpRuntime(server, adminServer, httpExecutor, adminHttpExecutor, config.httpShutdownGrace(), routeRegistrar, adminRouteRegistrar);
         CoreBackgroundTasks backgroundTasks = new CoreBackgroundTasks(nodeFailureMonitor, routeTicketExpiryMonitor, jobRecoveryMonitor, completionOutboxDispatcher, rankingRecalculationTask);
         this.coreLifecycle = new CoreLifecycle(httpRuntime, backgroundTasks);
-        this.islandDeleteService = new CoreIslandDeleteService(deleteStorage, islandRepository, playerProfiles, runtimeRepository, jobs, events, snapshotRepository, snapshotRetentionPolicy);
+        this.islandDeleteService = new CoreIslandDeleteService(deleteStorage, islandRepository, playerProfiles, runtimeRepository, jobs, events, snapshotRepository, snapshotRetentionPolicy, addonStates);
         CoreDomainServices domainServices = new CoreDomainServices(
             routing,
             createIsland,

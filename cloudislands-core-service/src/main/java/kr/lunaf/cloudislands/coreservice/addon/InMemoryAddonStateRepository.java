@@ -207,6 +207,12 @@ public final class InMemoryAddonStateRepository implements AddonStateRepository 
         islandStates.remove(islandStateId(addonId, islandId));
     }
 
+    @Override
+    public void clearIslandAcrossAddons(UUID islandId) {
+        String suffix = "/" + AddonStateRepository.safeIslandId(islandId);
+        islandStates.keySet().removeIf(stateId -> stateId.endsWith(suffix));
+    }
+
     private String islandStateId(String addonId, UUID islandId) {
         return AddonStateRepository.safeAddonId(addonId) + "/" + AddonStateRepository.safeIslandId(islandId);
     }

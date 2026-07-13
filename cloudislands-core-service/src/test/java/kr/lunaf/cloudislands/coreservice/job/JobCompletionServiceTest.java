@@ -6,6 +6,7 @@ import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.api.model.RouteTicketState;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
 import kr.lunaf.cloudislands.coreservice.RedisActivationLock;
+import kr.lunaf.cloudislands.coreservice.addon.InMemoryAddonStateRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
@@ -101,6 +102,42 @@ class JobCompletionServiceTest {
         assertEquals(IslandState.ACTIVE, runtimes.find(ISLAND).orElseThrow().state());
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name()));
         assertTrue(events.toJson().contains("STALE_FENCING_TOKEN"));
+    }
+
+    @Test
+    void activeIslandDeleteCompletionClearsEveryAddonStateBeforeDeletedEvent() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        InMemoryAddonStateRepository addonStates = new InMemoryAddonStateRepository();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "delete target");
+        runtimes.markActive(ISLAND, "island-1", "ci_shard_001", 1, 2, 7L);
+        runtimes.setState(ISLAND, IslandState.DELETE_REQUESTED);
+        runtimes.setState(ISLAND, IslandState.DEACTIVATING);
+        islands.setState(ISLAND, IslandState.DELETE_REQUESTED);
+        islands.setState(ISLAND, IslandState.DEACTIVATING);
+        addonStates.putIsland("cloudislands-satis", ISLAND, Map.of("machine", "running"));
+        addonStates.putIsland("quests", ISLAND, Map.of("chapter", "four"));
+        JobCompletionService service = new JobCompletionService(
+                runtimes, events, snapshots,
+                new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC)),
+                null, islands, null, Duration.ofSeconds(30), SnapshotRetentionPolicy.defaultPolicy(),
+                null, new InMemoryJobCompletionReceiptStore(), new InMemoryJobCompletionOutboxStore(), addonStates);
+
+        service.completed(job(IslandJobType.DELETE_ISLAND, "island-1", Map.of(
+                "fencingToken", "7",
+                "ownerUuid", OWNER.toString(),
+                "snapshotNo", "15",
+                "checksum", "delete-backup",
+                "sizeBytes", "4096"
+        )));
+
+        assertEquals(Map.of(), addonStates.listIsland("cloudislands-satis", ISLAND));
+        assertEquals(Map.of(), addonStates.listIsland("quests", ISLAND));
+        assertTrue(islands.findById(ISLAND).isEmpty());
+        assertEquals(IslandState.DELETED, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_DELETED.name()));
     }
 
     @Test
