@@ -58,38 +58,68 @@ final class MachineRepository {
     }
 
     void save(MachineInstance machine) {
-        long now = Instant.now().toEpochMilli();
-        if (machine.createdAt() <= 0) {
-            machine.createdAt(now);
-        }
-        machine.updatedAt(now);
         try (Connection connection = database.connection();
              PreparedStatement statement = connection.prepareStatement(saveMachineSql())) {
-            statement.setString(1, machine.machineId().toString());
-            statement.setString(2, machine.islandUuid().toString());
-            statement.setString(3, machine.ownerUuid().toString());
-            statement.setString(4, machine.typeId());
-            statement.setInt(5, machine.tier());
-            statement.setString(6, machine.location().world());
-            statement.setInt(7, machine.location().x());
-            statement.setInt(8, machine.location().y());
-            statement.setInt(9, machine.location().z());
-            statement.setString(10, machine.direction().name());
-            statement.setString(11, machine.status().name());
-            statement.setString(12, stringOrNull(machine.inputInventoryId()));
-            statement.setString(13, stringOrNull(machine.outputInventoryId()));
-            statement.setString(14, stringOrNull(machine.powerNetworkId()));
-            statement.setString(15, stringOrNull(machine.itemNetworkId()));
-            statement.setString(16, stringOrNull(machine.linkedResourceNodeId()));
-            statement.setLong(17, machine.lastProcessAt());
-            statement.setDouble(18, machine.wear());
-            statement.setString(19, machineConfigJson(machine));
-            statement.setLong(20, machine.createdAt());
-            statement.setLong(21, machine.updatedAt());
+            bind(statement, machine, Instant.now().toEpochMilli());
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save machine", exception);
         }
+    }
+
+    void saveAll(Collection<MachineInstance> machines) {
+        Collection<MachineInstance> safeMachines = machines == null ? List.of() : machines;
+        if (safeMachines.isEmpty()) {
+            return;
+        }
+        try (Connection connection = database.connection()) {
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement(saveMachineSql())) {
+                long now = Instant.now().toEpochMilli();
+                for (MachineInstance machine : safeMachines) {
+                    bind(statement, machine, now);
+                    statement.addBatch();
+                }
+                statement.executeBatch();
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to save machine batch", exception);
+        }
+    }
+
+    private void bind(PreparedStatement statement, MachineInstance machine, long now) throws SQLException {
+        if (machine.createdAt() <= 0) {
+            machine.createdAt(now);
+        }
+        machine.updatedAt(now);
+        statement.setString(1, machine.machineId().toString());
+        statement.setString(2, machine.islandUuid().toString());
+        statement.setString(3, machine.ownerUuid().toString());
+        statement.setString(4, machine.typeId());
+        statement.setInt(5, machine.tier());
+        statement.setString(6, machine.location().world());
+        statement.setInt(7, machine.location().x());
+        statement.setInt(8, machine.location().y());
+        statement.setInt(9, machine.location().z());
+        statement.setString(10, machine.direction().name());
+        statement.setString(11, machine.status().name());
+        statement.setString(12, stringOrNull(machine.inputInventoryId()));
+        statement.setString(13, stringOrNull(machine.outputInventoryId()));
+        statement.setString(14, stringOrNull(machine.powerNetworkId()));
+        statement.setString(15, stringOrNull(machine.itemNetworkId()));
+        statement.setString(16, stringOrNull(machine.linkedResourceNodeId()));
+        statement.setLong(17, machine.lastProcessAt());
+        statement.setDouble(18, machine.wear());
+        statement.setString(19, machineConfigJson(machine));
+        statement.setLong(20, machine.createdAt());
+        statement.setLong(21, machine.updatedAt());
     }
 
     void delete(UUID machineId) {

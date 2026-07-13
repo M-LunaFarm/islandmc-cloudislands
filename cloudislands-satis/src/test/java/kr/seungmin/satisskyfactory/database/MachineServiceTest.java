@@ -268,6 +268,54 @@ class MachineServiceTest {
         }
     }
 
+    @Test
+    void remapIslandRegionRollsBackEveryMachineWhenOneUpdateFails() throws Exception {
+        try (DatabaseHandle handle = openDatabase("machine-remap-rollback")) {
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000004930");
+            UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000004931");
+            UUID firstId = UUID.fromString("00000000-0000-0000-0000-000000004932");
+            UUID secondId = UUID.fromString("00000000-0000-0000-0000-000000004933");
+            assertTrue(machines.save(new MachineInstance(firstId, islandUuid, ownerUuid,
+                    "grinder_t1", 1, new BlockKey("world", 1, 64, 1))));
+            assertTrue(machines.save(new MachineInstance(secondId, islandUuid, ownerUuid,
+                    "grinder_t1", 1, new BlockKey("world", 2, 64, 2))));
+            try (Connection connection = handle.database().connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_second_machine_remap BEFORE UPDATE ON machines "
+                        + "WHEN NEW.machine_id = '" + secondId + "' AND NEW.world = 'ci_shard_003' "
+                        + "BEGIN SELECT RAISE(FAIL, 'forced second machine remap failure'); END");
+            }
+
+            assertFalse(machines.remapIslandRegion(islandUuid, "ci_shard_003", 2048, 0, -2048));
+
+            assertTrue(machines.byIsland(islandUuid).stream().allMatch(machine -> machine.world().equals("world")));
+            assertTrue(handle.database().loadMachines().stream()
+                    .filter(machine -> machine.islandUuid().equals(islandUuid))
+                    .allMatch(machine -> machine.world().equals("world")));
+        }
+    }
+
+    @Test
+    void remapIslandRegionRejectsCoordinateOverflowWithoutWrites() {
+        try (DatabaseHandle handle = openDatabase("machine-remap-overflow")) {
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000004940");
+            UUID machineId = UUID.fromString("00000000-0000-0000-0000-000000004941");
+            assertTrue(machines.save(new MachineInstance(machineId, islandUuid,
+                    UUID.fromString("00000000-0000-0000-0000-000000004942"), "grinder_t1", 1,
+                    new BlockKey("world", Integer.MAX_VALUE, 64, 0))));
+
+            assertFalse(machines.remapIslandRegion(islandUuid, "ci_shard_004", 1, 0, 0));
+
+            assertEquals("world", machines.find(machineId).orElseThrow().world());
+            assertEquals(Integer.MAX_VALUE, machines.find(machineId).orElseThrow().x());
+            assertEquals("world", handle.database().loadMachines().stream()
+                    .filter(machine -> machine.machineId().equals(machineId)).findFirst().orElseThrow().world());
+        }
+    }
+
     private MachineBundle machineWithInput(StorageService storage, MachineService machines, String machineUuid) {
         UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000004900");
         UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000004901");

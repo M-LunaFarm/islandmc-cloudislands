@@ -172,6 +172,27 @@ class ResourceNodeServiceTest {
         }
     }
 
+    @Test
+    void remapIslandRegionRejectsCoordinateOverflowWithoutWrites() {
+        UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000000761");
+        UUID nodeId = UUID.fromString("00000000-0000-0000-0000-000000000762");
+        try (DatabaseHandle handle = openDatabase("node-remap-overflow")) {
+            handle.database().saveNode(new ResourceNode(nodeId, islandUuid, "MINERAL", "iron_ore", 1.0,
+                    100, 250, 60, 1, new BlockKey("world", Integer.MAX_VALUE, 64, 0), 0, 0));
+            ResourceNodeService nodes = new ResourceNodeService(handle.database());
+            nodes.load(config(false, 0));
+
+            assertFalse(nodes.remapIslandRegion(islandUuid, "ci_shard_004", 1, 0, 0));
+
+            ResourceNode cached = nodes.nodes(islandUuid).stream().findFirst().orElseThrow();
+            ResourceNode persisted = handle.database().loadNodes(islandUuid).stream().findFirst().orElseThrow();
+            assertEquals("world", cached.world());
+            assertEquals(Integer.MAX_VALUE, cached.x());
+            assertEquals("world", persisted.world());
+            assertEquals(Integer.MAX_VALUE, persisted.x());
+        }
+    }
+
     private DatabaseHandle openDatabase(String name) {
         DatabaseService database = new DatabaseService(tempDir.resolve(name).toFile());
         database.open();

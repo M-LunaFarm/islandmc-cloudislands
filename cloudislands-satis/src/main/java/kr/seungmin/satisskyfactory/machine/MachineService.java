@@ -365,28 +365,50 @@ public final class MachineService {
         if (worldName == null || worldName.isBlank()) {
             return false;
         }
-        boolean changed = false;
+        List<MachineInstance> remappedMachines = new ArrayList<>();
         for (MachineInstance machine : byIsland(islandUuid)) {
             if (worldName.equals(machine.location().world()) && deltaX == 0 && deltaY == 0 && deltaZ == 0) {
                 continue;
             }
-            LocationKey previousLocation = LocationKey.from(machine.location());
-            MachineInstance remapped = copyWithLocation(machine, new BlockKey(
-                    worldName,
-                    machine.location().x() + deltaX,
-                    machine.location().y() + deltaY,
-                    machine.location().z() + deltaZ
-            ));
-            if (!saveLater(remapped)) {
-                continue;
+            try {
+                remappedMachines.add(copyWithLocation(machine, new BlockKey(
+                        worldName,
+                        Math.addExact(machine.location().x(), deltaX),
+                        Math.addExact(machine.location().y(), deltaY),
+                        Math.addExact(machine.location().z(), deltaZ)
+                )));
+            } catch (ArithmeticException overflow) {
+                return false;
             }
-            byLocation.remove(previousLocation);
-            changed = true;
         }
-        if (changed) {
-            revision.incrementAndGet();
+        if (remappedMachines.isEmpty()) {
+            return false;
         }
-        return changed;
+        long now = System.currentTimeMillis();
+        remappedMachines.forEach(machine -> machine.updatedAt(now));
+        if (dirtySaves != null) {
+            if (!dirtySaves.markMachines(remappedMachines)) {
+                return false;
+            }
+        } else {
+            try {
+                database.saveMachines(remappedMachines);
+            } catch (RuntimeException exception) {
+                return false;
+            }
+        }
+        remappedMachines.forEach(machine -> {
+            MachineInstance previous = machines.get(machine.machineId());
+            if (previous != null) {
+                byLocation.remove(LocationKey.from(previous.location()), previous.machineId());
+            }
+        });
+        remappedMachines.forEach(machine -> {
+            machines.put(machine.machineId(), machine);
+            byLocation.put(LocationKey.from(machine.location()), machine.machineId());
+        });
+        revision.incrementAndGet();
+        return true;
     }
 
     private MachineInstance copyWithLocation(MachineInstance machine, BlockKey location) {

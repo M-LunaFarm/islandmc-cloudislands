@@ -147,21 +147,27 @@ public final class ResourceNodeService {
                 updated.add(node);
                 continue;
             }
-            ResourceNode remapped = new ResourceNode(
-                    node.nodeId(),
-                    node.islandUuid(),
-                    node.nodeType(),
-                    node.resourceId(),
-                    node.purity(),
-                    node.remaining(),
-                    node.maxRemaining(),
-                    node.regenPerHour(),
-                    node.requiredMachineTier(),
-                    new BlockKey(worldName, node.location().x() + deltaX, node.location().y() + deltaY, node.location().z() + deltaZ),
-                    node.createdAt(),
-                    node.updatedAt()
-            );
-            updated.add(remapped);
+            try {
+                updated.add(new ResourceNode(
+                        node.nodeId(),
+                        node.islandUuid(),
+                        node.nodeType(),
+                        node.resourceId(),
+                        node.purity(),
+                        node.remaining(),
+                        node.maxRemaining(),
+                        node.regenPerHour(),
+                        node.requiredMachineTier(),
+                        new BlockKey(worldName,
+                                Math.addExact(node.location().x(), deltaX),
+                                Math.addExact(node.location().y(), deltaY),
+                                Math.addExact(node.location().z(), deltaZ)),
+                        node.createdAt(),
+                        node.updatedAt()
+                ));
+            } catch (ArithmeticException overflow) {
+                return false;
+            }
         }
         boolean changed = !updated.equals(current);
         if (!changed) {

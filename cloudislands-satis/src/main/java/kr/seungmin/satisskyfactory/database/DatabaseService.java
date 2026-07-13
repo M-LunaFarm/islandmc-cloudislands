@@ -628,6 +628,10 @@ public final class DatabaseService {
         machineRepository.save(machine);
     }
 
+    public void saveMachines(java.util.Collection<MachineInstance> machines) {
+        machineRepository.saveAll(machines);
+    }
+
     private String machineConfigJson(MachineInstance machine) {
         String base = validJsonObject(machine.configJson()) ? machine.configJson().trim() : "{}";
         String selectedRecipe = machine.selectedRecipeId();

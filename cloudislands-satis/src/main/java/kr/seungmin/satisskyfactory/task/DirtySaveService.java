@@ -180,16 +180,19 @@ public final class DirtySaveService {
     }
 
     public boolean markMachine(MachineInstance machine) {
-        if (!enabled(machineWritesEnabled)) {
+        return markMachines(machine == null ? java.util.List.of() : java.util.List.of(machine));
+    }
+
+    public boolean markMachines(java.util.Collection<MachineInstance> batch) {
+        if (!enabled(machineWritesEnabled) || batch == null || batch.isEmpty()) {
             return false;
         }
-        if (machine == null || machine.machineId() == null) {
-            return false;
+        for (MachineInstance machine : batch) {
+            if (machine == null || machine.machineId() == null || !runtimeAuthorityReady(machine.islandUuid())) {
+                return false;
+            }
         }
-        if (!runtimeAuthorityReady(machine.islandUuid())) {
-            return false;
-        }
-        machines.put(machine.machineId(), snapshot(machine));
+        batch.forEach(machine -> machines.put(machine.machineId(), snapshot(machine)));
         return true;
     }
 
