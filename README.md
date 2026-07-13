@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.163`
+Version: `1.1.164`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -658,11 +658,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.163`
+Current release: `v1.1.164`
 
-Built for the CloudIslands 1.1.163 baseline.
+Built for the CloudIslands 1.1.164 baseline.
 
-Release notes for `v1.1.163`:
+Release notes for `v1.1.164`:
+
+- gameplay mission listeners now observe events at `MONITOR` with cancelled
+  events ignored, preventing progress from actions denied later by protection,
+  economy, or compatibility plugins
+- Shift+click crafting missions count every output that can actually be made,
+  bounded by the smallest ingredient stack and available player storage instead
+  of crediting only one recipe result
+- custom recipe output items are authoritative for material and stacking checks,
+  with the declared recipe result retained as a safe vanilla fallback
+- bulk crafting arithmetic uses overflow-safe `long` accounting and never credits
+  output when the inventory cannot accept one complete recipe result
+
+Release notes carried forward from `v1.1.163`:
 
 - RoseStacker default multi-kill events now inherit the island's `MOB_DROPS`
   rate for every additional logical entity instead of only the physical death
@@ -2731,7 +2744,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.163`.
+Current read: production-readiness baseline `v1.1.164`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
