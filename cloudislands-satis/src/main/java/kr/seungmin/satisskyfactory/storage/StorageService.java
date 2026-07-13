@@ -149,16 +149,34 @@ public final class StorageService {
         if (!canDelete(inventoryId)) {
             return false;
         }
-        VirtualInventory removed = cache.remove(inventoryId);
+        VirtualInventory existing = cache.get(inventoryId);
+        if (existing == null) {
+            existing = database.loadInventory(inventoryId).orElse(null);
+        }
+        try {
+            database.deleteInventory(inventoryId);
+        } catch (RuntimeException exception) {
+            return false;
+        }
+        cache.remove(inventoryId);
         if (dirtySaves != null) {
-            if (removed == null) {
+            if (existing == null) {
                 dirtySaves.forgetInventory(inventoryId);
             } else {
-                dirtySaves.deleteInventory(removed.islandUuid(), inventoryId);
+                dirtySaves.deleteInventory(existing.islandUuid(), inventoryId);
             }
         }
-        database.deleteInventory(inventoryId);
         return true;
+    }
+
+    public void acceptPersistedDeletion(UUID islandUuid, UUID inventoryId) {
+        if (inventoryId == null) {
+            return;
+        }
+        cache.remove(inventoryId);
+        if (dirtySaves != null) {
+            dirtySaves.deleteInventory(islandUuid, inventoryId);
+        }
     }
 
     public void forgetIsland(UUID islandUuid) {

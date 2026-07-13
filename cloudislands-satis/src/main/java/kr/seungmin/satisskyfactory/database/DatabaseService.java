@@ -708,6 +708,10 @@ public final class DatabaseService {
         machineRepository.delete(machineId);
     }
 
+    public void deleteMachineBundle(UUID machineId, java.util.Collection<UUID> inventoryIds) {
+        machineRepository.deleteBundle(machineId, inventoryIds);
+    }
+
     public void replaceItemNetworks(UUID islandUuid, List<ItemNetwork> networks) {
         networkRepository.replaceItemNetworks(islandUuid, networks);
         publishItemNetworks(islandUuid, networks);

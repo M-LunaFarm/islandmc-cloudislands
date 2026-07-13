@@ -216,29 +216,29 @@ public final class MachineService {
     }
 
     private boolean delete(MachineInstance machine) {
-        if (!deleteInventories(machine)) {
+        Set<UUID> inventoryIds = machineInventoryIds(machine);
+        for (UUID inventoryId : inventoryIds) {
+            if (!storage.canDelete(inventoryId)) {
+                return false;
+            }
+        }
+        try {
+            database.deleteMachineBundle(machine.machineId(), inventoryIds);
+        } catch (RuntimeException exception) {
             return false;
         }
+        inventoryIds.forEach(inventoryId -> storage.acceptPersistedDeletion(machine.islandUuid(), inventoryId));
         machine.status(MachineStatus.SLEEPING);
         machines.remove(machine.machineId());
         byLocation.remove(LocationKey.from(machine.location()));
-        boolean canWrite = writesEnabled();
         if (dirtySaves != null) {
-            if (canWrite) {
-                dirtySaves.deleteMachine(machine.islandUuid(), machine.machineId());
-            } else {
-                dirtySaves.forgetMachine(machine.machineId());
-            }
-        }
-        if (canWrite) {
-            database.deleteMachine(machine.machineId());
+            dirtySaves.deleteMachine(machine.islandUuid(), machine.machineId());
         }
         revision.incrementAndGet();
         return true;
     }
 
-    private boolean deleteInventories(MachineInstance machine) {
-        List<VirtualInventory> inventories = machineInventories(machine);
+    private Set<UUID> machineInventoryIds(MachineInstance machine) {
         Set<UUID> inventoryIds = new HashSet<>();
         if (machine.inputInventoryId() != null) {
             inventoryIds.add(machine.inputInventoryId());
@@ -246,31 +246,7 @@ public final class MachineService {
         if (machine.outputInventoryId() != null) {
             inventoryIds.add(machine.outputInventoryId());
         }
-        for (UUID inventoryId : inventoryIds) {
-            if (!storage.canDelete(inventoryId)) {
-                return false;
-            }
-        }
-        List<VirtualInventory> deletedInventories = new ArrayList<>();
-        for (UUID inventoryId : inventoryIds) {
-            if (!storage.delete(inventoryId)) {
-                restoreDeletedInventories(deletedInventories);
-                return false;
-            }
-            inventories.stream()
-                    .filter(inventory -> inventory.inventoryId().equals(inventoryId))
-                    .findFirst()
-                    .ifPresent(deletedInventories::add);
-        }
-        return true;
-    }
-
-    private void restoreDeletedInventories(List<VirtualInventory> inventories) {
-        for (VirtualInventory inventory : inventories) {
-            if (!storage.saveIfAllowed(inventory)) {
-                storage.delete(inventory.inventoryId());
-            }
-        }
+        return inventoryIds;
     }
 
     private boolean hasBufferedItems(MachineInstance machine) {

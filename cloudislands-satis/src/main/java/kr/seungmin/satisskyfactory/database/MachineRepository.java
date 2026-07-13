@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -105,6 +106,50 @@ final class MachineRepository {
             connection.commit();
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to delete machine", exception);
+        }
+    }
+
+    void deleteBundle(UUID machineId, Collection<UUID> inventoryIds) {
+        try (Connection connection = database.connection()) {
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try {
+                deleteInventoryRows(connection, inventoryIds);
+                try (PreparedStatement links = connection.prepareStatement("DELETE FROM machine_network_links WHERE machine_id = ?")) {
+                    links.setString(1, machineId.toString());
+                    links.executeUpdate();
+                }
+                try (PreparedStatement statement = connection.prepareStatement("DELETE FROM machines WHERE machine_id = ?")) {
+                    statement.setString(1, machineId.toString());
+                    statement.executeUpdate();
+                }
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to delete machine bundle", exception);
+        }
+    }
+
+    private void deleteInventoryRows(Connection connection, Collection<UUID> inventoryIds) throws SQLException {
+        Collection<UUID> safeIds = inventoryIds == null ? List.of() : inventoryIds;
+        try (PreparedStatement items = connection.prepareStatement("DELETE FROM virtual_inventory_items WHERE inventory_id = ?");
+             PreparedStatement inventories = connection.prepareStatement("DELETE FROM virtual_inventories WHERE inventory_id = ?")) {
+            for (UUID inventoryId : safeIds) {
+                if (inventoryId == null) {
+                    continue;
+                }
+                items.setString(1, inventoryId.toString());
+                items.addBatch();
+                inventories.setString(1, inventoryId.toString());
+                inventories.addBatch();
+            }
+            items.executeBatch();
+            inventories.executeBatch();
         }
     }
 

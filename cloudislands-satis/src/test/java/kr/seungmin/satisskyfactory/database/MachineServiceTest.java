@@ -93,6 +93,48 @@ class MachineServiceTest {
     }
 
     @Test
+    void failedMachineBundleDeleteRollsBackBuffersAndKeepsRuntimeState() throws Exception {
+        try (DatabaseHandle handle = openDatabase("machine-delete-failure")) {
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            MachineBundle bundle = machineWithInput(storage, machines, "00000000-0000-0000-0000-000000004911");
+            try (Connection connection = handle.database().connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_machine_delete BEFORE DELETE ON machines BEGIN SELECT RAISE(FAIL, 'forced machine delete failure'); END");
+            }
+
+            assertFalse(machines.remove(bundle.machine()));
+
+            assertTrue(machines.find(bundle.machine().machineId()).isPresent());
+            assertTrue(storage.get(bundle.input().inventoryId()).isPresent());
+            assertTrue(storage.get(bundle.output().inventoryId()).isPresent());
+            assertTrue(handle.database().loadInventory(bundle.input().inventoryId()).isPresent());
+            assertTrue(handle.database().loadInventory(bundle.output().inventoryId()).isPresent());
+            assertTrue(handle.database().loadMachines().stream()
+                    .anyMatch(machine -> machine.machineId().equals(bundle.machine().machineId())));
+        }
+    }
+
+    @Test
+    void failedStandaloneInventoryDeleteKeepsRuntimeAndDurableState() throws Exception {
+        try (DatabaseHandle handle = openDatabase("inventory-delete-failure")) {
+            StorageService storage = new StorageService(handle.database(), 1000);
+            UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000004920");
+            UUID inventoryId = UUID.fromString("00000000-0000-0000-0000-000000004921");
+            VirtualInventory inventory = new VirtualInventory(inventoryId, islandUuid, "MACHINE_INPUT",
+                    "00000000-0000-0000-0000-000000004922", 64);
+            assertTrue(storage.saveNow(inventory));
+            try (Connection connection = handle.database().connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_inventory_delete BEFORE DELETE ON virtual_inventories BEGIN SELECT RAISE(FAIL, 'forced inventory delete failure'); END");
+            }
+
+            assertFalse(storage.delete(inventoryId));
+
+            assertTrue(storage.get(inventoryId).isPresent());
+            assertTrue(handle.database().loadInventory(inventoryId).isPresent());
+        }
+    }
+
+    @Test
     void normalRemoveRejectsMachineWithBufferedItems() {
         try (DatabaseHandle handle = openDatabase("normal-remove")) {
             StorageService storage = new StorageService(handle.database(), 1000);
