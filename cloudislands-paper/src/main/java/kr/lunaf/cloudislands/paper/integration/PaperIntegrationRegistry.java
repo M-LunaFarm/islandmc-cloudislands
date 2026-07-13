@@ -16,6 +16,7 @@ import kr.lunaf.cloudislands.paper.integration.economy.VaultIntegration;
 import kr.lunaf.cloudislands.paper.integration.placeholder.PlaceholderApiIntegration;
 import kr.lunaf.cloudislands.paper.integration.permission.LuckPermsIntegration;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
+import kr.lunaf.cloudislands.paper.integration.vanish.VanishIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.CloudIntegration;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationCapability;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationContext;
@@ -211,6 +212,7 @@ public final class PaperIntegrationRegistry {
             case "RoseStacker", "WildStacker", "AdvancedSpawners" -> new StackerIntegration(pluginName, externalRuntime);
             case "LuckPerms" -> new LuckPermsIntegration(externalRuntime);
             case "Plan" -> new PlanIntegration(externalRuntime);
+            case "SuperVanish", "PremiumVanish", "CMI" -> new VanishIntegration(pluginName, externalRuntime);
             default -> genericIntegration(pluginName);
         };
     }

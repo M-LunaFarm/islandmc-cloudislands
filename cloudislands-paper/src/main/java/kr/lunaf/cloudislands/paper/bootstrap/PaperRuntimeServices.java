@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.paper.api.PaperCloudIslandsApi;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.economy.VaultEconomyBridge;
 import kr.lunaf.cloudislands.paper.integration.analytics.PlanAnalyticsRuntime;
+import kr.lunaf.cloudislands.paper.integration.vanish.PlayerVisibilityService;
 import kr.lunaf.cloudislands.paper.placeholder.CloudIslandsPlaceholderExpansion;
 import org.bukkit.plugin.ServicePriority;
 
@@ -20,6 +21,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
     private EconomyBridge economyBridge;
     private Object placeholderExpansion;
     private RuntimeComponent planAnalytics;
+    private PlayerVisibilityService playerVisibility;
 
     private PaperRuntimeServices(CloudIslandsPaperPlugin plugin) {
         this.plugin = plugin;
@@ -31,6 +33,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
         services.registerEconomy();
         services.registerPlaceholderExpansion(client);
         services.registerPlanAnalytics(client);
+        services.registerPlayerVisibility();
         return services;
     }
 
@@ -38,8 +41,13 @@ public final class PaperRuntimeServices implements RuntimeComponent {
         return economyBridge;
     }
 
+    public PlayerVisibilityService playerVisibility() {
+        return playerVisibility == null ? PlayerVisibilityService.metadataOnly() : playerVisibility;
+    }
+
     @Override
     public void stop() {
+        unregisterPlayerVisibility();
         unregisterPlanAnalytics();
         unregisterPlaceholderExpansion();
         plugin.integrationRegistry().clearRuntimeService("Vault");
@@ -165,5 +173,33 @@ public final class PaperRuntimeServices implements RuntimeComponent {
                 plugin.getLogger().warning("Plan analytics cleanup failed during plugin shutdown: " + error.getMessage());
             }
         }
+    }
+
+    private void registerPlayerVisibility() {
+        this.playerVisibility = PlayerVisibilityService.discover(plugin.getServer());
+        for (String pluginName : PlayerVisibilityService.supportedPlugins()) {
+            if (!plugin.getServer().getPluginManager().isPluginEnabled(pluginName)) {
+                continue;
+            }
+            boolean supported = playerVisibility.supports(pluginName);
+            plugin.integrationRegistry().reportRuntimeService(
+                pluginName,
+                supported,
+                "vanish-presence-filter-registration",
+                playerVisibility.runtimeDetails(pluginName)
+            );
+            if (supported) {
+                plugin.getLogger().info("Registered vanished-player suggestion filter for " + pluginName);
+            } else {
+                plugin.getLogger().warning(pluginName + " was detected but its vanish API was unavailable; only metadata and Bukkit visibility fallbacks are active");
+            }
+        }
+    }
+
+    private void unregisterPlayerVisibility() {
+        for (String pluginName : PlayerVisibilityService.supportedPlugins()) {
+            plugin.integrationRegistry().clearRuntimeService(pluginName);
+        }
+        playerVisibility = null;
     }
 }

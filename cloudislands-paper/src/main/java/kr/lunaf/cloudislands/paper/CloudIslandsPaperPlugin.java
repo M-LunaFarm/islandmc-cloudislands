@@ -35,6 +35,7 @@ import kr.lunaf.cloudislands.paper.generator.IslandGeneratorListener;
 import kr.lunaf.cloudislands.paper.gui.GuiSessions;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
 import kr.lunaf.cloudislands.paper.integration.PaperIntegrationRegistry;
+import kr.lunaf.cloudislands.paper.integration.vanish.PlayerVisibilityService;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
@@ -89,6 +90,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     PlayerLocaleCache playerLocales;
     PaperRuntimeConfig runtimeConfig;
     PaperRuntimeCompatibility.RuntimeSelection runtimeCompatibility;
+    PlayerVisibilityService playerVisibility;
     AdminFlightOverrides adminFlightOverrides;
     AdminChatSpyRegistry adminChatSpies;
     TeamChatModeRegistry teamChatModes;
@@ -120,6 +122,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             localCaches = null;
         }
         integrationRegistry = null;
+        playerVisibility = null;
         messages = null;
         if (playerLocales != null) {
             playerLocales.clear();
@@ -153,6 +156,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public ActiveIslandRegistry activeIslands() {
         return activeIslands;
+    }
+
+    public PlayerVisibilityService playerVisibility() {
+        return playerVisibility == null ? PlayerVisibilityService.metadataOnly() : playerVisibility;
     }
 
     public PaperIslandJobWorker jobWorker() {

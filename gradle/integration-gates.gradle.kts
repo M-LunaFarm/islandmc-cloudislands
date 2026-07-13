@@ -63,7 +63,8 @@ tasks.register("verifyIntegrationMatrix") {
             "CustomItemIntegration",
             "StackerIntegration",
             "LuckPermsIntegration",
-            "PlanIntegration"
+            "PlanIntegration",
+            "VanishIntegration"
         ).filterNot { registry.contains(it) }
         val failures = buildList {
             if (missingPolicyPlugins.isNotEmpty()) add("CloudIntegrationPolicy missing plugins: ${missingPolicyPlugins.joinToString(", ")}")
@@ -98,9 +99,9 @@ tasks.register("verifyIntegrationMatrix") {
         reportsDir.mkdirs()
         val diagnosticPlugins = setOf(
             "LuckPerms", "CoreProtect", "WorldEdit", "FastAsyncWorldEdit",
-            "ItemsAdder", "Oraxen", "Nexo", "Slimefun", "RoseStacker", "WildStacker", "AdvancedSpawners", "Plan"
+            "ItemsAdder", "Oraxen", "Nexo", "Slimefun", "RoseStacker", "WildStacker", "AdvancedSpawners"
         )
-        val runtimeServicePlugins = setOf("Vault", "PlaceholderAPI")
+        val runtimeServicePlugins = setOf("Vault", "PlaceholderAPI", "Plan", "SuperVanish", "PremiumVanish", "CMI")
         fun jsonEscape(value: String): String = buildString {
             value.forEach { character ->
                 when (character) {
@@ -216,16 +217,20 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
     val registry = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java")
     val planRuntime = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/analytics/PlanAnalyticsRuntime.java")
     val planRuntimeTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/analytics/PlanAnalyticsRuntimePolicyTest.java")
-    inputs.files(certification, certificationTest, registry, planRuntime, planRuntimeTest)
+    val visibilityRuntime = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/vanish/PlayerVisibilityService.java")
+    val visibilityRuntimeTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandVanishCompletionTest.java")
+    inputs.files(certification, certificationTest, registry, planRuntime, planRuntimeTest, visibilityRuntime, visibilityRuntimeTest)
     doLast {
         val source = certification.asFile.readText()
         val tests = certificationTest.asFile.readText()
         val registrySource = registry.asFile.readText()
         val planRuntimeSource = planRuntime.asFile.readText()
         val planRuntimeTests = planRuntimeTest.asFile.readText()
+        val visibilityRuntimeSource = visibilityRuntime.asFile.readText()
+        val visibilityRuntimeTests = visibilityRuntimeTest.asFile.readText()
         val requiredAdapters = listOf(
             "VaultIntegration", "PlaceholderApiIntegration", "LuckPermsIntegration", "CoreProtectIntegration",
-            "WorldEditIntegration", "CustomItemIntegration", "StackerIntegration", "PlanIntegration"
+            "WorldEditIntegration", "CustomItemIntegration", "StackerIntegration", "PlanIntegration", "VanishIntegration"
         )
         val failures = buildList {
             requiredAdapters.filterNot(registrySource::contains).forEach { adapter ->
@@ -240,6 +245,9 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
             if (!planRuntimeSource.contains("extensionService.register(extension)") || !planRuntimeSource.contains("caller.updateServerData()")) add("Plan runtime must register and refresh a real data extension")
             if (!planRuntimeSource.contains("extensionService.unregister(extension)")) add("Plan runtime must unregister its data extension")
             if (!planRuntimeTests.contains("runtimeRegistersRefreshesAndUnregistersAPlanDataExtension")) add("Plan runtime lifecycle policy test is missing")
+            if (!visibilityRuntimeSource.contains("VanishAPI") || !visibilityRuntimeSource.contains("getAllVanished")) add("Vanish runtime must support SuperVanish/PremiumVanish and CMI APIs")
+            if (!visibilityRuntimeSource.contains("viewer.canSee(target)") || !visibilityRuntimeSource.contains("getMetadata(\"vanished\")")) add("Vanish runtime must retain Bukkit visibility and metadata fallbacks")
+            if (!visibilityRuntimeTests.contains("playerTargetCompletionOmitsTargetsHiddenByBukkitVisibility")) add("Vanish-safe player target completion test is missing")
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))

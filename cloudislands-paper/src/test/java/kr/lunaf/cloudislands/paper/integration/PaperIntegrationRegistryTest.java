@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.paper.integration.spi.IntegrationExternalRuntime;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationResult;
 import kr.lunaf.cloudislands.paper.integration.spi.IntegrationSupportState;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackerIntegration;
+import kr.lunaf.cloudislands.paper.integration.vanish.VanishIntegration;
 import kr.lunaf.cloudislands.paper.integration.worldedit.WorldEditIntegration;
 import org.junit.jupiter.api.Test;
 
@@ -131,14 +132,16 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
-    void realVaultPlaceholderAndPlanServicesAreExecutableIntegrations() {
+    void realVaultPlaceholderPlanAndVanishServicesAreExecutableIntegrations() {
         VaultIntegration vault = new VaultIntegration();
         PlaceholderApiIntegration placeholder = new PlaceholderApiIntegration();
         PlanIntegration plan = new PlanIntegration();
+        VanishIntegration vanish = new VanishIntegration("SuperVanish");
 
         assertTrue(vault.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertTrue(placeholder.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertTrue(plan.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
+        assertTrue(vanish.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertEquals(
             IntegrationSupportState.ACTIVE,
             PaperIntegrationRegistry.adapterState(vault, true, IntegrationSupportState.API_COMPATIBLE)
@@ -151,6 +154,10 @@ class PaperIntegrationRegistryTest {
             IntegrationSupportState.ACTIVE,
             PaperIntegrationRegistry.adapterState(plan, true, IntegrationSupportState.API_COMPATIBLE)
         );
+        assertEquals(
+            IntegrationSupportState.ACTIVE,
+            PaperIntegrationRegistry.adapterState(vanish, true, IntegrationSupportState.API_COMPATIBLE)
+        );
     }
 
     @Test
@@ -161,6 +168,7 @@ class PaperIntegrationRegistryTest {
         assertTrue(registry.contains("new WorldEditIntegration(pluginName, externalRuntime)"));
         assertTrue(registry.contains("new CustomItemIntegration(pluginName, externalRuntime)"));
         assertTrue(registry.contains("new StackerIntegration(pluginName, externalRuntime)"));
+        assertTrue(registry.contains("new VanishIntegration(pluginName, externalRuntime)"));
         assertTrue(registry.contains("!integration.capabilities().contains(capability)"));
         assertTrue(registry.contains("does not declare \" + capability + \" support"));
         assertTrue(registry.contains("withPluginRuntimeMetadata"));

@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.api.environment.IslandBiomePolicy;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.integration.vanish.PlayerVisibilityService;
 import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -18,14 +19,26 @@ import org.jetbrains.annotations.NotNull;
 final class IslandCommandTabCompleter implements TabCompleter {
     private final Plugin plugin;
     private final ProtectionController protection;
+    private final PlayerVisibilityService playerVisibility;
 
     IslandCommandTabCompleter(Plugin plugin) {
         this(plugin, null);
     }
 
     IslandCommandTabCompleter(Plugin plugin, ProtectionController protection) {
+        this(
+            plugin,
+            protection,
+            plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands
+                ? cloudIslands.playerVisibility()
+                : PlayerVisibilityService.discover(plugin.getServer())
+        );
+    }
+
+    IslandCommandTabCompleter(Plugin plugin, ProtectionController protection, PlayerVisibilityService playerVisibility) {
         this.plugin = plugin;
         this.protection = protection;
+        this.playerVisibility = playerVisibility == null ? PlayerVisibilityService.metadataOnly() : playerVisibility;
     }
 
     @Override
@@ -99,7 +112,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
                 return literalMatches(roleCatalog(sender, true), args[1]);
             }
             if (first.equals("permission-exception") || first.equals("권한예외")) {
-                return onlinePlayerMatches(args[1]);
+                return onlinePlayerMatches(sender, args[1]);
             }
             if (first.equals("role-upsert") || first.equals("role-edit") || first.equals("역할편집")) {
                 return literalMatches(roleCatalog(sender, false), args[1]);
@@ -108,7 +121,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
                 return literalMatches(IslandBiomePolicy.supportedBiomes(), args[1]);
             }
             if (first.equals("invite") || first.equals("초대") || first.equals("kick") || first.equals("remove-member") || first.equals("추방") || first.equals("promote") || first.equals("승급") || first.equals("demote") || first.equals("강등") || first.equals("setrole") || first.equals("role-set") || first.equals("역할설정") || first.equals("transfer") || first.equals("양도") || first.equals("trust") || first.equals("신뢰") || first.equals("coop") || first.equals("co-op") || first.equals("협동") || first.equals("untrust") || first.equals("신뢰해제") || first.equals("ban") || first.equals("밴") || first.equals("unban") || first.equals("pardon") || first.equals("밴해제") || first.equals("kickvisitor") || first.equals("방문자추방")) {
-                return onlinePlayerMatches(args[1]);
+                return onlinePlayerMatches(sender, args[1]);
             }
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setpermission") || args[0].equalsIgnoreCase("permission-set") || args[0].equals("권한설정"))) {
@@ -247,10 +260,13 @@ final class IslandCommandTabCompleter implements TabCompleter {
         return names;
     }
 
-    private List<String> onlinePlayerMatches(String typed) {
+    private List<String> onlinePlayerMatches(CommandSender sender, String typed) {
         String lower = typed.toLowerCase(Locale.ROOT);
         List<String> matches = new ArrayList<>();
         for (Player online : plugin.getServer().getOnlinePlayers()) {
+            if (sender instanceof Player viewer && !playerVisibility.visibleTo(viewer, online)) {
+                continue;
+            }
             String name = online.getName();
             if (lower.isBlank() || name.toLowerCase(Locale.ROOT).startsWith(lower)) {
                 matches.add(name);

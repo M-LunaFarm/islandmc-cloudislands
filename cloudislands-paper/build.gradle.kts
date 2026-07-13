@@ -15,6 +15,7 @@ dependencies {
     implementation(project(":cloudislands-core-client"))
     implementation(project(":cloudislands-storage"))
     testImplementation(libs.junit.jupiter)
+    testImplementation(libs.paper.api)
     testImplementation(libs.plan.api)
 }
 
