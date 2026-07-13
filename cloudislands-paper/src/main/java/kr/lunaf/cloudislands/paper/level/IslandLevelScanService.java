@@ -140,12 +140,6 @@ public final class IslandLevelScanService implements RuntimeComponent {
         if (winner != null) {
             return winner.future;
         }
-        created.future.whenComplete((_ignored, _error) -> {
-            inFlight.remove(islandId, created);
-            synchronized (writeLock) {
-                cleanupMutationVersionLocked(islandId);
-            }
-        });
         try {
             created.start();
         } catch (RuntimeException | LinkageError error) {
@@ -340,26 +334,40 @@ public final class IslandLevelScanService implements RuntimeComponent {
                         if (limitCounts != null) {
                             limitCounts.replaceBlockCounts(islandId, replacementCounts);
                         }
-                        future.complete(null);
+                        completeSuccessfully();
                     } else {
-                        future.completeExceptionally(error);
+                        fail(error);
                     }
                 });
         }
 
         private void completeWithoutReplacement() {
             task.cancel();
+            completeSuccessfully();
+        }
+
+        private void completeSuccessfully() {
+            cleanupBeforeCompletion();
             future.complete(null);
         }
 
         private void fail(Throwable error) {
             task.cancel();
+            cleanupBeforeCompletion();
             future.completeExceptionally(error);
         }
 
         private void cancel(CancellationException cancellation) {
             task.cancel();
+            cleanupBeforeCompletion();
             future.completeExceptionally(cancellation);
+        }
+
+        private void cleanupBeforeCompletion() {
+            inFlight.remove(islandId, this);
+            synchronized (writeLock) {
+                cleanupMutationVersionLocked(islandId);
+            }
         }
     }
 
@@ -374,7 +382,7 @@ public final class IslandLevelScanService implements RuntimeComponent {
 
     private CompletableFuture<Void> enqueueWriteLocked(UUID islandId, Supplier<? extends CompletableFuture<?>> operation) {
         CompletableFuture<Void> previous = writeTails.getOrDefault(islandId, CompletableFuture.completedFuture(null));
-        CompletableFuture<Void> next = previous.handle((_ignored, _error) -> null)
+        CompletableFuture<Void> operationFuture = previous.handle((_ignored, _error) -> null)
             .thenComposeAsync(_ignored -> {
                 try {
                     CompletableFuture<?> result = operation.get();
@@ -385,14 +393,20 @@ public final class IslandLevelScanService implements RuntimeComponent {
                     return CompletableFuture.failedFuture(error);
                 }
             });
-        writeTails.put(islandId, next);
-        next.whenComplete((_ignored, _error) -> {
+        CompletableFuture<Void> tracked = new CompletableFuture<>();
+        writeTails.put(islandId, tracked);
+        operationFuture.whenComplete((_ignored, error) -> {
             synchronized (writeLock) {
-                writeTails.remove(islandId, next);
+                writeTails.remove(islandId, tracked);
                 cleanupMutationVersionLocked(islandId);
             }
+            if (error == null) {
+                tracked.complete(null);
+            } else {
+                tracked.completeExceptionally(error);
+            }
         });
-        return next;
+        return tracked;
     }
 
     private void cleanupMutationVersionLocked(UUID islandId) {
