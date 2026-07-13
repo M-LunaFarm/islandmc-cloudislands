@@ -8,6 +8,10 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreMutationMetadata;
+import kr.lunaf.cloudislands.coreclient.WarehouseCommandClient;
+import kr.lunaf.cloudislands.coreclient.WarehouseQueryClient;
+import kr.lunaf.cloudislands.coreclient.WarehouseSettlementResult;
+import kr.lunaf.cloudislands.coreclient.WarehouseSettlementView;
 import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandWarehouseUseCase.WarehouseItemView;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
@@ -24,14 +28,24 @@ final class IslandWarehouseCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final IslandWarehouseUseCase warehouseUseCase;
+    private final WarehouseQueryClient warehouseQueries;
+    private final WarehouseCommandClient warehouseCommands;
+    private final String nodeId;
     private final Runtime runtime;
     private final PendingWarehouseOperations pendingOperations = new PendingWarehouseOperations();
     private final NamespacedKey settlementKey;
 
     IslandWarehouseCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
+        this(plugin, coreApiClient, runtime, "");
+    }
+
+    IslandWarehouseCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime, String nodeId) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.warehouseUseCase = new IslandWarehouseUseCase(coreApiClient);
+        this.warehouseQueries = coreApiClient.warehouse();
+        this.warehouseCommands = coreApiClient.warehouseCommands();
+        this.nodeId = nodeId == null ? "" : nodeId.trim();
         this.runtime = runtime;
         this.settlementKey = new NamespacedKey(plugin, "warehouse_settlement");
     }
@@ -164,17 +178,15 @@ final class IslandWarehouseCommandHandler {
                 return;
             }
             CoreMutationMetadata mutation = CoreMutationMetadata.idempotent(deposit ? "island.warehouse.deposit" : "island.warehouse.withdraw");
-            WarehouseSettlement settlement = new WarehouseSettlement(islandId, material.name(), amount, deposit, mutation.idempotencyKey());
-            storeSettlement(player, settlement);
-            if (deposit) {
-                removeMaterial(player, material, amount);
-            }
-            executeSettlement(player, settlement);
+            WarehouseSettlement settlement = new WarehouseSettlement(UUID.randomUUID(), islandId, material.name(), amount, deposit, mutation.idempotencyKey(), WarehouseSettlement.Phase.ESCROWED);
+            prepareSettlement(player, material, settlement);
         });
     }
 
     void resumePendingSettlement(Player player) {
-        resumePendingSettlement(player, false);
+        if (!resumePendingSettlement(player, false)) {
+            resumeSharedSettlement(player);
+        }
     }
 
     private boolean resumePendingSettlement(Player player, boolean explicitRequest) {
@@ -193,9 +205,147 @@ final class IslandWarehouseCommandHandler {
             }
             return true;
         }
+        WarehouseSettlement settlement = decoded.get();
         runtime.message(player, message("warehouse-settlement-resuming", "완료되지 않은 창고 작업을 안전하게 복구하고 있습니다."));
-        executeSettlement(player, decoded.get());
+        if (settlement.phase() == WarehouseSettlement.Phase.SETTLED) {
+            clearSharedSettlement(player, settlement, true);
+        } else {
+            prepareRecoveryThenEscrow(player, settlement);
+        }
         return true;
+    }
+
+    private void prepareRecoveryThenEscrow(Player player, WarehouseSettlement settlement) {
+        UUID playerUuid = player.getUniqueId();
+        WarehouseSettlementView requested = settlementView(playerUuid, settlement, "PREPARED");
+        CompletableFuture<WarehouseSettlementResult> request;
+        try {
+            request = runtime.mutateIdempotent("island.warehouse.settlement.prepare", settlement.idempotencyKey() + ".prepare", () -> warehouseCommands.prepareSettlement(requested));
+        } catch (RuntimeException error) {
+            pendingOperations.release(playerUuid);
+            runtime.message(player, message("warehouse-settlement-pending", "창고 작업을 보호 중이며 다음 시도나 재접속 때 자동 복구됩니다."));
+            return;
+        }
+        request.whenComplete((result, error) -> PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+            if (activePlayer == null || !activePlayer.isOnline()) {
+                pendingOperations.release(playerUuid);
+                return;
+            }
+            if (error != null || result == null || !result.accepted()) {
+                pendingOperations.release(playerUuid);
+                runtime.message(activePlayer, message("warehouse-settlement-pending", "창고 작업을 보호 중이며 다음 시도나 재접속 때 자동 복구됩니다."));
+                return;
+            }
+            escrowThenExecute(activePlayer, settlement);
+        }));
+    }
+
+    private void prepareSettlement(Player player, Material material, WarehouseSettlement settlement) {
+        UUID playerUuid = player.getUniqueId();
+        WarehouseSettlementView requested = settlementView(playerUuid, settlement, "PREPARED");
+        CompletableFuture<WarehouseSettlementResult> request;
+        try {
+            request = runtime.mutateIdempotent("island.warehouse.settlement.prepare", settlement.idempotencyKey() + ".prepare", () -> warehouseCommands.prepareSettlement(requested));
+        } catch (RuntimeException error) {
+            pendingOperations.release(playerUuid);
+            runtime.message(player, runtime.coreWriteFailureMessage(error, warehouseFailureMessage(settlement.deposit())));
+            return;
+        }
+        request.whenComplete((result, error) -> PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+            if (activePlayer == null || !activePlayer.isOnline()) {
+                pendingOperations.release(playerUuid);
+                return;
+            }
+            if (error != null || result == null || !result.accepted()) {
+                pendingOperations.release(playerUuid);
+                runtime.message(activePlayer, error == null
+                    ? runtime.playerCodeMessage(result == null ? "" : result.code(), warehouseFailureMessage(settlement.deposit()))
+                    : runtime.coreWriteFailureMessage(error, warehouseFailureMessage(settlement.deposit())));
+                return;
+            }
+            if (settlement.deposit() && countStorableMaterial(activePlayer, material) < settlement.amount()) {
+                pendingOperations.release(playerUuid);
+                clearPreparedSettlement(activePlayer, settlement);
+                runtime.message(activePlayer, message("warehouse-not-enough-items", "인벤토리에 넣을 아이템이 부족합니다."));
+                return;
+            }
+            if (!settlement.deposit() && inventorySpace(activePlayer, material) < settlement.amount()) {
+                pendingOperations.release(playerUuid);
+                clearPreparedSettlement(activePlayer, settlement);
+                runtime.message(activePlayer, message("warehouse-inventory-full", "인벤토리 공간이 부족합니다."));
+                return;
+            }
+            storeSettlement(activePlayer, settlement);
+            if (settlement.deposit()) {
+                removeMaterial(activePlayer, material, settlement.amount());
+            }
+            escrowThenExecute(activePlayer, settlement);
+        }));
+    }
+
+    private void escrowThenExecute(Player player, WarehouseSettlement settlement) {
+        UUID playerUuid = player.getUniqueId();
+        CompletableFuture<WarehouseSettlementResult> request;
+        try {
+            request = runtime.mutateIdempotent("island.warehouse.settlement.escrow", settlement.idempotencyKey() + ".escrow", () -> warehouseCommands.escrowSettlement(playerUuid, settlement.settlementId()));
+        } catch (RuntimeException error) {
+            pendingOperations.release(playerUuid);
+            runtime.message(player, runtime.coreWriteFailureMessage(error, message("warehouse-settlement-pending", "창고 작업을 보호 중이며 다음 시도나 재접속 때 자동 복구됩니다.")));
+            return;
+        }
+        request.whenComplete((result, error) -> PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+            if (activePlayer == null || !activePlayer.isOnline()) {
+                pendingOperations.release(playerUuid);
+                return;
+            }
+            if (error != null || result == null || !result.accepted()) {
+                pendingOperations.release(playerUuid);
+                runtime.message(activePlayer, message("warehouse-settlement-pending", "창고 작업을 보호 중이며 다음 시도나 재접속 때 자동 복구됩니다."));
+                return;
+            }
+            executeSettlement(activePlayer, settlement);
+        }));
+    }
+
+    private void resumeSharedSettlement(Player player) {
+        UUID playerUuid = player.getUniqueId();
+        if (!pendingOperations.acquire(playerUuid)) {
+            return;
+        }
+        warehouseQueries.pendingSettlement(playerUuid).whenComplete((pending, error) -> PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+            if (activePlayer == null || !activePlayer.isOnline()) {
+                pendingOperations.release(playerUuid);
+                return;
+            }
+            if (error != null || pending == null || pending.isEmpty()) {
+                pendingOperations.release(playerUuid);
+                return;
+            }
+            WarehouseSettlementView view = pending.get();
+            if (!"ESCROWED".equals(view.state())) {
+                pendingOperations.release(playerUuid);
+                if ("PREPARED".equals(view.state()) && !nodeId.isBlank() && nodeId.equals(view.ownerNodeId())) {
+                    clearPreparedSettlement(activePlayer, settlement(view));
+                    runtime.message(activePlayer, message("warehouse-settlement-pending", "중단된 창고 준비 작업을 취소했습니다. 다시 시도해주세요."));
+                    return;
+                }
+                runtime.message(activePlayer, message("warehouse-settlement-pending", "이전 서버에서 창고 작업을 준비 중입니다. 잠시 후 다시 접속해주세요."));
+                return;
+            }
+            WarehouseSettlement settlement = settlement(view);
+            if (settlement == null) {
+                pendingOperations.release(playerUuid);
+                runtime.message(activePlayer, message("warehouse-settlement-corrupt", "복구할 창고 작업 정보가 손상되었습니다. 운영자에게 문의해주세요."));
+                return;
+            }
+            storeSettlement(activePlayer, settlement);
+            runtime.message(activePlayer, message("warehouse-settlement-resuming", "다른 서버에서 완료되지 않은 창고 작업을 안전하게 복구하고 있습니다."));
+            executeSettlement(activePlayer, settlement);
+        }));
     }
 
     private void executeSettlement(Player player, WarehouseSettlement settlement) {
@@ -217,12 +367,8 @@ final class IslandWarehouseCommandHandler {
                 ? warehouseUseCase.deposit(settlement.islandId(), playerUuid, settlement.materialKey(), settlement.amount(), runner)
                 : warehouseUseCase.withdraw(settlement.islandId(), playerUuid, settlement.materialKey(), settlement.amount(), runner);
         } catch (RuntimeException error) {
-            if (settlement.deposit()) {
-                giveMaterial(player, material, settlement.amount());
-            }
-            clearSettlement(player, settlement);
             pendingOperations.release(playerUuid);
-            runtime.message(player, runtime.coreWriteFailureMessage(error, warehouseFailureMessage(settlement.deposit())));
+            runtime.message(player, runtime.coreWriteFailureMessage(error, message("warehouse-settlement-pending", "창고 응답을 확정하지 못했습니다. 아이템은 보호 중이며 다음 시도나 재접속 때 자동 복구됩니다.")));
             return;
         }
         request.whenComplete((result, error) -> PaperSchedulers.run(plugin, () -> {
@@ -254,14 +400,16 @@ final class IslandWarehouseCommandHandler {
             if (settlement.deposit()) {
                 giveMaterial(player, material, settlement.amount());
             }
-            clearSettlement(player, settlement);
+            storeSettlement(player, settlement.settled());
+            clearSharedSettlement(player, settlement, false);
             runtime.message(player, runtime.playerCodeMessage(result.code(), warehouseFailureMessage(settlement.deposit())));
             return;
         }
         if (!settlement.deposit()) {
             giveMaterial(player, material, settlement.amount());
         }
-        clearSettlement(player, settlement);
+        storeSettlement(player, settlement.settled());
+        clearSharedSettlement(player, settlement, false);
         runtime.message(player, warehouseSuccessPrefix(settlement.deposit()) + settlement.materialKey() + " x" + settlement.amount());
     }
 
@@ -269,11 +417,79 @@ final class IslandWarehouseCommandHandler {
         player.getPersistentDataContainer().set(settlementKey, PersistentDataType.STRING, settlement.encode());
     }
 
-    private void clearSettlement(Player player, WarehouseSettlement completed) {
+    private void clearLocalSettlement(Player player, WarehouseSettlement completed) {
         String encoded = player.getPersistentDataContainer().get(settlementKey, PersistentDataType.STRING);
         Optional<WarehouseSettlement> current = WarehouseSettlement.decode(encoded);
-        if (current.isPresent() && current.get().idempotencyKey().equals(completed.idempotencyKey())) {
+        if (current.isPresent() && current.get().settlementId().equals(completed.settlementId())) {
             player.getPersistentDataContainer().remove(settlementKey);
+        }
+    }
+
+    private void clearPreparedSettlement(Player player, WarehouseSettlement settlement) {
+        if (settlement == null) {
+            return;
+        }
+        runtime.mutateIdempotent("island.warehouse.settlement.clear", settlement.idempotencyKey() + ".clear", () -> warehouseCommands.clearSettlement(player.getUniqueId(), settlement.settlementId()))
+            .exceptionally(error -> null);
+    }
+
+    private void clearSharedSettlement(Player player, WarehouseSettlement settlement, boolean releaseWhenDone) {
+        UUID playerUuid = player.getUniqueId();
+        CompletableFuture<WarehouseSettlementResult> request;
+        try {
+            request = runtime.mutateIdempotent("island.warehouse.settlement.clear", settlement.idempotencyKey() + ".clear", () -> warehouseCommands.clearSettlement(playerUuid, settlement.settlementId()));
+        } catch (RuntimeException error) {
+            if (releaseWhenDone) {
+                pendingOperations.release(playerUuid);
+            }
+            return;
+        }
+        request.whenComplete((result, error) -> PaperSchedulers.run(plugin, () -> {
+            try {
+                Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+                if (activePlayer != null && activePlayer.isOnline() && error == null && result != null && result.accepted()) {
+                    clearLocalSettlement(activePlayer, settlement);
+                }
+            } finally {
+                if (releaseWhenDone) {
+                    pendingOperations.release(playerUuid);
+                }
+            }
+        }));
+    }
+
+    private static WarehouseSettlementView settlementView(UUID playerUuid, WarehouseSettlement settlement, String state) {
+        return new WarehouseSettlementView(
+            settlement.settlementId(),
+            playerUuid,
+            settlement.islandId(),
+            settlement.materialKey(),
+            settlement.amount(),
+            settlement.deposit() ? "DEPOSIT" : "WITHDRAW",
+            state,
+            settlement.idempotencyKey(),
+            "",
+            "",
+            ""
+        );
+    }
+
+    private static WarehouseSettlement settlement(WarehouseSettlementView view) {
+        if (view == null || view.settlementId() == null || view.islandId() == null || view.idempotencyKey().isBlank()) {
+            return null;
+        }
+        boolean deposit;
+        if ("DEPOSIT".equals(view.direction())) {
+            deposit = true;
+        } else if ("WITHDRAW".equals(view.direction())) {
+            deposit = false;
+        } else {
+            return null;
+        }
+        try {
+            return new WarehouseSettlement(view.settlementId(), view.islandId(), view.materialKey(), view.amount(), deposit, view.idempotencyKey(), WarehouseSettlement.Phase.ESCROWED);
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 

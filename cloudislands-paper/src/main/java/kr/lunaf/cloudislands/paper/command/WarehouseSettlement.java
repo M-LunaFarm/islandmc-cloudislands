@@ -4,12 +4,16 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.nio.charset.StandardCharsets;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 
-record WarehouseSettlement(UUID islandId, String materialKey, long amount, boolean deposit, String idempotencyKey) {
-    private static final long FORMAT_VERSION = 1L;
+record WarehouseSettlement(UUID settlementId, UUID islandId, String materialKey, long amount, boolean deposit, String idempotencyKey, Phase phase) {
+    private static final long FORMAT_VERSION = 2L;
 
     WarehouseSettlement {
+        if (settlementId == null) {
+            throw new IllegalArgumentException("settlementId is required");
+        }
         if (islandId == null) {
             throw new IllegalArgumentException("islandId is required");
         }
@@ -24,16 +28,27 @@ record WarehouseSettlement(UUID islandId, String materialKey, long amount, boole
         if (!validIdempotencyKey(idempotencyKey)) {
             throw new IllegalArgumentException("idempotencyKey must be 1-200 URL-safe characters");
         }
+        phase = phase == null ? Phase.ESCROWED : phase;
+    }
+
+    WarehouseSettlement(UUID islandId, String materialKey, long amount, boolean deposit, String idempotencyKey) {
+        this(UUID.randomUUID(), islandId, materialKey, amount, deposit, idempotencyKey, Phase.ESCROWED);
+    }
+
+    WarehouseSettlement settled() {
+        return new WarehouseSettlement(settlementId, islandId, materialKey, amount, deposit, idempotencyKey, Phase.SETTLED);
     }
 
     String encode() {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("version", FORMAT_VERSION);
+        values.put("settlementId", settlementId.toString());
         values.put("islandId", islandId.toString());
         values.put("materialKey", materialKey);
         values.put("amount", amount);
         values.put("deposit", deposit);
         values.put("idempotencyKey", idempotencyKey);
+        values.put("phase", phase.name());
         return SimpleJson.stringify(values);
     }
 
@@ -43,19 +58,27 @@ record WarehouseSettlement(UUID islandId, String materialKey, long amount, boole
         }
         try {
             Map<?, ?> values = SimpleJson.object(SimpleJson.parse(encoded));
-            if (SimpleJson.number(values.get("version")) != FORMAT_VERSION) {
+            long version = SimpleJson.number(values.get("version"));
+            if (version != 1L && version != FORMAT_VERSION) {
                 return Optional.empty();
             }
             Object deposit = values.get("deposit");
             if (!(deposit instanceof Boolean depositValue)) {
                 return Optional.empty();
             }
+            String idempotencyKey = SimpleJson.text(values.get("idempotencyKey"));
+            UUID settlementId = version == 1L
+                ? UUID.nameUUIDFromBytes(("warehouse:" + idempotencyKey).getBytes(StandardCharsets.UTF_8))
+                : UUID.fromString(SimpleJson.text(values.get("settlementId")));
+            Phase phase = version == 1L ? Phase.ESCROWED : Phase.valueOf(SimpleJson.text(values.get("phase")));
             return Optional.of(new WarehouseSettlement(
+                settlementId,
                 UUID.fromString(SimpleJson.text(values.get("islandId"))),
                 SimpleJson.text(values.get("materialKey")),
                 SimpleJson.number(values.get("amount")),
                 depositValue,
-                SimpleJson.text(values.get("idempotencyKey"))
+                idempotencyKey,
+                phase
             ));
         } catch (RuntimeException ignored) {
             return Optional.empty();
@@ -76,5 +99,10 @@ record WarehouseSettlement(UUID islandId, String materialKey, long amount, boole
             }
         }
         return true;
+    }
+
+    enum Phase {
+        ESCROWED,
+        SETTLED
     }
 }

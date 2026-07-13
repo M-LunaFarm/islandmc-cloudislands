@@ -1691,9 +1691,12 @@ tasks.register("verifyWarehouseSettlementRecovery") {
         val source = listOf(handler, settlement, controller, client, settlementTest).joinToString("\n") { it.asFile.readText() }
         val requiredSignals = listOf(
             "warehouse_settlement",
-            "storeSettlement(player, settlement)",
-            "removeMaterial(player, material, amount)",
+            "storeSettlement(activePlayer, settlement)",
+            "removeMaterial(activePlayer, material, settlement.amount())",
             "settlement.idempotencyKey()",
+            "warehouseCommands.prepareSettlement",
+            "warehouseCommands.escrowSettlement",
+            "warehouseQueries.pendingSettlement(playerUuid)",
             "activePlayer == null || !activePlayer.isOnline()",
             "resumePendingSettlement",
             "IDEMPOTENCY_IN_PROGRESS",
@@ -1705,10 +1708,14 @@ tasks.register("verifyWarehouseSettlementRecovery") {
             throw GradleException("Warehouse settlement recovery evidence missing: ${missing.joinToString(", ")}")
         }
         val handlerSource = handler.asFile.readText()
-        val markerIndex = handlerSource.indexOf("storeSettlement(player, settlement)")
-        val removalIndex = handlerSource.indexOf("removeMaterial(player, material, amount)")
+        val markerIndex = handlerSource.indexOf("storeSettlement(activePlayer, settlement)")
+        val prepareIndex = handlerSource.indexOf("warehouseCommands.prepareSettlement")
+        val removalIndex = handlerSource.indexOf("removeMaterial(activePlayer, material, settlement.amount())")
         if (markerIndex < 0 || removalIndex < 0 || markerIndex > removalIndex) {
             throw GradleException("Warehouse settlement marker must be stored before deposit inventory escrow")
+        }
+        if (prepareIndex < 0 || prepareIndex > removalIndex) {
+            throw GradleException("Core PREPARED settlement must be accepted before deposit inventory escrow")
         }
     }
 }

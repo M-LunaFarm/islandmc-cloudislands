@@ -26,6 +26,7 @@ import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.warehouse.IslandWarehouseRepository;
+import kr.lunaf.cloudislands.coreservice.warehouse.WarehouseSettlementRepository;
 
 public record CoreRepositories(
     NodeRegistry nodes,
@@ -53,6 +54,7 @@ public record CoreRepositories(
     AddonStateRepository addonStates,
     IslandReviewRepository reviewRepository,
     IslandWarehouseRepository warehouseRepository,
+    WarehouseSettlementRepository warehouseSettlements,
     AuditLogger audit,
     IslandLogRepository islandLogs
 ) {}

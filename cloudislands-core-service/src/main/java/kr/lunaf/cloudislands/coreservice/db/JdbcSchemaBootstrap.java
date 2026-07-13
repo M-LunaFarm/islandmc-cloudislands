@@ -99,13 +99,15 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V78__extensible_permission_key_guards.sql",
         "/db/migration/V79__island_ranking_dirty_queue.sql",
         "/db/migration/V80__island_bank_ranking_index.sql",
-        "/db/migration/V81__core_idempotency.sql"
+        "/db/migration/V81__core_idempotency.sql",
+        "/db/migration/V82__warehouse_settlement_recovery.sql"
     };
     private static final String[] MYSQL_MIGRATIONS = {
         MYSQL_COMPATIBLE_SCHEMA_RESOURCE,
         "/db/mysql/V2__island_ranking_dirty_queue.sql",
         "/db/mysql/V3__island_bank_ranking_index.sql",
-        "/db/mysql/V4__core_idempotency.sql"
+        "/db/mysql/V4__core_idempotency.sql",
+        "/db/mysql/V5__warehouse_settlement_recovery.sql"
     };
 
     private enum Dialect {

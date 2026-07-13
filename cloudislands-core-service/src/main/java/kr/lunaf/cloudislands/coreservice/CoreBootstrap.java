@@ -116,7 +116,10 @@ import kr.lunaf.cloudislands.coreservice.upgrade.IslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.upgrade.JdbcIslandUpgradeRepository;
 import kr.lunaf.cloudislands.coreservice.warehouse.InMemoryIslandWarehouseRepository;
 import kr.lunaf.cloudislands.coreservice.warehouse.IslandWarehouseRepository;
+import kr.lunaf.cloudislands.coreservice.warehouse.InMemoryWarehouseSettlementRepository;
 import kr.lunaf.cloudislands.coreservice.warehouse.JdbcIslandWarehouseRepository;
+import kr.lunaf.cloudislands.coreservice.warehouse.JdbcWarehouseSettlementRepository;
+import kr.lunaf.cloudislands.coreservice.warehouse.WarehouseSettlementRepository;
 
 final class CoreBootstrap {
     private CoreBootstrap() {
@@ -260,6 +263,7 @@ final class CoreBootstrap {
         AddonStateRepository addonStates = config.jdbcRepositories() ? new JdbcAddonStateRepository(dataSource) : new InMemoryAddonStateRepository();
         IslandReviewRepository reviewRepository = config.jdbcRepositories() ? new JdbcIslandReviewRepository(dataSource) : new InMemoryIslandReviewRepository();
         IslandWarehouseRepository warehouseRepository = config.jdbcRepositories() ? new JdbcIslandWarehouseRepository(dataSource) : new InMemoryIslandWarehouseRepository();
+        WarehouseSettlementRepository warehouseSettlements = config.jdbcRepositories() ? new JdbcWarehouseSettlementRepository(dataSource) : new InMemoryWarehouseSettlementRepository();
         AuditLogger baseAudit = config.jdbcRepositories() ? new JdbcAuditLogger(dataSource) : new InMemoryAuditLogger();
         AuditLogger audit = infrastructure.redisEventWriter() == null
             ? baseAudit
@@ -295,6 +299,7 @@ final class CoreBootstrap {
             addonStates,
             reviewRepository,
             warehouseRepository,
+            warehouseSettlements,
             audit,
             islandLogs
         );

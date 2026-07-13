@@ -22,13 +22,13 @@ class JdbcSchemaBootstrapTest {
         assertEquals("mariadb-uses-mysql-compatible-core-schema-bootstrap", JdbcSchemaBootstrap.MARIADB_SCHEMA_POLICY);
         assertEquals("/db/mysql/V1__cloudislands_mysql_schema.sql", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
         assertEquals("mysql-v1", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_ID);
-        assertEquals("mysql-compatible-migration-chain:4", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
-        assertEquals("mysql-compatible-migration-chain:4", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
+        assertEquals("mysql-compatible-migration-chain:5", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
+        assertEquals("mysql-compatible-migration-chain:5", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
     }
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
-        assertEquals("postgresql-migration-chain:81", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
+        assertEquals("postgresql-migration-chain:82", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
     }
 
@@ -42,6 +42,21 @@ class JdbcSchemaBootstrapTest {
                 assertTrue(migration.contains("idempotency_key VARCHAR(200) PRIMARY KEY"));
                 assertTrue(migration.contains("request_fingerprint CHAR(64) NOT NULL"));
                 assertTrue(migration.contains("response_body"));
+            }
+        }
+    }
+
+    @Test
+    void warehouseSettlementSchemaShipsForPostgresqlAndMysql() throws IOException {
+        for (String resource : new String[]{"/db/migration/V82__warehouse_settlement_recovery.sql", "/db/mysql/V5__warehouse_settlement_recovery.sql"}) {
+            try (var input = JdbcSchemaBootstrapTest.class.getResourceAsStream(resource)) {
+                assertTrue(input != null, "missing migration " + resource);
+                String migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+                assertTrue(migration.contains("warehouse_settlements"));
+                assertTrue(migration.contains("player_uuid"));
+                assertTrue(migration.contains("settlement_id"));
+                assertTrue(migration.contains("idempotency_key VARCHAR(200) NOT NULL"));
+                assertTrue(migration.contains("'PREPARED', 'ESCROWED'"));
             }
         }
     }

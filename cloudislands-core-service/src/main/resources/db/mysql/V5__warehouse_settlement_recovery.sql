@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS warehouse_settlements (
+    player_uuid CHAR(36) PRIMARY KEY,
+    settlement_id CHAR(36) NOT NULL UNIQUE,
+    island_id CHAR(36) NOT NULL,
+    material_key VARCHAR(96) NOT NULL,
+    amount BIGINT NOT NULL,
+    direction VARCHAR(16) NOT NULL,
+    state VARCHAR(16) NOT NULL,
+    idempotency_key VARCHAR(200) NOT NULL,
+    owner_node_id VARCHAR(64) NOT NULL DEFAULT '',
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT fk_warehouse_settlement_island FOREIGN KEY (island_id) REFERENCES islands(id),
+    CONSTRAINT chk_warehouse_settlement_amount CHECK (amount > 0),
+    CONSTRAINT chk_warehouse_settlement_direction CHECK (direction IN ('DEPOSIT', 'WITHDRAW')),
+    CONSTRAINT chk_warehouse_settlement_state CHECK (state IN ('PREPARED', 'ESCROWED')),
+    CONSTRAINT chk_warehouse_settlement_material CHECK (trim(material_key) <> ''),
+    CONSTRAINT chk_warehouse_settlement_key CHECK (trim(idempotency_key) <> ''),
+    INDEX idx_warehouse_settlements_updated_at (updated_at)
+);

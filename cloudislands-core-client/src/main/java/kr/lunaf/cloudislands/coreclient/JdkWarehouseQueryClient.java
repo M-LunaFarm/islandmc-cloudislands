@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -22,6 +23,17 @@ final class JdkWarehouseQueryClient implements WarehouseQueryClient {
         return core.postBody("/v1/islands/warehouse", CoreJsonPayload.object("islandId", islandId, "limit", safeLimit))
             .thenApply(CoreResponseBody::value)
             .thenApply(body -> warehouseItems(islandId, body));
+    }
+
+    @Override
+    public CompletableFuture<Optional<WarehouseSettlementView>> pendingSettlement(UUID playerUuid) {
+        if (playerUuid == null) {
+            throw new IllegalArgumentException("playerUuid is required");
+        }
+        return core.postBody("/v1/players/warehouse-settlement/find", CoreJsonPayload.object("playerUuid", playerUuid))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreJson::object)
+            .thenApply(root -> JdkWarehouseCommandClient.settlement(CoreJson.objectValue(root, "settlement")));
     }
 
     private static List<WarehouseItemView> warehouseItems(UUID islandId, String body) {

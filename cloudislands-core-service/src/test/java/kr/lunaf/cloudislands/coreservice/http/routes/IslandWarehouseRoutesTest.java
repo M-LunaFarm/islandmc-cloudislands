@@ -27,7 +27,7 @@ class IslandWarehouseRoutesTest {
     void warehouseMutationsUseContainerPermissionInsteadOfBankWithdrawalPermission() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandWarehouseRoutes.java"));
 
-        assertEquals(2, occurrences(source, "IslandPermission.OPEN_CONTAINER"));
+        assertEquals(3, occurrences(source, "IslandPermission.OPEN_CONTAINER"));
         assertFalse(source.contains("IslandPermission.WITHDRAW_BANK"));
     }
 
@@ -38,10 +38,14 @@ class IslandWarehouseRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(3, paths.size());
+        assertEquals(7, paths.size());
         assertTrue(paths.contains("/v1/islands/warehouse"));
         assertTrue(paths.contains("/v1/islands/warehouse/deposit"));
         assertTrue(paths.contains("/v1/islands/warehouse/withdraw"));
+        assertTrue(paths.contains("/v1/players/warehouse-settlement/find"));
+        assertTrue(paths.contains("/v1/players/warehouse-settlement/prepare"));
+        assertTrue(paths.contains("/v1/players/warehouse-settlement/escrow"));
+        assertTrue(paths.contains("/v1/players/warehouse-settlement/clear"));
     }
 
     @Test
@@ -53,6 +57,10 @@ class IslandWarehouseRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/warehouse"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/warehouse/deposit"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/warehouse/withdraw"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/warehouse-settlement/find"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/warehouse-settlement/prepare"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/warehouse-settlement/escrow"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/warehouse-settlement/clear"));
     }
 
     @Test

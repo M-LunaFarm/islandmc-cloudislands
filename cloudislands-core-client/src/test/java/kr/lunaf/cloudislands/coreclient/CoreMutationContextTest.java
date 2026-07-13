@@ -723,6 +723,8 @@ class CoreMutationContextTest {
     void jdkClientBuildsBankAndWarehousePayloadsWithStructuredHelper() throws Exception {
         UUID islandId = UUID.randomUUID();
         UUID actorUuid = UUID.randomUUID();
+        UUID settlementId = UUID.randomUUID();
+        String settlementJson = "{\"settlementId\":\"" + settlementId + "\",\"playerUuid\":\"" + actorUuid + "\",\"islandId\":\"" + islandId + "\",\"materialKey\":\"minecraft:stone\",\"amount\":12,\"direction\":\"DEPOSIT\",\"state\":\"ESCROWED\",\"idempotencyKey\":\"settlement-key\",\"ownerNodeId\":\"paper-a\",\"createdAt\":\"2026-01-02T03:04:05Z\",\"updatedAt\":\"2026-01-02T03:04:06Z\"}";
         ConcurrentMap<String, String> requestBodies = new ConcurrentHashMap<>();
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/v1/islands/bank", exchange -> respond(exchange, requestBodies, "bank", "{\"balance\":\"10\"}"));
@@ -731,6 +733,10 @@ class CoreMutationContextTest {
         server.createContext("/v1/islands/warehouse", exchange -> respond(exchange, requestBodies, "warehouse", "{\"items\":[]}"));
         server.createContext("/v1/islands/warehouse/deposit", exchange -> respond(exchange, requestBodies, "warehouseDeposit", "{\"accepted\":true,\"code\":\"DEPOSITED\",\"item\":{\"materialKey\":\"STONE\",\"amount\":12}}"));
         server.createContext("/v1/islands/warehouse/withdraw", exchange -> respond(exchange, requestBodies, "warehouseWithdraw", "{\"accepted\":true,\"code\":\"WITHDRAWN\",\"item\":{\"materialKey\":\"DIRT\",\"amount\":7}}"));
+        server.createContext("/v1/players/warehouse-settlement/find", exchange -> respond(exchange, requestBodies, "settlementFind", "{\"settlement\":" + settlementJson + "}"));
+        server.createContext("/v1/players/warehouse-settlement/prepare", exchange -> respond(exchange, requestBodies, "settlementPrepare", "{\"accepted\":true,\"code\":\"WAREHOUSE_SETTLEMENT_PREPARED\",\"settlement\":" + settlementJson + "}"));
+        server.createContext("/v1/players/warehouse-settlement/escrow", exchange -> respond(exchange, requestBodies, "settlementEscrow", "{\"accepted\":true,\"code\":\"WAREHOUSE_SETTLEMENT_ESCROWED\",\"settlement\":" + settlementJson + "}"));
+        server.createContext("/v1/players/warehouse-settlement/clear", exchange -> respond(exchange, requestBodies, "settlementClear", "{\"accepted\":true,\"code\":\"WAREHOUSE_SETTLEMENT_CLEARED\",\"settlement\":null}"));
         server.start();
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
@@ -741,6 +747,11 @@ class CoreMutationContextTest {
             client.warehouse().listItems(islandId, 50).join();
             WarehouseMutationView deposit = client.warehouseCommands().deposit(islandId, actorUuid, "minecraft:stone", 12L).join();
             WarehouseMutationView withdraw = client.warehouseCommands().withdraw(islandId, actorUuid, "minecraft:dirt", 7L).join();
+            WarehouseSettlementView settlement = new WarehouseSettlementView(settlementId, actorUuid, islandId, "minecraft:stone", 12L, "DEPOSIT", "PREPARED", "settlement-key", "paper-a", "", "");
+            WarehouseSettlementView found = client.warehouse().pendingSettlement(actorUuid).join().orElseThrow();
+            WarehouseSettlementResult prepared = client.warehouseCommands().prepareSettlement(settlement).join();
+            WarehouseSettlementResult escrowed = client.warehouseCommands().escrowSettlement(actorUuid, settlementId).join();
+            WarehouseSettlementResult cleared = client.warehouseCommands().clearSettlement(actorUuid, settlementId).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("bank"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"amount\":\"12.50\"}", requestBodies.get("bankDeposit"));
@@ -748,8 +759,18 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":50}", requestBodies.get("warehouse"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"minecraft:stone\",\"amount\":12}", requestBodies.get("warehouseDeposit"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"minecraft:dirt\",\"amount\":7}", requestBodies.get("warehouseWithdraw"));
+            assertEquals("{\"playerUuid\":\"" + actorUuid + "\"}", requestBodies.get("settlementFind"));
+            assertEquals("{\"settlementId\":\"" + settlementId + "\",\"playerUuid\":\"" + actorUuid + "\",\"islandId\":\"" + islandId + "\",\"materialKey\":\"minecraft:stone\",\"amount\":12,\"direction\":\"DEPOSIT\",\"idempotencyKey\":\"settlement-key\"}", requestBodies.get("settlementPrepare"));
+            assertEquals("{\"playerUuid\":\"" + actorUuid + "\",\"settlementId\":\"" + settlementId + "\"}", requestBodies.get("settlementEscrow"));
+            assertEquals(requestBodies.get("settlementEscrow"), requestBodies.get("settlementClear"));
             assertEquals(new WarehouseMutationView(true, "DEPOSITED", "STONE", 12L), deposit);
             assertEquals(new WarehouseMutationView(true, "WITHDRAWN", "DIRT", 7L), withdraw);
+            assertEquals(settlementId, found.settlementId());
+            assertEquals("ESCROWED", found.state());
+            assertTrue(prepared.accepted());
+            assertTrue(escrowed.accepted());
+            assertTrue(cleared.accepted());
+            assertEquals(null, cleared.settlement());
         } finally {
             server.stop(0);
         }

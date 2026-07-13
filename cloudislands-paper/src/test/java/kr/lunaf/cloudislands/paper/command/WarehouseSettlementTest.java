@@ -22,6 +22,20 @@ class WarehouseSettlementTest {
 
         assertEquals(expected, decoded);
         assertEquals("STONE", decoded.materialKey());
+        assertEquals(WarehouseSettlement.Phase.ESCROWED, decoded.phase());
+    }
+
+    @Test
+    void upgradesVersionOneMarkersWithDeterministicSettlementIdentity() {
+        UUID islandId = UUID.randomUUID();
+        String key = UUID.randomUUID().toString();
+        String legacy = "{\"version\":1,\"islandId\":\"" + islandId + "\",\"materialKey\":\"STONE\",\"amount\":64,\"deposit\":true,\"idempotencyKey\":\"" + key + "\"}";
+
+        WarehouseSettlement first = WarehouseSettlement.decode(legacy).orElseThrow();
+        WarehouseSettlement second = WarehouseSettlement.decode(legacy).orElseThrow();
+
+        assertEquals(first.settlementId(), second.settlementId());
+        assertEquals(WarehouseSettlement.Phase.ESCROWED, first.phase());
     }
 
     @Test
