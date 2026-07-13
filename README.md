@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.150`
+Version: `1.1.151`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,20 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.150`
+Current release: `v1.1.151`
 
-Built for the CloudIslands 1.1.150 baseline.
+Built for the CloudIslands 1.1.151 baseline.
 
-Release notes for `v1.1.150`:
+Release notes for `v1.1.151`:
+
+- Plan Player Analytics now receives a real CloudIslands data extension instead
+  of diagnostic-only detection, with cluster islands, players, online nodes,
+  distributed job health, and local Paper activity exposed as cached metrics
+- Plan refreshes use non-blocking Core requests and retain the last successful
+  snapshot during outages; extension registration, capability validation,
+  scheduler cleanup, and plugin-disable unregistration are release-gated
+
+Release notes carried forward from `v1.1.150`:
 
 - tagged releases now generate and verify their production cluster evidence
   from the same GitHub Actions run instead of failing before verification when
@@ -2545,7 +2554,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.150`.
+Current read: production-readiness baseline `v1.1.151`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
