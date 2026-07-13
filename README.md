@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.146`
+Version: `1.1.147`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,25 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.146`
+Current release: `v1.1.147`
 
-Built for the CloudIslands 1.1.146 baseline.
+Built for the CloudIslands 1.1.147 baseline.
 
-Release notes for `v1.1.146`:
+Release notes for `v1.1.147`:
+
+- administrator retry and cancel actions no longer invalidate a live Paper
+  worker lease while island create, restore, save, migration, or delete work is
+  still executing
+- in-memory, JDBC, and Redis queues consistently allow administrative takeover
+  only after the claim lease expires; stale work remains recoverable through
+  the existing job recovery endpoint
+- rejected retry and cancel requests now return `409 JOB_ACTIVE_CLAIM` with an
+  actionable wait-or-recover instruction instead of an ambiguous not-found
+  response
+- active Redis claims are checked from durable claim hashes as well as local
+  worker state, so a Core restart cannot bypass the protection
+
+Release notes carried forward from `v1.1.146`:
 
 - target-mismatched Redis jobs now queue their replacement before acknowledging
   the old stream entry, with replacement, ACK, and audit committed atomically
@@ -2490,7 +2504,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.146`.
+Current read: production-readiness baseline `v1.1.147`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
