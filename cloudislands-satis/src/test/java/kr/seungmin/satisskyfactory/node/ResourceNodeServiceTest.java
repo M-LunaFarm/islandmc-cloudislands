@@ -146,6 +146,32 @@ class ResourceNodeServiceTest {
         }
     }
 
+    @Test
+    void remapIslandRegionRollsBackEveryNodeWhenOneUpdateFails() throws Exception {
+        UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000000751");
+        UUID firstNodeId = UUID.fromString("00000000-0000-0000-0000-000000000752");
+        UUID secondNodeId = UUID.fromString("00000000-0000-0000-0000-000000000753");
+        try (DatabaseHandle handle = openDatabase("remap-rollback-db")) {
+            handle.database().saveNode(new ResourceNode(firstNodeId, islandUuid, "MINERAL", "iron_ore", 1.0,
+                    100, 250, 60, 1, new BlockKey("world", 4, 64, 8), 0, 0));
+            handle.database().saveNode(new ResourceNode(secondNodeId, islandUuid, "FOREST", "wood_log", 1.0,
+                    100, 250, 60, 1, new BlockKey("world", 12, 64, 16), 0, 0));
+            ResourceNodeService nodes = new ResourceNodeService(handle.database());
+            nodes.load(config(false, 0));
+            nodes.nodes(islandUuid);
+            try (Connection connection = handle.database().connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_second_node_remap BEFORE UPDATE ON resource_nodes "
+                        + "WHEN NEW.node_id = '" + secondNodeId + "' AND NEW.world = 'ci_shard_003' "
+                        + "BEGIN SELECT RAISE(FAIL, 'forced second node remap failure'); END");
+            }
+
+            assertFalse(nodes.remapIslandRegion(islandUuid, "ci_shard_003", 2048, 0, -2048));
+
+            assertTrue(nodes.nodes(islandUuid).stream().allMatch(node -> node.world().equals("world")));
+            assertTrue(handle.database().loadNodes(islandUuid).stream().allMatch(node -> node.world().equals("world")));
+        }
+    }
+
     private DatabaseHandle openDatabase(String name) {
         DatabaseService database = new DatabaseService(tempDir.resolve(name).toFile());
         database.open();

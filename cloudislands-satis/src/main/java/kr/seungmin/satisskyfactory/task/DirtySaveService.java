@@ -269,16 +269,19 @@ public final class DirtySaveService {
     }
 
     public boolean markNode(ResourceNode node) {
-        if (!enabled(nodeWritesEnabled)) {
+        return markNodes(node == null ? java.util.List.of() : java.util.List.of(node));
+    }
+
+    public boolean markNodes(java.util.Collection<ResourceNode> batch) {
+        if (!enabled(nodeWritesEnabled) || batch == null || batch.isEmpty()) {
             return false;
         }
-        if (node == null || node.nodeId() == null) {
-            return false;
+        for (ResourceNode node : batch) {
+            if (node == null || node.nodeId() == null || !runtimeAuthorityReady(node.islandUuid())) {
+                return false;
+            }
         }
-        if (!runtimeAuthorityReady(node.islandUuid())) {
-            return false;
-        }
-        nodes.put(node.nodeId(), snapshot(node));
+        batch.forEach(node -> nodes.put(node.nodeId(), snapshot(node)));
         return true;
     }
 

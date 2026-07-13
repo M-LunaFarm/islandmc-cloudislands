@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,32 +50,62 @@ final class ResourceNodeRepository {
     }
 
     void save(ResourceNode node) {
-        long now = Instant.now().toEpochMilli();
-        if (node.createdAt() <= 0) {
-            node.createdAt(now);
-        }
-        node.updatedAt(now);
         try (Connection connection = database.connection();
              PreparedStatement statement = connection.prepareStatement(saveNodeSql())) {
-            statement.setString(1, node.nodeId().toString());
-            statement.setString(2, node.islandUuid().toString());
-            statement.setString(3, node.nodeType());
-            statement.setString(4, node.resourceId());
-            statement.setDouble(5, node.purity());
-            statement.setLong(6, node.remaining());
-            statement.setLong(7, node.maxRemaining());
-            statement.setLong(8, node.regenPerHour());
-            statement.setInt(9, node.requiredMachineTier());
-            statement.setString(10, node.location().world());
-            statement.setInt(11, node.location().x());
-            statement.setInt(12, node.location().y());
-            statement.setInt(13, node.location().z());
-            statement.setLong(14, node.createdAt());
-            statement.setLong(15, node.updatedAt());
+            bind(statement, node, Instant.now().toEpochMilli());
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("Failed to save resource node", exception);
         }
+    }
+
+    void saveAll(Collection<ResourceNode> nodes) {
+        Collection<ResourceNode> safeNodes = nodes == null ? List.of() : nodes;
+        if (safeNodes.isEmpty()) {
+            return;
+        }
+        try (Connection connection = database.connection()) {
+            boolean autoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+            try (PreparedStatement statement = connection.prepareStatement(saveNodeSql())) {
+                long now = Instant.now().toEpochMilli();
+                for (ResourceNode node : safeNodes) {
+                    bind(statement, node, now);
+                    statement.addBatch();
+                }
+                statement.executeBatch();
+                connection.commit();
+            } catch (SQLException exception) {
+                connection.rollback();
+                throw exception;
+            } finally {
+                connection.setAutoCommit(autoCommit);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("Failed to save resource node batch", exception);
+        }
+    }
+
+    private void bind(PreparedStatement statement, ResourceNode node, long now) throws SQLException {
+        if (node.createdAt() <= 0) {
+            node.createdAt(now);
+        }
+        node.updatedAt(now);
+        statement.setString(1, node.nodeId().toString());
+        statement.setString(2, node.islandUuid().toString());
+        statement.setString(3, node.nodeType());
+        statement.setString(4, node.resourceId());
+        statement.setDouble(5, node.purity());
+        statement.setLong(6, node.remaining());
+        statement.setLong(7, node.maxRemaining());
+        statement.setLong(8, node.regenPerHour());
+        statement.setInt(9, node.requiredMachineTier());
+        statement.setString(10, node.location().world());
+        statement.setInt(11, node.location().x());
+        statement.setInt(12, node.location().y());
+        statement.setInt(13, node.location().z());
+        statement.setLong(14, node.createdAt());
+        statement.setLong(15, node.updatedAt());
     }
 
     private String saveNodeSql() {

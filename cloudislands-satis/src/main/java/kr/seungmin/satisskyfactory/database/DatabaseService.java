@@ -754,6 +754,10 @@ public final class DatabaseService {
         resourceNodeRepository.save(node);
     }
 
+    public void saveNodes(java.util.Collection<ResourceNode> nodes) {
+        resourceNodeRepository.saveAll(nodes);
+    }
+
     public void addLedger(UUID islandUuid, String type, long amount, String reason) {
         LedgerRepository.LedgerEntry entry = ledgerRepository.add(islandUuid, type, amount, reason);
         coreStatePublisher.publishRow(islandUuid, IslandAddonService.tableStateKey("ledger", entry.ledgerId().toString()),

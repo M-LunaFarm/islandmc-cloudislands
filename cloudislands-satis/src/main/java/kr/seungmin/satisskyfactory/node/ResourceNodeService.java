@@ -137,8 +137,10 @@ public final class ResourceNodeService {
         if (worldName == null || worldName.isBlank()) {
             return false;
         }
+        if (!writesEnabled()) {
+            return false;
+        }
         List<ResourceNode> current = nodes(islandUuid);
-        boolean changed = false;
         List<ResourceNode> updated = new ArrayList<>();
         for (ResourceNode node : current) {
             if (worldName.equals(node.location().world()) && deltaX == 0 && deltaY == 0 && deltaZ == 0) {
@@ -159,17 +161,27 @@ public final class ResourceNodeService {
                     node.createdAt(),
                     node.updatedAt()
             );
-            if (save(remapped)) {
-                updated.add(remapped);
-                changed = true;
-            } else {
-                updated.add(node);
+            updated.add(remapped);
+        }
+        boolean changed = !updated.equals(current);
+        if (!changed) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        updated.forEach(node -> node.updatedAt(now));
+        if (dirtySaves != null) {
+            if (!dirtySaves.markNodes(updated)) {
+                return false;
+            }
+        } else {
+            try {
+                database.saveNodes(updated);
+            } catch (RuntimeException exception) {
+                return false;
             }
         }
-        if (changed) {
-            nodesByIsland.put(islandUuid, updated);
-        }
-        return changed;
+        nodesByIsland.put(islandUuid, updated);
+        return true;
     }
 
     public void forgetIsland(UUID islandUuid) {
