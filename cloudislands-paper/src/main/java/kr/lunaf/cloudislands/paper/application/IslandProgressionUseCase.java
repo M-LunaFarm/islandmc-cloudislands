@@ -57,6 +57,10 @@ public final class IslandProgressionUseCase {
         return progressionQueries.topWorth(limit).thenApply(views -> views.stream().map(IslandProgressionUseCase::rankingEntryView).toList());
     }
 
+    public CompletableFuture<List<RankingEntryView>> topBankViews(int limit) {
+        return progressionQueries.topBank(limit).thenApply(views -> views.stream().map(IslandProgressionUseCase::rankingEntryView).toList());
+    }
+
     public CompletableFuture<List<RankingEntryView>> topLevelViews(int limit) {
         return progressionQueries.topLevel(limit).thenApply(views -> views.stream().map(IslandProgressionUseCase::rankingEntryView).toList());
     }

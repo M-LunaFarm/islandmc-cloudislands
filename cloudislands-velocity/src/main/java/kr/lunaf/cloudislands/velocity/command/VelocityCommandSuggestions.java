@@ -20,7 +20,7 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
                 addLiteralSuggestions(matches, args[1], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
             }
             if (first.equals("rank") || first.equals("ranking") || first.equals("top") || first.equals("leaderboard") || first.equals("rank-list") || first.equals("랭킹") || first.equals("랭킹목록")) {
-                addLiteralSuggestions(matches, args[1], List.of("worth", "value", "10", "25", "50"));
+                addLiteralSuggestions(matches, args[1], List.of("worth", "value", "bank", "balance", "review", "10", "25", "50"));
             }
             if (first.equals("values") || first.equals("blocks") || first.equals("block-details") || first.equals("block-counts") || first.equals("ratings") || first.equals("reviews") || first.equals("review-list") || first.equals("블록상세") || first.equals("블록목록")) {
                 addLiteralSuggestions(matches, args[1], List.of("10", "25", "50", "100"));
@@ -187,7 +187,7 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             addLiteralSuggestions(matches, args[4], List.of("<token>"));
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("rankings")) {
-            addLiteralSuggestions(matches, args[1], List.of("level", "worth"));
+            addLiteralSuggestions(matches, args[1], List.of("level", "worth", "bank"));
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("rankings")) {
             addLiteralSuggestions(matches, args[2], List.of("10", "25", "50", "100"));

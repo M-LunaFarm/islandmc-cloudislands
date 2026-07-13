@@ -3,11 +3,15 @@ package kr.lunaf.cloudislands.coreservice.bank;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
+import java.util.List;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 
 public interface IslandBankRepository {
     BigDecimal MAX_STORABLE_BALANCE = new BigDecimal("999999999999999999.99");
     IslandBankSnapshot balance(UUID islandId);
+    default List<IslandBankSnapshot> topBalances(int limit) {
+        return List.of();
+    }
     IslandBankSnapshot deposit(UUID islandId, BigDecimal amount);
     default BankChangeResult deposit(UUID islandId, BigDecimal amount, BigDecimal maxBalance) {
         BigDecimal normalized = normalizeAmount(amount);

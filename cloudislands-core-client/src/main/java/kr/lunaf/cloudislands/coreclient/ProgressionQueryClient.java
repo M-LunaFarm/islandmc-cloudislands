@@ -18,6 +18,8 @@ public interface ProgressionQueryClient {
 
     CompletableFuture<List<ProgressionRankingEntryView>> topWorth(int limit);
 
+    CompletableFuture<List<ProgressionRankingEntryView>> topBank(int limit);
+
     CompletableFuture<List<ProgressionRankingEntryView>> topLevel(int limit);
 
     CompletableFuture<List<ProgressionReviewRankingEntryView>> topReviews(int limit);

@@ -33,6 +33,10 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
         sendTextResult(player, coreApiClient.progression().topWorth(Math.max(1, Math.min(limit, 100))).thenApply(rankings -> islandMessages.rankingList("가치 랭킹", rankings)), "가치 랭킹을 불러오지 못했습니다.");
     }
 
+    public void showBankRanking(Player player, int limit) {
+        sendTextResult(player, coreApiClient.progression().topBank(Math.max(1, Math.min(limit, 100))).thenApply(rankings -> islandMessages.rankingList("은행 랭킹", rankings)), "은행 랭킹을 불러오지 못했습니다.");
+    }
+
     public void showReviewRanking(Player player, int limit) {
         sendTextResult(player, coreApiClient.progression().topReviews(Math.max(1, Math.min(limit, 100)))
             .thenApply(entries -> "평가 랭킹: " + entries.stream()

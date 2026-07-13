@@ -1651,11 +1651,11 @@ class CoreTypedClientsTest {
                         {"islandId":"%s","level":9,"worth":"42.50","calculatedAt":"2026-06-21T00:00:00Z"}
                         """.formatted(islandId)));
                 }
-                case "topWorth", "topLevel" -> {
+                case "topWorth", "topLevel", "topBank" -> {
                     calls.add(method.getName() + ":" + args[0]);
                     yield CompletableFuture.completedFuture(JdkProgressionQueryClient.rankingViews("""
-                        {"rankings":[{"islandId":"%s","name":"Base","level":7,"worth":"12.50"}]}
-                        """.formatted(islandId), method.getName().equals("topWorth") ? "worth" : "level"));
+                        {"rankings":[{"islandId":"%s","name":"Base","level":7,"worth":"12.50","balance":"99.50"}]}
+                        """.formatted(islandId), method.getName().equals("topBank") ? "bank" : method.getName().equals("topWorth") ? "worth" : "level"));
                 }
                 case "topReviews" -> {
                     calls.add("reviews:" + args[0]);
@@ -1684,10 +1684,12 @@ class CoreTypedClientsTest {
                 case "rankings" -> {
                     calls.add("topLevel:" + args[0]);
                     calls.add("topWorth:" + args[0]);
+                    calls.add("topBank:" + args[0]);
                     calls.add("reviews:" + args[0]);
                     yield CompletableFuture.completedFuture(new CoreGuiViews.RankingData(
                         List.of(new CoreGuiViews.RankingView(1, "level", islandId.toString(), 7L, "12.50")),
                         List.of(new CoreGuiViews.RankingView(1, "worth", islandId.toString(), 7L, "12.50")),
+                        List.of(new CoreGuiViews.RankingView(1, "bank", islandId.toString(), 0L, "99.50")),
                         List.of(new CoreGuiViews.RankingView(1, "reviews", islandId.toString(), 2L, "4.50"))
                     ));
                 }
@@ -1703,11 +1705,13 @@ class CoreTypedClientsTest {
         assertEquals("2026-06-21T00:00:00Z", level.calculatedAt());
         assertEquals("2000.00", client.blockDetails(islandId, 500).join().totalWorth());
         assertEquals("12.50", client.topWorth(500).join().get(0).worth());
+        assertEquals("99.50", client.topBank(500).join().get(0).worth());
         assertEquals(7L, client.topLevel(0).join().get(0).level());
         assertEquals(2L, client.topReviews(10).join().get(0).reviewCount());
         CoreGuiViews.RankingData rankings = client.rankings(2).join();
         assertEquals("level", rankings.levels().get(0).label());
         assertEquals("worth", rankings.worths().get(0).label());
+        assertEquals("bank", rankings.banks().get(0).label());
         assertEquals("reviews", rankings.reviews().get(0).label());
         assertEquals("4.50", rankings.reviews().get(0).worth());
         CoreGuiViews.UpgradeView upgrade = client.upgrades(islandId).join().get(0);
@@ -1736,10 +1740,12 @@ class CoreTypedClientsTest {
             "level",
             "blocks:500",
             "topWorth:500",
+            "topBank:500",
             "topLevel:0",
             "reviews:10",
             "topLevel:2",
             "topWorth:2",
+            "topBank:2",
             "reviews:2",
             "upgrades",
             "rules",

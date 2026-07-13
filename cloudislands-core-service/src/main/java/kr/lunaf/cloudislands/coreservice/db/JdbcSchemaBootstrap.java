@@ -97,11 +97,13 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V76__server_node_heartbeat_metadata.sql",
         "/db/migration/V77__island_permission_key_expansion.sql",
         "/db/migration/V78__extensible_permission_key_guards.sql",
-        "/db/migration/V79__island_ranking_dirty_queue.sql"
+        "/db/migration/V79__island_ranking_dirty_queue.sql",
+        "/db/migration/V80__island_bank_ranking_index.sql"
     };
     private static final String[] MYSQL_MIGRATIONS = {
         MYSQL_COMPATIBLE_SCHEMA_RESOURCE,
-        "/db/mysql/V2__island_ranking_dirty_queue.sql"
+        "/db/mysql/V2__island_ranking_dirty_queue.sql",
+        "/db/mysql/V3__island_bank_ranking_index.sql"
     };
 
     private enum Dialect {
@@ -117,7 +119,9 @@ public final class JdbcSchemaBootstrap {
             String productFamily = databaseProductFamily(connection.getMetaData().getDatabaseProductName());
             if ("MYSQL".equals(productFamily) || "MARIADB".equals(productFamily)) {
                 boolean applied = apply(connection, Dialect.MYSQL, MYSQL_COMPATIBLE_SCHEMA_ID, MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
-                applied |= apply(connection, Dialect.MYSQL, migrationId(MYSQL_MIGRATIONS[1]), MYSQL_MIGRATIONS[1]);
+                for (int index = 1; index < MYSQL_MIGRATIONS.length; index++) {
+                    applied |= apply(connection, Dialect.MYSQL, migrationId(MYSQL_MIGRATIONS[index]), MYSQL_MIGRATIONS[index]);
+                }
                 return applied;
             }
             if ("POSTGRESQL".equals(productFamily)) {

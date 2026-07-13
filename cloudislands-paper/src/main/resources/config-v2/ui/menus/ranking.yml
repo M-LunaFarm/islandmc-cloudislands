@@ -5,8 +5,8 @@ layout:
   - "....T...."
   - "LLLLLLLLL"
   - "WWWWWWWWW"
+  - "KKKKKKKKK"
   - "CCCCCCCCC"
-  - "........."
   - "PB..RN..V"
 items:
   _:
@@ -34,6 +34,16 @@ items:
     name-key: ranking-menu-worth-entry-name
     fallback-name: 가치 랭킹
     action: visit
+  BANK:
+    material: GOLD_INGOT
+    name-key: ranking-menu-bank-entry-name
+    fallback-name: 은행 랭킹
+    action: visit
+  K:
+    material: GOLD_INGOT
+    name-key: ranking-menu-bank-entry-name
+    fallback-name: 은행 랭킹
+    action: visit
   REVIEWS:
     material: WRITABLE_BOOK
     name-key: ranking-menu-review-entry-name
@@ -51,6 +61,7 @@ items:
     lore-keys:
       - ranking-menu-level-side
       - ranking-menu-worth-side
+      - ranking-menu-bank-side
       - ranking-menu-review-side
     fallback-lore:
       - 레벨 TOP

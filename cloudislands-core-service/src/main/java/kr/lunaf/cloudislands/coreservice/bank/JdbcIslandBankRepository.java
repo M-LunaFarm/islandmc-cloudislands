@@ -7,6 +7,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
 import javax.sql.DataSource;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 
@@ -24,6 +26,32 @@ public final class JdbcIslandBankRepository implements IslandBankRepository {
             return snapshot(connection, islandId);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to read island bank", exception);
+        }
+    }
+
+    @Override
+    public List<IslandBankSnapshot> topBalances(int limit) {
+        int boundedLimit = Math.max(1, Math.min(100, limit));
+        String sql = "SELECT b.island_id, b.balance, b.updated_at FROM island_bank b "
+            + "LEFT JOIN island_rank_snapshots r ON r.island_id = b.island_id "
+            + "WHERE COALESCE(r.ignored, false) = false "
+            + "ORDER BY b.balance DESC, b.updated_at ASC, b.island_id ASC LIMIT ?";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, boundedLimit);
+            try (ResultSet rs = statement.executeQuery()) {
+                List<IslandBankSnapshot> rankings = new ArrayList<>();
+                while (rs.next()) {
+                    rankings.add(new IslandBankSnapshot(
+                        UUID.fromString(rs.getString("island_id")),
+                        rs.getBigDecimal("balance").toPlainString(),
+                        rs.getTimestamp("updated_at").toInstant()
+                    ));
+                }
+                return List.copyOf(rankings);
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to read island bank rankings", exception);
         }
     }
 

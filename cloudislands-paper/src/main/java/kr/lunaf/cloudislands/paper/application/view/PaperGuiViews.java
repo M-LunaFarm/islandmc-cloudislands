@@ -141,7 +141,7 @@ public final class PaperGuiViews {
     }
 
     private static RankingData rankings(CoreGuiViews.RankingData view) {
-        return new RankingData(view.levels().stream().map(PaperGuiViews::ranking).toList(), view.worths().stream().map(PaperGuiViews::ranking).toList(), view.reviews().stream().map(PaperGuiViews::ranking).toList());
+        return new RankingData(view.levels().stream().map(PaperGuiViews::ranking).toList(), view.worths().stream().map(PaperGuiViews::ranking).toList(), view.banks().stream().map(PaperGuiViews::ranking).toList(), view.reviews().stream().map(PaperGuiViews::ranking).toList());
     }
 
     private static RankingView ranking(CoreGuiViews.RankingView view) {
@@ -228,7 +228,7 @@ public final class PaperGuiViews {
         }
     }
 
-    public record RankingData(List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews) {
+    public record RankingData(List<RankingView> levels, List<RankingView> worths, List<RankingView> banks, List<RankingView> reviews) {
     }
 
     public record RankingView(int rank, String label, String islandId, long level, String worth) {

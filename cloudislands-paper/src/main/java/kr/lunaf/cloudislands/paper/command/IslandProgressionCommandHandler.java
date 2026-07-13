@@ -85,6 +85,10 @@ final class IslandProgressionCommandHandler {
                     listReviewRanking(player, rankingLimit(args, 2));
                     return true;
                 }
+                if (bankRankingArg(args[1])) {
+                    listBankRanking(player, rankingLimit(args, 2));
+                    return true;
+                }
                 boolean worthRanking = args[1].equalsIgnoreCase("worth") || args[1].equals("가치");
                 listRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
             } else {
@@ -97,6 +101,10 @@ final class IslandProgressionCommandHandler {
                 listReviewRanking(player, rankingLimit(args, 2));
                 return true;
             }
+            if (args.length > 1 && bankRankingArg(args[1])) {
+                listBankRanking(player, rankingLimit(args, 2));
+                return true;
+            }
             boolean worthRanking = args.length > 1 && (args[1].equalsIgnoreCase("worth") || args[1].equals("가치"));
             listRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
             return true;
@@ -107,6 +115,10 @@ final class IslandProgressionCommandHandler {
         }
         if (subcommand.equals("worthrank") || subcommand.equals("valuerank") || subcommand.equals("가치랭킹")) {
             listRanking(player, true, rankingLimit(args, 1));
+            return true;
+        }
+        if (subcommand.equals("bankrank") || subcommand.equals("balancetop") || subcommand.equals("은행랭킹")) {
+            listBankRanking(player, rankingLimit(args, 1));
             return true;
         }
         if (subcommand.equals("levelcalc") || subcommand.equals("recalculate") || subcommand.equals("recalc") || subcommand.equals("레벨계산")) {
@@ -352,6 +364,16 @@ final class IslandProgressionCommandHandler {
             });
     }
 
+    private void listBankRanking(Player player, int limit) {
+        int cappedLimit = Math.max(1, Math.min(limit, 100));
+        progressionUseCase.topBankViews(cappedLimit)
+            .thenAccept(rankings -> runtime.message(player, rankingMessage(rankings, message("ranking-bank-title", "섬 은행 랭킹"), "bank")))
+            .exceptionally(error -> {
+                runtime.message(player, message("ranking-bank-load-failed", "섬 은행 랭킹을 불러오지 못했습니다."));
+                return null;
+            });
+    }
+
     private void recalculateLevel(Player player) {
         runtime.currentIsland(player, message("level-recalculate-island-required", "섬 안에서만 레벨을 계산할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.START_LEVEL_CALC)) {
@@ -468,6 +490,10 @@ final class IslandProgressionCommandHandler {
         return value.equalsIgnoreCase("review") || value.equalsIgnoreCase("reviews") || value.equalsIgnoreCase("rating") || value.equals("후기") || value.equals("평가");
     }
 
+    private static boolean bankRankingArg(String value) {
+        return value.equalsIgnoreCase("bank") || value.equalsIgnoreCase("balance") || value.equals("은행") || value.equals("잔액");
+    }
+
     private static int rankingLimit(String[] args, int index) {
         if (args.length <= index) {
             return 10;
@@ -481,8 +507,11 @@ final class IslandProgressionCommandHandler {
             if (entries.size() >= 10) {
                 break;
             }
-            String value = valueKey.equals("worth") ? ranking.worth() : Long.toString(ranking.level());
-            String valueLabel = valueKey.equals("worth") ? message("ranking-worth-label", "가치") : message("ranking-level-label", "레벨");
+            boolean decimalRanking = valueKey.equals("worth") || valueKey.equals("bank");
+            String value = decimalRanking ? ranking.worth() : Long.toString(ranking.level());
+            String valueLabel = valueKey.equals("bank")
+                ? message("ranking-bank-label", "은행 잔액")
+                : valueKey.equals("worth") ? message("ranking-worth-label", "가치") : message("ranking-level-label", "레벨");
             entries.add((entries.size() + 1) + ". " + ranking.name() + " (" + message("ranking-id-label", "ID=") + compactId(ranking.islandId()) + ", " + valueLabel + "=" + value + ")");
         }
         return entries.isEmpty() ? label + message("ranking-empty-suffix", ": 기록이 없습니다.") : label + message("ranking-title-suffix", ": ") + String.join(" | ", entries);

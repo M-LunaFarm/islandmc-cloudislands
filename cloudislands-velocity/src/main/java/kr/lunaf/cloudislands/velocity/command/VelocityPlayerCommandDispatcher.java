@@ -312,6 +312,13 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerProgression.showWorthRanking(player, limit);
             return;
         }
+        if (args[0].equalsIgnoreCase("bankrank") || args[0].equalsIgnoreCase("balancetop") || args[0].equals("은행랭킹") || (args.length > 1 && (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("leaderboard") || args[0].equals("랭킹")) && (args[1].equalsIgnoreCase("bank") || args[1].equalsIgnoreCase("balance") || args[1].equals("은행") || args[1].equals("잔액")))) {
+            int limit = args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("leaderboard") || args[0].equals("랭킹")
+                ? (args.length > 2 ? (int) parseLongOrZero(args[2]) : 10)
+                : (args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
+            playerProgression.showBankRanking(player, limit);
+            return;
+        }
         if (args[0].equalsIgnoreCase("reviewrank") || args[0].equals("평가랭킹") || args[0].equals("후기랭킹")) {
             playerProgression.showReviewRanking(player, args.length > 1 ? (int) parseLongOrZero(args[1]) : 10);
             return;

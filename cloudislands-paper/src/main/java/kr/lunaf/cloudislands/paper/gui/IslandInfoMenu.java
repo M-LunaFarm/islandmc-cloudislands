@@ -84,7 +84,7 @@ public final class IslandInfoMenu implements Listener {
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, IslandInfoView view, MessageRenderer messages) {
-        openSync(plugin, player, session, view, new RankingData(List.of(), List.of(), List.of()), messages);
+        openSync(plugin, player, session, view, new RankingData(List.of(), List.of(), List.of(), List.of()), messages);
     }
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, IslandInfoView view, RankingData rankings, MessageRenderer messages) {

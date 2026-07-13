@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMissionSnapshot;
 import kr.lunaf.cloudislands.api.model.MissionProviderDefinitionSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
@@ -34,9 +35,10 @@ class ProgressionRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(14, paths.size());
+        assertEquals(15, paths.size());
         assertTrue(paths.contains("/v1/rankings/level"));
         assertTrue(paths.contains("/v1/rankings/worth"));
+        assertTrue(paths.contains("/v1/rankings/bank"));
         assertTrue(paths.contains("/v1/admin/rankings/ignore"));
         assertTrue(paths.contains("/v1/upgrades/rules"));
         assertTrue(paths.contains("/v1/addons/missions/register"));
@@ -56,6 +58,7 @@ class ProgressionRoutesTest {
 
         assertEquals(Set.of("POST"), registry.methods("/v1/rankings/level"));
         assertEquals(Set.of("POST"), registry.methods("/v1/rankings/worth"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/rankings/bank"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/rankings/ignore"));
         assertEquals(Set.of("POST"), registry.methods("/v1/upgrades/rules"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/missions"));
@@ -139,6 +142,19 @@ class ProgressionRoutesTest {
         assertLimit(islandId, actorUuid, singleLimit);
         assertEquals(Boolean.TRUE, ignored.get("ignored"));
         assertEquals("ISLAND_RANKING_IGNORE", SimpleJson.text(ignored.get("code")));
+    }
+
+    @Test
+    void rendersBankRankingContractFromAuthoritativeBalances() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-0000000000b1");
+        Map<?, ?> root = SimpleJson.object(SimpleJson.parse(ProgressionRoutes.bankRankingsJson(List.of(
+            new IslandBankSnapshot(islandId, "1250.50", Instant.parse("2026-07-14T00:00:00Z"))
+        ))));
+        Map<?, ?> entry = SimpleJson.object(SimpleJson.list(root.get("rankings")).get(0));
+
+        assertEquals(islandId.toString(), entry.get("islandId"));
+        assertEquals("1250.50", entry.get("balance"));
+        assertEquals("2026-07-14T00:00:00Z", entry.get("updatedAt"));
     }
 
     @Test

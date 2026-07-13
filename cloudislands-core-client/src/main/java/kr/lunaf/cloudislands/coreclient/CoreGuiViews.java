@@ -220,7 +220,7 @@ public final class CoreGuiViews {
         }
     }
 
-    public record RankingData(List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews) {
+    public record RankingData(List<RankingView> levels, List<RankingView> worths, List<RankingView> banks, List<RankingView> reviews) {
     }
 
     public record RankingView(int rank, String label, String islandId, long level, String worth) {

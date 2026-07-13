@@ -235,7 +235,9 @@ final class CoreBootstrap {
         IslandUpgradeRepository upgradeRepository = redisEnabled
             ? new CachingIslandUpgradeRepository(baseUpgradeRepository, config.redisUri())
             : baseUpgradeRepository;
-        IslandBankRepository baseBankRepository = config.jdbcRepositories() ? new JdbcIslandBankRepository(dataSource) : new InMemoryIslandBankRepository();
+        IslandBankRepository baseBankRepository = config.jdbcRepositories()
+            ? new JdbcIslandBankRepository(dataSource)
+            : new InMemoryIslandBankRepository(islandId -> !rankingRepository.isIgnored(islandId));
         IslandBankRepository bankRepository = redisEnabled
             ? new CachingIslandBankRepository(baseBankRepository, config.redisUri())
             : baseBankRepository;

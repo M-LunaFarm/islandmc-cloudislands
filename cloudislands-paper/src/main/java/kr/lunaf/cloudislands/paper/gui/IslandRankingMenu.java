@@ -57,7 +57,7 @@ public final class IslandRankingMenu implements Listener {
         GuiSession session = GuiSessions.begin(player, MENU_ID);
         GuiStateMenus.openLoading(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE));
         PaperGuiViews.rankings(client, 10)
-            .thenAccept(data -> openSync(plugin, player, session, data.levels(), data.worths(), data.reviews(), page, messages))
+            .thenAccept(data -> openSync(plugin, player, session, data.levels(), data.worths(), data.banks(), data.reviews(), page, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "ranking-menu-load-failed", "섬 랭킹을 불러오지 못했습니다."), "island.ranking.open", "island.main.open");
                 return null;
@@ -85,17 +85,18 @@ public final class IslandRankingMenu implements Listener {
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), GuiClick.from(event));
     }
 
-    private static void openSync(Plugin plugin, Player player, GuiSession session, List<RankingView> levels, List<RankingView> worths, List<RankingView> reviews, int requestedPage, MessageRenderer messages) {
+    private static void openSync(Plugin plugin, Player player, GuiSession session, List<RankingView> levels, List<RankingView> worths, List<RankingView> banks, List<RankingView> reviews, int requestedPage, MessageRenderer messages) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
             int pageSize = Math.max(1, GuiMenuRenderer.slots(MENU, "L").size());
-            int rankingCount = Math.max(levels.size(), Math.max(worths.size(), reviews.size()));
+            int rankingCount = Math.max(Math.max(levels.size(), worths.size()), Math.max(banks.size(), reviews.size()));
             int maxPage = Math.max(0, (rankingCount - 1) / pageSize);
             int page = Math.max(0, Math.min(requestedPage, maxPage));
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages,
                 TITLE + " (" + (page + 1) + "/" + (maxPage + 1) + ")",
-                item -> !List.of("L", "W", "C", "B", "N").contains(item.symbol()));
+                item -> !List.of("L", "W", "K", "C", "B", "N").contains(item.symbol()));
             setRankingItems(inventory, "L", levels, page, pageSize, messages);
             setRankingItems(inventory, "W", worths, page, pageSize, messages);
+            setRankingItems(inventory, "K", banks, page, pageSize, messages);
             setRankingItems(inventory, "C", reviews, page, pageSize, messages);
             if (page > 0) {
                 setPageItem(inventory, "B", page - 1, messages);
@@ -128,6 +129,11 @@ public final class IslandRankingMenu implements Listener {
                 message(messages, "ranking-menu-review-count", "후기: ") + ranking.level(),
                 message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다.")));
         }
+        if ("bank".equals(ranking.label())) {
+            return GuiMenuRenderer.symbolItem(MENU, symbol, "_", messages, displayName, Map.of("target", ranking.islandId()), List.of(
+                message(messages, "ranking-menu-bank-balance", "은행 잔액: ") + ranking.worth(),
+                message(messages, "ranking-menu-click-to-visit", "클릭하면 방문을 시도합니다.")));
+        }
         return GuiMenuRenderer.symbolItem(MENU, symbol, "_", messages, displayName, Map.of("target", ranking.islandId()), List.of(
             message(messages, "ranking-menu-level", "레벨: ") + ranking.level(),
             message(messages, "ranking-menu-worth", "가치: ") + ranking.worth(),
@@ -137,6 +143,9 @@ public final class IslandRankingMenu implements Listener {
     private static String rankingLabel(String label, MessageRenderer messages) {
         if ("reviews".equals(label)) {
             return message(messages, "ranking-menu-review-label", "후기");
+        }
+        if ("bank".equals(label)) {
+            return message(messages, "ranking-menu-bank-label", "은행");
         }
         return "worth".equals(label) ? message(messages, "ranking-menu-worth-label", "가치") : message(messages, "ranking-menu-level-label", "레벨");
     }

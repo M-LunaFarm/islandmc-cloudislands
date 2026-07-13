@@ -124,6 +124,11 @@ public final class ProgressionRoutes implements RouteGroup {
             String body = CoreHttpResponses.readBody(exchange);
             CoreHttpResponses.write(exchange, 200, rankingsJson(rankingRepository.topByWorth(queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100))));
         });
+        registry.routePost("/v1/rankings/bank", exchange -> {
+            String body = CoreHttpResponses.readBody(exchange);
+            int limit = queryInteger(exchange, "limit", JsonFields.integer(body, "limit", 10), 1, 100);
+            CoreHttpResponses.write(exchange, 200, bankRankingsJson(bankRepository.topBalances(limit)));
+        });
         registry.routePost("/v1/admin/rankings/ignore", exchange -> {
             String body = CoreHttpResponses.readBody(exchange);
             UUID islandId = JsonFields.uuid(body, "islandId", new UUID(0L, 0L));
@@ -521,6 +526,18 @@ public final class ProgressionRoutes implements RouteGroup {
         List<Object> renderedRankings = new ArrayList<>();
         for (kr.lunaf.cloudislands.coreservice.ranking.IslandRankSnapshot ranking : rankings) {
             renderedRankings.add(levelMap(ranking));
+        }
+        return SimpleJson.stringify(Map.of("rankings", renderedRankings));
+    }
+
+    static String bankRankingsJson(java.util.List<kr.lunaf.cloudislands.api.model.IslandBankSnapshot> rankings) {
+        List<Object> renderedRankings = new ArrayList<>();
+        for (kr.lunaf.cloudislands.api.model.IslandBankSnapshot ranking : rankings) {
+            renderedRankings.add(Map.of(
+                "islandId", ranking.islandId().toString(),
+                "balance", ranking.balance(),
+                "updatedAt", ranking.updatedAt().toString()
+            ));
         }
         return SimpleJson.stringify(Map.of("rankings", renderedRankings));
     }

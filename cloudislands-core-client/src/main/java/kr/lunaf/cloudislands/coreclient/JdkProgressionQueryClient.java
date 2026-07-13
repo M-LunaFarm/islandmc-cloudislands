@@ -50,13 +50,16 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     public CompletableFuture<CoreGuiViews.RankingData> rankings(int limit) {
         CompletableFuture<List<ProgressionRankingEntryView>> levels = topLevel(limit);
         CompletableFuture<List<ProgressionRankingEntryView>> worths = topWorth(limit);
+        CompletableFuture<List<ProgressionRankingEntryView>> banks = topBank(limit);
         CompletableFuture<List<ProgressionReviewRankingEntryView>> reviews = topReviews(limit);
         return levels.thenCombine(worths, (levelViews, worthViews) -> new CoreGuiViews.RankingData(
                 rankingViews(levelViews, "level"),
                 rankingViews(worthViews, "worth"),
+                List.of(),
                 List.of()
             ))
-            .thenCombine(reviews, (data, reviewViews) -> new CoreGuiViews.RankingData(data.levels(), data.worths(), reviewRankingViews(reviewViews)));
+            .thenCombine(banks, (data, bankViews) -> new CoreGuiViews.RankingData(data.levels(), data.worths(), rankingViews(bankViews, "bank"), data.reviews()))
+            .thenCombine(reviews, (data, reviewViews) -> new CoreGuiViews.RankingData(data.levels(), data.worths(), data.banks(), reviewRankingViews(reviewViews)));
     }
 
     @Override
@@ -64,6 +67,13 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
         return core.postBody("/v1/rankings/worth", CoreJsonPayload.object("limit", boundedLimit(limit)))
             .thenApply(CoreResponseBody::value)
             .thenApply(body -> rankingViews(body, "worth"));
+    }
+
+    @Override
+    public CompletableFuture<List<ProgressionRankingEntryView>> topBank(int limit) {
+        return core.postBody("/v1/rankings/bank", CoreJsonPayload.object("limit", boundedLimit(limit)))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> rankingViews(body, "bank"));
     }
 
     @Override
@@ -152,7 +162,7 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
                 CoreJson.text(object, "islandId"),
                 CoreJson.text(object, "name"),
                 CoreJson.number(object, "level"),
-                CoreJson.text(object, "worth"),
+                CoreJson.text(object, "bank".equals(valueKey) ? "balance" : "worth"),
                 valueKey
             ))
             .filter(entry -> !entry.islandId().isBlank())

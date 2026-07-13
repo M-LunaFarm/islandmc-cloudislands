@@ -20,6 +20,7 @@ class CloudIslandsPlaceholderRanksTest {
                 new CoreGuiViews.RankingView(1, "worth", "00000000-0000-0000-0000-000000000111", 20L, "2000.00"),
                 new CoreGuiViews.RankingView(2, "worth", islandId, 12L, "1234.50")
             ),
+            List.of(),
             List.of()
         );
 

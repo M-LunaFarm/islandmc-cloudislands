@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class InMemoryIslandBankRepositoryTest {
@@ -41,5 +42,21 @@ class InMemoryIslandBankRepositoryTest {
             IslandBankRepository.MAX_STORABLE_BALANCE,
             IslandBankRepository.effectiveMaxBalance(new BigDecimal("999999999999999999999999"))
         );
+    }
+
+    @Test
+    void ranksAuthoritativeBalancesAndExcludesHiddenIslands() {
+        UUID first = UUID.fromString("00000000-0000-0000-0000-000000000101");
+        UUID hidden = UUID.fromString("00000000-0000-0000-0000-000000000102");
+        UUID second = UUID.fromString("00000000-0000-0000-0000-000000000103");
+        InMemoryIslandBankRepository bank = new InMemoryIslandBankRepository(islandId -> !islandId.equals(hidden));
+        bank.deposit(first, new BigDecimal("10.00"));
+        bank.deposit(hidden, new BigDecimal("999.00"));
+        bank.deposit(second, new BigDecimal("20.00"));
+
+        List<kr.lunaf.cloudislands.api.model.IslandBankSnapshot> rankings = bank.topBalances(100);
+
+        assertEquals(List.of(second, first), rankings.stream().map(kr.lunaf.cloudislands.api.model.IslandBankSnapshot::islandId).toList());
+        assertEquals(List.of("20.00", "10.00"), rankings.stream().map(kr.lunaf.cloudislands.api.model.IslandBankSnapshot::balance).toList());
     }
 }

@@ -6,6 +6,7 @@ import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandBankSnapshot;
 import kr.lunaf.cloudislands.common.cache.RedisKeys;
@@ -28,6 +29,11 @@ public final class CachingIslandBankRepository implements IslandBankRepository {
             return cached.get();
         }
         return cache(delegate.balance(islandId));
+    }
+
+    @Override
+    public List<IslandBankSnapshot> topBalances(int limit) {
+        return delegate.topBalances(limit);
     }
 
     @Override

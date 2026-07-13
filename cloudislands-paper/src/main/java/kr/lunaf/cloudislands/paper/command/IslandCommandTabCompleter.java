@@ -64,7 +64,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
                 return literalMatches(List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"), args[1]);
             }
             if (first.equals("rank") || first.equals("ranking") || first.equals("top") || first.equals("leaderboard") || first.equals("랭킹")) {
-                return literalMatches(List.of("worth", "value", "10", "25", "50"), args[1]);
+                return literalMatches(List.of("worth", "value", "bank", "balance", "review", "10", "25", "50"), args[1]);
             }
             if (first.equals("blocks") || first.equals("values") || first.equals("block-details") || first.equals("block-counts") || first.equals("블록상세") || first.equals("블록목록")) {
                 return literalMatches(List.of("10", "25", "50", "100"), args[1]);
