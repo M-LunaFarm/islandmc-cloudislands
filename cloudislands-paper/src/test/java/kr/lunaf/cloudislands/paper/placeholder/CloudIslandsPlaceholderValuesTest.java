@@ -16,13 +16,18 @@ class CloudIslandsPlaceholderValuesTest {
         assertEquals("false", value(data, "is_member"));
         assertEquals("TRUSTED", value(data, "island_role"));
         assertEquals("2", value(data, "team_size"));
+        assertEquals("2", value(data, "member_count"));
         assertEquals("1", value(data, "coop_size"));
+        assertEquals("1", value(data, "coop_count"));
         assertEquals("Owner, member-uuid", value(data, "team_list"));
         assertEquals("Coop", value(data, "coop_list"));
         assertEquals("Owner", value(data, "leader"));
         assertEquals("Owner", value(data, "member_0"));
-        assertEquals("member-uuid", value(data, "member_1"));
-        assertEquals("", value(data, "member_2"));
+        assertEquals("Owner", value(data, "member_1"));
+        assertEquals("member-uuid", value(data, "member_2"));
+        assertEquals("", value(data, "member_3"));
+        assertEquals("member-uuid", value(data, "member_index_1"));
+        assertEquals("Coop", value(data, "coop_1"));
         assertEquals("1", value(data, "team_size_online"));
         assertEquals("3", value(data, "team_limit"));
         assertEquals("8", value(data, "coop_limit"));
@@ -58,7 +63,7 @@ class CloudIslandsPlaceholderValuesTest {
         CloudIslandsPlaceholderValues.Data extended = new CloudIslandsPlaceholderValues.Data(
             source.islandId(), source.name(), source.ownerUuid(), source.state(), source.size(), source.border(), source.level(),
             source.worth(), source.publicAccess(), source.locked(), source.createdAt(), source.updatedAt(), source.bankBalance(),
-            source.role(), source.members(), source.memberLimit(), source.coopLimit(), source.worthRank(), source.levelRank(),
+            source.role(), source.members(), source.memberLimit(), source.coopLimit(), source.worthRank(), source.levelRank(), 6,
             "minecraft:plains", List.of("banned-b", "banned-a"),
             new CloudIslandsPlaceholderValues.Home("island_world", 10.5D, 64.0D, -3.25D), 2, 5L,
             List.of(new CloudIslandsPlaceholderValues.Upgrade("border-size", 3)), "owner-uuid",
@@ -70,6 +75,8 @@ class CloudIslandsPlaceholderValuesTest {
         assertEquals("minecraft:plains", value(extended, "biome"));
         assertEquals("2", value(extended, "bans_count"));
         assertEquals("banned-a, banned-b", value(extended, "bans_list"));
+        assertEquals("banned-a", value(extended, "ban_1"));
+        assertEquals("banned-b", value(extended, "ban_2"));
         assertEquals("island_world, 10.5, 64, -3.25", value(extended, "home"));
         assertEquals("10.5", value(extended, "home_x"));
         assertEquals("64", value(extended, "home_y"));
@@ -83,6 +90,16 @@ class CloudIslandsPlaceholderValuesTest {
         assertEquals("true", value(extended, "flag_always_day"));
         assertEquals("false", value(extended, "flag_pvp"));
         assertEquals("false", value(extended, "permission_not_real"));
+        assertEquals("6", value(extended, "bank_rank"));
+    }
+
+    @Test
+    void exposesPlayerChatStateWithoutIslandData() {
+        assertEquals("GLOBAL", CloudIslandsPlaceholderValues.playerChatValue("chat_state", "GLOBAL"));
+        assertEquals("true", CloudIslandsPlaceholderValues.playerChatValue("local_chat", "ISLAND"));
+        assertEquals("false", CloudIslandsPlaceholderValues.playerChatValue("team_chat", "ISLAND"));
+        assertEquals("true", CloudIslandsPlaceholderValues.playerChatValue("player_team_chat", "TEAM"));
+        assertEquals(null, CloudIslandsPlaceholderValues.playerChatValue("island_name", "TEAM"));
     }
 
     private static String value(CloudIslandsPlaceholderValues.Data data, String key) {

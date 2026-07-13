@@ -834,7 +834,7 @@ tasks.register("verifyRankingWorthCertification") {
             if (!jdbcSource.contains("WHERE ignored = false")) add("JdbcRankingRepository must exclude ignored islands from top rankings")
             if (!dirtySource.contains("BATCH_LIMIT = 100")) add("DirtyRankingRecalculationTask must keep bounded batches")
             if (!blockLevelSource.contains("ISLAND_LEVEL_RECALCULATE")) add("Manual/admin ranking recalculation must write an audit action")
-            if (!placeholderValueSource.contains("\"rank\"") || !placeholderSource.contains("rankings(100)") || !placeholderRankSource.contains("worthRank")) add("PlaceholderAPI expansion must expose ranking placeholders from typed rankings")
+            if (!placeholderValueSource.contains("\"bank_rank\"") || !placeholderSource.contains("rankings(100)") || !placeholderRankSource.contains("worthRank") || !placeholderRankSource.contains("bankRank")) add("PlaceholderAPI expansion must expose worth and bank ranking placeholders from typed rankings")
             if (!recalculationTests.contains("tenThousandIslandWorthRecalculationRanksAndExcludesIgnoredIslands")) add("Ranking 10k worth certification test is missing")
             if (!dirtyTests.contains("tenThousandDirtyIslandsStayDebouncedAndProcessOnlyBatchLimitPerRun")) add("Dirty ranking 10k debounce certification test is missing")
             if (!blockLevelTests.contains("levelRecalculationWritesAuditAndEventSignals")) add("Admin/manual recalculation audit test is missing")

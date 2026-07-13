@@ -71,6 +71,10 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
             return "";
         }
         UUID playerUuid = player.getUniqueId();
+        String playerChatValue = CloudIslandsPlaceholderValues.playerChatValue(params, chatMode(playerUuid));
+        if (playerChatValue != null) {
+            return playerChatValue;
+        }
         long now = System.currentTimeMillis();
         Snapshot snapshot = cache.get(playerUuid);
         if (snapshot == null || snapshot.expiresAtMillis() < now) {
@@ -80,6 +84,14 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
             return "";
         }
         return value(snapshot, params);
+    }
+
+    private String chatMode(UUID playerUuid) {
+        if (plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands
+            && cloudIslands.teamChatModes() != null) {
+            return cloudIslands.teamChatModes().mode(playerUuid).name();
+        }
+        return "GLOBAL";
     }
 
     private void refresh(UUID playerUuid) {
@@ -157,7 +169,7 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
         }
         UUID parsedIslandId = uuid(islandId);
         if (parsedIslandId == null) {
-            return CompletableFuture.completedFuture(new Snapshot(island, null, selectedRole, List.of(), 3L, 8L, 0, 0,
+            return CompletableFuture.completedFuture(new Snapshot(island, null, selectedRole, List.of(), 3L, 8L, 0, 0, 0,
                 "", List.of(), null, 0, 1L, List.of(), playerUuid.toString(), List.of(), Map.of(), expiresAt));
         }
         CompletableFuture<CoreGuiViews.RankingData> rankings = rankings();
@@ -178,7 +190,8 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
             CoreGuiViews.HomeView home = defaultHome(details.homes());
             return new Snapshot(island, details.bank(), role, memberValues, memberLimit, coopLimit,
                 CloudIslandsPlaceholderRanks.worthRank(rankingValues, islandId),
-                CloudIslandsPlaceholderRanks.levelRank(rankingValues, islandId), biome, bans, home, details.warps().size(),
+                CloudIslandsPlaceholderRanks.levelRank(rankingValues, islandId),
+                CloudIslandsPlaceholderRanks.bankRank(rankingValues, islandId), biome, bans, home, details.warps().size(),
                 warpLimit, details.upgrades(), playerUuid.toString(), details.permissions(), details.flags(), expiresAt);
         });
     }
@@ -230,7 +243,7 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
             island.islandId(), island.name(), island.ownerUuid(), island.state(), island.size(), island.border(), island.level(),
             island.worth(), island.publicAccess(), island.locked(), island.createdAt(), island.updatedAt(),
             bank == null ? "" : bank.balance(), snapshot.role(), members, snapshot.memberLimit(), snapshot.coopLimit(),
-            snapshot.worthRank(), snapshot.levelRank(), snapshot.biome(), snapshot.bans(), home, snapshot.warpCount(),
+            snapshot.worthRank(), snapshot.levelRank(), snapshot.bankRank(), snapshot.biome(), snapshot.bans(), home, snapshot.warpCount(),
             snapshot.warpLimit(), upgrades, snapshot.playerUuid(), permissions, flags);
         return CloudIslandsPlaceholderValues.value(data, params);
     }
@@ -278,17 +291,17 @@ public final class CloudIslandsPlaceholderExpansion extends PlaceholderExpansion
 
     private record Snapshot(CoreGuiViews.IslandInfoView island, CoreGuiViews.BankView bank, String role,
                             List<CoreGuiViews.MemberView> members, long memberLimit, long coopLimit,
-                            int worthRank, int levelRank, String biome, List<String> bans, CoreGuiViews.HomeView home,
+                            int worthRank, int levelRank, int bankRank, String biome, List<String> bans, CoreGuiViews.HomeView home,
                             int warpCount, long warpLimit, List<CoreGuiViews.UpgradeView> upgrades, String playerUuid,
                             List<PermissionAssignmentView> permissions, Map<kr.lunaf.cloudislands.api.model.IslandFlag, String> flags,
                             long expiresAtMillis) {
         private static Snapshot empty(long expiresAtMillis) {
-            return new Snapshot(null, null, "", List.of(), 3L, 8L, 0, 0, "", List.of(), null, 0, 1L, List.of(), "",
+            return new Snapshot(null, null, "", List.of(), 3L, 8L, 0, 0, 0, "", List.of(), null, 0, 1L, List.of(), "",
                 List.of(), Map.of(), expiresAtMillis);
         }
 
         private Snapshot retryAfter(long retryAtMillis) {
-            return new Snapshot(island, bank, role, members, memberLimit, coopLimit, worthRank, levelRank, biome, bans, home,
+            return new Snapshot(island, bank, role, members, memberLimit, coopLimit, worthRank, levelRank, bankRank, biome, bans, home,
                 warpCount, warpLimit, upgrades, playerUuid, permissions, flags, retryAtMillis);
         }
     }

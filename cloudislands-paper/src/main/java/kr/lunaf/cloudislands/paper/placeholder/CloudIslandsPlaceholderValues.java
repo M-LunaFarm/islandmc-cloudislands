@@ -25,9 +25,20 @@ final class CloudIslandsPlaceholderValues {
         List<Member> team = data.members().stream().filter(item -> !"TRUSTED".equals(normalize(item.role()))).toList();
         List<Member> coops = data.members().stream().filter(item -> "TRUSTED".equals(normalize(item.role()))).toList();
         List<Member> orderedTeam = ordered(team);
+        List<Member> orderedCoops = ordered(coops);
         String leader = orderedTeam.stream().filter(item -> "OWNER".equals(normalize(item.role()))).findFirst().map(Member::displayName).orElse(data.ownerUuid());
-        if (key.startsWith("member_") && key.length() > "member_".length()) {
-            return indexedMember(orderedTeam, key.substring("member_".length()));
+        String indexValue;
+        if ((indexValue = numericSuffix(key, "ban_")) != null) {
+            return indexedValue(data.bans().stream().filter(value -> value != null && !value.isBlank()).sorted(String.CASE_INSENSITIVE_ORDER).toList(), indexValue);
+        }
+        if ((indexValue = numericSuffix(key, "coop_")) != null) {
+            return indexedMember(orderedCoops, indexValue);
+        }
+        if ((indexValue = numericSuffix(key, "member_index_")) != null) {
+            return indexedMemberZeroBased(orderedTeam, indexValue);
+        }
+        if ((indexValue = numericSuffix(key, "member_")) != null) {
+            return indexedMember(orderedTeam, indexValue);
         }
         if (key.startsWith("upgrade_") && key.length() > "upgrade_".length()) {
             return upgradeLevel(data.upgrades(), key.substring("upgrade_".length()));
@@ -57,6 +68,7 @@ final class CloudIslandsPlaceholderValues {
             case "worth_format", "island_worth_format" -> compact(data.worth());
             case "rank", "worth_rank", "island_rank", "island_worth_rank" -> rank(data.worthRank());
             case "level_rank", "island_level_rank" -> rank(data.levelRank());
+            case "bank_rank", "island_bank_rank" -> rank(data.bankRank());
             case "public", "public_access", "is_public" -> Boolean.toString(data.publicAccess());
             case "locked", "island_locked" -> Boolean.toString(data.locked());
             case "bank", "bank_balance", "balance" -> data.bankBalance();
@@ -108,13 +120,52 @@ final class CloudIslandsPlaceholderValues {
             .thenComparing(member -> member.playerUuid() == null ? "" : member.playerUuid())).toList();
     }
 
-    private static String indexedMember(List<Member> members, String indexValue) {
+    private static String indexedMember(List<Member> members, String positionValue) {
+        try {
+            int position = Integer.parseInt(positionValue);
+            int index = position == 0 ? 0 : position - 1;
+            return index >= 0 && index < members.size() ? members.get(index).displayName() : "";
+        } catch (NumberFormatException ignored) {
+            return "";
+        }
+    }
+
+    private static String numericSuffix(String key, String prefix) {
+        if (!key.startsWith(prefix) || key.length() <= prefix.length()) {
+            return null;
+        }
+        String suffix = key.substring(prefix.length());
+        return suffix.chars().allMatch(Character::isDigit) ? suffix : null;
+    }
+
+    private static String indexedMemberZeroBased(List<Member> members, String indexValue) {
         try {
             int index = Integer.parseInt(indexValue);
             return index >= 0 && index < members.size() ? members.get(index).displayName() : "";
         } catch (NumberFormatException ignored) {
             return "";
         }
+    }
+
+    private static String indexedValue(List<String> values, String positionValue) {
+        try {
+            int position = Integer.parseInt(positionValue);
+            int index = position == 0 ? 0 : position - 1;
+            return index >= 0 && index < values.size() ? values.get(index) : "";
+        } catch (NumberFormatException ignored) {
+            return "";
+        }
+    }
+
+    static String playerChatValue(String params, String mode) {
+        String key = params == null ? "" : params.toLowerCase(Locale.ROOT).replace('-', '_');
+        String normalizedMode = normalize(mode);
+        return switch (key) {
+            case "chat_state", "player_chat_state" -> normalizedMode.isBlank() ? "GLOBAL" : normalizedMode;
+            case "local_chat", "player_local_chat" -> Boolean.toString("ISLAND".equals(normalizedMode));
+            case "team_chat", "player_team_chat" -> Boolean.toString("TEAM".equals(normalizedMode));
+            default -> null;
+        };
     }
 
     private static String upgradeLevel(List<Upgrade> upgrades, String requestedKey) {
@@ -257,7 +308,7 @@ final class CloudIslandsPlaceholderValues {
     record Data(String islandId, String name, String ownerUuid, String state, long size, long border, long level,
                 String worth, boolean publicAccess, boolean locked, String createdAt, String updatedAt,
                 String bankBalance, String role, List<Member> members, long memberLimit, long coopLimit,
-                int worthRank, int levelRank, String biome, List<String> bans, Home home, int warpCount,
+                int worthRank, int levelRank, int bankRank, String biome, List<String> bans, Home home, int warpCount,
                 long warpLimit, List<Upgrade> upgrades, String playerUuid, List<Permission> permissions,
                 Map<String, String> flags) {
         Data(String islandId, String name, String ownerUuid, String state, long size, long border, long level,
@@ -265,7 +316,7 @@ final class CloudIslandsPlaceholderValues {
              String bankBalance, String role, List<Member> members, long memberLimit, long coopLimit,
              int worthRank, int levelRank) {
             this(islandId, name, ownerUuid, state, size, border, level, worth, publicAccess, locked, createdAt, updatedAt,
-                bankBalance, role, members, memberLimit, coopLimit, worthRank, levelRank, "", List.of(), null, 0, 1L,
+                bankBalance, role, members, memberLimit, coopLimit, worthRank, levelRank, 0, "", List.of(), null, 0, 1L,
                 List.of(), "", List.of(), Map.of());
         }
 

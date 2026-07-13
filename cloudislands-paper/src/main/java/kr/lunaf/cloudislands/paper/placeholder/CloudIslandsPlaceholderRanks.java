@@ -15,6 +15,10 @@ final class CloudIslandsPlaceholderRanks {
         return rankOf(rankings == null ? null : rankings.levels(), islandId);
     }
 
+    static int bankRank(CoreGuiViews.RankingData rankings, String islandId) {
+        return rankOf(rankings == null ? null : rankings.banks(), islandId);
+    }
+
     private static int rankOf(List<CoreGuiViews.RankingView> rankings, String islandId) {
         if (rankings == null || islandId == null || islandId.isBlank()) {
             return 0;
