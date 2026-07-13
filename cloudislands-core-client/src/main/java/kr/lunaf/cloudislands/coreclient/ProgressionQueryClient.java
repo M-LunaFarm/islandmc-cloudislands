@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreclient;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -10,6 +11,8 @@ public interface ProgressionQueryClient {
     CompletableFuture<LevelView> level(UUID islandId);
 
     CompletableFuture<ProgressionBlockDetailsView> blockDetails(UUID islandId, int limit);
+
+    CompletableFuture<Map<String, Long>> blockCounts(UUID islandId);
 
     CompletableFuture<CoreGuiViews.RankingData> rankings(int limit);
 

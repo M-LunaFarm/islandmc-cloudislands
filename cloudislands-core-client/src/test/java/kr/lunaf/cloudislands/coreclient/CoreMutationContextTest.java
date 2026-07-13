@@ -755,6 +755,7 @@ class CoreMutationContextTest {
         server.createContext("/v1/islands/blocks/delta", exchange -> respond(exchange, requestBodies, "blockDelta", "{\"accepted\":true}"));
         server.createContext("/v1/islands/blocks/replace", exchange -> respond(exchange, requestBodies, "blockReplace", "{\"accepted\":true}"));
         server.createContext("/v1/islands/blocks", exchange -> respond(exchange, requestBodies, "blockDetails", "{\"blocks\":[],\"summary\":{}}"));
+        server.createContext("/v1/islands/blocks/counts", exchange -> respond(exchange, requestBodies, "blockCounts", "{\"counts\":{\"minecraft:spawner\":12,\"ignored\":0}}"));
         server.createContext("/v1/islands/level/recalculate", exchange -> respond(exchange, requestBodies, "recalculate", "{\"level\":1}"));
         server.createContext("/v1/rankings/level", exchange -> respond(exchange, requestBodies, "rankLevel", "{\"rankings\":[]}"));
         server.createContext("/v1/rankings/worth", exchange -> respond(exchange, requestBodies, "rankWorth", "{\"rankings\":[]}"));
@@ -771,6 +772,7 @@ class CoreMutationContextTest {
             client.runtimeCommands().recordBlockDelta(islandId, "minecraft:diamond\"block", 3L).join();
             client.runtimeCommands().replaceBlockCounts(islandId, counts).join();
             client.progression().blockDetails(islandId, 25).join();
+            Map<String, Long> authoritativeCounts = client.progression().blockCounts(islandId).join();
             client.progressionCommands().recalculateLevel(islandId, actorUuid).join();
             client.progression().topLevel(10).join();
             client.progression().topWorth(11).join();
@@ -781,6 +783,8 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\",\"materialKey\":\"minecraft:diamond\\\"block\",\"delta\":3}", requestBodies.get("blockDelta"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"counts\":{\"minecraft:stone\\\"block\":3}}", requestBodies.get("blockReplace"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":25}", requestBodies.get("blockDetails"));
+            assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("blockCounts"));
+            assertEquals(Map.of("minecraft:spawner", 12L), authoritativeCounts);
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\"}", requestBodies.get("recalculate"));
             assertEquals("{\"limit\":10}", requestBodies.get("rankLevel"));
             assertEquals("{\"limit\":11}", requestBodies.get("rankWorth"));

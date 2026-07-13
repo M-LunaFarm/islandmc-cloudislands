@@ -50,10 +50,11 @@ class IslandBlockLevelRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(6, paths.size());
+        assertEquals(7, paths.size());
         assertTrue(paths.contains("/v1/admin/block-values"));
         assertTrue(paths.contains("/v1/admin/block-values/list"));
         assertTrue(paths.contains("/v1/islands/blocks"));
+        assertTrue(paths.contains("/v1/islands/blocks/counts"));
         assertTrue(paths.contains("/v1/islands/blocks/delta"));
         assertTrue(paths.contains("/v1/islands/blocks/replace"));
         assertTrue(paths.contains("/v1/islands/level/recalculate"));
@@ -68,6 +69,7 @@ class IslandBlockLevelRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/block-values"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/block-values/list"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/blocks"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/islands/blocks/counts"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/blocks/delta"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/blocks/replace"));
         assertEquals(Set.of("POST"), registry.methods("/v1/islands/level/recalculate"));
@@ -120,12 +122,17 @@ class IslandBlockLevelRoutesTest {
         Map<?, ?> details = SimpleJson.object(SimpleJson.parse(
             IslandBlockLevelRoutes.blockDetailsJson(islandId, Map.of("minecraft:diamond_block", 2L), values, 10)
         ));
+        Map<?, ?> counts = SimpleJson.object(SimpleJson.parse(
+            IslandBlockLevelRoutes.blockCountsJson(islandId, Map.of("minecraft:stone", 3L, "ignored", 0L))
+        ));
         Map<?, ?> block = SimpleJson.object(SimpleJson.list(details.get("blocks")).get(0));
         Map<?, ?> summary = SimpleJson.object(details.get("summary"));
         Map<?, ?> blockValues = SimpleJson.object(SimpleJson.parse(IslandBlockLevelRoutes.blockValuesJson(values)));
         Map<?, ?> value = SimpleJson.object(SimpleJson.list(blockValues.get("values")).get(0));
 
         assertEquals(islandId.toString(), SimpleJson.text(details.get("islandId")));
+        assertEquals(3L, ((Number) SimpleJson.object(counts.get("counts")).get("minecraft:stone")).longValue());
+        assertTrue(!SimpleJson.object(counts.get("counts")).containsKey("ignored"));
         assertEquals("minecraft:diamond_block", SimpleJson.text(block.get("materialKey")));
         assertEquals(2L, ((Number) block.get("count")).longValue());
         assertEquals("1000.00", SimpleJson.text(block.get("unitWorth")));

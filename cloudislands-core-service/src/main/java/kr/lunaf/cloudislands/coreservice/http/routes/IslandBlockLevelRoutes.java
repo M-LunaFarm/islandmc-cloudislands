@@ -65,6 +65,7 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
         registry.routePost("/v1/admin/block-values", this::setBlockValue);
         registry.routePost("/v1/admin/block-values/list", this::blockValues);
         registry.routePost("/v1/islands/blocks", this::blocks);
+        registry.routePost("/v1/islands/blocks/counts", this::blockCounts);
         registry.routePost("/v1/islands/blocks/delta", this::blockDelta);
         registry.routePost("/v1/islands/blocks/replace", this::replaceBlocks);
         registry.routePost("/v1/islands/level/recalculate", this::recalculateLevel);
@@ -92,6 +93,12 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 50), 200));
         CoreHttpResponses.write(exchange, 200, blockDetailsJson(islandId, levelRepository.blockCounts(islandId), levelRepository.blockValues(), limit));
+    }
+
+    private void blockCounts(HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
+        CoreHttpResponses.write(exchange, 200, blockCountsJson(islandId, levelRepository.blockCounts(islandId)));
     }
 
     private void blockDelta(HttpExchange exchange) throws IOException {
@@ -255,6 +262,19 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
         result.put("islandId", islandId);
         result.put("blocks", renderedBlocks);
         result.put("summary", summary);
+        return SimpleJson.stringify(result);
+    }
+
+    static String blockCountsJson(UUID islandId, Map<String, Long> counts) {
+        LinkedHashMap<String, Long> renderedCounts = new LinkedHashMap<>();
+        counts.entrySet().stream()
+            .filter(entry -> entry.getKey() != null && !entry.getKey().isBlank())
+            .filter(entry -> entry.getValue() != null && entry.getValue() > 0L)
+            .sorted(Map.Entry.comparingByKey())
+            .forEach(entry -> renderedCounts.put(entry.getKey(), entry.getValue()));
+        LinkedHashMap<String, Object> result = new LinkedHashMap<>();
+        result.put("islandId", islandId);
+        result.put("counts", renderedCounts);
         return SimpleJson.stringify(result);
     }
 

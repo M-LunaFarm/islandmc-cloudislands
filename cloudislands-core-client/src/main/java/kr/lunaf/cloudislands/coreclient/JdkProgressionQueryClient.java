@@ -39,6 +39,14 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
     }
 
     @Override
+    public CompletableFuture<Map<String, Long>> blockCounts(UUID islandId) {
+        requireIsland(islandId);
+        return core.postBody("/v1/islands/blocks/counts", CoreJsonPayload.object("islandId", islandId))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkProgressionQueryClient::blockCountsView);
+    }
+
+    @Override
     public CompletableFuture<CoreGuiViews.RankingData> rankings(int limit) {
         CompletableFuture<List<ProgressionRankingEntryView>> levels = topLevel(limit);
         CompletableFuture<List<ProgressionRankingEntryView>> worths = topWorth(limit);
@@ -122,6 +130,20 @@ public final class JdkProgressionQueryClient implements ProgressionQueryClient {
             CoreJson.number(summary, "totalLevelPoints"),
             blocks
         );
+    }
+
+    static Map<String, Long> blockCountsView(String body) {
+        Map<?, ?> root = CoreJson.object(body);
+        Map<?, ?> rawCounts = CoreJson.objectValue(root, "counts");
+        Map<String, Long> counts = new java.util.LinkedHashMap<>();
+        rawCounts.forEach((key, value) -> {
+            String materialKey = key == null ? "" : key.toString().trim();
+            long count = value instanceof Number number ? number.longValue() : 0L;
+            if (!materialKey.isBlank() && count > 0L) {
+                counts.put(materialKey, count);
+            }
+        });
+        return Map.copyOf(counts);
     }
 
     static List<ProgressionRankingEntryView> rankingViews(String body, String valueKey) {
