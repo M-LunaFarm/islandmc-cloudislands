@@ -332,16 +332,17 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests"
     ),
     FeatureParityEntry(
-        "ranking/level/worth/block values",
+        "ranking/level/worth/bank/block values",
         "IMPLEMENTED_VERIFIED",
-        "ranking, dirty recalculation, typed block values, custom block identity, logical stack amounts, and tick-budgeted reconciliation have service tests",
+        "ranking, dirty recalculation, authoritative bank balance ordering, typed block values, custom block identity, logical stack amounts, and tick-budgeted reconciliation have service tests",
         "Paper-facing values compile; no per-version runtime divergence is claimed",
         "version-neutral",
-        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, accepted logical spawn and removal deltas, bounded scans, serialized writes, and concurrent-mutation rejection",
+        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, accepted logical spawn and removal deltas, bounded scans, serialized writes, and concurrent-mutation rejection",
         "not recovery-specific",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/LevelWorthSystemPolicyTest.java",
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/bank/InMemoryIslandBankRepositoryTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/CustomBlockLevelAccountingPolicyTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/customitem/CustomBlockKeyServiceTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/IslandLevelScanServiceTest.java",
