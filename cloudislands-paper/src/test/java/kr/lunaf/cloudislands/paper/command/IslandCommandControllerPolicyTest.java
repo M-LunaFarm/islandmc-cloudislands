@@ -767,8 +767,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(visitReviewHandler.contains("navigationUseCase.reviewViews"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.visitorStats"));
         assertTrue(visitReviewHandler.contains("IslandVisitorStatsMenu.open"));
-        assertTrue(visitReviewHandler.contains("if (subcommand.equals(\"visitors\"))"), "canonical SS2 visitors command must have a dedicated menu branch");
-        assertTrue(visitReviewHandler.indexOf("if (subcommand.equals(\"visitors\"))") < visitReviewHandler.indexOf("if (subcommand.equals(\"visitor-stats\")"), "visitors must open the menu before text-stat aliases are evaluated");
+        assertTrue(visitReviewHandler.contains("if (subcommand.equals(\"visitors\"))"), "canonical SS2 visitors command must have a dedicated current-visitor branch");
+        assertTrue(visitReviewHandler.contains("coreApiClient.islands().memberSnapshots(islandId)"), "current visitors must distinguish permanent team roles from guests using typed Core membership data");
+        assertTrue(visitReviewHandler.contains("PaperSchedulers.run(plugin"), "Bukkit online-player and island lookups must return to the main thread after the Core query");
+        assertTrue(visitReviewHandler.contains("activeViewer::canSee"), "current visitor output must not reveal vanished players hidden from the viewer");
+        assertTrue(visitReviewHandler.contains("CurrentIslandVisitorPolicy.visitor"), "current visitor classification must keep temporary co-ops distinct from permanent members");
+        assertTrue(visitReviewHandler.indexOf("if (subcommand.equals(\"visitors\"))") < visitReviewHandler.indexOf("if (subcommand.equals(\"visitor-stats\")"), "visitors must list current guests before historical-stat aliases are evaluated");
         assertTrue(visitReviewHandler.contains("navigationUseCase.setReviewAction"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.deleteReviewAction"));
         assertFalse(visitReviewHandler.contains("coreApiClient.createVisitTicket"));

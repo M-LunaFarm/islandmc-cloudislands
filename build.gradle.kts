@@ -1838,6 +1838,10 @@ tasks.register("verifyVisitReviewMessageKeyCoverage") {
             "visitor-stats-recent-label",
             "visitor-stats-total-label",
             "visitor-stats-unique-label",
+            "visitors-empty",
+            "visitors-island-required",
+            "visitors-load-failed",
+            "visitors-prefix",
             "visit-random-failed",
             "visit-target-failed"
         )
@@ -1868,6 +1872,41 @@ tasks.register("verifyVisitReviewMessageKeyCoverage") {
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
+tasks.register("verifyCurrentVisitorParity") {
+    group = "verification"
+    description = "Verifies the SuperiorSkyblock2 visitors alias lists current visible guests without replacing historical visitor statistics."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandVisitReviewCommandHandler.java")
+    val policy = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/CurrentIslandVisitorPolicy.java")
+    val policyTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/CurrentIslandVisitorPolicyTest.java")
+    val registry = layout.projectDirectory.file("cloudislands-protocol/src/main/java/kr/lunaf/cloudislands/protocol/command/IslandPlayerCommandRegistry.java")
+    inputs.files(handler, policy, policyTest, registry)
+    doLast {
+        val source = listOf(handler, policy, policyTest, registry).joinToString("\n") { it.asFile.readText() }
+        val requiredSignals = listOf(
+            "if (subcommand.equals(\"visitors\"))",
+            "listCurrentVisitors(player)",
+            "coreApiClient.islands().memberSnapshots(islandId)",
+            "PaperSchedulers.run(plugin",
+            "activeViewer::canSee",
+            "CurrentIslandVisitorPolicy.visitor",
+            "role.equals(\"TRUSTED\")",
+            "navigationUseCase.visitorStats",
+            "섬 visitors",
+            "includesGuestsAndTemporaryCoopsStandingOnTheIsland",
+            "excludesPermanentTeamRolesAndPlayersOnAnotherIsland"
+        )
+        val missing = requiredSignals.filterNot(source::contains)
+        if (missing.isNotEmpty()) {
+            throw GradleException("Current visitor parity evidence missing: ${missing.joinToString(", ")}")
+        }
+        val handlerSource = handler.asFile.readText()
+        if (handlerSource.substringAfter("if (subcommand.equals(\"visitors\"))").substringBefore("if (subcommand.equals(\"visitor-stats\")").contains("openVisitorStatsMenu(player)")) {
+            throw GradleException("The canonical visitors command must list current visitors, not reopen historical visitor statistics")
         }
     }
 }
@@ -2233,6 +2272,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyWarehouseMessageKeyCoverage"))
     dependsOn(tasks.named("verifySettingsMessageKeyCoverage"))
     dependsOn(tasks.named("verifyVisitReviewMessageKeyCoverage"))
+    dependsOn(tasks.named("verifyCurrentVisitorParity"))
     dependsOn(tasks.named("verifyBankMessageKeyCoverage"))
     dependsOn(tasks.named("verifyPermissionMessageKeyCoverage"))
     dependsOn(tasks.named("verifyMembershipMessageKeyCoverage"))

@@ -426,6 +426,8 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/session/TeamChatModeRegistryTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/CurrentIslandVisitorPolicy.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/CurrentIslandVisitorPolicyTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/AuditRoutesTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutesTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/review/InMemoryIslandReviewRepositoryTest.java",
@@ -554,7 +556,7 @@ private fun playerPermissionParityEntries(): List<PermissionParityEntry> = listO
     permissionParity("player", "superior.island.value", "cloudislands.island.progression", "SUPPORTED_VERIFIED", "", "worth/value lookup is part of progression"),
     permissionParity("player", "superior.island.values", "cloudislands.island.progression", "SUPPORTED_VERIFIED", "", "block values lookup is part of progression"),
     permissionParity("player", "superior.island.visit", "cloudislands.island.warp", "SUPPORTED_VERIFIED", "", "public island visit maps to visit/warp access"),
-    permissionParity("player", "superior.island.visitors", "cloudislands.island.visitor-stats", "SUPPORTED_VERIFIED", "", "visitor statistics maps directly"),
+    permissionParity("player", "superior.island.visitors", "cloudislands.island.visitor-stats", "SUPPORTED_VERIFIED", "", "visitors lists currently present visible guests and temporary co-ops while visitor-stats keeps historical totals and recent visits"),
     permissionParity("player", "superior.island.warp", "cloudislands.island.warp", "SUPPORTED_VERIFIED", "", "warp travel maps directly"),
     permissionParity("player", "superior.island.warps", "cloudislands.island.warp", "SUPPORTED_VERIFIED", "", "warp list maps directly"),
     permissionParity("player", "superior.island.withdraw", "cloudislands.island.bank.withdraw", "SUPPORTED_VERIFIED", "", "bank withdrawal maps directly")

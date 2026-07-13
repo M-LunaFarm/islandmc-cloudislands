@@ -1,11 +1,14 @@
 package kr.lunaf.cloudislands.paper.command;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
@@ -19,6 +22,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandReviewMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitorStatsMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -59,7 +63,7 @@ final class IslandVisitReviewCommandHandler {
             return true;
         }
         if (subcommand.equals("visitors")) {
-            openVisitorStatsMenu(player);
+            listCurrentVisitors(player);
             return true;
         }
         if (subcommand.equals("visitor-stats") || subcommand.equals("visitorstats") || subcommand.equals("방문통계") || subcommand.equals("방문자통계")) {
@@ -132,6 +136,46 @@ final class IslandVisitReviewCommandHandler {
 
     private void openVisitorStatsMenu(Player player) {
         runtime.currentIsland(player, message("visitor-stats-menu-island-required", "섬 안에서만 방문 통계 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandVisitorStatsMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
+    }
+
+    private void listCurrentVisitors(Player player) {
+        runtime.currentIsland(player, message("visitors-island-required", "섬 안에서만 현재 방문자를 확인할 수 있습니다.")).ifPresent(islandId -> {
+            UUID viewerUuid = player.getUniqueId();
+            coreApiClient.islands().memberSnapshots(islandId).whenComplete((members, error) -> PaperSchedulers.run(plugin, () -> {
+                Player activeViewer = plugin.getServer().getPlayer(viewerUuid);
+                if (activeViewer == null || !activeViewer.isOnline()) {
+                    return;
+                }
+                if (error != null || members == null) {
+                    runtime.message(activeViewer, message("visitors-load-failed", "현재 방문자를 불러오지 못했습니다."));
+                    return;
+                }
+                if (!runtime.currentIsland(activeViewer).filter(islandId::equals).isPresent()) {
+                    runtime.message(activeViewer, message("visitors-island-required", "섬 안에서만 현재 방문자를 확인할 수 있습니다."));
+                    return;
+                }
+                Map<UUID, String> roles = new HashMap<>();
+                for (IslandMemberSnapshot member : members) {
+                    if (member != null && member.playerUuid() != null) {
+                        roles.putIfAbsent(member.playerUuid(), member.effectiveRoleKey());
+                    }
+                }
+                List<String> visitors = plugin.getServer().getOnlinePlayers().stream()
+                    .filter(candidate -> !candidate.getUniqueId().equals(viewerUuid))
+                    .filter(activeViewer::canSee)
+                    .filter(candidate -> CurrentIslandVisitorPolicy.visitor(
+                        islandId,
+                        runtime.currentIsland(candidate).orElse(null),
+                        roles.get(candidate.getUniqueId())
+                    ))
+                    .map(Player::getName)
+                    .sorted(String.CASE_INSENSITIVE_ORDER)
+                    .toList();
+                runtime.message(activeViewer, visitors.isEmpty()
+                    ? message("visitors-empty", "현재 섬에 방문자가 없습니다.")
+                    : message("visitors-prefix", "현재 방문자: ") + String.join(", ", visitors));
+            }));
+        });
     }
 
     private void routeVisitTarget(Player player, String target) {
@@ -350,6 +394,8 @@ final class IslandVisitReviewCommandHandler {
 
     interface Runtime {
         Optional<UUID> currentIsland(Player player, String missingMessage);
+
+        Optional<UUID> currentIsland(Player player);
 
         void message(Player player, String message);
 

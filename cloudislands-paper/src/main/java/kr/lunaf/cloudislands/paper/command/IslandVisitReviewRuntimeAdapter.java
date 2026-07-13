@@ -22,6 +22,11 @@ final class IslandVisitReviewRuntimeAdapter implements IslandVisitReviewCommandH
     }
 
     @Override
+    public java.util.Optional<UUID> currentIsland(Player player) {
+        return runtime.currentIsland(player);
+    }
+
+    @Override
     public void message(Player player, String message) {
         runtime.message(player, message);
     }
