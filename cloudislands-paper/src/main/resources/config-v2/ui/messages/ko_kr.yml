@@ -636,6 +636,7 @@ warehouse-deposit-island-required: "섬 안에서만 창고에 입금할 수 있
 warehouse-deposit-success-prefix: "섬 창고 입금 완료: "
 warehouse-amount-invalid: "올바른 수량을 입력해주세요."
 warehouse-inventory-full: "인벤토리 공간이 부족합니다."
+warehouse-item-metadata-unsupported: "이름, 인챈트, 내구도, 내용물 등 추가 정보가 없는 일반 아이템만 창고에 넣을 수 있습니다."
 warehouse-list-empty: "섬 창고가 비어 있습니다."
 warehouse-list-island-required: "섬 안에서만 창고를 확인할 수 있습니다."
 warehouse-list-load-failed: "섬 창고를 불러오지 못했습니다."

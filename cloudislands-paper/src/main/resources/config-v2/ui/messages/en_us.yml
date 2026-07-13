@@ -636,6 +636,7 @@ warehouse-deposit-island-required: "You must be on an island to deposit into the
 warehouse-deposit-success-prefix: "Island warehouse deposit complete: "
 warehouse-amount-invalid: "Enter a valid quantity."
 warehouse-inventory-full: "Not enough inventory space."
+warehouse-item-metadata-unsupported: "Only plain items without names, enchantments, damage, contents, or other metadata can be deposited."
 warehouse-list-empty: "The island warehouse is empty."
 warehouse-list-island-required: "You must be on an island to view the warehouse."
 warehouse-list-load-failed: "Could not load the island warehouse."

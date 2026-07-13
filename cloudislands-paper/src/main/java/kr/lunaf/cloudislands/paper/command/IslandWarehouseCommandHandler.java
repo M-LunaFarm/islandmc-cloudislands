@@ -136,9 +136,15 @@ final class IslandWarehouseCommandHandler {
                 runtime.message(player, runtime.playerCodeMessage("INVALID_MATERIAL", message("input-material-invalid", "올바른 재료를 입력해주세요.")));
                 return;
             }
-            if (deposit && countMaterial(player, material) < amount) {
-                runtime.message(player, runtime.playerCodeMessage("NOT_ENOUGH_ITEMS", message("warehouse-not-enough-items", "인벤토리에 넣을 아이템이 부족합니다.")));
-                return;
+            if (deposit) {
+                long storableAmount = countStorableMaterial(player, material);
+                if (storableAmount < amount) {
+                    String fallback = countMaterial(player, material) >= amount
+                        ? message("warehouse-item-metadata-unsupported", "이름, 인챈트, 내구도, 내용물 등 추가 정보가 없는 일반 아이템만 창고에 넣을 수 있습니다.")
+                        : message("warehouse-not-enough-items", "인벤토리에 넣을 아이템이 부족합니다.");
+                    runtime.message(player, runtime.playerCodeMessage("NOT_ENOUGH_ITEMS", fallback));
+                    return;
+                }
             }
             if (!deposit && inventorySpace(player, material) < amount) {
                 runtime.message(player, runtime.playerCodeMessage("INVENTORY_FULL", message("warehouse-inventory-full", "인벤토리 공간이 부족합니다.")));
@@ -247,13 +253,23 @@ final class IslandWarehouseCommandHandler {
         return count;
     }
 
+    private static long countStorableMaterial(Player player, Material material) {
+        long count = 0L;
+        for (ItemStack item : player.getInventory().getStorageContents()) {
+            if (WarehouseItemPolicy.storable(item, material)) {
+                count += item.getAmount();
+            }
+        }
+        return count;
+    }
+
     private static long inventorySpace(Player player, Material material) {
         long space = 0L;
         int maxStack = material.getMaxStackSize();
         for (ItemStack item : player.getInventory().getStorageContents()) {
             if (item == null || item.getType().isAir()) {
                 space += maxStack;
-            } else if (item.getType() == material && item.getAmount() < maxStack) {
+            } else if (WarehouseItemPolicy.storable(item, material) && item.getAmount() < maxStack) {
                 space += maxStack - item.getAmount();
             }
         }
@@ -265,7 +281,7 @@ final class IslandWarehouseCommandHandler {
         ItemStack[] contents = player.getInventory().getStorageContents();
         for (int index = 0; index < contents.length && remaining > 0L; index++) {
             ItemStack item = contents[index];
-            if (item == null || item.getType() != material) {
+            if (!WarehouseItemPolicy.storable(item, material)) {
                 continue;
             }
             int taken = (int) Math.min(item.getAmount(), remaining);

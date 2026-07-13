@@ -347,6 +347,7 @@ class IslandCommandControllerPolicyTest {
     void warehouseCommandsAreSeparatedFromCommandBackend() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String warehouseHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandWarehouseCommandHandler.java"));
+        String warehouseItemPolicy = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/WarehouseItemPolicy.java"));
         String warehouseUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandWarehouseUseCase.java"));
 
         assertTrue(backend.contains("private final IslandWarehouseCommandHandler warehouseCommands;"));
@@ -368,7 +369,11 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseHandler.contains("IslandWarehouseUseCase"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.listItems"));
         assertTrue(warehouseHandler.contains("warehouseUseCase.deposit"));
-        assertTrue(warehouseHandler.contains("countMaterial(player, material)"), "warehouse deposit must check real player inventory before Core mutation");
+        assertTrue(warehouseHandler.contains("countStorableMaterial(player, material)"), "warehouse deposit must count only items representable by the material-and-amount schema");
+        assertTrue(warehouseHandler.contains("WarehouseItemPolicy.storable(item, material)"), "warehouse removal and capacity checks must preserve item metadata instead of flattening custom items");
+        assertTrue(warehouseItemPolicy.contains("item.getType() == material"), "warehouse rows must never accept a different material");
+        assertTrue(warehouseItemPolicy.contains("!item.hasItemMeta()"), "warehouse rows cannot safely restore names, enchantments, damage, contents, or custom metadata");
+        assertTrue(warehouseHandler.contains("warehouse-item-metadata-unsupported"), "unsupported metadata must give explicit operator-configurable feedback");
         assertTrue(warehouseHandler.contains("removeMaterial(player, material, amount)"), "warehouse deposit must remove real player inventory items");
         assertTrue(warehouseHandler.contains("giveMaterial(player, material, amount)"), "warehouse withdraw and failed deposits must grant/refund real items");
         assertTrue(warehouseHandler.contains("inventorySpace(player, material)"), "warehouse withdraw must verify inventory capacity before Core mutation");
