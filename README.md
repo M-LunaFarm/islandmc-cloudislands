@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.158`
+Version: `1.1.159`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -658,11 +658,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.158`
+Current release: `v1.1.159`
 
-Built for the CloudIslands 1.1.158 baseline.
+Built for the CloudIslands 1.1.159 baseline.
 
-Release notes for `v1.1.158`:
+Release notes for `v1.1.159`:
+
+- RoseStacker stacked-spawner placement and WildStacker stacked placement or
+  spawner-inventory deposits now enforce the island's logical spawner limit
+  before the vendor operation is accepted
+- accepted logical increases publish only the amount not already represented by
+  Bukkit's physical block event, preventing both temporary limit bypasses and
+  double-counted worth/limit deltas
+- the optional integration remains reflection-isolated, fails closed for
+  incompatible or asynchronous vendor events, and does not treat count-preserving
+  merges of two existing world stacks as new spawners
+
+Release notes carried forward from `v1.1.158`:
 
 - entity, hanging, and vehicle limit checks no longer call
   `World#getEntities()` from spawn events; finite limits and spawner rates use
@@ -2665,7 +2677,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.158`.
+Current read: production-readiness baseline `v1.1.159`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
