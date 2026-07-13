@@ -105,16 +105,9 @@ jobs:
             build/smoke/velocity/server.log
           if-no-files-found: error
 
-      - name: Release cluster smoke gate
+      - name: Generate and verify release cluster smoke evidence
         if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs['verify-cluster-evidence'])
-        env:
-          CI_CLUSTER_SMOKE_EVIDENCE_JSON: ${{ secrets.CI_CLUSTER_SMOKE_EVIDENCE_JSON }}
-        run: |
-          if [ -z "$CI_CLUSTER_SMOKE_EVIDENCE_JSON" ]; then
-            echo "CI_CLUSTER_SMOKE_EVIDENCE_JSON is required for release cluster smoke certification."
-            exit 1
-          fi
-          ./gradlew releaseClusterSmokeGate --no-daemon
+        run: ./gradlew releaseClusterSmokeGate --no-daemon
 
       - name: Upload release cluster smoke report
         if: always() && (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs['verify-cluster-evidence']))

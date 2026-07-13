@@ -277,6 +277,15 @@ class ProductionReadinessPolicyTest {
     }
 
     @Test
+    void releaseClusterEvidenceRecognizesLegacyAndModernPaperReadyMarkers() throws Exception {
+        String evidence = Files.readString(repositoryRoot().resolve("scripts/ci/release_cluster_evidence.py"));
+
+        assertTrue(evidence.contains("require_markers(paper_log, [\"CloudIslands Paper agent enabled\"])"));
+        assertTrue(evidence.contains("require_any_marker(paper_log, [\"Done (\", \"Done preparing level\"])"));
+        assertTrue(evidence.contains("require_markers(velocity_log, [\"CloudIslands Velocity router enabled\", \"Listening on\"])"));
+    }
+
+    @Test
     void clusterLoadProbeKeepsItsActiveNodeFreshWhileAwaitingEventReplay() throws Exception {
         String smoke = Files.readString(repositoryRoot().resolve("scripts/ci/core_integration_smoke.py"));
 

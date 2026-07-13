@@ -58,8 +58,9 @@ class MinecraftVersionMatrixPolicyTest {
         assertTrue(buildWorkflow.contains("build/dist/provenance.json"));
         assertTrue(integrationWorkflow.contains("ciIntegrationSmoke"));
         assertTrue(integrationWorkflow.contains("build/smoke/core-integration/cluster-evidence.json"));
-        assertTrue(integrationWorkflow.contains("releaseClusterSmokeGate"));
-        assertTrue(integrationWorkflow.contains("CI_CLUSTER_SMOKE_EVIDENCE_JSON"));
+        assertTrue(integrationWorkflow.contains("./gradlew releaseClusterSmokeGate --no-daemon"));
+        assertFalse(integrationWorkflow.contains("secrets.CI_CLUSTER_SMOKE_EVIDENCE_JSON"));
+        assertFalse(integrationWorkflow.contains("CI_CLUSTER_SMOKE_EVIDENCE_JSON is required"));
         assertTrue(integrationWorkflow.contains("build/smoke/cluster-smoke/cluster-smoke-report.json"));
         assertTrue(settings.contains("cloudislandsVersionMatrixFile"));
         assertTrue(readme.contains(matrix.readmeBlock()));

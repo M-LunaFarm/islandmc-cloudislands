@@ -187,6 +187,14 @@ def require_markers(path: Path, markers: list[str]) -> None:
         raise RuntimeError(f"{path} is missing smoke markers: {missing}")
 
 
+def require_any_marker(path: Path, markers: list[str]) -> None:
+    if not path.is_file():
+        raise RuntimeError(f"required smoke log is missing: {path}")
+    text = path.read_text(encoding="utf-8", errors="replace")
+    if not any(marker in text for marker in markers):
+        raise RuntimeError(f"{path} is missing every accepted smoke marker: {markers}")
+
+
 def require_gate_evidence(core: dict) -> None:
     evidence = core.get("evidence", {})
     required_gates = {
@@ -251,8 +259,9 @@ def main() -> int:
 
     core = json.loads(core_evidence.read_text(encoding="utf-8"))
     require_gate_evidence(core)
-    require_markers(paper_log, ["CloudIslands Paper agent enabled", "Done ("])
-    require_markers(velocity_log, ["CloudIslands Velocity router enabled", "Done ("])
+    require_markers(paper_log, ["CloudIslands Paper agent enabled"])
+    require_any_marker(paper_log, ["Done (", "Done preparing level"])
+    require_markers(velocity_log, ["CloudIslands Velocity router enabled", "Listening on"])
     injection_evidence, injection_artifacts = failure_injection_evidence(repo_root)
 
     components = set(core.get("components", []))
