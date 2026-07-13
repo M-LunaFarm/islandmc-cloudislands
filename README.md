@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.168`
+Version: `1.1.169`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -650,7 +650,7 @@ integration verification.
 |---|---|---|---|
 | lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify target-island coordinates and bounded safe destinations | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
-| flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, soft-explosion target authorization and non-destructive accounting, default-compatible natural flags, shard-safe player time/weather overrides, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
+| flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, soft-explosion target authorization and non-destructive accounting, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, accepted logical spawn and removal deltas, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
@@ -662,11 +662,25 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.168`
+Current release: `v1.1.169`
 
-Built for the CloudIslands 1.1.168 baseline.
+Built for the CloudIslands 1.1.169 baseline.
 
-Release notes for `v1.1.168`:
+Release notes for `v1.1.169`:
+
+- RoseStacker 1.5 `PreStackedSpawnerSpawnEvent` now passes through the same
+  `MOB_SPAWN`, `MONSTER_SPAWN`, and `ANIMAL_SPAWN` decisions as ordinary
+  Bukkit creature spawns
+- mobs added directly to an existing logical stack can no longer bypass island
+  spawn flags merely because no physical Bukkit entity was created
+- spawner attempts fail closed while an island is migrating, preventing vendor
+  stack state from changing during save, restore, or node handoff
+- vanilla and stacked-spawner paths share one entity-category policy, avoiding
+  different results for monsters, animals, water mobs, and ambient mobs
+- the RoseStacker adapter reads its cached spawner-tile type when available and
+  retains reflective fallback compatibility without a hard runtime dependency
+
+Release notes carried forward from `v1.1.168`:
 
 - Paper `TRIGGER_BLOCK` explosions are now classified by their actual explosion
   result instead of assuming every wind-charge event destroys blocks
@@ -2799,7 +2813,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.168`.
+Current read: production-readiness baseline `v1.1.169`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
