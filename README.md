@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.156`
+Version: `1.1.157`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -658,11 +658,20 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.156`
+Current release: `v1.1.157`
 
-Built for the CloudIslands 1.1.156 baseline.
+Built for the CloudIslands 1.1.157 baseline.
 
-Release notes for `v1.1.156`:
+Release notes for `v1.1.157`:
+
+- level-scan futures now remove their in-flight and serialized-write state
+  before reporting completion, eliminating a completion-order race exposed by
+  clean GitHub release runners
+- per-island write tails now complete only after their cleanup is visible, so
+  callers and lifecycle diagnostics cannot observe already-finished mutations
+  as still active
+
+Release notes carried forward from `v1.1.156`:
 
 - restricted block placement no longer scans every loaded island column on the
   Paper main thread; it reads an untruncated, typed Core count snapshot and is
@@ -2644,7 +2653,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.156`.
+Current read: production-readiness baseline `v1.1.157`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
