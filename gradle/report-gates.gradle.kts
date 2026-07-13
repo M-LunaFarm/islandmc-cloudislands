@@ -385,7 +385,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "bank safety, conflict-safe upgrade charging with compensating refunds, economy hooks, mission triggers/rewards, challenges, generator rules, and limits have verification gates",
         "Paper mission listeners, bank rollback UX, and generator listeners have targeted tests",
         "version-neutral plus Paper/Satis runtime boundaries",
-        "verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; a shared Core idempotency receipt ledger protects mutation retries, while Paper persists warehouse inventory escrow markers and replays the same key after disconnect or an ambiguous response without touching an offline Player; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope",
+        "verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/IslandMissionProgressListener.java",
@@ -402,6 +402,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/WarehouseSettlement.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandWarehouseCommandHandler.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/WarehouseSettlementTest.java",
+            "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/warehouse/JdbcWarehouseSettlementRepository.java",
+            "cloudislands-core-service/src/main/resources/db/migration/V82__warehouse_settlement_recovery.sql",
+            "cloudislands-core-service/src/main/resources/db/mysql/V5__warehouse_settlement_recovery.sql",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/BankUseCaseTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/WarehouseItemPolicy.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandControllerPolicyTest.java",
