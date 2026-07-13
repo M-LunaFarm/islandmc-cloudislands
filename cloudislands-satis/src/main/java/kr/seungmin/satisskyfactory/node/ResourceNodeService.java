@@ -100,16 +100,25 @@ public final class ResourceNodeService {
         if (!enabled) {
             return false;
         }
-        node.updatedAt(System.currentTimeMillis());
-        cache(node);
         if (!writesEnabled()) {
             return false;
         }
+        long previousUpdatedAt = node.updatedAt();
+        node.updatedAt(System.currentTimeMillis());
         if (dirtySaves != null) {
-            dirtySaves.markNode(node);
-            return true;
+            if (!dirtySaves.markNode(node)) {
+                node.updatedAt(previousUpdatedAt);
+                return false;
+            }
+        } else {
+            try {
+                database.saveNode(node);
+            } catch (RuntimeException exception) {
+                node.updatedAt(previousUpdatedAt);
+                return false;
+            }
         }
-        database.saveNode(node);
+        cache(node);
         return true;
     }
 
@@ -150,9 +159,12 @@ public final class ResourceNodeService {
                     node.createdAt(),
                     node.updatedAt()
             );
-            updated.add(remapped);
-            save(remapped);
-            changed = true;
+            if (save(remapped)) {
+                updated.add(remapped);
+                changed = true;
+            } else {
+                updated.add(node);
+            }
         }
         if (changed) {
             nodesByIsland.put(islandUuid, updated);
@@ -190,9 +202,10 @@ public final class ResourceNodeService {
         }
         long before = node.remaining();
         node.remaining(Math.min(node.maxRemaining(), before + restored));
-        node.updatedAt(now);
         if (node.remaining() != before) {
-            save(node);
+            if (!save(node)) {
+                node.remaining(before);
+            }
         }
         return node;
     }

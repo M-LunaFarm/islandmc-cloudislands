@@ -268,34 +268,36 @@ public final class DirtySaveService {
         nodes.entrySet().removeIf(entry -> entry.getValue().islandUuid().equals(islandUuid));
     }
 
-    public void markNode(ResourceNode node) {
+    public boolean markNode(ResourceNode node) {
         if (!enabled(nodeWritesEnabled)) {
-            return;
+            return false;
         }
         if (node == null || node.nodeId() == null) {
-            return;
+            return false;
         }
         if (!runtimeAuthorityReady(node.islandUuid())) {
-            return;
+            return false;
         }
         nodes.put(node.nodeId(), snapshot(node));
+        return true;
     }
 
     public void forgetNodes() {
         nodes.clear();
     }
 
-    public void markIsland(FactoryIsland island) {
+    public boolean markIsland(FactoryIsland island) {
         if (!enabled(islandWritesEnabled)) {
-            return;
+            return false;
         }
         if (island == null || island.islandUuid() == null) {
-            return;
+            return false;
         }
         if (!runtimeAuthorityReady(island.islandUuid())) {
-            return;
+            return false;
         }
         islands.put(island.islandUuid(), snapshot(island));
+        return true;
     }
 
     public void forgetIslands() {

@@ -81,8 +81,11 @@ public final class FactoryIslandService {
         if (island.ownerUuid().equals(ownerUuid)) {
             return;
         }
+        UUID previousOwnerUuid = island.ownerUuid();
         island.ownerUuid(ownerUuid);
-        save(island);
+        if (!save(island)) {
+            island.ownerUuid(previousOwnerUuid);
+        }
     }
 
     public Optional<FactoryIsland> find(UUID islandUuid) {
@@ -109,15 +112,21 @@ public final class FactoryIslandService {
         if (!loaded) {
             return false;
         }
-        cache.put(island.islandUuid(), island);
         if (!writesEnabled()) {
             return false;
         }
         if (dirtySaves != null) {
-            dirtySaves.markIsland(island);
-            return true;
+            if (!dirtySaves.markIsland(island)) {
+                return false;
+            }
+        } else {
+            try {
+                database.saveIsland(island);
+            } catch (RuntimeException exception) {
+                return false;
+            }
         }
-        database.saveIsland(island);
+        cache.put(island.islandUuid(), island);
         return true;
     }
 

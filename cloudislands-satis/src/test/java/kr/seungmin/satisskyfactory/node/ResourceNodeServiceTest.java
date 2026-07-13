@@ -3,6 +3,7 @@ package kr.seungmin.satisskyfactory.database;
 import kr.seungmin.satisskyfactory.model.BlockKey;
 import kr.seungmin.satisskyfactory.model.ResourceNode;
 import kr.seungmin.satisskyfactory.node.ResourceNodeService;
+import kr.seungmin.satisskyfactory.task.DirtySaveService;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -10,15 +11,61 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ResourceNodeServiceTest {
     @TempDir
     Path tempDir;
+
+    @Test
+    void failedNodeInsertDoesNotCreateRuntimeGhostOrAdvanceTimestamp() throws Exception {
+        UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000000731");
+        UUID nodeId = UUID.fromString("00000000-0000-0000-0000-000000000732");
+        try (DatabaseHandle handle = openDatabase("node-save-failure")) {
+            ResourceNodeService nodes = new ResourceNodeService(handle.database());
+            nodes.load(config(false, 0));
+            ResourceNode node = new ResourceNode(nodeId, islandUuid, "MINERAL", "iron_ore", 1.0,
+                    100, 250, 60, 1, new BlockKey("world", 0, 64, 0), 123L, 456L);
+            try (Connection connection = handle.database().connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_node_save BEFORE INSERT ON resource_nodes BEGIN SELECT RAISE(FAIL, 'forced node failure'); END");
+            }
+
+            assertFalse(nodes.save(node));
+
+            assertEquals(456L, node.updatedAt());
+            assertTrue(nodes.nodes(islandUuid).isEmpty());
+            assertTrue(handle.database().loadNodes(islandUuid).isEmpty());
+        }
+    }
+
+    @Test
+    void rejectedDirtySaveDoesNotCreateNodeRuntimeGhost() {
+        UUID islandUuid = UUID.fromString("00000000-0000-0000-0000-000000000741");
+        try (DatabaseHandle handle = openDatabase("node-authority-rejected")) {
+            ResourceNodeService nodes = new ResourceNodeService(handle.database());
+            nodes.load(config(false, 0));
+            DirtySaveService dirtySaves = new DirtySaveService(null, handle.database());
+            dirtySaves.islandRuntimeAuthority(_islandUuid -> false);
+            nodes.dirtySaves(dirtySaves);
+            ResourceNode node = new ResourceNode(
+                    UUID.fromString("00000000-0000-0000-0000-000000000742"), islandUuid,
+                    "FOREST", "wood_log", 1.0, 100, 250, 60, 1,
+                    new BlockKey("world", 0, 64, 0), 123L, 456L);
+
+            assertFalse(nodes.save(node));
+
+            assertEquals(456L, node.updatedAt());
+            assertTrue(nodes.nodes(islandUuid).isEmpty());
+            assertEquals(0, dirtySaves.pendingWrites());
+        }
+    }
 
     @Test
     void regeneratesStoredNodesFromElapsedTime() throws Exception {
