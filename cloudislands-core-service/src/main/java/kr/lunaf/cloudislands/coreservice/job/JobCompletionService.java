@@ -18,6 +18,7 @@ public final class JobCompletionService {
 
     private final JobCompletionCoordinator coordinator;
     private final JobCompletionBackend backend;
+    private final JobCompletionBackend failureBackend;
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
         this(runtimes, events, snapshots, tickets, null);
@@ -57,10 +58,16 @@ public final class JobCompletionService {
     }
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock, JobCompletionReceiptStore receipts, JobCompletionOutboxStore outbox, AddonStateRepository addonStates) {
+        this(runtimes, events, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl,
+                snapshotRetentionPolicy, activationLock, receipts, outbox, addonStates, events);
+    }
+
+    public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets, IslandJobPublisher jobs, IslandRepository islands, PlayerProfileRepository playerProfiles, Duration routeTicketTtl, SnapshotRetentionPolicy snapshotRetentionPolicy, RedisActivationLock activationLock, JobCompletionReceiptStore receipts, JobCompletionOutboxStore outbox, AddonStateRepository addonStates, GlobalEventPublisher failureEvents) {
         JobCompletionEventBuffer eventBuffer = new JobCompletionEventBuffer();
         JobCompletionOutboxStore safeOutbox = outbox == null ? new InMemoryJobCompletionOutboxStore() : outbox;
         JobCompletionOutboxDispatcher dispatcher = new JobCompletionOutboxDispatcher(safeOutbox, events);
         this.backend = new JobCompletionBackend(runtimes, eventBuffer, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, addonStates);
+        this.failureBackend = new JobCompletionBackend(runtimes, failureEvents, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, addonStates);
         this.coordinator = new JobCompletionCoordinator(backend, eventBuffer, receipts == null ? new InMemoryJobCompletionReceiptStore() : receipts, safeOutbox, dispatcher);
     }
 
@@ -73,6 +80,6 @@ public final class JobCompletionService {
     }
 
     public void failed(IslandJob job, String errorMessage) {
-        backend.failed(job, errorMessage);
+        failureBackend.failed(job, errorMessage);
     }
 }

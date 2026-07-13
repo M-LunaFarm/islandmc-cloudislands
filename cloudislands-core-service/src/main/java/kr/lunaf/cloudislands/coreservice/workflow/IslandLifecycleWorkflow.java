@@ -260,6 +260,9 @@ public final class IslandLifecycleWorkflow {
         if (runtime.activeNode() == null || runtime.activeNode().isBlank()) {
             return new Result(false, "ISLAND_NOT_ACTIVE", runtime);
         }
+        if (runtime.state() != IslandState.ACTIVE) {
+            return new Result(false, "ISLAND_BUSY", runtime);
+        }
         NodeLoad activeNode = nodes.find(runtime.activeNode()).orElse(null);
         if (activeNode == null) {
             return new Result(false, "NODE_UNAVAILABLE", runtime);
@@ -270,7 +273,7 @@ public final class IslandLifecycleWorkflow {
         try {
             jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.SNAPSHOT_ISLAND, islandId, runtime.activeNode(), 20, Map.of("reason", safeReason, "fencingToken", Long.toString(runtime.fencingToken())), Instant.now()));
         } catch (RuntimeException exception) {
-            return jobQueueFailed(islandId, IslandState.ERROR_SAVING);
+            return jobQueueFailedPreservingRuntime(islandId, runtime);
         }
         events.publish(CloudIslandEventType.ISLAND_SNAPSHOT_REQUESTED.name(), Map.of("islandId", islandId.toString(), "reason", safeReason));
         return new Result(true, "SNAPSHOT_QUEUED", runtime);
@@ -572,6 +575,17 @@ public final class IslandLifecycleWorkflow {
         IslandRuntimeSnapshot runtime = runtimes.setState(islandId, state);
         islands.setState(islandId, state);
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of("islandId", islandId.toString(), "state", state.name(), "reason", "JOB_QUEUE_UNAVAILABLE"));
+        return new Result(false, "JOB_QUEUE_UNAVAILABLE", runtime);
+    }
+
+    private Result jobQueueFailedPreservingRuntime(UUID islandId, IslandRuntimeSnapshot runtime) {
+        IslandState state = runtime == null ? IslandState.RECOVERY_REQUIRED : runtime.state();
+        events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
+            "islandId", islandId.toString(),
+            "state", state.name(),
+            "reason", "JOB_QUEUE_UNAVAILABLE",
+            "runtimePreserved", "true"
+        ));
         return new Result(false, "JOB_QUEUE_UNAVAILABLE", runtime);
     }
 

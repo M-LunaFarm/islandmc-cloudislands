@@ -183,6 +183,54 @@ class JobCompletionServiceTest {
     }
 
     @Test
+    void saveFailureRestoresSavingRuntimeToActiveWhenPlacementRemainsOwned() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "save target");
+        runtimes.markActive(ISLAND, "island-1", "ci_shard_001", 1, 2, 12L);
+        runtimes.markSaving(ISLAND, 12L);
+        islands.setState(ISLAND, IslandState.SAVING);
+        JobCompletionService service = new JobCompletionService(
+                runtimes, events, snapshots,
+                new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC)),
+                null, islands, null);
+
+        service.failed(job(IslandJobType.SAVE_ISLAND, "island-1", Map.of("fencingToken", "12")), "object storage unavailable");
+
+        assertEquals(IslandState.ACTIVE, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(IslandState.ACTIVE, islands.findById(ISLAND).orElseThrow().state());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name()));
+        assertTrue(events.toJson().contains("\"runtimePreserved\":\"true\""));
+        assertTrue(events.toJson().contains("\"state\":\"ACTIVE\""));
+    }
+
+    @Test
+    void snapshotFailureCannotClobberNewerDeactivationState() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "snapshot target");
+        runtimes.markActive(ISLAND, "island-1", "ci_shard_001", 1, 2, 13L);
+        runtimes.setState(ISLAND, IslandState.DELETE_REQUESTED);
+        runtimes.setState(ISLAND, IslandState.DEACTIVATING);
+        islands.setState(ISLAND, IslandState.DEACTIVATING);
+        JobCompletionService service = new JobCompletionService(
+                runtimes, events, snapshots,
+                new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC)),
+                null, islands, null);
+
+        service.failed(job(IslandJobType.SNAPSHOT_ISLAND, "island-1", Map.of("fencingToken", "13")), "snapshot upload failed");
+
+        assertEquals(IslandState.DEACTIVATING, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(IslandState.DEACTIVATING, islands.findById(ISLAND).orElseThrow().state());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name()));
+        assertTrue(events.toJson().contains("\"state\":\"DEACTIVATING\""));
+    }
+
+    @Test
     void duplicateCompletionPayloadReplaysAndDifferentPayloadConflicts() {
         InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
         InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();

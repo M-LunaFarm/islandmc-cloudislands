@@ -270,16 +270,35 @@ final class JobCompletionBackend {
 
     private void preserveRuntimeOnSnapshotFailure(IslandJob job, String errorMessage) {
         kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot current = runtimes.find(job.islandId()).orElse(null);
-        if (current == null || current.state() != IslandState.ACTIVE) {
+        IslandState state;
+        boolean runtimePreserved;
+        if (current == null) {
             runtimes.setState(job.islandId(), IslandState.ERROR_SAVING);
             setIslandState(job.islandId(), IslandState.ERROR_SAVING);
+            state = IslandState.ERROR_SAVING;
+            runtimePreserved = false;
+        } else if (job.type() == IslandJobType.SAVE_ISLAND && current.state() == IslandState.SAVING) {
+            if (current.activeNode() == null || current.activeNode().isBlank() || placementMissing(current)) {
+                runtimes.setState(job.islandId(), IslandState.ERROR_SAVING);
+                setIslandState(job.islandId(), IslandState.ERROR_SAVING);
+                state = IslandState.ERROR_SAVING;
+                runtimePreserved = false;
+            } else {
+                runtimes.markActive(job.islandId(), current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.fencingToken());
+                setIslandState(job.islandId(), IslandState.ACTIVE);
+                state = IslandState.ACTIVE;
+                runtimePreserved = true;
+            }
+        } else {
+            state = current.state();
+            runtimePreserved = true;
         }
         publishEvent(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), Map.of(
             "islandId", job.islandId().toString(),
-            "state", current == null ? IslandState.ERROR_SAVING.name() : current.state().name(),
+            "state", state.name(),
             "jobType", job.type().name(),
             "error", errorMessage == null ? "" : errorMessage,
-            "runtimePreserved", Boolean.toString(current != null && current.state() == IslandState.ACTIVE)
+            "runtimePreserved", Boolean.toString(runtimePreserved)
         ));
     }
 

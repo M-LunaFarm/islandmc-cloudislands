@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.common.routing.NodeAllocator;
 import kr.lunaf.cloudislands.coreservice.InMemoryNodeRegistry;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.job.InMemoryIslandJobPublisher;
+import kr.lunaf.cloudislands.coreservice.job.IslandJobPublisher;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.template.InMemoryIslandTemplateRepository;
@@ -143,10 +144,61 @@ class IslandLifecycleWorkflowRestoreTest {
         assertEquals(0L, events.countByType(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name()));
     }
 
+    @Test
+    void snapshotRejectsBusyRuntimeWithoutQueuingConcurrentSave() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "snapshot target");
+        runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 7, 8, 42L);
+        runtimes.markSaving(ISLAND, 42L);
+        islands.setState(ISLAND, IslandState.SAVING);
+
+        IslandLifecycleWorkflow.Result result = workflow(runtimes, islands, jobs, events).snapshot(ISLAND, "manual");
+
+        assertEquals(false, result.accepted());
+        assertEquals("ISLAND_BUSY", result.code());
+        assertEquals(IslandState.SAVING, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(0, jobs.snapshot().size());
+        assertEquals(0L, events.countByType(CloudIslandEventType.ISLAND_SNAPSHOT_REQUESTED.name()));
+    }
+
+    @Test
+    void snapshotQueueFailureKeepsActiveRuntimeRoutable() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "snapshot target");
+        islands.setState(ISLAND, IslandState.ACTIVE);
+        runtimes.markActive(ISLAND, "island-2", "ci_shard_002", 7, 8, 42L);
+        IslandJobPublisher failingJobs = _job -> {
+            throw new IllegalStateException("queue unavailable");
+        };
+
+        IslandLifecycleWorkflow.Result result = workflow(runtimes, islands, failingJobs, events).snapshot(ISLAND, "manual");
+
+        assertEquals(false, result.accepted());
+        assertEquals("JOB_QUEUE_UNAVAILABLE", result.code());
+        assertEquals(IslandState.ACTIVE, runtimes.find(ISLAND).orElseThrow().state());
+        assertEquals(IslandState.ACTIVE, islands.findById(ISLAND).orElseThrow().state());
+        assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name()));
+        assertEquals(true, events.toJson().contains("\"runtimePreserved\":\"true\""));
+    }
+
     private IslandLifecycleWorkflow workflow(
         InMemoryIslandRuntimeRepository runtimes,
         InMemoryIslandRepository islands,
         InMemoryIslandJobPublisher jobs,
+        InMemoryGlobalEventPublisher events
+    ) {
+        return workflow(runtimes, islands, (IslandJobPublisher) jobs, events);
+    }
+
+    private IslandLifecycleWorkflow workflow(
+        InMemoryIslandRuntimeRepository runtimes,
+        InMemoryIslandRepository islands,
+        IslandJobPublisher jobs,
         InMemoryGlobalEventPublisher events
     ) {
         return new IslandLifecycleWorkflow(

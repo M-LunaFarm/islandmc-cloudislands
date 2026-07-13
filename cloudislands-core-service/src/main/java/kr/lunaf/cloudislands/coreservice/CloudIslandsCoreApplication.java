@@ -191,7 +191,7 @@ public final class CloudIslandsCoreApplication {
             Path.of(config.storageLocalPath()),
             lifecycle
         );
-        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, completionEvents, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock, completionReceipts, completionOutbox, addonStates);
+        kr.lunaf.cloudislands.coreservice.job.JobCompletionService jobCompletion = new kr.lunaf.cloudislands.coreservice.job.JobCompletionService(runtimeRepository, completionEvents, snapshotRepository, tickets, jobs, islandRepository, playerProfiles, config.routeTicketTtl(), config.snapshotRetentionPolicy(), activationLock, completionReceipts, completionOutbox, addonStates, events);
         PrometheusMetricsRenderer metrics = CoreMetricsFactory.create(
             config,
             coreJdbcActive,
