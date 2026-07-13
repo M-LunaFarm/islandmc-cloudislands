@@ -1,28 +1,46 @@
 package kr.lunaf.cloudislands.paper.level;
 
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
+import kr.lunaf.cloudislands.paper.bootstrap.RuntimeComponent;
 import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
+import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.BoundingBox;
 
-public final class IslandLevelScanService {
-    private final Plugin plugin;
+public final class IslandLevelScanService implements RuntimeComponent {
+    static final int MAX_BLOCKS_PER_TICK = 8_192;
+    static final int MAX_ENTITIES_PER_TICK = 512;
+    static final long MAX_TICK_NANOS = 2_000_000L;
+
     private final Supplier<ActiveIslandRegistry> activeIslands;
     private final RuntimeCommandClient runtimeCommands;
     private final PaperWorldGateway worlds;
     private final CustomBlockKeyService customBlockKeys;
+    private final TickScheduler scheduler;
+    private final Map<UUID, ScanJob> inFlight = new ConcurrentHashMap<>();
+    private final Object writeLock = new Object();
+    private final Map<UUID, Long> mutationVersions = new HashMap<>();
+    private final Map<UUID, CompletableFuture<Void>> writeTails = new HashMap<>();
+    private volatile boolean stopped;
 
     public IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client) {
         this(
@@ -41,65 +59,281 @@ public final class IslandLevelScanService {
     }
 
     IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client, PaperWorldGateway worlds, CustomBlockKeyService customBlockKeys) {
-        this.plugin = plugin;
+        this(plugin, activeIslands, client, worlds, customBlockKeys, task -> {
+            org.bukkit.scheduler.BukkitTask scheduled = PaperSchedulers.runTimer(plugin, task, 0L, 1L);
+            return scheduled == null ? TaskHandle.noop() : scheduled::cancel;
+        });
+    }
+
+    IslandLevelScanService(
+        Plugin plugin,
+        Supplier<ActiveIslandRegistry> activeIslands,
+        CoreApiClient client,
+        PaperWorldGateway worlds,
+        CustomBlockKeyService customBlockKeys,
+        TickScheduler scheduler
+    ) {
         this.activeIslands = activeIslands;
         this.runtimeCommands = client.runtimeCommands();
         this.worlds = worlds;
         this.customBlockKeys = customBlockKeys == null ? CustomBlockKeyService.vanillaOnly() : customBlockKeys;
+        this.scheduler = scheduler;
     }
 
     public CompletableFuture<Void> rescanIsland(UUID islandId) {
+        if (stopped) {
+            return CompletableFuture.failedFuture(new CancellationException("Island level scan service is stopped"));
+        }
         ActiveIslandRegistry registry = activeIslands.get();
         ActiveIslandRegistry.ActiveIsland active = registry == null ? null : registry.find(islandId).orElse(null);
         if (active == null) {
             return CompletableFuture.completedFuture(null);
         }
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            try {
-                World world = worlds.world(active.worldName());
-                if (world == null) {
-                    future.complete(null);
-                    return;
-                }
-                Map<String, Long> counts = scan(world, active);
-                runtimeCommands.replaceBlockCounts(islandId, counts)
-                    .thenRun(() -> future.complete(null))
-                    .exceptionally(error -> {
-                        future.completeExceptionally(error);
-                        return null;
-                    });
-            } catch (RuntimeException exception) {
-                future.completeExceptionally(exception);
+        ScanJob existing = inFlight.get(islandId);
+        if (existing != null) {
+            return existing.future;
+        }
+        ScanJob created = new ScanJob(islandId, active);
+        ScanJob winner = inFlight.putIfAbsent(islandId, created);
+        if (winner != null) {
+            return winner.future;
+        }
+        created.future.whenComplete((_ignored, _error) -> {
+            inFlight.remove(islandId, created);
+            synchronized (writeLock) {
+                cleanupMutationVersionLocked(islandId);
             }
         });
-        return future;
+        try {
+            created.start();
+        } catch (RuntimeException | LinkageError error) {
+            created.fail(error);
+        }
+        return created.future;
     }
 
-    private Map<String, Long> scan(World world, ActiveIslandRegistry.ActiveIsland active) {
-        Map<String, Long> counts = new HashMap<>();
-        int half = Math.max(1, active.islandSize() / 2);
-        int minX = active.originX() - half;
-        int maxX = active.originX() + half;
-        int minZ = active.originZ() - half;
-        int maxZ = active.originZ() + half;
-        for (int x = minX; x <= maxX; x++) {
-            for (int z = minZ; z <= maxZ; z++) {
-                for (int y = world.getMinHeight(); y < world.getMaxHeight(); y++) {
-                    org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+    public void recordBlockDelta(UUID islandId, String materialKey, long delta) {
+        if (islandId == null || materialKey == null || materialKey.isBlank() || delta == 0L || stopped) {
+            return;
+        }
+        synchronized (writeLock) {
+            mutationVersions.merge(islandId, 1L, Long::sum);
+            enqueueWriteLocked(islandId, () -> runtimeCommands.recordBlockDelta(islandId, materialKey, delta));
+        }
+    }
+
+    @Override
+    public void stop() {
+        stopped = true;
+        CancellationException cancellation = new CancellationException("CloudIslands is stopping");
+        List.copyOf(inFlight.values()).forEach(job -> job.cancel(cancellation));
+        inFlight.clear();
+    }
+
+    int inFlightCount() {
+        return inFlight.size();
+    }
+
+    int mutationStateCount() {
+        synchronized (writeLock) {
+            return mutationVersions.size();
+        }
+    }
+
+    private final class ScanJob implements Runnable {
+        private final UUID islandId;
+        private final ActiveIslandRegistry.ActiveIsland active;
+        private final CompletableFuture<Void> future = new CompletableFuture<>();
+        private final Map<String, Long> counts = new HashMap<>();
+        private long startingMutationVersion;
+        private TaskHandle task = TaskHandle.noop();
+        private World world;
+        private IslandScanCursor cursor;
+        private BoundingBox entityBounds;
+        private List<Entity> entities = List.of();
+        private int entityIndex;
+        private boolean entitiesLoaded;
+
+        private ScanJob(UUID islandId, ActiveIslandRegistry.ActiveIsland active) {
+            this.islandId = islandId;
+            this.active = active;
+        }
+
+        private void start() {
+            synchronized (writeLock) {
+                startingMutationVersion = mutationVersions.getOrDefault(islandId, 0L);
+            }
+            TaskHandle scheduled = scheduler.repeatEveryTick(this);
+            this.task = scheduled == null ? TaskHandle.noop() : scheduled;
+            if (future.isDone()) {
+                this.task.cancel();
+            }
+        }
+
+        @Override
+        public void run() {
+            if (future.isDone()) {
+                task.cancel();
+                return;
+            }
+            try {
+                if (stopped) {
+                    cancel(new CancellationException("Island level scan service is stopped"));
+                    return;
+                }
+                if (!sameActivationStillActive()) {
+                    cancel(new CancellationException("Island activation changed during level scan: " + islandId));
+                    return;
+                }
+                if (world == null && !initializeWorld()) {
+                    completeWithoutReplacement();
+                    return;
+                }
+                long deadline = System.nanoTime() + MAX_TICK_NANOS;
+                int blocks = 0;
+                while (cursor.hasNext() && blocks < MAX_BLOCKS_PER_TICK && System.nanoTime() < deadline) {
+                    org.bukkit.block.Block block = world.getBlockAt(cursor.x(), cursor.y(), cursor.z());
                     Material type = block.getType();
-                    if (!type.isAir()) {
+                    if (!isAir(type)) {
                         counts.merge(customBlockKeys.blockKey(block), 1L, Long::sum);
                     }
+                    cursor.advance();
+                    blocks++;
                 }
+                if (cursor.hasNext()) {
+                    return;
+                }
+                if (!entitiesLoaded) {
+                    entities = List.copyOf(world.getNearbyEntities(entityBounds));
+                    entitiesLoaded = true;
+                }
+                int checkedEntities = 0;
+                while (entityIndex < entities.size() && checkedEntities < MAX_ENTITIES_PER_TICK && System.nanoTime() < deadline) {
+                    Entity entity = entities.get(entityIndex++);
+                    Location location = entity.getLocation();
+                    if (cursor.contains(location.getBlockX(), location.getBlockZ())) {
+                        counts.merge(customBlockKeys.entityKey(entity), 1L, Long::sum);
+                    }
+                    checkedEntities++;
+                }
+                if (entityIndex >= entities.size()) {
+                    submitReplacement();
+                }
+            } catch (RuntimeException | LinkageError error) {
+                fail(error);
             }
         }
-        for (Entity entity : world.getEntities()) {
-            Location location = entity.getLocation();
-            if (location.getBlockX() >= minX && location.getBlockX() <= maxX && location.getBlockZ() >= minZ && location.getBlockZ() <= maxZ) {
-                counts.merge(customBlockKeys.entityKey(entity), 1L, Long::sum);
+
+        private boolean initializeWorld() {
+            world = worlds.world(active.worldName());
+            if (world == null) {
+                return false;
             }
+            int half = Math.max(1, active.islandSize() / 2);
+            cursor = new IslandScanCursor(
+                active.originX() - half,
+                active.originX() + half,
+                world.getMinHeight(),
+                world.getMaxHeight() - 1,
+                active.originZ() - half,
+                active.originZ() + half
+            );
+            entityBounds = new BoundingBox(
+                active.originX() - half,
+                world.getMinHeight(),
+                active.originZ() - half,
+                active.originX() + half + 1.0D,
+                world.getMaxHeight(),
+                active.originZ() + half + 1.0D
+            );
+            return true;
         }
-        return counts;
+
+        private boolean sameActivationStillActive() {
+            ActiveIslandRegistry registry = activeIslands.get();
+            ActiveIslandRegistry.ActiveIsland current = registry == null ? null : registry.find(islandId).orElse(null);
+            return current != null
+                && current.fencingToken() == active.fencingToken()
+                && Objects.equals(current.worldName(), active.worldName());
+        }
+
+        private void submitReplacement() {
+            task.cancel();
+            CompletableFuture<Void> replacement;
+            synchronized (writeLock) {
+                long currentMutationVersion = mutationVersions.getOrDefault(islandId, 0L);
+                if (currentMutationVersion != startingMutationVersion) {
+                    fail(new ConcurrentModificationException(
+                        "Island blocks changed during the tick-batched level scan; a later scan will reconcile " + islandId
+                    ));
+                    return;
+                }
+                replacement = enqueueWriteLocked(
+                    islandId,
+                    () -> runtimeCommands.replaceBlockCounts(islandId, Map.copyOf(counts))
+                );
+            }
+            replacement
+                .whenComplete((_result, error) -> {
+                    if (error == null) {
+                        future.complete(null);
+                    } else {
+                        future.completeExceptionally(error);
+                    }
+                });
+        }
+
+        private void completeWithoutReplacement() {
+            task.cancel();
+            future.complete(null);
+        }
+
+        private void fail(Throwable error) {
+            task.cancel();
+            future.completeExceptionally(error);
+        }
+
+        private void cancel(CancellationException cancellation) {
+            task.cancel();
+            future.completeExceptionally(cancellation);
+        }
+    }
+
+    @FunctionalInterface
+    interface TickScheduler {
+        TaskHandle repeatEveryTick(Runnable task);
+    }
+
+    private static boolean isAir(Material material) {
+        return material == null || material == Material.AIR || material == Material.CAVE_AIR || material == Material.VOID_AIR;
+    }
+
+    private CompletableFuture<Void> enqueueWriteLocked(UUID islandId, Supplier<? extends CompletableFuture<?>> operation) {
+        CompletableFuture<Void> previous = writeTails.getOrDefault(islandId, CompletableFuture.completedFuture(null));
+        CompletableFuture<Void> next = previous.handle((_ignored, _error) -> null)
+            .thenComposeAsync(_ignored -> {
+                try {
+                    CompletableFuture<?> result = operation.get();
+                    return result == null
+                        ? CompletableFuture.completedFuture(null)
+                        : result.thenApply(_value -> (Void) null);
+                } catch (RuntimeException | LinkageError error) {
+                    return CompletableFuture.failedFuture(error);
+                }
+            });
+        writeTails.put(islandId, next);
+        next.whenComplete((_ignored, _error) -> {
+            synchronized (writeLock) {
+                writeTails.remove(islandId, next);
+                cleanupMutationVersionLocked(islandId);
+            }
+        });
+        return next;
+    }
+
+    private void cleanupMutationVersionLocked(UUID islandId) {
+        if (!inFlight.containsKey(islandId) && !writeTails.containsKey(islandId)) {
+            mutationVersions.remove(islandId);
+        }
     }
 }

@@ -1,11 +1,9 @@
 package kr.lunaf.cloudislands.paper.command;
 
-import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
-import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.admin.AdminCommandController;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
@@ -30,8 +28,7 @@ public final class PaperCommandRegistrar {
         EconomyBridge economyBridge,
         MessageRenderer messages,
         LocalCacheManager localCaches,
-        PlayerLocaleCache locales,
-        Supplier<ActiveIslandRegistry> activeIslands
+        PlayerLocaleCache locales
     ) {
         PluginCommand admin = plugin.getCommand("ciadmin");
         if (admin != null) {
@@ -42,7 +39,7 @@ public final class PaperCommandRegistrar {
         PluginCommand island = plugin.getCommand("island");
         if (island != null) {
             AddonIslandCommandRegistry.global().configure(plugin);
-            IslandLevelScanService levelScanService = new IslandLevelScanService(plugin, activeIslands, client);
+            IslandLevelScanService levelScanService = plugin.levelScanService();
             IslandCommandController islandController = new IslandCommandController(plugin, client, agent.protection(), routeWaitSeconds, fallbackServerName, levelScanService, economyBridge, messages, locales, nodeId, plugin.runtimeConfig().generator().defaultKey(), plugin.runtimeConfig().guiEnabledForRole(agent.role()), plugin.runtimeConfig().snapshots(), plugin.runtimeConfig().migration().superiorSkyblock2LegacyAliasesEnabled(), plugin.runtimeConfig().migration().superiorSkyblock2Enabled());
             if (plugin.runtimeConfig().routing().directLocalTeleport()) {
                 islandController.enableLocalRouting(agent.routeTickets(), plugin.runtimeConfig().routing().localFallbackWorld());

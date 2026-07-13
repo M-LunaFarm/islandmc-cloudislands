@@ -14,6 +14,7 @@ class CustomBlockLevelAccountingPolicyTest {
         String runtime = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/bootstrap/PaperRuntimeServices.java"));
 
         assertTrue(deltas.contains("customBlockKeys.blockKey(block)"));
+        assertTrue(deltas.contains("levelScanService.recordBlockDelta"));
         assertTrue(scans.contains("customBlockKeys.blockKey(block)"));
         assertTrue(scans.contains("customBlockKeys.entityKey(entity)"));
         assertTrue(runtime.contains("custom-block-key-registration"));

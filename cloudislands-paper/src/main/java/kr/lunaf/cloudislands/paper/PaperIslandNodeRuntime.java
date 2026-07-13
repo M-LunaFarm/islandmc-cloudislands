@@ -16,7 +16,6 @@ import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
-import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.level.PeriodicIslandLevelScanTask;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
@@ -109,7 +108,7 @@ final class PaperIslandNodeRuntime {
         plugin.periodicLevelScanTask = new PeriodicIslandLevelScanTask(
             plugin,
             plugin.activeIslands,
-            new IslandLevelScanService(plugin, () -> plugin.activeIslands, client)
+            plugin.levelScanService
         );
         plugin.permissionEventPoller.start(config.protection().cacheEventPollTicks());
         plugin.lifecycle.started("permission-event-poller", plugin.permissionEventPoller::stop);

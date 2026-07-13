@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
 import kr.lunaf.cloudislands.paper.integration.PaperIntegrationRegistry;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
+import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.limit.IslandEffectApplier;
 import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitListener;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
@@ -99,6 +100,8 @@ final class PaperPluginBootstrap {
         EconomyBridge economyBridge = runtimeServices.economyBridge();
         IslandLimitCache limitCache = new IslandLimitCache(client);
         plugin.localCaches.register("limits", limitCache::invalidateAll);
+        plugin.levelScanService = new IslandLevelScanService(plugin, () -> plugin.activeIslands, client);
+        plugin.lifecycle.started("level-scan-service", plugin.levelScanService);
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(plugin, client);
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperPlayerProfileListener(client, plugin.playerLocales));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperBrandingListener(plugin, plugin.messages, plugin.playerLocales));
@@ -139,7 +142,7 @@ final class PaperPluginBootstrap {
         plugin.routeSessionListener = routeSessionRuntime.listener();
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.routeSessionListener);
         int routeWaitSeconds = config.routing().waitForActivationTimeoutSeconds();
-        GuiActionExecutor guiActions = new PaperCommandRegistrar(plugin).register(plugin.agent, client, nodeId, routeWaitSeconds, fallbackServerName, economyBridge, plugin.messages, plugin.localCaches, plugin.playerLocales, () -> plugin.activeIslands);
+        GuiActionExecutor guiActions = new PaperCommandRegistrar(plugin).register(plugin.agent, client, nodeId, routeWaitSeconds, fallbackServerName, economyBridge, plugin.messages, plugin.localCaches, plugin.playerLocales);
         if (config.guiEnabledForRole(role)) {
             IslandGuiMenuRegistrar.register(plugin, plugin.messages, guiActions);
         }

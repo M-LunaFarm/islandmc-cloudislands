@@ -792,7 +792,7 @@ tasks.register("verifySatisMigrationReportCoverage") {
 
 tasks.register("verifyRankingWorthCertification") {
     group = "verification"
-    description = "Verifies ranking/worth certification covers 10k island recalculation, dirty debounce, ignored islands, and event publication."
+    description = "Verifies ranking/worth certification covers 10k recalculation, dirty debounce, tick-budgeted Paper scans, ignored islands, and event publication."
     dependsOn(project(":cloudislands-core-service").tasks.named("test"))
     val recalculation = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/ranking/RankingRecalculationService.java")
     val rankingRepository = layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/ranking/RankingRepository.java")
@@ -806,7 +806,9 @@ tasks.register("verifyRankingWorthCertification") {
     val dirtyTaskTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java")
     val blockLevelRoutesTest = layout.projectDirectory.file("cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandBlockLevelRoutesTest.java")
     val placeholderRanksTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/placeholder/CloudIslandsPlaceholderRanksTest.java")
-    inputs.files(recalculation, rankingRepository, jdbcRankingRepository, dirtyTask, blockLevelRoutes, placeholderExpansion, placeholderValues, placeholderRanks, recalculationTest, dirtyTaskTest, blockLevelRoutesTest, placeholderRanksTest)
+    val levelScanService = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/level/IslandLevelScanService.java")
+    val levelScanTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/IslandLevelScanServiceTest.java")
+    inputs.files(recalculation, rankingRepository, jdbcRankingRepository, dirtyTask, blockLevelRoutes, placeholderExpansion, placeholderValues, placeholderRanks, recalculationTest, dirtyTaskTest, blockLevelRoutesTest, placeholderRanksTest, levelScanService, levelScanTest)
     doLast {
         val serviceSource = recalculation.asFile.readText()
         val repositorySource = rankingRepository.asFile.readText()
@@ -816,10 +818,12 @@ tasks.register("verifyRankingWorthCertification") {
         val placeholderSource = placeholderExpansion.asFile.readText()
         val placeholderValueSource = placeholderValues.asFile.readText()
         val placeholderRankSource = placeholderRanks.asFile.readText()
+        val levelScanSource = levelScanService.asFile.readText()
         val recalculationTests = recalculationTest.asFile.readText()
         val dirtyTests = dirtyTaskTest.asFile.readText()
         val blockLevelTests = blockLevelRoutesTest.asFile.readText()
         val placeholderTests = placeholderRanksTest.asFile.readText()
+        val levelScanTests = levelScanTest.asFile.readText()
         val failures = buildList {
             listOf("ISLAND_LEVEL_UPDATED", "ISLAND_WORTH_CHANGED").filterNot(serviceSource::contains).forEach {
                 add("Ranking recalculation must publish event signal: $it")
@@ -835,6 +839,12 @@ tasks.register("verifyRankingWorthCertification") {
             if (!dirtyTests.contains("tenThousandDirtyIslandsStayDebouncedAndProcessOnlyBatchLimitPerRun")) add("Dirty ranking 10k debounce certification test is missing")
             if (!blockLevelTests.contains("levelRecalculationWritesAuditAndEventSignals")) add("Admin/manual recalculation audit test is missing")
             if (!placeholderTests.contains("rendersWorthAndLevelRankPlaceholdersFromProgressionRankings")) add("Placeholder rank certification test is missing")
+            listOf("MAX_BLOCKS_PER_TICK", "MAX_TICK_NANOS", "inFlight.putIfAbsent", "startingMutationVersion", "enqueueWriteLocked", "sameActivationStillActive", "cleanupMutationVersionLocked").filterNot(levelScanSource::contains).forEach {
+                add("Paper level reconciliation safety is missing: $it")
+            }
+            listOf("deduplicatesConcurrentRequestsAndReplacesAfterTickBatches", "serializesPriorDeltasBeforeAuthoritativeReplacement", "refusesToOverwriteCountsWhenBlocksChangeMidScan", "shutdownCancelsInFlightScans").filterNot(levelScanTests::contains).forEach {
+                add("Paper level reconciliation certification test is missing: $it")
+            }
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))

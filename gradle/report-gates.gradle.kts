@@ -334,19 +334,21 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     FeatureParityEntry(
         "ranking/level/worth/block values",
         "IMPLEMENTED_VERIFIED",
-        "ranking, dirty recalculation, typed block values, and custom block identity have service tests",
+        "ranking, dirty recalculation, typed block values, custom block identity, and tick-budgeted reconciliation have service tests",
         "Paper-facing values compile; no per-version runtime divergence is claimed",
         "version-neutral",
-        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed block values plus ItemsAdder, Oraxen, and Nexo block and furniture identity in delta and reconciliation paths",
+        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, custom block identity, bounded per-tick scans, duplicate coalescing, serialized writes, and concurrent-mutation rejection",
         "not recovery-specific",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/LevelWorthSystemPolicyTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/CustomBlockLevelAccountingPolicyTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/customitem/CustomBlockKeyServiceTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/IslandLevelScanServiceTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/IslandScanCursorTest.java",
             "cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/hook/PlaceholderFeaturePolicyTest.java"
         ),
-        "custom vendor APIs remain deployment-specific live acceptance; configured economics are operator-owned"
+        "custom vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan"
     ),
     FeatureParityEntry(
         "upgrades/size/border/biome",

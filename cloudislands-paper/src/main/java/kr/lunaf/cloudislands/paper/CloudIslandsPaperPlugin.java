@@ -76,6 +76,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     PeriodicIslandSaveTask periodicSaveTask;
     EmptyIslandSaveTask emptyIslandSaveTask;
     PeriodicIslandLevelScanTask periodicLevelScanTask;
+    IslandLevelScanService levelScanService;
     ActiveIslandRegistry activeIslands;
     GeneratorLevelCache generatorLevels;
     IslandGeneratorListener generatorListener;
@@ -113,6 +114,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         periodicSaveTask = null;
         emptyIslandSaveTask = null;
         periodicLevelScanTask = null;
+        levelScanService = null;
         if (redisClient != null) {
             redisClient.close();
             redisClient = null;
@@ -187,6 +189,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     PeriodicIslandLevelScanTask periodicLevelScanTask() {
         return periodicLevelScanTask;
+    }
+
+    public IslandLevelScanService levelScanService() {
+        return levelScanService;
     }
 
     IslandGeneratorListener generatorListener() {

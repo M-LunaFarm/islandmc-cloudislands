@@ -13,17 +13,30 @@ public final class BlockDeltaReporter {
     private final Plugin plugin;
     private final RuntimeCommandClient runtimeCommands;
     private final CustomBlockKeyService customBlockKeys;
+    private final IslandLevelScanService levelScanService;
 
     public BlockDeltaReporter(Plugin plugin, CoreApiClient client) {
-        this(plugin, client, plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands
-            ? cloudIslands.customBlockKeys()
-            : CustomBlockKeyService.discover(plugin.getServer()));
+        this(
+            plugin,
+            client,
+            plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands
+                ? cloudIslands.customBlockKeys()
+                : CustomBlockKeyService.discover(plugin.getServer()),
+            plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands
+                ? cloudIslands.levelScanService()
+                : null
+        );
     }
 
     BlockDeltaReporter(Plugin plugin, CoreApiClient client, CustomBlockKeyService customBlockKeys) {
+        this(plugin, client, customBlockKeys, null);
+    }
+
+    BlockDeltaReporter(Plugin plugin, CoreApiClient client, CustomBlockKeyService customBlockKeys, IslandLevelScanService levelScanService) {
         this.plugin = plugin;
         this.runtimeCommands = client.runtimeCommands();
         this.customBlockKeys = customBlockKeys == null ? CustomBlockKeyService.vanillaOnly() : customBlockKeys;
+        this.levelScanService = levelScanService;
     }
 
     public void placed(UUID islandId, Block block) {
@@ -67,6 +80,10 @@ public final class BlockDeltaReporter {
     }
 
     private void report(UUID islandId, String materialKey, long delta) {
+        if (levelScanService != null) {
+            levelScanService.recordBlockDelta(islandId, materialKey, delta);
+            return;
+        }
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runAsync(plugin, () -> runtimeCommands.recordBlockDelta(islandId, materialKey, delta));
     }
 
