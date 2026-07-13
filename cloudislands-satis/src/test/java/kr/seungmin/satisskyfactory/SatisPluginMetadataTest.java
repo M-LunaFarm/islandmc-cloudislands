@@ -14,7 +14,7 @@ class SatisPluginMetadataTest {
     void pluginMetadataUsesCentralProjectVersionPaperBaselineAndShadowBundledDependencies() throws IOException {
         String descriptor = mainResource("plugin.yml");
 
-        assertTrue(descriptor.contains("version: 1.1.142"));
+        assertTrue(descriptor.contains("version: 1.1.143"));
         assertTrue(descriptor.contains("api-version: \"1.21.11\""));
         assertFalse(descriptor.contains("libraries:"));
         assertFalse(descriptor.contains("org.postgresql:postgresql"));

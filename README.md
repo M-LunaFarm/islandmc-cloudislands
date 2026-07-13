@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.142`
+Version: `1.1.143`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.142`
+Current release: `v1.1.143`
 
-Built for the CloudIslands 1.1.142 baseline.
+Built for the CloudIslands 1.1.143 baseline.
 
-Release notes for `v1.1.142`:
+Release notes for `v1.1.143`:
+
+- transient Paper job failures now consume the configured queue retry budget
+  without changing the island runtime, releasing lifecycle locks, or failing
+  route tickets before the final attempt
+- in-memory and JDBC queues expose the same retry-scheduled versus terminal
+  failure contract, so Core applies error-state transitions only after retries
+  are exhausted
+- Redis jobs now preserve their attempt count when requeued and atomically add
+  the retry entry, acknowledge the prior stream entry, clear its claim, and
+  write audit evidence in one MULTI/EXEC transaction
+- terminal failure state and its durable event are committed before the queue is
+  marked FAILED; an event-store outage leaves the claim available for replay
+  instead of silently losing the failed job
+
+Release notes carried forward from `v1.1.142`:
 
 - snapshot requests are accepted only while the island runtime is ACTIVE, so a
   snapshot cannot race an in-progress save, deactivation, or recovery workflow
@@ -2440,7 +2455,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.142`.
+Current read: production-readiness baseline `v1.1.143`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
