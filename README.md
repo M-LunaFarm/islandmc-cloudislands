@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.160`
+Version: `1.1.161`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -658,11 +658,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.160`
+Current release: `v1.1.161`
 
-Built for the CloudIslands 1.1.160 baseline.
+Built for the CloudIslands 1.1.161 baseline.
 
-Release notes for `v1.1.160`:
+Release notes for `v1.1.161`:
+
+- WildStacker spawner batches are checked at LOWEST against their complete
+  logical spawn amount, preventing a single Bukkit event from exceeding the
+  island entity limit
+- accepted RoseStacker and WildStacker entity spawns now publish their logical
+  stack size to both entity limits and per-type worth counters
+- RoseStacker's asynchronous pre-spawn event reserves and caps the remaining
+  entity capacity without touching main-thread-owned Bukkit block state
+- RoseStacker nearby-stack post events publish only the logical increase not
+  already represented by newly spawned physical stacks, with bounded reservation
+  expiry and reconciliation fallback on incompatible vendor payloads
+- region index buckets now use copy-on-write storage so asynchronous integration
+  reads remain safe while islands are registered or removed
+
+Release notes carried forward from `v1.1.160`:
 
 - RoseStacker block/spawner placement, GUI changes, player breaks, and explosion
   unstack operations now publish their exact logical material deltas immediately
@@ -2689,7 +2704,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.160`.
+Current read: production-readiness baseline `v1.1.161`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
