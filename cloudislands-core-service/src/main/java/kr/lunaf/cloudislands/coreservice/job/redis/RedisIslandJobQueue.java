@@ -232,14 +232,16 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
                     return false;
                 }
             }
+            redis.command("MULTI");
             if (streamId != null && !streamId.isBlank()) {
                 redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
             }
+            redis.command("DEL", RedisKeys.jobClaim(jobId));
+            redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_CANCELED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
+            redis.command("EXEC");
             claimedJobs.remove(jobId);
             streamIdsByJobId.remove(jobId);
             claimedNodesByJobId.remove(jobId);
-            redis.command("DEL", RedisKeys.jobClaim(jobId));
-            redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_CANCELED", "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", "");
             return true;
         } catch (IOException | RuntimeException exception) {
             recordRedisFailure();
@@ -298,14 +300,17 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             return false;
         }
         try (RedisRespConnection redis = new RedisRespConnection(redisUri)) {
-            claimedJobs.remove(jobId);
-            String streamId = streamIdsByJobId.remove(jobId);
-            claimedNodesByJobId.remove(jobId);
+            String streamId = streamIdsByJobId.get(jobId);
+            redis.command("MULTI");
             if (streamId != null && !streamId.isBlank()) {
                 redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
             }
             redis.command("DEL", RedisKeys.jobClaim(jobId));
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_" + state.toUpperCase(), "jobId", jobId.toString(), "streamId", streamId == null ? "" : streamId, "error", errorMessage == null ? "" : errorMessage);
+            redis.command("EXEC");
+            claimedJobs.remove(jobId);
+            streamIdsByJobId.remove(jobId);
+            claimedNodesByJobId.remove(jobId);
             return true;
         } catch (IOException | RuntimeException exception) {
             recordRedisFailure();
@@ -322,17 +327,20 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             if (!storedLeaseMatches(jobId, claimLease, storedLease)) {
                 return false;
             }
-            claimedJobs.remove(jobId);
-            String streamId = streamIdsByJobId.remove(jobId);
+            String streamId = streamIdsByJobId.get(jobId);
             if (streamId == null || streamId.isBlank()) {
                 streamId = storedLease.getOrDefault("streamId", "");
             }
-            claimedNodesByJobId.remove(jobId);
+            redis.command("MULTI");
             if (!streamId.isBlank()) {
                 redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
             }
             redis.command("DEL", RedisKeys.jobClaim(jobId));
             redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_" + state.toUpperCase(), "jobId", jobId.toString(), "streamId", streamId, "error", errorMessage == null ? "" : errorMessage);
+            redis.command("EXEC");
+            claimedJobs.remove(jobId);
+            streamIdsByJobId.remove(jobId);
+            claimedNodesByJobId.remove(jobId);
             return true;
         } catch (IOException | RuntimeException exception) {
             recordRedisFailure();
@@ -488,6 +496,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     }
 
     private void skipMalformedJob(RedisRespConnection redis, String streamId, Map<String, String> job, String nodeId, RuntimeException exception) throws IOException {
+        redis.command("MULTI");
         if (streamId != null && !streamId.isBlank()) {
             redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
         }
@@ -501,6 +510,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             "nodeId", nodeId,
             "error", exception.getClass().getSimpleName()
         );
+        redis.command("EXEC");
     }
 
     private void deferUnsupportedJob(RedisRespConnection redis, String streamId, Map<String, String> job, String nodeId) throws IOException {
@@ -517,7 +527,7 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
     }
 
     private void requeueMismatchedTarget(RedisRespConnection redis, String streamId, Map<String, String> job, String nodeId, String targetNode) throws IOException {
-        redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
+        redis.command("MULTI");
         redis.command(
             "XADD",
             RedisKeys.jobsStream(),
@@ -531,7 +541,9 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             "attempt", job.getOrDefault("attempt", "0"),
             "payload", job.getOrDefault("payload", "")
         );
+        redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
         redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_REQUEUED_TARGET_MISMATCH", "jobId", job.getOrDefault("jobId", ""), "streamId", streamId, "nodeId", nodeId, "targetNode", targetNode == null ? "" : targetNode);
+        redis.command("EXEC");
     }
 
     private void xaddJob(RedisRespConnection redis, IslandJob job, int attempts) throws IOException {

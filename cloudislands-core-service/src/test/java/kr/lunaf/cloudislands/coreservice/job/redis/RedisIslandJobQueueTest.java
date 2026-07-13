@@ -65,12 +65,36 @@ class RedisIslandJobQueueTest {
             assertTrue(redis.commands().contains(List.of("HGETALL", RedisKeys.jobClaim(jobId))));
             assertTrue(redis.commands().contains(List.of("XACK", RedisKeys.jobsStream(), "cloudislands-agents", streamId)));
             assertTrue(redis.commands().contains(List.of("DEL", RedisKeys.jobClaim(jobId))));
+            assertTrue(redis.commands().contains(List.of("MULTI")));
+            assertTrue(redis.commands().contains(List.of("EXEC")));
             assertTrue(redis.commands().stream().anyMatch(command ->
                 command.size() > 2
                     && command.get(0).equals("XADD")
                     && command.get(1).equals(RedisKeys.auditStream())
                     && command.contains("JOB_CANCELED")
             ));
+        }
+    }
+
+    @Test
+    void completionAckClaimCleanupAndAuditCommitTogether() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        String streamId = "1700000000007-0";
+        try (FakeRedis redis = FakeRedis.withClaim(jobId, islandId, streamId, 2)) {
+            RedisIslandJobQueue queue = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
+            JobClaimLease lease = new JobClaimLease(jobId, streamId, "node-a", "claim-token", 7L, Instant.now().plusSeconds(30), 2);
+
+            assertTrue(queue.complete("node-a", jobId, lease));
+
+            List<List<String>> commands = redis.commands();
+            int multi = commandIndex(commands, "MULTI", "");
+            int ack = commandIndex(commands, "XACK", RedisKeys.jobsStream());
+            int cleanup = commandIndex(commands, "DEL", RedisKeys.jobClaim(jobId));
+            int audit = commandIndex(commands, "XADD", RedisKeys.auditStream());
+            int exec = commandIndex(commands, "EXEC", "");
+            assertTrue(multi >= 0 && multi < ack && ack < cleanup && cleanup < audit && audit < exec);
+            assertTrue(commands.get(audit).contains("JOB_COMPLETED"));
         }
     }
 
@@ -144,6 +168,58 @@ class RedisIslandJobQueueTest {
         }
     }
 
+    @Test
+    void targetMismatchRequeuesBeforeAckInSingleTransaction() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        String streamId = "1700000000005-0";
+        try (FakeRedis redis = FakeRedis.withStreamJob(jobId, islandId, streamId, IslandJobType.SAVE_ISLAND.name(), "island-node-b")) {
+            RedisIslandJobQueue queue = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
+
+            assertTrue(queue.claim("island-node-a", List.of(IslandJobType.SAVE_ISLAND), 1).isEmpty());
+
+            List<List<String>> commands = redis.commands();
+            int multi = commandIndex(commands, "MULTI", "");
+            int requeue = commandIndex(commands, "XADD", RedisKeys.jobsStream());
+            int ack = commandIndex(commands, "XACK", RedisKeys.jobsStream());
+            int audit = commandIndex(commands, "XADD", RedisKeys.auditStream());
+            int exec = commandIndex(commands, "EXEC", "");
+            assertTrue(multi >= 0 && multi < requeue);
+            assertTrue(requeue < ack && ack < audit && audit < exec);
+            assertTrue(commands.get(audit).contains("JOB_REQUEUED_TARGET_MISMATCH"));
+        }
+    }
+
+    @Test
+    void malformedJobAckAndAuditCommitTogether() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        String streamId = "1700000000006-0";
+        try (FakeRedis redis = FakeRedis.withStreamJob(jobId, islandId, streamId, "", "")) {
+            RedisIslandJobQueue queue = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
+
+            assertTrue(queue.claim("island-node-a", List.of(IslandJobType.SAVE_ISLAND), 1).isEmpty());
+
+            List<List<String>> commands = redis.commands();
+            int multi = commandIndex(commands, "MULTI", "");
+            int ack = commandIndex(commands, "XACK", RedisKeys.jobsStream());
+            int audit = commandIndex(commands, "XADD", RedisKeys.auditStream());
+            int exec = commandIndex(commands, "EXEC", "");
+            assertTrue(multi >= 0 && multi < ack && ack < audit && audit < exec);
+            assertTrue(commands.get(audit).contains("JOB_SKIPPED_MALFORMED"));
+        }
+    }
+
+    private static int commandIndex(List<List<String>> commands, String name, String key) {
+        for (int i = 0; i < commands.size(); i++) {
+            List<String> command = commands.get(i);
+            if (!command.isEmpty() && command.getFirst().equals(name) && (key.isBlank() || command.contains(key))) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     private static final class FakeRedis implements Closeable {
         private final ServerSocket server;
         private final Thread thread;
@@ -186,12 +262,16 @@ class RedisIslandJobQueueTest {
         }
 
         static FakeRedis withStreamJob(UUID jobId, UUID islandId, String streamId, String type) throws IOException {
+            return withStreamJob(jobId, islandId, streamId, type, "");
+        }
+
+        static FakeRedis withStreamJob(UUID jobId, UUID islandId, String streamId, String type, String targetNode) throws IOException {
             ServerSocket server = new ServerSocket(0);
             return new FakeRedis(server, Map.of(), streamId, List.of(
                 "jobId", jobId.toString(),
                 "type", type,
                 "islandId", islandId.toString(),
-                "targetNode", "",
+                "targetNode", targetNode,
                 "priority", "3",
                 "createdAt", Instant.EPOCH.toString(),
                 "attempt", "0",
