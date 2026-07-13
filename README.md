@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.151`
+Version: `1.1.152`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,20 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.151`
+Current release: `v1.1.152`
 
-Built for the CloudIslands 1.1.151 baseline.
+Built for the CloudIslands 1.1.152 baseline.
 
-Release notes for `v1.1.151`:
+Release notes for `v1.1.152`:
+
+- island player-target command suggestions now hide vanished players using
+  SuperVanish/PremiumVanish, CMI, Bukkit visibility, and metadata fallbacks,
+  closing a privacy and parity gap with SuperiorSkyblock2
+- vanish integrations are runtime-certified and cleaned up with Paper services;
+  the generated integration report now also correctly classifies Plan as an
+  executable service instead of a diagnostic-only adapter
+
+Release notes carried forward from `v1.1.151`:
 
 - Plan Player Analytics now receives a real CloudIslands data extension instead
   of diagnostic-only detection, with cluster islands, players, online nodes,
@@ -2554,7 +2563,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.151`.
+Current read: production-readiness baseline `v1.1.152`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
