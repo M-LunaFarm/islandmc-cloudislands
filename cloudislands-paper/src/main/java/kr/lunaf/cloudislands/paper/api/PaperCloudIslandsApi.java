@@ -1115,13 +1115,18 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
         @Override
         public CompletableFuture<Void> clearState(String id) {
             String safeId = safeRegistrationId(id);
-            addonStates.remove(safeId);
+            return mutateIdempotent("addon.state.clear", () -> addonStateClient.clearState(safeId))
+                .thenRun(() -> clearLocalAddonState(safeId));
+        }
+
+        private void clearLocalAddonState(String safeId) {
             try {
                 Files.deleteIfExists(addonStatePath(safeId));
             } catch (IOException exception) {
                 plugin.getLogger().warning("CloudIslands addon state clear failed for " + safeId + ": " + exception.getMessage());
+                throw new IllegalStateException("Failed to clear local addon state for " + safeId, exception);
             }
-            return mutateIdempotent("addon.state.clear", () -> addonStateClient.clearState(safeId)).exceptionally(_error -> null);
+            addonStates.remove(safeId);
         }
 
         @Override
@@ -1476,16 +1481,21 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             if (!addonAcceptsIslandStateWrites(safeId)) {
                 return CompletableFuture.completedFuture(null);
             }
-            Map<UUID, Map<String, String>> islandStates = addonIslandStates.get(safeId);
-            if (islandStates != null) {
-                islandStates.remove(islandId);
-            }
+            return mutateIdempotent("addon.island-state.clear", () -> addonStateClient.clearIslandState(safeId, islandId))
+                .thenRun(() -> clearLocalAddonIslandState(safeId, islandId));
+        }
+
+        private void clearLocalAddonIslandState(String safeId, UUID islandId) {
             try {
                 Files.deleteIfExists(addonIslandStatePath(safeId, islandId));
             } catch (IOException exception) {
                 plugin.getLogger().warning("CloudIslands addon island state clear failed for " + safeId + "/" + islandId + ": " + exception.getMessage());
+                throw new IllegalStateException("Failed to clear local addon island state for " + safeId + "/" + islandId, exception);
             }
-            return mutateIdempotent("addon.island-state.clear", () -> addonStateClient.clearIslandState(safeId, islandId)).exceptionally(_error -> null);
+            Map<UUID, Map<String, String>> islandStates = addonIslandStates.get(safeId);
+            if (islandStates != null) {
+                islandStates.remove(islandId);
+            }
         }
 
         private boolean addonAcceptsIslandStateWrites(String id) {
