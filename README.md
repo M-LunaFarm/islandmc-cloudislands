@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.140`
+Version: `1.1.141`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.140`
+Current release: `v1.1.141`
 
-Built for the CloudIslands 1.1.140 baseline.
+Built for the CloudIslands 1.1.141 baseline.
 
-Release notes for `v1.1.140`:
+Release notes for `v1.1.141`:
+
+- island deletion now removes the deleted island's state for every registered
+  addon in Core before the authoritative deleted event is published
+- both immediate inactive-island deletion and active node job completion use
+  the same cleanup boundary, preventing stale Satis tables from being hydrated
+  back into a deleted factory after restart
+- cleanup covers all addon ids while retaining global addon state and every
+  other island; in-memory and JDBC repositories share the same contract
+- Paper full-state clears now complete Core deletion first and only then remove
+  fallback files and caches; remote or local deletion failures propagate to the
+  caller instead of being reported as successful
+
+Release notes carried forward from `v1.1.140`:
 
 - compensated Satis relocation metadata: lifecycle synchronization now captures
   the full active/pending placement checkpoint before moving addon components
@@ -2414,7 +2427,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.140`.
+Current read: production-readiness baseline `v1.1.141`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
