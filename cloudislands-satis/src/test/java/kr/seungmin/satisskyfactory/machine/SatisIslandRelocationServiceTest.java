@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -192,6 +194,83 @@ class SatisIslandRelocationServiceTest {
             assertFalse(island.hasPendingResourceNodeRemap());
             assertEquals("ci_shard_006", machines.find(MACHINE_ID).orElseThrow().world());
             assertEquals("ci_shard_006", nodes.nodes(ISLAND_ID).getFirst().world());
+        }
+    }
+
+    @Test
+    void failedEnabledNodeRemapKeepsPendingOriginAndRetriesAtSamePlacement() throws Exception {
+        try (DatabaseHandle handle = openDatabase("relocation-node-retry")) {
+            FactoryIsland island = new FactoryIsland(ISLAND_ID, OWNER_ID);
+            island.activeWorld("ci_shard_001");
+            island.activeCenterX(0);
+            island.activeCenterY(64);
+            island.activeCenterZ(0);
+            handle.database().saveIsland(island);
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            assertTrue(machines.save(new MachineInstance(MACHINE_ID, ISLAND_ID, OWNER_ID, "grinder_t1", 1,
+                    new BlockKey("ci_shard_001", 4, 65, 8))));
+            handle.database().saveNode(new ResourceNode(NODE_ID, ISLAND_ID, "MINERAL", "iron_ore", 1.0D,
+                    100, 250, 60, 1, new BlockKey("ci_shard_001", -6, 63, 12), 0, 0));
+            ResourceNodeService nodes = new ResourceNodeService(handle.database());
+            nodes.load(nodeConfig());
+            try (Connection connection = handle.database().connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_relocation_node BEFORE UPDATE ON resource_nodes "
+                        + "WHEN NEW.world = 'ci_shard_006' BEGIN SELECT RAISE(FAIL, 'forced relocation node failure'); END");
+            }
+            SatisIslandRelocationService relocation = new SatisIslandRelocationService(machines, nodes);
+
+            SatisIslandRelocationService.RelocationResult failed = relocation.relocate(
+                    ISLAND_ID, island, "ci_shard_006", 2048, 80, -1024, true, true);
+
+            assertTrue(failed.machinesRemapped());
+            assertFalse(failed.resourceNodesRemapped());
+            assertTrue(failed.resourceNodeRemapDeferred());
+            assertTrue(island.hasPendingResourceNodeRemap());
+            assertEquals("ci_shard_001", island.pendingResourceNodeRemapWorld());
+            assertEquals(0, island.pendingResourceNodeRemapCenterX());
+            assertEquals("ci_shard_006", machines.find(MACHINE_ID).orElseThrow().world());
+            assertEquals("ci_shard_001", nodes.nodes(ISLAND_ID).getFirst().world());
+            try (Connection connection = handle.database().connection(); Statement statement = connection.createStatement()) {
+                statement.execute("DROP TRIGGER fail_relocation_node");
+            }
+
+            SatisIslandRelocationService.RelocationResult retried = relocation.relocate(
+                    ISLAND_ID, island, "ci_shard_006", 2048, 80, -1024, true, true);
+
+            assertFalse(retried.machinesRemapped());
+            assertTrue(retried.resourceNodesRemapped());
+            assertFalse(retried.resourceNodeRemapDeferred());
+            assertFalse(island.hasPendingResourceNodeRemap());
+            assertEquals("ci_shard_006", nodes.nodes(ISLAND_ID).getFirst().world());
+            assertEquals(2042, nodes.nodes(ISLAND_ID).getFirst().x());
+        }
+    }
+
+    @Test
+    void relocationRejectsCenterDeltaOverflowWithoutMutatingState() {
+        try (DatabaseHandle handle = openDatabase("relocation-center-overflow")) {
+            FactoryIsland island = new FactoryIsland(ISLAND_ID, OWNER_ID);
+            island.activeWorld("ci_shard_001");
+            island.activeCenterX(Integer.MIN_VALUE);
+            island.activeCenterY(64);
+            island.activeCenterZ(0);
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            assertTrue(machines.save(new MachineInstance(MACHINE_ID, ISLAND_ID, OWNER_ID, "grinder_t1", 1,
+                    new BlockKey("ci_shard_001", 4, 65, 8))));
+            ResourceNodeService nodes = new ResourceNodeService(handle.database());
+            nodes.load(nodeConfig());
+            SatisIslandRelocationService relocation = new SatisIslandRelocationService(machines, nodes);
+
+            SatisIslandRelocationService.RelocationResult result = relocation.relocate(
+                    ISLAND_ID, island, "ci_shard_006", Integer.MAX_VALUE, 80, -1024, true, true);
+
+            assertEquals("overflow", result.delta());
+            assertFalse(result.placementChanged());
+            assertEquals("ci_shard_001", island.activeWorld());
+            assertEquals(Integer.MIN_VALUE, island.activeCenterX());
+            assertEquals("ci_shard_001", machines.find(MACHINE_ID).orElseThrow().world());
         }
     }
 
