@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.171`
+Version: `1.1.172`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -648,7 +648,7 @@ integration verification.
 <!-- feature-parity:start -->
 | Area | Status | Verified evidence | Limit |
 |---|---|---|---|
-| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify target-island coordinates, main-thread safe destination scans, and final bounded destination revalidation | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
+| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify main-thread template permission preflight, target-island coordinates, safe destination scans, and final bounded destination revalidation | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, soft-explosion target authorization and non-destructive accounting, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
 | ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
@@ -662,11 +662,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.171`
+Current release: `v1.1.172`
 
-Built for the CloudIslands 1.1.171 baseline.
+Built for the CloudIslands 1.1.172 baseline.
 
-Release notes for `v1.1.171`:
+Release notes for `v1.1.172`:
+
+- delayed Core template responses now return to the Paper main thread before
+  reading player permissions for the confirmation GUI or direct create command
+- players who disconnect while a template lookup is pending are rejected before
+  an economy charge or Core island mutation can begin
+- asynchronous creation settlement now carries only the immutable player UUID,
+  not a Bukkit `Player` object, through charge, create, and refund stages
+- `PaperSchedulers.supply` provides an exception-aware main-thread value bridge
+  for future Paper pipelines that need Bukkit-owned state
+- regression gates cover both GUI confirmation and paid direct-create permission
+  preflight across the supported Paper compile matrix
+
+Release notes carried forward from `v1.1.171`:
 
 - natural mob despawns, entities entering blocks, out-of-world removals, and
   entity transformations now decrement both the island entity limit and the
@@ -2841,7 +2854,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.171`.
+Current read: production-readiness baseline `v1.1.172`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
