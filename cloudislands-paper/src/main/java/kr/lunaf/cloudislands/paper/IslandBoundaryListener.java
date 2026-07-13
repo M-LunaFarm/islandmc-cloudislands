@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
+import kr.lunaf.cloudislands.paper.platform.world.SafeTeleportResolver;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
@@ -93,7 +94,8 @@ public final class IslandBoundaryListener implements Listener {
         }
         worlds.safeDestination(target, region).whenComplete((destination, error) -> runSync(() -> {
             try {
-                if (error != null || destination == null || destination.isEmpty()) {
+                if (error != null || destination == null || destination.isEmpty()
+                    || !SafeTeleportResolver.isSafe(destination.get(), region)) {
                     player.sendActionBar(Component.text(message("boundary-return-unsafe", "섬 안에서 안전한 복귀 위치를 찾을 수 없습니다.")));
                     return;
                 }

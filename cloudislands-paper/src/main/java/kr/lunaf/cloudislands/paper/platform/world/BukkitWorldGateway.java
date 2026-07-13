@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
@@ -44,6 +45,16 @@ public final class BukkitWorldGateway implements PaperWorldGateway {
             }
         }
         return CompletableFuture.allOf(loads.toArray(CompletableFuture[]::new))
-            .thenApply(_ignored -> SafeTeleportResolver.resolve(requested, boundary));
+            .thenCompose(_ignored -> {
+                CompletableFuture<Optional<Location>> result = new CompletableFuture<>();
+                PaperSchedulers.run(plugin, () -> {
+                    try {
+                        result.complete(SafeTeleportResolver.resolve(requested, boundary));
+                    } catch (RuntimeException error) {
+                        result.completeExceptionally(error);
+                    }
+                });
+                return result;
+            });
     }
 }

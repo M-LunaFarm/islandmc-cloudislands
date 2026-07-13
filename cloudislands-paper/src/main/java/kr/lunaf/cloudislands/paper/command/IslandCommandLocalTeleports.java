@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
+import kr.lunaf.cloudislands.paper.platform.world.SafeTeleportResolver;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -58,7 +59,8 @@ final class IslandCommandLocalTeleports {
             double targetZ = region.map(value -> value.originZ() + point.z()).orElse(point.z());
             Location requested = new Location(world, targetX, point.y(), targetZ, point.yaw(), point.pitch());
             worlds.safeDestination(requested, region.get()).whenComplete((destination, error) -> PaperSchedulers.run(plugin, () -> {
-                if (error != null || destination == null || destination.isEmpty()) {
+                if (error != null || destination == null || destination.isEmpty()
+                    || !SafeTeleportResolver.isSafe(destination.get(), region.get())) {
                     messages.message(player, messages.routeMessage("route-target-unsafe", "안전한 이동 위치를 찾을 수 없습니다."));
                     return;
                 }

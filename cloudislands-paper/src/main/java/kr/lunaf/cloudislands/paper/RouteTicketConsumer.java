@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.Optional;
@@ -18,6 +19,7 @@ import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
+import kr.lunaf.cloudislands.paper.platform.world.SafeTeleportResolver;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import kr.lunaf.cloudislands.protocol.route.PlayerRouteMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
@@ -75,10 +77,17 @@ public final class RouteTicketConsumer {
         consumeAndTeleport(ticketId, playerUuid, nonce, 0);
     }
 
-    public boolean teleportToWorldSpawn(UUID playerUuid, String worldName) {
-        Player player = players.onlinePlayer(playerUuid);
+    public CompletableFuture<Boolean> teleportToWorldSpawn(UUID playerUuid, String worldName) {
         Location target = worlds.worldSpawn(worldName);
-        return player != null && target != null && players.teleport(player, target);
+        if (target == null) {
+            return CompletableFuture.completedFuture(false);
+        }
+        return worlds.safeDestination(target, null).thenApply(destination -> {
+            Player player = players.onlinePlayer(playerUuid);
+            return player != null && destination.isPresent()
+                && SafeTeleportResolver.isSafe(destination.get(), null)
+                && players.teleport(player, destination.get());
+        });
     }
 
     private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
@@ -155,23 +164,34 @@ public final class RouteTicketConsumer {
             return;
         }
         Location requested = maybeTarget.get();
-        worlds.safeDestination(requested, targetRegion(ticket.islandId())).whenComplete((destination, error) ->
+        IslandRegion targetRegion = targetRegion(ticket.islandId());
+        if (targetRegion == null) {
+            recordTeleportFailure("ACTIVE_ISLAND_REGION_MISSING");
+            failRoute(playerUuid, ticket.ticketId(), "ACTIVE_ISLAND_REGION_MISSING", true);
+            return;
+        }
+        worlds.safeDestination(requested, targetRegion).whenComplete((destination, error) ->
             kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                 if (error != null || destination == null || destination.isEmpty()) {
                     recordTeleportFailure("UNSAFE_TELEPORT_TARGET");
                     failRoute(playerUuid, ticket.ticketId(), "UNSAFE_TELEPORT_TARGET", true);
                     return;
                 }
-                completeTeleport(playerUuid, ticket, payload, placementSource, destination.get());
+                completeTeleport(playerUuid, ticket, payload, placementSource, destination.get(), targetRegion);
             })
         );
     }
 
-    private void completeTeleport(UUID playerUuid, RouteTicket ticket, java.util.Map<String, String> payload, String placementSource, Location target) {
+    private void completeTeleport(UUID playerUuid, RouteTicket ticket, java.util.Map<String, String> payload, String placementSource, Location target, IslandRegion targetRegion) {
         Player player = players.onlinePlayer(playerUuid);
         if (player == null) {
             recordFailure("PLAYER_DISCONNECTED");
             clearRoute(playerUuid, ticket.ticketId(), "PLAYER_DISCONNECTED");
+            return;
+        }
+        if (!SafeTeleportResolver.isSafe(target, targetRegion)) {
+            recordTeleportFailure("TELEPORT_TARGET_CHANGED");
+            failRoute(playerUuid, ticket.ticketId(), "TELEPORT_TARGET_CHANGED", true);
             return;
         }
         teleportAttempts.incrementAndGet();

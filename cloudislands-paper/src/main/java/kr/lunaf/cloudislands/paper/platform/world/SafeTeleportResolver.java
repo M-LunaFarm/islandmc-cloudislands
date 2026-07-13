@@ -29,7 +29,7 @@ public final class SafeTeleportResolver {
     }
 
     public static Optional<Location> resolve(Location requested, IslandRegion boundary) {
-        if (requested == null || requested.getWorld() == null) {
+        if (!valid(requested)) {
             return Optional.empty();
         }
         World world = requested.getWorld();
@@ -61,18 +61,42 @@ public final class SafeTeleportResolver {
     }
 
     private static Optional<Location> candidate(World world, Location requested, IslandRegion boundary, int x, int y, int z) {
-        if (y <= world.getMinHeight() || y >= world.getMaxHeight() - 1 || !inside(boundary, world, x, z)) {
+        if (!safe(world, boundary, x, y, z)) {
             return Optional.empty();
+        }
+        return Optional.of(new Location(world, x + 0.5D, y, z + 0.5D, requested.getYaw(), requested.getPitch()));
+    }
+
+    public static boolean isSafe(Location destination, IslandRegion boundary) {
+        return valid(destination) && safe(
+            destination.getWorld(),
+            boundary,
+            destination.getBlockX(),
+            destination.getBlockY(),
+            destination.getBlockZ()
+        );
+    }
+
+    static boolean withinBuildHeight(int feetY, int minHeight, int maxHeight) {
+        return feetY - 1 > minHeight && feetY + 1 < maxHeight;
+    }
+
+    private static boolean safe(World world, IslandRegion boundary, int x, int y, int z) {
+        if (!withinBuildHeight(y, world.getMinHeight(), world.getMaxHeight()) || !inside(boundary, world, x, z)) {
+            return false;
         }
         Block floor = world.getBlockAt(x, y - 1, z);
         Block feet = world.getBlockAt(x, y, z);
         Block head = world.getBlockAt(x, y + 1, z);
-        if (!standable(floor) || !clear(feet) || !clear(head)) {
-            return Optional.empty();
-        }
-        double targetX = x == requested.getBlockX() ? requested.getX() : x + 0.5D;
-        double targetZ = z == requested.getBlockZ() ? requested.getZ() : z + 0.5D;
-        return Optional.of(new Location(world, targetX, y, targetZ, requested.getYaw(), requested.getPitch()));
+        return standable(floor) && clear(feet) && clear(head);
+    }
+
+    private static boolean valid(Location location) {
+        return location != null
+            && location.getWorld() != null
+            && Double.isFinite(location.getX())
+            && Double.isFinite(location.getY())
+            && Double.isFinite(location.getZ());
     }
 
     private static boolean inside(IslandRegion boundary, World world, int x, int z) {

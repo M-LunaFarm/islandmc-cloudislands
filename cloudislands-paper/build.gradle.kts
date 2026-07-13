@@ -75,6 +75,7 @@ tasks.shadowJar {
             "CloudIslands-Paper-GUI-Node-Admin" to "node-load-drain-undrain-view-islands-move-load-shutdown-safe",
             "CloudIslands-Paper-Config-Surface" to "node,core-api,redis,storage,island-node,protection,heartbeat,routing",
             "CloudIslands-Paper-Degraded-Mode-Policy" to "core-down-active-island-local-protection-and-limited-teleport-object-storage-down-active-local-play",
+            "CloudIslands-Paper-Safe-Teleport-Policy" to "async-chunk-load-main-thread-block-scan-centered-destination-boundary-and-final-revalidation",
             "CloudIslands-Paper-Storage-Outage-Policy" to "StorageOutagePolicy-active-islands-stay-local-periodic-and-empty-save-failures-queued-for-retry",
             "CloudIslands-Paper-Storage-Backend-Policy" to "S3-or-MINIO-shared-object-storage-LOCAL_FILESYSTEM-fallback",
             "SuperiorSkyblock2-Migration-Input-Only" to "true",

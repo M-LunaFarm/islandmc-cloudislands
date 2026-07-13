@@ -73,13 +73,13 @@ final class IslandRoutingCommandHandler {
 
     boolean connectPlayerToFallback(Player player, String successMessage, String failureMessage) {
         if (localRouteConsumer != null) {
-            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                if (!localRouteConsumer.teleportToWorldSpawn(player.getUniqueId(), localFallbackWorld)) {
+            localRouteConsumer.teleportToWorldSpawn(player.getUniqueId(), localFallbackWorld).whenComplete((teleported, error) -> runSync(() -> {
+                if (error != null || !Boolean.TRUE.equals(teleported)) {
                     player.sendMessage(runtime.playerMessage(failureMessage));
                     return;
                 }
                 player.sendMessage(runtime.playerMessage(successMessage));
-            });
+            }));
             return true;
         }
         connectPlayerToServer(player, fallbackServerName, successMessage, failureMessage);
