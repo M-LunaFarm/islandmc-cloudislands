@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.bootstrap.RuntimeComponent;
 import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
+import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
@@ -35,6 +36,7 @@ public final class IslandLevelScanService implements RuntimeComponent {
     private final RuntimeCommandClient runtimeCommands;
     private final PaperWorldGateway worlds;
     private final CustomBlockKeyService customBlockKeys;
+    private final StackAmountService stackAmounts;
     private final TickScheduler scheduler;
     private final Map<UUID, ScanJob> inFlight = new ConcurrentHashMap<>();
     private final Object writeLock = new Object();
@@ -50,16 +52,30 @@ public final class IslandLevelScanService implements RuntimeComponent {
             new BukkitWorldGateway(plugin),
             plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands
                 ? cloudIslands.customBlockKeys()
-                : CustomBlockKeyService.discover(plugin.getServer())
+                : CustomBlockKeyService.discover(plugin.getServer()),
+            plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands
+                ? cloudIslands.stackAmounts()
+                : StackAmountService.discover(plugin.getServer())
         );
     }
 
     IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client, PaperWorldGateway worlds) {
-        this(plugin, activeIslands, client, worlds, CustomBlockKeyService.vanillaOnly());
+        this(plugin, activeIslands, client, worlds, CustomBlockKeyService.vanillaOnly(), StackAmountService.physicalOnly());
     }
 
     IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client, PaperWorldGateway worlds, CustomBlockKeyService customBlockKeys) {
-        this(plugin, activeIslands, client, worlds, customBlockKeys, task -> {
+        this(plugin, activeIslands, client, worlds, customBlockKeys, StackAmountService.physicalOnly());
+    }
+
+    IslandLevelScanService(
+        Plugin plugin,
+        Supplier<ActiveIslandRegistry> activeIslands,
+        CoreApiClient client,
+        PaperWorldGateway worlds,
+        CustomBlockKeyService customBlockKeys,
+        StackAmountService stackAmounts
+    ) {
+        this(plugin, activeIslands, client, worlds, customBlockKeys, stackAmounts, task -> {
             org.bukkit.scheduler.BukkitTask scheduled = PaperSchedulers.runTimer(plugin, task, 0L, 1L);
             return scheduled == null ? TaskHandle.noop() : scheduled::cancel;
         });
@@ -73,10 +89,23 @@ public final class IslandLevelScanService implements RuntimeComponent {
         CustomBlockKeyService customBlockKeys,
         TickScheduler scheduler
     ) {
+        this(plugin, activeIslands, client, worlds, customBlockKeys, StackAmountService.physicalOnly(), scheduler);
+    }
+
+    IslandLevelScanService(
+        Plugin plugin,
+        Supplier<ActiveIslandRegistry> activeIslands,
+        CoreApiClient client,
+        PaperWorldGateway worlds,
+        CustomBlockKeyService customBlockKeys,
+        StackAmountService stackAmounts,
+        TickScheduler scheduler
+    ) {
         this.activeIslands = activeIslands;
         this.runtimeCommands = client.runtimeCommands();
         this.worlds = worlds;
         this.customBlockKeys = customBlockKeys == null ? CustomBlockKeyService.vanillaOnly() : customBlockKeys;
+        this.stackAmounts = stackAmounts == null ? StackAmountService.physicalOnly() : stackAmounts;
         this.scheduler = scheduler;
     }
 
@@ -150,6 +179,7 @@ public final class IslandLevelScanService implements RuntimeComponent {
         private World world;
         private IslandScanCursor cursor;
         private BoundingBox entityBounds;
+        private StackAmountService.StackSnapshot stackSnapshot;
         private List<Entity> entities = List.of();
         private int entityIndex;
         private boolean entitiesLoaded;
@@ -195,7 +225,9 @@ public final class IslandLevelScanService implements RuntimeComponent {
                     org.bukkit.block.Block block = world.getBlockAt(cursor.x(), cursor.y(), cursor.z());
                     Material type = block.getType();
                     if (!isAir(type)) {
-                        counts.merge(customBlockKeys.blockKey(block), 1L, Long::sum);
+                        String stackKey = stackSnapshot.blockKeyOverride(block);
+                        String blockKey = stackKey.isBlank() ? customBlockKeys.blockKey(block) : stackKey;
+                        counts.merge(blockKey, stackSnapshot.blockAmount(block), Long::sum);
                     }
                     cursor.advance();
                     blocks++;
@@ -212,7 +244,7 @@ public final class IslandLevelScanService implements RuntimeComponent {
                     Entity entity = entities.get(entityIndex++);
                     Location location = entity.getLocation();
                     if (cursor.contains(location.getBlockX(), location.getBlockZ())) {
-                        counts.merge(customBlockKeys.entityKey(entity), 1L, Long::sum);
+                        counts.merge(customBlockKeys.entityKey(entity), stackSnapshot.entityAmount(entity), Long::sum);
                     }
                     checkedEntities++;
                 }
@@ -245,6 +277,13 @@ public final class IslandLevelScanService implements RuntimeComponent {
                 active.originX() + half + 1.0D,
                 world.getMaxHeight(),
                 active.originZ() + half + 1.0D
+            );
+            stackSnapshot = stackAmounts.snapshot(
+                world,
+                active.originX() - half,
+                active.originX() + half,
+                active.originZ() - half,
+                active.originZ() + half
             );
             return true;
         }

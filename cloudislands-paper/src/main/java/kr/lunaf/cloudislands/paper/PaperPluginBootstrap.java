@@ -96,6 +96,7 @@ final class PaperPluginBootstrap {
         PaperRuntimeServices runtimeServices = PaperRuntimeServices.register(plugin, client, plugin.agent, config);
         plugin.playerVisibility = runtimeServices.playerVisibility();
         plugin.customBlockKeys = runtimeServices.customBlockKeys();
+        plugin.stackAmounts = runtimeServices.stackAmounts();
         plugin.lifecycle.started("runtime-services", runtimeServices::stop);
         EconomyBridge economyBridge = runtimeServices.economyBridge();
         IslandLimitCache limitCache = new IslandLimitCache(client);

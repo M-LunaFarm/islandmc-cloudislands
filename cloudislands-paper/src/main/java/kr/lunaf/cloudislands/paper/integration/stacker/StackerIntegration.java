@@ -13,7 +13,8 @@ public final class StackerIntegration extends PolicyBackedCloudIntegration {
     public StackerIntegration(String pluginName, IntegrationExternalRuntime externalRuntime) {
         super(pluginName, Set.of(
             IntegrationCapability.DETECT,
-            IntegrationCapability.VALIDATE_VERSION
+            IntegrationCapability.VALIDATE_VERSION,
+            IntegrationCapability.RUNTIME_SERVICE
         ), externalRuntime);
     }
 }

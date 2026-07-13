@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.economy.VaultEconomyBridge;
 import kr.lunaf.cloudislands.paper.integration.analytics.PlanAnalyticsRuntime;
 import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
+import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
 import kr.lunaf.cloudislands.paper.integration.vanish.PlayerVisibilityService;
 import kr.lunaf.cloudislands.paper.placeholder.CloudIslandsPlaceholderExpansion;
 import org.bukkit.plugin.ServicePriority;
@@ -24,6 +25,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
     private RuntimeComponent planAnalytics;
     private PlayerVisibilityService playerVisibility;
     private CustomBlockKeyService customBlockKeys;
+    private StackAmountService stackAmounts;
 
     private PaperRuntimeServices(CloudIslandsPaperPlugin plugin) {
         this.plugin = plugin;
@@ -37,6 +39,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
         services.registerPlanAnalytics(client);
         services.registerPlayerVisibility();
         services.registerCustomBlockKeys();
+        services.registerStackAmounts();
         return services;
     }
 
@@ -52,8 +55,13 @@ public final class PaperRuntimeServices implements RuntimeComponent {
         return customBlockKeys == null ? CustomBlockKeyService.vanillaOnly() : customBlockKeys;
     }
 
+    public StackAmountService stackAmounts() {
+        return stackAmounts == null ? StackAmountService.physicalOnly() : stackAmounts;
+    }
+
     @Override
     public void stop() {
+        unregisterStackAmounts();
         unregisterCustomBlockKeys();
         unregisterPlayerVisibility();
         unregisterPlanAnalytics();
@@ -237,5 +245,33 @@ public final class PaperRuntimeServices implements RuntimeComponent {
             plugin.integrationRegistry().clearRuntimeService(pluginName);
         }
         customBlockKeys = null;
+    }
+
+    private void registerStackAmounts() {
+        this.stackAmounts = StackAmountService.discover(plugin.getServer());
+        for (String pluginName : StackAmountService.supportedPlugins()) {
+            if (!plugin.getServer().getPluginManager().isPluginEnabled(pluginName)) {
+                continue;
+            }
+            boolean supported = stackAmounts.supports(pluginName);
+            plugin.integrationRegistry().reportRuntimeService(
+                pluginName,
+                supported,
+                "stack-amount-registration",
+                stackAmounts.runtimeDetails(pluginName)
+            );
+            if (supported) {
+                plugin.getLogger().info("Registered logical stack amount resolver for " + pluginName);
+            } else {
+                plugin.getLogger().warning(pluginName + " was detected but its stack amount API was unavailable; physical block counting remains active");
+            }
+        }
+    }
+
+    private void unregisterStackAmounts() {
+        for (String pluginName : StackAmountService.supportedPlugins()) {
+            plugin.integrationRegistry().clearRuntimeService(pluginName);
+        }
+        stackAmounts = null;
     }
 }

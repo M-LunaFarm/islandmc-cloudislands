@@ -444,6 +444,15 @@ serialized per island; if blocks change while a multi-tick scan is running,
 CloudIslands rejects that mixed-time replacement and lets a later scan retry
 instead of overwriting newer counts. Plugin shutdown cancels unfinished scans.
 
+RoseStacker, WildStacker, and AdvancedSpawners logical amounts participate in
+the same reconciliation. RoseStacker contributes stacked blocks, spawners, and
+entities. WildStacker contributes barrels, spawners, and entities, and a barrel
+is valued as its contained material instead of its cauldron carrier.
+AdvancedSpawners contributes its logical spawner amount. If multiple stacker
+plugins expose the same position, CloudIslands uses the highest amount rather
+than double-counting it. Optional API failures fall back to one physical block
+or entity and are visible in `/ciadmin integrations report`.
+
 ## PlaceholderAPI
 
 CloudIslands placeholders resolve the player's primary permanent island first,
@@ -638,13 +647,13 @@ integration verification.
 | lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify target-island coordinates and bounded safe destinations | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, default-compatible natural flags, shard-safe player time/weather overrides, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests |
-| ranking/level/worth/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, custom block identity, bounded per-tick scans, duplicate coalescing, serialized writes, and concurrent-mutation rejection | custom vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
+| ranking/level/worth/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting | operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers block, farm, kill, fishing, crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery, while upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus Core audit/visitor route tests and LOWEST/HIGHEST private team-chat isolation cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
-| integrations/localization/GUI | PARTIAL_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services and keeps probe-only external adapters diagnostic | Vault, PlaceholderAPI, Plan, SuperVanish, PremiumVanish, CMI, ItemsAdder, Oraxen, and Nexo runtime services are executable; external lifecycle and state-transfer operations remain diagnostic until real executors exist |
+| integrations/localization/GUI | PARTIAL_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services including RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation while keeping probe-only adapters diagnostic | Vault, PlaceholderAPI, Plan, vanish, custom-item, and stacker accounting services are executable; external lifecycle and state-transfer operations remain diagnostic until real executors exist |
 <!-- feature-parity:end -->
 
 ## Release

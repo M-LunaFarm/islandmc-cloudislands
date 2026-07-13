@@ -88,15 +88,14 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
-    void slimefunAndStackerAdaptersRemainDiagnosticUntilExecutorsExist() {
-        for (var integration : List.of(
-            new CustomItemIntegration("Slimefun", acceptingRuntime()),
-            new StackerIntegration("RoseStacker", acceptingRuntime())
-        )) {
-            assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION), integration.capabilities());
-            assertEquals(IntegrationResult.Status.SKIPPED, integration.exportState(context()).status());
-            assertEquals(IntegrationResult.Status.SKIPPED, integration.restoreState(context()).status());
-        }
+    void slimefunRemainsDiagnosticWhileStackersExposeLogicalAmountRuntimeService() {
+        CustomItemIntegration slimefun = new CustomItemIntegration("Slimefun", acceptingRuntime());
+        StackerIntegration roseStacker = new StackerIntegration("RoseStacker", acceptingRuntime());
+
+        assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION), slimefun.capabilities());
+        assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION, IntegrationCapability.RUNTIME_SERVICE), roseStacker.capabilities());
+        assertEquals(IntegrationResult.Status.SKIPPED, roseStacker.exportState(context()).status());
+        assertEquals(IntegrationResult.Status.SKIPPED, roseStacker.restoreState(context()).status());
     }
 
     @Test
@@ -119,7 +118,7 @@ class PaperIntegrationRegistryTest {
             PaperIntegrationRegistry.adapterState(new WorldEditIntegration("WorldEdit"), true, IntegrationSupportState.API_COMPATIBLE)
         );
         assertEquals(
-            IntegrationSupportState.DIAGNOSTIC_ONLY,
+            IntegrationSupportState.ACTIVE,
             PaperIntegrationRegistry.adapterState(new StackerIntegration("RoseStacker"), true, IntegrationSupportState.API_COMPATIBLE)
         );
         assertEquals(
@@ -132,18 +131,20 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
-    void realVaultPlaceholderPlanVanishAndCustomBlockServicesAreExecutableIntegrations() {
+    void realVaultPlaceholderPlanVanishCustomBlockAndStackServicesAreExecutableIntegrations() {
         VaultIntegration vault = new VaultIntegration();
         PlaceholderApiIntegration placeholder = new PlaceholderApiIntegration();
         PlanIntegration plan = new PlanIntegration();
         VanishIntegration vanish = new VanishIntegration("SuperVanish");
         CustomItemIntegration customBlocks = new CustomItemIntegration("ItemsAdder");
+        StackerIntegration stackAmounts = new StackerIntegration("RoseStacker");
 
         assertTrue(vault.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertTrue(placeholder.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertTrue(plan.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertTrue(vanish.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertTrue(customBlocks.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
+        assertTrue(stackAmounts.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertEquals(
             IntegrationSupportState.ACTIVE,
             PaperIntegrationRegistry.adapterState(vault, true, IntegrationSupportState.API_COMPATIBLE)
@@ -163,6 +164,10 @@ class PaperIntegrationRegistryTest {
         assertEquals(
             IntegrationSupportState.ACTIVE,
             PaperIntegrationRegistry.adapterState(customBlocks, true, IntegrationSupportState.API_COMPATIBLE)
+        );
+        assertEquals(
+            IntegrationSupportState.ACTIVE,
+            PaperIntegrationRegistry.adapterState(stackAmounts, true, IntegrationSupportState.API_COMPATIBLE)
         );
     }
 

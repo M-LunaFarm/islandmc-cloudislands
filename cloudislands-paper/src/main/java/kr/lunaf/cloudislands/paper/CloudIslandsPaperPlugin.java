@@ -36,6 +36,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiSessions;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
 import kr.lunaf.cloudislands.paper.integration.PaperIntegrationRegistry;
 import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
+import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
 import kr.lunaf.cloudislands.paper.integration.vanish.PlayerVisibilityService;
 import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
@@ -94,6 +95,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     PaperRuntimeCompatibility.RuntimeSelection runtimeCompatibility;
     PlayerVisibilityService playerVisibility;
     CustomBlockKeyService customBlockKeys;
+    StackAmountService stackAmounts;
     AdminFlightOverrides adminFlightOverrides;
     AdminChatSpyRegistry adminChatSpies;
     TeamChatModeRegistry teamChatModes;
@@ -169,6 +171,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public CustomBlockKeyService customBlockKeys() {
         return customBlockKeys == null ? CustomBlockKeyService.vanillaOnly() : customBlockKeys;
+    }
+
+    public StackAmountService stackAmounts() {
+        return stackAmounts == null ? StackAmountService.physicalOnly() : stackAmounts;
     }
 
     public PaperIslandJobWorker jobWorker() {

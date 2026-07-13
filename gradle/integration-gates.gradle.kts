@@ -99,11 +99,11 @@ tasks.register("verifyIntegrationMatrix") {
         reportsDir.mkdirs()
         val diagnosticPlugins = setOf(
             "LuckPerms", "CoreProtect", "WorldEdit", "FastAsyncWorldEdit",
-            "Slimefun", "RoseStacker", "WildStacker", "AdvancedSpawners"
+            "Slimefun"
         )
         val runtimeServicePlugins = setOf(
             "Vault", "PlaceholderAPI", "Plan", "SuperVanish", "PremiumVanish", "CMI",
-            "ItemsAdder", "Oraxen", "Nexo"
+            "ItemsAdder", "Oraxen", "Nexo", "RoseStacker", "WildStacker", "AdvancedSpawners"
         )
         fun jsonEscape(value: String): String = buildString {
             value.forEach { character ->
@@ -224,7 +224,9 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
     val visibilityRuntimeTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandVanishCompletionTest.java")
     val customBlockRuntime = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/customitem/CustomBlockKeyService.java")
     val customBlockRuntimeTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/CustomBlockLevelAccountingPolicyTest.java")
-    inputs.files(certification, certificationTest, registry, planRuntime, planRuntimeTest, visibilityRuntime, visibilityRuntimeTest, customBlockRuntime, customBlockRuntimeTest)
+    val stackAmountRuntime = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackAmountService.java")
+    val stackAmountRuntimeTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/StackAmountLevelAccountingPolicyTest.java")
+    inputs.files(certification, certificationTest, registry, planRuntime, planRuntimeTest, visibilityRuntime, visibilityRuntimeTest, customBlockRuntime, customBlockRuntimeTest, stackAmountRuntime, stackAmountRuntimeTest)
     doLast {
         val source = certification.asFile.readText()
         val tests = certificationTest.asFile.readText()
@@ -235,6 +237,8 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
         val visibilityRuntimeTests = visibilityRuntimeTest.asFile.readText()
         val customBlockRuntimeSource = customBlockRuntime.asFile.readText()
         val customBlockRuntimeTests = customBlockRuntimeTest.asFile.readText()
+        val stackAmountRuntimeSource = stackAmountRuntime.asFile.readText()
+        val stackAmountRuntimeTests = stackAmountRuntimeTest.asFile.readText()
         val requiredAdapters = listOf(
             "VaultIntegration", "PlaceholderApiIntegration", "LuckPermsIntegration", "CoreProtectIntegration",
             "WorldEditIntegration", "CustomItemIntegration", "StackerIntegration", "PlanIntegration", "VanishIntegration"
@@ -258,6 +262,10 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
             if (!customBlockRuntimeSource.contains("CustomBlock") || !customBlockRuntimeSource.contains("OraxenBlocks") || !customBlockRuntimeSource.contains("NexoBlocks")) add("Custom block runtime must support ItemsAdder, Oraxen, and Nexo lookup APIs")
             if (!customBlockRuntimeSource.contains("OraxenFurniture") || !customBlockRuntimeSource.contains("NexoFurniture")) add("Custom furniture must participate in island value reconciliation")
             if (!customBlockRuntimeTests.contains("bothIncrementalAndReconciliationPathsUseCustomBlockKeys")) add("Custom block delta and rescan accounting policy test is missing")
+            if (!stackAmountRuntimeSource.contains("RoseStackerAPI") || !stackAmountRuntimeSource.contains("getStackedBlocks") || !stackAmountRuntimeSource.contains("getStackedEntities")) add("RoseStacker logical block and entity amounts must feed reconciliation")
+            if (!stackAmountRuntimeSource.contains("WildStackerAPI") || !stackAmountRuntimeSource.contains("getStackedBarrels") || !stackAmountRuntimeSource.contains("getStackedSpawners")) add("WildStacker barrel and spawner amounts must feed reconciliation")
+            if (!stackAmountRuntimeSource.contains("gcspawners.ASAPI") || !stackAmountRuntimeSource.contains("getSpawnerAmount")) add("AdvancedSpawners logical amounts must feed reconciliation")
+            if (!stackAmountRuntimeTests.contains("logicalStackAmountsFeedReconciliationAndRuntimeCertification")) add("Logical stack amount reconciliation policy test is missing")
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))

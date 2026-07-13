@@ -334,10 +334,10 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     FeatureParityEntry(
         "ranking/level/worth/block values",
         "IMPLEMENTED_VERIFIED",
-        "ranking, dirty recalculation, typed block values, custom block identity, and tick-budgeted reconciliation have service tests",
+        "ranking, dirty recalculation, typed block values, custom block identity, logical stack amounts, and tick-budgeted reconciliation have service tests",
         "Paper-facing values compile; no per-version runtime divergence is claimed",
         "version-neutral",
-        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, custom block identity, bounded per-tick scans, duplicate coalescing, serialized writes, and concurrent-mutation rejection",
+        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, bounded scans, serialized writes, and concurrent-mutation rejection",
         "not recovery-specific",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java",
@@ -346,9 +346,11 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/customitem/CustomBlockKeyServiceTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/IslandLevelScanServiceTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/IslandScanCursorTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/stacker/StackAmountServiceTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/StackAmountLevelAccountingPolicyTest.java",
             "cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/hook/PlaceholderFeaturePolicyTest.java"
         ),
-        "custom vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan"
+        "custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan"
     ),
     FeatureParityEntry(
         "upgrades/size/border/biome",
@@ -438,9 +440,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "integrations/localization/GUI",
         "PARTIAL_VERIFIED",
         "integration policy, localization files, GUI components, and scoped runtime certification fixtures exist",
-        "Paper integration registry certifies Vault economy, PlaceholderAPI registration, Plan distributed analytics, vanish-safe player suggestions, and custom block value accounting while separating diagnostic-only state-transfer adapters",
+        "Paper integration registry certifies Vault economy, PlaceholderAPI registration, Plan distributed analytics, vanish-safe player suggestions, custom block identity, and logical stack accounting while separating diagnostic-only state-transfer adapters",
         "plugin-specific operation adapters are active only where implemented",
-        "verifyIntegrationRuntimeSmoke verifies executable runtime services and keeps probe-only external adapters diagnostic",
+        "verifyIntegrationRuntimeSmoke verifies executable runtime services including RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation while keeping probe-only adapters diagnostic",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java",
@@ -449,7 +451,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java"
         ),
-        "Vault, PlaceholderAPI, Plan, SuperVanish, PremiumVanish, CMI, ItemsAdder, Oraxen, and Nexo runtime services are executable; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
+        "Vault, PlaceholderAPI, Plan, vanish, custom-item, and stacker accounting services are executable; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
     )
 )
 
