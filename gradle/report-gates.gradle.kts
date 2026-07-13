@@ -350,6 +350,8 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/StackAmountLevelAccountingPolicyTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/limit/LogicalStackDeltaBridge.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/limit/LogicalStackDeltaBridgeTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/limit/LogicalEntityRemovalBridge.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/limit/LogicalEntityRemovalBridgeTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/ExplosionDeltaFinalityPolicyTest.java",
             "cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/hook/PlaceholderFeaturePolicyTest.java"
         ),

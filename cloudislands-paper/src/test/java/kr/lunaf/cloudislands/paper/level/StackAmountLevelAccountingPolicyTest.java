@@ -14,7 +14,10 @@ class StackAmountLevelAccountingPolicyTest {
         String stacker = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/integration/stacker/StackAmountService.java"));
         String deltas = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/limit/LogicalStackDeltaBridge.java"));
         String entitySpawns = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/limit/LogicalEntitySpawnBridge.java"));
+        String entityRemovals = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/limit/LogicalEntityRemovalBridge.java"));
         String bootstrap = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"));
+        String protection = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+        String entityLimits = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/limit/IslandEntityLimitListener.java"));
 
         assertTrue(scans.contains("stackAmounts.snapshot"));
         assertTrue(scans.contains("stackSnapshot.blockAmount(block)"));
@@ -38,5 +41,12 @@ class StackAmountLevelAccountingPolicyTest {
         assertTrue(entitySpawns.contains("PostStackedSpawnerSpawnEvent"));
         assertTrue(entitySpawns.contains("directLogicalDelta"));
         assertTrue(bootstrap.contains("LogicalEntitySpawnBridge.register"));
+        assertTrue(entityRemovals.contains("EntityStackMultipleDeathEvent"));
+        assertTrue(entityRemovals.contains("EntityStackClearEvent"));
+        assertTrue(entityRemovals.contains("EntityUnstackEvent"));
+        assertTrue(entityRemovals.contains("onAsynchronousEntityDeath"));
+        assertTrue(bootstrap.contains("LogicalEntityRemovalBridge.register"));
+        assertTrue(protection.contains("if (event.isAsynchronous())"));
+        assertTrue(entityLimits.contains("if (event.isAsynchronous())"));
     }
 }

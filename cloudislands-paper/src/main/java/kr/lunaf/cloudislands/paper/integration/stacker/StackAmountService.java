@@ -132,7 +132,7 @@ public final class StackAmountService {
             "blockAmounts", Boolean.toString(adapter != null),
             "entityAmounts", Boolean.toString(adapter != null && adapter.entityAmounts()),
             "snapshotPolicy", adapter != null && adapter.snapshotResolver() != null ? "loaded-stack-snapshot" : "spawner-direct-lookup",
-            "consumers", "island-level-rescan,worth,level,ranking,reconciled-block-limits"
+            "consumers", "island-level-rescan,worth,level,ranking,reconciled-block-limits,logical-spawn-and-removal-deltas"
         );
     }
 

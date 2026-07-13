@@ -142,6 +142,9 @@ public final class IslandEntityLimitListener implements Listener {
 
     @EventHandler
     public void onEntityDeathDrops(EntityDeathEvent event) {
+        if (event.isAsynchronous()) {
+            return;
+        }
         if (IslandEntityLimitKeys.counts(event.getEntity())) {
             protection.regionAt(event.getEntity().getLocation().getBlock()).ifPresent(region ->
                 applyMobDropRate(region.islandId(), event.getDrops()));
@@ -150,6 +153,9 @@ public final class IslandEntityLimitListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityDeathCount(EntityDeathEvent event) {
+        if (event.isAsynchronous()) {
+            return;
+        }
         if (IslandEntityLimitKeys.counts(event.getEntity())) {
             recordAcceptedDelta(event.getEntity().getLocation(), -1L);
         }

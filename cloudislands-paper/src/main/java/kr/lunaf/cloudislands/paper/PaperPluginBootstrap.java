@@ -29,6 +29,7 @@ import kr.lunaf.cloudislands.paper.limit.IslandLimitLifecycleListener;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitListener;
 import kr.lunaf.cloudislands.paper.limit.LogicalStackDeltaBridge;
 import kr.lunaf.cloudislands.paper.limit.LogicalEntitySpawnBridge;
+import kr.lunaf.cloudislands.paper.limit.LogicalEntityRemovalBridge;
 import kr.lunaf.cloudislands.paper.limit.IslandRuntimeStateInvalidator;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.mission.IslandMissionProgressListener;
@@ -140,6 +141,11 @@ final class PaperPluginBootstrap {
                 plugin,
                 plugin.agent.protection(),
                 limitCache,
+                plugin.levelScanService
+            );
+            LogicalEntityRemovalBridge.register(
+                plugin,
+                plugin.agent.protection(),
                 plugin.levelScanService
             );
             plugin.generatorLevels = new GeneratorLevelCache(client, config.generator().defaultKey());

@@ -425,6 +425,9 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onEntityDeath(EntityDeathEvent event) {
+        if (event.isAsynchronous()) {
+            return;
+        }
         if (event.getEntity() instanceof Player) {
             return;
         }
