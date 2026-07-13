@@ -20,6 +20,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.Ageable;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -58,7 +59,7 @@ public final class IslandMissionProgressListener implements Listener {
         this.progressionQueries = progressionQueries;
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
@@ -72,12 +73,12 @@ public final class IslandMissionProgressListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         progressAt(event.getPlayer(), event.getBlockPlaced(), "BLOCK_PLACE", materialKey(event.getBlockPlaced().getType()), 1L, MissionProgressTriggers.blockPlace(materialKey(event.getBlockPlaced().getType())));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
         Player killer = event.getEntity().getKiller();
         if (killer == null) {
@@ -88,7 +89,7 @@ public final class IslandMissionProgressListener implements Listener {
         progressAt(killer, block, "MOB_KILL", event.getEntityType().getKey().toString(), 1L, MissionProgressTriggers.mobKill(event.getEntityType().getKey().toString()));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerFish(PlayerFishEvent event) {
         if (event.getState() != PlayerFishEvent.State.CAUGHT_FISH) {
             return;
@@ -96,24 +97,32 @@ public final class IslandMissionProgressListener implements Listener {
         progressAt(event.getPlayer(), event.getPlayer().getLocation().getBlock(), "FISHING", "catch", 1L, MissionProgressTriggers.fishingCatch());
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCraftItem(CraftItemEvent event) {
         if (!(event.getWhoClicked() instanceof Player player) || event.getRecipe() == null) {
             ignored.incrementAndGet();
             return;
         }
-        ItemStack result = event.getRecipe().getResult();
-        progressAt(player, player.getLocation().getBlock(), "CRAFTING", materialKey(result.getType()), result.getAmount(), MissionProgressTriggers.crafting(materialKey(result.getType()), result.getAmount()));
+        ItemStack result = event.getCurrentItem();
+        if (result == null || result.getType() == Material.AIR) {
+            result = event.getRecipe().getResult();
+        }
+        long craftedAmount = CraftingMissionAmount.from(event, result);
+        if (craftedAmount <= 0L) {
+            ignored.incrementAndGet();
+            return;
+        }
+        progressAt(player, player.getLocation().getBlock(), "CRAFTING", materialKey(result.getType()), craftedAmount, MissionProgressTriggers.crafting(materialKey(result.getType()), craftedAmount));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEnchantItem(EnchantItemEvent event) {
         Player player = event.getEnchanter();
         String itemKey = materialKey(event.getItem().getType());
         progressAt(player, player.getLocation().getBlock(), "ENCHANT_ITEM", itemKey, 1L, MissionProgressTriggers.enchanting(itemKey));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onStatisticIncrement(PlayerStatisticIncrementEvent event) {
         long delta = (long) event.getNewValue() - event.getPreviousValue();
         if (delta <= 0L) {
@@ -125,14 +134,14 @@ public final class IslandMissionProgressListener implements Listener {
         progressAt(player, player.getLocation().getBlock(), "STATISTIC", statisticKey, delta, MissionProgressTriggers.statistic(statisticKey, delta));
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onAdvancementDone(PlayerAdvancementDoneEvent event) {
         Player player = event.getPlayer();
         String advancementKey = event.getAdvancement().getKey().toString();
         progressAt(player, player.getLocation().getBlock(), "ADVANCEMENT", advancementKey, 1L, MissionProgressTriggers.advancement(advancementKey));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onItemConsume(PlayerItemConsumeEvent event) {
         Player player = event.getPlayer();
         String itemKey = materialKey(event.getItem().getType());
