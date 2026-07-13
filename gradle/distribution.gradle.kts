@@ -253,10 +253,16 @@ tasks.register("distChangelog") {
         if (start < 0) {
             throw GradleException("README release notes missing marker: $releaseMarker")
         }
-        val nextSection = readme.indexOf("\n## Project status", start)
+        val carriedForwardMarker = "\nRelease notes carried forward from `v"
+        val carriedForward = readme.indexOf(carriedForwardMarker, start)
+        val projectStatus = readme.indexOf("\n## Project status", start)
+        val end = listOf(carriedForward, projectStatus)
+            .filter { it > start }
+            .minOrNull()
+            ?: readme.length
         val releaseNotes = readme.substring(
             start + releaseMarker.length,
-            if (nextSection > start) nextSection else readme.length
+            end
         ).trim()
         val output = cloudIslandsDistChangelogFile.get().asFile
         output.parentFile.mkdirs()

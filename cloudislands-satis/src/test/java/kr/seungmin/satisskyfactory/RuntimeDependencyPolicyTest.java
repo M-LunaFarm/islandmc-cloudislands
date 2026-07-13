@@ -291,6 +291,16 @@ class RuntimeDependencyPolicyTest {
     }
 
     @Test
+    void releaseChangelogExcludesCarriedForwardHistory() throws IOException {
+        Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
+        String distributionBuild = Files.readString(repoRoot.resolve("gradle/distribution.gradle.kts"));
+
+        assertTrue(distributionBuild.contains("val carriedForwardMarker = \"\\nRelease notes carried forward from `v\""));
+        assertTrue(distributionBuild.contains("val carriedForward = readme.indexOf(carriedForwardMarker, start)"));
+        assertTrue(distributionBuild.contains(".minOrNull()"));
+    }
+
+    @Test
     void rootBuildCheckExcludesMarkdownDocumentsFromArtifacts() throws IOException {
         Path repoRoot = Path.of("").toAbsolutePath().normalize().getParent();
         String rootBuild = Files.readString(repoRoot.resolve("build.gradle.kts"));
