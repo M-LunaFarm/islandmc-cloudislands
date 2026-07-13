@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.148`
+Version: `1.1.149`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.148`
+Current release: `v1.1.149`
 
-Built for the CloudIslands 1.1.148 baseline.
+Built for the CloudIslands 1.1.149 baseline.
 
-Release notes for `v1.1.148`:
+Release notes for `v1.1.149`:
+
+- new Redis job payloads use a versioned JSON wire format that preserves keys
+  and values containing delimiters, percent sequences, empty text, Unicode,
+  and multiline content exactly
+- JSON escaping keeps literal newlines out of Redis command frames, preventing
+  payload content from corrupting flattened RESP array parsing
+- existing delimiter-encoded pending and failed jobs remain readable during a
+  rolling upgrade, while retried failures now retain their original payload
+  without lossy `%3B` or `%3D` conversion
+
+Release notes carried forward from `v1.1.148`:
 
 - terminal Redis job failures now persist the complete retryable job record,
   attempt count, error, and failure time instead of relying on Core process
@@ -2519,7 +2530,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.148`.
+Current read: production-readiness baseline `v1.1.149`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
