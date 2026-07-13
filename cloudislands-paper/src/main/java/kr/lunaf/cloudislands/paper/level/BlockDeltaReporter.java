@@ -72,7 +72,11 @@ public final class BlockDeltaReporter {
     }
 
     public void entityPlaced(UUID islandId, EntityType entityType) {
-        report(islandId, "entity:" + entityType.getKey(), 1L);
+        entityPlaced(islandId, entityType, 1L);
+    }
+
+    public void entityPlaced(UUID islandId, EntityType entityType, long amount) {
+        report(islandId, "entity:" + entityType.getKey(), Math.max(1L, amount));
     }
 
     public void entityRemoved(UUID islandId, EntityType entityType) {

@@ -1,6 +1,5 @@
 package kr.lunaf.cloudislands.common.protection;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public final class RegionIndex {
     private final Map<ChunkKey, List<IslandRegion>> regionsByChunk = new ConcurrentHashMap<>();
@@ -19,7 +19,10 @@ public final class RegionIndex {
         int maxChunkZ = Math.floorDiv(region.maxZ(), 16);
         for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
             for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
-                regionsByChunk.computeIfAbsent(new ChunkKey(region.world(), chunkX, chunkZ), ignored -> new ArrayList<>()).add(region);
+                regionsByChunk.computeIfAbsent(
+                    new ChunkKey(region.world(), chunkX, chunkZ),
+                    ignored -> new CopyOnWriteArrayList<>()
+                ).add(region);
             }
         }
     }

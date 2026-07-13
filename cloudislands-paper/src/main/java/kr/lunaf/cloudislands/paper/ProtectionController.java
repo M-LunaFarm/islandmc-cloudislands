@@ -66,6 +66,10 @@ public final class ProtectionController {
         return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ());
     }
 
+    public java.util.Optional<IslandRegion> regionAt(String worldName, int blockX, int blockZ) {
+        return regionIndex.find(worldName, blockX, blockZ);
+    }
+
     public java.util.Optional<IslandRegion> region(UUID islandId) {
         return regionIndex.findIsland(islandId);
     }

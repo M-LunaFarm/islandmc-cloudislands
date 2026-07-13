@@ -16,7 +16,9 @@ import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 
 public final class StackAmountService {
     private static final List<String> SUPPORTED_PLUGINS = List.of("RoseStacker", "WildStacker", "AdvancedSpawners");
@@ -87,6 +89,42 @@ public final class StackAmountService {
         return pluginName != null && adaptersByPlugin.containsKey(pluginName);
     }
 
+    public long entityAmount(Entity entity) {
+        if (!(entity instanceof LivingEntity livingEntity)) {
+            return 1L;
+        }
+        long amount = 1L;
+        for (Adapter adapter : adapters) {
+            if (adapter.directEntityAmount() == null) {
+                continue;
+            }
+            try {
+                amount = Math.max(amount, Math.max(1L, adapter.directEntityAmount().applyAsLong(livingEntity)));
+            } catch (RuntimeException | LinkageError ignored) {
+                // Optional vendor failure falls back to one physical entity.
+            }
+        }
+        return amount;
+    }
+
+    public long spawnerSpawnAmount(CreatureSpawner spawner) {
+        if (spawner == null) {
+            return 1L;
+        }
+        long amount = 1L;
+        for (Adapter adapter : adapters) {
+            if (adapter.spawnerSpawnAmount() == null) {
+                continue;
+            }
+            try {
+                amount = Math.max(amount, Math.max(1L, adapter.spawnerSpawnAmount().applyAsLong(spawner)));
+            } catch (RuntimeException | LinkageError ignored) {
+                // Optional vendor failure falls back to one physical spawn.
+            }
+        }
+        return amount;
+    }
+
     public Map<String, String> runtimeDetails(String pluginName) {
         Adapter adapter = adaptersByPlugin.get(pluginName);
         return Map.of(
@@ -109,6 +147,14 @@ public final class StackAmountService {
             Method getBlocks = apiClass.getMethod("getStackedBlocks");
             Method getSpawners = apiClass.getMethod("getStackedSpawners");
             Method getEntities = apiClass.getMethod("getStackedEntities");
+            Method getStackedEntity = apiClass.getMethod("getStackedEntity", LivingEntity.class);
+            ToLongFunction<LivingEntity> directEntity = entity -> {
+                try {
+                    return stackSize(getStackedEntity.invoke(getInstance.invoke(null), entity), "getStackSize");
+                } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+                    return 1L;
+                }
+            };
             Function<Bounds, SnapshotData> snapshot = bounds -> {
                 try {
                     Object api = getInstance.invoke(null);
@@ -121,7 +167,7 @@ public final class StackAmountService {
                     return SnapshotData.empty();
                 }
             };
-            return new Adapter("RoseStacker", snapshot, null, true, "rosestacker-loaded-stack-api");
+            return new Adapter("RoseStacker", snapshot, null, directEntity, null, true, "rosestacker-loaded-stack-api");
         } catch (ClassNotFoundException | NoSuchMethodException | RuntimeException | LinkageError ignored) {
             return null;
         }
@@ -143,6 +189,10 @@ public final class StackAmountService {
             Method getBarrels = manager.getClass().getMethod("getStackedBarrels");
             Method getSpawners = manager.getClass().getMethod("getStackedSpawners");
             Method getEntities = manager.getClass().getMethod("getStackedEntities");
+            Method getEntityAmount = apiClass.getMethod("getEntityAmount", LivingEntity.class);
+            Method getSpawnersAmount = apiClass.getMethod("getSpawnersAmount", CreatureSpawner.class);
+            ToLongFunction<LivingEntity> directEntity = entity -> invokePositive(getEntityAmount, null, entity);
+            ToLongFunction<CreatureSpawner> spawnerAmount = spawner -> invokePositive(getSpawnersAmount, null, spawner);
             Function<Bounds, SnapshotData> snapshot = bounds -> {
                 try {
                     MutableSnapshot data = new MutableSnapshot(bounds);
@@ -154,7 +204,7 @@ public final class StackAmountService {
                     return SnapshotData.empty();
                 }
             };
-            return new Adapter("WildStacker", snapshot, null, true, "wildstacker-loaded-stack-api");
+            return new Adapter("WildStacker", snapshot, null, directEntity, spawnerAmount, true, "wildstacker-loaded-stack-api");
         } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
             return null;
         }
@@ -174,7 +224,7 @@ public final class StackAmountService {
                     return 1L;
                 }
             };
-            return new Adapter("AdvancedSpawners", null, direct, false, "advancedspawners-spawner-api");
+            return new Adapter("AdvancedSpawners", null, direct, null, null, false, "advancedspawners-spawner-api");
         } catch (ClassNotFoundException | NoSuchMethodException | RuntimeException | LinkageError ignored) {
             return null;
         }
@@ -264,6 +314,14 @@ public final class StackAmountService {
         return amount instanceof Number number ? Math.max(1L, number.longValue()) : 1L;
     }
 
+    private static long invokePositive(Method method, Object target, Object argument) {
+        try {
+            return positiveAmount(method.invoke(target, argument));
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+            return 1L;
+        }
+    }
+
     private static boolean enabled(Server server, String pluginName) {
         try {
             return server != null && server.getPluginManager().isPluginEnabled(pluginName);
@@ -315,6 +373,8 @@ public final class StackAmountService {
         String pluginName,
         Function<Bounds, SnapshotData> snapshotResolver,
         ToLongFunction<Block> directBlockAmount,
+        ToLongFunction<LivingEntity> directEntityAmount,
+        ToLongFunction<CreatureSpawner> spawnerSpawnAmount,
         boolean entityAmounts,
         String description
     ) {

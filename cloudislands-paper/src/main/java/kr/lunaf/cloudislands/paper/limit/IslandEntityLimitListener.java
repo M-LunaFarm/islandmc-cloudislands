@@ -7,6 +7,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.ProtectionController;
+import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Location;
@@ -18,6 +19,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
+import org.bukkit.event.entity.SpawnerSpawnEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.hanging.HangingPlaceEvent;
 import org.bukkit.event.vehicle.VehicleCreateEvent;
@@ -30,15 +32,16 @@ public final class IslandEntityLimitListener implements Listener {
     private final IslandLimitCache limits;
     private final MessageRenderer messages;
     private final IslandLevelScanService levelScanService;
+    private final StackAmountService stackAmounts;
     private final Map<String, Long> lastLimitNotice = new ConcurrentHashMap<>();
     private final Random random = new Random();
 
     public IslandEntityLimitListener(ProtectionController protection, IslandLimitCache limits) {
-        this(protection, limits, null, null);
+        this(protection, limits, null, null, StackAmountService.physicalOnly());
     }
 
     public IslandEntityLimitListener(ProtectionController protection, IslandLimitCache limits, MessageRenderer messages) {
-        this(protection, limits, messages, null);
+        this(protection, limits, messages, null, StackAmountService.physicalOnly());
     }
 
     public IslandEntityLimitListener(
@@ -47,10 +50,21 @@ public final class IslandEntityLimitListener implements Listener {
         MessageRenderer messages,
         IslandLevelScanService levelScanService
     ) {
+        this(protection, limits, messages, levelScanService, StackAmountService.physicalOnly());
+    }
+
+    public IslandEntityLimitListener(
+        ProtectionController protection,
+        IslandLimitCache limits,
+        MessageRenderer messages,
+        IslandLevelScanService levelScanService,
+        StackAmountService stackAmounts
+    ) {
         this.protection = protection;
         this.limits = limits;
         this.messages = messages;
         this.levelScanService = levelScanService;
+        this.stackAmounts = stackAmounts == null ? StackAmountService.physicalOnly() : stackAmounts;
     }
 
     public void invalidate(UUID islandId) {
@@ -58,7 +72,7 @@ public final class IslandEntityLimitListener implements Listener {
         lastLimitNotice.keySet().removeIf(key -> key.startsWith(prefix));
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEntitySpawn(EntitySpawnEvent event) {
         if (event.getEntity() instanceof Hanging || event.getEntity() instanceof Vehicle) {
             return;
@@ -77,7 +91,10 @@ public final class IslandEntityLimitListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        if (!entitySpawnAllowed(event.getLocation(), islandId)) {
+        long addition = event instanceof SpawnerSpawnEvent spawnerSpawn
+            ? stackAmounts.spawnerSpawnAmount(spawnerSpawn.getSpawner())
+            : 1L;
+        if (!entitySpawnAllowed(event.getLocation(), islandId, addition)) {
             event.setCancelled(true);
         }
     }
@@ -86,7 +103,7 @@ public final class IslandEntityLimitListener implements Listener {
     public void onEntitySpawnAccepted(EntitySpawnEvent event) {
         if (!(event.getEntity() instanceof Hanging) && !(event.getEntity() instanceof Vehicle)
             && IslandEntityLimitKeys.counts(event.getEntity())) {
-            recordAcceptedDelta(event.getLocation(), 1L);
+            recordAcceptedDelta(event.getLocation(), stackAmounts.entityAmount(event.getEntity()));
         }
     }
 
@@ -144,6 +161,10 @@ public final class IslandEntityLimitListener implements Listener {
     }
 
     private boolean entitySpawnAllowed(Location location, UUID islandId) {
+        return entitySpawnAllowed(location, islandId, 1L);
+    }
+
+    private boolean entitySpawnAllowed(Location location, UUID islandId, long addition) {
         OptionalLong resolvedLimit = limits.limitIfReady(islandId, "ENTITY", Long.MAX_VALUE);
         if (resolvedLimit.isEmpty()) {
             notifyLoading(location, islandId, "ENTITY");
@@ -159,7 +180,8 @@ public final class IslandEntityLimitListener implements Listener {
             return false;
         }
         long current = resolvedCount.getAsLong();
-        if (current >= limit) {
+        long safeAddition = Math.max(1L, addition);
+        if (current >= limit || safeAddition > limit - current) {
             notifyNearby(location, islandId, current, limit);
             return false;
         }

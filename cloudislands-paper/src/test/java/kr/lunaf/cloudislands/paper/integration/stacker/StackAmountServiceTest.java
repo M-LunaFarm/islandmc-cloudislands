@@ -8,7 +8,9 @@ import java.util.Map;
 import java.util.UUID;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.CreatureSpawner;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.junit.jupiter.api.Test;
 
 class StackAmountServiceTest {
@@ -41,7 +43,7 @@ class StackAmountServiceTest {
     @Test
     void directSpawnerLookupCanIncreaseSnapshotAmountAndFallbackIsPhysical() {
         StackAmountService service = new StackAmountService(List.of(
-            new StackAmountService.Adapter("AdvancedSpawners", null, _block -> 32L, false, "test")
+            new StackAmountService.Adapter("AdvancedSpawners", null, _block -> 32L, null, null, false, "test")
         ));
         StackAmountService.StackSnapshot stacked = service.snapshot(world(), 0, 10, 0, 10);
         StackAmountService.StackSnapshot physical = StackAmountService.physicalOnly().snapshot(world(), 0, 10, 0, 10);
@@ -51,8 +53,21 @@ class StackAmountServiceTest {
         assertEquals(1L, physical.entityAmount(entity()));
     }
 
+    @Test
+    void directEntityAndSpawnerSpawnResolversUseLargestLogicalAmount() {
+        StackAmountService service = new StackAmountService(List.of(
+            new StackAmountService.Adapter("RoseStacker", null, null, _entity -> 18L, null, true, "test"),
+            new StackAmountService.Adapter("WildStacker", null, null, _entity -> 12L, _spawner -> 24L, true, "test")
+        ));
+
+        assertEquals(18L, service.entityAmount(livingEntity()));
+        assertEquals(24L, service.spawnerSpawnAmount(spawner()));
+        assertEquals(1L, StackAmountService.physicalOnly().entityAmount(livingEntity()));
+        assertEquals(1L, StackAmountService.physicalOnly().spawnerSpawnAmount(spawner()));
+    }
+
     private static StackAmountService.Adapter adapter(String pluginName, StackAmountService.SnapshotData data) {
-        return new StackAmountService.Adapter(pluginName, _bounds -> data, null, true, "test");
+        return new StackAmountService.Adapter(pluginName, _bounds -> data, null, null, null, true, "test");
     }
 
     private static World world() {
@@ -70,6 +85,14 @@ class StackAmountServiceTest {
 
     private static Entity entity() {
         return proxy(Entity.class, Map.of("getUniqueId", ENTITY_ID));
+    }
+
+    private static LivingEntity livingEntity() {
+        return proxy(LivingEntity.class, Map.of("getUniqueId", ENTITY_ID));
+    }
+
+    private static CreatureSpawner spawner() {
+        return proxy(CreatureSpawner.class, Map.of());
     }
 
     private static <T> T proxy(Class<T> type, Map<String, Object> values) {

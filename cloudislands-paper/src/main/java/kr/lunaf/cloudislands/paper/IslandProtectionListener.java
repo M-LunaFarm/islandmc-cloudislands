@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.common.protection.BlockSpreadPolicy;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionCheckEvent;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
+import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -97,21 +98,33 @@ public final class IslandProtectionListener implements Listener {
     private final BlockDeltaReporter blockDeltas;
     private final long denyMessageCooldownMs;
     private final Map<IslandPermission, String> denyMessages;
+    private final StackAmountService stackAmounts;
     private final Map<UUID, Long> denyMessageTimes = new ConcurrentHashMap<>();
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas) {
-        this(protection, blockDeltas, 1000L);
+        this(protection, blockDeltas, 1000L, Map.of(), StackAmountService.physicalOnly());
     }
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas, long denyMessageCooldownMs) {
-        this(protection, blockDeltas, denyMessageCooldownMs, Map.of());
+        this(protection, blockDeltas, denyMessageCooldownMs, Map.of(), StackAmountService.physicalOnly());
     }
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas, long denyMessageCooldownMs, Map<IslandPermission, String> denyMessages) {
+        this(protection, blockDeltas, denyMessageCooldownMs, denyMessages, StackAmountService.physicalOnly());
+    }
+
+    public IslandProtectionListener(
+        ProtectionController protection,
+        BlockDeltaReporter blockDeltas,
+        long denyMessageCooldownMs,
+        Map<IslandPermission, String> denyMessages,
+        StackAmountService stackAmounts
+    ) {
         this.protection = protection;
         this.blockDeltas = blockDeltas;
         this.denyMessageCooldownMs = Math.max(0L, denyMessageCooldownMs);
         this.denyMessages = denyMessages == null ? Map.of() : Map.copyOf(denyMessages);
+        this.stackAmounts = stackAmounts == null ? StackAmountService.physicalOnly() : stackAmounts;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -407,7 +420,7 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCreatureSpawnAccepted(CreatureSpawnEvent event) {
         protection.islandAt(event.getLocation().getBlock()).ifPresent(islandId ->
-            blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
+            blockDeltas.entityPlaced(islandId, event.getEntity().getType(), stackAmounts.entityAmount(event.getEntity())));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
