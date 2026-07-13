@@ -10,13 +10,9 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.WeatherType;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Ambient;
-import org.bukkit.entity.Animals;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
-import org.bukkit.entity.WaterMob;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -111,7 +107,7 @@ public final class IslandGameplayFlagListener implements Listener {
             event.setCancelled(true);
             return;
         }
-        IslandFlag flag = spawnFlag(event);
+        IslandFlag flag = IslandSpawnFlagPolicy.categoryFlag(event.getEntityType());
         if (flag != null && protection.islandAt(event.getLocation().getBlock()).isPresent() && !islandFlagAllowed(event.getLocation().getBlock(), flag)) {
             event.setCancelled(true);
         }
@@ -137,16 +133,6 @@ public final class IslandGameplayFlagListener implements Listener {
         if (event.getEntityType() == EntityType.ENDERMAN && protection.islandAt(event.getBlock()).isPresent() && !islandFlagAllowed(event.getBlock(), IslandFlag.ENDERMAN_GRIEF)) {
             event.setCancelled(true);
         }
-    }
-
-    private IslandFlag spawnFlag(CreatureSpawnEvent event) {
-        if (event.getEntity() instanceof Monster) {
-            return IslandFlag.MONSTER_SPAWN;
-        }
-        if (event.getEntity() instanceof Animals || event.getEntity() instanceof WaterMob || event.getEntity() instanceof Ambient) {
-            return IslandFlag.ANIMAL_SPAWN;
-        }
-        return null;
     }
 
     private Player attackingPlayer(org.bukkit.entity.Entity damager) {

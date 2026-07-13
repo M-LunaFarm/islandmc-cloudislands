@@ -3,13 +3,16 @@ package kr.lunaf.cloudislands.paper.limit;
 import java.lang.reflect.Method;
 import java.util.Deque;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
+import kr.lunaf.cloudislands.paper.IslandSpawnFlagPolicy;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
@@ -89,6 +92,11 @@ public final class LogicalEntitySpawnBridge implements Listener {
             SpawnContext context = adapter.context(event);
             IslandRegion region = protection.regionAt(context.key().worldName(), context.key().blockX(), context.key().blockZ()).orElse(null);
             if (region == null) {
+                return;
+            }
+            EntityType entityType = adapter.entityType(event);
+            if (!spawnFlagsAllowed(context.key(), entityType)) {
+                cancellable.setCancelled(true);
                 return;
             }
             int requested = Math.max(0, adapter.spawnAmount(event));
@@ -212,6 +220,15 @@ public final class LogicalEntitySpawnBridge implements Listener {
         }
     }
 
+    private boolean spawnFlagsAllowed(SpawnerKey key, EntityType entityType) {
+        if (!protection.checkSystemFlag(key.worldName(), key.blockX(), key.blockZ(), IslandFlag.MOB_SPAWN).allowed()) {
+            return false;
+        }
+        IslandFlag categoryFlag = IslandSpawnFlagPolicy.categoryFlag(entityType);
+        return categoryFlag == null
+            || protection.checkSystemFlag(key.worldName(), key.blockX(), key.blockZ(), categoryFlag).allowed();
+    }
+
     static long directLogicalDelta(long spawnedAmount, long physicalStacks) {
         return Math.max(0L, spawnedAmount - Math.max(0L, physicalStacks));
     }
@@ -248,18 +265,27 @@ public final class LogicalEntitySpawnBridge implements Listener {
         Method preAmountGetter,
         Method preAmountSetter,
         Method postAmountGetter,
-        Method spawnedStacksGetter
+        Method spawnedStacksGetter,
+        Method spawnerTileGetter,
+        Method spawnerTypeGetter,
+        Method spawnerEntityTypeGetter
     ) {
         static Adapter create(Class<? extends Event> preClass, Class<? extends Event> postClass) throws ReflectiveOperationException {
             Method stackGetter = preClass.getMethod("getStack");
             Class<?> stackClass = stackGetter.getReturnType();
+            Method spawnerTileGetter = optionalMethod(stackClass, "getSpawnerTile");
+            Method spawnerTypeGetter = spawnerTileGetter == null ? null : optionalMethod(spawnerTileGetter.getReturnType(), "getSpawnerType");
+            Method spawnerEntityTypeGetter = spawnerTypeGetter == null ? null : optionalMethod(spawnerTypeGetter.getReturnType(), "get");
             return new Adapter(
                 stackGetter,
                 stackClass.getMethod("getLocation"),
                 preClass.getMethod("getSpawnAmount"),
                 preClass.getMethod("setSpawnAmount", int.class),
                 postClass.getMethod("getSpawnAmount"),
-                postClass.getMethod("getSpawnedStacks")
+                postClass.getMethod("getSpawnedStacks"),
+                spawnerTileGetter,
+                spawnerTypeGetter,
+                spawnerEntityTypeGetter
             );
         }
 
@@ -284,8 +310,24 @@ public final class LogicalEntitySpawnBridge implements Listener {
 
         EntityType entityType(Event event) throws ReflectiveOperationException {
             Object stack = stackGetter.invoke(event);
+            if (spawnerTileGetter != null && spawnerTypeGetter != null && spawnerEntityTypeGetter != null) {
+                Object tile = spawnerTileGetter.invoke(stack);
+                Object spawnerType = tile == null ? null : spawnerTypeGetter.invoke(tile);
+                Object optionalType = spawnerType == null ? null : spawnerEntityTypeGetter.invoke(spawnerType);
+                if (optionalType instanceof Optional<?> optional && optional.orElse(null) instanceof EntityType entityType) {
+                    return entityType;
+                }
+            }
             Object spawner = stack.getClass().getMethod("getSpawner").invoke(stack);
             return spawner instanceof CreatureSpawner creatureSpawner ? creatureSpawner.getSpawnedType() : null;
+        }
+
+        private static Method optionalMethod(Class<?> type, String name) {
+            try {
+                return type.getMethod(name);
+            } catch (NoSuchMethodException ignored) {
+                return null;
+            }
         }
     }
 }

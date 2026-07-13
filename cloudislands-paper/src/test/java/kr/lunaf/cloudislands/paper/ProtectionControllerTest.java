@@ -52,6 +52,24 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void coordinateSystemFlagChecksStayLocalAndFailClosedDuringMigration() {
+        LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
+        ProtectionController protection = new ProtectionController(new RegionIndex(), cache);
+        protection.registerIsland(ISLAND, "ci_shard_001", 0, 0, 300, 2, 3);
+        cache.putFlag(ISLAND, IslandFlag.MOB_SPAWN, "true");
+
+        assertTrue(protection.checkSystemFlag("ci_shard_001", 0, 0, IslandFlag.MOB_SPAWN).allowed());
+        cache.putFlag(ISLAND, IslandFlag.MOB_SPAWN, "false");
+        assertFalse(protection.checkSystemFlag("ci_shard_001", 0, 0, IslandFlag.MOB_SPAWN).allowed());
+
+        cache.putFlag(ISLAND, IslandFlag.MOB_SPAWN, "true");
+        protection.markMigrating(ISLAND);
+        var migrating = protection.checkSystemFlag("ci_shard_001", 0, 0, IslandFlag.MOB_SPAWN);
+        assertFalse(migrating.allowed());
+        assertEquals("ISLAND_MIGRATING", migrating.reason());
+    }
+
+    @Test
     void dynamicRoleKeysCanGrantProtectionPermissions() {
         UUID builder = UUID.fromString("00000000-0000-0000-0000-000000000504");
         LocalIslandPermissionCache cache = new LocalIslandPermissionCache();

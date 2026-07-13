@@ -139,7 +139,15 @@ public final class ProtectionController {
     }
 
     public PermissionResult checkSystemFlag(Block block, IslandFlag flag, boolean defaultAllowed) {
-        return regionIndex.find(block.getWorld().getName(), block.getX(), block.getZ())
+        return checkSystemFlag(block.getWorld().getName(), block.getX(), block.getZ(), flag, defaultAllowed);
+    }
+
+    public PermissionResult checkSystemFlag(String worldName, int blockX, int blockZ, IslandFlag flag) {
+        return checkSystemFlag(worldName, blockX, blockZ, flag, false);
+    }
+
+    public PermissionResult checkSystemFlag(String worldName, int blockX, int blockZ, IslandFlag flag, boolean defaultAllowed) {
+        return regionIndex.find(worldName, blockX, blockZ)
             .map(region -> {
                 if (migratingIslands.contains(region.islandId())) {
                     return PermissionResult.deny("ISLAND_MIGRATING", RoleId.of(VISITOR_ROLE_KEY));

@@ -39,6 +39,9 @@ class StackAmountLevelAccountingPolicyTest {
         assertTrue(bootstrap.contains("LogicalStackDeltaBridge.register"));
         assertTrue(entitySpawns.contains("PreStackedSpawnerSpawnEvent"));
         assertTrue(entitySpawns.contains("PostStackedSpawnerSpawnEvent"));
+        assertTrue(entitySpawns.contains("IslandFlag.MOB_SPAWN"));
+        assertTrue(entitySpawns.contains("IslandSpawnFlagPolicy.categoryFlag"));
+        assertTrue(entitySpawns.contains("checkSystemFlag(key.worldName(), key.blockX(), key.blockZ()"));
         assertTrue(entitySpawns.contains("directLogicalDelta"));
         assertTrue(bootstrap.contains("LogicalEntitySpawnBridge.register"));
         assertTrue(entityRemovals.contains("EntityStackMultipleDeathEvent"));
