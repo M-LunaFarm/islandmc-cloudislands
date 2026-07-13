@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
+import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import org.bukkit.Location;
@@ -21,16 +22,30 @@ public final class IslandLevelScanService {
     private final Supplier<ActiveIslandRegistry> activeIslands;
     private final RuntimeCommandClient runtimeCommands;
     private final PaperWorldGateway worlds;
+    private final CustomBlockKeyService customBlockKeys;
 
     public IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client) {
-        this(plugin, activeIslands, client, new BukkitWorldGateway(plugin));
+        this(
+            plugin,
+            activeIslands,
+            client,
+            new BukkitWorldGateway(plugin),
+            plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands
+                ? cloudIslands.customBlockKeys()
+                : CustomBlockKeyService.discover(plugin.getServer())
+        );
     }
 
     IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client, PaperWorldGateway worlds) {
+        this(plugin, activeIslands, client, worlds, CustomBlockKeyService.vanillaOnly());
+    }
+
+    IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client, PaperWorldGateway worlds, CustomBlockKeyService customBlockKeys) {
         this.plugin = plugin;
         this.activeIslands = activeIslands;
         this.runtimeCommands = client.runtimeCommands();
         this.worlds = worlds;
+        this.customBlockKeys = customBlockKeys == null ? CustomBlockKeyService.vanillaOnly() : customBlockKeys;
     }
 
     public CompletableFuture<Void> rescanIsland(UUID islandId) {
@@ -71,9 +86,10 @@ public final class IslandLevelScanService {
         for (int x = minX; x <= maxX; x++) {
             for (int z = minZ; z <= maxZ; z++) {
                 for (int y = world.getMinHeight(); y < world.getMaxHeight(); y++) {
-                    Material type = world.getBlockAt(x, y, z).getType();
+                    org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+                    Material type = block.getType();
                     if (!type.isAir()) {
-                        counts.merge(type.getKey().toString(), 1L, Long::sum);
+                        counts.merge(customBlockKeys.blockKey(block), 1L, Long::sum);
                     }
                 }
             }
@@ -81,7 +97,7 @@ public final class IslandLevelScanService {
         for (Entity entity : world.getEntities()) {
             Location location = entity.getLocation();
             if (location.getBlockX() >= minX && location.getBlockX() <= maxX && location.getBlockZ() >= minZ && location.getBlockZ() <= maxZ) {
-                counts.merge("entity:" + entity.getType().getKey(), 1L, Long::sum);
+                counts.merge(customBlockKeys.entityKey(entity), 1L, Long::sum);
             }
         }
         return counts;

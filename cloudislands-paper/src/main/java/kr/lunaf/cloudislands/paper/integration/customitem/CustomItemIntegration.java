@@ -11,9 +11,19 @@ public final class CustomItemIntegration extends PolicyBackedCloudIntegration {
     }
 
     public CustomItemIntegration(String pluginName, IntegrationExternalRuntime externalRuntime) {
-        super(pluginName, Set.of(
-            IntegrationCapability.DETECT,
-            IntegrationCapability.VALIDATE_VERSION
-        ), externalRuntime);
+        super(pluginName, capabilities(pluginName), externalRuntime);
+    }
+
+    private static Set<IntegrationCapability> capabilities(String pluginName) {
+        return CustomBlockKeyService.supportedPlugins().contains(pluginName)
+            ? Set.of(
+                IntegrationCapability.DETECT,
+                IntegrationCapability.VALIDATE_VERSION,
+                IntegrationCapability.RUNTIME_SERVICE
+            )
+            : Set.of(
+                IntegrationCapability.DETECT,
+                IntegrationCapability.VALIDATE_VERSION
+            );
     }
 }

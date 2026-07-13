@@ -88,9 +88,9 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
-    void customItemAndStackerAdaptersAreDiagnosticOnlyUntilExecutorsExist() {
+    void slimefunAndStackerAdaptersRemainDiagnosticUntilExecutorsExist() {
         for (var integration : List.of(
-            new CustomItemIntegration("ItemsAdder", acceptingRuntime()),
+            new CustomItemIntegration("Slimefun", acceptingRuntime()),
             new StackerIntegration("RoseStacker", acceptingRuntime())
         )) {
             assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION), integration.capabilities());
@@ -132,16 +132,18 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
-    void realVaultPlaceholderPlanAndVanishServicesAreExecutableIntegrations() {
+    void realVaultPlaceholderPlanVanishAndCustomBlockServicesAreExecutableIntegrations() {
         VaultIntegration vault = new VaultIntegration();
         PlaceholderApiIntegration placeholder = new PlaceholderApiIntegration();
         PlanIntegration plan = new PlanIntegration();
         VanishIntegration vanish = new VanishIntegration("SuperVanish");
+        CustomItemIntegration customBlocks = new CustomItemIntegration("ItemsAdder");
 
         assertTrue(vault.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertTrue(placeholder.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertTrue(plan.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertTrue(vanish.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
+        assertTrue(customBlocks.capabilities().contains(IntegrationCapability.RUNTIME_SERVICE));
         assertEquals(
             IntegrationSupportState.ACTIVE,
             PaperIntegrationRegistry.adapterState(vault, true, IntegrationSupportState.API_COMPATIBLE)
@@ -157,6 +159,10 @@ class PaperIntegrationRegistryTest {
         assertEquals(
             IntegrationSupportState.ACTIVE,
             PaperIntegrationRegistry.adapterState(vanish, true, IntegrationSupportState.API_COMPATIBLE)
+        );
+        assertEquals(
+            IntegrationSupportState.ACTIVE,
+            PaperIntegrationRegistry.adapterState(customBlocks, true, IntegrationSupportState.API_COMPATIBLE)
         );
     }
 

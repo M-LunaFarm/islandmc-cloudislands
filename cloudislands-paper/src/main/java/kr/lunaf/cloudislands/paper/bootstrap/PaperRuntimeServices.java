@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.paper.api.PaperCloudIslandsApi;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.economy.VaultEconomyBridge;
 import kr.lunaf.cloudislands.paper.integration.analytics.PlanAnalyticsRuntime;
+import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
 import kr.lunaf.cloudislands.paper.integration.vanish.PlayerVisibilityService;
 import kr.lunaf.cloudislands.paper.placeholder.CloudIslandsPlaceholderExpansion;
 import org.bukkit.plugin.ServicePriority;
@@ -22,6 +23,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
     private Object placeholderExpansion;
     private RuntimeComponent planAnalytics;
     private PlayerVisibilityService playerVisibility;
+    private CustomBlockKeyService customBlockKeys;
 
     private PaperRuntimeServices(CloudIslandsPaperPlugin plugin) {
         this.plugin = plugin;
@@ -34,6 +36,7 @@ public final class PaperRuntimeServices implements RuntimeComponent {
         services.registerPlaceholderExpansion(client);
         services.registerPlanAnalytics(client);
         services.registerPlayerVisibility();
+        services.registerCustomBlockKeys();
         return services;
     }
 
@@ -45,8 +48,13 @@ public final class PaperRuntimeServices implements RuntimeComponent {
         return playerVisibility == null ? PlayerVisibilityService.metadataOnly() : playerVisibility;
     }
 
+    public CustomBlockKeyService customBlockKeys() {
+        return customBlockKeys == null ? CustomBlockKeyService.vanillaOnly() : customBlockKeys;
+    }
+
     @Override
     public void stop() {
+        unregisterCustomBlockKeys();
         unregisterPlayerVisibility();
         unregisterPlanAnalytics();
         unregisterPlaceholderExpansion();
@@ -201,5 +209,33 @@ public final class PaperRuntimeServices implements RuntimeComponent {
             plugin.integrationRegistry().clearRuntimeService(pluginName);
         }
         playerVisibility = null;
+    }
+
+    private void registerCustomBlockKeys() {
+        this.customBlockKeys = CustomBlockKeyService.discover(plugin.getServer());
+        for (String pluginName : CustomBlockKeyService.supportedPlugins()) {
+            if (!plugin.getServer().getPluginManager().isPluginEnabled(pluginName)) {
+                continue;
+            }
+            boolean supported = customBlockKeys.supports(pluginName);
+            plugin.integrationRegistry().reportRuntimeService(
+                pluginName,
+                supported,
+                "custom-block-key-registration",
+                customBlockKeys.runtimeDetails(pluginName)
+            );
+            if (supported) {
+                plugin.getLogger().info("Registered custom block value resolver for " + pluginName);
+            } else {
+                plugin.getLogger().warning(pluginName + " was detected but its custom block lookup API was unavailable; vanilla material counting remains active");
+            }
+        }
+    }
+
+    private void unregisterCustomBlockKeys() {
+        for (String pluginName : CustomBlockKeyService.supportedPlugins()) {
+            plugin.integrationRegistry().clearRuntimeService(pluginName);
+        }
+        customBlockKeys = null;
     }
 }

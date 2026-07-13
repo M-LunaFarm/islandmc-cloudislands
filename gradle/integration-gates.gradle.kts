@@ -99,9 +99,12 @@ tasks.register("verifyIntegrationMatrix") {
         reportsDir.mkdirs()
         val diagnosticPlugins = setOf(
             "LuckPerms", "CoreProtect", "WorldEdit", "FastAsyncWorldEdit",
-            "ItemsAdder", "Oraxen", "Nexo", "Slimefun", "RoseStacker", "WildStacker", "AdvancedSpawners"
+            "Slimefun", "RoseStacker", "WildStacker", "AdvancedSpawners"
         )
-        val runtimeServicePlugins = setOf("Vault", "PlaceholderAPI", "Plan", "SuperVanish", "PremiumVanish", "CMI")
+        val runtimeServicePlugins = setOf(
+            "Vault", "PlaceholderAPI", "Plan", "SuperVanish", "PremiumVanish", "CMI",
+            "ItemsAdder", "Oraxen", "Nexo"
+        )
         fun jsonEscape(value: String): String = buildString {
             value.forEach { character ->
                 when (character) {
@@ -219,7 +222,9 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
     val planRuntimeTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/analytics/PlanAnalyticsRuntimePolicyTest.java")
     val visibilityRuntime = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/vanish/PlayerVisibilityService.java")
     val visibilityRuntimeTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandVanishCompletionTest.java")
-    inputs.files(certification, certificationTest, registry, planRuntime, planRuntimeTest, visibilityRuntime, visibilityRuntimeTest)
+    val customBlockRuntime = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/customitem/CustomBlockKeyService.java")
+    val customBlockRuntimeTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/CustomBlockLevelAccountingPolicyTest.java")
+    inputs.files(certification, certificationTest, registry, planRuntime, planRuntimeTest, visibilityRuntime, visibilityRuntimeTest, customBlockRuntime, customBlockRuntimeTest)
     doLast {
         val source = certification.asFile.readText()
         val tests = certificationTest.asFile.readText()
@@ -228,6 +233,8 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
         val planRuntimeTests = planRuntimeTest.asFile.readText()
         val visibilityRuntimeSource = visibilityRuntime.asFile.readText()
         val visibilityRuntimeTests = visibilityRuntimeTest.asFile.readText()
+        val customBlockRuntimeSource = customBlockRuntime.asFile.readText()
+        val customBlockRuntimeTests = customBlockRuntimeTest.asFile.readText()
         val requiredAdapters = listOf(
             "VaultIntegration", "PlaceholderApiIntegration", "LuckPermsIntegration", "CoreProtectIntegration",
             "WorldEditIntegration", "CustomItemIntegration", "StackerIntegration", "PlanIntegration", "VanishIntegration"
@@ -248,6 +255,9 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
             if (!visibilityRuntimeSource.contains("VanishAPI") || !visibilityRuntimeSource.contains("getAllVanished")) add("Vanish runtime must support SuperVanish/PremiumVanish and CMI APIs")
             if (!visibilityRuntimeSource.contains("viewer.canSee(target)") || !visibilityRuntimeSource.contains("getMetadata(\"vanished\")")) add("Vanish runtime must retain Bukkit visibility and metadata fallbacks")
             if (!visibilityRuntimeTests.contains("playerTargetCompletionOmitsTargetsHiddenByBukkitVisibility")) add("Vanish-safe player target completion test is missing")
+            if (!customBlockRuntimeSource.contains("CustomBlock") || !customBlockRuntimeSource.contains("OraxenBlocks") || !customBlockRuntimeSource.contains("NexoBlocks")) add("Custom block runtime must support ItemsAdder, Oraxen, and Nexo lookup APIs")
+            if (!customBlockRuntimeSource.contains("OraxenFurniture") || !customBlockRuntimeSource.contains("NexoFurniture")) add("Custom furniture must participate in island value reconciliation")
+            if (!customBlockRuntimeTests.contains("bothIncrementalAndReconciliationPathsUseCustomBlockKeys")) add("Custom block delta and rescan accounting policy test is missing")
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))

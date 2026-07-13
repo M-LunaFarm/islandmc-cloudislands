@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.level;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
+import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
@@ -11,10 +12,18 @@ import org.bukkit.plugin.Plugin;
 public final class BlockDeltaReporter {
     private final Plugin plugin;
     private final RuntimeCommandClient runtimeCommands;
+    private final CustomBlockKeyService customBlockKeys;
 
     public BlockDeltaReporter(Plugin plugin, CoreApiClient client) {
+        this(plugin, client, plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands
+            ? cloudIslands.customBlockKeys()
+            : CustomBlockKeyService.discover(plugin.getServer()));
+    }
+
+    BlockDeltaReporter(Plugin plugin, CoreApiClient client, CustomBlockKeyService customBlockKeys) {
         this.plugin = plugin;
         this.runtimeCommands = client.runtimeCommands();
+        this.customBlockKeys = customBlockKeys == null ? CustomBlockKeyService.vanillaOnly() : customBlockKeys;
     }
 
     public void placed(UUID islandId, Block block) {
@@ -54,7 +63,7 @@ public final class BlockDeltaReporter {
     }
 
     private void report(UUID islandId, Block block, long delta) {
-        report(islandId, block.getType().getKey().toString(), delta);
+        report(islandId, customBlockKeys.blockKey(block), delta);
     }
 
     private void report(UUID islandId, String materialKey, long delta) {

@@ -334,17 +334,19 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     FeatureParityEntry(
         "ranking/level/worth/block values",
         "IMPLEMENTED_VERIFIED",
-        "ranking and dirty recalculation logic have service tests",
+        "ranking, dirty recalculation, typed block values, and custom block identity have service tests",
         "Paper-facing values compile; no per-version runtime divergence is claimed",
         "version-neutral",
-        "service-level verified",
+        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed block values plus ItemsAdder, Oraxen, and Nexo block and furniture identity in delta and reconciliation paths",
         "not recovery-specific",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/LevelWorthSystemPolicyTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/CustomBlockLevelAccountingPolicyTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/customitem/CustomBlockKeyServiceTest.java",
             "cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/hook/PlaceholderFeaturePolicyTest.java"
         ),
-        "worth economics beyond configured value calculations are not release-certified"
+        "custom vendor APIs remain deployment-specific live acceptance; configured economics are operator-owned"
     ),
     FeatureParityEntry(
         "upgrades/size/border/biome",
@@ -434,7 +436,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "integrations/localization/GUI",
         "PARTIAL_VERIFIED",
         "integration policy, localization files, GUI components, and scoped runtime certification fixtures exist",
-        "Paper integration registry certifies Vault economy, PlaceholderAPI registration, Plan distributed analytics, and vanish-safe player suggestions while separating diagnostic-only state-transfer adapters",
+        "Paper integration registry certifies Vault economy, PlaceholderAPI registration, Plan distributed analytics, vanish-safe player suggestions, and custom block value accounting while separating diagnostic-only state-transfer adapters",
         "plugin-specific operation adapters are active only where implemented",
         "verifyIntegrationRuntimeSmoke verifies executable runtime services and keeps probe-only external adapters diagnostic",
         "not recovery-specific",
@@ -445,7 +447,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java"
         ),
-        "Vault, PlaceholderAPI, Plan, SuperVanish, PremiumVanish, and CMI runtime services are executable; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
+        "Vault, PlaceholderAPI, Plan, SuperVanish, PremiumVanish, CMI, ItemsAdder, Oraxen, and Nexo runtime services are executable; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
     )
 )
 
