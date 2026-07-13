@@ -123,15 +123,40 @@ class RedisIslandJobQueueTest {
         }
     }
 
+    @Test
+    void olderWorkerDefersUnknownJobTypeWithoutAcknowledgingIt() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        String streamId = "1700000000004-0";
+        try (FakeRedis redis = FakeRedis.withStreamJob(jobId, islandId, streamId, "FUTURE_RESTORE_ISLAND")) {
+            RedisIslandJobQueue queue = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
+
+            assertTrue(queue.claim("old-island-node", List.of(IslandJobType.SAVE_ISLAND), 1).isEmpty());
+
+            assertFalse(redis.commands().contains(List.of("XACK", RedisKeys.jobsStream(), "cloudislands-agents", streamId)));
+            assertTrue(redis.commands().stream().anyMatch(command ->
+                command.size() > 2
+                    && command.get(0).equals("XADD")
+                    && command.get(1).equals(RedisKeys.auditStream())
+                    && command.contains("JOB_DEFERRED_UNSUPPORTED")
+                    && command.contains("FUTURE_RESTORE_ISLAND")
+            ));
+        }
+    }
+
     private static final class FakeRedis implements Closeable {
         private final ServerSocket server;
         private final Thread thread;
         private final Map<String, String> claim;
+        private final List<String> streamJob;
+        private final String streamId;
         private final List<List<String>> commands = Collections.synchronizedList(new ArrayList<>());
 
-        private FakeRedis(ServerSocket server, Map<String, String> claim) {
+        private FakeRedis(ServerSocket server, Map<String, String> claim, String streamId, List<String> streamJob) {
             this.server = server;
             this.claim = claim;
+            this.streamId = streamId;
+            this.streamJob = streamJob;
             this.thread = new Thread(this::serve, "fake-redis-job-queue-test");
             this.thread.setDaemon(true);
             this.thread.start();
@@ -157,6 +182,20 @@ class RedisIslandJobQueueTest {
                 Map.entry("priority", "3"),
                 Map.entry("createdAt", Instant.EPOCH.toString()),
                 Map.entry("payload", "fencingToken=11")
+            ), "", List.of());
+        }
+
+        static FakeRedis withStreamJob(UUID jobId, UUID islandId, String streamId, String type) throws IOException {
+            ServerSocket server = new ServerSocket(0);
+            return new FakeRedis(server, Map.of(), streamId, List.of(
+                "jobId", jobId.toString(),
+                "type", type,
+                "islandId", islandId.toString(),
+                "targetNode", "",
+                "priority", "3",
+                "createdAt", Instant.EPOCH.toString(),
+                "attempt", "0",
+                "payload", "fencingToken=11"
             ));
         }
 
@@ -239,12 +278,29 @@ class RedisIslandJobQueueTest {
             String name = command.getFirst();
             if (name.equals("HGETALL")) {
                 writeArray(output, claim);
+            } else if (name.equals("XREADGROUP")) {
+                writeStreamJob(output);
             } else if (name.equals("XACK") || name.equals("DEL")) {
                 write(output, ":1\r\n");
             } else {
                 write(output, "+OK\r\n");
             }
             output.flush();
+        }
+
+        private void writeStreamJob(BufferedOutputStream output) throws IOException {
+            if (streamJob.isEmpty()) {
+                write(output, "*-1\r\n");
+                return;
+            }
+            write(output, "*1\r\n*2\r\n");
+            writeBulk(output, RedisKeys.jobsStream());
+            write(output, "*1\r\n*2\r\n");
+            writeBulk(output, streamId);
+            write(output, "*" + streamJob.size() + "\r\n");
+            for (String value : streamJob) {
+                writeBulk(output, value);
+            }
         }
 
         private void writeArray(BufferedOutputStream output, Map<String, String> values) throws IOException {

@@ -453,9 +453,10 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             }
         } else if (type != null && !targetMatches) {
             requeueMismatchedTarget(redis, streamId, current, nodeId, targetNode);
+        } else if (!current.getOrDefault("type", "").isBlank()) {
+            deferUnsupportedJob(redis, streamId, current, nodeId);
         } else {
-            redis.command("XACK", RedisKeys.jobsStream(), GROUP, streamId);
-            redis.command("XADD", RedisKeys.auditStream(), "*", "type", "JOB_SKIPPED_UNSUPPORTED", "jobId", current.getOrDefault("jobId", ""), "streamId", streamId, "nodeId", nodeId, "jobType", current.getOrDefault("type", ""));
+            skipMalformedJob(redis, streamId, current, nodeId, new IllegalArgumentException("missing job type"));
         }
     }
 
@@ -499,6 +500,19 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
             "streamId", streamId == null ? "" : streamId,
             "nodeId", nodeId,
             "error", exception.getClass().getSimpleName()
+        );
+    }
+
+    private void deferUnsupportedJob(RedisRespConnection redis, String streamId, Map<String, String> job, String nodeId) throws IOException {
+        redis.command(
+            "XADD",
+            RedisKeys.auditStream(),
+            "*",
+            "type", "JOB_DEFERRED_UNSUPPORTED",
+            "jobId", job.getOrDefault("jobId", ""),
+            "streamId", streamId == null ? "" : streamId,
+            "nodeId", nodeId,
+            "jobType", job.getOrDefault("type", "")
         );
     }
 
