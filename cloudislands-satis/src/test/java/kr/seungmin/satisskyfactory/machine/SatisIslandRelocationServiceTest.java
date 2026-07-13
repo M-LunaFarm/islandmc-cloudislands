@@ -274,6 +274,54 @@ class SatisIslandRelocationServiceTest {
         }
     }
 
+    @Test
+    void islandMetadataSaveFailureCompensatesSuccessfulComponentRemaps() throws Exception {
+        try (DatabaseHandle handle = openDatabase("relocation-metadata-compensation")) {
+            FactoryIsland island = new FactoryIsland(ISLAND_ID, OWNER_ID);
+            island.activeWorld("ci_shard_001");
+            island.activeCenterX(0);
+            island.activeCenterY(64);
+            island.activeCenterZ(0);
+            handle.database().saveIsland(island);
+            StorageService storage = new StorageService(handle.database(), 1000);
+            MachineService machines = new MachineService(handle.database(), new MachineDefinitionService(), storage);
+            assertTrue(machines.save(new MachineInstance(MACHINE_ID, ISLAND_ID, OWNER_ID, "grinder_t1", 1,
+                    new BlockKey("ci_shard_001", 4, 65, 8))));
+            handle.database().saveNode(new ResourceNode(NODE_ID, ISLAND_ID, "MINERAL", "iron_ore", 1.0D,
+                    100, 250, 60, 1, new BlockKey("ci_shard_001", -6, 63, 12), 0, 0));
+            ResourceNodeService nodes = new ResourceNodeService(handle.database());
+            nodes.load(nodeConfig());
+            SatisIslandRelocationService relocation = new SatisIslandRelocationService(machines, nodes);
+            SatisIslandRelocationService.RelocationCheckpoint checkpoint = relocation.checkpoint(island);
+            SatisIslandRelocationService.RelocationResult result = relocation.relocate(
+                    ISLAND_ID, island, "ci_shard_006", 2048, 80, -1024, true, true);
+            try (Connection connection = handle.database().connection(); Statement statement = connection.createStatement()) {
+                statement.execute("CREATE TRIGGER fail_relocation_metadata BEFORE UPDATE ON factory_islands "
+                        + "BEGIN SELECT RAISE(FAIL, 'forced relocation metadata failure'); END");
+            }
+
+            assertFalse(saveIsland(handle.database(), island));
+            assertTrue(relocation.rollback(ISLAND_ID, island, result, checkpoint));
+
+            assertEquals("ci_shard_001", island.activeWorld());
+            assertEquals(0, island.activeCenterX());
+            assertEquals("ci_shard_001", machines.find(MACHINE_ID).orElseThrow().world());
+            assertEquals(4, machines.find(MACHINE_ID).orElseThrow().x());
+            assertEquals("ci_shard_001", nodes.nodes(ISLAND_ID).getFirst().world());
+            assertEquals(-6, nodes.nodes(ISLAND_ID).getFirst().x());
+            assertEquals("ci_shard_001", handle.database().findIsland(ISLAND_ID).orElseThrow().activeWorld());
+        }
+    }
+
+    private boolean saveIsland(DatabaseService database, FactoryIsland island) {
+        try {
+            database.saveIsland(island);
+            return true;
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
     private DatabaseHandle openDatabase(String name) {
         DatabaseService database = new DatabaseService(tempDir.resolve(name).toFile());
         database.open();

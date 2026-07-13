@@ -3542,6 +3542,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             boolean resourceNodesRemapped = false;
             boolean machineRemapDeferred = false;
             boolean resourceNodeRemapDeferred = false;
+            SatisIslandRelocationService relocationService = null;
+            SatisIslandRelocationService.RelocationCheckpoint relocationCheckpoint = null;
+            SatisIslandRelocationService.RelocationResult relocationResult = null;
             org.bukkit.Location activeCenter = activeIslandCenter(islandId);
             if (activeCenter == null || activeCenter.getWorld() == null) {
                 activeCenter = lifecycleFallbackCenter(island, operation);
@@ -3551,7 +3554,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             }
             if (activeCenter != null && activeCenter.getWorld() != null) {
                 String activeWorld = activeCenter.getWorld().getName();
-                SatisIslandRelocationService.RelocationResult relocation = new SatisIslandRelocationService(machines, nodes).relocate(
+                relocationService = new SatisIslandRelocationService(machines, nodes);
+                relocationCheckpoint = relocationService.checkpoint(island);
+                SatisIslandRelocationService.RelocationResult relocation = relocationService.relocate(
                         islandId,
                         island,
                         activeWorld,
@@ -3566,7 +3571,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 resourceNodesRemapped = relocation.resourceNodesRemapped();
                 machineRemapDeferred = relocation.machineRemapDeferred();
                 resourceNodeRemapDeferred = relocation.resourceNodeRemapDeferred();
-                publishRelocationAuditState(islandId, operation, relocation, remapSource);
+                relocationResult = relocation;
                 if (!lifecycleEventWorld(operation).isBlank() && !lifecycleEventWorld(operation).equals(activeWorld)) {
                     getLogger().warning("CloudIslands Satis lifecycle event world " + lifecycleEventWorld(operation)
                             + " differed from resolved active world " + activeWorld + " for " + islandId);
@@ -3580,8 +3585,21 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
                 power.rebuildIsland(islandId);
             }
             if (!islands.save(island)) {
+                boolean rolledBack = relocationService == null || relocationResult == null
+                        || relocationService.rollback(islandId, island, relocationResult, relocationCheckpoint);
+                if (rolledBack && machines != null && itemNetworks != null && power != null && operationalFeatureEnabled("machines")) {
+                    itemNetworks.rebuildIsland(islandId);
+                    power.rebuildIsland(islandId);
+                }
                 getLogger().warning("CloudIslands Satis lifecycle island save was not accepted for " + islandId + " during " + operation);
+                if (!rolledBack) {
+                    getLogger().severe("CloudIslands Satis lifecycle relocation compensation failed for " + islandId
+                            + " during " + operation + "; writes remain fenced until the next authoritative rehydrate");
+                }
                 return;
+            }
+            if (relocationResult != null) {
+                publishRelocationAuditState(islandId, operation, relocationResult, remapSource);
             }
             publishLifecycleState(islandId, operation, island, remapDelta, machinesRemapped, resourceNodesRemapped, remapSource, machineRemapDeferred, resourceNodeRemapDeferred);
         });

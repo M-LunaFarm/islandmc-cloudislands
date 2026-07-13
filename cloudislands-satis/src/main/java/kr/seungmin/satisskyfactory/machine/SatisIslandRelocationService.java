@@ -16,6 +16,47 @@ public final class SatisIslandRelocationService {
         this.resourceNodes = resourceNodes;
     }
 
+    public RelocationCheckpoint checkpoint(FactoryIsland island) {
+        return new RelocationCheckpoint(
+                island.activeWorld(), island.activeCenterX(), island.activeCenterY(), island.activeCenterZ(),
+                island.pendingMachineRemapWorld(), island.pendingMachineRemapCenterX(),
+                island.pendingMachineRemapCenterY(), island.pendingMachineRemapCenterZ(),
+                island.pendingResourceNodeRemapWorld(), island.pendingResourceNodeRemapCenterX(),
+                island.pendingResourceNodeRemapCenterY(), island.pendingResourceNodeRemapCenterZ()
+        );
+    }
+
+    public boolean rollback(UUID islandId, FactoryIsland island, RelocationResult result, RelocationCheckpoint checkpoint) {
+        if (islandId == null || island == null || result == null || checkpoint == null) {
+            return false;
+        }
+        int machineDeltaX;
+        int machineDeltaY;
+        int machineDeltaZ;
+        int nodeDeltaX;
+        int nodeDeltaY;
+        int nodeDeltaZ;
+        try {
+            machineDeltaX = Math.subtractExact(checkpoint.machineOriginX(), island.activeCenterX());
+            machineDeltaY = Math.subtractExact(checkpoint.machineOriginY(), island.activeCenterY());
+            machineDeltaZ = Math.subtractExact(checkpoint.machineOriginZ(), island.activeCenterZ());
+            nodeDeltaX = Math.subtractExact(checkpoint.resourceNodeOriginX(), island.activeCenterX());
+            nodeDeltaY = Math.subtractExact(checkpoint.resourceNodeOriginY(), island.activeCenterY());
+            nodeDeltaZ = Math.subtractExact(checkpoint.resourceNodeOriginZ(), island.activeCenterZ());
+        } catch (ArithmeticException overflow) {
+            return false;
+        }
+        boolean machinesRolledBack = !result.machinesRemapped() || machines == null
+                || machines.remapIslandRegion(islandId, checkpoint.machineOriginWorld(), machineDeltaX, machineDeltaY, machineDeltaZ);
+        boolean nodesRolledBack = !result.resourceNodesRemapped() || resourceNodes == null
+                || resourceNodes.remapIslandRegion(islandId, checkpoint.resourceNodeOriginWorld(), nodeDeltaX, nodeDeltaY, nodeDeltaZ);
+        if (!machinesRolledBack || !nodesRolledBack) {
+            return false;
+        }
+        checkpoint.restore(island);
+        return true;
+    }
+
     public RelocationResult relocate(
             UUID islandId,
             FactoryIsland island,
@@ -154,5 +195,38 @@ public final class SatisIslandRelocationService {
     }
 
     public record RelocationResult(boolean machinesRemapped, boolean resourceNodesRemapped, boolean machineRemapDeferred, boolean resourceNodeRemapDeferred, boolean placementChanged, String previousWorld, String previousCenter, String targetWorld, String targetCenter, String delta, String machineDelta, String resourceNodeDelta, String deferredRemapPolicy) {
+    }
+
+    public record RelocationCheckpoint(
+            String activeWorld, int activeCenterX, int activeCenterY, int activeCenterZ,
+            String pendingMachineWorld, int pendingMachineCenterX, int pendingMachineCenterY, int pendingMachineCenterZ,
+            String pendingResourceNodeWorld, int pendingResourceNodeCenterX, int pendingResourceNodeCenterY,
+            int pendingResourceNodeCenterZ
+    ) {
+        String machineOriginWorld() {
+            return pendingMachineWorld == null || pendingMachineWorld.isBlank() ? activeWorld : pendingMachineWorld;
+        }
+
+        int machineOriginX() { return pendingMachineWorld == null || pendingMachineWorld.isBlank() ? activeCenterX : pendingMachineCenterX; }
+        int machineOriginY() { return pendingMachineWorld == null || pendingMachineWorld.isBlank() ? activeCenterY : pendingMachineCenterY; }
+        int machineOriginZ() { return pendingMachineWorld == null || pendingMachineWorld.isBlank() ? activeCenterZ : pendingMachineCenterZ; }
+
+        String resourceNodeOriginWorld() {
+            return pendingResourceNodeWorld == null || pendingResourceNodeWorld.isBlank() ? activeWorld : pendingResourceNodeWorld;
+        }
+
+        int resourceNodeOriginX() { return pendingResourceNodeWorld == null || pendingResourceNodeWorld.isBlank() ? activeCenterX : pendingResourceNodeCenterX; }
+        int resourceNodeOriginY() { return pendingResourceNodeWorld == null || pendingResourceNodeWorld.isBlank() ? activeCenterY : pendingResourceNodeCenterY; }
+        int resourceNodeOriginZ() { return pendingResourceNodeWorld == null || pendingResourceNodeWorld.isBlank() ? activeCenterZ : pendingResourceNodeCenterZ; }
+
+        void restore(FactoryIsland island) {
+            island.activeWorld(activeWorld);
+            island.activeCenterX(activeCenterX);
+            island.activeCenterY(activeCenterY);
+            island.activeCenterZ(activeCenterZ);
+            island.pendingMachineRemap(pendingMachineWorld, pendingMachineCenterX, pendingMachineCenterY, pendingMachineCenterZ);
+            island.pendingResourceNodeRemap(pendingResourceNodeWorld, pendingResourceNodeCenterX,
+                    pendingResourceNodeCenterY, pendingResourceNodeCenterZ);
+        }
     }
 }
