@@ -54,6 +54,10 @@ final class IslandCommandRuntimeServices implements
         return IslandCommandRuntimeSupport.mutateIdempotent(auditAction, operation);
     }
 
+    public <T> CompletableFuture<T> mutateIdempotent(String auditAction, String idempotencyKey, Supplier<CompletableFuture<T>> operation) {
+        return IslandCommandRuntimeSupport.mutateIdempotent(auditAction, idempotencyKey, operation);
+    }
+
     public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
         confirmations.open(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
     }

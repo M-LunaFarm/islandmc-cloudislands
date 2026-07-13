@@ -34,7 +34,19 @@ final class JdkWarehouseCommandClient implements WarehouseCommandClient {
 
     private static WarehouseMutationView warehouseMutation(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        return new WarehouseMutationView(CoreJson.accepted(root), CoreJson.text(root, "code"), CoreJson.text(root, "materialKey"), CoreJson.number(root, "amount"));
+        Map<?, ?> error = CoreJson.objectValue(root, "error");
+        Map<?, ?> item = CoreJson.objectValue(root, "item");
+        Map<?, ?> itemSource = item.isEmpty() ? root : item;
+        String code = CoreJson.text(root, "code");
+        if (code.isBlank()) {
+            code = CoreJson.text(error, "code");
+        }
+        return new WarehouseMutationView(
+            CoreJson.accepted(root),
+            code,
+            CoreJson.text(itemSource, "materialKey"),
+            CoreJson.number(itemSource, "amount")
+        );
     }
 
     private static void requireId(UUID id, String name) {

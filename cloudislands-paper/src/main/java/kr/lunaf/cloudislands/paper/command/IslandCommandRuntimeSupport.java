@@ -21,6 +21,10 @@ final class IslandCommandRuntimeSupport {
         return CoreMutationContext.with(CoreMutationMetadata.idempotent(auditAction), operation);
     }
 
+    static <T> CompletableFuture<T> mutateIdempotent(String auditAction, String idempotencyKey, Supplier<CompletableFuture<T>> operation) {
+        return CoreMutationContext.with(CoreMutationMetadata.idempotent(auditAction, idempotencyKey), operation);
+    }
+
     static String coreWriteFailureMessage(boolean coreUnavailable, String maintenanceMessage, String fallback) {
         return coreUnavailable ? maintenanceMessage : fallback;
     }

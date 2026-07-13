@@ -23,6 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
@@ -173,6 +174,10 @@ final class IslandCommandBackend {
         routingCommands.clearRouteLoading(event.getPlayer());
         permissionCommands.clearPlayerState(event.getPlayer().getUniqueId());
         router.clearPlayerState(event.getPlayer());
+    }
+
+    public void onJoin(PlayerJoinEvent event) {
+        warehouseCommands.resumePendingSettlement(event.getPlayer());
     }
 
     public void onKick(PlayerKickEvent event) {

@@ -348,7 +348,9 @@ class IslandCommandControllerPolicyTest {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"));
         String warehouseHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandWarehouseCommandHandler.java"));
         String warehouseItemPolicy = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/WarehouseItemPolicy.java"));
+        String warehouseSettlement = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/WarehouseSettlement.java"));
         String warehouseUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/IslandWarehouseUseCase.java"));
+        String controller = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java"));
 
         assertTrue(backend.contains("private final IslandWarehouseCommandHandler warehouseCommands;"));
         assertTrue(routerSource().contains("warehouseCommands.handleCommand(player, subcommand, args)"));
@@ -375,11 +377,17 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseItemPolicy.contains("!item.hasItemMeta()"), "warehouse rows cannot safely restore names, enchantments, damage, contents, or custom metadata");
         assertTrue(warehouseHandler.contains("warehouse-item-metadata-unsupported"), "unsupported metadata must give explicit operator-configurable feedback");
         assertTrue(warehouseHandler.contains("removeMaterial(player, material, amount)"), "warehouse deposit must remove real player inventory items");
-        assertTrue(warehouseHandler.contains("giveMaterial(player, material, amount)"), "warehouse withdraw and failed deposits must grant/refund real items");
+        assertTrue(warehouseHandler.contains("giveMaterial(player, material, settlement.amount())"), "warehouse withdraw and failed deposits must grant/refund the exact escrowed amount");
+        assertTrue(warehouseHandler.contains("warehouseSuccessPrefix(settlement.deposit()) + settlement.materialKey() + \" x\" + settlement.amount()"), "warehouse success feedback must show the transferred amount rather than the resulting warehouse balance");
         assertTrue(warehouseHandler.contains("inventorySpace(player, material)"), "warehouse withdraw must verify inventory capacity before Core mutation");
         assertTrue(warehouseHandler.contains("pendingOperations.acquire(playerUuid)"), "warehouse mutations must reject overlapping operations for the same player");
-        assertTrue(warehouseHandler.contains("finally {\n                    pendingOperations.release(playerUuid);"), "warehouse operation locks must remain held until inventory grant or refund is applied");
+        assertTrue(warehouseHandler.contains("} finally {\n                pendingOperations.release(playerUuid);"), "warehouse operation locks must remain held until inventory grant or refund is applied");
         assertTrue(warehouseHandler.contains("warehouse-operation-pending"), "overlapping warehouse operations must provide explicit feedback");
+        assertTrue(warehouseHandler.contains("PersistentDataType.STRING") && warehouseHandler.contains("storeSettlement(player, settlement)"), "warehouse mutations must persist recovery state before inventory escrow or Core mutation");
+        assertTrue(warehouseSettlement.contains("idempotencyKey") && warehouseHandler.contains("settlement.idempotencyKey()"), "recovery must replay the exact Core idempotency key instead of issuing another mutation");
+        assertTrue(warehouseHandler.contains("activePlayer == null || !activePlayer.isOnline()"), "late Core completions must not mutate a disconnected Player object");
+        assertTrue(backend.contains("warehouseCommands.resumePendingSettlement(event.getPlayer())") && controller.contains("public void onJoin(PlayerJoinEvent event)"), "saved warehouse settlements must resume when the player reconnects");
+        assertTrue(warehouseHandler.contains("warehouse-settlement-pending"), "ambiguous Core responses must keep escrowed items protected instead of guessing a refund or delivery");
         assertTrue(warehouseHandler.contains("IslandPermission permission = IslandPermission.OPEN_CONTAINER"), "warehouse deposit and withdraw must require the container permission");
         assertFalse(warehouseHandler.contains("deposit ? IslandPermission.OPEN_CONTAINER : IslandPermission.WITHDRAW_BANK"), "warehouse withdraw must not inherit bank withdrawal authority");
         assertTrue(warehouseHandler.contains("Material.matchMaterial"), "warehouse commands must resolve Bukkit materials before mutating Core warehouse state");

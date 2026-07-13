@@ -179,6 +179,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyReviewModerationCoverage"))
     dependsOn(tasks.named("verifyEconomyTransactionSafety"))
     dependsOn(tasks.named("verifyCoreMutationIdempotency"))
+    dependsOn(tasks.named("verifyWarehouseSettlementRecovery"))
     dependsOn(tasks.named("verifyIntegrationRuntimeSmoke"))
     dependsOn(tasks.named("verifyRoutingRefactorCoverage"))
     dependsOn(tasks.named("verifyFeatureParityMatrix"))

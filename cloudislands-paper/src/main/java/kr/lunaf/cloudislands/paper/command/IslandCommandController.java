@@ -20,6 +20,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerKickEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
@@ -95,6 +96,11 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     @Override
     public void execute(org.bukkit.entity.Player player, GuiAction action, GuiClick click) {
         backend.executeGuiAction(player, action, click);
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        backend.onJoin(event);
     }
 
     @EventHandler

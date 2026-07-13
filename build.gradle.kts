@@ -1648,6 +1648,9 @@ tasks.register("verifyWarehouseMessageKeyCoverage") {
             "warehouse-list-prefix",
             "warehouse-menu-island-required",
             "warehouse-not-enough-items",
+            "warehouse-settlement-corrupt",
+            "warehouse-settlement-pending",
+            "warehouse-settlement-resuming",
             "warehouse-withdraw-failed",
             "warehouse-withdraw-island-required",
             "warehouse-withdraw-success-prefix"
@@ -1662,13 +1665,50 @@ tasks.register("verifyWarehouseMessageKeyCoverage") {
             directPlayerCodeFallback.find(source)?.let { add("IslandWarehouseCommandHandler directly passes playerCodeMessage Korean fallback: ${it.value}") }
             directCoreWriteFallback.find(source)?.let { add("IslandWarehouseCommandHandler directly passes coreWriteFailureMessage Korean fallback: ${it.value}") }
             if (!source.contains("private String message(String key, String fallback)")) add("IslandWarehouseCommandHandler must centralize routeMessage lookups behind message(key, fallback)")
-            if (!source.contains("warehouseListMessage(items)") || !source.contains("warehouseFailureMessage(deposit)") || !source.contains("warehouseSuccessPrefix(deposit)")) add("Warehouse list/result output must stay behind keyed helper methods")
+            if (!source.contains("warehouseListMessage(items)") || !source.contains("private String warehouseFailureMessage(boolean deposit)") || !source.contains("private String warehouseSuccessPrefix(boolean deposit)")) add("Warehouse list/result output must stay behind keyed helper methods")
             requiredKeys.filterNot { source.contains("\"$it\"") }.forEach { add("IslandWarehouseCommandHandler missing message key usage: $it") }
             requiredKeys.filterNot { ko.contains("$it:") }.forEach { add("ko_kr.yml missing warehouse message key: $it") }
             requiredKeys.filterNot { en.contains("$it:") }.forEach { add("en_us.yml missing warehouse message key: $it") }
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))
+        }
+    }
+}
+
+tasks.register("verifyWarehouseSettlementRecovery") {
+    group = "verification"
+    description = "Verifies warehouse inventory escrow survives disconnects and ambiguous Core responses through durable replay markers."
+    dependsOn(project(":cloudislands-core-client").tasks.named("test"))
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    val handler = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandWarehouseCommandHandler.java")
+    val settlement = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/WarehouseSettlement.java")
+    val controller = layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandController.java")
+    val client = layout.projectDirectory.file("cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/JdkWarehouseCommandClient.java")
+    val settlementTest = layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/WarehouseSettlementTest.java")
+    inputs.files(handler, settlement, controller, client, settlementTest)
+    doLast {
+        val source = listOf(handler, settlement, controller, client, settlementTest).joinToString("\n") { it.asFile.readText() }
+        val requiredSignals = listOf(
+            "warehouse_settlement",
+            "storeSettlement(player, settlement)",
+            "removeMaterial(player, material, amount)",
+            "settlement.idempotencyKey()",
+            "activePlayer == null || !activePlayer.isOnline()",
+            "resumePendingSettlement",
+            "IDEMPOTENCY_IN_PROGRESS",
+            "CoreJson.objectValue(root, \"item\")",
+            "roundTripsDurableRecoveryMarker"
+        )
+        val missing = requiredSignals.filterNot(source::contains)
+        if (missing.isNotEmpty()) {
+            throw GradleException("Warehouse settlement recovery evidence missing: ${missing.joinToString(", ")}")
+        }
+        val handlerSource = handler.asFile.readText()
+        val markerIndex = handlerSource.indexOf("storeSettlement(player, settlement)")
+        val removalIndex = handlerSource.indexOf("removeMaterial(player, material, amount)")
+        if (markerIndex < 0 || removalIndex < 0 || markerIndex > removalIndex) {
+            throw GradleException("Warehouse settlement marker must be stored before deposit inventory escrow")
         }
     }
 }

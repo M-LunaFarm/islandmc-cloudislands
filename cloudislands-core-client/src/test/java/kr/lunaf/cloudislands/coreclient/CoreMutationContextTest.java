@@ -729,8 +729,8 @@ class CoreMutationContextTest {
         server.createContext("/v1/islands/bank/deposit", exchange -> respond(exchange, requestBodies, "bankDeposit", "{\"accepted\":true,\"balance\":\"15\"}"));
         server.createContext("/v1/islands/bank/withdraw", exchange -> respond(exchange, requestBodies, "bankWithdraw", "{\"accepted\":true,\"balance\":\"8\"}"));
         server.createContext("/v1/islands/warehouse", exchange -> respond(exchange, requestBodies, "warehouse", "{\"items\":[]}"));
-        server.createContext("/v1/islands/warehouse/deposit", exchange -> respond(exchange, requestBodies, "warehouseDeposit", "{\"accepted\":true,\"materialKey\":\"STONE\",\"amount\":12}"));
-        server.createContext("/v1/islands/warehouse/withdraw", exchange -> respond(exchange, requestBodies, "warehouseWithdraw", "{\"accepted\":true,\"materialKey\":\"DIRT\",\"amount\":7}"));
+        server.createContext("/v1/islands/warehouse/deposit", exchange -> respond(exchange, requestBodies, "warehouseDeposit", "{\"accepted\":true,\"code\":\"DEPOSITED\",\"item\":{\"materialKey\":\"STONE\",\"amount\":12}}"));
+        server.createContext("/v1/islands/warehouse/withdraw", exchange -> respond(exchange, requestBodies, "warehouseWithdraw", "{\"accepted\":true,\"code\":\"WITHDRAWN\",\"item\":{\"materialKey\":\"DIRT\",\"amount\":7}}"));
         server.start();
         try {
             JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
@@ -739,8 +739,8 @@ class CoreMutationContextTest {
             client.bankCommands().depositSnapshot(islandId, actorUuid, "12.50").join();
             client.bankCommands().withdrawSnapshot(islandId, actorUuid, "4.25").join();
             client.warehouse().listItems(islandId, 50).join();
-            client.warehouseCommands().deposit(islandId, actorUuid, "minecraft:stone", 12L).join();
-            client.warehouseCommands().withdraw(islandId, actorUuid, "minecraft:dirt", 7L).join();
+            WarehouseMutationView deposit = client.warehouseCommands().deposit(islandId, actorUuid, "minecraft:stone", 12L).join();
+            WarehouseMutationView withdraw = client.warehouseCommands().withdraw(islandId, actorUuid, "minecraft:dirt", 7L).join();
 
             assertEquals("{\"islandId\":\"" + islandId + "\"}", requestBodies.get("bank"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"amount\":\"12.50\"}", requestBodies.get("bankDeposit"));
@@ -748,6 +748,33 @@ class CoreMutationContextTest {
             assertEquals("{\"islandId\":\"" + islandId + "\",\"limit\":50}", requestBodies.get("warehouse"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"minecraft:stone\",\"amount\":12}", requestBodies.get("warehouseDeposit"));
             assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"materialKey\":\"minecraft:dirt\",\"amount\":7}", requestBodies.get("warehouseWithdraw"));
+            assertEquals(new WarehouseMutationView(true, "DEPOSITED", "STONE", 12L), deposit);
+            assertEquals(new WarehouseMutationView(true, "WITHDRAWN", "DIRT", 7L), withdraw);
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    void jdkWarehouseClientPreservesIdempotencyRecoveryErrors() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/warehouse/withdraw", exchange -> respond(
+            exchange,
+            new ConcurrentHashMap<>(),
+            "withdraw",
+            "{\"error\":{\"code\":\"IDEMPOTENCY_IN_PROGRESS\",\"message\":\"still running\"}}",
+            409
+        ));
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            WarehouseMutationView result = client.warehouseCommands().withdraw(islandId, actorUuid, "STONE", 1L).join();
+
+            assertFalse(result.accepted());
+            assertEquals("IDEMPOTENCY_IN_PROGRESS", result.code());
         } finally {
             server.stop(0);
         }
@@ -999,9 +1026,13 @@ class CoreMutationContextTest {
     }
 
     private static void respond(com.sun.net.httpserver.HttpExchange exchange, ConcurrentMap<String, String> requestBodies, String key, String responseBody) throws java.io.IOException {
+        respond(exchange, requestBodies, key, responseBody, 200);
+    }
+
+    private static void respond(com.sun.net.httpserver.HttpExchange exchange, ConcurrentMap<String, String> requestBodies, String key, String responseBody, int status) throws java.io.IOException {
         requestBodies.put(key, new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
         byte[] body = responseBody.getBytes(StandardCharsets.UTF_8);
-        exchange.sendResponseHeaders(200, body.length);
+        exchange.sendResponseHeaders(status, body.length);
         exchange.getResponseBody().write(body);
         exchange.close();
     }
