@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.149`
+Version: `1.1.150`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -620,11 +620,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.149`
+Current release: `v1.1.150`
 
-Built for the CloudIslands 1.1.149 baseline.
+Built for the CloudIslands 1.1.150 baseline.
 
-Release notes for `v1.1.149`:
+Release notes for `v1.1.150`:
+
+- tagged releases now generate and verify their production cluster evidence
+  from the same GitHub Actions run instead of failing before verification when
+  an external `CI_CLUSTER_SMOKE_EVIDENCE_JSON` secret is absent
+- the release evidence gate accepts both legacy Paper `Done (` and modern
+  `Done preparing level` readiness markers while still requiring the
+  CloudIslands Paper agent enable marker
+- Velocity 3.5 readiness is certified from its stable `Listening on` marker
+  together with the CloudIslands router enable marker, replacing the obsolete
+  Paper-style `Done (` requirement
+- release-gate coverage tests reject reintroducing the external-secret guard,
+  and the full generated evidence path is verified against PostgreSQL, Redis,
+  MinIO, Paper 26.1.2, Velocity 3.5, and two Core instances
+
+Release notes carried forward from `v1.1.149`:
 
 - new Redis job payloads use a versioned JSON wire format that preserves keys
   and values containing delimiters, percent sequences, empty text, Unicode,
@@ -2530,7 +2545,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.149`.
+Current read: production-readiness baseline `v1.1.150`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
