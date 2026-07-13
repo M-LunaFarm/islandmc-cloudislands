@@ -4,6 +4,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
 import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
+import kr.lunaf.cloudislands.paper.limit.IslandBlockLimitKeys;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.EntityType;
@@ -56,14 +57,17 @@ public final class BlockDeltaReporter {
     }
 
     public void broken(UUID islandId, Material material) {
+        reportLimitDelta(islandId, material, -1L);
         report(islandId, material.getKey().toString(), -1L);
     }
 
     public void placed(UUID islandId, Material material) {
+        reportLimitDelta(islandId, material, 1L);
         report(islandId, material.getKey().toString(), 1L);
     }
 
     public void placed(UUID islandId, UUID actorUuid, Material material) {
+        reportLimitDelta(islandId, material, 1L);
         report(islandId, material.getKey().toString(), 1L);
     }
 
@@ -76,7 +80,15 @@ public final class BlockDeltaReporter {
     }
 
     private void report(UUID islandId, Block block, long delta) {
+        reportLimitDelta(islandId, block == null ? null : block.getType(), delta);
         report(islandId, customBlockKeys.blockKey(block), delta);
+    }
+
+    private void reportLimitDelta(UUID islandId, Material material, long delta) {
+        String countKey = IslandBlockLimitKeys.countKey(material);
+        if (countKey != null) {
+            report(islandId, countKey, delta);
+        }
     }
 
     private void report(UUID islandId, String materialKey, long delta) {

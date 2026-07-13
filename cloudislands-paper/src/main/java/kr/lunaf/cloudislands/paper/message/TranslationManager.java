@@ -152,6 +152,7 @@ public final class TranslationManager {
         values.put("route-session-preparing", "섬 입장을 준비하는 중입니다...");
         values.put("route-session-missing-fallback", "섬 입장 요청이 없어 로비로 이동합니다.");
         values.put("limit-reached", "섬 {limit} 제한에 도달했습니다. 현재 {current}/{max}");
+        values.put("limit-data-loading", "섬 {limit} 한도 데이터를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.");
         values.put("level-recalculate-denied", "섬 레벨을 계산할 권한이 없습니다.");
         values.put("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.");
         values.put("bank-deposit-denied", "섬 은행에 입금할 권한이 없습니다.");

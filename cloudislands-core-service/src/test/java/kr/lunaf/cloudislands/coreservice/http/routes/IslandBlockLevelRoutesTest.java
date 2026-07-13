@@ -120,7 +120,10 @@ class IslandBlockLevelRoutesTest {
         );
 
         Map<?, ?> details = SimpleJson.object(SimpleJson.parse(
-            IslandBlockLevelRoutes.blockDetailsJson(islandId, Map.of("minecraft:diamond_block", 2L), values, 10)
+            IslandBlockLevelRoutes.blockDetailsJson(islandId, Map.of(
+                "minecraft:diamond_block", 2L,
+                "cloudislands:limit/spawner", 50L
+            ), values, 10)
         ));
         Map<?, ?> counts = SimpleJson.object(SimpleJson.parse(
             IslandBlockLevelRoutes.blockCountsJson(islandId, Map.of("minecraft:stone", 3L, "ignored", 0L))
@@ -141,6 +144,7 @@ class IslandBlockLevelRoutesTest {
         assertEquals(5000L, ((Number) block.get("limit")).longValue());
         assertEquals("2000.00", SimpleJson.text(summary.get("totalWorth")));
         assertEquals(20L, ((Number) summary.get("totalLevelPoints")).longValue());
+        assertEquals(1, SimpleJson.list(details.get("blocks")).size());
         assertEquals("minecraft:diamond_block", SimpleJson.text(value.get("materialKey")));
         assertEquals("1000.00", SimpleJson.text(value.get("worth")));
         assertEquals(10L, ((Number) value.get("levelPoints")).longValue());

@@ -117,30 +117,43 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         IslandPermission permission = event.getBlock().getType() == Material.SPAWNER ? IslandPermission.BREAK_SPAWNER : IslandPermission.BREAK;
-        boolean blocked = denied(event.getPlayer(), event.getBlock(), permission);
-        event.setCancelled(blocked);
-        if (!blocked) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getPlayer().getUniqueId(), event.getBlock()));
-        }
+        event.setCancelled(denied(event.getPlayer(), event.getBlock(), permission));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockBreakAccepted(BlockBreakEvent event) {
+        protection.islandAt(event.getBlock()).ifPresent(islandId ->
+            blockDeltas.broken(islandId, event.getPlayer().getUniqueId(), event.getBlock()));
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
-        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD);
-        event.setCancelled(blocked);
-        if (!blocked) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, event.getPlayer().getUniqueId(), event.getBlock()));
+        if (event instanceof BlockMultiPlaceEvent) {
+            return;
         }
+        event.setCancelled(denied(event.getPlayer(), event.getBlock(), IslandPermission.BUILD));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockPlaceAccepted(BlockPlaceEvent event) {
+        if (event instanceof BlockMultiPlaceEvent) {
+            return;
+        }
+        protection.islandAt(event.getBlock()).ifPresent(islandId ->
+            blockDeltas.placed(islandId, event.getPlayer().getUniqueId(), event.getBlock()));
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBlockMultiPlace(BlockMultiPlaceEvent event) {
         boolean blocked = event.getReplacedBlockStates().stream().anyMatch(state -> denied(event.getPlayer(), state.getBlock(), IslandPermission.BUILD));
         event.setCancelled(blocked);
-        if (!blocked) {
-            event.getReplacedBlockStates().forEach(state ->
-                protection.islandAt(state.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, event.getPlayer().getUniqueId(), state.getBlock())));
-        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockMultiPlaceAccepted(BlockMultiPlaceEvent event) {
+        event.getReplacedBlockStates().forEach(state ->
+            protection.islandAt(state.getBlock()).ifPresent(islandId ->
+                blockDeltas.placed(islandId, event.getPlayer().getUniqueId(), state.getBlock())));
     }
 
     @EventHandler(ignoreCancelled = true)

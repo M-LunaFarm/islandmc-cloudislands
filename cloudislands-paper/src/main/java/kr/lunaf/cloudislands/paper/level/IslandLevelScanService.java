@@ -16,6 +16,8 @@ import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.bootstrap.RuntimeComponent;
 import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
+import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
+import kr.lunaf.cloudislands.paper.limit.IslandBlockLimitKeys;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
@@ -38,6 +40,7 @@ public final class IslandLevelScanService implements RuntimeComponent {
     private final CustomBlockKeyService customBlockKeys;
     private final StackAmountService stackAmounts;
     private final TickScheduler scheduler;
+    private IslandLimitCache limitCounts;
     private final Map<UUID, ScanJob> inFlight = new ConcurrentHashMap<>();
     private final Object writeLock = new Object();
     private final Map<UUID, Long> mutationVersions = new HashMap<>();
@@ -57,6 +60,16 @@ public final class IslandLevelScanService implements RuntimeComponent {
                 ? cloudIslands.stackAmounts()
                 : StackAmountService.discover(plugin.getServer())
         );
+    }
+
+    public IslandLevelScanService(
+        Plugin plugin,
+        Supplier<ActiveIslandRegistry> activeIslands,
+        CoreApiClient client,
+        IslandLimitCache limitCounts
+    ) {
+        this(plugin, activeIslands, client);
+        this.limitCounts = limitCounts;
     }
 
     IslandLevelScanService(Plugin plugin, Supplier<ActiveIslandRegistry> activeIslands, CoreApiClient client, PaperWorldGateway worlds) {
@@ -145,6 +158,9 @@ public final class IslandLevelScanService implements RuntimeComponent {
         if (islandId == null || materialKey == null || materialKey.isBlank() || delta == 0L || stopped) {
             return;
         }
+        if (limitCounts != null) {
+            limitCounts.recordBlockDelta(islandId, materialKey, delta);
+        }
         synchronized (writeLock) {
             mutationVersions.merge(islandId, 1L, Long::sum);
             enqueueWriteLocked(islandId, () -> runtimeCommands.recordBlockDelta(islandId, materialKey, delta));
@@ -227,7 +243,12 @@ public final class IslandLevelScanService implements RuntimeComponent {
                     if (!isAir(type)) {
                         String stackKey = stackSnapshot.blockKeyOverride(block);
                         String blockKey = stackKey.isBlank() ? customBlockKeys.blockKey(block) : stackKey;
-                        counts.merge(blockKey, stackSnapshot.blockAmount(block), Long::sum);
+                        long amount = stackSnapshot.blockAmount(block);
+                        counts.merge(blockKey, amount, Long::sum);
+                        String limitCountKey = IslandBlockLimitKeys.countKey(type);
+                        if (limitCountKey != null) {
+                            counts.merge(limitCountKey, amount, Long::sum);
+                        }
                     }
                     cursor.advance();
                     blocks++;
@@ -299,6 +320,7 @@ public final class IslandLevelScanService implements RuntimeComponent {
         private void submitReplacement() {
             task.cancel();
             CompletableFuture<Void> replacement;
+            Map<String, Long> replacementCounts = Map.copyOf(counts);
             synchronized (writeLock) {
                 long currentMutationVersion = mutationVersions.getOrDefault(islandId, 0L);
                 if (currentMutationVersion != startingMutationVersion) {
@@ -309,12 +331,15 @@ public final class IslandLevelScanService implements RuntimeComponent {
                 }
                 replacement = enqueueWriteLocked(
                     islandId,
-                    () -> runtimeCommands.replaceBlockCounts(islandId, Map.copyOf(counts))
+                    () -> runtimeCommands.replaceBlockCounts(islandId, replacementCounts)
                 );
             }
             replacement
                 .whenComplete((_result, error) -> {
                     if (error == null) {
+                        if (limitCounts != null) {
+                            limitCounts.replaceBlockCounts(islandId, replacementCounts);
+                        }
                         future.complete(null);
                     } else {
                         future.completeExceptionally(error);

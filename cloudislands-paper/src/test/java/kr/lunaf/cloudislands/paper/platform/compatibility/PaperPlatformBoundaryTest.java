@@ -370,7 +370,8 @@ class PaperPlatformBoundaryTest {
         String generatorCache = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/GeneratorLevelCache.java"));
         String cropCache = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/CropGrowthLevelCache.java"));
 
-        assertTrue(limitCache.contains("client.environment().limitViews(islandId)"), "Limit cache must use typed environment query client");
+        assertTrue(limitCache.contains("client.environment()::limitViews"), "Limit cache must use typed environment query client");
+        assertTrue(limitCache.contains("client.progression()::blockCounts"), "Limit cache must use the untruncated typed block-count query");
         assertTrue(generatorCache.contains("client.generators().generator(islandId)"), "Generator cache must use typed generator profile query client");
         assertTrue(generatorCache.contains("client.generators().generatorRules(islandId)"), "Generator cache must use typed generator rules query client");
         assertTrue(cropCache.contains("client.progression().upgrades(islandId)"), "Crop cache must use typed progression query client");

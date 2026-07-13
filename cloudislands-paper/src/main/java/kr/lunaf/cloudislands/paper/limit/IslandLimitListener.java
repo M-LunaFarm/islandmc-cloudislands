@@ -1,19 +1,20 @@
 package kr.lunaf.cloudislands.paper.limit;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import org.bukkit.Chunk;
 import org.bukkit.Material;
-import org.bukkit.World;
-import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockMultiPlaceEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 
 public final class IslandLimitListener implements Listener {
@@ -21,8 +22,6 @@ public final class IslandLimitListener implements Listener {
     private final ProtectionController protection;
     private final IslandLimitCache limits;
     private final MessageRenderer messages;
-    private final Map<UUID, Map<String, Long>> observed = new ConcurrentHashMap<>();
-    private final Map<UUID, Set<String>> seeded = new ConcurrentHashMap<>();
     private final Map<String, Long> lastLimitNotice = new ConcurrentHashMap<>();
 
     public IslandLimitListener(ProtectionController protection, IslandLimitCache limits) {
@@ -36,61 +35,105 @@ public final class IslandLimitListener implements Listener {
     }
 
     public void invalidate(UUID islandId) {
-        observed.remove(islandId);
-        seeded.remove(islandId);
         String noticePrefix = islandId + ":";
         lastLimitNotice.keySet().removeIf(key -> key.startsWith(noticePrefix));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
-        String key = limitKey(event.getBlockPlaced().getType());
-        if (key == null) {
+        if (event instanceof BlockMultiPlaceEvent) {
             return;
         }
-        protection.regionAt(event.getBlockPlaced()).ifPresent(region -> {
-            UUID islandId = region.islandId();
-            seedObserved(event.getBlockPlaced().getWorld(), region, key, event.getBlockPlaced());
-            long limit = limits.limit(islandId, key, Long.MAX_VALUE);
-            long current = count(islandId, key);
-            if (current >= limit) {
+        checkPlacements(event, List.of(event.getBlockPlaced().getType()));
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBlockMultiPlace(BlockMultiPlaceEvent event) {
+        checkPlacements(event, event.getReplacedBlockStates().stream()
+            .map(state -> state.getBlock().getType())
+            .toList());
+    }
+
+    private void checkPlacements(BlockPlaceEvent event, List<Material> materials) {
+        Map<String, Long> additions = limitAdditions(materials);
+        if (additions.isEmpty()) {
+            return;
+        }
+        IslandRegion region = protection.regionAt(event.getBlockPlaced()).orElse(null);
+        if (region == null) {
+            return;
+        }
+        UUID islandId = region.islandId();
+        for (Map.Entry<String, Long> addition : additions.entrySet()) {
+            String key = addition.getKey();
+            OptionalLong resolvedLimit = limits.limitIfReady(islandId, key, Long.MAX_VALUE);
+            if (resolvedLimit.isEmpty()) {
+                event.setCancelled(true);
+                notifyLoading(event.getPlayer(), islandId, key);
+                return;
+            }
+            long limit = resolvedLimit.getAsLong();
+            if (limit == Long.MAX_VALUE) {
+                continue;
+            }
+            OptionalLong resolvedCount = limits.blockCountIfReady(islandId, key);
+            if (resolvedCount.isEmpty()) {
+                event.setCancelled(true);
+                notifyLoading(event.getPlayer(), islandId, key);
+                return;
+            }
+            long current = resolvedCount.getAsLong();
+            if (current >= limit || addition.getValue() > limit - current) {
                 event.setCancelled(true);
                 notifyLimit(event.getPlayer(), islandId, key, current, limit);
                 return;
             }
-            observed.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>()).merge(key, 1L, Long::sum);
-        });
+        }
     }
 
-    @EventHandler(ignoreCancelled = true)
-    public void onBlockBreak(BlockBreakEvent event) {
-        String key = limitKey(event.getBlock().getType());
-        if (key == null) {
+    private Map<String, Long> limitAdditions(List<Material> materials) {
+        Map<String, Long> additions = new LinkedHashMap<>();
+        if (materials == null) {
+            return additions;
+        }
+        for (Material material : materials) {
+            String key = IslandBlockLimitKeys.limitKey(material);
+            if (key != null) {
+                additions.merge(key, 1L, Long::sum);
+            }
+        }
+        return additions;
+    }
+
+    private void notifyLimit(Player player, UUID islandId, String key, long current, long limit) {
+        if (!claimNotice(islandId, key)) {
             return;
         }
-        protection.regionAt(event.getBlock()).ifPresent(region -> {
-            seedObserved(event.getBlock().getWorld(), region, key, null);
-            observed.computeIfAbsent(region.islandId(), ignored -> new ConcurrentHashMap<>()).merge(key, -1L, (left, right) -> Math.max(0L, left + right));
-        });
-    }
-
-    private long count(UUID islandId, String key) {
-        return observed.getOrDefault(islandId, Map.of()).getOrDefault(key, 0L);
-    }
-
-    private void notifyLimit(org.bukkit.entity.Player player, UUID islandId, String key, long current, long limit) {
-        String noticeKey = islandId + ":" + key;
-        long now = System.currentTimeMillis();
-        long previous = lastLimitNotice.getOrDefault(noticeKey, 0L);
-        if (now - previous < NOTICE_COOLDOWN_MILLIS) {
-            return;
-        }
-        lastLimitNotice.put(noticeKey, now);
         player.sendMessage(message("limit-reached", "섬 {limit} 제한에 도달했습니다. 현재 {current}/{max}",
             "limit", limitName(key),
             "current", Long.toString(current),
             "max", Long.toString(limit)
         ));
+    }
+
+    private void notifyLoading(Player player, UUID islandId, String key) {
+        if (!claimNotice(islandId, key + ":loading")) {
+            return;
+        }
+        player.sendMessage(message("limit-data-loading", "섬 {limit} 한도 데이터를 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
+            "limit", limitName(key)
+        ));
+    }
+
+    private boolean claimNotice(UUID islandId, String key) {
+        String noticeKey = islandId + ":" + key;
+        long now = System.currentTimeMillis();
+        long previous = lastLimitNotice.getOrDefault(noticeKey, 0L);
+        if (now - previous < NOTICE_COOLDOWN_MILLIS) {
+            return false;
+        }
+        lastLimitNotice.put(noticeKey, now);
+        return true;
     }
 
     private String message(String key, String fallback, String... variables) {
@@ -109,58 +152,6 @@ public final class IslandLimitListener implements Listener {
         return rendered;
     }
 
-    private void seedObserved(World world, IslandRegion region, String key, Block excludedBlock) {
-        Set<String> seededKeys = seeded.computeIfAbsent(region.islandId(), ignored -> ConcurrentHashMap.newKeySet());
-        if (!seededKeys.add(key)) {
-            return;
-        }
-        long count = countLoadedBlocks(world, region, key, excludedBlock);
-        observed.computeIfAbsent(region.islandId(), ignored -> new ConcurrentHashMap<>()).put(key, count);
-    }
-
-    private long countLoadedBlocks(World world, IslandRegion region, String key, Block excludedBlock) {
-        long count = 0L;
-        for (Chunk chunk : world.getLoadedChunks()) {
-            int chunkMinX = chunk.getX() << 4;
-            int chunkMaxX = chunkMinX + 15;
-            int chunkMinZ = chunk.getZ() << 4;
-            int chunkMaxZ = chunkMinZ + 15;
-            if (chunkMaxX < region.minX() || chunkMinX > region.maxX() || chunkMaxZ < region.minZ() || chunkMinZ > region.maxZ()) {
-                continue;
-            }
-            int minX = Math.max(chunkMinX, region.minX());
-            int maxX = Math.min(chunkMaxX, region.maxX());
-            int minZ = Math.max(chunkMinZ, region.minZ());
-            int maxZ = Math.min(chunkMaxZ, region.maxZ());
-            for (int x = minX; x <= maxX; x++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    for (int y = world.getMinHeight(); y < world.getMaxHeight(); y++) {
-                        if (excludedBlock != null && excludedBlock.getX() == x && excludedBlock.getY() == y && excludedBlock.getZ() == z) {
-                            continue;
-                        }
-                        if (key.equals(limitKey(world.getBlockAt(x, y, z).getType()))) {
-                            count++;
-                        }
-                    }
-                }
-            }
-        }
-        return count;
-    }
-
-    private String limitKey(Material material) {
-        if (material == Material.HOPPER) {
-            return "HOPPER";
-        }
-        if (material == Material.SPAWNER) {
-            return "SPAWNER";
-        }
-        if (isRedstone(material)) {
-            return "REDSTONE";
-        }
-        return null;
-    }
-
     private String limitName(String key) {
         return switch (key) {
             case "HOPPER" -> "호퍼";
@@ -170,23 +161,4 @@ public final class IslandLimitListener implements Listener {
         };
     }
 
-    private boolean isRedstone(Material material) {
-        String key = material.getKey().getKey();
-        return key.contains("redstone")
-            || key.endsWith("_button")
-            || key.endsWith("_pressure_plate")
-            || key.endsWith("_piston")
-            || key.endsWith("_rail")
-            || material == Material.REPEATER
-            || material == Material.COMPARATOR
-            || material == Material.LEVER
-            || material == Material.OBSERVER
-            || material == Material.DISPENSER
-            || material == Material.DROPPER
-            || material == Material.DAYLIGHT_DETECTOR
-            || material == Material.TRIPWIRE_HOOK
-            || material == Material.TRAPPED_CHEST
-            || material == Material.TARGET
-            || material == Material.NOTE_BLOCK;
-    }
 }

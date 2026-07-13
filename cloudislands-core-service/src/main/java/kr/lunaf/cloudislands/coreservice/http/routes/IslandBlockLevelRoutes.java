@@ -238,6 +238,7 @@ public final class IslandBlockLevelRoutes implements RouteGroup {
         final long[] totalLevelPoints = {0L};
         counts.entrySet().stream()
             .filter(entry -> entry.getValue() != null && entry.getValue() > 0L)
+            .filter(entry -> !entry.getKey().startsWith("cloudislands:limit/"))
             .sorted((left, right) -> Long.compare(right.getValue(), left.getValue()))
             .limit(Math.max(1, Math.min(limit, 200)))
             .forEach(entry -> {

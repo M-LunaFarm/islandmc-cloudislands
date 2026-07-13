@@ -101,7 +101,7 @@ final class PaperPluginBootstrap {
         EconomyBridge economyBridge = runtimeServices.economyBridge();
         IslandLimitCache limitCache = new IslandLimitCache(client);
         plugin.localCaches.register("limits", limitCache::invalidateAll);
-        plugin.levelScanService = new IslandLevelScanService(plugin, () -> plugin.activeIslands, client);
+        plugin.levelScanService = new IslandLevelScanService(plugin, () -> plugin.activeIslands, client, limitCache);
         plugin.lifecycle.started("level-scan-service", plugin.levelScanService);
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(plugin, client);
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperPlayerProfileListener(client, plugin.playerLocales));
