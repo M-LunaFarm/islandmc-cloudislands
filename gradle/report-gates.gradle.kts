@@ -337,7 +337,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "ranking, dirty recalculation, typed block values, custom block identity, logical stack amounts, and tick-budgeted reconciliation have service tests",
         "Paper-facing values compile; no per-version runtime divergence is claimed",
         "version-neutral",
-        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, bounded scans, serialized writes, and concurrent-mutation rejection",
+        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, immediate accepted stack deltas, bounded scans, serialized writes, and concurrent-mutation rejection",
         "not recovery-specific",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java",
@@ -348,6 +348,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/IslandScanCursorTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/stacker/StackAmountServiceTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/StackAmountLevelAccountingPolicyTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/limit/LogicalStackDeltaBridge.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/limit/LogicalStackDeltaBridgeTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/ExplosionDeltaFinalityPolicyTest.java",
             "cloudislands-satis/src/test/java/kr/seungmin/satisskyfactory/hook/PlaceholderFeaturePolicyTest.java"
         ),
         "custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan"
