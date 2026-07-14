@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.api.CloudIslandsProvider;
 import kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot;
 import kr.lunaf.cloudislands.api.model.CloudIslandsAddonSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
+import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.AdminAddonStateSummaryView;
@@ -1536,9 +1537,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         if (args[1].equalsIgnoreCase("info")) {
             UUID lookupId = uuidOrNull(args[2]);
             if (lookupId != null) {
-                run(sender, "Island info", coreApiClient.adminIslands().info(lookupId).thenApply(this::islandInfoMessage));
+                run(sender, "Island info", coreApiClient.adminIslands().info(lookupId).thenCompose(this::islandInfoDetailsMessage));
             } else {
-                run(sender, "Island info", coreApiClient.adminIslands().infoByName(args[2]).thenApply(this::islandInfoMessage));
+                run(sender, "Island info", coreApiClient.adminIslands().infoByName(args[2]).thenCompose(this::islandInfoDetailsMessage));
             }
             return true;
         }
@@ -3339,6 +3340,31 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + adminText("admin-command-island-info-level-prefix", " level=") + island.level()
             + adminText("admin-command-island-info-worth-prefix", " worth=") + island.worth()
             + adminText("admin-command-island-info-public-prefix", " public=") + island.publicAccess();
+    }
+
+    private CompletableFuture<CharSequence> islandInfoDetailsMessage(CoreGuiViews.IslandInfoView island) {
+        String summary = islandInfoMessage(island);
+        UUID islandId = uuidOrNull(island.islandId());
+        if (islandId == null) {
+            return CompletableFuture.completedFuture(summary);
+        }
+        CompletableFuture<List<IslandLimitSnapshot>> limits = withFallback(coreApiClient.environment().limits(islandId), List.of());
+        CompletableFuture<List<CoreGuiViews.UpgradeView>> upgrades = withFallback(coreApiClient.progression().upgrades(islandId), List.of());
+        return CompletableFuture.allOf(limits, upgrades).thenApply(_ignored -> {
+            List<String> sections = AdminIslandInfoSections.collect(limits.join(), upgrades.join()).stream()
+                .map(this::islandInfoSectionMessage)
+                .filter(section -> !section.isBlank())
+                .toList();
+            return sections.isEmpty() ? summary : summary + " | " + String.join(" | ", sections);
+        });
+    }
+
+    private String islandInfoSectionMessage(AdminIslandInfoSections.Section section) {
+        return switch (section.kind()) {
+            case EFFECTS -> adminText("admin-command-island-info-effects-prefix", "effects=") + section.value();
+            case ROLE_LIMITS -> adminText("admin-command-island-info-role-limits-prefix", "roleLimits=") + section.value();
+            case UPGRADES -> adminText("admin-command-island-info-upgrades-prefix", "upgrades=") + section.value();
+        };
     }
 
     private String runtimeInfoMessage(AdminIslandRuntimeView runtime) {
