@@ -699,6 +699,8 @@ class AdminCommandBackendPolicyTest {
         assertTrue(configHandler.contains("ConfigV2Validator.validateYaml"), "Config validate must run schema and secret validation");
         assertTrue(configHandler.contains("ConfigV2Validator.redactYaml"), "Effective config output must redact secrets");
         assertTrue(configHandler.contains("if (!validation.valid())"), "Config reload must keep the current config when validation fails");
+        assertTrue(configHandler.contains("PaperBootstrapStatus.sanitize"), "Config reload failures must preserve the runtime and redact credential-bearing diagnostics");
+        assertTrue(configHandler.contains("restartRequiredChanges"), "Config reload must report restart-required sections instead of claiming stale listeners were refreshed");
         assertTrue(configSurface.contains("reloadRuntimeConfig()"), "Config reload must refresh the active Config v2 runtime snapshot after validation passes");
         assertTrue(configHandler.contains("plugin.reloadRuntimeConfig()"), "Admin config reload must call the Paper runtime snapshot reload boundary");
         assertTrue(configHandler.contains("ConfigDiff.between"), "Config diff must report changed and restart-required paths");

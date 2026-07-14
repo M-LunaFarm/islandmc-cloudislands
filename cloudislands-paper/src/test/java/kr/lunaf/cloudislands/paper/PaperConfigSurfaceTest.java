@@ -184,7 +184,7 @@ class PaperConfigSurfaceTest {
         assertFalse(commands.contains("plugin.getConfig().getString(\"node.id\""), "commands must use the runtime snapshot for node identity");
         assertFalse(admin.contains("agent.getConfig()"), "admin commands must not read Bukkit config through the agent");
         assertFalse(admin.contains("agent.plugin().reloadConfig()"), "admin commands must refresh the runtime config snapshot instead of only reloading Bukkit config");
-        assertTrue(admin.contains("configHandler.reloadRuntimeConfig()"), "admin command backend must delegate config reload to the config handler");
+        assertTrue(admin.contains("configHandler.reloadRuntimeConfig(sender)"), "admin command backend must delegate config reload to the config handler and report whether it applied");
         assertTrue(adminConfig.contains("plugin.reloadRuntimeConfig()"), "admin config reload must refresh the active runtime config snapshot");
         assertFalse(api.contains("new StatusService(agent)"), "status API must receive the runtime config snapshot");
         assertFalse(api.contains("boolean configBoolean("), "Paper API services must not keep duplicate runtime boolean parsers");

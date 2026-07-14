@@ -639,7 +639,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("reload")) {
-            configHandler.reloadRuntimeConfig();
+            if (!configHandler.reloadRuntimeConfig(sender)) {
+                return true;
+            }
             if (args.length > 2) {
                 run(sender, "Addon reload", api.addons().refresh(args[2]).thenApply(addon -> addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2])));
             } else {

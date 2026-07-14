@@ -350,7 +350,47 @@ def main() -> int:
                 else "CloudIslands agent role=LOBBY node=smoke-lobby"
             ]
             wait_for_console_markers(process, log_path, command_expected, 30, work_dir / "logs" / "latest.log")
-            if args.paper_bootstrap_failure:
+            if not args.paper_bootstrap_failure:
+                messages_config = work_dir / "plugins" / "CloudIslands" / "config-v2" / "ui" / "messages" / "ko_kr.yml"
+                messages = messages_config.read_text(encoding="utf-8").replace(
+                    'admin-command-config-reload-applied-prefix: "Paper 설정 즉시 적용 완료: "',
+                    'admin-command-config-reload-applied-prefix: "Paper config reload applied: "',
+                ).replace(
+                    'admin-command-config-reload-restart-prefix: "Paper 설정을 적용하려면 재시작이 필요합니다: "',
+                    'admin-command-config-reload-restart-prefix: "Paper config reload requires restart: "',
+                )
+                messages_config.write_text(messages + '\nadmin-command-list-title: "LIVE_RELOAD_MARKER "\n', encoding="utf-8")
+                process.stdin.write("ciadmin config reload\n")
+                process.stdin.flush()
+                wait_for_console_markers(
+                    process,
+                    log_path,
+                    ["Paper config reload applied: messages"],
+                    30,
+                    work_dir / "logs" / "latest.log",
+                )
+                process.stdin.write("ciadmin help\n")
+                process.stdin.flush()
+                wait_for_console_markers(
+                    process,
+                    log_path,
+                    ["LIVE_RELOAD_MARKER 1/"],
+                    30,
+                    work_dir / "logs" / "latest.log",
+                )
+                runtime_config = work_dir / "plugins" / "CloudIslands" / "config-v2" / "runtime.yml"
+                restart_required = runtime_config.read_text(encoding="utf-8").replace("pool: lobby", "pool: changed-pool")
+                runtime_config.write_text(restart_required, encoding="utf-8")
+                process.stdin.write("ciadmin config reload\n")
+                process.stdin.flush()
+                wait_for_console_markers(
+                    process,
+                    log_path,
+                    ["Paper config reload requires restart: node"],
+                    30,
+                    work_dir / "logs" / "latest.log",
+                )
+            else:
                 runtime_config = work_dir / "plugins" / "CloudIslands" / "config-v2" / "runtime.yml"
                 corrected = runtime_config.read_text(encoding="utf-8").replace("id: island-1", "id: smoke-island").replace(
                     "velocity-server-name: Island-1", "velocity-server-name: Smoke-Island"

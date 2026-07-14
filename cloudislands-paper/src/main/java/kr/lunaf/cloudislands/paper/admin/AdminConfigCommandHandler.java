@@ -16,6 +16,8 @@ import kr.lunaf.cloudislands.coreclient.AdminMaintenanceResultView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
+import kr.lunaf.cloudislands.paper.bootstrap.PaperBootstrapStatus;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigReloadResult;
 import kr.lunaf.cloudislands.paper.gui.GuiActionSchema;
 import org.bukkit.command.CommandSender;
 
@@ -73,7 +75,9 @@ final class AdminConfigCommandHandler {
                 sender.sendMessage(configValidationMessage(validation));
                 return true;
             }
-            reloadRuntimeConfig();
+            if (!reloadRuntimeConfig(sender)) {
+                return true;
+            }
             runner.run(sender, "Config reload", coreApiClient.adminMaintenance().reload().thenApply(maintenanceFormatter));
             return true;
         }
@@ -88,10 +92,28 @@ final class AdminConfigCommandHandler {
         return true;
     }
 
-    void reloadRuntimeConfig() {
+    boolean reloadRuntimeConfig(CommandSender sender) {
+        PaperRuntimeConfigReloadResult result;
+        try {
+            result = reloadRuntimeConfig();
+        } catch (RuntimeException | LinkageError failure) {
+            sender.sendMessage(text.get("admin-command-config-reload-rejected-prefix", "Paper config reload rejected; current runtime preserved: ")
+                + PaperBootstrapStatus.sanitize(failure.getMessage()));
+            return false;
+        }
+        if (!result.applied()) {
+            sender.sendMessage(text.get("admin-command-config-reload-restart-prefix", "Paper config reload requires restart: ")
+                + String.join(",", result.restartRequiredChanges()));
+            return false;
+        }
+        String changes = result.liveChanges().isEmpty() ? "none" : String.join(",", result.liveChanges());
+        sender.sendMessage(text.get("admin-command-config-reload-applied-prefix", "Paper config reload applied: ") + changes);
+        return true;
+    }
+
+    PaperRuntimeConfigReloadResult reloadRuntimeConfig() {
         if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
-            plugin.reloadRuntimeConfig();
-            return;
+            return plugin.reloadRuntimeConfig();
         }
         throw new IllegalStateException("CloudIslands Paper runtime config reload requires the Paper plugin instance");
     }

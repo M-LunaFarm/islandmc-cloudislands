@@ -29,6 +29,7 @@ import kr.lunaf.cloudislands.paper.command.PaperCommandRegistrar;
 import kr.lunaf.cloudislands.paper.command.PaperBootstrapStatusCommand;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigLoader;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigReloadResult;
 import kr.lunaf.cloudislands.paper.generator.ConfigGeneratorRules;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
@@ -347,9 +348,20 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         return adminChatSpies;
     }
 
-    public PaperRuntimeConfig reloadRuntimeConfig() {
-        runtimeConfig = loadRuntimeConfigSnapshot();
-        return runtimeConfig();
+    public synchronized PaperRuntimeConfigReloadResult reloadRuntimeConfig() {
+        PaperRuntimeConfig candidate = loadRuntimeConfigSnapshot();
+        PaperRuntimeConfigReloadResult result = PaperRuntimeConfigReloadResult.analyze(runtimeConfig(), candidate);
+        if (!result.restartRequiredChanges().isEmpty()) {
+            return result;
+        }
+        TranslationManager translations = TranslationManager.fromSnapshot(candidate.messages(), candidate.serviceName());
+        if (messages == null) {
+            messages = new MessageRenderer(translations);
+        } else {
+            messages.reload(translations);
+        }
+        runtimeConfig = candidate;
+        return result.appliedResult();
     }
 
     public PaperRuntimeConfig loadRuntimeConfigSnapshot() {
