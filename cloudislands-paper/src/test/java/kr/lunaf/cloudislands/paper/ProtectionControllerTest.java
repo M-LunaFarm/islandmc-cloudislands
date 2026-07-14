@@ -261,10 +261,15 @@ class ProtectionControllerTest {
     void automationBoundariesMobTargetingAndRaidsAreProtected() throws Exception {
         String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
 
-        assertTrue(listener.contains("onBucketDispense(BlockDispenseEvent event)"));
+        assertTrue(listener.contains("onBlockDispense(BlockDispenseEvent event)"));
+        assertTrue(listener.contains("event instanceof BlockDispenseArmorEvent armorEvent"));
+        assertTrue(listener.contains("source.getBlockData() instanceof Directional directional"));
         assertTrue(listener.contains("onBucketDispenseCount(BlockDispenseEvent event)"));
         assertTrue(listener.contains("priority = EventPriority.MONITOR"));
         assertTrue(listener.contains("!sameIsland(event.getBlock(), target)"));
+        assertTrue(listener.contains("onInventoryPickup(InventoryPickupItemEvent event)"));
+        assertTrue(listener.contains("blockProjectileSource(event.getDamager())"));
+        assertTrue(listener.contains("projectile.getShooter() instanceof BlockProjectileSource source"));
         assertTrue(listener.contains("onEntityTarget(EntityTargetLivingEntityEvent event)"));
         assertTrue(listener.contains("IslandPermission.ATTACK_MOB"));
         assertTrue(listener.contains("onRaidTrigger(RaidTriggerEvent event)"));

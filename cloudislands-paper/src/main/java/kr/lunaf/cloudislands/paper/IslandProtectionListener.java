@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.common.protection.BlockSpreadPolicy;
+import kr.lunaf.cloudislands.paper.application.IslandAutomationBoundaryPolicy;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionCheckEvent;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
@@ -20,6 +21,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.data.Directional;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.AbstractHorse;
 import org.bukkit.entity.AbstractVillager;
@@ -41,6 +43,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDispenseEvent;
+import org.bukkit.event.block.BlockDispenseArmorEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
@@ -76,6 +79,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketEntityEvent;
@@ -96,6 +100,7 @@ import org.bukkit.event.vehicle.VehicleCreateEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.bukkit.event.vehicle.VehicleEnterEvent;
 import org.bukkit.event.world.StructureGrowEvent;
+import org.bukkit.projectiles.BlockProjectileSource;
 import org.bukkit.util.Vector;
 
 public final class IslandProtectionListener implements Listener {
@@ -229,15 +234,12 @@ public final class IslandProtectionListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
-    public void onBucketDispense(BlockDispenseEvent event) {
-        Material item = event.getItem().getType();
-        if (item != Material.BUCKET && item != Material.WATER_BUCKET && item != Material.LAVA_BUCKET) {
-            return;
-        }
-        Block target = dispenseTarget(event.getBlock(), event.getVelocity());
+    public void onBlockDispense(BlockDispenseEvent event) {
+        Block target = event instanceof BlockDispenseArmorEvent armorEvent
+            ? armorEvent.getTargetEntity().getLocation().getBlock()
+            : dispenseTarget(event.getBlock(), event.getVelocity());
         if (!sameIsland(event.getBlock(), target)) {
             event.setCancelled(true);
-            return;
         }
     }
 
@@ -298,6 +300,11 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
+        Block automationSource = blockProjectileSource(event.getDamager());
+        if (automationSource != null && !sameIsland(automationSource, event.getEntity().getLocation().getBlock())) {
+            event.setCancelled(true);
+            return;
+        }
         Player player = attackingPlayer(event.getDamager());
         if (player != null) {
             IslandPermission permission = event.getEntity() instanceof Player ? IslandPermission.ATTACK_PLAYER
@@ -553,6 +560,13 @@ public final class IslandProtectionListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
+    public void onInventoryPickup(InventoryPickupItemEvent event) {
+        if (event.getInventory().getLocation() != null) {
+            event.setCancelled(!sameIsland(event.getItem().getLocation().getBlock(), event.getInventory().getLocation().getBlock()));
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
     public void onEntityExplode(EntityExplodeEvent event) {
         Player source = attackingPlayer(event.getEntity());
         if (SoftExplosionProtectionPolicy.isSoft(event.getExplosionResult())) {
@@ -736,7 +750,9 @@ public final class IslandProtectionListener implements Listener {
         double z = velocity.getZ();
         double max = Math.max(Math.abs(x), Math.max(Math.abs(y), Math.abs(z)));
         if (max == 0.0D) {
-            return source;
+            return source.getBlockData() instanceof Directional directional
+                ? source.getRelative(directional.getFacing())
+                : source;
         }
         int dx = Math.abs(x) == max ? (int) Math.signum(x) : 0;
         int dy = Math.abs(y) == max ? (int) Math.signum(y) : 0;
@@ -777,6 +793,13 @@ public final class IslandProtectionListener implements Listener {
         }
         if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
             return player;
+        }
+        return null;
+    }
+
+    private Block blockProjectileSource(org.bukkit.entity.Entity damager) {
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof BlockProjectileSource source) {
+            return source.getBlock();
         }
         return null;
     }
@@ -907,12 +930,14 @@ public final class IslandProtectionListener implements Listener {
     }
 
     private boolean sameIsland(Block source, Block target) {
-        if (protection.migrating(source) || protection.migrating(target)) {
-            return false;
-        }
         Optional<UUID> sourceIsland = protection.islandAt(source);
         Optional<UUID> targetIsland = protection.islandAt(target);
-        return sourceIsland.equals(targetIsland);
+        return !IslandAutomationBoundaryPolicy.crossesBoundary(
+            sourceIsland.orElse(null),
+            targetIsland.orElse(null),
+            protection.migrating(source),
+            protection.migrating(target)
+        );
     }
 
     private IslandFlag liquidFlag(Material type) {
