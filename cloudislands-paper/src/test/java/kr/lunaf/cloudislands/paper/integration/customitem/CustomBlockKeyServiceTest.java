@@ -37,6 +37,19 @@ class CustomBlockKeyServiceTest {
         assertEquals("itemsadder:namespace:machine", CustomBlockKeyService.customKey("ItemsAdder", "namespace:machine"));
     }
 
+    @Test
+    void slimefunBlockStorageIdsFeedTheSharedCustomValuePipeline() {
+        CustomBlockKeyService.Adapter slimefun = CustomBlockKeyService.slimefunAdapter();
+        assertTrue(slimefun != null);
+        CustomBlockKeyService service = new CustomBlockKeyService(List.of(slimefun));
+
+        assertEquals("slimefun:electric_motor", service.blockKey(block(Material.NOTE_BLOCK)));
+        assertEquals("minecraft:stone", service.blockKey(block(Material.STONE)));
+        assertTrue(service.supports("Slimefun"));
+        assertTrue(service.runtimeDetails("Slimefun").get("adapter").contains("block-storage"));
+        assertTrue(CustomBlockKeyService.supportedPlugins().contains("Slimefun"));
+    }
+
     private static Block block(Material material) {
         return (Block) Proxy.newProxyInstance(Block.class.getClassLoader(), new Class<?>[]{Block.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getType" -> material;

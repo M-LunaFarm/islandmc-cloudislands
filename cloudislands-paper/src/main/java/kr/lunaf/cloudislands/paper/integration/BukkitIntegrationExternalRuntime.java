@@ -77,6 +77,12 @@ final class BukkitIntegrationExternalRuntime implements IntegrationExternalRunti
             case "ItemsAdder" -> details.put("apiProbe.class.CustomBlock", Boolean.toString(hasClass("dev.lone.itemsadder.api.CustomBlock")));
             case "Oraxen" -> details.put("apiProbe.class.OraxenItems", Boolean.toString(hasClass("io.th0rgal.oraxen.api.OraxenItems")));
             case "Nexo" -> details.put("apiProbe.class.NexoItems", Boolean.toString(hasClass("com.nexomc.nexo.api.NexoItems")));
+            case "Slimefun" -> {
+                details.put("apiProbe.class.BlockStorage", Boolean.toString(hasClass("me.mrCookieSlime.Slimefun.api.BlockStorage")));
+                details.put("apiProbe.method.BlockStorage.checkID", Boolean.toString(hasStaticMethod(
+                    "me.mrCookieSlime.Slimefun.api.BlockStorage", "checkID", org.bukkit.block.Block.class
+                )));
+            }
             case "RoseStacker" -> {
                 details.put("apiProbe.class.RoseStackerAPI", Boolean.toString(hasClass("dev.rosewood.rosestacker.api.RoseStackerAPI")));
                 Object api = invokeStaticNoArg("dev.rosewood.rosestacker.api.RoseStackerAPI", "getInstance");
@@ -110,6 +116,9 @@ final class BukkitIntegrationExternalRuntime implements IntegrationExternalRunti
             case "ItemsAdder" -> bool(details, "apiProbe.class.CustomBlock");
             case "Oraxen" -> bool(details, "apiProbe.class.OraxenItems");
             case "Nexo" -> bool(details, "apiProbe.class.NexoItems");
+            case "Slimefun" ->
+                bool(details, "apiProbe.class.BlockStorage")
+                    && bool(details, "apiProbe.method.BlockStorage.checkID");
             case "RoseStacker" ->
                 bool(details, "apiProbe.class.RoseStackerAPI")
                     && bool(details, "apiProbe.invoke.RoseStackerAPI.getInstance");
@@ -133,6 +142,15 @@ final class BukkitIntegrationExternalRuntime implements IntegrationExternalRunti
             }
         }
         return false;
+    }
+
+    private static boolean hasStaticMethod(String className, String methodName, Class<?>... parameterTypes) {
+        try {
+            Method method = Class.forName(className).getMethod(methodName, parameterTypes);
+            return java.lang.reflect.Modifier.isStatic(method.getModifiers());
+        } catch (ClassNotFoundException | NoSuchMethodException | RuntimeException | LinkageError exception) {
+            return false;
+        }
     }
 
     private static Object invokeNoArg(Object target, String methodName) {

@@ -13,7 +13,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 
 public final class CustomBlockKeyService {
-    private static final List<String> SUPPORTED_PLUGINS = List.of("ItemsAdder", "Oraxen", "Nexo");
+    private static final List<String> SUPPORTED_PLUGINS = List.of("ItemsAdder", "Oraxen", "Nexo", "Slimefun");
 
     private final List<Adapter> adapters;
     private final Map<String, Adapter> adaptersByPlugin;
@@ -44,6 +44,12 @@ public final class CustomBlockKeyService {
         }
         if (enabled(server, "Nexo")) {
             Adapter adapter = nexoAdapter();
+            if (adapter != null) {
+                adapters.add(adapter);
+            }
+        }
+        if (enabled(server, "Slimefun")) {
+            Adapter adapter = slimefunAdapter();
             if (adapter != null) {
                 adapters.add(adapter);
             }
@@ -135,6 +141,13 @@ public final class CustomBlockKeyService {
         return blocks == null ? null : new Adapter("Nexo", blocks, furniture, "nexo-block-and-furniture-api");
     }
 
+    static Adapter slimefunAdapter() {
+        Function<Block, String> blocks = reflectiveStringResolver(
+            "me.mrCookieSlime.Slimefun.api.BlockStorage", "checkID", Block.class, Function.identity()
+        );
+        return blocks == null ? null : new Adapter("Slimefun", blocks, null, "slimefun-block-storage-api");
+    }
+
     private static <S, A> Function<S, String> reflectiveResolver(
         String ownerClassName,
         String lookupMethodName,
@@ -154,6 +167,28 @@ public final class CustomBlockKeyService {
                     }
                     Object id = value.getClass().getMethod(idMethodName).invoke(value);
                     return id == null ? "" : id.toString();
+                } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+                    return "";
+                }
+            };
+        } catch (ClassNotFoundException | NoSuchMethodException | RuntimeException | LinkageError ignored) {
+            return null;
+        }
+    }
+
+    private static <S, A> Function<S, String> reflectiveStringResolver(
+        String ownerClassName,
+        String lookupMethodName,
+        Class<A> argumentType,
+        Function<S, A> argumentMapper
+    ) {
+        try {
+            Class<?> owner = Class.forName(ownerClassName);
+            Method lookup = owner.getMethod(lookupMethodName, argumentType);
+            return source -> {
+                try {
+                    Object value = lookup.invoke(null, argumentMapper.apply(source));
+                    return value == null ? "" : value.toString();
                 } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
                     return "";
                 }
