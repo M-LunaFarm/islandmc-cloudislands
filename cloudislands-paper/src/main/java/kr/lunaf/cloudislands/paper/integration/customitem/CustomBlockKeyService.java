@@ -158,7 +158,16 @@ public final class CustomBlockKeyService {
             "id",
             "asString"
         );
-        return blocks == null ? null : new Adapter("CraftEngine", blocks, null, "craftengine-stable-block-api");
+        Function<Entity, String> furniture = reflectivePathResolver(
+            "net.momirealms.craftengine.bukkit.api.CraftEngineFurniture",
+            "getLoadedFurnitureByMetaEntity",
+            Entity.class,
+            Function.identity(),
+            "config",
+            "id",
+            "asString"
+        );
+        return blocks == null ? null : new Adapter("CraftEngine", blocks, furniture, "craftengine-stable-block-and-furniture-api");
     }
 
     static Adapter slimefunAdapter() {

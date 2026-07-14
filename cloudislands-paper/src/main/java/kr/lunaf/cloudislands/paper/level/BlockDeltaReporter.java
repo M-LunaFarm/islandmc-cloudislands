@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
 import kr.lunaf.cloudislands.paper.limit.IslandBlockLimitKeys;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.Plugin;
 
@@ -79,12 +80,40 @@ public final class BlockDeltaReporter {
         report(islandId, "entity:" + entityType.getKey(), Math.max(1L, amount));
     }
 
+    public void entityPlaced(UUID islandId, Entity entity) {
+        entityPlaced(islandId, entity, 1L);
+    }
+
+    public void entityPlaced(UUID islandId, Entity entity, long amount) {
+        report(islandId, customBlockKeys.entityKey(entity), Math.max(1L, amount));
+    }
+
     public void entityRemoved(UUID islandId, EntityType entityType) {
         entityRemoved(islandId, entityType, 1L);
     }
 
     public void entityRemoved(UUID islandId, EntityType entityType, long amount) {
         report(islandId, "entity:" + entityType.getKey(), -Math.max(1L, amount));
+    }
+
+    public void entityRemoved(UUID islandId, Entity entity) {
+        entityRemoved(islandId, entity, 1L);
+    }
+
+    public void entityRemoved(UUID islandId, Entity entity, long amount) {
+        report(islandId, customBlockKeys.entityKey(entity), -Math.max(1L, amount));
+    }
+
+    public void customEntityPlaced(UUID islandId, String customKey) {
+        if (customKey != null && !customKey.isBlank()) {
+            report(islandId, customKey, 1L);
+        }
+    }
+
+    public void customEntityRemoved(UUID islandId, String customKey) {
+        if (customKey != null && !customKey.isBlank()) {
+            report(islandId, customKey, -1L);
+        }
     }
 
     private void report(UUID islandId, Block block, long delta) {

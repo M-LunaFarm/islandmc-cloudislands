@@ -403,7 +403,7 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHangingPlaceAccepted(HangingPlaceEvent event) {
         protection.islandAt(event.getBlock()).ifPresent(islandId ->
-            blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
+            blockDeltas.entityPlaced(islandId, event.getEntity()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -418,7 +418,7 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHangingBreakAccepted(HangingBreakEvent event) {
         protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId ->
-            blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
+            blockDeltas.entityRemoved(islandId, event.getEntity()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -432,7 +432,7 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityPlaceAccepted(EntityPlaceEvent event) {
         protection.islandAt(event.getBlock()).ifPresent(islandId ->
-            blockDeltas.entityPlaced(islandId, event.getEntity().getType()));
+            blockDeltas.entityPlaced(islandId, event.getEntity()));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -445,7 +445,7 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCreatureSpawnAccepted(CreatureSpawnEvent event) {
         protection.islandAt(event.getLocation().getBlock()).ifPresent(islandId ->
-            blockDeltas.entityPlaced(islandId, event.getEntity().getType(), stackAmounts.entityAmount(event.getEntity())));
+            blockDeltas.entityPlaced(islandId, event.getEntity(), stackAmounts.entityAmount(event.getEntity())));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -459,7 +459,7 @@ public final class IslandProtectionListener implements Listener {
         if (protection.migrating(event.getEntity().getLocation().getBlock())) {
             return;
         }
-        protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity().getType()));
+        protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId -> blockDeltas.entityRemoved(islandId, event.getEntity()));
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -470,7 +470,7 @@ public final class IslandProtectionListener implements Listener {
             return;
         }
         protection.islandAt(event.getEntity().getLocation().getBlock()).ifPresent(islandId ->
-            blockDeltas.entityRemoved(islandId, event.getEntity().getType(), stackAmounts.entityAmount(event.getEntity())));
+            blockDeltas.entityRemoved(islandId, event.getEntity(), stackAmounts.entityAmount(event.getEntity())));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -525,7 +525,7 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onVehicleCreate(VehicleCreateEvent event) {
         protection.islandAt(event.getVehicle().getLocation().getBlock()).ifPresent(islandId ->
-            blockDeltas.entityPlaced(islandId, event.getVehicle().getType()));
+            blockDeltas.entityPlaced(islandId, event.getVehicle()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -539,7 +539,7 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onVehicleDestroyAccepted(VehicleDestroyEvent event) {
         protection.islandAt(event.getVehicle().getLocation().getBlock()).ifPresent(islandId ->
-            blockDeltas.entityRemoved(islandId, event.getVehicle().getType()));
+            blockDeltas.entityRemoved(islandId, event.getVehicle()));
     }
 
     @EventHandler(ignoreCancelled = true)

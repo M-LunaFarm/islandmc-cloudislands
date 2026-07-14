@@ -79,8 +79,12 @@ final class BukkitIntegrationExternalRuntime implements IntegrationExternalRunti
             case "Nexo" -> details.put("apiProbe.class.NexoItems", Boolean.toString(hasClass("com.nexomc.nexo.api.NexoItems")));
             case "CraftEngine" -> {
                 details.put("apiProbe.class.CraftEngineBlocks", Boolean.toString(hasClass("net.momirealms.craftengine.bukkit.api.CraftEngineBlocks")));
+                details.put("apiProbe.class.CraftEngineFurniture", Boolean.toString(hasClass("net.momirealms.craftengine.bukkit.api.CraftEngineFurniture")));
                 details.put("apiProbe.method.CraftEngineBlocks.getCustomBlockState", Boolean.toString(hasStaticMethod(
                     "net.momirealms.craftengine.bukkit.api.CraftEngineBlocks", "getCustomBlockState", org.bukkit.block.Block.class
+                )));
+                details.put("apiProbe.method.CraftEngineFurniture.getLoadedFurnitureByMetaEntity", Boolean.toString(hasStaticMethod(
+                    "net.momirealms.craftengine.bukkit.api.CraftEngineFurniture", "getLoadedFurnitureByMetaEntity", org.bukkit.entity.Entity.class
                 )));
             }
             case "Slimefun" -> {

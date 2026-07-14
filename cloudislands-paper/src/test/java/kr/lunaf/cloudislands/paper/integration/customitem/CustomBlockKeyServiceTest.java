@@ -60,8 +60,20 @@ class CustomBlockKeyServiceTest {
         assertEquals("minecraft:stone", service.blockKey(block(Material.STONE)));
         assertEquals("minecraft:barrier", service.blockKey(block(Material.BARRIER)));
         assertTrue(service.supports("CraftEngine"));
-        assertTrue(service.runtimeDetails("CraftEngine").get("adapter").contains("stable-block-api"));
+        assertTrue(service.runtimeDetails("CraftEngine").get("adapter").contains("stable-block-and-furniture-api"));
         assertTrue(CustomBlockKeyService.supportedPlugins().contains("CraftEngine"));
+    }
+
+    @Test
+    void craftEngineFurnitureUsesTheSameCustomValuePipelineAndFailsBackSafely() {
+        CustomBlockKeyService.Adapter craftEngine = CustomBlockKeyService.craftEngineAdapter();
+        assertTrue(craftEngine != null);
+        CustomBlockKeyService service = new CustomBlockKeyService(List.of(craftEngine));
+
+        assertEquals("craftengine:custom:chair", service.entityKey(entity(EntityType.ITEM_DISPLAY)));
+        assertEquals("entity:minecraft:cow", service.entityKey(entity(EntityType.COW)));
+        assertEquals("entity:minecraft:interaction", service.entityKey(entity(EntityType.INTERACTION)));
+        assertEquals("true", service.runtimeDetails("CraftEngine").get("furniture"));
     }
 
     private static Block block(Material material) {

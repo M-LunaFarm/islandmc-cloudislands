@@ -200,7 +200,9 @@ class PaperIntegrationRegistryTest {
         assertTrue(runtime.contains("apiProbe.class.BlockStorage"));
         assertTrue(runtime.contains("apiProbe.method.BlockStorage.checkID"));
         assertTrue(runtime.contains("apiProbe.class.CraftEngineBlocks"));
+        assertTrue(runtime.contains("apiProbe.class.CraftEngineFurniture"));
         assertTrue(runtime.contains("apiProbe.method.CraftEngineBlocks.getCustomBlockState"));
+        assertTrue(runtime.contains("apiProbe.method.CraftEngineFurniture.getLoadedFurnitureByMetaEntity"));
         assertTrue(runtime.contains("bukkitService(\"net.luckperms.api.LuckPerms\")"));
         assertTrue(runtime.contains("IntegrationResult.skipped(pluginName + \" Bukkit adapter verified API"));
         assertFalse(runtime.contains("IntegrationResult.success(pluginName + \" Bukkit adapter accepted"));

@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiActionExecutor;
 import kr.lunaf.cloudislands.paper.gui.IslandGuiMenuRegistrar;
 import kr.lunaf.cloudislands.paper.integration.PaperIntegrationRegistry;
 import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
+import kr.lunaf.cloudislands.paper.integration.customitem.CraftEngineFurnitureBridge;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.limit.IslandEffectApplier;
 import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitListener;
@@ -154,6 +155,7 @@ final class PaperPluginBootstrap {
                 plugin.levelScanService,
                 limitCache
             );
+            CraftEngineFurnitureBridge.register(plugin, plugin.agent.protection(), blockDeltas);
             plugin.generatorLevels = new GeneratorLevelCache(client, config.generator().defaultKey());
             CropGrowthLevelCache cropGrowthLevels = new CropGrowthLevelCache(client);
             plugin.localCaches.register("generator-levels", plugin.generatorLevels::invalidateAll);
