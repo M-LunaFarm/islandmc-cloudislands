@@ -7,6 +7,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.Test;
@@ -54,6 +56,18 @@ class JdbcDialectDataSourceTest {
             assertUuidColumn(matcher.group(1));
         }
         assertTrue(columns >= 20, "expected the complete MySQL UUID column set");
+    }
+
+    @Test
+    void mysqlConnectionsAndTimestampBindingsUseUtc() throws Exception {
+        assertEquals("SET time_zone = '+00:00'", JdbcDialectDataSource.MYSQL_SESSION_TIME_ZONE_SQL);
+        assertEquals("UTC", JdbcDialectDataSource.utcCalendar().getTimeZone().getID());
+
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/db/JdbcDialectDataSource.java"));
+        assertTrue(source.contains("configureMysqlSession(connection)"));
+        assertTrue(source.contains("preparedStatement.setTimestamp(index, timestamp, utcCalendar())"));
+        assertTrue(source.contains("resultSet.getTimestamp(index, utcCalendar())"));
+        assertTrue(source.contains("resultSet.getTimestamp(String.valueOf(args[0]), utcCalendar())"));
     }
 
     private void assertUuidColumn(String name) {

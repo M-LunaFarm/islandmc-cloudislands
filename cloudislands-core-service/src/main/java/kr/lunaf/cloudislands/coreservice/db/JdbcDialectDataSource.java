@@ -13,12 +13,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Statement;
+import java.sql.Timestamp;
+import java.util.Calendar;
 import java.util.Locale;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
 
 public final class JdbcDialectDataSource implements DataSource {
+    static final String MYSQL_SESSION_TIME_ZONE_SQL = "SET time_zone = '+00:00'";
+    private static final TimeZone UTC = TimeZone.getTimeZone("UTC");
     private final DataSource delegate;
 
     public JdbcDialectDataSource(DataSource delegate) {
@@ -77,6 +82,7 @@ public final class JdbcDialectDataSource implements DataSource {
         if (!mysqlLike(connection)) {
             return connection;
         }
+        configureMysqlSession(connection);
         InvocationHandler handler = (proxy, method, args) -> {
             Object result = invoke(connection, method, args);
             if (result instanceof CallableStatement callableStatement) {
@@ -97,6 +103,12 @@ public final class JdbcDialectDataSource implements DataSource {
         InvocationHandler handler = (proxy, method, args) -> {
             if ("setObject".equals(method.getName()) && args != null && args.length >= 2 && args[1] instanceof UUID uuid) {
                 return setUuid(statement, args, uuid);
+            }
+            if ("setTimestamp".equals(method.getName()) && args != null && args.length == 2
+                    && args[0] instanceof Integer index && args[1] instanceof Timestamp timestamp
+                    && statement instanceof PreparedStatement preparedStatement) {
+                preparedStatement.setTimestamp(index, timestamp, utcCalendar());
+                return null;
             }
             Object result = invoke(statement, method, args);
             if (result instanceof ResultSet resultSet) {
@@ -129,6 +141,11 @@ public final class JdbcDialectDataSource implements DataSource {
 
     private ResultSet wrapResultSet(ResultSet resultSet) {
         InvocationHandler handler = (proxy, method, args) -> {
+            if ("getTimestamp".equals(method.getName()) && args != null && args.length == 1) {
+                return args[0] instanceof Integer index
+                    ? resultSet.getTimestamp(index, utcCalendar())
+                    : resultSet.getTimestamp(String.valueOf(args[0]), utcCalendar());
+            }
             if ("getObject".equals(method.getName()) && args != null && args.length == 2 && args[1] == UUID.class) {
                 Object raw = args[0] instanceof Integer index ? resultSet.getObject(index) : resultSet.getObject(String.valueOf(args[0]));
                 return toUuid(raw);
@@ -141,6 +158,16 @@ public final class JdbcDialectDataSource implements DataSource {
             return result;
         };
         return (ResultSet) Proxy.newProxyInstance(ResultSet.class.getClassLoader(), new Class<?>[] { ResultSet.class }, handler);
+    }
+
+    private static void configureMysqlSession(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute(MYSQL_SESSION_TIME_ZONE_SQL);
+        }
+    }
+
+    static Calendar utcCalendar() {
+        return Calendar.getInstance(UTC, Locale.ROOT);
     }
 
     static Object toUuid(Object value) {

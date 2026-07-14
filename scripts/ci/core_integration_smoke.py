@@ -487,44 +487,58 @@ def runtime_file_artifact(path: Path) -> dict:
     }
 
 
-def parse_postgres_jdbc_url(jdbc_url: str) -> tuple[str, str, str]:
+def parse_jdbc_url(jdbc_url: str) -> tuple[str, str, str, str]:
     raw = jdbc_url[len("jdbc:"):] if jdbc_url.startswith("jdbc:") else jdbc_url
     parsed = urllib.parse.urlparse(raw)
-    if parsed.scheme != "postgresql":
-        raise RuntimeError(f"backup drill requires a PostgreSQL JDBC URL, got {jdbc_url}")
+    scheme = parsed.scheme.lower()
+    if scheme not in {"postgresql", "mysql", "mariadb"}:
+        raise RuntimeError(f"backup drill requires a PostgreSQL, MySQL, or MariaDB JDBC URL, got {jdbc_url}")
     database = parsed.path.lstrip("/")
     if not database:
         raise RuntimeError(f"backup drill could not resolve database name from {jdbc_url}")
-    return parsed.hostname or "127.0.0.1", str(parsed.port or 5432), database
+    default_port = 5432 if scheme == "postgresql" else 3306
+    return scheme, parsed.hostname or "127.0.0.1", str(parsed.port or default_port), database
 
 
 def create_db_backup_artifact(env: dict, evidence_dir: Path) -> dict:
-    pg_dump = shutil.which("pg_dump")
-    if not pg_dump:
-        raise RuntimeError("backup drill requires pg_dump on PATH")
     evidence_dir.mkdir(parents=True, exist_ok=True)
-    backup_path = evidence_dir / "postgres-backup.sql"
-    host, port, database = parse_postgres_jdbc_url(env["CI_JDBC_URL"])
+    scheme, host, port, database = parse_jdbc_url(env["CI_JDBC_URL"])
     dump_env = env.copy()
-    dump_env["PGPASSWORD"] = env.get("CI_DB_PASSWORD", "")
-    result = subprocess.run(
-        [
-            pg_dump,
-            "--host",
-            host,
-            "--port",
-            port,
-            "--username",
-            env.get("CI_DB_USERNAME", "cloudislands"),
-            "--dbname",
-            database,
-            "--format",
-            "plain",
+    if scheme == "postgresql":
+        executable = shutil.which("pg_dump")
+        if not executable:
+            raise RuntimeError("PostgreSQL backup drill requires pg_dump on PATH")
+        backup_path = evidence_dir / "postgres-backup.sql"
+        dump_env["PGPASSWORD"] = env.get("CI_DB_PASSWORD", "")
+        command = [
+            executable,
+            "--host", host,
+            "--port", port,
+            "--username", env.get("CI_DB_USERNAME", "cloudislands"),
+            "--dbname", database,
+            "--format", "plain",
             "--no-owner",
             "--no-privileges",
-            "--file",
-            str(backup_path),
-        ],
+            "--file", str(backup_path),
+        ]
+    else:
+        executable = shutil.which("mysqldump") or shutil.which("mariadb-dump")
+        if not executable:
+            raise RuntimeError("MySQL/MariaDB backup drill requires mysqldump or mariadb-dump on PATH")
+        backup_path = evidence_dir / f"{scheme}-backup.sql"
+        dump_env["MYSQL_PWD"] = env.get("CI_DB_PASSWORD", "")
+        command = [
+            executable,
+            "--host", host,
+            "--port", port,
+            "--user", env.get("CI_DB_USERNAME", "cloudislands"),
+            "--single-transaction",
+            "--skip-lock-tables",
+            "--result-file", str(backup_path),
+            database,
+        ]
+    result = subprocess.run(
+        command,
         env=dump_env,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -533,9 +547,9 @@ def create_db_backup_artifact(env: dict, evidence_dir: Path) -> dict:
         check=False,
     )
     if result.returncode != 0:
-        raise RuntimeError(f"pg_dump failed with {result.returncode}: {result.stderr.strip()}")
+        raise RuntimeError(f"{Path(executable).name} failed with {result.returncode}: {result.stderr.strip()}")
     if not backup_path.is_file() or backup_path.stat().st_size <= 0:
-        raise RuntimeError(f"pg_dump did not create a usable backup at {backup_path}")
+        raise RuntimeError(f"database dump did not create a usable backup at {backup_path}")
     return runtime_file_artifact(backup_path)
 
 
@@ -1023,6 +1037,7 @@ def backup_restore_drill_evidence(drill: dict | None) -> dict[str, list[str]]:
 def write_cluster_evidence(
     path: Path | None,
     artifacts: list[dict],
+    database_backend: str,
     support_bundle: dict | None = None,
     load_metrics: dict | None = None,
     backup_restore_drill: dict | None = None,
@@ -1042,12 +1057,14 @@ def write_cluster_evidence(
     load_evidence = load_test_evidence(load_metrics)
     backup_restore_evidence = backup_restore_drill_evidence(backup_restore_drill)
     interaction_evidence = player_interaction_evidence(player_interaction)
+    database_component = "postgres" if database_backend == "POSTGRESQL" else database_backend.lower()
+    database_authority = database_backend.lower()
     evidence = {
         "certificationScope": "partial-core-integration-smoke",
         "components": [
             "core-1",
             "core-2",
-            "postgres",
+            database_component,
             "redis",
             "object-storage",
         ],
@@ -1077,7 +1094,7 @@ def write_cluster_evidence(
         "assertions": [
             {"name": "primary-core-ready", "result": "passed"},
             {"name": "secondary-core-ready", "result": "passed"},
-            {"name": "shared-postgresql-authority", "result": "passed"},
+            {"name": f"shared-{database_authority}-authority", "result": "passed"},
             {"name": "shared-redis-job-and-event-mode", "result": "passed"},
             {"name": "shared-s3-storage-mode", "result": "passed"},
             {"name": "config-migration-evidence-present", "result": "passed"},
@@ -1284,14 +1301,22 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
     primary_admin_url = f"http://127.0.0.1:{port + 1000}"
     secondary_admin_url = f"http://127.0.0.1:{secondary_port + 1000}"
     env = os.environ.copy()
+    database_type = env.get("CI_DATABASE_TYPE", "POSTGRESQL").strip().upper()
+    if database_type not in {"POSTGRESQL", "MYSQL", "MARIADB"}:
+        raise RuntimeError(f"unsupported integration database type: {database_type}")
+    default_jdbc_url = "jdbc:postgresql://127.0.0.1:5432/cloudislands"
+    if database_type == "MYSQL":
+        default_jdbc_url = "jdbc:mysql://127.0.0.1:3306/cloudislands"
+    elif database_type == "MARIADB":
+        default_jdbc_url = "jdbc:mariadb://127.0.0.1:3306/cloudislands"
     env.update(
         {
             "CI_BIND": "127.0.0.1",
             "CI_REPOSITORY_MODE": "JDBC",
             "CI_JOB_QUEUE_MODE": "REDIS",
             "CI_EVENT_BUS_MODE": "REDIS",
-            "CI_DATABASE_TYPE": "POSTGRESQL",
-            "CI_JDBC_URL": env.get("CI_JDBC_URL", "jdbc:postgresql://127.0.0.1:5432/cloudislands"),
+            "CI_DATABASE_TYPE": database_type,
+            "CI_JDBC_URL": env.get("CI_JDBC_URL", default_jdbc_url),
             "CI_DB_USERNAME": env.get("CI_DB_USERNAME", "cloudislands"),
             "CI_DB_PASSWORD": env.get("CI_DB_PASSWORD", "cloudislands"),
             "CI_DB_POOL_SIZE": env.get("CI_DB_POOL_SIZE", "6"),
@@ -1342,7 +1367,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
             assert_field(config, "effectiveRepositoryMode", "JDBC")
             assert_field(config, "effectiveJobQueueMode", "REDIS")
             assert_field(config, "effectiveEventBusMode", "REDIS")
-            assert_field(config, "databaseBackend", "POSTGRESQL")
+            assert_field(config, "databaseBackend", database_type)
             assert_field(config, "storageType", "S3")
             if not config.get("storageMultiNodeSafe"):
                 raise RuntimeError(f"expected S3 storage to be multi-node safe: {config}")
@@ -1552,12 +1577,13 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         backup_restore_drill_evidence(backup_restore_drill)
 
         print(
-            "Core integration smoke passed: two Core services, PostgreSQL+Redis+MinIO config, "
+            f"Core integration smoke passed: two Core services, {database_type}+Redis+MinIO config, "
             "cross-core create/job/route/session/consume, node-down recovery restore, reconnect"
         )
         write_cluster_evidence(
             evidence_out,
             log_artifacts(processes) + runtime_artifacts,
+            database_type,
             support_bundle,
             load_metrics,
             backup_restore_drill,

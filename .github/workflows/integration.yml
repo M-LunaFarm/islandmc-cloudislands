@@ -32,6 +32,20 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 12
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: cloudislands
+          MYSQL_USER: cloudislands
+          MYSQL_PASSWORD: cloudislands
+          MYSQL_ROOT_PASSWORD: cloudislands-root
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1 -ucloudislands -pcloudislands"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
       redis:
         image: redis:7
         ports:
@@ -78,6 +92,14 @@ jobs:
         run: |
           docker run --rm --network host --entrypoint /bin/sh minio/mc -c 'mc alias set local http://127.0.0.1:9000 minioadmin minioadmin && mc mb --ignore-existing local/cloudislands'
 
+      - name: Ensure database dump clients
+        run: |
+          command -v pg_dump
+          if ! command -v mysqldump; then
+            sudo apt-get update
+            sudo apt-get install -y default-mysql-client
+          fi
+
       - name: Core integration smoke
         env:
           CI_JDBC_URL: jdbc:postgresql://127.0.0.1:5432/cloudislands
@@ -101,6 +123,8 @@ jobs:
             build/smoke/core-integration/cluster-evidence.json
             build/smoke/core-integration/cluster-smoke-report.json
             build/smoke/core-integration/core-*/core.log
+            build/smoke/core-integration-mysql/mysql-evidence.json
+            build/smoke/core-integration-mysql/core-*/core.log
             build/smoke/paper-*/server.log
             build/smoke/velocity/server.log
           if-no-files-found: error

@@ -1,10 +1,12 @@
 package kr.lunaf.cloudislands.coreservice.db;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 import org.junit.jupiter.api.Test;
 
 class JdbcSchemaBootstrapTest {
@@ -26,8 +28,8 @@ class JdbcSchemaBootstrapTest {
         assertEquals("mariadb-uses-mysql-compatible-core-schema-bootstrap", JdbcSchemaBootstrap.MARIADB_SCHEMA_POLICY);
         assertEquals("/db/mysql/V1__cloudislands_mysql_schema.sql", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
         assertEquals("mysql-v1", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_ID);
-        assertEquals("mysql-compatible-migration-chain:8", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
-        assertEquals("mysql-compatible-migration-chain:8", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
+        assertEquals("mysql-compatible-migration-chain:9", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
+        assertEquals("mysql-compatible-migration-chain:9", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
         assertEquals("cloudislands:core-schema-bootstrap:v1", JdbcSchemaBootstrap.MYSQL_MIGRATION_LOCK_NAME);
         assertEquals(60, JdbcSchemaBootstrap.MIGRATION_LOCK_TIMEOUT_SECONDS);
     }
@@ -70,7 +72,7 @@ class JdbcSchemaBootstrapTest {
 
     @Test
     void personalIslandFlightPreferenceShipsForPostgresqlAndMysql() throws IOException {
-        for (String resource : new String[]{"/db/migration/V83__player_island_fly_preference.sql", "/db/mysql/V6__player_island_fly_preference.sql"}) {
+        for (String resource : new String[]{"/db/migration/V83__player_island_fly_preference.sql", "/db/mysql/V6__player_island_fly_preference.sql", "/db/mysql/V9__repair_player_island_fly_preference.sql"}) {
             try (var input = JdbcSchemaBootstrapTest.class.getResourceAsStream(resource)) {
                 assertTrue(input != null, "missing migration " + resource);
                 String migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
@@ -78,6 +80,15 @@ class JdbcSchemaBootstrapTest {
                 assertTrue(migration.contains("island_fly_enabled BOOLEAN NOT NULL DEFAULT FALSE"));
             }
         }
+    }
+
+    @Test
+    void mysqlSyntaxErrorsMentioningExistsAreNeverTreatedAsDuplicateObjects() {
+        SQLException syntax = new SQLException("syntax error near 'IF NOT EXISTS island_fly_enabled'", "42000", 1064);
+        SQLException duplicateColumn = new SQLException("Duplicate column name 'island_fly_enabled'", "42S21", 1060);
+
+        assertFalse(JdbcSchemaBootstrap.ignorableDuplicateSchemaObject(syntax));
+        assertTrue(JdbcSchemaBootstrap.ignorableDuplicateSchemaObject(duplicateColumn));
     }
 
     @Test

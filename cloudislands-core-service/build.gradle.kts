@@ -25,7 +25,7 @@ tasks.jar {
             "CloudIslands-Core-JDBC-Drivers" to "org.postgresql:postgresql,com.mysql:mysql-connector-j,org.mariadb.jdbc:mariadb-java-client",
             "CloudIslands-Core-JDBC-Auto-Schema-Path" to "setup.database.auto-schema",
             "CloudIslands-Core-JDBC-Auto-Schema-Policy" to "explicit-opt-in-postgresql-mysql-mariadb-bootstrap",
-            "CloudIslands-Core-JDBC-Auto-Schema-Resource" to "postgresql=/db/migration/V1..V85,mysql-mariadb=/db/mysql/V1..V8",
+            "CloudIslands-Core-JDBC-Auto-Schema-Resource" to "postgresql=/db/migration/V1..V85,mysql-mariadb=/db/mysql/V1..V9",
             "CloudIslands-Core-JDBC-Auto-Schema-History-Table" to "cloudislands_schema_bootstrap",
             "CloudIslands-Core-JDBC-Auto-Schema-Retry-Policy" to "ignore-existing-schema-objects-and-mark-bootstrap-after-complete-apply",
             "CloudIslands-Core-JDBC-Auto-Schema-HA-Lock-Policy" to "postgresql-session-advisory-lock,mysql-mariadb-get-lock,60-second-bounded-acquisition",

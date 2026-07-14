@@ -28,6 +28,35 @@ tasks.register<Exec>("coreIntegrationSmoke") {
     }
 }
 
+tasks.register<Exec>("mysqlCoreIntegrationSmoke") {
+    group = "verification"
+    description = "Runs the full dual-Core API integration smoke against MySQL, Redis, and S3-compatible object storage."
+    val coreService = project(":cloudislands-core-service")
+    val installTask = coreService.tasks.named("installDist")
+    dependsOn(installTask)
+    mustRunAfter(tasks.named("coreIntegrationSmoke"))
+    environment("CI_DATABASE_TYPE", "MYSQL")
+    environment("CI_JDBC_URL", "jdbc:mysql://127.0.0.1:3306/cloudislands")
+    environment("CI_DB_USERNAME", "cloudislands")
+    environment("CI_DB_PASSWORD", "cloudislands")
+    doFirst {
+        commandLine(
+            "python3",
+            file("scripts/ci/core_integration_smoke.py").absolutePath,
+            "--core-bin",
+            coreService.layout.buildDirectory.file("install/cloudislands-core-service/bin/cloudislands-core-service").get().asFile.absolutePath,
+            "--work-dir",
+            layout.buildDirectory.dir("smoke/core-integration-mysql").get().asFile.absolutePath,
+            "--port",
+            "18643",
+            "--timeout",
+            "90",
+            "--evidence-out",
+            layout.buildDirectory.file("smoke/core-integration-mysql/mysql-evidence.json").get().asFile.absolutePath
+        )
+    }
+}
+
 val clusterSmokeEvidenceFile = layout.buildDirectory.file("smoke/core-integration/cluster-evidence.json")
 val clusterSmokePartialReportFile = layout.buildDirectory.file("smoke/core-integration/cluster-smoke-report.json")
 val clusterSmokeReleaseEvidenceFile = layout.buildDirectory.file("smoke/cluster-smoke/cluster-evidence.json")
@@ -99,6 +128,7 @@ tasks.register("ciIntegrationSmoke") {
     group = "verification"
     description = "Runs Core API real-infrastructure integration smoke tests."
     dependsOn(tasks.named("coreIntegrationSmoke"))
+    dependsOn(tasks.named("mysqlCoreIntegrationSmoke"))
     dependsOn(tasks.named("clusterSmokePartialReport"))
 }
 
@@ -113,24 +143,48 @@ tasks.register("verifyReleaseGateCoverage") {
     description = "Verifies CI workflows keep partial integration smoke separate from the full release cluster evidence gate."
     inputs.files(
         layout.projectDirectory.file(".github/workflows/integration.yml"),
-        layout.projectDirectory.file("scripts/ci/core_integration_smoke.py")
+        layout.projectDirectory.file("scripts/ci/core_integration_smoke.py"),
+        layout.projectDirectory.file("gradle/release-gates.gradle.kts")
     )
     doLast {
         val workflow = layout.projectDirectory.file(".github/workflows/integration.yml").asFile.readText()
         val coreSmoke = layout.projectDirectory.file("scripts/ci/core_integration_smoke.py").asFile.readText()
+        val buildLogic = layout.projectDirectory.file("gradle/release-gates.gradle.kts").asFile.readText()
         val requiredSignals = listOf(
             "postgres:",
+            "mysql:",
+            "default-mysql-client",
             "redis:",
             "minio:",
             "ciIntegrationSmoke",
             "build/smoke/core-integration/cluster-evidence.json",
             "build/smoke/core-integration/cluster-smoke-report.json",
+            "build/smoke/core-integration-mysql/mysql-evidence.json",
             "./gradlew releaseClusterSmokeGate --no-daemon",
             "build/smoke/cluster-smoke/cluster-smoke-report.json"
         )
         val missing = requiredSignals.filterNot(workflow::contains)
         if (missing.isNotEmpty()) {
             throw GradleException("Integration workflow is missing cluster evidence gate signals: ${missing.joinToString(", ")}")
+        }
+        val mysqlBuildSignals = listOf(
+            "tasks.register<Exec>(\"mysqlCoreIntegrationSmoke\")",
+            "CI_DATABASE_TYPE\", \"MYSQL",
+            "dependsOn(tasks.named(\"mysqlCoreIntegrationSmoke\"))"
+        )
+        val missingMysqlBuildSignals = mysqlBuildSignals.filterNot(buildLogic::contains)
+        if (missingMysqlBuildSignals.isNotEmpty()) {
+            throw GradleException("Integration build logic is missing MySQL runtime smoke signals: ${missingMysqlBuildSignals.joinToString(", ")}")
+        }
+        val mysqlRuntimeSignals = listOf(
+            "{\"postgresql\", \"mysql\", \"mariadb\"}",
+            "mysqldump",
+            "databaseBackend\", database_type",
+            "shared-{database_authority}-authority"
+        )
+        val missingMysqlRuntimeSignals = mysqlRuntimeSignals.filterNot(coreSmoke::contains)
+        if (missingMysqlRuntimeSignals.isNotEmpty()) {
+            throw GradleException("Core integration smoke is missing MySQL runtime assertions: ${missingMysqlRuntimeSignals.joinToString(", ")}")
         }
         for (forbidden in listOf(
             "secrets.CI_CLUSTER_SMOKE_EVIDENCE_JSON",

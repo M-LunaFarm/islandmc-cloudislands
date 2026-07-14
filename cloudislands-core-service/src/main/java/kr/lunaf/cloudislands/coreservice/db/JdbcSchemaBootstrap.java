@@ -118,7 +118,8 @@ public final class JdbcSchemaBootstrap {
         "/db/mysql/V5__warehouse_settlement_recovery.sql",
         "/db/mysql/V6__player_island_fly_preference.sql",
         "/db/mysql/V7__player_visual_preferences.sql",
-        "/db/mysql/V8__player_border_color.sql"
+        "/db/mysql/V8__player_border_color.sql",
+        "/db/mysql/V9__repair_player_island_fly_preference.sql"
     };
 
     private enum Dialect {
@@ -291,7 +292,7 @@ public final class JdbcSchemaBootstrap {
         }
     }
 
-    private static boolean ignorableDuplicateSchemaObject(SQLException exception) {
+    static boolean ignorableDuplicateSchemaObject(SQLException exception) {
         int code = exception.getErrorCode();
         if (code == 1050 || code == 1060 || code == 1061 || code == 1826 || code == 3822) {
             return true;
@@ -301,7 +302,7 @@ public final class JdbcSchemaBootstrap {
             return true;
         }
         String message = exception.getMessage() == null ? "" : exception.getMessage().toLowerCase();
-        return ("42S01".equals(state) || "42000".equals(state))
+        return "42S01".equals(state)
             && (message.contains("already exists")
             || message.contains("duplicate")
             || message.contains("exists"));
