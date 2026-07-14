@@ -22,13 +22,13 @@ class JdbcSchemaBootstrapTest {
         assertEquals("mariadb-uses-mysql-compatible-core-schema-bootstrap", JdbcSchemaBootstrap.MARIADB_SCHEMA_POLICY);
         assertEquals("/db/mysql/V1__cloudislands_mysql_schema.sql", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
         assertEquals("mysql-v1", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_ID);
-        assertEquals("mysql-compatible-migration-chain:5", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
-        assertEquals("mysql-compatible-migration-chain:5", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
+        assertEquals("mysql-compatible-migration-chain:6", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
+        assertEquals("mysql-compatible-migration-chain:6", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
     }
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
-        assertEquals("postgresql-migration-chain:82", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
+        assertEquals("postgresql-migration-chain:83", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
     }
 
@@ -57,6 +57,18 @@ class JdbcSchemaBootstrapTest {
                 assertTrue(migration.contains("settlement_id"));
                 assertTrue(migration.contains("idempotency_key VARCHAR(200) NOT NULL"));
                 assertTrue(migration.contains("'PREPARED', 'ESCROWED'"));
+            }
+        }
+    }
+
+    @Test
+    void personalIslandFlightPreferenceShipsForPostgresqlAndMysql() throws IOException {
+        for (String resource : new String[]{"/db/migration/V83__player_island_fly_preference.sql", "/db/mysql/V6__player_island_fly_preference.sql"}) {
+            try (var input = JdbcSchemaBootstrapTest.class.getResourceAsStream(resource)) {
+                assertTrue(input != null, "missing migration " + resource);
+                String migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+                assertTrue(migration.contains("ALTER TABLE player_profiles"));
+                assertTrue(migration.contains("island_fly_enabled BOOLEAN NOT NULL DEFAULT FALSE"));
             }
         }
     }

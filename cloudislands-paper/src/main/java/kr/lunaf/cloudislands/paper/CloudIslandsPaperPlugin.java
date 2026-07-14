@@ -57,6 +57,7 @@ import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
 import kr.lunaf.cloudislands.paper.session.PaperScoreboardListener;
 import kr.lunaf.cloudislands.paper.session.PaperRouteSessionListener;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
+import kr.lunaf.cloudislands.paper.session.PlayerFlightPreferenceRegistry;
 import kr.lunaf.cloudislands.paper.session.TeamChatModeRegistry;
 import kr.lunaf.cloudislands.paper.storage.MeteredIslandStorage;
 import kr.lunaf.cloudislands.paper.storage.PaperStorageFactory;
@@ -97,6 +98,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     CustomBlockKeyService customBlockKeys;
     StackAmountService stackAmounts;
     AdminFlightOverrides adminFlightOverrides;
+    PlayerFlightPreferenceRegistry playerFlightPreferences;
+    PlayerIslandFlightService playerIslandFlightService;
     AdminChatSpyRegistry adminChatSpies;
     TeamChatModeRegistry teamChatModes;
 
@@ -135,6 +138,11 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
             playerLocales.clear();
             playerLocales = null;
         }
+        if (playerIslandFlightService != null) {
+            playerIslandFlightService.clearAll(getServer().getOnlinePlayers());
+            playerIslandFlightService = null;
+        }
+        playerFlightPreferences = null;
         if (adminFlightOverrides != null) {
             adminFlightOverrides.clearAll();
             adminFlightOverrides = null;
@@ -159,6 +167,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     public TeamChatModeRegistry teamChatModes() {
         return teamChatModes;
+    }
+
+    public PlayerIslandFlightService playerIslandFlightService() {
+        return playerIslandFlightService;
     }
 
     public ActiveIslandRegistry activeIslands() {

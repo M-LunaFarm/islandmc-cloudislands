@@ -41,11 +41,12 @@ class PlayerProfileRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(9, paths.size());
+        assertEquals(10, paths.size());
         assertTrue(paths.contains("/v1/admin/players/info"));
         assertTrue(paths.contains("/v1/players/info"));
         assertTrue(paths.contains("/v1/players/touch"));
         assertTrue(paths.contains("/v1/players/locale"));
+        assertTrue(paths.contains("/v1/players/island-fly"));
         assertTrue(paths.contains("/v1/players/select-island"));
         assertTrue(paths.contains("/v1/admin/players/setisland"));
         assertTrue(paths.contains("/v1/admin/players/clearisland"));
@@ -63,6 +64,7 @@ class PlayerProfileRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/players/info"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/touch"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/locale"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/island-fly"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/select-island"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/setisland"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/clearisland"));
@@ -78,7 +80,8 @@ class PlayerProfileRoutesTest {
             java.util.Optional.empty(),
             java.time.Instant.EPOCH,
             "EN-US",
-            3
+            3,
+            true
         ));
         Map<?, ?> root = SimpleJson.object(SimpleJson.parse(json));
 
@@ -86,6 +89,24 @@ class PlayerProfileRoutesTest {
         assertNull(root.get("primaryIslandId"));
         assertEquals("en_us", SimpleJson.text(root.get("locale")));
         assertEquals(3L, SimpleJson.number(root.get("disbandsRemaining")));
+        assertEquals(Boolean.TRUE, root.get("islandFlyEnabled"));
+    }
+
+    @Test
+    void persistsAndAuditsPersonalIslandFlightPreference() throws Exception {
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000305");
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new PlayerProfileRoutes(profiles, audit).register(handlers::put);
+
+        TestExchange exchange = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"enabled\":true}");
+        handlers.get("/v1/players/island-fly").handle(exchange);
+
+        assertEquals(202, exchange.status());
+        assertTrue(profiles.find(playerUuid).islandFlyEnabled());
+        assertTrue(exchange.body().contains("\"islandFlyEnabled\":true"));
+        assertTrue(audit.toJson().contains("PLAYER_ISLAND_FLY_SET"));
     }
 
     @Test

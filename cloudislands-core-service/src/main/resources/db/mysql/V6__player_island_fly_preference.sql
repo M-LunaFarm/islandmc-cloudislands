@@ -1,0 +1,2 @@
+ALTER TABLE player_profiles
+    ADD COLUMN IF NOT EXISTS island_fly_enabled BOOLEAN NOT NULL DEFAULT FALSE;

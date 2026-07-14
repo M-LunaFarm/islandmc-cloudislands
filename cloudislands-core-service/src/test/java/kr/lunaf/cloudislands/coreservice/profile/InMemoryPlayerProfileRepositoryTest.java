@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.profile;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.UUID;
@@ -9,6 +10,18 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 class InMemoryPlayerProfileRepositoryTest {
+    @Test
+    void preservesPersonalFlightPreferenceAcrossOtherProfileMutations() {
+        InMemoryPlayerProfileRepository repository = new InMemoryPlayerProfileRepository();
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000099");
+
+        assertTrue(repository.setIslandFlyEnabled(playerUuid, true).islandFlyEnabled());
+        assertTrue(repository.touch(playerUuid, "Flyer", "en_us").islandFlyEnabled());
+        assertTrue(repository.setDisbandsRemaining(playerUuid, 3).islandFlyEnabled());
+        assertTrue(repository.setPrimaryIsland(playerUuid, UUID.randomUUID()).islandFlyEnabled());
+        assertFalse(repository.setIslandFlyEnabled(playerUuid, false).islandFlyEnabled());
+    }
+
     @Test
     void partialUpdatesPreserveAtomicSaturatingDisbandQuota() throws Exception {
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-0000000000a1");

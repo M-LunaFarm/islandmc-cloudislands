@@ -59,6 +59,11 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
     }
 
     @Override
+    public PlayerIslandProfile setIslandFlyEnabled(UUID playerUuid, boolean enabled) {
+        return mutated(delegate.setIslandFlyEnabled(playerUuid, enabled));
+    }
+
+    @Override
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         return mutated(delegate.setPrimaryIsland(playerUuid, islandId));
     }
@@ -151,12 +156,13 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
             + "|" + profile.primaryIslandId().map(UUID::toString).orElse("")
             + "|" + profile.lastSeenAt()
             + "|" + encodeText(profile.locale())
-            + "|" + profile.disbandsRemaining();
+            + "|" + profile.disbandsRemaining()
+            + "|" + profile.islandFlyEnabled();
     }
 
     private static PlayerIslandProfile profileFromJson(String value) {
         String[] parts = value.split("\\|", -1);
-        if (parts.length != 4 && parts.length != 5 && parts.length != 6) {
+        if (parts.length < 4 || parts.length > 7) {
             throw new IllegalArgumentException("invalid cached player profile");
         }
         return new PlayerIslandProfile(
@@ -165,7 +171,8 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
             parts[2].isBlank() ? Optional.empty() : Optional.of(UUID.fromString(parts[2])),
             instant(parts[3]),
             parts.length >= 5 ? decodeText(parts[4]) : "ko_kr",
-            parts.length == 6 ? integer(parts[5]) : 0
+            parts.length >= 6 ? integer(parts[5]) : 0,
+            parts.length == 7 && Boolean.parseBoolean(parts[6])
         );
     }
 

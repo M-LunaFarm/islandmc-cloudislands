@@ -4,13 +4,17 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-public record PlayerIslandProfile(UUID playerUuid, String lastName, Optional<UUID> primaryIslandId, Instant lastSeenAt, String locale, int disbandsRemaining) {
+public record PlayerIslandProfile(UUID playerUuid, String lastName, Optional<UUID> primaryIslandId, Instant lastSeenAt, String locale, int disbandsRemaining, boolean islandFlyEnabled) {
     public PlayerIslandProfile(UUID playerUuid, String lastName, Optional<UUID> primaryIslandId, Instant lastSeenAt) {
         this(playerUuid, lastName, primaryIslandId, lastSeenAt, "ko_kr");
     }
 
     public PlayerIslandProfile(UUID playerUuid, String lastName, Optional<UUID> primaryIslandId, Instant lastSeenAt, String locale) {
         this(playerUuid, lastName, primaryIslandId, lastSeenAt, locale, 0);
+    }
+
+    public PlayerIslandProfile(UUID playerUuid, String lastName, Optional<UUID> primaryIslandId, Instant lastSeenAt, String locale, int disbandsRemaining) {
+        this(playerUuid, lastName, primaryIslandId, lastSeenAt, locale, disbandsRemaining, false);
     }
 
     public PlayerIslandProfile {

@@ -123,7 +123,10 @@ final class IslandCommandBackend {
             plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands ? cloudIslands.teamChatModes() : new kr.lunaf.cloudislands.paper.session.TeamChatModeRegistry());
         this.progressionCommands = new IslandProgressionCommandHandler(plugin, coreApiClient, levelScanService, runtimeServices, defaultGeneratorKey);
         this.environmentCommands = new IslandEnvironmentCommandHandler(plugin, coreApiClient, protection, runtimeServices);
-        this.settingsCommands = new IslandSettingsCommandHandler(plugin, coreApiClient, runtimeServices, locales);
+        kr.lunaf.cloudislands.paper.PlayerIslandFlightService flightService = plugin instanceof kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin cloudIslands
+            ? cloudIslands.playerIslandFlightService()
+            : new kr.lunaf.cloudislands.paper.PlayerIslandFlightService(protection, new kr.lunaf.cloudislands.paper.session.PlayerFlightPreferenceRegistry(), null);
+        this.settingsCommands = new IslandSettingsCommandHandler(plugin, coreApiClient, runtimeServices, locales, flightService);
         this.homeWarpCommands = new IslandHomeWarpCommandHandler(plugin, coreApiClient, new IslandHomeWarpRuntimeAdapter(runtimeServices, routingCommands));
         this.visitReviewCommands = new IslandVisitReviewCommandHandler(plugin, coreApiClient, new IslandVisitReviewRuntimeAdapter(runtimeServices, routingCommands));
         this.lifecycleCommands = new IslandLifecycleCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices);

@@ -1172,7 +1172,7 @@ class PaperPlatformBoundaryTest {
         String chat = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java"));
 
         assertTrue(bootstrap.contains("plugin.playerLocales = new PlayerLocaleCache()"), "Paper runtime must create a player locale cache");
-        assertTrue(bootstrap.contains("new PaperPlayerProfileListener(client, plugin.playerLocales)"), "Core profile touch must feed the locale cache");
+        assertTrue(bootstrap.contains("new PaperPlayerProfileListener(plugin, client, plugin.playerLocales, plugin.playerFlightPreferences, plugin.playerIslandFlightService)"), "Core profile touch must feed locale and personal flight caches");
         assertTrue(profileListener.contains("coreApiClient.playerProfileCommands()"), "Paper profile listener must use typed Core player profile commands");
         assertTrue(profileListener.contains("profile.locale()"), "Paper profile listener must use the typed Core profile locale returned by touch");
         assertTrue(commandMessenger.contains("messages.forLocale(locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player))"), "Command and GUI messages must prefer the Core profile locale cache");

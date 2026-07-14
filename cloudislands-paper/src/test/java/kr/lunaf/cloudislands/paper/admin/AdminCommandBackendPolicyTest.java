@@ -1126,8 +1126,8 @@ class AdminCommandBackendPolicyTest {
         assertTrue(backend.contains("handleAdminMessageCommand") && backend.contains("player.sendMessage(component)"), "Admin message must send Adventure components to resolved online players");
         assertTrue(backend.contains("handleAdminTitleCommand") && backend.contains("player.showTitle(title)"), "Admin title must show Adventure titles to resolved online players");
         assertTrue(backend.contains("handleAdminFlyCommand") && backend.contains("player.setAllowFlight(allowFlight)") && backend.contains("player.setFlying(false)") && backend.contains("overrides.set(player.getUniqueId(), allowFlight)"), "Admin fly must mutate Paper flight state and persist an admin override");
-        assertTrue(gameplayListener.contains("adminFlightAllowed(player)") && gameplayListener.contains("adminFlightOverrides.clear(player.getUniqueId())"), "Admin fly override must survive gameplay move enforcement until player quit");
-        assertTrue(bootstrap.contains("new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages, plugin.playerLocales, plugin.adminFlightOverrides)"), "Gameplay listener must receive admin flight overrides");
+        assertTrue(gameplayListener.contains("flightService.refresh(player, block)") && gameplayListener.contains("flightService.clear(event.getPlayer())"), "Admin and personal flight ownership must be refreshed on movement and cleared on quit");
+        assertTrue(bootstrap.contains("new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages, plugin.playerLocales, plugin.adminFlightOverrides, plugin.playerFlightPreferences)"), "Gameplay listener must receive shared admin and personal flight state");
         assertTrue(pluginMain.contains("adminFlightOverrides.clearAll()"), "Admin flight overrides must be cleared on plugin shutdown");
         assertTrue(backend.contains("coreApiClient.islands().listMembers(islandId)"), "Island-targeted runtime commands must resolve typed Core island members");
         assertTrue(backend.contains("auditAdminRuntimeAction"), "Admin runtime actions must emit an audit log line");

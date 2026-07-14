@@ -2758,7 +2758,9 @@ public final class PaperCloudIslandsApi implements CloudIslandsApi {
             profile.lastName(),
             Optional.ofNullable(primaryIslandId),
             instant(profile.lastSeenAt().isBlank() ? Instant.EPOCH.toString() : profile.lastSeenAt()),
-            profile.locale()
+            profile.locale(),
+            profile.disbandsRemaining(),
+            profile.islandFlyEnabled()
         ));
     }
 

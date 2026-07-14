@@ -14,7 +14,8 @@ final class CorePlayerProfileJson {
             CoreJson.text(root, "primaryIslandId"),
             CoreJson.text(root, "lastSeenAt"),
             CoreJson.text(root, "locale"),
-            Math.toIntExact(CoreJson.number(root, "disbandsRemaining"))
+            Math.toIntExact(CoreJson.number(root, "disbandsRemaining")),
+            CoreJson.bool(root, "islandFlyEnabled", false)
         );
     }
 

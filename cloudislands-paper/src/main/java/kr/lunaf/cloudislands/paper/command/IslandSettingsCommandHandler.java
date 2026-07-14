@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase;
+import kr.lunaf.cloudislands.paper.PlayerIslandFlightService;
 import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase.SettingsActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
@@ -28,13 +29,19 @@ final class IslandSettingsCommandHandler {
     private final IslandSettingsUseCase settingsUseCase;
     private final Runtime runtime;
     private final PlayerLocaleCache locales;
+    private final PlayerIslandFlightService flightService;
 
     IslandSettingsCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime, PlayerLocaleCache locales) {
+        this(plugin, coreApiClient, runtime, locales, null);
+    }
+
+    IslandSettingsCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime, PlayerLocaleCache locales, PlayerIslandFlightService flightService) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.settingsUseCase = new IslandSettingsUseCase(coreApiClient);
         this.runtime = runtime;
         this.locales = locales;
+        this.flightService = flightService;
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
@@ -91,7 +98,7 @@ final class IslandSettingsCommandHandler {
             return true;
         }
         if (subcommand.equals("fly") || subcommand.equals("비행")) {
-            setFlag(player, "FLY", toggleValue(args, 1));
+            setPersonalFlight(player, args);
             return true;
         }
         if (subcommand.equals("keepinventory") || subcommand.equals("keepinv") || subcommand.equals("인벤보존")) {
@@ -301,6 +308,78 @@ final class IslandSettingsCommandHandler {
             });
     }
 
+    private void setPersonalFlight(Player player, String[] args) {
+        if (flightService == null) {
+            runtime.message(player, message("player-flight-update-failed", "개인 비행 설정을 변경하지 못했습니다."));
+            return;
+        }
+        UUID playerUuid = player.getUniqueId();
+        if (!flightService.beginUpdate(playerUuid)) {
+            runtime.message(player, message("player-flight-update-pending", "개인 비행 설정을 이미 변경하고 있습니다."));
+            return;
+        }
+        if (args.length <= 1 && !flightService.preferenceKnown(playerUuid)) {
+            coreApiClient.playerProfiles().profile(playerUuid)
+                .thenAccept(profile -> PaperSchedulers.run(plugin, () -> {
+                    Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+                    if (activePlayer == null || !activePlayer.isOnline()) {
+                        flightService.finishUpdate(playerUuid);
+                        return;
+                    }
+                    flightService.rememberPreference(playerUuid, profile.islandFlyEnabled());
+                    persistPersonalFlight(activePlayer, !profile.islandFlyEnabled());
+                }))
+                .exceptionally(error -> {
+                    PaperSchedulers.run(plugin, () -> finishFlightFailure(playerUuid, error));
+                    return null;
+                });
+            return;
+        }
+        boolean current = flightService.preferenceEnabled(player);
+        Boolean enabled = flightToggleValue(args, 1, current);
+        if (enabled == null) {
+            flightService.finishUpdate(playerUuid);
+            runtime.message(player, message("input-flight-state-invalid", "비행 상태는 on 또는 off로 입력해주세요."));
+            return;
+        }
+        persistPersonalFlight(player, enabled);
+    }
+
+    private void persistPersonalFlight(Player player, boolean enabled) {
+        UUID playerUuid = player.getUniqueId();
+        if (enabled && !flightService.canEnable(player)) {
+            flightService.finishUpdate(playerUuid);
+            runtime.message(player, message("player-flight-denied", "현재 섬에서는 개인 비행을 사용할 권한이 없거나 섬 비행이 비활성화되어 있습니다."));
+            return;
+        }
+        runtime.mutate("player.island-fly.set", () -> coreApiClient.playerProfileCommands().setIslandFlyEnabled(playerUuid, enabled))
+            .thenAccept(profile -> PaperSchedulers.run(plugin, () -> {
+                Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+                if (activePlayer == null || !activePlayer.isOnline()) {
+                    flightService.finishUpdate(playerUuid);
+                    return;
+                }
+                boolean applied = profile.islandFlyEnabled();
+                flightService.applyPreference(activePlayer, applied);
+                flightService.finishUpdate(playerUuid);
+                runtime.message(activePlayer, applied
+                    ? message("player-flight-enabled", "개인 섬 비행을 켰습니다.")
+                    : message("player-flight-disabled", "개인 섬 비행을 껐습니다."));
+            }))
+            .exceptionally(error -> {
+                PaperSchedulers.run(plugin, () -> finishFlightFailure(playerUuid, error));
+                return null;
+            });
+    }
+
+    private void finishFlightFailure(UUID playerUuid, Throwable error) {
+        flightService.finishUpdate(playerUuid);
+        Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+        if (activePlayer != null && activePlayer.isOnline()) {
+            runtime.message(activePlayer, runtime.coreWriteFailureMessage(error, message("player-flight-update-failed", "개인 비행 설정을 변경하지 못했습니다.")));
+        }
+    }
+
     private String flagListMessage(Map<IslandFlag, String> flags) {
         List<String> entries = flags.entrySet().stream()
             .map(entry -> entry.getKey().name() + "=" + entry.getValue())
@@ -358,6 +437,20 @@ final class IslandSettingsCommandHandler {
             return "false";
         }
         return args[index];
+    }
+
+    private static Boolean flightToggleValue(String[] args, int index, boolean current) {
+        if (args.length <= index) {
+            return !current;
+        }
+        String value = args[index].toLowerCase(Locale.ROOT);
+        if (value.equals("on") || value.equals("true") || value.equals("yes") || value.equals("1") || value.equals("enable") || value.equals("enabled") || value.equals("켜기") || value.equals("허용") || value.equals("활성")) {
+            return true;
+        }
+        if (value.equals("off") || value.equals("false") || value.equals("no") || value.equals("0") || value.equals("disable") || value.equals("disabled") || value.equals("끄기") || value.equals("거부") || value.equals("비활성")) {
+            return false;
+        }
+        return null;
     }
 
     private static String joined(String[] args, int start) {

@@ -10,6 +10,8 @@ public interface PlayerProfileCommandClient {
 
     CompletableFuture<PlayerProfileView> setLocale(UUID playerUuid, String locale);
 
+    CompletableFuture<PlayerProfileView> setIslandFlyEnabled(UUID playerUuid, boolean enabled);
+
     CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId);
 
     CompletableFuture<PlayerProfileView> selectPrimaryIsland(UUID playerUuid, UUID islandId);

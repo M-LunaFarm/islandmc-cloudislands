@@ -1749,6 +1749,7 @@ tasks.register("verifySettingsMessageKeyCoverage") {
             "flag-set-island-required",
             "input-flag-invalid",
             "input-flag-value-required",
+            "input-flight-state-invalid",
             "input-island-name-required",
             "input-locale-required",
             "lock-action-label",
@@ -1761,6 +1762,11 @@ tasks.register("verifySettingsMessageKeyCoverage") {
             "name-change-island-required",
             "player-locale-update-failed",
             "player-locale-updated",
+            "player-flight-denied",
+            "player-flight-enabled",
+            "player-flight-disabled",
+            "player-flight-update-failed",
+            "player-flight-update-pending",
             "settings-action-complete",
             "settings-action-failed",
             "settings-action-reason-prefix",
@@ -1907,6 +1913,57 @@ tasks.register("verifyCurrentVisitorParity") {
         val handlerSource = handler.asFile.readText()
         if (handlerSource.substringAfter("if (subcommand.equals(\"visitors\"))").substringBefore("if (subcommand.equals(\"visitor-stats\")").contains("openVisitorStatsMenu(player)")) {
             throw GradleException("The canonical visitors command must list current visitors, not reopen historical visitor statistics")
+        }
+    }
+}
+
+tasks.register("verifyPersonalIslandFlightParity") {
+    group = "verification"
+    description = "Verifies /is fly is a durable per-player preference and only revokes flight CloudIslands owns."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    val files = listOf(
+        layout.projectDirectory.file("cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/model/PlayerIslandProfile.java"),
+        layout.projectDirectory.file("cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/model/IslandPermission.java"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/PlayerProfileRoutes.java"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/migration/V83__player_island_fly_preference.sql"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/mysql/V6__player_island_fly_preference.sql"),
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/PlayerIslandFlightService.java"),
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/PlayerFlightOwnershipPolicy.java"),
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/IslandGameplayFlagListener.java"),
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandSettingsCommandHandler.java"),
+        layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/PlayerFlightOwnershipPolicyTest.java")
+    )
+    inputs.files(files)
+    doLast {
+        val source = files.joinToString("\n") { it.asFile.readText() }
+        val requiredSignals = listOf(
+            "boolean islandFlyEnabled",
+            "FLY,",
+            "/v1/players/island-fly",
+            "PLAYER_ISLAND_FLY_SET",
+            "island_fly_enabled BOOLEAN NOT NULL DEFAULT FALSE",
+            "setIslandFlyEnabled(playerUuid, enabled)",
+            "flightService.beginUpdate(playerUuid)",
+            "flightService.preferenceKnown(playerUuid)",
+            "PaperSchedulers.run(plugin",
+            "PlayerFlightOwnershipPolicy.claim",
+            "PlayerFlightOwnershipPolicy.revoke",
+            "protection.checkBlock(player.getUniqueId()",
+            "onlyClaimsFlightThatCloudIslandsActuallyEnables",
+            "onlyRevokesOwnedFlightAndPreservesAdminOrExternalFlight"
+        )
+        val missing = requiredSignals.filterNot(source::contains)
+        if (missing.isNotEmpty()) {
+            throw GradleException("Personal island flight parity evidence missing: ${missing.joinToString(", ")}")
+        }
+        val handler = files[8].asFile.readText()
+        if (handler.contains("setFlag(player, \"FLY\"")) {
+            throw GradleException("Canonical /is fly must not mutate the island-wide FLY flag")
+        }
+        val listener = files[7].asFile.readText()
+        if (listener.contains("player.setAllowFlight(allowed)")) {
+            throw GradleException("Movement enforcement must not overwrite flight granted by another plugin")
         }
     }
 }
@@ -2273,6 +2330,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifySettingsMessageKeyCoverage"))
     dependsOn(tasks.named("verifyVisitReviewMessageKeyCoverage"))
     dependsOn(tasks.named("verifyCurrentVisitorParity"))
+    dependsOn(tasks.named("verifyPersonalIslandFlightParity"))
     dependsOn(tasks.named("verifyBankMessageKeyCoverage"))
     dependsOn(tasks.named("verifyPermissionMessageKeyCoverage"))
     dependsOn(tasks.named("verifyMembershipMessageKeyCoverage"))

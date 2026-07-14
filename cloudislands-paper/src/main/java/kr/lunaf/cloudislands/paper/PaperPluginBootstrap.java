@@ -89,6 +89,8 @@ final class PaperPluginBootstrap {
         plugin.messages = new MessageRenderer(TranslationManager.fromSnapshot(config.messages(), config.serviceName()));
         plugin.playerLocales = new PlayerLocaleCache();
         plugin.adminFlightOverrides = new AdminFlightOverrides();
+        plugin.playerFlightPreferences = new kr.lunaf.cloudislands.paper.session.PlayerFlightPreferenceRegistry();
+        plugin.playerIslandFlightService = new PlayerIslandFlightService(plugin.agent.protection(), plugin.playerFlightPreferences, plugin.adminFlightOverrides);
         plugin.adminChatSpies = new AdminChatSpyRegistry();
         plugin.teamChatModes = new kr.lunaf.cloudislands.paper.session.TeamChatModeRegistry();
         plugin.agent.routeTickets().setMessages(plugin.messages);
@@ -107,7 +109,7 @@ final class PaperPluginBootstrap {
         plugin.levelScanService = new IslandLevelScanService(plugin, () -> plugin.activeIslands, client, limitCache);
         plugin.lifecycle.started("level-scan-service", plugin.levelScanService);
         BlockDeltaReporter blockDeltas = new BlockDeltaReporter(plugin, client);
-        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperPlayerProfileListener(client, plugin.playerLocales));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperPlayerProfileListener(plugin, client, plugin.playerLocales, plugin.playerFlightPreferences, plugin.playerIslandFlightService));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperBrandingListener(plugin, plugin.messages, plugin.playerLocales));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperChatListener(plugin, client, plugin.agent.protection(), plugin.messages, plugin.playerLocales, plugin.adminChatSpies, plugin.teamChatModes));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperScoreboardListener(plugin, plugin.messages, plugin.playerLocales));
@@ -123,7 +125,7 @@ final class PaperPluginBootstrap {
             ));
             plugin.boundaryListener = new IslandBoundaryListener(plugin, plugin.agent.protection(), plugin.messages);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.boundaryListener);
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages, plugin.playerLocales, plugin.adminFlightOverrides));
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages, plugin.playerLocales, plugin.adminFlightOverrides, plugin.playerFlightPreferences));
             IslandLimitListener blockLimitListener = new IslandLimitListener(plugin.agent.protection(), limitCache, plugin.messages);
             IslandEntityLimitListener entityLimitListener = new IslandEntityLimitListener(
                 plugin.agent.protection(), limitCache, plugin.messages, plugin.levelScanService, plugin.stackAmounts

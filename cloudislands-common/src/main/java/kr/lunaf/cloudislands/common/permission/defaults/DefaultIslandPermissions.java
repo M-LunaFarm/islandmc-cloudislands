@@ -59,6 +59,7 @@ public final class DefaultIslandPermissions {
             IslandPermission.USE_ANVIL,
             IslandPermission.USE_ENCHANT_TABLE,
             IslandPermission.USE_BREWING_STAND,
+            IslandPermission.FLY,
             IslandPermission.SET_HOME,
             IslandPermission.DEPOSIT_BANK
         }) {

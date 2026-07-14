@@ -326,6 +326,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/ProtectionControllerTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/PlayerFlightOwnershipPolicyTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/session/PlayerFlightPreferenceRegistryTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/PlayerIslandFlightService.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/platform/world/SafeTeleportPolicyTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/IslandGameplayFlagListener.java",
             "cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/permission/defaults/DefaultIslandPermissionsTest.java"
@@ -514,7 +517,7 @@ private fun playerPermissionParityEntries(): List<PermissionParityEntry> = listO
     permissionParity("player", "superior.island.deposit", "cloudislands.island.bank.deposit", "SUPPORTED_VERIFIED", "", "bank deposit maps directly"),
     permissionParity("player", "superior.island.disband", "cloudislands.island.delete", "COVERED_BY", "", "permanent island disband maps to the guarded delete/reset flow"),
     permissionParity("player", "superior.island.expel", "cloudislands.island.kick", "COVERED_BY", "", "visitor expel is grouped with membership enforcement"),
-    permissionParity("player", "superior.island.fly", "cloudislands.island.settings", "SUPPORTED_VERIFIED", "", "island fly toggle is a settings command"),
+    permissionParity("player", "superior.island.fly", "cloudislands.island.fly", "SUPPORTED_VERIFIED", "", "personal flight preference is Core-persisted, role-gated, island-flag-gated, and revokes only CloudIslands-owned flight"),
     permissionParity("player", "superior.island.help", "cloudislands.island.menu", "SUPPORTED_VERIFIED", "", "help and command listing are menu-safe commands"),
     permissionParity("player", "superior.island.invite", "cloudislands.island.invite", "SUPPORTED_VERIFIED", "", "member invite maps directly"),
     permissionParity("player", "superior.island.kick", "cloudislands.island.kick", "SUPPORTED_VERIFIED", "", "member kick maps directly"),

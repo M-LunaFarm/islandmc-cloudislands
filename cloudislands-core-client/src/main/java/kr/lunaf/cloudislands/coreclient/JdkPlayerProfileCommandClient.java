@@ -38,6 +38,14 @@ final class JdkPlayerProfileCommandClient implements PlayerProfileCommandClient 
     }
 
     @Override
+    public CompletableFuture<PlayerProfileView> setIslandFlyEnabled(UUID playerUuid, boolean enabled) {
+        requireId(playerUuid, "playerUuid");
+        return core.postResultBody("/v1/players/island-fly", CoreJsonPayload.object("playerUuid", playerUuid, "enabled", enabled))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
     public CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId) {
         requireId(playerUuid, "playerUuid");
         requireId(islandId, "islandId");

@@ -76,6 +76,7 @@ public final class IslandPermissionSystemPolicy {
             IslandPermission.USE_ANVIL,
             IslandPermission.USE_ENCHANT_TABLE,
             IslandPermission.USE_BREWING_STAND,
+            IslandPermission.FLY,
             IslandPermission.MANAGE_MEMBERS,
             IslandPermission.MANAGE_ROLES,
             IslandPermission.MANAGE_FLAGS,

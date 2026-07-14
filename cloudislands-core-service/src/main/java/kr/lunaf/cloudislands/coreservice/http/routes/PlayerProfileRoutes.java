@@ -42,6 +42,7 @@ public final class PlayerProfileRoutes implements RouteGroup {
         registry.routePost("/v1/players/info", this::info);
         registry.routePost("/v1/players/touch", this::touch);
         registry.routePost("/v1/players/locale", this::locale);
+        registry.routePost("/v1/players/island-fly", this::islandFly);
         registry.routePost("/v1/players/select-island", this::selectIsland);
         registry.routePost("/v1/admin/players/setisland", this::setIsland);
         registry.routePost("/v1/admin/players/clearisland", this::clearIsland);
@@ -98,6 +99,14 @@ public final class PlayerProfileRoutes implements RouteGroup {
         CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setLocale(playerUuid, locale)));
     }
 
+    private void islandFly(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        boolean enabled = JsonFields.bool(body, "enabled", false);
+        audit.log(playerUuid, "PLAYER", "PLAYER_ISLAND_FLY_SET", "PLAYER", playerUuid.toString(), Map.of("enabled", Boolean.toString(enabled)));
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setIslandFlyEnabled(playerUuid, enabled)));
+    }
+
     private void setIsland(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
@@ -137,6 +146,7 @@ public final class PlayerProfileRoutes implements RouteGroup {
         values.put("lastSeenAt", profile.lastSeenAt());
         values.put("locale", profile.locale());
         values.put("disbandsRemaining", profile.disbandsRemaining());
+        values.put("islandFlyEnabled", profile.islandFlyEnabled());
         return SimpleJson.stringify(values);
     }
 }

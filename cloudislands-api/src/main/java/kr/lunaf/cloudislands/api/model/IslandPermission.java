@@ -42,6 +42,7 @@ public enum IslandPermission {
     USE_ANVIL,
     USE_ENCHANT_TABLE,
     USE_BREWING_STAND,
+    FLY,
     MANAGE_MEMBERS,
     MANAGE_ROLES,
     MANAGE_FLAGS,

@@ -495,6 +495,7 @@ class CoreMutationContextTest {
         server.createContext("/v1/players/info", exchange -> respond(exchange, requestBodies, "playerInfoByName", "{\"player\":{}}"));
         server.createContext("/v1/players/touch", exchange -> respond(exchange, requestBodies, "playerTouch", "{\"accepted\":true}"));
         server.createContext("/v1/players/locale", exchange -> respond(exchange, requestBodies, "playerLocale", "{\"accepted\":true}"));
+        server.createContext("/v1/players/island-fly", exchange -> respond(exchange, requestBodies, "playerIslandFly", "{\"playerUuid\":\"" + playerUuid + "\",\"islandFlyEnabled\":true}"));
         server.createContext("/v1/admin/players/setisland", exchange -> respond(exchange, requestBodies, "playerSetIsland", "{\"accepted\":true}"));
         server.createContext("/v1/admin/players/clearisland", exchange -> respond(exchange, requestBodies, "playerClearIsland", "{\"accepted\":true}"));
         server.createContext("/v1/admin/players/setdisbands", exchange -> respond(exchange, requestBodies, "playerSetDisbands", "{\"playerUuid\":\"" + playerUuid + "\",\"disbandsRemaining\":7}"));
@@ -524,6 +525,7 @@ class CoreMutationContextTest {
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"lastName\":\"Player \\\"One\\\"\"}", requestBodies.get("playerTouch"));
             client.playerProfileCommands().touch(playerUuid, "Player \"One\"", "ko\"KR").join();
             client.playerProfileCommands().setLocale(playerUuid, "en\"US").join();
+            assertTrue(client.playerProfileCommands().setIslandFlyEnabled(playerUuid, true).join().islandFlyEnabled());
             client.playerProfileCommands().setPrimaryIsland(playerUuid, islandId).join();
             client.playerProfileCommands().clearPrimaryIsland(playerUuid).join();
             client.playerProfileCommands().setDisbandsRemaining(playerUuid, 7).join();
@@ -570,6 +572,7 @@ class CoreMutationContextTest {
             assertEquals("{\"lastName\":\"Player \\\"One\\\"\"}", requestBodies.get("playerInfoByName"));
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"lastName\":\"Player \\\"One\\\"\",\"locale\":\"ko\\\"KR\"}", requestBodies.get("playerTouch"));
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"locale\":\"en\\\"US\"}", requestBodies.get("playerLocale"));
+            assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"enabled\":true}", requestBodies.get("playerIslandFly"));
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + islandId + "\"}", requestBodies.get("playerSetIsland"));
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\"}", requestBodies.get("playerClearIsland"));
             assertEquals("{\"playerUuid\":\"" + playerUuid + "\",\"value\":7}", requestBodies.get("playerSetDisbands"));

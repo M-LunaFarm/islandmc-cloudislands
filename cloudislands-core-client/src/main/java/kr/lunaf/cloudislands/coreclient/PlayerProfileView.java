@@ -1,8 +1,12 @@
 package kr.lunaf.cloudislands.coreclient;
 
-public record PlayerProfileView(String playerUuid, String lastName, String primaryIslandId, String lastSeenAt, String locale, int disbandsRemaining) {
+public record PlayerProfileView(String playerUuid, String lastName, String primaryIslandId, String lastSeenAt, String locale, int disbandsRemaining, boolean islandFlyEnabled) {
     public PlayerProfileView(String playerUuid, String lastName, String primaryIslandId, String lastSeenAt, String locale) {
         this(playerUuid, lastName, primaryIslandId, lastSeenAt, locale, 0);
+    }
+
+    public PlayerProfileView(String playerUuid, String lastName, String primaryIslandId, String lastSeenAt, String locale, int disbandsRemaining) {
+        this(playerUuid, lastName, primaryIslandId, lastSeenAt, locale, disbandsRemaining, false);
     }
 
     public PlayerProfileView {

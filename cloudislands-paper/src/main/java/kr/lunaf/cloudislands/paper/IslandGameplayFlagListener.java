@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
+import kr.lunaf.cloudislands.paper.session.PlayerFlightPreferenceRegistry;
 import net.kyori.adventure.text.Component;
 import org.bukkit.GameMode;
 import org.bukkit.WeatherType;
@@ -28,7 +29,7 @@ public final class IslandGameplayFlagListener implements Listener {
     private final ProtectionController protection;
     private final MessageRenderer messages;
     private final PlayerLocaleCache locales;
-    private final AdminFlightOverrides adminFlightOverrides;
+    private final PlayerIslandFlightService flightService;
     private final Map<UUID, EnvironmentOverride> environmentOverrides = new ConcurrentHashMap<>();
 
     public IslandGameplayFlagListener(ProtectionController protection) {
@@ -44,10 +45,14 @@ public final class IslandGameplayFlagListener implements Listener {
     }
 
     public IslandGameplayFlagListener(ProtectionController protection, MessageRenderer messages, PlayerLocaleCache locales, AdminFlightOverrides adminFlightOverrides) {
+        this(protection, messages, locales, adminFlightOverrides, new PlayerFlightPreferenceRegistry());
+    }
+
+    public IslandGameplayFlagListener(ProtectionController protection, MessageRenderer messages, PlayerLocaleCache locales, AdminFlightOverrides adminFlightOverrides, PlayerFlightPreferenceRegistry flightPreferences) {
         this.protection = protection;
         this.messages = messages;
         this.locales = locales;
-        this.adminFlightOverrides = adminFlightOverrides;
+        this.flightService = new PlayerIslandFlightService(protection, flightPreferences, adminFlightOverrides);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -58,11 +63,7 @@ public final class IslandGameplayFlagListener implements Listener {
         if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
             return;
         }
-        boolean allowed = adminFlightAllowed(player) || (protection.islandAt(block).isPresent() && islandFlagAllowed(block, IslandFlag.FLY));
-        player.setAllowFlight(allowed);
-        if (!allowed && player.isFlying()) {
-            player.setFlying(false);
-        }
+        flightService.refresh(player, block);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -71,7 +72,7 @@ public final class IslandGameplayFlagListener implements Listener {
         if (!event.isFlying() || player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
             return;
         }
-        boolean denied = protection.islandAt(player.getLocation().getBlock()).isPresent() && !adminFlightAllowed(player) && !islandFlagAllowed(player.getLocation().getBlock(), IslandFlag.FLY);
+        boolean denied = flightService.managedAndDenied(player);
         event.setCancelled(denied);
         if (denied) {
             player.sendActionBar(Component.text(message(player, "flag-fly-denied", "이 섬에서는 비행할 수 없습니다.")));
@@ -80,13 +81,13 @@ public final class IslandGameplayFlagListener implements Listener {
 
     @EventHandler
     public void onChangedWorld(PlayerChangedWorldEvent event) {
-        updateFlight(event.getPlayer());
+        flightService.refresh(event.getPlayer(), event.getPlayer().getLocation().getBlock());
         updateEnvironment(event.getPlayer(), event.getPlayer().getLocation().getBlock());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        clearManagedFlight(event.getPlayer());
+        flightService.clear(event.getPlayer());
         clearEnvironment(event.getPlayer());
     }
 
@@ -163,33 +164,6 @@ public final class IslandGameplayFlagListener implements Listener {
         }
         String rendered = messages.plainForLocale(player == null ? "" : locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player), key);
         return rendered.isBlank() ? fallback : rendered;
-    }
-
-    private void updateFlight(Player player) {
-        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
-            return;
-        }
-        Block block = player.getLocation().getBlock();
-        boolean allowed = adminFlightAllowed(player) || (protection.islandAt(block).isPresent() && islandFlagAllowed(block, IslandFlag.FLY));
-        player.setAllowFlight(allowed);
-        if (!allowed && player.isFlying()) {
-            player.setFlying(false);
-        }
-    }
-
-    private void clearManagedFlight(Player player) {
-        if (adminFlightOverrides != null) {
-            adminFlightOverrides.clear(player.getUniqueId());
-        }
-        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
-            return;
-        }
-        player.setFlying(false);
-        player.setAllowFlight(false);
-    }
-
-    private boolean adminFlightAllowed(Player player) {
-        return adminFlightOverrides != null && adminFlightOverrides.enabled(player);
     }
 
     private void updateEnvironment(Player player, Block block) {
