@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.194`
+Version: `1.1.195`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -288,6 +288,11 @@ Fast path:
 
 Redis is not the source of truth.
 It helps with cache, streams, locks, heartbeat, and queue work.
+
+When `setup.database.auto-schema` is explicitly enabled, the complete schema
+chain is serialized across Core instances with one database-session lock.
+PostgreSQL uses an advisory lock and MySQL/MariaDB use `GET_LOCK`; acquisition
+is limited to 60 seconds and startup fails instead of running concurrent DDL.
 
 ## Lifecycle examples
 
@@ -661,7 +666,7 @@ integration verification.
 <!-- feature-parity:start -->
 | Area | Status | Verified evidence | Limit |
 |---|---|---|---|
-| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify main-thread template permission preflight, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
+| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap plus cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify main-thread template permission preflight, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, CraftEngine furniture build/break enforcement, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, fail-closed dispenser, armor-dispense, ground-item hopper, inventory-transfer, and block-projectile boundaries including migrating islands, cancellation-final natural spread, growth, formation, fade, fluid, fire, leaf, bucket, fertilize, structure, and Enderman transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns, and fail-closed player/entity cross-dimension portals inside active island regions | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests; cross-dimension island worlds remain intentionally unavailable until their lifecycle, storage, and routing are implemented end to end |
 | ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, cancellation-final and inheritance-deduplicated block transitions, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
@@ -675,11 +680,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.194`
+Current release: `v1.1.195`
 
-Built for the CloudIslands 1.1.194 baseline.
+Built for the CloudIslands 1.1.195 baseline.
 
-Release notes for `v1.1.194`:
+Release notes for `v1.1.195`:
+
+- PostgreSQL schema bootstrap now holds one session advisory lock across the
+  complete migration chain, preventing two Core instances from interleaving
+  dependent DDL during simultaneous first startup or upgrade
+- MySQL and MariaDB use the equivalent named `GET_LOCK`/`RELEASE_LOCK` path on
+  the same JDBC session
+- lock acquisition is bounded to 60 seconds; timeout, interruption, lost lock,
+  or release failure stops startup instead of exposing a partially ordered
+  schema
+- packaged schema metadata now reports the actual PostgreSQL V1-V85 and
+  MySQL/MariaDB V1-V8 chains plus the HA lock policy
+- lock lifecycle, timeout policy, package metadata, and the complete 182-task
+  check passed
+
+Release notes carried forward from `v1.1.194`:
 
 - bucket empty/fill, fertilization, natural structure growth, Enderman block
   changes, fluid flow, fire burn, leaf decay, block fade, and block formation
