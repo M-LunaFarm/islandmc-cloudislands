@@ -11,6 +11,10 @@ class JdbcSchemaBootstrapTest {
     @Test
     void classifiesSupportedCoreJdbcBootstrapProducts() {
         assertEquals("POSTGRESQL,MYSQL,MARIADB", JdbcSchemaBootstrap.CORE_JDBC_BOOTSTRAP_PRODUCTS);
+        assertEquals(
+            "database-session-advisory-lock-serializes-the-complete-schema-chain-with-bounded-acquisition",
+            JdbcSchemaBootstrap.HA_MIGRATION_LOCK_POLICY
+        );
         assertEquals("POSTGRESQL", JdbcSchemaBootstrap.databaseProductFamily("PostgreSQL"));
         assertEquals("MYSQL", JdbcSchemaBootstrap.databaseProductFamily("MySQL"));
         assertEquals("MARIADB", JdbcSchemaBootstrap.databaseProductFamily("MariaDB Server"));
@@ -24,12 +28,15 @@ class JdbcSchemaBootstrapTest {
         assertEquals("mysql-v1", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_ID);
         assertEquals("mysql-compatible-migration-chain:8", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
         assertEquals("mysql-compatible-migration-chain:8", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
+        assertEquals("cloudislands:core-schema-bootstrap:v1", JdbcSchemaBootstrap.MYSQL_MIGRATION_LOCK_NAME);
+        assertEquals(60, JdbcSchemaBootstrap.MIGRATION_LOCK_TIMEOUT_SECONDS);
     }
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
         assertEquals("postgresql-migration-chain:85", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
+        assertTrue(JdbcSchemaBootstrap.POSTGRESQL_MIGRATION_LOCK_KEY > 0L);
     }
 
     @Test

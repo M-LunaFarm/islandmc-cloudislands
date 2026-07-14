@@ -15,9 +15,14 @@ import javax.sql.DataSource;
 
 public final class JdbcSchemaBootstrap {
     public static final String CORE_JDBC_BOOTSTRAP_PRODUCTS = "POSTGRESQL,MYSQL,MARIADB";
+    public static final String HA_MIGRATION_LOCK_POLICY = "database-session-advisory-lock-serializes-the-complete-schema-chain-with-bounded-acquisition";
     public static final String MYSQL_COMPATIBLE_SCHEMA_RESOURCE = "/db/mysql/V1__cloudislands_mysql_schema.sql";
     public static final String MYSQL_COMPATIBLE_SCHEMA_ID = "mysql-v1";
     public static final String MARIADB_SCHEMA_POLICY = "mariadb-uses-mysql-compatible-core-schema-bootstrap";
+    static final long POSTGRESQL_MIGRATION_LOCK_KEY = 4_851_869_284_768_978_252L;
+    static final String MYSQL_MIGRATION_LOCK_NAME = "cloudislands:core-schema-bootstrap:v1";
+    static final int MIGRATION_LOCK_TIMEOUT_SECONDS = 60;
+    private static final long POSTGRESQL_LOCK_RETRY_MILLIS = 100L;
     private static final String[] POSTGRESQL_MIGRATIONS = {
         "/db/migration/V1__cloudislands_schema.sql",
         "/db/migration/V2__island_bank.sql",
@@ -128,14 +133,20 @@ public final class JdbcSchemaBootstrap {
         try (Connection connection = dataSource.getConnection()) {
             String productFamily = databaseProductFamily(connection.getMetaData().getDatabaseProductName());
             if ("MYSQL".equals(productFamily) || "MARIADB".equals(productFamily)) {
-                boolean applied = apply(connection, Dialect.MYSQL, MYSQL_COMPATIBLE_SCHEMA_ID, MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
-                for (int index = 1; index < MYSQL_MIGRATIONS.length; index++) {
-                    applied |= apply(connection, Dialect.MYSQL, migrationId(MYSQL_MIGRATIONS[index]), MYSQL_MIGRATIONS[index]);
+                SchemaLock schemaLock = acquireSchemaLock(connection, Dialect.MYSQL);
+                try (schemaLock) {
+                    boolean applied = apply(connection, Dialect.MYSQL, MYSQL_COMPATIBLE_SCHEMA_ID, MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
+                    for (int index = 1; index < MYSQL_MIGRATIONS.length; index++) {
+                        applied |= apply(connection, Dialect.MYSQL, migrationId(MYSQL_MIGRATIONS[index]), MYSQL_MIGRATIONS[index]);
+                    }
+                    return applied;
                 }
-                return applied;
             }
             if ("POSTGRESQL".equals(productFamily)) {
-                return applyAll(connection, Dialect.POSTGRESQL, POSTGRESQL_MIGRATIONS);
+                SchemaLock schemaLock = acquireSchemaLock(connection, Dialect.POSTGRESQL);
+                try (schemaLock) {
+                    return applyAll(connection, Dialect.POSTGRESQL, POSTGRESQL_MIGRATIONS);
+                }
             }
             return false;
         } catch (SQLException | IOException exception) {
@@ -174,6 +185,64 @@ public final class JdbcSchemaBootstrap {
             applied |= apply(connection, dialect, migrationId(resource), resource);
         }
         return applied;
+    }
+
+    private static SchemaLock acquireSchemaLock(Connection connection, Dialect dialect) throws SQLException {
+        if (dialect == Dialect.MYSQL) {
+            try (PreparedStatement statement = connection.prepareStatement("SELECT GET_LOCK(?, ?)")) {
+                statement.setString(1, MYSQL_MIGRATION_LOCK_NAME);
+                statement.setInt(2, MIGRATION_LOCK_TIMEOUT_SECONDS);
+                try (ResultSet result = statement.executeQuery()) {
+                    if (!result.next() || result.getInt(1) != 1 || result.wasNull()) {
+                        throw new SQLException("timed out acquiring MySQL/MariaDB schema migration lock");
+                    }
+                }
+            }
+            return () -> releaseMysqlLock(connection);
+        }
+
+        long deadline = System.nanoTime() + MIGRATION_LOCK_TIMEOUT_SECONDS * 1_000_000_000L;
+        try (PreparedStatement statement = connection.prepareStatement("SELECT pg_try_advisory_lock(?)")) {
+            statement.setLong(1, POSTGRESQL_MIGRATION_LOCK_KEY);
+            while (true) {
+                try (ResultSet result = statement.executeQuery()) {
+                    if (result.next() && result.getBoolean(1)) {
+                        return () -> releasePostgresqlLock(connection);
+                    }
+                }
+                if (System.nanoTime() >= deadline) {
+                    throw new SQLException("timed out acquiring PostgreSQL schema migration lock");
+                }
+                try {
+                    Thread.sleep(POSTGRESQL_LOCK_RETRY_MILLIS);
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    throw new SQLException("interrupted while acquiring PostgreSQL schema migration lock", exception);
+                }
+            }
+        }
+    }
+
+    private static void releasePostgresqlLock(Connection connection) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT pg_advisory_unlock(?)")) {
+            statement.setLong(1, POSTGRESQL_MIGRATION_LOCK_KEY);
+            try (ResultSet result = statement.executeQuery()) {
+                if (!result.next() || !result.getBoolean(1)) {
+                    throw new SQLException("PostgreSQL schema migration lock was not owned by this session");
+                }
+            }
+        }
+    }
+
+    private static void releaseMysqlLock(Connection connection) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT RELEASE_LOCK(?)")) {
+            statement.setString(1, MYSQL_MIGRATION_LOCK_NAME);
+            try (ResultSet result = statement.executeQuery()) {
+                if (!result.next() || result.getInt(1) != 1 || result.wasNull()) {
+                    throw new SQLException("MySQL/MariaDB schema migration lock was not owned by this session");
+                }
+            }
+        }
     }
 
     private static boolean apply(Connection connection, Dialect dialect, String id, String resource) throws SQLException, IOException {
@@ -278,5 +347,11 @@ public final class JdbcSchemaBootstrap {
         if (!statement.isBlank()) {
             result.add(statement);
         }
+    }
+
+    @FunctionalInterface
+    private interface SchemaLock extends AutoCloseable {
+        @Override
+        void close() throws SQLException;
     }
 }
