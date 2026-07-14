@@ -341,15 +341,17 @@ tasks.register<Zip>("distAddonBundle") {
 
 tasks.register("distChecksums") {
     group = "distribution"
-    description = "Writes SHA-256 checksums for distribution archives and plugin jars."
+    description = "Writes SHA-256 checksums for distribution archives, plugin jars, and the release SBOM."
     dependsOn(tasks.named("distChangelog"))
     dependsOn(tasks.named("distBundle"))
     dependsOn(tasks.named("distAddonBundle"))
+    dependsOn("distSbom")
     doLast {
         val files = fileTree(layout.buildDirectory.dir("dist")) {
             include("**/*.zip")
             include("**/*.jar")
             include("CHANGELOG.txt")
+            include("cloudislands-sbom.cdx.json")
         }.files.sortedBy { it.relativeTo(layout.buildDirectory.dir("dist").get().asFile).path }
         val digest = MessageDigest.getInstance("SHA-256")
         val distDir = layout.buildDirectory.dir("dist").get().asFile
@@ -463,7 +465,10 @@ tasks.register("distProvenance") {
             }
             .toMutableList()
         val sbom = distSbomFile.get().asFile
-        artifacts.add(sbom.relativeTo(distDir).path.replace('\\', '/') to sha256(sbom))
+        val sbomPath = sbom.relativeTo(distDir).path.replace('\\', '/')
+        if (artifacts.none { (path, _) -> path == sbomPath }) {
+            artifacts.add(sbomPath to sha256(sbom))
+        }
         val artifactJson = artifacts.joinToString(",\n") { (path, checksum) ->
             """    {"path":${cloudIslandsJsonString(path)},"sha256":${cloudIslandsJsonString(checksum)}}"""
         }
@@ -495,6 +500,7 @@ tasks.named("check") {
 tasks.register("verifyReleaseSecurityGate") {
     group = "verification"
     description = "Verifies release SBOM, provenance, vulnerability review, and dependency-lock gates are wired."
+    dependsOn(tasks.named("distProvenance"))
     inputs.file(layout.projectDirectory.file(".github/workflows/build.yml"))
     inputs.file(layout.projectDirectory.file(".github/dependabot.yml"))
     inputs.files(provider {
@@ -527,6 +533,37 @@ tasks.register("verifyReleaseSecurityGate") {
             .filterNot(File::isFile)
         if (missingLockfiles.isNotEmpty()) {
             throw GradleException("Missing dependency lockfiles: ${missingLockfiles.joinToString(", ") { it.relativeTo(rootProject.projectDir).path }}")
+        }
+        val distDir = layout.buildDirectory.dir("dist").get().asFile
+        val checksumFile = distDir.resolve("checksums-sha256.txt")
+        val checksumEntries = checksumFile.readLines()
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .associate { line ->
+                val parts = line.split(Regex("\\s+"), limit = 2)
+                if (parts.size != 2) {
+                    throw GradleException("Invalid release checksum line: $line")
+                }
+                parts[1] to parts[0]
+            }
+        if (!checksumEntries.containsKey("cloudislands-sbom.cdx.json")) {
+            throw GradleException("Release checksums must cover cloudislands-sbom.cdx.json")
+        }
+        val digest = MessageDigest.getInstance("SHA-256")
+        checksumEntries.forEach { (path, expected) ->
+            val artifact = distDir.resolve(path).normalize()
+            if (!artifact.toPath().startsWith(distDir.toPath().normalize()) || !artifact.isFile) {
+                throw GradleException("Release checksum target is missing or outside dist: $path")
+            }
+            digest.reset()
+            val actual = digest.digest(artifact.readBytes()).joinToString("") { byte: Byte -> "%02x".format(byte) }
+            if (!actual.equals(expected, ignoreCase = true)) {
+                throw GradleException("Release checksum mismatch for $path")
+            }
+        }
+        val provenance = distProvenanceFile.get().asFile.readText()
+        if (!provenance.contains("cloudislands-sbom.cdx.json")) {
+            throw GradleException("Release provenance must cover cloudislands-sbom.cdx.json")
         }
     }
 }
