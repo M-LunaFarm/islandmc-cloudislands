@@ -115,7 +115,7 @@ final class PaperPluginBootstrap {
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperScoreboardListener(plugin, plugin.messages, plugin.playerLocales));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new MissionRewardDeliveryListener(plugin));
         if (role == AgentRole.ISLAND_NODE) {
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new kr.lunaf.cloudislands.paper.platform.world.IslandBiomeRuntimeApplier(plugin, plugin.agent.protection()));
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new kr.lunaf.cloudislands.paper.platform.world.IslandBiomeRuntimeApplier(plugin, plugin.agent.protection(), client.environment()));
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandProtectionListener(
                 plugin.agent.protection(),
                 blockDeltas,

@@ -4,12 +4,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
+import kr.lunaf.cloudislands.coreclient.IslandEnvironmentQueryClient;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.environment.IslandBiomePaintPlan;
+import kr.lunaf.cloudislands.paper.event.IslandActivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandBiomeChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandDeactivateEvent;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -22,17 +26,46 @@ import org.bukkit.plugin.Plugin;
 public final class IslandBiomeRuntimeApplier implements Listener {
     private final Plugin plugin;
     private final ProtectionController protection;
+    private final IslandEnvironmentQueryClient environmentQueries;
     private final Map<UUID, Long> generations = new ConcurrentHashMap<>();
+    private final AtomicLong generationSequence = new AtomicLong();
 
-    public IslandBiomeRuntimeApplier(Plugin plugin, ProtectionController protection) {
+    public IslandBiomeRuntimeApplier(Plugin plugin, ProtectionController protection, IslandEnvironmentQueryClient environmentQueries) {
         this.plugin = plugin;
         this.protection = protection;
+        this.environmentQueries = environmentQueries;
     }
 
     @EventHandler
     public void onBiomeChange(IslandBiomeChangeEvent event) {
-        long generation = generations.merge(event.islandId(), 1L, Long::sum);
+        long generation = nextGeneration(event.islandId());
         PaperSchedulers.run(plugin, () -> begin(event.islandId(), event.biomeKey(), generation));
+    }
+
+    @EventHandler
+    public void onIslandActivate(IslandActivateEvent event) {
+        UUID islandId = event.islandId();
+        long generation = nextGeneration(islandId);
+        environmentQueries.biome(islandId).whenComplete((biome, error) -> {
+            if (!current(islandId, generation)) {
+                return;
+            }
+            if (error != null || biome == null || biome.biomeKey() == null || biome.biomeKey().isBlank()) {
+                generations.remove(islandId, generation);
+                plugin.getLogger().warning("Cannot reconcile persisted island biome for " + islandId + " after activation: Core biome query failed or returned an empty key.");
+                return;
+            }
+            if (!plugin.isEnabled()) {
+                generations.remove(islandId, generation);
+                return;
+            }
+            PaperSchedulers.run(plugin, () -> begin(islandId, biome.biomeKey(), generation));
+        });
+    }
+
+    @EventHandler
+    public void onIslandDeactivate(IslandDeactivateEvent event) {
+        generations.remove(event.islandId());
     }
 
     private void begin(UUID islandId, String biomeKey, long generation) {
@@ -96,6 +129,12 @@ public final class IslandBiomeRuntimeApplier implements Listener {
 
     private boolean current(UUID islandId, long generation) {
         return generations.getOrDefault(islandId, -1L) == generation;
+    }
+
+    private long nextGeneration(UUID islandId) {
+        long generation = generationSequence.incrementAndGet();
+        generations.put(islandId, generation);
+        return generation;
     }
 
 }
