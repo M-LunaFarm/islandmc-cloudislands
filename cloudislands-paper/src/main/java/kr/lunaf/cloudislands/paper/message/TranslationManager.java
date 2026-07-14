@@ -168,6 +168,7 @@ public final class TranslationManager {
         values.put("boundary-member-return", "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다.");
         values.put("boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다.");
         values.put("boundary-return-unsafe", "섬 안에서 안전한 복귀 위치를 찾을 수 없습니다. 현재 위치를 유지합니다.");
+        values.put("portal-cross-dimension-denied", "섬 월드에서는 차원 포털을 사용할 수 없습니다. 섬 홈 또는 워프 명령을 사용해주세요.");
         values.put("flag-fly-denied", "이 섬에서는 비행할 수 없습니다.");
         values.put("flag-pvp-denied", "이 섬에서는 PVP가 비활성화되어 있습니다.");
         values.put("route-visit-cancelled", "섬 방문이 취소되었습니다.");

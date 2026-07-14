@@ -14,6 +14,7 @@ class SafeTeleportPolicyTest {
         String local = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandLocalTeleports.java"));
         String tickets = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/RouteTicketConsumer.java"));
         String boundary = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandBoundaryListener.java"));
+        String portals = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandPortalListener.java"));
         String bootstrap = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"));
         String korean = Files.readString(Path.of("src/main/resources/config-v2/ui/messages/ko_kr.yml"));
         String english = Files.readString(Path.of("src/main/resources/config-v2/ui/messages/en_us.yml"));
@@ -40,6 +41,10 @@ class SafeTeleportPolicyTest {
         assertTrue(boundary.contains("SafeTeleportResolver.isSafe(destination.get(), region)"));
         assertTrue(boundary.contains("boundary-return-unsafe"));
         assertTrue(bootstrap.contains("new IslandBoundaryListener(plugin, plugin.agent.protection(), plugin.messages)"));
+        assertTrue(bootstrap.contains("new IslandPortalListener(plugin.agent.protection(), plugin.messages)"));
+        assertTrue(portals.contains("single-world-island-regions-deny-cross-dimension-portals"));
+        assertTrue(portals.contains("PlayerPortalEvent") && portals.contains("EntityPortalEvent"));
         assertTrue(korean.contains("boundary-return-unsafe:") && english.contains("boundary-return-unsafe:"));
+        assertTrue(korean.contains("portal-cross-dimension-denied:") && english.contains("portal-cross-dimension-denied:"));
     }
 }

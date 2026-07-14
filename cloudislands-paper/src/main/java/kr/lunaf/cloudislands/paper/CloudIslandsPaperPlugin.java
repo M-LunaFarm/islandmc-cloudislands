@@ -84,6 +84,7 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     IslandGeneratorListener generatorListener;
     PaperRouteSessionListener routeSessionListener;
     IslandBoundaryListener boundaryListener;
+    IslandPortalListener portalListener;
     MessageRenderer messages;
     PaperRedisClient redisClient;
     LocalCacheManager localCaches;
@@ -126,6 +127,8 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
         }
         islandStorage = null;
         generatorListener = null;
+        boundaryListener = null;
+        portalListener = null;
         if (localCaches != null) {
             localCaches.invalidateAll();
             localCaches = null;
@@ -223,6 +226,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
 
     IslandBoundaryListener boundaryListener() {
         return boundaryListener;
+    }
+
+    IslandPortalListener portalListener() {
+        return portalListener;
     }
 
     PaperRedisClient redisClient() {

@@ -126,6 +126,8 @@ final class PaperPluginBootstrap {
             ));
             plugin.boundaryListener = new IslandBoundaryListener(plugin, plugin.agent.protection(), plugin.messages);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.boundaryListener);
+            plugin.portalListener = new IslandPortalListener(plugin.agent.protection(), plugin.messages);
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.portalListener);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new IslandGameplayFlagListener(plugin.agent.protection(), plugin.messages, plugin.playerLocales, plugin.adminFlightOverrides, plugin.playerFlightPreferences));
             IslandLimitListener blockLimitListener = new IslandLimitListener(plugin.agent.protection(), limitCache, plugin.messages);
             IslandEntityLimitListener entityLimitListener = new IslandEntityLimitListener(

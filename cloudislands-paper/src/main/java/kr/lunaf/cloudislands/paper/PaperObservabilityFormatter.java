@@ -49,6 +49,7 @@ final class PaperObservabilityFormatter {
         EmptyIslandSaveTask emptySaver = plugin.emptyIslandSaveTask();
         ProtectionController protection = plugin.agent() == null ? null : plugin.agent().protection();
         IslandBoundaryListener boundary = plugin.boundaryListener();
+        IslandPortalListener portals = plugin.portalListener();
         MeteredIslandStorage storage = plugin.islandStorage();
         PaperRuntimeCompatibility.RuntimeSelection compatibility = plugin.runtimeCompatibility();
         boolean storageFallbackEnabled = config.storage().fallbackEnabled();
@@ -82,6 +83,9 @@ final class PaperObservabilityFormatter {
             + "\"boundaryMemberReturnsTotal\":" + (boundary == null ? 0L : boundary.memberReturns()) + ","
             + "\"boundaryVisitorReturnsTotal\":" + (boundary == null ? 0L : boundary.visitorReturns()) + ","
             + "\"boundaryAdminBypassesTotal\":" + (boundary == null ? 0L : boundary.adminBypasses()) + ","
+            + "\"portalPlayerBlocksTotal\":" + (portals == null ? 0L : portals.blockedPlayerPortals()) + ","
+            + "\"portalEntityBlocksTotal\":" + (portals == null ? 0L : portals.blockedEntityPortals()) + ","
+            + "\"portalPolicy\":\"" + jsonText(portals == null ? "not-registered" : portals.policy()) + "\","
             + "\"activeIslands\":" + (plugin.activeIslands() == null ? 0 : plugin.activeIslands().size()) + ","
             + "\"activationQueue\":" + (plugin.jobWorker() == null ? 0 : plugin.jobWorker().activationQueue()) + ","
             + "\"storageBackend\":\"" + (storage == null ? "NONE" : storage.backend()) + "\","
@@ -228,6 +232,7 @@ final class PaperObservabilityFormatter {
         PermissionEventPoller events = plugin.permissionEventPoller();
         ProtectionController protection = plugin.agent().protection();
         IslandBoundaryListener boundary = plugin.boundaryListener();
+        IslandPortalListener portals = plugin.portalListener();
         PaperRuntimeCompatibility.RuntimeSelection compatibility = plugin.runtimeCompatibility();
         return ""
             + "cloudislands_paper_online_players " + plugin.getServer().getOnlinePlayers().size() + "\n"
@@ -289,6 +294,8 @@ final class PaperObservabilityFormatter {
             + "cloudislands_boundary_returns_total{node=\"" + nodeId + "\",kind=\"member\"} " + (boundary == null ? 0L : boundary.memberReturns()) + "\n"
             + "cloudislands_boundary_returns_total{node=\"" + nodeId + "\",kind=\"visitor\"} " + (boundary == null ? 0L : boundary.visitorReturns()) + "\n"
             + "cloudislands_boundary_admin_bypasses_total{node=\"" + nodeId + "\"} " + (boundary == null ? 0L : boundary.adminBypasses()) + "\n"
+            + "cloudislands_portal_blocks_total{node=\"" + nodeId + "\",kind=\"player\"} " + (portals == null ? 0L : portals.blockedPlayerPortals()) + "\n"
+            + "cloudislands_portal_blocks_total{node=\"" + nodeId + "\",kind=\"entity\"} " + (portals == null ? 0L : portals.blockedEntityPortals()) + "\n"
             + "cloudislands_paper_velocity_forwarding_required{node=\"" + nodeId + "\"} " + (forwardingRequired ? 1 : 0) + "\n"
             + "cloudislands_paper_forwarding_secret_configured{node=\"" + nodeId + "\"} " + (forwardingSecretConfigured ? 1 : 0) + "\n"
             + "cloudislands_paper_route_session_enforced{node=\"" + nodeId + "\"} " + (routeSessionEnforced ? 1 : 0) + "\n"
@@ -406,6 +413,9 @@ final class PaperObservabilityFormatter {
             + ";generatorFormEvents=" + (plugin.generatorListener() == null ? 0L : plugin.generatorListener().formEvents())
             + ";generatorFluidCollisionEvents=" + (plugin.generatorListener() == null ? 0L : plugin.generatorListener().fluidCollisionEvents())
             + ";generatorIslandMisses=" + (plugin.generatorListener() == null ? 0L : plugin.generatorListener().islandMisses())
+            + ";portalPolicy=" + (plugin.portalListener() == null ? "not-registered" : plugin.portalListener().policy())
+            + ";portalPlayerBlocks=" + (plugin.portalListener() == null ? 0L : plugin.portalListener().blockedPlayerPortals())
+            + ";portalEntityBlocks=" + (plugin.portalListener() == null ? 0L : plugin.portalListener().blockedEntityPortals())
             + ";proxySourceRejections=" + (plugin.routeSessionListener() == null ? 0L : plugin.routeSessionListener().proxySourceRejections())
             + ";forwardingRejections=" + (plugin.routeSessionListener() == null ? 0L : plugin.routeSessionListener().forwardingRejections())
             + ";routeSessionRejections=" + (plugin.routeSessionListener() == null ? 0L : plugin.routeSessionListener().routeSessionRejections())
