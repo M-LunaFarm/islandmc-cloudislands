@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.182`
+Version: `1.1.183`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -657,16 +657,33 @@ integration verification.
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus current-visible-visitor classification, Core audit/visitor route tests, and LOWEST/HIGHEST mutually exclusive local/team-chat isolation cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
-| integrations/localization/GUI | PARTIAL_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services including RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, and scoreboard components | Vault, PlaceholderAPI, Plan, vanish, custom-item, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist |
+| integrations/localization/GUI | PARTIAL_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services including RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components | Vault, PlaceholderAPI, Plan, vanish, custom-item, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist |
 <!-- feature-parity:end -->
 
 ## Release
 
-Current release: `v1.1.182`
+Current release: `v1.1.183`
 
-Built for the CloudIslands 1.1.182 baseline.
+Built for the CloudIslands 1.1.183 baseline.
 
-Release notes for `v1.1.182`:
+Release notes for `v1.1.183`:
+
+- safe MiniMessage rendering now covers the remaining Paper runtime surfaces:
+  route and migration boss bars, action bars, command replies, warmup titles,
+  login-session rejections, kick screens, boundary returns, flight/PVP notices,
+  protection denials, and level recalculation notices
+- `/ciadmin message` and `/ciadmin title` now accept the same formatting-only
+  component syntax instead of exposing MiniMessage tags as literal text
+- route boss-bar names refresh through Adventure components as progress changes,
+  while localized player output still passes through physical-node privacy
+  sanitization before rendering
+- executable and data-reading MiniMessage tags remain inert on every new output
+  path, preserving the command, URL, insertion, selector, score, and NBT safety
+  boundary introduced in 1.1.182
+- regression coverage scans all runtime presentation paths and behaviorally checks
+  formatted fallbacks, safe runtime text, hostile placeholders, and inert commands
+
+Release notes carried forward from `v1.1.182`:
 
 - Paper message templates now render formatting-only MiniMessage components for
   player-list branding, join/quit messages, scoreboard titles and lines, and
