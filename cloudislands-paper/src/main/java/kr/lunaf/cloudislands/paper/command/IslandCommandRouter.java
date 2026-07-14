@@ -495,10 +495,10 @@ final class IslandCommandRouter {
         String message = runtime.routeMessage(IslandCommandDelayPolicy.WARMUP_MESSAGE_KEY, "섬 이동을 준비하고 있습니다. 움직이면 취소될 수 있습니다.");
         String title = runtime.routeMessage(IslandCommandDelayPolicy.WARMUP_TITLE_MESSAGE_KEY, "섬 이동 준비 중");
         String subtitle = runtime.routeMessage(IslandCommandDelayPolicy.WARMUP_SUBTITLE_MESSAGE_KEY, "잠시 후 명령이 실행됩니다.");
-        player.sendActionBar(Component.text(runtime.playerMessage(message)));
+        player.sendActionBar(runtime.component(player, message));
         player.showTitle(Title.title(
-            Component.text(runtime.playerMessage(title)),
-            Component.text(runtime.playerMessage(subtitle))
+            runtime.component(player, title),
+            runtime.component(player, subtitle)
         ));
     }
 
@@ -579,6 +579,10 @@ final class IslandCommandRouter {
         boolean hasPermission(Player player, String permission);
 
         String playerMessage(String message);
+
+        default Component component(Player player, String message) {
+            return Component.text(playerMessage(message));
+        }
 
         TaskHandle scheduleCommandWarmup(Player player, long delayTicks, Runnable task);
     }

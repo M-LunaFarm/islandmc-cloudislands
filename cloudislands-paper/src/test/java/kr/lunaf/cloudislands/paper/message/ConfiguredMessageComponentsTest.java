@@ -66,6 +66,19 @@ class ConfiguredMessageComponentsTest {
         assertTrue(lines.stream().noneMatch(ConfiguredMessageComponentsTest::hasClickEvent));
     }
 
+    @Test
+    void parsesSafeRuntimeTextAndFormattedFallbacks() {
+        MessageRenderer renderer = renderer(Map.of());
+
+        Component runtimeText = renderer.componentText("<aqua>Loading</aqua> <click:run_command:'/stop'>now</click>");
+        Component fallback = renderer.componentOrFallback("missing-key", "<gradient:gold:yellow>Fallback</gradient>");
+
+        assertEquals("Loading <click:run_command:'/stop'>now</click>", PLAIN.serialize(runtimeText));
+        assertFalse(hasClickEvent(runtimeText));
+        assertEquals("Fallback", PLAIN.serialize(fallback));
+        assertTrue(hasColor(fallback));
+    }
+
     private static MessageRenderer renderer(Map<String, String> translations) {
         PaperRuntimeConfig.Messages config = new PaperRuntimeConfig.Messages("en_us", translations, List.of());
         return new MessageRenderer(TranslationManager.fromSnapshot(config, "CloudIslands"));

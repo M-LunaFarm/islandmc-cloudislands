@@ -2100,7 +2100,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                     sender.sendMessage(adminText("admin-command-runtime-no-online-targets", "온라인 대상 플레이어가 없습니다."));
                     return;
                 }
-                Component component = Component.text(message);
+                Component component = messages == null ? Component.text(message) : messages.componentText(message);
                 recipients.forEach(player -> player.sendMessage(component));
                 auditAdminRuntimeAction(sender, "message." + targetMode, targetMode.equals("all") ? "all" : args[2], recipients.size(), false);
                 sender.sendMessage(adminText("admin-command-runtime-message-sent-prefix", "Admin message sent recipients=") + recipients.size());
@@ -2132,7 +2132,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                     sender.sendMessage(adminText("admin-command-runtime-no-online-targets", "온라인 대상 플레이어가 없습니다."));
                     return;
                 }
-                Title title = Title.title(Component.text(payload.title()), Component.text(payload.subtitle()));
+                Component titleText = messages == null ? Component.text(payload.title()) : messages.componentText(payload.title());
+                Component subtitleText = messages == null ? Component.text(payload.subtitle()) : messages.componentText(payload.subtitle());
+                Title title = Title.title(titleText, subtitleText);
                 recipients.forEach(player -> player.showTitle(title));
                 auditAdminRuntimeAction(sender, "title." + targetMode, targetMode.equals("all") ? "all" : args[2], recipients.size(), false);
                 sender.sendMessage(adminText("admin-command-runtime-title-sent-prefix", "Admin title sent recipients=") + recipients.size());

@@ -61,6 +61,15 @@ public final class TranslationManager {
         return ConfiguredMessageComponents.render(localizedText(normalizedLocale, key), serviceName, normalizedLocale, variables);
     }
 
+    public Component componentText(String template, String... variables) {
+        return ConfiguredMessageComponents.render(template, serviceName, locale, variables);
+    }
+
+    public Component componentTextForLocale(String requestedLocale, String template, String... variables) {
+        String normalizedLocale = PlayerIslandProfile.normalizeLocale(requestedLocale);
+        return ConfiguredMessageComponents.render(template, serviceName, normalizedLocale, variables);
+    }
+
     public String textForLocale(String requestedLocale, String key, String... variables) {
         String normalizedLocale = PlayerIslandProfile.normalizeLocale(requestedLocale);
         String template = localizedText(normalizedLocale, key);

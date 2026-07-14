@@ -228,7 +228,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(router.contains("void cancelWarmupOnMove(Player player, Location from, Location to)"), "movement must cancel pending warmups");
         assertTrue(router.contains("void markCombat(Player player)"), "combat must block warmup-gated movement commands");
         assertTrue(router.contains("delayPolicy.clear(player.getUniqueId(), pending.subject())"), "cancelled warmups must not consume the command cooldown");
-        assertTrue(router.contains("player.sendActionBar(Component.text(runtime.playerMessage(message)))"), "warmup state must be visible in the actionbar");
+        assertTrue(router.contains("player.sendActionBar(runtime.component(player, message))"), "warmup state must be visible as a configured Adventure component in the actionbar");
         assertTrue(router.contains("player.showTitle(Title.title("), "warmup state must also be visible as a title");
         assertTrue(router.contains("IslandCommandDelayPolicy.COOLDOWN_MESSAGE_KEY"));
         assertTrue(router.contains("IslandCommandDelayPolicy.WARMUP_MESSAGE_KEY"));

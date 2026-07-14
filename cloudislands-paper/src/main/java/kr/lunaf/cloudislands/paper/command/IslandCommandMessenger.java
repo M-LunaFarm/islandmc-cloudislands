@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.command;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -40,7 +41,13 @@ final class IslandCommandMessenger {
         return IslandCommandRuntimeSupport.playerMessage(message);
     }
 
+    Component component(Player player, String message) {
+        String sanitized = playerMessage(message);
+        MessageRenderer playerMessages = messagesFor(player);
+        return playerMessages == null ? Component.text(sanitized) : playerMessages.componentText(sanitized);
+    }
+
     void message(Player player, String message) {
-        PaperSchedulers.run(plugin, () -> player.sendMessage(playerMessage(message)));
+        PaperSchedulers.run(plugin, () -> player.sendMessage(component(player, message)));
     }
 }

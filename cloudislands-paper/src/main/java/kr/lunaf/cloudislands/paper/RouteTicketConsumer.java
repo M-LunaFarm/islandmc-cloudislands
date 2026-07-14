@@ -153,7 +153,7 @@ public final class RouteTicketConsumer {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(preVisit);
             if (preVisit.isCancelled()) {
                 recordTeleportFailure("VISIT_CANCELLED");
-                player.sendActionBar(Component.text(playerMessage(player, "route-visit-cancelled", "섬 방문이 취소되었습니다.")));
+                player.sendActionBar(playerComponent(player, "route-visit-cancelled", "섬 방문이 취소되었습니다."));
                 failRoute(playerUuid, ticket.ticketId(), "VISIT_CANCELLED", true);
                 return;
             }
@@ -200,7 +200,7 @@ public final class RouteTicketConsumer {
         if (players.teleport(player, target)) {
             teleportSuccesses.incrementAndGet();
             hideLoading(player);
-            player.sendActionBar(Component.text(arrivalMessage(player, ticket.action())));
+            player.sendActionBar(arrivalComponent(player, ticket.action()));
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new RouteTicketConsumedEvent(
                     ticket.ticketId(),
                     ticket.islandId(),
@@ -343,13 +343,19 @@ public final class RouteTicketConsumer {
         };
     }
 
+    private Component arrivalComponent(Player player, kr.lunaf.cloudislands.api.model.RouteAction action) {
+        return componentText(player, arrivalMessage(player, action));
+    }
+
     private void notifyPreparing(UUID playerUuid, int attempt) {
         Player player = players.onlinePlayer(playerUuid);
         if (player != null) {
-            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(Component.text(playerMessage(player, "route-consume-loading", "섬 로딩 중")), RoutePreparationProgressPolicy.handoffProgress(0), BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
+            Component loading = playerComponent(player, "route-consume-loading", "섬 로딩 중");
+            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(loading, RoutePreparationProgressPolicy.handoffProgress(0), BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
+            bar.name(loading);
             bar.progress(RoutePreparationProgressPolicy.handoffProgress(attempt));
             player.showBossBar(bar);
-            player.sendActionBar(Component.text(playerMessage(player, "route-consume-preparing", "섬을 준비하는 중입니다...")));
+            player.sendActionBar(playerComponent(player, "route-consume-preparing", "섬을 준비하는 중입니다..."));
         }
     }
 
@@ -360,7 +366,7 @@ public final class RouteTicketConsumer {
             return;
         }
         hideLoading(player);
-        player.sendActionBar(Component.text(playerMessage(player, "route-consume-failed", "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요.")));
+        player.sendActionBar(playerComponent(player, "route-consume-failed", "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요."));
     }
 
     private String playerMessage(String key, String fallback) {
@@ -369,6 +375,18 @@ public final class RouteTicketConsumer {
 
     private String playerMessage(Player player, String key, String fallback) {
         return sanitizePlayerMessage(message(player, key, fallback));
+    }
+
+    private Component playerComponent(Player player, String key, String fallback) {
+        return componentText(player, playerMessage(player, key, fallback));
+    }
+
+    private Component componentText(Player player, String text) {
+        MessageRenderer renderer = messages;
+        if (renderer == null) {
+            return Component.text(text);
+        }
+        return renderer.componentTextForLocale(PlayerLocaleCache.clientLocale(player), text);
     }
 
     private String message(String key, String fallback) {

@@ -91,6 +91,7 @@ import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
+import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
@@ -515,18 +516,18 @@ public final class PermissionEventPoller {
     }
 
     private void notifyMigratingIslandPlayers(UUID islandId, String targetNode) {
-        String primary = message("migration-notice-primary", "섬 서버를 최적화하는 중입니다...");
-        String secondary = message("migration-notice-secondary", "잠시 후 자동으로 이동됩니다.");
         for (Player player : Bukkit.getOnlinePlayers()) {
             Location location = player.getLocation();
             IslandRegion region = protection.regionAt(location.getBlock()).orElse(null);
             if (region == null || !islandId.equals(region.islandId())) {
                 continue;
             }
-            BossBar bossBar = BossBar.bossBar(Component.text(primary + " " + secondary), 1.0F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
+            Component primary = component(player, "migration-notice-primary", "섬 서버를 최적화하는 중입니다...");
+            Component secondary = component(player, "migration-notice-secondary", "잠시 후 자동으로 이동됩니다.");
+            BossBar bossBar = BossBar.bossBar(primary.append(Component.space()).append(secondary), 1.0F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
             player.sendMessage(primary);
             player.sendMessage(secondary);
-            player.sendActionBar(Component.text(secondary));
+            player.sendActionBar(secondary);
             player.showBossBar(bossBar);
             kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> player.hideBossBar(bossBar), 160L);
             if (!targetNode.isBlank()) {
@@ -541,7 +542,7 @@ public final class PermissionEventPoller {
         client.createMigrationReturnTicket(player.getUniqueId(), islandId, targetNode, localX, location.getY(), localZ, location.getYaw(), location.getPitch())
             .thenAccept(ticket -> waitMigrationReturnTicket(player.getUniqueId(), ticket, 0))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendActionBar(Component.text(message("migration-return-register-failed", "섬 이동 준비를 등록하지 못했습니다."))));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendActionBar(component(player, "migration-return-register-failed", "섬 이동 준비를 등록하지 못했습니다.")));
                 return null;
             });
     }
@@ -587,7 +588,7 @@ public final class PermissionEventPoller {
         if (player == null) {
             return;
         }
-        player.sendActionBar(Component.text(message("migration-return-start", "최적화된 섬 서버로 이동합니다.")));
+        player.sendActionBar(component(player, "migration-return-start", "최적화된 섬 서버로 이동합니다."));
         if (!canUseBungeeConnect()) {
             migrationReturnFailed(playerUuid);
             return;
@@ -607,7 +608,7 @@ public final class PermissionEventPoller {
     private void migrationReturnFailed(UUID playerUuid) {
         Player player = players.onlinePlayer(playerUuid);
         if (player != null) {
-            player.sendActionBar(Component.text(message("migration-return-not-ready", "섬 서버 이동 준비가 완료되지 않았습니다. 잠시 후 /섬 홈을 사용해주세요.")));
+            player.sendActionBar(component(player, "migration-return-not-ready", "섬 서버 이동 준비가 완료되지 않았습니다. 잠시 후 /섬 홈을 사용해주세요."));
         }
     }
 
@@ -617,6 +618,13 @@ public final class PermissionEventPoller {
         }
         String rendered = messages.plain(key);
         return rendered.isBlank() ? fallback : rendered;
+    }
+
+    private Component component(Player player, String key, String fallback) {
+        if (messages == null) {
+            return Component.text(fallback);
+        }
+        return messages.componentForLocaleOrFallback(PlayerLocaleCache.clientLocale(player), key, fallback);
     }
 
     private boolean teamRecipient(String recipients, UUID playerUuid) {

@@ -380,7 +380,7 @@ final class IslandProgressionCommandHandler {
                 runtime.message(player, message("level-recalculate-denied", "섬 레벨을 계산할 권한이 없습니다."));
                 return;
             }
-            player.sendActionBar(Component.text(message("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.")));
+            player.sendActionBar(runtime.component(player, message("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.")));
             CompletableFuture<Void> rescan = levelScanService == null ? CompletableFuture.completedFuture(null) : levelScanService.rescanIsland(islandId);
             rescan.thenCompose(_ignored -> progressionUseCase.recalculateLevelView(islandId, player.getUniqueId()))
                 .thenAccept(level -> runtime.message(player, message("level-recalculate-success-prefix", "섬 레벨 계산 완료: ")
@@ -670,6 +670,10 @@ final class IslandProgressionCommandHandler {
         void message(Player player, String message);
 
         String routeMessage(String key, String fallback);
+
+        default Component component(Player player, String message) {
+            return Component.text(message);
+        }
 
         String playerCodeMessage(String code, String fallback);
 

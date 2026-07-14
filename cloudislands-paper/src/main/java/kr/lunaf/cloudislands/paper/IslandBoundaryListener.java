@@ -86,9 +86,9 @@ public final class IslandBoundaryListener implements Listener {
         if (worlds == null) {
             pendingReturns.remove(playerUuid);
             if (players.teleport(player, target)) {
-                player.sendActionBar(Component.text(member
-                    ? message("boundary-member-return", "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다.")
-                    : message("boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다.")));
+                player.sendActionBar(member
+                    ? component(player, "boundary-member-return", "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다.")
+                    : component(player, "boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다."));
             }
             return;
         }
@@ -96,13 +96,13 @@ public final class IslandBoundaryListener implements Listener {
             try {
                 if (error != null || destination == null || destination.isEmpty()
                     || !SafeTeleportResolver.isSafe(destination.get(), region)) {
-                    player.sendActionBar(Component.text(message("boundary-return-unsafe", "섬 안에서 안전한 복귀 위치를 찾을 수 없습니다.")));
+                    player.sendActionBar(component(player, "boundary-return-unsafe", "섬 안에서 안전한 복귀 위치를 찾을 수 없습니다."));
                     return;
                 }
                 if (players.teleport(player, destination.get())) {
-                    player.sendActionBar(Component.text(member
-                        ? message("boundary-member-return", "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다.")
-                        : message("boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다.")));
+                    player.sendActionBar(member
+                        ? component(player, "boundary-member-return", "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다.")
+                        : component(player, "boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다."));
                 }
             } finally {
                 pendingReturns.remove(playerUuid);
@@ -118,12 +118,15 @@ public final class IslandBoundaryListener implements Listener {
         }
     }
 
-    private String message(String key, String fallback) {
+    private Component component(org.bukkit.entity.Player player, String key, String fallback) {
         if (messages == null) {
-            return fallback;
+            return Component.text(fallback);
         }
-        String rendered = messages.plain(key);
-        return rendered.isBlank() ? fallback : rendered;
+        return messages.componentForLocaleOrFallback(
+            kr.lunaf.cloudislands.paper.session.PlayerLocaleCache.clientLocale(player),
+            key,
+            fallback
+        );
     }
 
     private Location memberSpawn(Location from, IslandRegion region) {

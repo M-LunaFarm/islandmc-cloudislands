@@ -14,6 +14,8 @@ import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
 import kr.lunaf.cloudislands.paper.limit.EntityRemovalAccountingPolicy;
 import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitKeys;
+import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
@@ -102,18 +104,19 @@ public final class IslandProtectionListener implements Listener {
     private final long denyMessageCooldownMs;
     private final Map<IslandPermission, String> denyMessages;
     private final StackAmountService stackAmounts;
+    private final MessageRenderer messages;
     private final Map<UUID, Long> denyMessageTimes = new ConcurrentHashMap<>();
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas) {
-        this(protection, blockDeltas, 1000L, Map.of(), StackAmountService.physicalOnly());
+        this(protection, blockDeltas, 1000L, Map.of(), StackAmountService.physicalOnly(), null);
     }
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas, long denyMessageCooldownMs) {
-        this(protection, blockDeltas, denyMessageCooldownMs, Map.of(), StackAmountService.physicalOnly());
+        this(protection, blockDeltas, denyMessageCooldownMs, Map.of(), StackAmountService.physicalOnly(), null);
     }
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas, long denyMessageCooldownMs, Map<IslandPermission, String> denyMessages) {
-        this(protection, blockDeltas, denyMessageCooldownMs, denyMessages, StackAmountService.physicalOnly());
+        this(protection, blockDeltas, denyMessageCooldownMs, denyMessages, StackAmountService.physicalOnly(), null);
     }
 
     public IslandProtectionListener(
@@ -123,11 +126,23 @@ public final class IslandProtectionListener implements Listener {
         Map<IslandPermission, String> denyMessages,
         StackAmountService stackAmounts
     ) {
+        this(protection, blockDeltas, denyMessageCooldownMs, denyMessages, stackAmounts, null);
+    }
+
+    public IslandProtectionListener(
+        ProtectionController protection,
+        BlockDeltaReporter blockDeltas,
+        long denyMessageCooldownMs,
+        Map<IslandPermission, String> denyMessages,
+        StackAmountService stackAmounts,
+        MessageRenderer messages
+    ) {
         this.protection = protection;
         this.blockDeltas = blockDeltas;
         this.denyMessageCooldownMs = Math.max(0L, denyMessageCooldownMs);
         this.denyMessages = denyMessages == null ? Map.of() : Map.copyOf(denyMessages);
         this.stackAmounts = stackAmounts == null ? StackAmountService.physicalOnly() : stackAmounts;
+        this.messages = messages;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -736,7 +751,10 @@ public final class IslandProtectionListener implements Listener {
             return;
         }
         denyMessageTimes.put(player.getUniqueId(), now);
-        player.sendActionBar(Component.text(denyMessage(permission)));
+        String message = denyMessage(permission);
+        player.sendActionBar(messages == null
+            ? Component.text(message)
+            : messages.componentTextForLocale(PlayerLocaleCache.clientLocale(player), message));
     }
 
     private String denyMessage(IslandPermission permission) {

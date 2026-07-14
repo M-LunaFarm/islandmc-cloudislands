@@ -1209,7 +1209,7 @@ class PaperPlatformBoundaryTest {
         String environment = Files.readString(paperSource.resolve("kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java"));
 
         assertTrue(localeCache.contains("player.locale().toLanguageTag()"), "Player locale fallback must use the current Locale API");
-        assertTrue(routeSession.contains("Component.text(playerMessage("), "Pre-login rejection messages must use Adventure components");
+        assertTrue(routeSession.contains("playerComponent(\"route-login-session-required\""), "Pre-login rejection messages must use configured Adventure components");
         assertTrue(guiItems.contains("meta.displayName(name == null ? Component.empty() : name)"), "GUI item names must use Adventure components");
         assertTrue(guiItems.contains("meta.lore("), "GUI item lore must use Adventure components");
         assertTrue(inventories.contains("Bukkit.createInventory(holder, size, title == null ? Component.empty() : title)"), "GUI titles must use Adventure components");

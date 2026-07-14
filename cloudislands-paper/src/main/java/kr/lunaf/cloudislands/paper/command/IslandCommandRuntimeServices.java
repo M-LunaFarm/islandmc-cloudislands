@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -136,6 +137,10 @@ final class IslandCommandRuntimeServices implements
 
     public String playerMessage(String message) {
         return commandMessages.playerMessage(message);
+    }
+
+    public Component component(Player player, String message) {
+        return commandMessages.component(player, message);
     }
 
     public String coreWriteFailureMessage(Throwable error, String fallback) {

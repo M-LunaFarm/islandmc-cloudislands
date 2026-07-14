@@ -75,7 +75,7 @@ public final class IslandGameplayFlagListener implements Listener {
         boolean denied = flightService.managedAndDenied(player);
         event.setCancelled(denied);
         if (denied) {
-            player.sendActionBar(Component.text(message(player, "flag-fly-denied", "이 섬에서는 비행할 수 없습니다.")));
+            player.sendActionBar(component(player, "flag-fly-denied", "이 섬에서는 비행할 수 없습니다."));
         }
     }
 
@@ -124,7 +124,7 @@ public final class IslandGameplayFlagListener implements Listener {
             event.setCancelled(true);
             Player attacker = attackingPlayer(event.getDamager());
             if (attacker != null) {
-                attacker.sendActionBar(Component.text(message(attacker, "flag-pvp-denied", "이 섬에서는 PVP가 비활성화되어 있습니다.")));
+                attacker.sendActionBar(component(attacker, "flag-pvp-denied", "이 섬에서는 PVP가 비활성화되어 있습니다."));
             }
         }
     }
@@ -158,12 +158,12 @@ public final class IslandGameplayFlagListener implements Listener {
         return rendered.isBlank() ? fallback : rendered;
     }
 
-    private String message(Player player, String key, String fallback) {
+    private Component component(Player player, String key, String fallback) {
         if (messages == null) {
-            return fallback;
+            return Component.text(fallback);
         }
-        String rendered = messages.plainForLocale(player == null ? "" : locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player), key);
-        return rendered.isBlank() ? fallback : rendered;
+        String locale = player == null ? "" : locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player);
+        return messages.componentForLocaleOrFallback(locale, key, fallback);
     }
 
     private void updateEnvironment(Player player, Block block) {

@@ -140,6 +140,11 @@ final class IslandCommandRouterFactory {
                 }
 
                 @Override
+                public net.kyori.adventure.text.Component component(Player player, String message) {
+                    return messages.component(player, message);
+                }
+
+                @Override
                 public boolean openMainMenu(Player player) {
                     if (!guiMenusEnabled) {
                         return false;

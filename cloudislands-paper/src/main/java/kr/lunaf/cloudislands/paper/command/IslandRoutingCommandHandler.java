@@ -140,7 +140,7 @@ final class IslandRoutingCommandHandler {
     }
 
     private Component routeComponent(Player player, String key, String fallback, String... variables) {
-        return Component.text(runtime.playerMessage(runtime.routeMessage(player, key, fallback, variables)));
+        return runtime.component(player, runtime.routeMessage(player, key, fallback, variables));
     }
 
     private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
@@ -171,11 +171,11 @@ final class IslandRoutingCommandHandler {
 
     private void showRouteLoading(Player player, float progress, String title) {
         BossBar bossBar = routeBossBars.computeIfAbsent(player.getUniqueId(), ignored -> {
-            BossBar created = BossBar.bossBar(Component.text(runtime.playerMessage(title)), progress, BossBar.Color.GREEN, BossBar.Overlay.PROGRESS);
+            BossBar created = BossBar.bossBar(runtime.component(player, title), progress, BossBar.Color.GREEN, BossBar.Overlay.PROGRESS);
             player.showBossBar(created);
             return created;
         });
-        bossBar.name(Component.text(runtime.playerMessage(title)));
+        bossBar.name(runtime.component(player, title));
         bossBar.progress(Math.max(0.0f, Math.min(1.0f, progress)));
     }
 
@@ -261,6 +261,10 @@ final class IslandRoutingCommandHandler {
         String playerCodeMessage(String code, String fallback);
 
         String playerMessage(String message);
+
+        default Component component(Player player, String message) {
+            return Component.text(playerMessage(message));
+        }
 
         boolean coreUnavailable(Throwable error);
 

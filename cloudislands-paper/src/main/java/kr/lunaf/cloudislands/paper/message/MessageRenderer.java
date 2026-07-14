@@ -28,6 +28,24 @@ public final class MessageRenderer {
         return translations.componentForLocale(locale, key, variables);
     }
 
+    public Component componentOrFallback(String key, String fallback, String... variables) {
+        String rendered = plain(key, variables);
+        return rendered.isBlank() ? componentText(fallback) : component(key, variables);
+    }
+
+    public Component componentForLocaleOrFallback(String locale, String key, String fallback, String... variables) {
+        String rendered = plainForLocale(locale, key, variables);
+        return rendered.isBlank() ? componentTextForLocale(locale, fallback) : componentForLocale(locale, key, variables);
+    }
+
+    public Component componentText(String template, String... variables) {
+        return locale.isBlank() ? translations.componentText(template, variables) : translations.componentTextForLocale(locale, template, variables);
+    }
+
+    public Component componentTextForLocale(String locale, String template, String... variables) {
+        return translations.componentTextForLocale(locale, template, variables);
+    }
+
     public String plain(String key, String... variables) {
         return locale.isBlank() ? translations.text(key, variables) : translations.textForLocale(locale, key, variables);
     }

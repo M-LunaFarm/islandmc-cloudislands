@@ -121,7 +121,8 @@ final class PaperPluginBootstrap {
                 blockDeltas,
                 config.protection().denyMessageCooldownMs(),
                 config.protection().denyMessages(),
-                plugin.stackAmounts
+                plugin.stackAmounts,
+                plugin.messages
             ));
             plugin.boundaryListener = new IslandBoundaryListener(plugin, plugin.agent.protection(), plugin.messages);
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, plugin.boundaryListener);
