@@ -1056,6 +1056,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(stateMenus.contains("openSaving("), "GUI state menus must expose a Saving screen");
         assertTrue(stateMenus.contains("openSuccess("), "GUI state menus must expose a Success screen");
         assertTrue(stateMenus.contains("openConflict("), "GUI state menus must expose a Conflict screen");
+        assertTrue(stateMenus.contains("GuiSession session = GuiSessions.begin(player, MENU_ID)"), "GUI saving and terminal states must reserve a player session");
+        assertTrue(stateMenus.contains("GuiSessions.runIfCurrent(plugin, player, session"), "GUI state transitions must discard late responses after close or navigation");
+        assertTrue(stateMenus.contains("stateInventory(session.sessionId()"), "GUI state inventory holders must retain the active session id");
     }
 
     @Test
@@ -1104,6 +1107,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(permissionHandler.contains("GuiStateMenus.openSaving"), "Permission save must show a Saving state");
         assertTrue(permissionHandler.contains("GuiStateMenus.openSuccess"), "Permission save must show a Success state");
         assertTrue(permissionHandler.contains("GuiStateMenus.openConflict"), "Permission save failures must show Conflict/Error recovery state");
+        assertTrue(permissionHandler.contains("GuiSession session = GuiStateMenus.openSaving"), "Permission save terminal UI must remain bound to its saving session");
+        assertTrue(permissionHandler.contains("openSuccess(plugin, player, session"), "Late permission save success must not replace a newer menu");
+        assertTrue(permissionHandler.contains("openConflict(plugin, player, session"), "Late permission save conflict must not replace a newer menu");
         assertTrue(menu.contains("\"island.permissions.save\""), "Permission menu must expose an explicit save button");
         assertTrue(menu.contains("\"island.permissions.reset\""), "Permission menu must expose a reset/cancel button");
         assertTrue(!membershipHandler.contains("case \"island.permissions.set\""), "Permission cell clicks must not use raw string fallback routing");

@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase;
 import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionActionResult;
 import kr.lunaf.cloudislands.paper.application.PermissionManagementUseCase.PermissionView;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
+import kr.lunaf.cloudislands.paper.gui.GuiSession;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandPermissionMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
@@ -127,18 +128,15 @@ final class IslandPermissionCommandHandler {
                 return;
             }
             List<PermissionManagementUseCase.PermissionChange> changes = new ArrayList<>(staged.values());
-            GuiStateMenus.openSaving(plugin, player, runtime.messagesFor(player), message("permission-save-title", "권한 저장"));
+            MessageRenderer messages = runtime.messagesFor(player);
+            GuiSession session = GuiStateMenus.openSaving(plugin, player, messages, message("permission-save-title", "권한 저장"));
             saveStagedChangesSequentially(islandId, actorUuid, changes)
                 .thenAccept(_ignored -> {
                     stagedPermissionChanges.remove(actorUuid);
-                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                        GuiStateMenus.openSuccess(plugin, player, runtime.messagesFor(player), message("permission-save-title", "권한 저장"), message("permission-save-success", "권한 변경을 저장했습니다."), "island.permissions.open");
-                    });
+                    GuiStateMenus.openSuccess(plugin, player, session, messages, message("permission-save-title", "권한 저장"), message("permission-save-success", "권한 변경을 저장했습니다."), "island.permissions.open");
                 })
                 .exceptionally(error -> {
-                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-                        GuiStateMenus.openConflict(plugin, player, runtime.messagesFor(player), message("permission-save-title", "권한 저장"), runtime.coreWriteFailureMessage(error, message("permission-save-failed", "권한 변경을 저장하지 못했습니다.")), "island.permissions.save", "island.permissions.open");
-                    });
+                    GuiStateMenus.openConflict(plugin, player, session, messages, message("permission-save-title", "권한 저장"), runtime.coreWriteFailureMessage(error, message("permission-save-failed", "권한 변경을 저장하지 못했습니다.")), "island.permissions.save", "island.permissions.open");
                     return null;
                 });
         });

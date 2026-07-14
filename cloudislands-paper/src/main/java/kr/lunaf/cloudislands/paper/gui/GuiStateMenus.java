@@ -68,17 +68,28 @@ public final class GuiStateMenus implements Listener {
         });
     }
 
-    public static void openSaving(Plugin plugin, Player player, MessageRenderer messages, String title) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = stateInventory(null, messages, title, "Saving", false, false);
+    public static GuiSession openSaving(Plugin plugin, Player player, MessageRenderer messages, String title) {
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        openSaving(plugin, player, session, messages, title);
+        return session;
+    }
+
+    public static void openSaving(Plugin plugin, Player player, GuiSession session, MessageRenderer messages, String title) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
+            Inventory inventory = stateInventory(session.sessionId(), messages, title, "Saving", false, false);
             setStateItem(inventory, "S", messages, null);
             player.openInventory(inventory);
         });
     }
 
     public static void openSuccess(Plugin plugin, Player player, MessageRenderer messages, String title, String detail, String backAction) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = stateInventory(null, messages, title, "Success", false, backAction != null && !backAction.isBlank());
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        openSuccess(plugin, player, session, messages, title, detail, backAction);
+    }
+
+    public static void openSuccess(Plugin plugin, Player player, GuiSession session, MessageRenderer messages, String title, String detail, String backAction) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
+            Inventory inventory = stateInventory(session.sessionId(), messages, title, "Success", false, backAction != null && !backAction.isBlank());
             setStateItem(inventory, "U", messages, detail);
             if (backAction != null && !backAction.isBlank()) {
                 setStateAction(inventory, "B", messages, backAction);
@@ -88,8 +99,13 @@ public final class GuiStateMenus implements Listener {
     }
 
     public static void openConflict(Plugin plugin, Player player, MessageRenderer messages, String title, String detail, String retryAction, String backAction) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            Inventory inventory = stateInventory(null, messages, title, "Conflict", retryAction != null && !retryAction.isBlank(), backAction != null && !backAction.isBlank());
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        openConflict(plugin, player, session, messages, title, detail, retryAction, backAction);
+    }
+
+    public static void openConflict(Plugin plugin, Player player, GuiSession session, MessageRenderer messages, String title, String detail, String retryAction, String backAction) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
+            Inventory inventory = stateInventory(session.sessionId(), messages, title, "Conflict", retryAction != null && !retryAction.isBlank(), backAction != null && !backAction.isBlank());
             setStateItem(inventory, "C", messages, detail);
             if (retryAction != null && !retryAction.isBlank()) {
                 setStateAction(inventory, "R", messages, retryAction);

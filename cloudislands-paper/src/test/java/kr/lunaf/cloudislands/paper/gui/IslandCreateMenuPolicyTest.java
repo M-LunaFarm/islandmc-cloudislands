@@ -44,6 +44,9 @@ class IslandCreateMenuPolicyTest {
         assertTrue(handler.contains("GuiStateMenus.openSaving"), "Create mutation must show a progress state item");
         assertTrue(handler.contains("GuiStateMenus.openSuccess"), "Accepted create requests must show a success state");
         assertTrue(handler.contains("GuiStateMenus.openError"), "Rejected or failed create requests must show an error state");
+        assertTrue(handler.contains("GuiSession session = GuiStateMenus.openSaving"), "Create progress must reserve a GUI session before asynchronous work");
+        assertTrue(handler.contains("openSuccess(plugin, player, session"), "Late create success must not replace a newer menu");
+        assertTrue(handler.contains("openError(plugin, player, session"), "Late create failure must not replace a newer menu");
         assertTrue(handler.contains("runtime.playerCodeMessage(result.code()"), "Create errors must preserve code-specific player messaging");
     }
 
