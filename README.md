@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.209`
+Version: `1.1.210`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,11 +698,29 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.209`
+Current release: `v1.1.210`
 
-Built for the CloudIslands 1.1.209 baseline.
+Built for the CloudIslands 1.1.210 baseline.
 
-Release notes for `v1.1.209`:
+Release notes for `v1.1.210`:
+
+- every production island bundle export now completes a scheduler-safe Paper
+  world save before reading offline block, entity, and POI region files
+- asynchronous periodic and empty-island saves wait up to 30 seconds for the
+  global-thread flush and fail before export if the world is missing, saving
+  fails, scheduling fails, or the flush times out
+- lifecycle-sensitive saves such as deactivation, migration, reset, restore,
+  deletion backup, and explicit admin save always require a fresh world flush
+- periodic `AUTO` saves on the same shard reuse a 30-second flush epoch, avoiding
+  one full `World.save()` per island while keeping a shared on-disk snapshot
+  point for the batch
+- stored snapshot metadata is upgraded to the current bundle schema instead of
+  preserving a stale schema number after writing a newer embedded bundle
+- regression tests enforce flush-before-export ordering, fail-closed behavior,
+  current-schema publication, reuse expiry, lifecycle bypass, clock rollback,
+  and the Bukkit platform-adapter boundary
+
+Release notes carried forward from `v1.1.209`:
 
 - portable bundle schema 5 records the physical source origin and carries all
   three Java world datasets: block chunks, entity regions, and POI regions
@@ -3442,7 +3460,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.209`.
+Current read: production-readiness baseline `v1.1.210`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
