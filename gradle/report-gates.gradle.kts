@@ -504,7 +504,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "integration policy, localization files, GUI components, and scoped runtime certification fixtures exist",
         "Paper integration registry certifies Vault economy, PlaceholderAPI registration, Plan distributed analytics, vanish-safe player suggestions, custom block identity, and logical stack accounting while separating diagnostic-only state-transfer adapters",
         "plugin-specific operation adapters are active only where implemented",
-        "verifyIntegrationRuntimeSmoke verifies executable runtime services including CraftEngine block/furniture and Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components",
+        "verifyIntegrationRuntimeSmoke verifies executable runtime services including CraftEngine block/furniture and Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components; Paper 26.1.2 smoke proves atomic config reload by applying message changes to already-created renderers and refusing node changes as restart-required without mutating active runtime",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java",
@@ -516,7 +516,11 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/message/ConfiguredMessageComponentsTest.java",
-            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/message/RichMessageRuntimeSurfaceTest.java"
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/message/RichMessageRuntimeSurfaceTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfigReloadResult.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/config/PaperRuntimeConfigReloadResultTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/message/MessageRendererReloadTest.java",
+            "scripts/ci/papermc_smoke.py"
         ),
         "Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom-content, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
     )
