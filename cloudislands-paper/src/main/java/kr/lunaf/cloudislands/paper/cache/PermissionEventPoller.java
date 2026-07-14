@@ -955,7 +955,7 @@ public final class PermissionEventPoller {
             UUID playerUuid = uuidField(fields, "playerUuid", "targetUuid");
             boolean allowed = Boolean.TRUE.equals(booleanField(fields, "allowed"));
             RoleId roleId = RoleId.of(firstPresent(fields, "roleKey", "role", "effectiveRole"), "VISITOR");
-            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () ->
+            callSynchronousEvent(() ->
                 kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandPermissionCheckEvent(islandId, playerUuid, playerUuid == null ? null : players.onlinePlayer(playerUuid), null, permissionField(fields, "permission"), new PermissionResult(allowed, fields.getOrDefault("reason", allowed ? "ALLOW" : "DENY"), null, roleId)))
             );
         } else if (type.equals(CloudIslandEventType.ISLAND_ROLE_CHANGED.name())) {
@@ -984,12 +984,12 @@ public final class PermissionEventPoller {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandBiomeChangeEvent(islandId, fields.getOrDefault("biomeKey", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_PRE_VISIT.name())) {
             UUID visitorUuid = uuidField(fields, "visitorUuid", "playerUuid");
-            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () ->
+            callSynchronousEvent(() ->
                 kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandPreVisitEvent(islandId, visitorUuid, visitorUuid == null ? null : players.onlinePlayer(visitorUuid), firstPresent(fields, "targetWorld", "worldName", "world")))
             );
         } else if (type.equals(CloudIslandEventType.ISLAND_VISITED.name())) {
             UUID visitorUuid = uuidField(fields, "visitorUuid", "playerUuid");
-            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () ->
+            callSynchronousEvent(() ->
                 kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandVisitEvent(islandId, visitorUuid, visitorUuid == null ? null : players.onlinePlayer(visitorUuid), firstPresent(fields, "targetWorld", "worldName", "world"), firstPresent(fields, "placementSource", "source")))
             );
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CREATED.name())) {
@@ -1032,6 +1032,13 @@ public final class PermissionEventPoller {
         } else if (type.equals(CloudIslandEventType.ADDON_STATE_CHANGED.name())) {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new AddonStateChangeEvent(fields.getOrDefault("addonId", ""), islandId, fields.getOrDefault("operation", ""), fields.getOrDefault("key", ""), fields.getOrDefault("table", ""), intField(fields, "keys"), intField(fields, "valueKeys"), intField(fields, "tableKeys"), intField(fields, "tables"), fields));
         }
+    }
+
+    private void callSynchronousEvent(Runnable eventCall) {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.supply(plugin, () -> {
+            eventCall.run();
+            return Boolean.TRUE;
+        }).orTimeout(5L, TimeUnit.SECONDS).join();
     }
 
     private void publishWarpEvent(UUID islandId, Map<String, String> fields) {

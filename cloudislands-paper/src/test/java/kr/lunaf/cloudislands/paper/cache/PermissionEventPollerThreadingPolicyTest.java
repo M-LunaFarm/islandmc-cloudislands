@@ -11,9 +11,12 @@ class PermissionEventPollerThreadingPolicyTest {
     void replicatedSynchronousEventsResolvePlayersAndFireOnTheGlobalThread() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPoller.java"));
 
-        assertScheduled(source, "new IslandPermissionCheckEvent");
-        assertScheduled(source, "new IslandPreVisitEvent");
-        assertScheduled(source, "new IslandVisitEvent");
+        assertAwaitedGlobalCall(source, "new IslandPermissionCheckEvent");
+        assertAwaitedGlobalCall(source, "new IslandPreVisitEvent");
+        assertAwaitedGlobalCall(source, "new IslandVisitEvent");
+        assertTrue(source.contains("PaperSchedulers.supply(plugin"));
+        assertTrue(source.contains(".orTimeout(5L, TimeUnit.SECONDS).join()"),
+            "the replay cursor must wait for the bounded global-thread event call to finish");
     }
 
     @Test
@@ -42,10 +45,10 @@ class PermissionEventPollerThreadingPolicyTest {
         assertTrue(!method.substring(method.indexOf(".thenAccept")).contains("player.getUniqueId()"));
     }
 
-    private void assertScheduled(String source, String constructor) {
+    private void assertAwaitedGlobalCall(String source, String constructor) {
         int event = source.indexOf(constructor);
-        int scheduler = source.lastIndexOf("PaperSchedulers.run(plugin", event);
+        int scheduler = source.lastIndexOf("callSynchronousEvent(() ->", event);
         assertTrue(event >= 0 && scheduler >= 0 && event - scheduler < 500,
-            constructor + " must be constructed and fired inside the global scheduler callback");
+            constructor + " must be constructed and fired through the awaited global scheduler callback");
     }
 }
