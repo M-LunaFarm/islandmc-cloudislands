@@ -99,7 +99,8 @@ final class PaperIslandNodeRuntime {
             deactivationHandler,
             plugin.activeIslands,
             permissionSync,
-            nodeId
+            nodeId,
+            activationHandler::prepareShutdown
         );
         plugin.permissionEventPoller = new PermissionEventPoller(
             plugin,
@@ -126,8 +127,16 @@ final class PaperIslandNodeRuntime {
         plugin.lifecycle.started("permission-event-poller", plugin.permissionEventPoller::stop);
         plugin.jobWorker.start(config.worker().activationWorkerIntervalTicks());
         plugin.periodicSaveTask.start(config.worker().periodicSaveSeconds());
-        plugin.lifecycle.started("periodic-save", () -> plugin.periodicSaveTask.shutdown(Duration.ofSeconds(config.worker().shutdownSaveTimeoutSeconds())));
-        plugin.lifecycle.started("job-worker", plugin.jobWorker::stop);
+        plugin.lifecycle.started("island-worker-shutdown", () -> {
+            Duration timeout = Duration.ofSeconds(config.worker().shutdownSaveTimeoutSeconds());
+            plugin.periodicSaveTask.stop();
+            if (plugin.jobWorker.shutdown(timeout)) {
+                plugin.periodicSaveTask.shutdown(timeout);
+            } else {
+                plugin.getLogger().severe("Skipping the forced final island snapshot because claimed job work did not drain safely; Core leases and existing snapshot journals remain the recovery path");
+                plugin.periodicSaveTask.shutdownWithoutFinalSave(timeout);
+            }
+        });
         plugin.emptyIslandSaveTask.start(config.worker().saveOnEmptyAfterSeconds());
         plugin.lifecycle.started("empty-save", plugin.emptyIslandSaveTask::stop);
         plugin.periodicLevelScanTask.start(config.worker().levelScanIntervalSeconds());

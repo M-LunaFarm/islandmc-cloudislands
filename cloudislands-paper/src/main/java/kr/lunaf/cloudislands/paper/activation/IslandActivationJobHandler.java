@@ -156,6 +156,14 @@ public final class IslandActivationJobHandler {
         }
     }
 
+    public void prepareShutdown() throws IOException {
+        cellUnloader.prepareShutdown();
+        starterIslandGenerator.prepareShutdown();
+        if (saveService != null) {
+            saveService.prepareShutdown(List.of());
+        }
+    }
+
     private IslandBundleManifest manifestFor(IslandJob job, UUID islandId) throws IOException {
         try {
             IslandBundleManifest manifest = storage.readManifest(islandId);

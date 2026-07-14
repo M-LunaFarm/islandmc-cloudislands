@@ -3,6 +3,8 @@ package kr.lunaf.cloudislands.paper.job;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import kr.lunaf.cloudislands.paper.activation.ActiveIslandRegistry;
 import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
@@ -34,6 +36,10 @@ public final class PaperIslandJobWorker {
     private final PlatformScheduler scheduler;
     private final PaperJobCompletionReporter completionReporter;
     private final PendingJobCompletionStore pendingCompletions;
+    private final ShutdownDrainer shutdownDrainer;
+    private final AtomicBoolean acceptingJobs = new AtomicBoolean();
+    private final AtomicBoolean polling = new AtomicBoolean();
+    private final Object pollingMonitor = new Object();
     private TaskHandle task;
     private volatile int consecutiveFailures;
     private volatile int inFlightJobs;
@@ -52,6 +58,14 @@ public final class PaperIslandJobWorker {
     }
 
     public PaperIslandJobWorker(Plugin plugin, LocalJobSource jobSource, IslandActivationJobHandler activationHandler, IslandDeactivationHandler deactivationHandler, ActiveIslandRegistry activeIslands, PermissionCacheSyncService permissionSync, String nodeId, PlatformScheduler scheduler) {
+        this(plugin, jobSource, activationHandler, deactivationHandler, activeIslands, permissionSync, nodeId, scheduler, ShutdownDrainer.noop());
+    }
+
+    public PaperIslandJobWorker(Plugin plugin, LocalJobSource jobSource, IslandActivationJobHandler activationHandler, IslandDeactivationHandler deactivationHandler, ActiveIslandRegistry activeIslands, PermissionCacheSyncService permissionSync, String nodeId, ShutdownDrainer shutdownDrainer) {
+        this(plugin, jobSource, activationHandler, deactivationHandler, activeIslands, permissionSync, nodeId, new BukkitPlatformScheduler(plugin), shutdownDrainer);
+    }
+
+    public PaperIslandJobWorker(Plugin plugin, LocalJobSource jobSource, IslandActivationJobHandler activationHandler, IslandDeactivationHandler deactivationHandler, ActiveIslandRegistry activeIslands, PermissionCacheSyncService permissionSync, String nodeId, PlatformScheduler scheduler, ShutdownDrainer shutdownDrainer) {
         this.plugin = plugin;
         this.jobSource = jobSource;
         this.activationHandler = activationHandler;
@@ -60,6 +74,7 @@ public final class PaperIslandJobWorker {
         this.permissionSync = permissionSync;
         this.nodeId = nodeId;
         this.scheduler = scheduler == null ? new BukkitPlatformScheduler(plugin) : scheduler;
+        this.shutdownDrainer = shutdownDrainer == null ? ShutdownDrainer.noop() : shutdownDrainer;
         this.completionReporter = new PaperJobCompletionReporter(
             this.nodeId,
             this.jobSource::complete,
@@ -74,24 +89,74 @@ public final class PaperIslandJobWorker {
 
     public void start(long intervalTicks) {
         stop();
+        acceptingJobs.set(true);
         Duration interval = Duration.ofMillis(Math.max(1L, intervalTicks) * 50L);
         task = scheduler.repeatAsync(interval, interval, this::poll);
     }
 
     public void stop() {
+        acceptingJobs.set(false);
         if (task != null) {
             task.cancel();
             task = null;
         }
     }
 
+    public boolean shutdown(Duration timeout) {
+        stop();
+        Duration bounded = timeout == null || timeout.isZero() || timeout.isNegative() ? Duration.ofSeconds(30) : timeout;
+        long deadlineNanos = System.nanoTime() + bounded.toNanos();
+        Exception drainFailure = null;
+        while (polling.get()) {
+            Exception currentDrainFailure = drainShutdownWork();
+            if (drainFailure == null && currentDrainFailure != null) {
+                drainFailure = currentDrainFailure;
+            }
+            if (!polling.get()) {
+                break;
+            }
+            long remainingNanos = deadlineNanos - System.nanoTime();
+            if (remainingNanos <= 0L) {
+                plugin.getLogger().severe("CloudIslands job worker did not drain within the configured shutdown deadline; claimed work remains recoverable through its Core lease");
+                return false;
+            }
+            synchronized (pollingMonitor) {
+                if (!polling.get()) {
+                    break;
+                }
+                try {
+                    TimeUnit.NANOSECONDS.timedWait(pollingMonitor, Math.min(remainingNanos, TimeUnit.MILLISECONDS.toNanos(10L)));
+                } catch (InterruptedException exception) {
+                    Thread.currentThread().interrupt();
+                    plugin.getLogger().severe("Interrupted while draining the CloudIslands job worker during shutdown");
+                    return false;
+                }
+            }
+        }
+        Exception finalDrainFailure = drainShutdownWork();
+        if (drainFailure == null) {
+            drainFailure = finalDrainFailure;
+        }
+        if (drainFailure != null) {
+            plugin.getLogger().severe("Failed to drain Paper global-thread work while stopping the job worker: " + drainFailure.getMessage());
+            return false;
+        }
+        return true;
+    }
+
     private void poll() {
-        long now = System.currentTimeMillis();
-        if (now < nextPollAtMillis) {
+        if (!acceptingJobs.get() || !polling.compareAndSet(false, true)) {
             return;
         }
+        long now = System.currentTimeMillis();
         try {
+            if (now < nextPollAtMillis || !acceptingJobs.get()) {
+                return;
+            }
             replayPendingCompletions();
+            if (!acceptingJobs.get()) {
+                return;
+            }
             List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.SAVE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.DELETE_ISLAND, IslandJobType.MIGRATE_ISLAND, IslandJobType.RESTORE_ISLAND, IslandJobType.RESET_ISLAND), 4);
             inFlightJobs = claimed.size();
             consecutiveFailures = 0;
@@ -100,11 +165,25 @@ public final class PaperIslandJobWorker {
                 inFlightJobs = Math.max(0, inFlightJobs - 1);
             }
         } catch (RuntimeException exception) {
-            inFlightJobs = 0;
             consecutiveFailures++;
             long backoffMillis = Math.min(30_000L, 1_000L * (1L << Math.min(consecutiveFailures, 5)));
             nextPollAtMillis = now + backoffMillis;
             plugin.getLogger().warning("CloudIslands job poll failed; backing off for " + backoffMillis + "ms: " + exception.getMessage());
+        } finally {
+            inFlightJobs = 0;
+            polling.set(false);
+            synchronized (pollingMonitor) {
+                pollingMonitor.notifyAll();
+            }
+        }
+    }
+
+    private Exception drainShutdownWork() {
+        try {
+            shutdownDrainer.drain();
+            return null;
+        } catch (Exception error) {
+            return error;
         }
     }
 
@@ -227,6 +306,15 @@ public final class PaperIslandJobWorker {
         void fail(String nodeId, java.util.UUID jobId, String errorMessage);
         default void fail(String nodeId, IslandJob job, String errorMessage) {
             fail(nodeId, job.jobId(), errorMessage);
+        }
+    }
+
+    @FunctionalInterface
+    public interface ShutdownDrainer {
+        void drain() throws Exception;
+
+        static ShutdownDrainer noop() {
+            return () -> {};
         }
     }
 

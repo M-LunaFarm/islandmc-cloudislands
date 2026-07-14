@@ -2,10 +2,14 @@ package kr.lunaf.cloudislands.paper.platform.world;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.paper.activation.IslandCellUnloader;
 import kr.lunaf.cloudislands.paper.activation.IslandCellUnloadException;
 import kr.lunaf.cloudislands.paper.activation.IslandCellRange;
@@ -22,6 +26,8 @@ public final class BukkitIslandCellUnloader implements IslandCellUnloader {
 
     private final PlatformScheduler scheduler;
     private final Duration timeout;
+    private final AtomicLong operationSequence = new AtomicLong();
+    private final ConcurrentMap<Long, PendingUnload> pendingUnloads = new ConcurrentHashMap<>();
 
     public BukkitIslandCellUnloader(Plugin plugin) {
         this(new BukkitPlatformScheduler(plugin), DEFAULT_TIMEOUT);
@@ -41,20 +47,49 @@ public final class BukkitIslandCellUnloader implements IslandCellUnloader {
             unloadOnServerThread(range);
             return;
         }
-        CompletableFuture<Void> completion = new CompletableFuture<>();
+        PendingUnload pending = new PendingUnload(operationSequence.incrementAndGet(), range, new CompletableFuture<>());
+        pendingUnloads.put(pending.id(), pending);
         try {
-            scheduler.runGlobal(() -> {
-                try {
-                    unloadOnServerThread(range);
-                    completion.complete(null);
-                } catch (Throwable error) {
-                    completion.completeExceptionally(error);
-                }
-            });
+            scheduler.runGlobal(() -> completeUnload(pending));
         } catch (RuntimeException error) {
+            pendingUnloads.remove(pending.id(), pending);
             throw new IslandCellUnloadException("failed to schedule island cell unload " + range.worldName(), error);
         }
-        await(range, completion);
+        await(range, pending.completion());
+    }
+
+    @Override
+    public void prepareShutdown() throws IOException {
+        if (!Bukkit.isPrimaryThread()) {
+            throw new IOException("island cell shutdown drain must run on the Paper global thread");
+        }
+        IOException failure = null;
+        for (PendingUnload pending : List.copyOf(pendingUnloads.values())) {
+            completeUnload(pending);
+            try {
+                await(pending.range(), pending.completion());
+            } catch (IOException error) {
+                if (failure == null) {
+                    failure = new IOException("failed to drain pending island cell unloads");
+                }
+                failure.addSuppressed(error);
+            }
+        }
+        if (failure != null) {
+            throw failure;
+        }
+    }
+
+    private void completeUnload(PendingUnload pending) {
+        if (!pendingUnloads.remove(pending.id(), pending)) {
+            return;
+        }
+        try {
+            unloadOnServerThread(pending.range());
+            pending.completion().complete(null);
+        } catch (Throwable error) {
+            pending.completion().completeExceptionally(error);
+        }
     }
 
     private void unloadOnServerThread(IslandCellRange range) throws IOException {
@@ -105,5 +140,8 @@ public final class BukkitIslandCellUnloader implements IslandCellUnloader {
             }
             throw new IslandCellUnloadException("failed to unload island cell " + range.islandId(), cause);
         }
+    }
+
+    private record PendingUnload(long id, IslandCellRange range, CompletableFuture<Void> completion) {
     }
 }

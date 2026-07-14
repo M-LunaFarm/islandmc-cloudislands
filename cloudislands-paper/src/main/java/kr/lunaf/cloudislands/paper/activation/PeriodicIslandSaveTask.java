@@ -98,6 +98,23 @@ public final class PeriodicIslandSaveTask {
         return completed;
     }
 
+    public boolean shutdownWithoutFinalSave(Duration timeout) {
+        stop();
+        AtomicBoolean flushFailed = new AtomicBoolean();
+        try {
+            saveService.prepareShutdown(activeIslands.snapshot());
+        } catch (java.io.IOException | RuntimeException error) {
+            flushFailed.set(true);
+            plugin.getLogger().severe("Failed to drain an existing periodic save after the job worker missed its shutdown deadline: " + error.getMessage());
+        }
+        boolean completed = ShutdownSaveCoordinator.awaitIdleAndFlush(running::get, runningMonitor, () -> {}, timeout) && !flushFailed.get();
+        if (!completed) {
+            failuresTotal.incrementAndGet();
+            plugin.getLogger().severe("Existing periodic island save did not stop within the configured deadline; no competing final snapshot was started");
+        }
+        return completed;
+    }
+
     private void saveAll() {
         saveAll(false);
     }

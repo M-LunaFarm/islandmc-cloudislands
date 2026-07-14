@@ -6,6 +6,9 @@ import java.io.IOException;
 public interface IslandCellUnloader {
     void unload(IslandCellRange range) throws IOException;
 
+    default void prepareShutdown() throws IOException {
+    }
+
     static IslandCellUnloader noop() {
         return _range -> {};
     }

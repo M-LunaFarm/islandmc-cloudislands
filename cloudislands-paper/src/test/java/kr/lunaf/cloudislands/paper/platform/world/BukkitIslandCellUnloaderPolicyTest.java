@@ -13,6 +13,8 @@ class BukkitIslandCellUnloaderPolicyTest {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/platform/world/BukkitIslandCellUnloader.java"));
 
         assertTrue(source.contains("scheduler.runGlobal"));
+        assertTrue(source.contains("public void prepareShutdown()"));
+        assertTrue(source.contains("pendingUnloads.remove(pending.id(), pending)"), "normal and shutdown paths must claim each unload exactly once");
         assertTrue(source.contains("world.getPlayers()"));
         assertTrue(source.contains("world.isChunkLoaded(chunkX, chunkZ)"));
         assertTrue(source.contains("world.unloadChunk(chunkX, chunkZ, false)"));

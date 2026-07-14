@@ -12,7 +12,10 @@ class BukkitStarterIslandGeneratorPolicyTest {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/platform/world/BukkitStarterIslandGenerator.java"));
 
         assertTrue(source.contains("world.getChunkAtAsync(chunkX, chunkZ, true)"));
-        assertTrue(source.contains("scheduler.runGlobal(() -> build"));
+        assertTrue(source.contains("scheduler.runGlobal(() -> completeBuild"));
+        assertTrue(source.contains("public void prepareShutdown()"));
+        assertTrue(source.contains("world.getChunkAt(chunkX, chunkZ)"), "shutdown must finish a pending chunk preparation without waiting on the blocked global scheduler");
+        assertTrue(source.contains("pendingGenerations.remove(pending.id(), pending)"), "normal and shutdown paths must claim each generation exactly once");
         assertTrue(source.contains("Material.GRASS_BLOCK"));
         assertTrue(source.contains("Material.DIRT"));
         assertTrue(source.contains("Material.BEDROCK"));

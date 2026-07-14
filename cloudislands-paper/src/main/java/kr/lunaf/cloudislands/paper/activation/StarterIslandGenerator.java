@@ -7,6 +7,9 @@ import java.util.UUID;
 public interface StarterIslandGenerator {
     void generate(Plan plan) throws IOException;
 
+    default void prepareShutdown() throws IOException {
+    }
+
     static StarterIslandGenerator noop() {
         return _plan -> {};
     }

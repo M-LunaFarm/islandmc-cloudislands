@@ -10,12 +10,17 @@ class PaperIslandNodeRuntimeShutdownTest {
     @Test
     void stopsJobIntakeBeforeFinalPeriodicSaveFlush() throws Exception {
         String runtime = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperIslandNodeRuntime.java"));
-        int periodicRegistration = runtime.indexOf("plugin.lifecycle.started(\"periodic-save\"");
-        int jobRegistration = runtime.indexOf("plugin.lifecycle.started(\"job-worker\"");
+        int shutdownRegistration = runtime.indexOf("plugin.lifecycle.started(\"island-worker-shutdown\"");
+        int stopPeriodicIntake = runtime.indexOf("plugin.periodicSaveTask.stop()", shutdownRegistration);
+        int drainJobs = runtime.indexOf("plugin.jobWorker.shutdown(timeout)", shutdownRegistration);
+        int finalSave = runtime.indexOf("plugin.periodicSaveTask.shutdown(timeout)", shutdownRegistration);
+        int noFinalSave = runtime.indexOf("plugin.periodicSaveTask.shutdownWithoutFinalSave(timeout)", shutdownRegistration);
 
-        assertTrue(periodicRegistration >= 0);
-        assertTrue(jobRegistration > periodicRegistration, "LifecycleRegistry stops components in reverse registration order");
-        assertTrue(runtime.contains("periodicSaveTask.shutdown(Duration.ofSeconds(config.worker().shutdownSaveTimeoutSeconds()))"));
+        assertTrue(shutdownRegistration >= 0);
+        assertTrue(stopPeriodicIntake > shutdownRegistration && drainJobs > stopPeriodicIntake, "shutdown must stop periodic intake before draining claimed jobs");
+        assertTrue(finalSave > drainJobs, "the forced final save must start only after claimed jobs drain");
+        assertTrue(noFinalSave > finalSave, "a worker drain failure must quiesce existing saves without starting a competing final snapshot");
+        assertTrue(runtime.contains("activationHandler::prepareShutdown"), "the worker drain must service Paper global-thread work while onDisable waits");
         assertTrue(saveTaskUsesMainThreadPreparation(), "shutdown must drain pending world flushes before waiting for async export");
     }
 
@@ -41,5 +46,18 @@ class PaperIslandNodeRuntimeShutdownTest {
 
         assertTrue(saveTask.contains("saveAll(true)"));
         assertTrue(saveTask.contains("if (!forceActiveSave && pendingSnapshotRecords.contains(activeIsland.islandId()))"));
+    }
+
+    @Test
+    void workerDrainFailureDoesNotStartACompetingFinalSnapshot() throws Exception {
+        String saveTask = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/activation/PeriodicIslandSaveTask.java"));
+        int noFinalStart = saveTask.indexOf("public boolean shutdownWithoutFinalSave");
+        int noFinalEnd = saveTask.indexOf("private void saveAll()", noFinalStart);
+        String noFinalPath = saveTask.substring(noFinalStart, noFinalEnd);
+
+        assertTrue(noFinalPath.contains("saveService.prepareShutdown(activeIslands.snapshot())"));
+        assertTrue(noFinalPath.contains("ShutdownSaveCoordinator.awaitIdleAndFlush"));
+        assertTrue(noFinalPath.contains("() -> {}"));
+        assertTrue(!noFinalPath.contains("saveAll(true)"), "the failure path must not begin a snapshot while claimed work may still mutate the island");
     }
 }
