@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.212`
+Version: `1.1.213`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,11 +698,28 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.212`
+Current release: `v1.1.213`
 
-Built for the CloudIslands 1.1.212 baseline.
+Built for the CloudIslands 1.1.213 baseline.
 
-Release notes for `v1.1.212`:
+Release notes for `v1.1.213`:
+
+- permanent island deletion now purges the cell's block, entity, and POI region
+  files after the final delete backup and live-chunk eviction, before releasing
+  node ownership
+- missing cleanup wiring or any transactional file deletion failure keeps the
+  island cell reserved and reports the DELETE job failure instead of leaving
+  private world data behind on the Paper node
+- the built-in bundle-less starter island now includes a persisted chest with
+  lava, ice, saplings, bone meal, crop seeds, cactus, and sugar cane, allowing a
+  fresh installation to begin normal skyblock progression without an uploaded
+  template bundle
+- starter chest creation and inventory writes remain scheduler-bound inside the
+  Bukkit platform adapter and are captured by the first fresh `CREATED` snapshot
+- regression coverage locks backup-unload-purge-release ordering, fail-closed
+  cleanup wiring, and the complete starter supply contract
+
+Release notes carried forward from `v1.1.212`:
 
 - deactivation now retains protection, active-island registration, and cell
   ownership until the final snapshot and integration hooks finish and every live
@@ -3499,7 +3516,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.212`.
+Current read: production-readiness baseline `v1.1.213`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
