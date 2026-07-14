@@ -144,7 +144,7 @@ public final class PaperHeartbeatService {
             storageOk,
             supportedTemplatesSupplier.get()
         );
-        runtimeCommands.publishHeartbeat(heartbeat);
+        runtimeCommands.publishHeartbeat(heartbeat).join();
     }
 
     private void logHeartbeatFailure(RuntimeException exception) {
