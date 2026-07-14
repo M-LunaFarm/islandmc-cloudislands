@@ -13,6 +13,7 @@ public final class IslandCreateEvent extends Event {
     private final String worldName;
 
     public IslandCreateEvent(UUID islandId, UUID jobId, String nodeId, String worldName) {
+        super(true);
         this.islandId = islandId;
         this.jobId = jobId;
         this.nodeId = nodeId;

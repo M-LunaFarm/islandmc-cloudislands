@@ -249,11 +249,11 @@ public final class PermissionEventPoller {
     }
 
     private void handleEvent(ParsedEvent event) {
-        lastEventSequence = Math.max(lastEventSequence, event.sequence());
         String type = event.type();
         Map<String, String> fields = event.fields();
         String key = eventKey(type, fields, event.occurredAt());
-        if (!markSeen(key)) {
+        if (seen(key)) {
+            lastEventSequence = Math.max(lastEventSequence, event.sequence());
             return;
         }
         if (cacheInvalidator != null) {
@@ -263,55 +263,57 @@ public final class PermissionEventPoller {
         handleMigrationLockState(type, fields);
         handleMigrationNotice(type, fields);
         handleIslandMutationEvacuation(type, fields);
-        if (handlesNodeOperation(type, fields)) {
-            return;
-        }
-        if (handlesVisitorRemoval(type, fields)) {
-            return;
-        }
-        if (handlesIslandChat(type, fields)) {
-            return;
-        }
-        if (affectsPermissions(type, fields)) {
-            UUID islandId = islandId(fields);
-            cacheEventInvalidations.incrementAndGet();
-            if (islandId != null) {
-                if (removesIslandLocalState(type)) {
-                    permissionSync.invalidate(islandId);
-                } else {
-                    permissionSync.sync(islandId);
+        boolean handled = handlesNodeOperation(type, fields)
+            || handlesVisitorRemoval(type, fields)
+            || handlesIslandChat(type, fields);
+        if (!handled) {
+            if (affectsPermissions(type, fields)) {
+                UUID islandId = islandId(fields);
+                cacheEventInvalidations.incrementAndGet();
+                if (islandId != null) {
+                    if (removesIslandLocalState(type)) {
+                        permissionSync.invalidate(islandId);
+                    } else {
+                        permissionSync.sync(islandId);
+                    }
+                } else if (isGlobalCacheEvent(type)) {
+                    permissionSync.invalidateAll();
                 }
-            } else if (isGlobalCacheEvent(type)) {
-                permissionSync.invalidateAll();
+            }
+            if (affectsGenerator(type, fields)) {
+                UUID islandId = islandId(fields);
+                cacheEventInvalidations.incrementAndGet();
+                if (islandId != null) {
+                    generatorLevels.invalidate(islandId);
+                } else if (isGlobalCacheEvent(type)) {
+                    generatorLevels.invalidateAll();
+                }
+            }
+            if (affectsCrop(type, fields)) {
+                UUID islandId = islandId(fields);
+                cacheEventInvalidations.incrementAndGet();
+                if (islandId != null) {
+                    cropGrowthLevels.invalidate(islandId);
+                } else if (isGlobalCacheEvent(type)) {
+                    cropGrowthLevels.invalidateAll();
+                }
+            }
+            if (affectsLimits(type, fields)) {
+                UUID islandId = islandId(fields);
+                cacheEventInvalidations.incrementAndGet();
+                if (islandId != null) {
+                    limits.invalidate(islandId);
+                } else if (isGlobalCacheEvent(type)) {
+                    limits.invalidateAll();
+                }
             }
         }
-        if (affectsGenerator(type, fields)) {
-            UUID islandId = islandId(fields);
-            cacheEventInvalidations.incrementAndGet();
-            if (islandId != null) {
-                generatorLevels.invalidate(islandId);
-            } else if (isGlobalCacheEvent(type)) {
-                generatorLevels.invalidateAll();
-            }
-        }
-        if (affectsCrop(type, fields)) {
-            UUID islandId = islandId(fields);
-            cacheEventInvalidations.incrementAndGet();
-            if (islandId != null) {
-                cropGrowthLevels.invalidate(islandId);
-            } else if (isGlobalCacheEvent(type)) {
-                cropGrowthLevels.invalidateAll();
-            }
-        }
-        if (affectsLimits(type, fields)) {
-            UUID islandId = islandId(fields);
-            cacheEventInvalidations.incrementAndGet();
-            if (islandId != null) {
-                limits.invalidate(islandId);
-            } else if (isGlobalCacheEvent(type)) {
-                limits.invalidateAll();
-            }
-        }
+        markSeen(key);
+        lastEventSequence = Math.max(lastEventSequence, event.sequence());
+    }
+
+    private synchronized boolean seen(String key) {
+        return seen.contains(key);
     }
 
     private synchronized boolean markSeen(String key) {
@@ -945,7 +947,9 @@ public final class PermissionEventPoller {
             UUID playerUuid = uuidField(fields, "playerUuid", "targetUuid");
             boolean allowed = Boolean.TRUE.equals(booleanField(fields, "allowed"));
             RoleId roleId = RoleId.of(firstPresent(fields, "roleKey", "role", "effectiveRole"), "VISITOR");
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandPermissionCheckEvent(islandId, playerUuid, playerUuid == null ? null : players.onlinePlayer(playerUuid), null, permissionField(fields, "permission"), new PermissionResult(allowed, fields.getOrDefault("reason", allowed ? "ALLOW" : "DENY"), null, roleId)));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () ->
+                kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandPermissionCheckEvent(islandId, playerUuid, playerUuid == null ? null : players.onlinePlayer(playerUuid), null, permissionField(fields, "permission"), new PermissionResult(allowed, fields.getOrDefault("reason", allowed ? "ALLOW" : "DENY"), null, roleId)))
+            );
         } else if (type.equals(CloudIslandEventType.ISLAND_ROLE_CHANGED.name())) {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandRoleCatalogChangeEvent(islandId, fields.getOrDefault("role", ""), fields.getOrDefault("operation", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_INVITE_CHANGED.name())) {
@@ -972,10 +976,14 @@ public final class PermissionEventPoller {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandBiomeChangeEvent(islandId, fields.getOrDefault("biomeKey", ""), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_PRE_VISIT.name())) {
             UUID visitorUuid = uuidField(fields, "visitorUuid", "playerUuid");
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandPreVisitEvent(islandId, visitorUuid, visitorUuid == null ? null : players.onlinePlayer(visitorUuid), firstPresent(fields, "targetWorld", "worldName", "world")));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () ->
+                kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandPreVisitEvent(islandId, visitorUuid, visitorUuid == null ? null : players.onlinePlayer(visitorUuid), firstPresent(fields, "targetWorld", "worldName", "world")))
+            );
         } else if (type.equals(CloudIslandEventType.ISLAND_VISITED.name())) {
             UUID visitorUuid = uuidField(fields, "visitorUuid", "playerUuid");
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandVisitEvent(islandId, visitorUuid, visitorUuid == null ? null : players.onlinePlayer(visitorUuid), firstPresent(fields, "targetWorld", "worldName", "world"), firstPresent(fields, "placementSource", "source")));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () ->
+                kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandVisitEvent(islandId, visitorUuid, visitorUuid == null ? null : players.onlinePlayer(visitorUuid), firstPresent(fields, "targetWorld", "worldName", "world"), firstPresent(fields, "placementSource", "source")))
+            );
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_CREATED.name())) {
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandWarpCreateEvent(islandId, firstPresent(fields, "warpName", "name"), fields));
         } else if (type.equals(CloudIslandEventType.ISLAND_WARP_DELETED.name())) {

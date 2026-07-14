@@ -13,6 +13,7 @@ public final class IslandDeleteEvent extends Event {
     private final long snapshotNo;
 
     public IslandDeleteEvent(UUID islandId, UUID jobId, String nodeId, long snapshotNo) {
+        super(true);
         this.islandId = islandId;
         this.jobId = jobId;
         this.nodeId = nodeId;
