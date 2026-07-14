@@ -1968,6 +1968,51 @@ tasks.register("verifyPersonalIslandFlightParity") {
     }
 }
 
+tasks.register("verifyPersonalVisualPreferenceParity") {
+    group = "verification"
+    description = "Verifies SS2 border and block display toggles are durable per-player preferences, not island-wide mutations."
+    dependsOn(project(":cloudislands-paper").tasks.named("test"))
+    dependsOn(project(":cloudislands-core-service").tasks.named("test"))
+    val files = listOf(
+        layout.projectDirectory.file("cloudislands-api/src/main/java/kr/lunaf/cloudislands/api/model/PlayerIslandProfile.java"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/PlayerProfileRoutes.java"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/migration/V84__player_visual_preferences.sql"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/mysql/V7__player_visual_preferences.sql"),
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java"),
+        layout.projectDirectory.file("cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerProgressionActions.java"),
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java")
+    )
+    inputs.files(files)
+    doLast {
+        val source = files.joinToString("\n") { it.asFile.readText() }
+        val requiredSignals = listOf(
+            "boolean worldBorderEnabled",
+            "boolean blocksStackerEnabled",
+            "/v1/players/world-border",
+            "/v1/players/blocks-stacker",
+            "world_border_enabled BOOLEAN NOT NULL DEFAULT TRUE",
+            "blocks_stacker_enabled BOOLEAN NOT NULL DEFAULT TRUE",
+            "setWorldBorderEnabled(player.getUniqueId(), enabled)",
+            "setBlocksStackerEnabled(player.getUniqueId(), enabled)",
+            "activeBorderRegions",
+            "managedBorders.remove(player.getUniqueId())",
+            "environmentCommands.onMove(event.getPlayer(), event.getFrom(), event.getTo())"
+        )
+        val missing = requiredSignals.filterNot(source::contains)
+        if (missing.isNotEmpty()) {
+            throw GradleException("Personal visual preference parity evidence missing: ${missing.joinToString(", ")}")
+        }
+        val paper = files[4].asFile.readText()
+        val velocity = files[5].asFile.readText()
+        if (paper.contains("setFlag(player, IslandFlag.BORDER_VISIBLE") || velocity.contains("setFlag(resolved, player.getUniqueId(), IslandFlag.BORDER_VISIBLE")) {
+            throw GradleException("Canonical border toggle must not mutate the island-wide BORDER_VISIBLE flag")
+        }
+        if (paper.contains("STACKED_BLOCKS_VISIBLE_LIMIT_KEY") || velocity.contains("STACKED_BLOCKS_VISIBLE_LIMIT_KEY")) {
+            throw GradleException("Canonical block display toggle must not mutate an island-wide limit")
+        }
+    }
+}
+
 tasks.register("verifyBankMessageKeyCoverage") {
     group = "verification"
     description = "Verifies CI-002 bank command output uses message keys with ko_kr/en_us coverage."
@@ -2331,6 +2376,7 @@ tasks.named("check") {
     dependsOn(tasks.named("verifyVisitReviewMessageKeyCoverage"))
     dependsOn(tasks.named("verifyCurrentVisitorParity"))
     dependsOn(tasks.named("verifyPersonalIslandFlightParity"))
+    dependsOn(tasks.named("verifyPersonalVisualPreferenceParity"))
     dependsOn(tasks.named("verifyBankMessageKeyCoverage"))
     dependsOn(tasks.named("verifyPermissionMessageKeyCoverage"))
     dependsOn(tasks.named("verifyMembershipMessageKeyCoverage"))

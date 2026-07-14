@@ -29,7 +29,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     public PlayerIslandProfile touch(UUID playerUuid, String lastName) {
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
-            return new PlayerIslandProfile(playerUuid, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled());
+            return copy(current, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled());
         });
     }
 
@@ -37,7 +37,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     public PlayerIslandProfile touch(UUID playerUuid, String lastName, String locale) {
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
-            return new PlayerIslandProfile(playerUuid, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now(), locale, current.disbandsRemaining(), current.islandFlyEnabled());
+            return copy(current, lastName == null ? "" : lastName, current.primaryIslandId(), Instant.now(), locale, current.disbandsRemaining(), current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled());
         });
     }
 
@@ -45,7 +45,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     public PlayerIslandProfile setLocale(UUID playerUuid, String locale) {
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
-            return new PlayerIslandProfile(playerUuid, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), locale, current.disbandsRemaining(), current.islandFlyEnabled());
+            return copy(current, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), locale, current.disbandsRemaining(), current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled());
         });
     }
 
@@ -53,7 +53,23 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     public PlayerIslandProfile setIslandFlyEnabled(UUID playerUuid, boolean enabled) {
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
-            return new PlayerIslandProfile(playerUuid, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), enabled);
+            return copy(current, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), enabled, current.worldBorderEnabled(), current.blocksStackerEnabled());
+        });
+    }
+
+    @Override
+    public PlayerIslandProfile setWorldBorderEnabled(UUID playerUuid, boolean enabled) {
+        return profiles.compute(playerUuid, (_uuid, stored) -> {
+            PlayerIslandProfile current = current(playerUuid, stored);
+            return copy(current, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled(), enabled, current.blocksStackerEnabled());
+        });
+    }
+
+    @Override
+    public PlayerIslandProfile setBlocksStackerEnabled(UUID playerUuid, boolean enabled) {
+        return profiles.compute(playerUuid, (_uuid, stored) -> {
+            PlayerIslandProfile current = current(playerUuid, stored);
+            return copy(current, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled(), current.worldBorderEnabled(), enabled);
         });
     }
 
@@ -61,7 +77,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
-            return new PlayerIslandProfile(playerUuid, current.lastName(), Optional.of(islandId), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled());
+            return copy(current, current.lastName(), Optional.of(islandId), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled());
         });
     }
 
@@ -69,7 +85,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     public PlayerIslandProfile clearPrimaryIsland(UUID playerUuid) {
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
-            return new PlayerIslandProfile(playerUuid, current.lastName(), Optional.empty(), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled());
+            return copy(current, current.lastName(), Optional.empty(), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled());
         });
     }
 
@@ -77,7 +93,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     public PlayerIslandProfile setDisbandsRemaining(UUID playerUuid, int value) {
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
-            return new PlayerIslandProfile(playerUuid, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), value, current.islandFlyEnabled());
+            return copy(current, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), value, current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled());
         });
     }
 
@@ -85,12 +101,16 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     public PlayerIslandProfile addDisbandsRemaining(UUID playerUuid, int delta) {
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
-            return new PlayerIslandProfile(playerUuid, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), saturatingNonNegativeAdd(current.disbandsRemaining(), delta), current.islandFlyEnabled());
+            return copy(current, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), saturatingNonNegativeAdd(current.disbandsRemaining(), delta), current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled());
         });
     }
 
     private static PlayerIslandProfile current(UUID playerUuid, PlayerIslandProfile stored) {
         return stored == null ? new PlayerIslandProfile(playerUuid, "", Optional.empty(), Instant.EPOCH) : stored;
+    }
+
+    private static PlayerIslandProfile copy(PlayerIslandProfile current, String lastName, Optional<UUID> islandId, Instant lastSeenAt, String locale, int disbandsRemaining, boolean fly, boolean border, boolean blocks) {
+        return new PlayerIslandProfile(current.playerUuid(), lastName, islandId, lastSeenAt, locale, disbandsRemaining, fly, border, blocks);
     }
 
     private static int saturatingNonNegativeAdd(int current, int delta) {

@@ -6,6 +6,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.paper.application.IslandEnvironmentUseCase;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.entity.Player;
@@ -49,7 +50,9 @@ public final class IslandBorderMenu implements Listener {
         IslandEnvironmentUseCase useCase = new IslandEnvironmentUseCase(client);
         CompletableFuture<kr.lunaf.cloudislands.coreclient.CoreGuiViews.IslandInfoView> info = useCase.islandInfoView(islandId);
         CompletableFuture<Map<IslandFlag, String>> flags = useCase.flagValues(islandId);
-        info.thenCombine(flags, BorderView::new)
+        CompletableFuture<PlayerProfileView> profile = client.playerProfiles().profile(player.getUniqueId());
+        info.thenCombine(flags, (infoView, flagValues) -> new BorderView(infoView, flagValues, null))
+            .thenCombine(profile, (view, playerProfile) -> new BorderView(view.info(), view.flags(), playerProfile))
             .thenAccept(view -> openSync(plugin, player, session, view, messages))
             .exceptionally(error -> {
                 GuiStateMenus.openError(plugin, player, session, messages, message(messages, MENU.titleKey(), TITLE), message(messages, "border-menu-load-failed", "섬 보더 설정을 불러오지 못했습니다."), "island.border.open", "island.settings.open");
@@ -79,7 +82,7 @@ public final class IslandBorderMenu implements Listener {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             setItem(inventory, "S", messages, message(messages, "border-menu-size-current", "현재 크기: ") + view.info().border());
             setColorItems(inventory, view, messages);
-            setItem(inventory, "I", messages, message(messages, "border-menu-visible", "표시: ") + view.flags().getOrDefault(IslandFlag.BORDER_VISIBLE, "true"));
+            setItem(inventory, "I", messages, message(messages, "border-menu-visible", "표시: ") + (view.profile() == null || view.profile().worldBorderEnabled()));
             player.openInventory(inventory);
         });
     }
@@ -103,7 +106,7 @@ public final class IslandBorderMenu implements Listener {
         return GuiMenuRenderer.message(messages, key, fallback);
     }
 
-    private record BorderView(kr.lunaf.cloudislands.coreclient.CoreGuiViews.IslandInfoView info, Map<IslandFlag, String> flags) {
+    private record BorderView(kr.lunaf.cloudislands.coreclient.CoreGuiViews.IslandInfoView info, Map<IslandFlag, String> flags, PlayerProfileView profile) {
         private BorderView {
             flags = flags == null ? Map.of() : Map.copyOf(flags);
         }

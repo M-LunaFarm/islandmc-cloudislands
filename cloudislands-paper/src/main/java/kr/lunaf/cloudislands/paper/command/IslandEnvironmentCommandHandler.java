@@ -4,14 +4,18 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.PlayerProfileCommandClient;
+import kr.lunaf.cloudislands.coreclient.PlayerProfileQueryClient;
+import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.IslandInfoView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LimitView;
 import kr.lunaf.cloudislands.paper.ProtectionController;
@@ -25,6 +29,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.WorldBorder;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -33,13 +38,19 @@ final class IslandEnvironmentCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final IslandEnvironmentUseCase environmentUseCase;
+    private final PlayerProfileQueryClient playerProfiles;
+    private final PlayerProfileCommandClient playerProfileCommands;
     private final ProtectionController protection;
     private final Runtime runtime;
+    private final Map<UUID, UUID> activeBorderRegions = new ConcurrentHashMap<>();
+    private final Set<UUID> managedBorders = ConcurrentHashMap.newKeySet();
 
     IslandEnvironmentCommandHandler(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.environmentUseCase = new IslandEnvironmentUseCase(coreApiClient);
+        this.playerProfiles = coreApiClient.playerProfiles();
+        this.playerProfileCommands = coreApiClient.playerProfileCommands();
         this.protection = protection;
         this.runtime = runtime;
     }
@@ -82,7 +93,7 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, message("input-border-visible-required", "경계 표시 여부를 입력해주세요. 예: /is border-visible on"));
                 return true;
             }
-            setBorderFlag(player, IslandFlag.BORDER_VISIBLE, toggleValue(args, 1), true);
+            setPersonalBorderVisibility(player, "true".equals(toggleValue(args, 1)));
             return true;
         }
         if (subcommand.equals("toggle") || subcommand.equals("토글")) {
@@ -187,6 +198,38 @@ final class IslandEnvironmentCommandHandler {
         return false;
     }
 
+    void onJoin(Player player) {
+        refreshBorderRegion(player, player.getLocation());
+    }
+
+    void onMove(Player player, Location from, Location to) {
+        if (to == null || (from.getWorld() == to.getWorld() && from.getBlockX() == to.getBlockX() && from.getBlockY() == to.getBlockY() && from.getBlockZ() == to.getBlockZ())) {
+            return;
+        }
+        refreshBorderRegion(player, to);
+    }
+
+    void onQuit(Player player) {
+        activeBorderRegions.remove(player.getUniqueId());
+        managedBorders.remove(player.getUniqueId());
+    }
+
+    private void refreshBorderRegion(Player player, Location location) {
+        Optional<IslandRegion> region = protection.regionAt(location.getBlock());
+        UUID nextRegion = region.map(IslandRegion::islandId).orElse(null);
+        UUID previous = nextRegion == null
+            ? activeBorderRegions.remove(player.getUniqueId())
+            : activeBorderRegions.put(player.getUniqueId(), nextRegion);
+        if (java.util.Objects.equals(previous, nextRegion)) {
+            return;
+        }
+        if (nextRegion == null) {
+            clearManagedBorder(player);
+        } else {
+            applyBorder(player, false);
+        }
+    }
+
     private void openBorderMenu(Player player) {
         runtime.currentIsland(player, message("border-menu-island-required", "섬 안에서만 보더 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandBorderMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
@@ -257,12 +300,12 @@ final class IslandEnvironmentCommandHandler {
             return;
         }
         if (mode.equals("hide") || mode.equals("hidden") || mode.equals("숨김")) {
-            setBorderFlag(player, IslandFlag.BORDER_VISIBLE, "false", true);
+            setPersonalBorderVisibility(player, false);
             return;
         }
         if (mode.equals("show") || mode.equals("visible") || mode.equals("표시")) {
             String value = args.length > 2 ? toggleValue(args, 2) : "true";
-            setBorderFlag(player, IslandFlag.BORDER_VISIBLE, value, true);
+            setPersonalBorderVisibility(player, "true".equals(value));
             return;
         }
         if (mode.equals("color") || mode.equals("색상")) {
@@ -311,54 +354,58 @@ final class IslandEnvironmentCommandHandler {
             return;
         }
         if (args.length > 2) {
-            setBorderFlag(player, IslandFlag.BORDER_VISIBLE, toggleValue(args, 2), true);
+            setPersonalBorderVisibility(player, "true".equals(toggleValue(args, 2)));
             return;
         }
         toggleBorderVisibility(player);
     }
 
     private void toggleStackedBlockVisibility(Player player) {
-        runtime.currentIsland(player, message("stacked-block-toggle-island-required", "섬 안에서만 스택 블록 표시를 전환할 수 있습니다.")).ifPresent(islandId -> {
-            environmentUseCase.limitViews(islandId)
-                .thenAccept(limits -> setStackedBlockVisibility(player, stackedBlockVisible(limits) ? "false" : "true"))
-                .exceptionally(error -> {
-                    runtime.message(player, message("stacked-block-toggle-failed", "스택 블록 표시를 전환하지 못했습니다."));
-                    return null;
-                });
-        });
+        playerProfiles.profile(player.getUniqueId())
+            .thenAccept(profile -> setStackedBlockVisibility(player, profile.blocksStackerEnabled() ? "false" : "true"))
+            .exceptionally(error -> {
+                runtime.message(player, message("stacked-block-toggle-failed", "스택 블록 표시를 전환하지 못했습니다."));
+                return null;
+            });
     }
 
     private void setStackedBlockVisibility(Player player, String value) {
-        runtime.currentIsland(player, message("stacked-block-set-island-required", "섬 안에서만 스택 블록 표시를 변경할 수 있습니다.")).ifPresent(islandId -> {
-            if (!runtime.allowed(player, IslandPermission.MANAGE_UPGRADES)) {
-                runtime.message(player, message("stacked-block-toggle-denied", "스택 블록 표시를 변경할 권한이 없습니다."));
-                return;
-            }
-            long numericValue = "false".equals(value) ? 0L : 1L;
-            environmentUseCase.setLimitAction(islandId, player.getUniqueId(), GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY, numericValue, runtime::mutate)
-                .thenAccept(result -> {
-                    if (!result.accepted()) {
-                        runtime.message(player, runtime.playerCodeMessage(result.code(), message("stacked-block-set-failed", "스택 블록 표시를 변경하지 못했습니다.")));
-                        return;
-                    }
-                    runtime.message(player, numericValue == 1L ? message("stacked-block-enabled", "스택 블록 표시를 켰습니다.") : message("stacked-block-disabled", "스택 블록 표시를 껐습니다."));
-                })
-                .exceptionally(error -> {
-                    runtime.message(player, message("stacked-block-set-failed", "스택 블록 표시를 변경하지 못했습니다."));
-                    return null;
-                });
-        });
+        boolean enabled = !"false".equals(value);
+        playerProfileCommands.setBlocksStackerEnabled(player.getUniqueId(), enabled)
+            .thenAccept(profile -> runtime.message(player, profile.blocksStackerEnabled()
+                ? message("stacked-block-enabled", "스택 블록 표시를 켰습니다.")
+                : message("stacked-block-disabled", "스택 블록 표시를 껐습니다.")))
+            .exceptionally(error -> {
+                runtime.message(player, message("stacked-block-set-failed", "스택 블록 표시를 변경하지 못했습니다."));
+                return null;
+            });
     }
 
     private void toggleBorderVisibility(Player player) {
-        runtime.currentIsland(player, message("border-toggle-island-required", "섬 안에서만 경계 표시를 전환할 수 있습니다.")).ifPresent(islandId -> {
-            environmentUseCase.flagValues(islandId)
-                .thenAccept(flags -> setBorderFlag(player, IslandFlag.BORDER_VISIBLE, IslandBorderRuntimePolicy.visible(flags) ? "false" : "true", true))
-                .exceptionally(error -> {
-                    runtime.message(player, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
-                    return null;
-                });
-        });
+        playerProfiles.profile(player.getUniqueId())
+            .thenAccept(profile -> setPersonalBorderVisibility(player, !profile.worldBorderEnabled()))
+            .exceptionally(error -> {
+                runtime.message(player, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
+                return null;
+            });
+    }
+
+    private void setPersonalBorderVisibility(Player player, boolean enabled) {
+        playerProfileCommands.setWorldBorderEnabled(player.getUniqueId(), enabled)
+            .thenAccept(profile -> {
+                runtime.message(player, profile.worldBorderEnabled()
+                    ? message("border-personal-enabled", "개인 섬 경계 표시를 켰습니다.")
+                    : message("border-personal-disabled", "개인 섬 경계 표시를 껐습니다."));
+                if (profile.worldBorderEnabled()) {
+                    applyBorder(player, false);
+                } else {
+                    PaperSchedulers.run(plugin, () -> clearManagedBorder(player));
+                }
+            })
+            .exceptionally(error -> {
+                runtime.message(player, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
+                return null;
+            });
     }
 
     private void setBorderFlag(Player player, IslandFlag flag, String value, boolean applyAfterSave) {
@@ -390,7 +437,9 @@ final class IslandEnvironmentCommandHandler {
             }
             CompletableFuture<IslandInfoView> info = environmentUseCase.islandInfoView(islandId);
             CompletableFuture<Map<IslandFlag, String>> flags = environmentUseCase.flagValues(islandId);
-            info.thenCombine(flags, (infoView, flagValues) -> new BorderView(infoView, flagValues, region.get()))
+            CompletableFuture<PlayerProfileView> profile = playerProfiles.profile(player.getUniqueId());
+            info.thenCombine(flags, (infoView, flagValues) -> new BorderView(infoView, flagValues, region.get(), null))
+                .thenCombine(profile, (view, playerProfile) -> new BorderView(view.info(), view.flags(), view.region(), playerProfile))
                 .thenAccept(view -> PaperSchedulers.run(plugin, () -> applyBorderSync(player, view, announce)))
                 .exceptionally(error -> {
                     runtime.message(player, message("border-apply-failed", "섬 경계 UI를 적용하지 못했습니다."));
@@ -401,8 +450,8 @@ final class IslandEnvironmentCommandHandler {
 
     private void applyBorderSync(Player player, BorderView view, boolean announce) {
         IslandBorderRuntimePolicy.BorderSettings settings = IslandBorderRuntimePolicy.settings(view.info().border(), view.flags(), view.region());
-        if (!settings.visible()) {
-            player.setWorldBorder(null);
+        if (!settings.visible() || view.profile() == null || !view.profile().worldBorderEnabled()) {
+            clearManagedBorder(player);
             if (announce) {
                 runtime.message(player, message("border-hidden", "섬 경계 UI를 숨겼습니다."));
             }
@@ -414,8 +463,15 @@ final class IslandEnvironmentCommandHandler {
         border.setWarningDistance(settings.warningDistance());
         border.setWarningTimeTicks(100);
         player.setWorldBorder(border);
+        managedBorders.add(player.getUniqueId());
         if (announce) {
             runtime.message(player, message("border-apply-prefix", "섬 경계 UI 적용: ") + message("border-color-label", "색상=") + settings.color() + message("border-policy-label", ", 정책=") + settings.policy() + message("border-size-label", ", 크기=") + view.info().border());
+        }
+    }
+
+    private void clearManagedBorder(Player player) {
+        if (managedBorders.remove(player.getUniqueId())) {
+            player.setWorldBorder(null);
         }
     }
 
@@ -499,14 +555,6 @@ final class IslandEnvironmentCommandHandler {
         return runtime.routeMessage(key, fallback);
     }
 
-    private static boolean stackedBlockVisible(List<LimitView> limits) {
-        return limits.stream()
-            .filter(limit -> GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY.equalsIgnoreCase(limit.key()))
-            .findFirst()
-            .map(limit -> limit.value() > 0L)
-            .orElse(true);
-    }
-
     private static String toggleValue(String[] args, int index) {
         if (args.length <= index) {
             return "true";
@@ -544,5 +592,5 @@ final class IslandEnvironmentCommandHandler {
         MessageRenderer messagesFor(Player player);
     }
 
-    private record BorderView(IslandInfoView info, Map<IslandFlag, String> flags, IslandRegion region) {}
+    private record BorderView(IslandInfoView info, Map<IslandFlag, String> flags, IslandRegion region, PlayerProfileView profile) {}
 }

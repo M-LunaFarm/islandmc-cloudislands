@@ -43,6 +43,8 @@ public final class PlayerProfileRoutes implements RouteGroup {
         registry.routePost("/v1/players/touch", this::touch);
         registry.routePost("/v1/players/locale", this::locale);
         registry.routePost("/v1/players/island-fly", this::islandFly);
+        registry.routePost("/v1/players/world-border", this::worldBorder);
+        registry.routePost("/v1/players/blocks-stacker", this::blocksStacker);
         registry.routePost("/v1/players/select-island", this::selectIsland);
         registry.routePost("/v1/admin/players/setisland", this::setIsland);
         registry.routePost("/v1/admin/players/clearisland", this::clearIsland);
@@ -107,6 +109,22 @@ public final class PlayerProfileRoutes implements RouteGroup {
         CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setIslandFlyEnabled(playerUuid, enabled)));
     }
 
+    private void worldBorder(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        boolean enabled = JsonFields.bool(body, "enabled", true);
+        audit.log(playerUuid, "PLAYER", "PLAYER_WORLD_BORDER_SET", "PLAYER", playerUuid.toString(), Map.of("enabled", Boolean.toString(enabled)));
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setWorldBorderEnabled(playerUuid, enabled)));
+    }
+
+    private void blocksStacker(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        boolean enabled = JsonFields.bool(body, "enabled", true);
+        audit.log(playerUuid, "PLAYER", "PLAYER_BLOCKS_STACKER_SET", "PLAYER", playerUuid.toString(), Map.of("enabled", Boolean.toString(enabled)));
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setBlocksStackerEnabled(playerUuid, enabled)));
+    }
+
     private void setIsland(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
@@ -147,6 +165,8 @@ public final class PlayerProfileRoutes implements RouteGroup {
         values.put("locale", profile.locale());
         values.put("disbandsRemaining", profile.disbandsRemaining());
         values.put("islandFlyEnabled", profile.islandFlyEnabled());
+        values.put("worldBorderEnabled", profile.worldBorderEnabled());
+        values.put("blocksStackerEnabled", profile.blocksStackerEnabled());
         return SimpleJson.stringify(values);
     }
 }

@@ -11,6 +11,8 @@ public interface PlayerProfileRepository {
     PlayerIslandProfile touch(UUID playerUuid, String lastName, String locale);
     PlayerIslandProfile setLocale(UUID playerUuid, String locale);
     PlayerIslandProfile setIslandFlyEnabled(UUID playerUuid, boolean enabled);
+    PlayerIslandProfile setWorldBorderEnabled(UUID playerUuid, boolean enabled);
+    PlayerIslandProfile setBlocksStackerEnabled(UUID playerUuid, boolean enabled);
     PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId);
     PlayerIslandProfile clearPrimaryIsland(UUID playerUuid);
     PlayerIslandProfile setDisbandsRemaining(UUID playerUuid, int value);

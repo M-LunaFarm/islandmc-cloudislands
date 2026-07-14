@@ -6,13 +6,10 @@ import com.velocitypowered.api.proxy.Player;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
-import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
-import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailView;
 import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailsView;
 import kr.lunaf.cloudislands.coreclient.ReviewListView;
@@ -214,29 +211,27 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
     }
 
     public void toggleBorder(Player player, UUID islandId, String requestedValue) {
-        withResolvedIsland(player, islandId, "경계를 변경할 섬을 찾지 못했습니다.", "섬 경계 표시를 전환하지 못했습니다.", resolved -> {
-            if (requestedValue != null && !requestedValue.isBlank()) {
-                sendTextResult(player, coreApiClient.environmentCommands().setFlag(resolved, player.getUniqueId(), IslandFlag.BORDER_VISIBLE, toggleValue(requestedValue)).thenApply(result -> islandMessages.environmentAction("섬 경계 표시 전환", result)), "섬 경계 표시를 전환하지 못했습니다.");
-                return;
-            }
-            sendTextResult(player, coreApiClient.environment().flagValues(resolved)
-                .thenCompose(flags -> coreApiClient.environmentCommands().setFlag(resolved, player.getUniqueId(), IslandFlag.BORDER_VISIBLE, borderVisible(flags) ? "false" : "true"))
-                .thenApply(result -> islandMessages.environmentAction("섬 경계 표시 전환", result)), "섬 경계 표시를 전환하지 못했습니다.");
-        });
+        if (requestedValue != null && !requestedValue.isBlank()) {
+            boolean enabled = "true".equals(toggleValue(requestedValue));
+            sendTextResult(player, coreApiClient.playerProfileCommands().setWorldBorderEnabled(player.getUniqueId(), enabled)
+                .thenApply(profile -> profile.worldBorderEnabled() ? "개인 섬 경계 표시를 켰습니다." : "개인 섬 경계 표시를 껐습니다."), "섬 경계 표시를 전환하지 못했습니다.");
+            return;
+        }
+        sendTextResult(player, coreApiClient.playerProfiles().profile(player.getUniqueId())
+            .thenCompose(profile -> coreApiClient.playerProfileCommands().setWorldBorderEnabled(player.getUniqueId(), !profile.worldBorderEnabled()))
+            .thenApply(profile -> profile.worldBorderEnabled() ? "개인 섬 경계 표시를 켰습니다." : "개인 섬 경계 표시를 껐습니다."), "섬 경계 표시를 전환하지 못했습니다.");
     }
 
     public void toggleStackedBlocks(Player player, UUID islandId, String requestedValue) {
-        withResolvedIsland(player, islandId, "스택 블록 표시를 변경할 섬을 찾지 못했습니다.", "스택 블록 표시를 전환하지 못했습니다.", resolved -> {
-            if (requestedValue != null && !requestedValue.isBlank()) {
-                long value = toggleValue(requestedValue).equals("true") ? 1L : 0L;
-                sendTextResult(player, coreApiClient.environmentCommands().setLimit(resolved, player.getUniqueId(), GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY, value).thenApply(islandMessages::limitResult), "스택 블록 표시를 전환하지 못했습니다.");
-                return;
-            }
-            sendTextResult(player, coreApiClient.environment().limitViews(resolved)
-                .thenCompose(limits -> coreApiClient.environmentCommands().setLimit(resolved, player.getUniqueId(), GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY,
-                    limits.stream().filter(limit -> GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY.equalsIgnoreCase(limit.key())).findFirst().map(limit -> limit.value() == 0L ? 1L : 0L).orElse(0L)))
-                .thenApply(islandMessages::limitResult), "스택 블록 표시를 전환하지 못했습니다.");
-        });
+        if (requestedValue != null && !requestedValue.isBlank()) {
+            boolean enabled = "true".equals(toggleValue(requestedValue));
+            sendTextResult(player, coreApiClient.playerProfileCommands().setBlocksStackerEnabled(player.getUniqueId(), enabled)
+                .thenApply(profile -> profile.blocksStackerEnabled() ? "개인 스택 블록 표시를 켰습니다." : "개인 스택 블록 표시를 껐습니다."), "스택 블록 표시를 전환하지 못했습니다.");
+            return;
+        }
+        sendTextResult(player, coreApiClient.playerProfiles().profile(player.getUniqueId())
+            .thenCompose(profile -> coreApiClient.playerProfileCommands().setBlocksStackerEnabled(player.getUniqueId(), !profile.blocksStackerEnabled()))
+            .thenApply(profile -> profile.blocksStackerEnabled() ? "개인 스택 블록 표시를 켰습니다." : "개인 스택 블록 표시를 껐습니다."), "스택 블록 표시를 전환하지 못했습니다.");
     }
 
     public void sendIslandChat(Player player, UUID islandId, String channel, String message) {
@@ -260,11 +255,6 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
 
     private void sendIslandChatResolved(Player player, UUID islandId, String channel, String message, String label) {
         sendTextResult(player, coreApiClient.communicationCommands().sendChat(islandId, player.getUniqueId(), channel, message).thenApply(result -> islandMessages.chatResult(label, result)), label + "을 전송하지 못했습니다.");
-    }
-
-    private static boolean borderVisible(Map<IslandFlag, String> flags) {
-        String value = flags.getOrDefault(IslandFlag.BORDER_VISIBLE, "true");
-        return !value.equalsIgnoreCase("false") && !value.equalsIgnoreCase("off") && !value.equals("0") && !value.equals("끄기");
     }
 
     private static String toggleValue(String value) {

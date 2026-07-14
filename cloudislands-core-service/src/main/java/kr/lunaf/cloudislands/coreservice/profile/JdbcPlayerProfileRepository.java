@@ -21,7 +21,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     public PlayerIslandProfile find(UUID playerUuid) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale, disbands_remaining, island_fly_enabled FROM player_profiles WHERE uuid = ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale, disbands_remaining, island_fly_enabled, world_border_enabled, blocks_stacker_enabled FROM player_profiles WHERE uuid = ?")) {
             statement.setObject(1, playerUuid);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? profile(rs) : new PlayerIslandProfile(playerUuid, "", Optional.empty(), Instant.EPOCH);
@@ -37,7 +37,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             return Optional.empty();
         }
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale, disbands_remaining, island_fly_enabled FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY CASE WHEN last_seen_at IS NULL THEN 1 ELSE 0 END, last_seen_at DESC LIMIT 1")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale, disbands_remaining, island_fly_enabled, world_border_enabled, blocks_stacker_enabled FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY CASE WHEN last_seen_at IS NULL THEN 1 ELSE 0 END, last_seen_at DESC LIMIT 1")) {
             statement.setString(1, lastName);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? Optional.of(profile(rs)) : Optional.empty();
@@ -99,6 +99,34 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             return find(playerUuid);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to set player island flight preference", exception);
+        }
+    }
+
+    @Override
+    public PlayerIslandProfile setWorldBorderEnabled(UUID playerUuid, boolean enabled) {
+        return setBooleanPreference(playerUuid, "world_border_enabled", enabled, "world border");
+    }
+
+    @Override
+    public PlayerIslandProfile setBlocksStackerEnabled(UUID playerUuid, boolean enabled) {
+        return setBooleanPreference(playerUuid, "blocks_stacker_enabled", enabled, "blocks stacker");
+    }
+
+    private PlayerIslandProfile setBooleanPreference(UUID playerUuid, String column, boolean enabled, String label) {
+        ensure(playerUuid);
+        String sql = switch (column) {
+            case "world_border_enabled" -> "UPDATE player_profiles SET world_border_enabled = ?, updated_at = now() WHERE uuid = ?";
+            case "blocks_stacker_enabled" -> "UPDATE player_profiles SET blocks_stacker_enabled = ?, updated_at = now() WHERE uuid = ?";
+            default -> throw new IllegalArgumentException("unsupported player preference column");
+        };
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setBoolean(1, enabled);
+            statement.setObject(2, playerUuid);
+            statement.executeUpdate();
+            return find(playerUuid);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to set player " + label + " preference", exception);
         }
     }
 
@@ -210,7 +238,9 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             rs.getTimestamp("last_seen_at") == null ? Instant.EPOCH : rs.getTimestamp("last_seen_at").toInstant(),
             rs.getString("locale"),
             rs.getInt("disbands_remaining"),
-            rs.getBoolean("island_fly_enabled")
+            rs.getBoolean("island_fly_enabled"),
+            rs.getBoolean("world_border_enabled"),
+            rs.getBoolean("blocks_stacker_enabled")
         );
     }
 }

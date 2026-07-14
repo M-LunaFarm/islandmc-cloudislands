@@ -1,12 +1,16 @@
 package kr.lunaf.cloudislands.coreclient;
 
-public record PlayerProfileView(String playerUuid, String lastName, String primaryIslandId, String lastSeenAt, String locale, int disbandsRemaining, boolean islandFlyEnabled) {
+public record PlayerProfileView(String playerUuid, String lastName, String primaryIslandId, String lastSeenAt, String locale, int disbandsRemaining, boolean islandFlyEnabled, boolean worldBorderEnabled, boolean blocksStackerEnabled) {
     public PlayerProfileView(String playerUuid, String lastName, String primaryIslandId, String lastSeenAt, String locale) {
         this(playerUuid, lastName, primaryIslandId, lastSeenAt, locale, 0);
     }
 
     public PlayerProfileView(String playerUuid, String lastName, String primaryIslandId, String lastSeenAt, String locale, int disbandsRemaining) {
         this(playerUuid, lastName, primaryIslandId, lastSeenAt, locale, disbandsRemaining, false);
+    }
+
+    public PlayerProfileView(String playerUuid, String lastName, String primaryIslandId, String lastSeenAt, String locale, int disbandsRemaining, boolean islandFlyEnabled) {
+        this(playerUuid, lastName, primaryIslandId, lastSeenAt, locale, disbandsRemaining, islandFlyEnabled, true, true);
     }
 
     public PlayerProfileView {

@@ -130,7 +130,8 @@ class IslandCommandCatalogTest {
         assertTrue(environmentHandler.contains("toggleBorderVisibility(player)"), "toggle border must flip current border visibility when no explicit value is supplied");
         assertTrue(environmentHandler.contains("toggleStackedBlockVisibility(player)"), "toggle blocks must flip Core-backed stacked block visibility when no explicit value is supplied");
         assertTrue(environmentHandler.contains("subcommand.equals(\"toggleblocks\")"), "official single-token toggleblocks must route without requiring migration mode");
-        assertTrue(environmentHandler.contains("GameplayParityPolicy.STACKED_BLOCKS_VISIBLE_LIMIT_KEY"), "toggle blocks must persist through the shared stacked block limit key");
+        assertTrue(environmentHandler.contains("setBlocksStackerEnabled(player.getUniqueId(), enabled)"), "toggle blocks must persist as a personal player-profile preference");
+        assertTrue(environmentHandler.contains("setWorldBorderEnabled(player.getUniqueId(), enabled)"), "toggle border must persist as a personal player-profile preference");
         assertTrue(chatHandler.contains("isTeamChatToggle(args[1])"), "teamchat toggle mode must be handled before message dispatch");
         assertTrue(chatHandler.contains("teamChatModes.toggleIsland(player.getUniqueId())"), "localchat without a message must toggle island-local mode");
         assertTrue(completer.contains("List.of(\"border\", \"border-visible\", \"blocks\", \"stacked-blocks\", \"경계\", \"경계표시\", \"블록\", \"스택블록\")"), "toggle completions must expose SS2-style border and blocks targets");
@@ -296,7 +297,7 @@ class IslandCommandCatalogTest {
         assertFalse(stacker.contains("IntegrationCapability.STATE_EXPORT"), "Probe-only stacker adapters must not claim state export");
         assertFalse(stacker.contains("IntegrationCapability.STATE_RESTORE"), "Probe-only stacker adapters must not claim state restore");
         assertTrue(registry.contains("\"RoseStacker\", \"WildStacker\", \"AdvancedSpawners\""), "Supported stacker plugins must be registered");
-        assertTrue(environmentHandler.contains("STACKED_BLOCKS_VISIBLE_LIMIT_KEY"), "Player stacker visibility must persist through Core environment limits");
+        assertTrue(environmentHandler.contains("setBlocksStackerEnabled"), "Player stacker visibility must persist through the Core player profile");
     }
 
     @Test

@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,12 +42,14 @@ class PlayerProfileRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(10, paths.size());
+        assertEquals(12, paths.size());
         assertTrue(paths.contains("/v1/admin/players/info"));
         assertTrue(paths.contains("/v1/players/info"));
         assertTrue(paths.contains("/v1/players/touch"));
         assertTrue(paths.contains("/v1/players/locale"));
         assertTrue(paths.contains("/v1/players/island-fly"));
+        assertTrue(paths.contains("/v1/players/world-border"));
+        assertTrue(paths.contains("/v1/players/blocks-stacker"));
         assertTrue(paths.contains("/v1/players/select-island"));
         assertTrue(paths.contains("/v1/admin/players/setisland"));
         assertTrue(paths.contains("/v1/admin/players/clearisland"));
@@ -65,6 +68,8 @@ class PlayerProfileRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/players/touch"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/locale"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/island-fly"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/world-border"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/blocks-stacker"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/select-island"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/setisland"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/clearisland"));
@@ -90,6 +95,8 @@ class PlayerProfileRoutesTest {
         assertEquals("en_us", SimpleJson.text(root.get("locale")));
         assertEquals(3L, SimpleJson.number(root.get("disbandsRemaining")));
         assertEquals(Boolean.TRUE, root.get("islandFlyEnabled"));
+        assertEquals(Boolean.TRUE, root.get("worldBorderEnabled"));
+        assertEquals(Boolean.TRUE, root.get("blocksStackerEnabled"));
     }
 
     @Test
@@ -107,6 +114,23 @@ class PlayerProfileRoutesTest {
         assertTrue(profiles.find(playerUuid).islandFlyEnabled());
         assertTrue(exchange.body().contains("\"islandFlyEnabled\":true"));
         assertTrue(audit.toJson().contains("PLAYER_ISLAND_FLY_SET"));
+    }
+
+    @Test
+    void persistsAndAuditsIndependentVisualPreferences() throws Exception {
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000306");
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new PlayerProfileRoutes(profiles, audit).register(handlers::put);
+
+        handlers.get("/v1/players/world-border").handle(new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"enabled\":false}"));
+        handlers.get("/v1/players/blocks-stacker").handle(new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"enabled\":false}"));
+
+        assertFalse(profiles.find(playerUuid).worldBorderEnabled());
+        assertFalse(profiles.find(playerUuid).blocksStackerEnabled());
+        assertTrue(audit.toJson().contains("PLAYER_WORLD_BORDER_SET"));
+        assertTrue(audit.toJson().contains("PLAYER_BLOCKS_STACKER_SET"));
     }
 
     @Test

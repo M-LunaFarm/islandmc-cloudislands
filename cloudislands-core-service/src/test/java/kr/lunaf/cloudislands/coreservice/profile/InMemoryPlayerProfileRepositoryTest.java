@@ -23,6 +23,20 @@ class InMemoryPlayerProfileRepositoryTest {
     }
 
     @Test
+    void preservesIndependentVisualPreferencesAcrossOtherProfileMutations() {
+        InMemoryPlayerProfileRepository repository = new InMemoryPlayerProfileRepository();
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-00000000009a");
+
+        assertFalse(repository.setWorldBorderEnabled(playerUuid, false).worldBorderEnabled());
+        assertFalse(repository.setBlocksStackerEnabled(playerUuid, false).blocksStackerEnabled());
+        var touched = repository.touch(playerUuid, "Viewer", "en_us");
+        assertFalse(touched.worldBorderEnabled());
+        assertFalse(touched.blocksStackerEnabled());
+        assertTrue(repository.setWorldBorderEnabled(playerUuid, true).worldBorderEnabled());
+        assertFalse(repository.find(playerUuid).blocksStackerEnabled());
+    }
+
+    @Test
     void partialUpdatesPreserveAtomicSaturatingDisbandQuota() throws Exception {
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-0000000000a1");
         InMemoryPlayerProfileRepository repository = new InMemoryPlayerProfileRepository();

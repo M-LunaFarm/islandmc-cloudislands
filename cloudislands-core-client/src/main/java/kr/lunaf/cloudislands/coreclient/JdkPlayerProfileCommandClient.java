@@ -46,6 +46,22 @@ final class JdkPlayerProfileCommandClient implements PlayerProfileCommandClient 
     }
 
     @Override
+    public CompletableFuture<PlayerProfileView> setWorldBorderEnabled(UUID playerUuid, boolean enabled) {
+        requireId(playerUuid, "playerUuid");
+        return core.postResultBody("/v1/players/world-border", CoreJsonPayload.object("playerUuid", playerUuid, "enabled", enabled))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
+    public CompletableFuture<PlayerProfileView> setBlocksStackerEnabled(UUID playerUuid, boolean enabled) {
+        requireId(playerUuid, "playerUuid");
+        return core.postResultBody("/v1/players/blocks-stacker", CoreJsonPayload.object("playerUuid", playerUuid, "enabled", enabled))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
     public CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId) {
         requireId(playerUuid, "playerUuid");
         requireId(islandId, "islandId");

@@ -15,7 +15,9 @@ final class CorePlayerProfileJson {
             CoreJson.text(root, "lastSeenAt"),
             CoreJson.text(root, "locale"),
             Math.toIntExact(CoreJson.number(root, "disbandsRemaining")),
-            CoreJson.bool(root, "islandFlyEnabled", false)
+            CoreJson.bool(root, "islandFlyEnabled", false),
+            CoreJson.bool(root, "worldBorderEnabled", true),
+            CoreJson.bool(root, "blocksStackerEnabled", true)
         );
     }
 

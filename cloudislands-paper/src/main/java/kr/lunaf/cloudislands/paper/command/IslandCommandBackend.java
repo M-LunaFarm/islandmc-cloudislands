@@ -174,6 +174,7 @@ final class IslandCommandBackend {
     }
 
     public void onQuit(PlayerQuitEvent event) {
+        environmentCommands.onQuit(event.getPlayer());
         routingCommands.clearRouteLoading(event.getPlayer());
         permissionCommands.clearPlayerState(event.getPlayer().getUniqueId());
         router.clearPlayerState(event.getPlayer());
@@ -181,9 +182,11 @@ final class IslandCommandBackend {
 
     public void onJoin(PlayerJoinEvent event) {
         warehouseCommands.resumePendingSettlement(event.getPlayer());
+        environmentCommands.onJoin(event.getPlayer());
     }
 
     public void onKick(PlayerKickEvent event) {
+        environmentCommands.onQuit(event.getPlayer());
         routingCommands.clearRouteLoading(event.getPlayer());
         permissionCommands.clearPlayerState(event.getPlayer().getUniqueId());
         router.clearPlayerState(event.getPlayer());
@@ -191,6 +194,7 @@ final class IslandCommandBackend {
 
     public void onMove(PlayerMoveEvent event) {
         router.cancelWarmupOnMove(event.getPlayer(), event.getFrom(), event.getTo());
+        environmentCommands.onMove(event.getPlayer(), event.getFrom(), event.getTo());
     }
 
     public void onDamage(EntityDamageByEntityEvent event) {

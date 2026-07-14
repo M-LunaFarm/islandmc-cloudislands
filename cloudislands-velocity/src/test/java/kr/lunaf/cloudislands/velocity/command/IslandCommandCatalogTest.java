@@ -193,8 +193,8 @@ class IslandCommandCatalogTest {
         assertTrue(dispatcher.contains("args[0].equalsIgnoreCase(\"toggle\")"), "Velocity must route SS2-style /is toggle commands");
         assertTrue(dispatcher.contains("playerProgression.toggleBorder"), "Velocity toggle border must use the typed progression action boundary");
         assertTrue(dispatcher.contains("playerProgression.showTeamChatMode"), "Velocity teamchat toggle must be handled before message dispatch");
-        assertTrue(actions.contains("coreApiClient.environmentCommands().setFlag(resolved, player.getUniqueId(), IslandFlag.BORDER_VISIBLE"), "Velocity toggle border must write the typed border-visible flag");
-        assertTrue(actions.contains("coreApiClient.environment().flagValues(resolved)"), "Velocity toggle border must read current flag state when no explicit value is supplied");
+        assertTrue(actions.contains("playerProfileCommands().setWorldBorderEnabled(player.getUniqueId(), enabled)"), "Velocity toggle border must write the personal player-profile preference");
+        assertTrue(actions.contains("playerProfiles().profile(player.getUniqueId())"), "Velocity toggle border must read the current player preference when no explicit value is supplied");
         assertTrue(suggestions.contains("List.of(\"border\", \"border-visible\", \"경계\", \"경계표시\")"), "Velocity toggle suggestions must expose border targets");
     }
 
