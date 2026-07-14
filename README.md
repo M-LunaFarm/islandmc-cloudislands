@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.216`
+Version: `1.1.217`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,9 +698,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.216`
+Current release: `v1.1.217`
 
-Built for the CloudIslands 1.1.216 baseline.
+Built for the CloudIslands 1.1.217 baseline.
+
+Release notes for `v1.1.217`:
+
+- Core-replayed permission and visit events now resolve live Paper players and
+  fire synchronous Bukkit events only on the global thread; failed handling no
+  longer advances the replay cursor or deduplication set before it can retry
+- worker-owned island create and delete completion events are explicitly
+  asynchronous like the surrounding activation lifecycle, preventing Paper
+  from rejecting a successful world mutation as an illegal async event call
+- shard activation preloads now resolve worlds and begin `getChunkAtAsync`
+  requests through the global scheduler instead of reading Bukkit world state
+  on the activation worker
+- shutdown snapshot coordination now drains queued world flushes while
+  `onDisable` owns the global thread, pre-flushes every active world, and then
+  waits only for bounded background export; this removes the main/worker
+  deadlock that could exhaust the shutdown-save deadline and lose the final
+  snapshot
 
 Release notes for `v1.1.216`:
 
@@ -3563,7 +3580,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.216`.
+Current read: production-readiness baseline `v1.1.217`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
