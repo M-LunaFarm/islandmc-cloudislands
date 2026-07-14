@@ -63,6 +63,10 @@ hooks:
       enabled: true
       category: custom-items
       runtime-authority-required: true
+    CraftEngine:
+      enabled: true
+      category: custom-items
+      runtime-authority-required: true
     RoseStacker:
       enabled: true
       category: stacker

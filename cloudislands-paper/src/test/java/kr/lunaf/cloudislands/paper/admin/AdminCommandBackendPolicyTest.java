@@ -739,6 +739,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(plugin.contains("ItemsAdder"), "ItemsAdder must be declared as a soft dependency");
         assertTrue(plugin.contains("Oraxen"), "Oraxen must be declared as a soft dependency");
         assertTrue(plugin.contains("Nexo"), "Nexo must be declared as a soft dependency");
+        assertTrue(plugin.contains("CraftEngine"), "CraftEngine must be declared as a soft dependency");
         assertTrue(plugin.contains("RoseStacker"), "RoseStacker must be declared as a soft dependency");
         assertTrue(plugin.contains("AdvancedSpawners"), "AdvancedSpawners must be declared as a soft dependency");
         assertTrue(plugin.contains("Plan"), "Plan must be declared as a soft dependency");

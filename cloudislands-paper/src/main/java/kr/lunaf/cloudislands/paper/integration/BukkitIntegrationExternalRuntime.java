@@ -77,6 +77,12 @@ final class BukkitIntegrationExternalRuntime implements IntegrationExternalRunti
             case "ItemsAdder" -> details.put("apiProbe.class.CustomBlock", Boolean.toString(hasClass("dev.lone.itemsadder.api.CustomBlock")));
             case "Oraxen" -> details.put("apiProbe.class.OraxenItems", Boolean.toString(hasClass("io.th0rgal.oraxen.api.OraxenItems")));
             case "Nexo" -> details.put("apiProbe.class.NexoItems", Boolean.toString(hasClass("com.nexomc.nexo.api.NexoItems")));
+            case "CraftEngine" -> {
+                details.put("apiProbe.class.CraftEngineBlocks", Boolean.toString(hasClass("net.momirealms.craftengine.bukkit.api.CraftEngineBlocks")));
+                details.put("apiProbe.method.CraftEngineBlocks.getCustomBlockState", Boolean.toString(hasStaticMethod(
+                    "net.momirealms.craftengine.bukkit.api.CraftEngineBlocks", "getCustomBlockState", org.bukkit.block.Block.class
+                )));
+            }
             case "Slimefun" -> {
                 details.put("apiProbe.class.BlockStorage", Boolean.toString(hasClass("me.mrCookieSlime.Slimefun.api.BlockStorage")));
                 details.put("apiProbe.method.BlockStorage.checkID", Boolean.toString(hasStaticMethod(
@@ -116,6 +122,9 @@ final class BukkitIntegrationExternalRuntime implements IntegrationExternalRunti
             case "ItemsAdder" -> bool(details, "apiProbe.class.CustomBlock");
             case "Oraxen" -> bool(details, "apiProbe.class.OraxenItems");
             case "Nexo" -> bool(details, "apiProbe.class.NexoItems");
+            case "CraftEngine" ->
+                bool(details, "apiProbe.class.CraftEngineBlocks")
+                    && bool(details, "apiProbe.method.CraftEngineBlocks.getCustomBlockState");
             case "Slimefun" ->
                 bool(details, "apiProbe.class.BlockStorage")
                     && bool(details, "apiProbe.method.BlockStorage.checkID");

@@ -208,7 +208,7 @@ public final class PaperIntegrationRegistry {
             case "PlaceholderAPI" -> new PlaceholderApiIntegration(externalRuntime);
             case "CoreProtect" -> new CoreProtectIntegration(externalRuntime);
             case "WorldEdit", "FastAsyncWorldEdit" -> new WorldEditIntegration(pluginName, externalRuntime);
-            case "ItemsAdder", "Oraxen", "Nexo", "Slimefun" -> new CustomItemIntegration(pluginName, externalRuntime);
+            case "ItemsAdder", "Oraxen", "Nexo", "CraftEngine", "Slimefun" -> new CustomItemIntegration(pluginName, externalRuntime);
             case "RoseStacker", "WildStacker", "AdvancedSpawners" -> new StackerIntegration(pluginName, externalRuntime);
             case "LuckPerms" -> new LuckPermsIntegration(externalRuntime);
             case "Plan" -> new PlanIntegration(externalRuntime);

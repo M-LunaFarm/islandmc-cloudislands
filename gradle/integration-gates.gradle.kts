@@ -23,6 +23,7 @@ tasks.register("verifyIntegrationMatrix") {
             "ItemsAdder",
             "Oraxen",
             "Nexo",
+            "CraftEngine",
             "RoseStacker",
             "WildStacker",
             "AdvancedSpawners",
@@ -98,12 +99,11 @@ tasks.register("verifyIntegrationMatrix") {
         val reportsDir = integrationJsonReport.get().asFile.parentFile
         reportsDir.mkdirs()
         val diagnosticPlugins = setOf(
-            "LuckPerms", "CoreProtect", "WorldEdit", "FastAsyncWorldEdit",
-            "Slimefun"
+            "LuckPerms", "CoreProtect", "WorldEdit", "FastAsyncWorldEdit"
         )
         val runtimeServicePlugins = setOf(
             "Vault", "PlaceholderAPI", "Plan", "SuperVanish", "PremiumVanish", "CMI",
-            "ItemsAdder", "Oraxen", "Nexo", "RoseStacker", "WildStacker", "AdvancedSpawners"
+            "ItemsAdder", "Oraxen", "Nexo", "CraftEngine", "Slimefun", "RoseStacker", "WildStacker", "AdvancedSpawners"
         )
         fun jsonEscape(value: String): String = buildString {
             value.forEach { character ->
@@ -260,6 +260,7 @@ tasks.register("verifyIntegrationRuntimeSmoke") {
             if (!visibilityRuntimeSource.contains("viewer.canSee(target)") || !visibilityRuntimeSource.contains("getMetadata(\"vanished\")")) add("Vanish runtime must retain Bukkit visibility and metadata fallbacks")
             if (!visibilityRuntimeTests.contains("playerTargetCompletionOmitsTargetsHiddenByBukkitVisibility")) add("Vanish-safe player target completion test is missing")
             if (!customBlockRuntimeSource.contains("CustomBlock") || !customBlockRuntimeSource.contains("OraxenBlocks") || !customBlockRuntimeSource.contains("NexoBlocks")) add("Custom block runtime must support ItemsAdder, Oraxen, and Nexo lookup APIs")
+            if (!customBlockRuntimeSource.contains("CraftEngineBlocks") || !customBlockRuntimeSource.contains("getCustomBlockState")) add("Custom block runtime must support CraftEngine's stable block lookup API")
             if (!customBlockRuntimeSource.contains("OraxenFurniture") || !customBlockRuntimeSource.contains("NexoFurniture")) add("Custom furniture must participate in island value reconciliation")
             if (!customBlockRuntimeTests.contains("bothIncrementalAndReconciliationPathsUseCustomBlockKeys")) add("Custom block delta and rescan accounting policy test is missing")
             if (!stackAmountRuntimeSource.contains("RoseStackerAPI") || !stackAmountRuntimeSource.contains("getStackedBlocks") || !stackAmountRuntimeSource.contains("getStackedEntities")) add("RoseStacker logical block and entity amounts must feed reconciliation")

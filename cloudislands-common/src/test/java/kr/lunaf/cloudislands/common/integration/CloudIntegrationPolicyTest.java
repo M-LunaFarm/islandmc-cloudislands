@@ -14,6 +14,7 @@ class CloudIntegrationPolicyTest {
         assertTrue(CloudIntegrationPolicy.knownPlugin("FastAsyncWorldEdit"));
         assertTrue(CloudIntegrationPolicy.knownPlugin("LuckPerms"));
         assertTrue(CloudIntegrationPolicy.knownPlugin("Plan"));
+        assertTrue(CloudIntegrationPolicy.knownPlugin("CraftEngine"));
         assertTrue(CloudIntegrationPolicy.knownPlugin("SuperVanish"));
         assertTrue(CloudIntegrationPolicy.knownPlugin("SlimeWorldManager"));
         assertFalse(CloudIntegrationPolicy.knownPlugin("UnknownSkyblockHook"));
@@ -28,6 +29,7 @@ class CloudIntegrationPolicyTest {
         assertEquals("audit", CloudIntegrationPolicy.category("CoreProtect"));
         assertEquals("world-edit", CloudIntegrationPolicy.category("WorldEdit"));
         assertEquals("custom-items", CloudIntegrationPolicy.category("ItemsAdder"));
+        assertEquals("custom-items", CloudIntegrationPolicy.category("CraftEngine"));
         assertEquals("stacker", CloudIntegrationPolicy.category("RoseStacker"));
         assertEquals("economy", CloudIntegrationPolicy.category("Vault"));
         assertEquals("presence", CloudIntegrationPolicy.category("SuperVanish"));

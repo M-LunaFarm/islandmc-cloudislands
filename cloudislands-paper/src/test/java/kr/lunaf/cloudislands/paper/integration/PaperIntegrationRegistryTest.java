@@ -88,12 +88,15 @@ class PaperIntegrationRegistryTest {
     }
 
     @Test
-    void slimefunAndStackersExposeRealRuntimeServices() {
+    void craftEngineSlimefunAndStackersExposeRealRuntimeServices() {
+        CustomItemIntegration craftEngine = new CustomItemIntegration("CraftEngine", acceptingRuntime());
         CustomItemIntegration slimefun = new CustomItemIntegration("Slimefun", acceptingRuntime());
         StackerIntegration roseStacker = new StackerIntegration("RoseStacker", acceptingRuntime());
 
+        assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION, IntegrationCapability.RUNTIME_SERVICE), craftEngine.capabilities());
         assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION, IntegrationCapability.RUNTIME_SERVICE), slimefun.capabilities());
         assertEquals(Set.of(IntegrationCapability.DETECT, IntegrationCapability.VALIDATE_VERSION, IntegrationCapability.RUNTIME_SERVICE), roseStacker.capabilities());
+        assertEquals(IntegrationSupportState.ACTIVE, PaperIntegrationRegistry.adapterState(craftEngine, true, IntegrationSupportState.API_COMPATIBLE));
         assertEquals(IntegrationSupportState.ACTIVE, PaperIntegrationRegistry.adapterState(slimefun, true, IntegrationSupportState.API_COMPATIBLE));
         assertEquals(IntegrationResult.Status.SKIPPED, roseStacker.exportState(context()).status());
         assertEquals(IntegrationResult.Status.SKIPPED, roseStacker.restoreState(context()).status());
@@ -196,6 +199,8 @@ class PaperIntegrationRegistryTest {
         assertTrue(runtime.contains("apiProbe.class.WorldEdit"));
         assertTrue(runtime.contains("apiProbe.class.BlockStorage"));
         assertTrue(runtime.contains("apiProbe.method.BlockStorage.checkID"));
+        assertTrue(runtime.contains("apiProbe.class.CraftEngineBlocks"));
+        assertTrue(runtime.contains("apiProbe.method.CraftEngineBlocks.getCustomBlockState"));
         assertTrue(runtime.contains("bukkitService(\"net.luckperms.api.LuckPerms\")"));
         assertTrue(runtime.contains("IntegrationResult.skipped(pluginName + \" Bukkit adapter verified API"));
         assertFalse(runtime.contains("IntegrationResult.success(pluginName + \" Bukkit adapter accepted"));

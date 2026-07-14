@@ -50,6 +50,20 @@ class CustomBlockKeyServiceTest {
         assertTrue(CustomBlockKeyService.supportedPlugins().contains("Slimefun"));
     }
 
+    @Test
+    void craftEngineBlockStateIdsUseTheStableApiWithoutSyntheticLocations() {
+        CustomBlockKeyService.Adapter craftEngine = CustomBlockKeyService.craftEngineAdapter();
+        assertTrue(craftEngine != null);
+        CustomBlockKeyService service = new CustomBlockKeyService(List.of(craftEngine));
+
+        assertEquals("craftengine:custom:machine", service.blockKey(block(Material.NOTE_BLOCK)));
+        assertEquals("minecraft:stone", service.blockKey(block(Material.STONE)));
+        assertEquals("minecraft:barrier", service.blockKey(block(Material.BARRIER)));
+        assertTrue(service.supports("CraftEngine"));
+        assertTrue(service.runtimeDetails("CraftEngine").get("adapter").contains("stable-block-api"));
+        assertTrue(CustomBlockKeyService.supportedPlugins().contains("CraftEngine"));
+    }
+
     private static Block block(Material material) {
         return (Block) Proxy.newProxyInstance(Block.class.getClassLoader(), new Class<?>[]{Block.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getType" -> material;

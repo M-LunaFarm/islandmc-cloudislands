@@ -13,7 +13,7 @@ import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 
 public final class CustomBlockKeyService {
-    private static final List<String> SUPPORTED_PLUGINS = List.of("ItemsAdder", "Oraxen", "Nexo", "Slimefun");
+    private static final List<String> SUPPORTED_PLUGINS = List.of("ItemsAdder", "Oraxen", "Nexo", "CraftEngine", "Slimefun");
 
     private final List<Adapter> adapters;
     private final Map<String, Adapter> adaptersByPlugin;
@@ -44,6 +44,12 @@ public final class CustomBlockKeyService {
         }
         if (enabled(server, "Nexo")) {
             Adapter adapter = nexoAdapter();
+            if (adapter != null) {
+                adapters.add(adapter);
+            }
+        }
+        if (enabled(server, "CraftEngine")) {
+            Adapter adapter = craftEngineAdapter();
             if (adapter != null) {
                 adapters.add(adapter);
             }
@@ -141,6 +147,20 @@ public final class CustomBlockKeyService {
         return blocks == null ? null : new Adapter("Nexo", blocks, furniture, "nexo-block-and-furniture-api");
     }
 
+    static Adapter craftEngineAdapter() {
+        Function<Block, String> blocks = reflectivePathResolver(
+            "net.momirealms.craftengine.bukkit.api.CraftEngineBlocks",
+            "getCustomBlockState",
+            Block.class,
+            Function.identity(),
+            "owner",
+            "value",
+            "id",
+            "asString"
+        );
+        return blocks == null ? null : new Adapter("CraftEngine", blocks, null, "craftengine-stable-block-api");
+    }
+
     static Adapter slimefunAdapter() {
         Function<Block, String> blocks = reflectiveStringResolver(
             "me.mrCookieSlime.Slimefun.api.BlockStorage", "checkID", Block.class, Function.identity()
@@ -188,6 +208,36 @@ public final class CustomBlockKeyService {
             return source -> {
                 try {
                     Object value = lookup.invoke(null, argumentMapper.apply(source));
+                    return value == null ? "" : value.toString();
+                } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
+                    return "";
+                }
+            };
+        } catch (ClassNotFoundException | NoSuchMethodException | RuntimeException | LinkageError ignored) {
+            return null;
+        }
+    }
+
+    private static <S, A> Function<S, String> reflectivePathResolver(
+        String ownerClassName,
+        String lookupMethodName,
+        Class<A> argumentType,
+        Function<S, A> argumentMapper,
+        String... path
+    ) {
+        try {
+            Class<?> owner = Class.forName(ownerClassName);
+            Method lookup = owner.getMethod(lookupMethodName, argumentType);
+            List<String> methodPath = List.of(path);
+            return source -> {
+                try {
+                    Object value = lookup.invoke(null, argumentMapper.apply(source));
+                    for (String methodName : methodPath) {
+                        if (value == null) {
+                            return "";
+                        }
+                        value = value.getClass().getMethod(methodName).invoke(value);
+                    }
                     return value == null ? "" : value.toString();
                 } catch (ReflectiveOperationException | RuntimeException | LinkageError ignored) {
                     return "";
