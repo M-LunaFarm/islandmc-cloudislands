@@ -13,7 +13,7 @@ public final class ShardCellTransferPlanner {
 
     public CellPlacementPlan placement(BundleRestorePlan restorePlan) {
         Bounds bounds = bounds(restorePlan.originX(), restorePlan.originZ());
-        return new CellPlacementPlan(restorePlan.islandId(), restorePlan.worldName(), restorePlan.originX(), restorePlan.originZ(), restorePlan.chunksDirectory(), bounds.minChunkX(), bounds.maxChunkX(), bounds.minChunkZ(), bounds.maxChunkZ());
+        return new CellPlacementPlan(restorePlan.islandId(), restorePlan.worldName(), restorePlan.originX(), restorePlan.originZ(), restorePlan.chunksDirectory(), bounds.minChunkX(), bounds.maxChunkX(), bounds.minChunkZ(), bounds.maxChunkZ(), restorePlan.sourceOriginX(), restorePlan.sourceOriginZ(), restorePlan.sourceOriginKnown());
     }
 
     public CellExtractionPlan extraction(UUID islandId, String worldName, int originX, int originZ, Path targetChunksDirectory) {

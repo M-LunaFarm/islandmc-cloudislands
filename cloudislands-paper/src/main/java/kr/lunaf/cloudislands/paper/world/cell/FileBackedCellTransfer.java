@@ -21,7 +21,7 @@ public final class FileBackedCellTransfer {
     public void place(CellPlacementPlan plan) throws IOException {
         Path worldRegion = worldRegion(plan.worldName());
         Files.createDirectories(worldRegion);
-        replaceRegionFiles(plan.chunksDirectory(), worldRegion, plan.minChunkX(), plan.maxChunkX(), plan.minChunkZ(), plan.maxChunkZ());
+        replaceRegionFiles(plan, worldRegion);
     }
 
     public void extract(CellExtractionPlan plan) throws IOException {
@@ -71,12 +71,11 @@ public final class FileBackedCellTransfer {
         }
     }
 
-    private void replaceRegionFiles(Path source, Path target, int minChunkX, int maxChunkX, int minChunkZ, int maxChunkZ) throws IOException {
-        int minRegionX = Math.floorDiv(minChunkX, 32);
-        int maxRegionX = Math.floorDiv(maxChunkX, 32);
-        int minRegionZ = Math.floorDiv(minChunkZ, 32);
-        int maxRegionZ = Math.floorDiv(maxChunkZ, 32);
-        Map<RegionCoordinate, Path> sourceFiles = sourceRegionFiles(source, minRegionX, maxRegionX, minRegionZ, maxRegionZ);
+    private void replaceRegionFiles(CellPlacementPlan plan, Path target) throws IOException {
+        int minRegionX = Math.floorDiv(plan.minChunkX(), 32);
+        int maxRegionX = Math.floorDiv(plan.maxChunkX(), 32);
+        int minRegionZ = Math.floorDiv(plan.minChunkZ(), 32);
+        int maxRegionZ = Math.floorDiv(plan.maxChunkZ(), 32);
         Path normalizedTarget = target.toAbsolutePath().normalize();
         Path transactionRoot = normalizedTarget.getParent().resolve(".cloudislands-cell-place-" + UUID.randomUUID());
         Path staged = transactionRoot.resolve("staged");
@@ -85,8 +84,17 @@ public final class FileBackedCellTransfer {
         Files.createDirectories(staged);
         Files.createDirectories(backup);
         try {
+            Path source = plan.chunksDirectory();
+            if (plan.sourceOriginKnown() && (plan.sourceOriginX() != plan.originX() || plan.sourceOriginZ() != plan.originZ())) {
+                new AnvilRegionRelocator().relocate(source, staged, plan.originX() - plan.sourceOriginX(), plan.originZ() - plan.sourceOriginZ());
+                source = staged;
+            }
+            Map<RegionCoordinate, Path> sourceFiles = sourceRegionFiles(source, minRegionX, maxRegionX, minRegionZ, maxRegionZ);
             for (Map.Entry<RegionCoordinate, Path> entry : sourceFiles.entrySet()) {
-                Files.copy(entry.getValue(), staged.resolve(entry.getKey().fileName()), StandardCopyOption.REPLACE_EXISTING);
+                Path destination = staged.resolve(entry.getKey().fileName());
+                if (!entry.getValue().equals(destination)) {
+                    Files.copy(entry.getValue(), destination, StandardCopyOption.REPLACE_EXISTING);
+                }
             }
             for (int regionX = minRegionX; regionX <= maxRegionX; regionX++) {
                 for (int regionZ = minRegionZ; regionZ <= maxRegionZ; regionZ++) {

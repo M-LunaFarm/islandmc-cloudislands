@@ -15,6 +15,7 @@ dependencies {
     implementation(project(":cloudislands-core-client"))
     implementation(project(":cloudislands-storage"))
     implementation(libs.querz.nbt)
+    implementation(libs.lz4.java)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.paper.api)
     testImplementation(libs.plan.api)

@@ -16,6 +16,7 @@ sqlite = "3.46.1.0"
 hikaricp = "5.1.0"
 jackson = "2.22.0"
 querz-nbt = "6.2.1"
+lz4-java = "1.8.0"
 
 [libraries]
 paper-api = { module = "io.papermc.paper:paper-api", version.ref = "paper-api" }
@@ -32,6 +33,7 @@ sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite" }
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 jackson-core = { module = "com.fasterxml.jackson.core:jackson-core", version.ref = "jackson" }
 querz-nbt = { module = "io.github.canary-prism:querz-nbt", version.ref = "querz-nbt" }
+lz4-java = { module = "org.lz4:lz4-java", version.ref = "lz4-java" }
 
 [plugins]
 shadow = { id = "com.gradleup.shadow", version.ref = "shadow" }
