@@ -57,6 +57,7 @@ class IslandLifecycleWorkflowRestoreTest {
         assertEquals("ci_shard_002", restore.payload().get("worldName"));
         assertEquals("7", restore.payload().get("cellX"));
         assertEquals("8", restore.payload().get("cellZ"));
+        assertEquals("300", restore.payload().get("islandSize"));
         assertEquals(1L, events.countByType(CloudIslandEventType.ISLAND_RESTORE_REQUESTED.name()));
         String eventJson = events.toJson();
         assertEquals(true, eventJson.contains("\"preRestoreSnapshotRequired\":\"true\""));
@@ -88,6 +89,7 @@ class IslandLifecycleWorkflowRestoreTest {
         assertEquals("ci_shard_002", reset.payload().get("worldName"));
         assertEquals("7", reset.payload().get("cellX"));
         assertEquals("8", reset.payload().get("cellZ"));
+        assertEquals("300", reset.payload().get("islandSize"));
     }
 
     @Test

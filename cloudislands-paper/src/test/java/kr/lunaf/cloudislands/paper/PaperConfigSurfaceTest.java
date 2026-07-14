@@ -131,6 +131,7 @@ class PaperConfigSurfaceTest {
         assertTrue(routeSessionFactory.contains("requireProxySourceAllowlist"), "route-session factory must own proxy allowlist policy wiring");
         assertTrue(storageFactory.contains("createMetered"), "storage factory must own metered storage composition");
         assertTrue(storageFactory.contains("new MeteredIslandStorage"), "storage factory must wrap configured storage with metrics");
+        assertTrue(islandNodeRuntime.contains("new IslandSizeRuntimeListener"), "island node runtime must synchronize live size changes into active bounds");
         assertFalse(bootstrap.contains("new MeteredIslandStorage"), "Paper bootstrap must not compose storage metrics directly");
         assertTrue(snapshot.contains("record PaperRuntimeConfig"), "Paper runtime config must be immutable snapshot data");
         assertTrue(snapshot.contains("ConfigSnapshot sourceConfig"), "Paper runtime config must retain the effective Config v2 snapshot");

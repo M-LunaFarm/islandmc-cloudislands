@@ -131,6 +131,7 @@ class RoutingOrchestratorActivationTest {
         assertEquals(ISLAND, activation.islandId());
         assertEquals("island-2", activation.targetNode());
         assertEquals("8", activation.payload().get("fencingToken"));
+        assertEquals("300", activation.payload().get("islandSize"));
     }
 
     @Test

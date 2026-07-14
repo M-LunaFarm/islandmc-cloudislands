@@ -87,6 +87,7 @@ class IslandRuntimeStatePolicyTest {
         assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.DELETING, IslandState.DELETED));
         assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.INACTIVE_READY, IslandState.DELETE_REQUESTED));
         assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.INACTIVE_READY, IslandState.DEACTIVATING));
+        assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.DEACTIVATING, IslandState.ACTIVATING));
         assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.ACTIVE, IslandState.ACTIVATING));
         assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.ACTIVE, IslandState.RESTORING));
         assertTrue(IslandRuntimeStatePolicy.transitionAllowed(IslandState.ACTIVATING, IslandState.RESTORING));

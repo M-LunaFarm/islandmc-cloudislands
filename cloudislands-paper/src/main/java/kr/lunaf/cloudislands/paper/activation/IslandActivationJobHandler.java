@@ -76,6 +76,7 @@ public final class IslandActivationJobHandler {
         String placementSource = placementSource(job);
         try {
             IslandBundleManifest manifest = manifestFor(job, islandId);
+            shardWorldManager.requireSupportedIslandSize(manifest.size());
             IslandSaveService.SaveResult preMutationSnapshot = snapshotBeforeMutation(job);
             cell = cellFor(job, islandId);
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
@@ -100,6 +101,11 @@ public final class IslandActivationJobHandler {
             ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), Instant.now());
             integrationHooks.onIslandActivated(islandId, activeIsland).throwIfFailed();
             return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preMutationSnapshot == null ? 0L : preMutationSnapshot.snapshotNo(), preMutationSnapshot == null ? "" : preMutationSnapshot.checksum(), preMutationSnapshot == null ? 0L : preMutationSnapshot.sizeBytes(), preMutationReason(job), creationSnapshot == null ? 0L : creationSnapshot.snapshotNo(), creationSnapshot == null ? "" : creationSnapshot.checksum(), creationSnapshot == null ? 0L : creationSnapshot.sizeBytes(), placementSource);
+        } catch (ShardCellGeometryPolicy.UnsafeGeometryException exception) {
+            if (cell != null && !hadCellBeforeActivation) {
+                shardWorldManager.release(islandId);
+            }
+            return new ActivationResult(false, "ISLAND_SIZE_EXCEEDS_CELL", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L, placementSource);
         } catch (Exception exception) {
             if (cell != null && !hadCellBeforeActivation) {
                 shardWorldManager.release(islandId);
@@ -110,7 +116,11 @@ public final class IslandActivationJobHandler {
 
     private IslandBundleManifest manifestFor(IslandJob job, UUID islandId) throws IOException {
         try {
-            return storage.readManifest(islandId);
+            IslandBundleManifest manifest = storage.readManifest(islandId);
+            int authoritativeSize = intValue(job.payload().get("islandSize"), 0);
+            return authoritativeSize > 0 && authoritativeSize != manifest.size()
+                ? manifest.withSize(authoritativeSize)
+                : manifest;
         } catch (IOException exception) {
             if (job.type() != IslandJobType.CREATE_ISLAND) {
                 throw exception;

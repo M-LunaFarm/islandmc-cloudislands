@@ -52,6 +52,18 @@ class RegionIndexTest {
     }
 
     @Test
+    void replacingIslandMovesEveryChunkReferenceWithoutDuplicates() {
+        RegionIndex index = new RegionIndex();
+        index.add(new IslandRegion(ISLAND, "ci_shard_001", -32, 32, -32, 32, 0, 0));
+
+        index.replaceIsland(new IslandRegion(ISLAND, "ci_shard_001", 992, 1056, 992, 1056, 1, 1));
+
+        assertTrue(index.find("ci_shard_001", 0, 0).isEmpty());
+        assertEquals(ISLAND, index.find("ci_shard_001", 1024, 1024).orElseThrow().islandId());
+        assertEquals(1, index.indexedIslandCount());
+    }
+
+    @Test
     void buildsProtectionRegionFromCurrentRuntimePlacement() {
         PortableIslandCoordinateMapper.RuntimePlacement source =
                 new PortableIslandCoordinateMapper.RuntimePlacement("island-1", "ci_shard_001", 2, 0, 1024);

@@ -394,6 +394,42 @@ class JobCompletionServiceTest {
         assertTrue(activationLock.acquire(ISLAND, "restore").isPresent());
     }
 
+    @Test
+    void migrationTargetActivationRetainsAuthoritativeIslandSize() {
+        InMemoryIslandRuntimeRepository runtimes = new InMemoryIslandRuntimeRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryGlobalEventPublisher events = new InMemoryGlobalEventPublisher();
+        InMemoryIslandSnapshotRepository snapshots = new InMemoryIslandSnapshotRepository();
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        islands.createOwnedIsland(ISLAND, OWNER, "default", "migration target");
+        runtimes.markActive(ISLAND, "island-1", "ci_shard_001", 4, 5, 9L);
+        runtimes.markMigrating(ISLAND, "island-2");
+        islands.setState(ISLAND, IslandState.DEACTIVATING);
+        JobCompletionService service = new JobCompletionService(
+            runtimes,
+            events,
+            snapshots,
+            new InMemoryRouteTicketStore(Clock.fixed(NOW, ZoneOffset.UTC)),
+            jobs,
+            islands,
+            null
+        );
+
+        service.completed(job(IslandJobType.DEACTIVATE_ISLAND, "island-1", Map.of(
+            "fencingToken", "10",
+            "migrationFencingToken", "10",
+            "migrateTargetNode", "island-2",
+            "worldName", "ci_shard_001",
+            "cellX", "4",
+            "cellZ", "5",
+            "islandSize", "400"
+        )));
+
+        IslandJob migration = jobs.snapshot().getFirst();
+        assertEquals(IslandJobType.MIGRATE_ISLAND, migration.type());
+        assertEquals("400", migration.payload().get("islandSize"));
+    }
+
     private JobCompletionService service(InMemoryIslandRuntimeRepository runtimes, GlobalEventPublisher events, InMemoryIslandSnapshotRepository snapshots) {
         return new JobCompletionService(
             runtimes,

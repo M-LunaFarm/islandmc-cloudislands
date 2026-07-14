@@ -46,7 +46,7 @@ class IslandActivationJobHandlerPolicyTest {
 
     @Test
     void templateBundleCreateFailsClosedWhenRestoreOrPlacementIsUnavailable() throws Exception {
-        ShardWorldManager shardWorldManager = new ShardWorldManager("ci_shard_", 1, 64);
+        ShardWorldManager shardWorldManager = new ShardWorldManager("ci_shard_", 1, 1024);
         IslandActivationJobHandler handler = new IslandActivationJobHandler(
             new TemplateBundleStorage(compatibleManifest(), "template".getBytes(StandardCharsets.UTF_8)),
             shardWorldManager,
@@ -75,7 +75,7 @@ class IslandActivationJobHandlerPolicyTest {
         ProtectionController protection = protectionController();
         IslandActivationJobHandler handler = new IslandActivationJobHandler(
             storage,
-            new ShardWorldManager("ci_shard_", 1, 64),
+            new ShardWorldManager("ci_shard_", 1, 1024),
             protection,
             new IslandWorldRestorer(storage, tempDir.resolve("staging"), templateRestorePlanner(manifest)),
             null,
@@ -107,6 +107,55 @@ class IslandActivationJobHandlerPolicyTest {
         assertTrue(source.contains("throw new IOException(\"template bundle placement is unavailable"), "bundled create must fail when no cell transfer is wired");
         assertTrue(source.contains("worldRestorer.stageTemplateBundle"), "bundled create must stage the configured template bundle");
         assertTrue(source.contains("cellTransfer.place(placement)"), "staged template bundles must be placed into the shard world cell");
+    }
+
+    @Test
+    void activationUsesAuthoritativeCoreSizeInsteadOfStaleBundleSize() {
+        ShardWorldManager shardWorldManager = new ShardWorldManager("ci_shard_", 1, 1024);
+        IslandActivationJobHandler handler = new IslandActivationJobHandler(
+            new TemplateBundleStorage(compatibleManifest(), new byte[0]),
+            shardWorldManager,
+            protectionController()
+        );
+        IslandJob job = new IslandJob(
+            UUID.randomUUID(),
+            IslandJobType.ACTIVATE_ISLAND,
+            ISLAND_ID,
+            "island-node-1",
+            0,
+            Map.of("islandSize", "400", "fencingToken", "21"),
+            NOW
+        );
+
+        IslandActivationJobHandler.ActivationResult result = handler.handle(job);
+
+        assertTrue(result.success());
+        assertEquals(400, result.islandSize());
+    }
+
+    @Test
+    void activationFailsBeforeReservationWhenIslandWouldOverlapAdjacentCells() {
+        ShardWorldManager shardWorldManager = new ShardWorldManager("ci_shard_", 1, 1024);
+        IslandActivationJobHandler handler = new IslandActivationJobHandler(
+            new TemplateBundleStorage(compatibleManifest().withSize(1024), new byte[0]),
+            shardWorldManager,
+            protectionController()
+        );
+        IslandJob job = new IslandJob(
+            UUID.randomUUID(),
+            IslandJobType.ACTIVATE_ISLAND,
+            ISLAND_ID,
+            "island-node-1",
+            0,
+            Map.of("islandSize", "1024", "fencingToken", "22"),
+            NOW
+        );
+
+        IslandActivationJobHandler.ActivationResult result = handler.handle(job);
+
+        assertFalse(result.success());
+        assertEquals("ISLAND_SIZE_EXCEEDS_CELL", result.state());
+        assertFalse(shardWorldManager.reserved(ISLAND_ID));
     }
 
     private static ProtectionController protectionController() {
@@ -207,8 +256,8 @@ class IslandActivationJobHandlerPolicyTest {
         }
 
         @Override
-        public IslandBundleManifest readManifest(UUID islandId) throws IOException {
-            throw new IOException("no live manifest for new island");
+        public IslandBundleManifest readManifest(UUID islandId) {
+            return manifest;
         }
 
         @Override

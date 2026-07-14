@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.paper.activation.EmptyIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandDeactivationHandler;
 import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
+import kr.lunaf.cloudislands.paper.activation.IslandSizeRuntimeListener;
 import kr.lunaf.cloudislands.paper.activation.PeriodicIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
@@ -47,6 +48,10 @@ final class PaperIslandNodeRuntime {
         );
         plugin.activeIslands = new ActiveIslandRegistry();
         plugin.agent.routeTickets().setActiveIslands(plugin.activeIslands);
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(
+            plugin,
+            new IslandSizeRuntimeListener(plugin.activeIslands, shardWorldManager, plugin.agent.protection(), plugin.getLogger())
+        );
         IntegrationLifecycleHooks integrationHooks = IntegrationLifecycleHooks.fromRegistry(plugin.integrationRegistry, nodeId);
         IslandSaveService saveService = new IslandSaveService(
             storage,

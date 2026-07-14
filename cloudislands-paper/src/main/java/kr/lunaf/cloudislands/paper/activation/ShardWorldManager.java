@@ -10,13 +10,28 @@ public final class ShardWorldManager {
     private static final int CELLS_PER_SHARD = CELLS_PER_AXIS * CELLS_PER_AXIS;
     private final String shardWorldPrefix;
     private final int shardCount;
+    private final int cellSize;
     private final ShardCellAllocator cellAllocator;
     private final Map<UUID, CellAssignment> activeCells = new ConcurrentHashMap<>();
 
     public ShardWorldManager(String shardWorldPrefix, int shardCount, int cellSize) {
+        ShardCellGeometryPolicy.requireSafeCellSize(cellSize);
         this.shardWorldPrefix = shardWorldPrefix;
         this.shardCount = shardCount;
+        this.cellSize = cellSize;
         this.cellAllocator = new ShardCellAllocator(cellSize);
+    }
+
+    public boolean supportsIslandSize(int islandSize) {
+        return ShardCellGeometryPolicy.supportsIslandSize(cellSize, islandSize);
+    }
+
+    public void requireSupportedIslandSize(int islandSize) {
+        ShardCellGeometryPolicy.requireSupportedIslandSize(cellSize, islandSize);
+    }
+
+    public int cellSize() {
+        return cellSize;
     }
 
     public synchronized CellAssignment allocateCell(UUID islandId) {

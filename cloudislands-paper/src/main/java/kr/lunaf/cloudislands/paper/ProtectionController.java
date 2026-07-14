@@ -29,7 +29,7 @@ public final class ProtectionController {
 
     public void registerIsland(UUID islandId, String worldName, int originX, int originZ, int islandSize, int cellX, int cellZ) {
         int half = Math.max(1, islandSize / 2);
-        regionIndex.add(new IslandRegion(islandId, worldName, originX - half, originX + half, originZ - half, originZ + half, cellX, cellZ));
+        regionIndex.replaceIsland(new IslandRegion(islandId, worldName, originX - half, originX + half, originZ - half, originZ + half, cellX, cellZ));
     }
 
     public void unregisterIsland(UUID islandId) {
@@ -48,6 +48,10 @@ public final class ProtectionController {
         if (islandId != null) {
             migratingIslands.remove(islandId);
         }
+    }
+
+    public boolean isMigrating(UUID islandId) {
+        return islandId != null && migratingIslands.contains(islandId);
     }
 
     public boolean migrating(Block block) {

@@ -73,6 +73,7 @@ public final class IslandRuntimeStatePolicy {
             || from == IslandState.INACTIVE_READY && to == IslandState.RESTORING
             || from == IslandState.INACTIVE_READY && to == IslandState.DELETE_REQUESTED
             || from == IslandState.INACTIVE_READY && to == IslandState.DEACTIVATING
+            || from == IslandState.DEACTIVATING && to == IslandState.ACTIVATING
             || from == IslandState.ACTIVE && to == IslandState.ACTIVATING
             || from == IslandState.ACTIVE && to == IslandState.RESTORING
             || from == IslandState.ACTIVATING && to == IslandState.RESTORING

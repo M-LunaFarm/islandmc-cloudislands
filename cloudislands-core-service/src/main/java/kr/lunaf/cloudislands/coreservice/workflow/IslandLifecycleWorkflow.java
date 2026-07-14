@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.workflow;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandRuntimeSnapshot;
@@ -95,13 +96,14 @@ public final class IslandLifecycleWorkflow {
                 return new Result(false, "PLACEMENT_MISSING", runtime);
             }
             islands.setState(islandId, IslandState.ACTIVATING);
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, Map.of(
-                "fencingToken", Long.toString(runtime.fencingToken()),
-                "worldName", runtime.activeWorld(),
-                "cellX", Integer.toString(runtime.cellX()),
-                "cellZ", Integer.toString(runtime.cellZ()),
-                "activationLockToken", lockToken(lease)
-            ), Instant.now()));
+            Map<String, String> payload = new LinkedHashMap<>();
+            payload.put("fencingToken", Long.toString(runtime.fencingToken()));
+            payload.put("worldName", runtime.activeWorld());
+            payload.put("cellX", Integer.toString(runtime.cellX()));
+            payload.put("cellZ", Integer.toString(runtime.cellZ()));
+            payload.put("activationLockToken", lockToken(lease));
+            islands.findById(islandId).ifPresent(island -> payload.put("islandSize", Integer.toString(island.size())));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.ACTIVATE_ISLAND, islandId, node.nodeId(), 0, payload, Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             if (splitBrainActivationRejected(exception)) {
@@ -213,6 +215,7 @@ public final class IslandLifecycleWorkflow {
                     "worldName", migrationWorldName,
                     "cellX", migrationCellX,
                     "cellZ", migrationCellZ,
+                    "islandSize", authoritativeIslandSize(islandId),
                     "placementSource", "runtime-migration",
                     "activationLockToken", lockToken(lease)
                 ), Instant.now()));
@@ -222,6 +225,7 @@ public final class IslandLifecycleWorkflow {
                     "worldName", migrationWorldName,
                     "cellX", migrationCellX,
                     "cellZ", migrationCellZ,
+                    "islandSize", authoritativeIslandSize(islandId),
                     "placementSource", "runtime-migration",
                     "activationLockToken", lockToken(lease)
                 ), Instant.now()));
@@ -334,7 +338,7 @@ public final class IslandLifecycleWorkflow {
         String cellZ = Integer.toString(runtime.cellZ());
         String placementSource = recoveryRestore ? "recovery-restore" : "snapshot-restore";
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, restoreJobPayload(snapshotNo, storagePath, runtime.fencingToken(), recoveryRestore, worldName, cellX, cellZ, placementSource, false, lockToken(lease)), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, node.nodeId(), 30, restoreJobPayload(snapshotNo, storagePath, runtime.fencingToken(), recoveryRestore, worldName, cellX, cellZ, authoritativeIslandSize(islandId), placementSource, false, lockToken(lease)), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
@@ -385,6 +389,7 @@ public final class IslandLifecycleWorkflow {
                 "preMutationReason", BEFORE_RESET_REASON,
                 "preMutationSnapshotRequired", "true",
                 "fencingToken", Long.toString(runtime.fencingToken()),
+                "islandSize", authoritativeIslandSize(islandId),
                 "activationLockToken", lockToken(lease)
             ), Instant.now()));
         } catch (RuntimeException exception) {
@@ -424,7 +429,7 @@ public final class IslandLifecycleWorkflow {
         String cellX = Integer.toString(current.cellX());
         String cellZ = Integer.toString(current.cellZ());
         try {
-            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, current.activeNode(), 30, restoreJobPayload(snapshotNo, storagePath, current.fencingToken(), false, worldName, cellX, cellZ, "active-snapshot-restore", true, lockToken(lease)), Instant.now()));
+            jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.RESTORE_ISLAND, islandId, current.activeNode(), 30, restoreJobPayload(snapshotNo, storagePath, current.fencingToken(), false, worldName, cellX, cellZ, authoritativeIslandSize(islandId), "active-snapshot-restore", true, lockToken(lease)), Instant.now()));
         } catch (RuntimeException exception) {
             releaseActivationLock(lease);
             IslandRuntimeSnapshot preserved = runtimes.markActive(islandId, current.activeNode(), current.activeWorld(), current.cellX(), current.cellZ(), current.fencingToken());
@@ -436,7 +441,7 @@ public final class IslandLifecycleWorkflow {
         return new Result(true, "RESTORE_QUEUED", runtime);
     }
 
-    private static Map<String, String> restoreJobPayload(long snapshotNo, String storagePath, long fencingToken, boolean recoveryRestore, String worldName, String cellX, String cellZ, String placementSource, boolean activeRestore, String activationLockToken) {
+    private static Map<String, String> restoreJobPayload(long snapshotNo, String storagePath, long fencingToken, boolean recoveryRestore, String worldName, String cellX, String cellZ, String islandSize, String placementSource, boolean activeRestore, String activationLockToken) {
         java.util.LinkedHashMap<String, String> payload = new java.util.LinkedHashMap<>();
         payload.put("snapshotNo", Long.toString(snapshotNo));
         payload.put("storagePath", storagePath == null ? "" : storagePath);
@@ -456,6 +461,7 @@ public final class IslandLifecycleWorkflow {
         payload.put("worldName", worldName);
         payload.put("cellX", cellX);
         payload.put("cellZ", cellZ);
+        payload.put("islandSize", islandSize);
         payload.put("placementSource", placementSource == null ? "" : placementSource);
         if (recoveryRestore) {
             payload.put("recoveryRestore", "true");
@@ -516,13 +522,20 @@ public final class IslandLifecycleWorkflow {
                 "fencingToken", Long.toString(current.fencingToken()),
                 "worldName", current.activeWorld(),
                 "cellX", Integer.toString(current.cellX()),
-                "cellZ", Integer.toString(current.cellZ())
+                "cellZ", Integer.toString(current.cellZ()),
+                "islandSize", authoritativeIslandSize(islandId)
             ), Instant.now()));
         } catch (RuntimeException exception) {
             return jobQueueFailed(islandId, IslandState.ERROR_ACTIVATING);
         }
         events.publish(CloudIslandEventType.ISLAND_RESET_REQUESTED.name(), Map.of("islandId", islandId.toString(), "state", "RESETTING_ACTIVE", "targetNode", current.activeNode(), "reason", reason));
         return new Result(true, "RESET_QUEUED", runtime);
+    }
+
+    private String authoritativeIslandSize(UUID islandId) {
+        return islands.findById(islandId)
+            .map(island -> Integer.toString(island.size()))
+            .orElse("0");
     }
 
     private boolean canStartActivation(IslandRuntimeSnapshot runtime) {

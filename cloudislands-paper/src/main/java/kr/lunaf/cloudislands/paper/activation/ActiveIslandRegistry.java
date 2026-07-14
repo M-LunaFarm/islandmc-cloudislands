@@ -28,6 +28,13 @@ public final class ActiveIslandRegistry {
         return Optional.ofNullable(active.get(islandId));
     }
 
+    public Optional<ActiveIsland> resize(UUID islandId, int islandSize) {
+        if (islandId == null || islandSize <= 0) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(active.computeIfPresent(islandId, (_islandId, current) -> current.withIslandSize(islandSize)));
+    }
+
     public void deactivated(UUID islandId) {
         active.remove(islandId);
     }
@@ -40,5 +47,9 @@ public final class ActiveIslandRegistry {
         return List.copyOf(active.values());
     }
 
-    public record ActiveIsland(UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, long fencingToken, Instant activatedAt) {}
+    public record ActiveIsland(UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, int islandSize, long schemaVersion, long fencingToken, Instant activatedAt) {
+        public ActiveIsland withIslandSize(int nextIslandSize) {
+            return new ActiveIsland(islandId, worldName, cellX, cellZ, originX, originZ, Math.max(1, nextIslandSize), schemaVersion, fencingToken, activatedAt);
+        }
+    }
 }

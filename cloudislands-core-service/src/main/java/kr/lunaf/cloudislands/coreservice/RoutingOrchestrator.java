@@ -520,13 +520,7 @@ public final class RoutingOrchestrator {
                 runtime.islandId(),
                 selected.nodeId(),
                 0,
-                Map.of(
-                    "fencingToken", Long.toString(activating.fencingToken()),
-                    "worldName", activating.activeWorld(),
-                    "cellX", Integer.toString(activating.cellX()),
-                    "cellZ", Integer.toString(activating.cellZ()),
-                    "activationLockToken", lease == null ? "" : lease.token()
-                ),
+                activationPayload(activating, lease),
                 Instant.now()
             ));
         } catch (RuntimeException exception) {
@@ -544,6 +538,17 @@ public final class RoutingOrchestrator {
         }
         events.publish(CloudIslandEventType.ISLAND_RUNTIME_CHANGED.name(), event);
         return RouteTargetResolver.preparing(selected, activating.activeWorld());
+    }
+
+    private Map<String, String> activationPayload(IslandRuntimeSnapshot activating, RedisActivationLock.Lease lease) {
+        Map<String, String> payload = new LinkedHashMap<>();
+        payload.put("fencingToken", Long.toString(activating.fencingToken()));
+        payload.put("worldName", activating.activeWorld());
+        payload.put("cellX", Integer.toString(activating.cellX()));
+        payload.put("cellZ", Integer.toString(activating.cellZ()));
+        payload.put("activationLockToken", lease == null ? "" : lease.token());
+        islands.findById(activating.islandId()).ifPresent(island -> payload.put("islandSize", Integer.toString(island.size())));
+        return Map.copyOf(payload);
     }
 
     private void markActiveRouteRecoveryRequired(IslandRuntimeSnapshot runtime, String reason) {

@@ -770,6 +770,7 @@ final class JobCompletionBackend {
         payload.put("sourceSnapshotReason", job.payload().getOrDefault("reason", "BEFORE_MIGRATION"));
         payload.put("sourceSnapshotChecksum", job.payload().getOrDefault("checksum", ""));
         payload.put("sourceSnapshotSizeBytes", job.payload().getOrDefault("sizeBytes", "0"));
+        payload.put("islandSize", job.payload().getOrDefault("islandSize", "0"));
         payload.put(ACTIVATION_LOCK_TOKEN_KEY, job.payload().getOrDefault(ACTIVATION_LOCK_TOKEN_KEY, ""));
         jobs.publish(new IslandJob(UUID.randomUUID(), IslandJobType.MIGRATE_ISLAND, job.islandId(), targetNode, 10, Map.copyOf(payload), Instant.now()));
         publishEvent(CloudIslandEventType.ISLAND_MIGRATE_REQUESTED.name(), Map.of(
