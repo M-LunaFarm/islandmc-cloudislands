@@ -606,6 +606,8 @@ class GuiSystemPolicyTest {
         assertTrue(menu.contains("storage: "), "admin node GUI must show storage health");
         assertTrue(menu.contains("drain progress"), "admin node GUI must show drain progress");
         assertTrue(menu.contains("shutdown safe"), "admin node GUI must show safe shutdown readiness");
+        assertTrue(menu.contains("GuiSession session = GuiSessions.begin(player, MENU_ID)"), "admin node menus must participate in stale-response session invalidation");
+        assertTrue(menu.contains("GuiMenuRenderer.render(MENU, session"), "admin node inventory holders must retain the active GUI session");
         assertFalse(menu.contains("slot <= 19"), "admin node actions must not use a Java hard-coded slot range");
     }
 

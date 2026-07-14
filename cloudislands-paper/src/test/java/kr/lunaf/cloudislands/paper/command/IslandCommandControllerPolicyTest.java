@@ -1063,6 +1063,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adminHandler.contains("IslandAdminNodeUseCase"));
         assertTrue(adminHandler.contains("adminNodeUseCase.drainAction"));
         assertTrue(adminHandler.contains("adminNodeUseCase.shutdownSafelyAction"));
+        assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.node.refresh\")"), "node refresh must reserve a GUI session before the Core request");
+        assertTrue(adminHandler.contains("thenAccept(summary -> GuiSessions.runIfCurrent(plugin, player, session"), "late node summaries must not replace a newer or closed menu");
+        assertTrue(adminHandler.contains("Map.of(\"nodeId\", nodeId), \"admin.node.open\", Map.of(\"nodeId\", nodeId)"), "node refresh error actions must preserve the selected node id");
         assertFalse(adminHandler.contains("coreApiClient.drainNode"));
         assertFalse(adminHandler.contains("coreApiClient.shutdownNodeSafely"));
         assertFalse(adminUseCase.contains("public CompletableFuture<String> drain("), "admin drain usecase must expose typed actions instead of raw JSON");

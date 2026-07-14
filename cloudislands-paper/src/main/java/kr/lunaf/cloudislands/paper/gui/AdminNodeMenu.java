@@ -65,7 +65,12 @@ public final class AdminNodeMenu implements Listener {
     }
 
     public static void open(Player player, String nodeId, NodeSummaryView summary, MessageRenderer messages) {
-        Inventory inventory = GuiMenuRenderer.render(MENU, messages, TITLE, item -> true);
+        GuiSession session = GuiSessions.begin(player, MENU_ID);
+        open(player, session, nodeId, summary, messages);
+    }
+
+    public static void open(Player player, GuiSession session, String nodeId, NodeSummaryView summary, MessageRenderer messages) {
+        Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
         setNodeSummaryItem(inventory, summary == null ? PaperGuiViews.emptyNodeSummary(nodeId) : summary, messages);
         for (String symbol : NODE_ACTION_SYMBOLS) {
             for (int slot : GuiMenuRenderer.slots(MENU, symbol)) {

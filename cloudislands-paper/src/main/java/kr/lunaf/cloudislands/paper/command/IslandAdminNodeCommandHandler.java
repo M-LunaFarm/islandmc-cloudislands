@@ -15,6 +15,9 @@ import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminStorageMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
+import kr.lunaf.cloudislands.paper.gui.GuiSession;
+import kr.lunaf.cloudislands.paper.gui.GuiSessions;
+import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -217,9 +220,19 @@ final class IslandAdminNodeCommandHandler {
     }
 
     private void refreshAdminNodeInfo(Player player, String nodeId) {
+        MessageRenderer messages = runtime.messagesFor(player);
+        GuiSession session = GuiSessions.begin(player, "admin.node.refresh");
+        GuiStateMenus.openLoading(plugin, player, session, messages,
+            runtime.routeMessage("admin-node-info-loading", "노드 정보를 불러오는 중입니다."));
         adminNodeUseCase.nodeInfoView(nodeId)
-            .thenAccept(summary -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> AdminNodeMenu.open(player, nodeId, summary, runtime.messagesFor(player))))
-            .exceptionally(error -> adminNodeFailure(player, "admin-node-info-failed", "노드 정보를 불러오지 못했습니다.", error));
+            .thenAccept(summary -> GuiSessions.runIfCurrent(plugin, player, session, () -> AdminNodeMenu.open(player, session, nodeId, summary, messages)))
+            .exceptionally(error -> {
+                GuiStateMenus.openError(plugin, player, session, messages,
+                    runtime.routeMessage("admin-node-info-title", "노드 정보"),
+                    runtime.routeMessage("admin-node-info-failed", "노드 정보를 불러오지 못했습니다."),
+                    "admin.node.info", Map.of("nodeId", nodeId), "admin.node.open", Map.of("nodeId", nodeId));
+                return null;
+            });
     }
 
     private void listAdminNodeIslands(Player player, String nodeId) {

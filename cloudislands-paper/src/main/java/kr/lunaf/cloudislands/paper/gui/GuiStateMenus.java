@@ -55,12 +55,16 @@ public final class GuiStateMenus implements Listener {
     }
 
     public static void openError(Plugin plugin, Player player, GuiSession session, MessageRenderer messages, String title, String detail, String retryAction, String backAction) {
-        GuiSessions.runIfCurrent(plugin, player, session, () -> openErrorSync(player, session.sessionId(), messages, title, detail, retryAction, backAction));
+        openError(plugin, player, session, messages, title, detail, retryAction, Map.of(), backAction, Map.of());
+    }
+
+    public static void openError(Plugin plugin, Player player, GuiSession session, MessageRenderer messages, String title, String detail, String retryAction, Map<String, String> retryData, String backAction, Map<String, String> backData) {
+        GuiSessions.runIfCurrent(plugin, player, session, () -> openErrorSync(player, session.sessionId(), messages, title, detail, retryAction, retryData, backAction, backData));
     }
 
     public static void openError(Plugin plugin, Player player, MessageRenderer messages, String title, String detail, String retryAction, String backAction) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            openErrorSync(player, null, messages, title, detail, retryAction, backAction);
+            openErrorSync(player, null, messages, title, detail, retryAction, Map.of(), backAction, Map.of());
         });
     }
 
@@ -129,14 +133,14 @@ public final class GuiStateMenus implements Listener {
         }
     }
 
-    private static void openErrorSync(Player player, java.util.UUID sessionId, MessageRenderer messages, String title, String detail, String retryAction, String backAction) {
+    private static void openErrorSync(Player player, java.util.UUID sessionId, MessageRenderer messages, String title, String detail, String retryAction, Map<String, String> retryData, String backAction, Map<String, String> backData) {
         Inventory inventory = stateInventory(sessionId, messages, title, "Error", retryAction != null && !retryAction.isBlank(), backAction != null && !backAction.isBlank());
         setStateItem(inventory, "F", messages, detail);
         if (retryAction != null && !retryAction.isBlank()) {
-            setStateAction(inventory, "R", messages, retryAction);
+            setStateAction(inventory, "R", messages, retryAction, retryData);
         }
         if (backAction != null && !backAction.isBlank()) {
-            setStateAction(inventory, "B", messages, backAction);
+            setStateAction(inventory, "B", messages, backAction, backData);
         }
         player.openInventory(inventory);
     }
@@ -150,8 +154,12 @@ public final class GuiStateMenus implements Listener {
     }
 
     private static void setStateAction(Inventory inventory, String symbol, MessageRenderer messages, String actionId) {
+        setStateAction(inventory, symbol, messages, actionId, Map.of());
+    }
+
+    private static void setStateAction(Inventory inventory, String symbol, MessageRenderer messages, String actionId, Map<String, String> data) {
         GuiMenuRenderer.slots(MENU, symbol).forEach(slot -> MENU.itemAt(slot)
-            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, java.util.Map.of(), List.of(), actionId))));
+            .ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, data, List.of(), actionId))));
     }
 
     private static void setStateItem(Inventory inventory, String symbol, MessageRenderer messages, String detail) {
