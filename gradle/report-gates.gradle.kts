@@ -322,7 +322,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "Gameplay and permission flags are represented in the domain",
         "Paper protection listeners, granular painting, item-frame, and leash-knot permissions, extensible database permission-key guards, SS2-style natural and per-player time/weather flags, fail-closed automation transfer and projectile boundaries, natural material transitions, dependent block breaks, and cache paths have unit coverage",
         "Bukkit-facing behavior is kept inside Paper runtime code",
-        "unit verified; Paper policy tests cover granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, fail-closed dispenser, armor-dispense, ground-item hopper, inventory-transfer, and block-projectile boundaries including migrating islands, natural spread, material transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns, and fail-closed player/entity cross-dimension portals inside active island regions",
+        "unit verified; Paper policy tests cover granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, CraftEngine furniture build/break enforcement, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, fail-closed dispenser, armor-dispense, ground-item hopper, inventory-transfer, and block-projectile boundaries including migrating islands, natural spread, material transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns, and fail-closed player/entity cross-dimension portals inside active island regions",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/ProtectionControllerTest.java",
@@ -346,7 +346,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "ranking, dirty recalculation, authoritative bank balance ordering, typed block values, custom block identity, logical stack amounts, and tick-budgeted reconciliation have service tests",
         "Paper-facing values compile; no per-version runtime divergence is claimed",
         "version-neutral",
-        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, bounded scans, serialized writes, and concurrent-mutation rejection",
+        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, bounded scans, serialized writes, and concurrent-mutation rejection",
         "not recovery-specific",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java",
@@ -493,7 +493,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "integration policy, localization files, GUI components, and scoped runtime certification fixtures exist",
         "Paper integration registry certifies Vault economy, PlaceholderAPI registration, Plan distributed analytics, vanish-safe player suggestions, custom block identity, and logical stack accounting while separating diagnostic-only state-transfer adapters",
         "plugin-specific operation adapters are active only where implemented",
-        "verifyIntegrationRuntimeSmoke verifies executable runtime services including CraftEngine and Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components",
+        "verifyIntegrationRuntimeSmoke verifies executable runtime services including CraftEngine block/furniture and Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java",
@@ -507,7 +507,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/message/ConfiguredMessageComponentsTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/message/RichMessageRuntimeSurfaceTest.java"
         ),
-        "Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom-block, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
+        "Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom-content, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
     )
 )
 
