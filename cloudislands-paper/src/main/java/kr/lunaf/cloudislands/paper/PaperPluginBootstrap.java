@@ -187,18 +187,6 @@ final class PaperPluginBootstrap {
         String templateVersions = config.node().templateVersions();
         String heartbeatSupportedTemplates = templateVersions.isBlank() ? supportedTemplates : supportedTemplates + ";templateVersions=" + templateVersions;
         PaperObservabilityFormatter observability = new PaperObservabilityFormatter(plugin, config);
-        PaperHeartbeatRuntime heartbeatRuntime = PaperHeartbeatRuntime.start(
-            plugin,
-            client,
-            config,
-            supportedTemplates,
-            () -> observability.heartbeatMetadata(heartbeatSupportedTemplates, storage),
-            () -> storageAvailable(storage),
-            () -> plugin.activeIslands == null ? 0 : plugin.activeIslands.size(),
-            () -> plugin.jobWorker == null ? 0 : plugin.jobWorker.activationQueue(),
-            () -> plugin.jobWorker == null ? 0 : plugin.jobWorker.recentFailurePenalty()
-        );
-        plugin.lifecycle.startedToStopFirst("heartbeat", heartbeatRuntime);
         PaperHealthRuntime healthRuntime = PaperHealthRuntime.startIfEnabled(
             plugin,
             config.health(),
@@ -211,6 +199,18 @@ final class PaperPluginBootstrap {
         if (role == AgentRole.ISLAND_NODE) {
             PaperIslandNodeRuntime.start(plugin, client, nodeId, storage, limitCache, config);
         }
+        PaperHeartbeatRuntime heartbeatRuntime = PaperHeartbeatRuntime.start(
+            plugin,
+            client,
+            config,
+            supportedTemplates,
+            () -> observability.heartbeatMetadata(heartbeatSupportedTemplates, storage),
+            () -> storageAvailable(storage),
+            () -> plugin.activeIslands == null ? 0 : plugin.activeIslands.size(),
+            () -> plugin.jobWorker == null ? 0 : plugin.jobWorker.activationQueue(),
+            () -> plugin.jobWorker == null ? 0 : plugin.jobWorker.recentFailurePenalty()
+        );
+        plugin.lifecycle.startedToStopFirst("heartbeat", heartbeatRuntime);
         plugin.getLogger().info("CloudIslands Paper agent enabled as " + role + " node " + nodeId);
     }
 

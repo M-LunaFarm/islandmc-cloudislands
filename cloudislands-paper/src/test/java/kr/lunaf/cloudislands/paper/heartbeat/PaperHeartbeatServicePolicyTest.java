@@ -39,4 +39,13 @@ class PaperHeartbeatServicePolicyTest {
         assertTrue(stop >= 0 && cancel > stop && shutdown > cancel, "stop must cancel periodic READY heartbeats before publishing SHUTTING_DOWN");
         assertTrue(source.contains("public void start(long intervalTicks) {\n        cancelScheduledHeartbeat();"), "restart must not emit a false SHUTTING_DOWN heartbeat");
     }
+
+    @Test
+    void heartbeatStartsOnlyAfterIslandWorkerIsReadyToAcceptClaims() throws Exception {
+        String bootstrap = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"));
+        int islandRuntime = bootstrap.indexOf("PaperIslandNodeRuntime.start(");
+        int heartbeat = bootstrap.indexOf("PaperHeartbeatRuntime.start(");
+
+        assertTrue(islandRuntime >= 0 && heartbeat > islandRuntime, "the node must not advertise STARTING or READY before its island worker is installed");
+    }
 }
