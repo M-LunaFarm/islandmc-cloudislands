@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.202`
+Version: `1.1.203`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -683,11 +683,22 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.202`
+Current release: `v1.1.203`
 
-Built for the CloudIslands 1.1.202 baseline.
+Built for the CloudIslands 1.1.203 baseline.
 
-Release notes for `v1.1.202`:
+Release notes for `v1.1.203`:
+
+- release checksums now cover the CycloneDX SBOM as well as archives, plugin
+  jars, tools, and the changelog
+- the release task graph now guarantees SBOM generation before checksums and
+  checksum generation before provenance, removing ordering-dependent integrity
+  gaps
+- `verifyReleaseSecurityGate` now recomputes every listed SHA-256 digest,
+  rejects missing or path-escaping targets, and requires SBOM coverage in both
+  checksums and provenance
+
+Release notes carried forward from `v1.1.202`:
 
 - the generated player feature-parity report now classifies all nine audited
   product areas as supported after separating executable integration services
@@ -3322,7 +3333,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.202`.
+Current read: production-readiness baseline `v1.1.203`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
