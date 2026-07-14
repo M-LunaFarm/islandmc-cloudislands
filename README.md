@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.204`
+Version: `1.1.205`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -106,6 +106,11 @@ route ticket, template checksum, integration, and migration-lock health. Use
 `/ciadmin island info <island>` for a compact base/effect/role-limit/upgrade
 summary; use `/ciadmin route debug`, `/ciadmin island inspect`,
 `/ciadmin storage verify`, and support bundles for targeted failures.
+If Core reports `database schema contract mismatch`, do not bypass the startup
+failure: back up SQL, repair every listed `table.column` to the expected type,
+rerun the normal migration/bootstrap path, and restart Core. The contract runs
+for JDBC authority even when `setup.database.auto-schema` is disabled, so a
+manually managed schema cannot defer a latent island-creation failure to users.
 Player-facing messages must avoid
 internal node IDs, storage keys, and database errors; operator views carry the
 failure code and recovery command.
@@ -295,6 +300,10 @@ When `setup.database.auto-schema` is explicitly enabled, the complete schema
 chain is serialized across Core instances with one database-session lock.
 PostgreSQL uses an advisory lock and MySQL/MariaDB use `GET_LOCK`; acquisition
 is limited to 60 seconds and startup fails instead of running concurrent DDL.
+After migration, Core validates the JDBC types of 13 critical template, island,
+and runtime columns before serving traffic. Missing columns and incompatible
+text, integer, boolean, decimal, or bigint storage fail startup with the exact
+qualified column names instead of surfacing later during island creation.
 MySQL/MariaDB sessions and JDBC timestamp bindings are normalized to UTC so
 heartbeats, leases, expirations, and audit timestamps remain correct regardless
 of the Core host or database server time zone.
@@ -685,11 +694,25 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.204`
+Current release: `v1.1.205`
 
-Built for the CloudIslands 1.1.204 baseline.
+Built for the CloudIslands 1.1.205 baseline.
 
-Release notes for `v1.1.204`:
+Release notes for `v1.1.205`:
+
+- Core now validates 13 critical `island_templates`, `islands`, and
+  `island_runtime` column types before accepting traffic
+- validation runs for every JDBC authority even when automatic schema creation
+  is disabled, preventing manually managed drift from reaching player actions
+- missing or incompatible columns fail fast with actionable `table.column`,
+  actual type, and expected type details instead of a late island-create error
+- real dual-Core PostgreSQL and MySQL 8.4 integration smokes passed creation,
+  job, route, session, consume, node recovery, and reconnect with the contract
+  enabled
+- the complete 197-task clean release pipeline and Paper 26.1.2 boot smoke
+  passed
+
+Release notes carried forward from `v1.1.204`:
 
 - `/ciadmin island info <uuid|name>` now combines typed island, limit, and
   progression queries so operators can see active effects, role limits, and
@@ -3348,7 +3371,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.204`.
+Current read: production-readiness baseline `v1.1.205`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
