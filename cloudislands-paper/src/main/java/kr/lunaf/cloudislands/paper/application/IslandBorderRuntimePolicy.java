@@ -37,6 +37,18 @@ public final class IslandBorderRuntimePolicy {
             && !value.equals("숨김");
     }
 
+    public static boolean refreshRequiredForLimit(String limitKey) {
+        String normalized = normalizeKey(limitKey);
+        return normalized.equals("SIZE") || normalized.equals("ISLAND_SIZE") || normalized.equals("BORDER") || normalized.equals("BORDER_SIZE");
+    }
+
+    public static boolean refreshRequiredForFlag(String flagKey) {
+        return switch (normalizeKey(flagKey)) {
+            case "BORDER_VISIBLE", "BORDER_COLOR", "BORDER_WARNING_BLOCKS", "BORDER_POLICY", "FLAGS_RESET" -> true;
+            default -> false;
+        };
+    }
+
     public static String flagValue(Map<IslandFlag, String> flags, IslandFlag flag, String fallback) {
         String value = flags == null ? "" : flags.getOrDefault(flag, "");
         return value.isBlank() ? fallback : value;
@@ -67,6 +79,10 @@ public final class IslandBorderRuntimePolicy {
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private static String normalizeKey(String value) {
+        return value == null ? "" : value.trim().toUpperCase(Locale.ROOT).replace('-', '_');
     }
 
     public record BorderSettings(

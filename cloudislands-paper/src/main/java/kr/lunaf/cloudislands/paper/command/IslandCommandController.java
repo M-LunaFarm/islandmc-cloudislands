@@ -23,6 +23,8 @@ import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import kr.lunaf.cloudislands.paper.event.IslandFlagChangeEvent;
+import kr.lunaf.cloudislands.paper.event.IslandLimitChangeEvent;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
@@ -116,6 +118,16 @@ public final class IslandCommandController implements CommandExecutor, TabComple
     @EventHandler
     public void onMove(PlayerMoveEvent event) {
         backend.onMove(event);
+    }
+
+    @EventHandler
+    public void onLimitChange(IslandLimitChangeEvent event) {
+        backend.onLimitChange(event);
+    }
+
+    @EventHandler
+    public void onFlagChange(IslandFlagChangeEvent event) {
+        backend.onFlagChange(event);
     }
 
     @EventHandler(ignoreCancelled = true)

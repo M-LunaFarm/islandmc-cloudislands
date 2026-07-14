@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
+import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
@@ -36,6 +37,7 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
     private final IslandRuntimeRepository runtimeRepository;
     private final IslandSnapshotRepository snapshotRepository;
     private final IslandBankRepository bankRepository;
+    private final IslandLimitRepository limitRepository;
     private final AuditLogger audit;
     private final GlobalEventPublisher events;
     private final IslandQueryRoutes.IslandDeleteRequester deleteRequester;
@@ -49,11 +51,25 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
             AuditLogger audit,
             GlobalEventPublisher events,
             IslandQueryRoutes.IslandDeleteRequester deleteRequester) {
+        this(lifecycle, islandRepository, runtimeRepository, snapshotRepository, bankRepository, null, audit, events, deleteRequester);
+    }
+
+    public AdminIslandLifecycleRoutes(
+            IslandLifecycleWorkflow lifecycle,
+            IslandRepository islandRepository,
+            IslandRuntimeRepository runtimeRepository,
+            IslandSnapshotRepository snapshotRepository,
+            IslandBankRepository bankRepository,
+            IslandLimitRepository limitRepository,
+            AuditLogger audit,
+            GlobalEventPublisher events,
+            IslandQueryRoutes.IslandDeleteRequester deleteRequester) {
         this.lifecycle = lifecycle;
         this.islandRepository = islandRepository;
         this.runtimeRepository = runtimeRepository;
         this.snapshotRepository = snapshotRepository;
         this.bankRepository = bankRepository;
+        this.limitRepository = limitRepository;
         this.audit = audit;
         this.events = events;
         this.deleteRequester = deleteRequester;
@@ -228,7 +244,7 @@ public final class AdminIslandLifecycleRoutes implements RouteGroup {
     private void info(HttpExchange exchange) throws IOException {
         UUID lookupUuid = JsonFields.uuid(CoreHttpResponses.readBody(exchange), "lookupUuid", SYSTEM_ACTOR);
         Optional<IslandSnapshot> island = islandRepository.findById(lookupUuid).or(() -> islandRepository.findByOwner(lookupUuid));
-        CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(IslandCatalogRoutes::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+        CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(value -> IslandCatalogRoutes.islandJson(value, limitRepository)).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
     }
 
     private void where(HttpExchange exchange) throws IOException {

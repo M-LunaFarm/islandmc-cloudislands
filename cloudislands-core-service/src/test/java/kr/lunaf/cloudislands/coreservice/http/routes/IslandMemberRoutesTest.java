@@ -535,6 +535,23 @@ class IslandMemberRoutesTest {
     }
 
     @Test
+    void playerIslandContractsUseAuthoritativeBorderLimit() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000021");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000022");
+        IslandSnapshot island = new IslandSnapshot(
+            islandId, ownerUuid, "Border upgrade", IslandState.ACTIVE, 300, 0L, "0", true, Instant.EPOCH, Instant.EPOCH
+        );
+        kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository limits = new kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository();
+        limits.set(islandId, "BORDER", 500L, ownerUuid);
+
+        Map<?, ?> islands = SimpleJson.object(SimpleJson.parse(IslandMemberRoutes.islandsJson(List.of(island), limits)));
+        Map<?, ?> rendered = SimpleJson.object(SimpleJson.list(islands.get("islands")).get(0));
+
+        assertEquals(300, ((Number) rendered.get("size")).intValue());
+        assertEquals(500L, ((Number) rendered.get("border")).longValue());
+    }
+
+    @Test
     void playerIslandsRoutePreservesMembershipRoleForClients() throws Exception {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000201");
         UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000202");

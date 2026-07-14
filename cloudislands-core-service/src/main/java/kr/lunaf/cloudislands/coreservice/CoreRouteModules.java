@@ -86,7 +86,7 @@ public final class CoreRouteModules {
         new IslandWarpRoutes(repositories.islandRepository(), repositories.metadataRepository(), repositories.limitRepository(), repositories.permissionRules(), repositories.islandLogs(), repositories.audit(), events).register(route);
         new IslandReviewRoutes(repositories.reviewRepository(), repositories.islandRepository(), repositories.islandLogs(), repositories.audit(), events).register(route);
         new IslandWarehouseRoutes(repositories.warehouseRepository(), repositories.warehouseSettlements(), repositories.islandRepository(), repositories.metadataRepository(), repositories.permissionRules(), repositories.islandLogs(), repositories.audit(), events).register(route);
-        new IslandCatalogRoutes(repositories.islandRepository(), repositories.metadataRepository(), domainServices.createIsland(), repositories.islandLogs(), repositories.audit()).register(route);
+        new IslandCatalogRoutes(repositories.islandRepository(), repositories.metadataRepository(), repositories.limitRepository(), domainServices.createIsland(), repositories.islandLogs(), repositories.audit()).register(route);
         new IslandPlayerLifecycleRoutes(repositories.islandRepository(), repositories.metadataRepository(), repositories.permissionRules(), domainServices.islandLifecycle(), domainServices.islandDeleteService()::requestIslandDelete, repositories.islandLogs(), repositories.audit(), events).register(route);
         new IslandQueryRoutes(
             repositories.islandRepository(),
@@ -122,6 +122,7 @@ public final class CoreRouteModules {
             repositories.runtimeRepository(),
             repositories.snapshotRepository(),
             repositories.bankRepository(),
+            repositories.limitRepository(),
             repositories.audit(),
             events,
             domainServices.islandDeleteService()::requestIslandDelete

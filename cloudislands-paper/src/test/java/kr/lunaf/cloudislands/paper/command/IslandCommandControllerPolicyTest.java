@@ -599,6 +599,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(environmentHandler.contains("environmentUseCase.setFlagAction"));
         assertTrue(environmentHandler.contains("environmentUseCase.islandInfoView"));
         assertTrue(environmentHandler.contains("environmentUseCase.limitViews"));
+        assertTrue(environmentHandler.contains("IslandBorderRuntimePolicy.refreshRequiredForLimit"), "size and border limit events must refresh online player borders");
+        assertTrue(environmentHandler.contains("IslandBorderRuntimePolicy.refreshRequiredForFlag"), "border flag events must refresh every online player on the island");
+        assertTrue(environmentHandler.contains("PaperSchedulers.run(plugin"), "async Core events must return to the Paper scheduler before reading online players or locations");
+        assertTrue(environmentHandler.contains("pendingBorderRefreshes"), "bursty Core events must deduplicate per-island border refreshes");
         assertFalse(environmentHandler.contains("coreApiClient.setIslandBiomeResult"));
         assertFalse(environmentHandler.contains("coreApiClient.setIslandLimit"));
         assertFalse(environmentHandler.contains("coreApiClient.setIslandFlagResult"));

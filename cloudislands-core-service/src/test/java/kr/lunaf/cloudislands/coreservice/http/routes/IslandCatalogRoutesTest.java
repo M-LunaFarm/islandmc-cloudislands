@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandCatalogRoutesTest {
@@ -75,6 +76,22 @@ class IslandCatalogRoutesTest {
         assertEquals("ACCEPTED", SimpleJson.text(created.get("code")));
         assertEquals(islandId.toString(), SimpleJson.text(created.get("islandId")));
         assertEquals(null, created.get("ticket"));
+    }
+
+    @Test
+    void rendersAuthoritativeBorderLimitIndependentlyFromProtectionSize() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000011");
+        UUID ownerUuid = UUID.fromString("00000000-0000-0000-0000-000000000012");
+        IslandSnapshot island = new IslandSnapshot(
+            islandId, ownerUuid, "Independent border", IslandState.ACTIVE, 300, 0L, "0", true, Instant.EPOCH, Instant.EPOCH
+        );
+        InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
+        limits.set(islandId, "BORDER", 450L, ownerUuid);
+
+        Map<?, ?> rendered = SimpleJson.object(SimpleJson.parse(IslandCatalogRoutes.islandJson(island, limits)));
+
+        assertEquals(300, ((Number) rendered.get("size")).intValue());
+        assertEquals(450L, ((Number) rendered.get("border")).longValue());
     }
 
     private static void assertIsland(UUID islandId, UUID ownerUuid, Map<?, ?> island) {

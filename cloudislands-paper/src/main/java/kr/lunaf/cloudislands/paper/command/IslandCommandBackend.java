@@ -197,6 +197,15 @@ final class IslandCommandBackend {
         environmentCommands.onMove(event.getPlayer(), event.getFrom(), event.getTo());
     }
 
+    public void onLimitChange(kr.lunaf.cloudislands.paper.event.IslandLimitChangeEvent event) {
+        environmentCommands.onLimitChange(event.islandId(), event.limitKey());
+    }
+
+    public void onFlagChange(kr.lunaf.cloudislands.paper.event.IslandFlagChangeEvent event) {
+        String refreshKey = event.flag().isBlank() ? event.fields().getOrDefault("operation", "") : event.flag();
+        environmentCommands.onFlagChange(event.islandId(), refreshKey);
+    }
+
     public void onDamage(EntityDamageByEntityEvent event) {
         markCombat(event.getEntity());
         markCombat(attacker(event));

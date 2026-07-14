@@ -59,4 +59,15 @@ class IslandBorderRuntimePolicyTest {
         assertEquals("hidden", IslandBorderRuntimePolicy.normalizePolicy("hide"));
         assertEquals("visible", IslandBorderRuntimePolicy.normalizePolicy("anything"));
     }
+
+    @Test
+    void refreshesOnlyForBorderAffectingCoreEvents() {
+        assertTrue(IslandBorderRuntimePolicy.refreshRequiredForLimit("SIZE"));
+        assertTrue(IslandBorderRuntimePolicy.refreshRequiredForLimit("border-size"));
+        assertFalse(IslandBorderRuntimePolicy.refreshRequiredForLimit("HOPPER"));
+        assertTrue(IslandBorderRuntimePolicy.refreshRequiredForFlag("BORDER_VISIBLE"));
+        assertTrue(IslandBorderRuntimePolicy.refreshRequiredForFlag("border-warning-blocks"));
+        assertTrue(IslandBorderRuntimePolicy.refreshRequiredForFlag("FLAGS_RESET"));
+        assertFalse(IslandBorderRuntimePolicy.refreshRequiredForFlag("PVP"));
+    }
 }

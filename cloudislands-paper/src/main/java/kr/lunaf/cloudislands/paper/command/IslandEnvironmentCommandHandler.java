@@ -46,6 +46,7 @@ final class IslandEnvironmentCommandHandler {
     private final Runtime runtime;
     private final Map<UUID, UUID> activeBorderRegions = new ConcurrentHashMap<>();
     private final Set<UUID> managedBorders = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> pendingBorderRefreshes = ConcurrentHashMap.newKeySet();
 
     IslandEnvironmentCommandHandler(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, Runtime runtime) {
         this.plugin = plugin;
@@ -214,6 +215,39 @@ final class IslandEnvironmentCommandHandler {
     void onQuit(Player player) {
         activeBorderRegions.remove(player.getUniqueId());
         managedBorders.remove(player.getUniqueId());
+    }
+
+    void onLimitChange(UUID islandId, String limitKey) {
+        if (IslandBorderRuntimePolicy.refreshRequiredForLimit(limitKey)) {
+            scheduleBorderRefresh(islandId);
+        }
+    }
+
+    void onFlagChange(UUID islandId, String flagKey) {
+        if (IslandBorderRuntimePolicy.refreshRequiredForFlag(flagKey)) {
+            scheduleBorderRefresh(islandId);
+        }
+    }
+
+    private void scheduleBorderRefresh(UUID islandId) {
+        if (islandId == null || !pendingBorderRefreshes.add(islandId)) {
+            return;
+        }
+        try {
+            PaperSchedulers.run(plugin, () -> {
+                try {
+                    Bukkit.getOnlinePlayers().stream()
+                        .filter(player -> protection.regionAt(player.getLocation().getBlock())
+                            .map(region -> region.islandId().equals(islandId))
+                            .orElse(false))
+                        .forEach(player -> applyBorder(player, false));
+                } finally {
+                    pendingBorderRefreshes.remove(islandId);
+                }
+            });
+        } catch (RuntimeException | LinkageError error) {
+            pendingBorderRefreshes.remove(islandId);
+        }
     }
 
     private void refreshBorderRegion(Player player, Location location) {

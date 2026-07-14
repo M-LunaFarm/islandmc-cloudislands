@@ -580,9 +580,13 @@ public final class IslandMemberRoutes implements RouteGroup {
     }
 
     static String islandsJson(List<IslandSnapshot> islands) {
+        return islandsJson(islands, null);
+    }
+
+    static String islandsJson(List<IslandSnapshot> islands, IslandLimitRepository limits) {
         List<Object> renderedIslands = new ArrayList<>();
         for (IslandSnapshot island : islands) {
-            renderedIslands.add(islandMap(island));
+            renderedIslands.add(IslandCatalogRoutes.islandMap(island, limits));
         }
         return SimpleJson.stringify(Map.of("islands", renderedIslands));
     }
@@ -591,7 +595,7 @@ public final class IslandMemberRoutes implements RouteGroup {
         List<Object> renderedIslands = new ArrayList<>();
         for (IslandMemberSnapshot membership : memberships) {
             islandRepository.findById(membership.islandId()).ifPresent(island -> {
-                LinkedHashMap<String, Object> rendered = new LinkedHashMap<>(islandMap(island));
+                LinkedHashMap<String, Object> rendered = new LinkedHashMap<>(IslandCatalogRoutes.islandMap(island, limitRepository));
                 rendered.put("role", membership.effectiveRoleKey());
                 rendered.put("roleKey", membership.effectiveRoleKey());
                 rendered.put("membershipExpiresAt", membership.expiresAt());
@@ -621,22 +625,6 @@ public final class IslandMemberRoutes implements RouteGroup {
         values.put("roleKey", member.effectiveRoleKey());
         values.put("joinedAt", member.joinedAt());
         values.put("expiresAt", member.expiresAt());
-        return values;
-    }
-
-    private static Map<String, Object> islandMap(IslandSnapshot island) {
-        LinkedHashMap<String, Object> values = new LinkedHashMap<>();
-        values.put("islandId", island.islandId());
-        values.put("ownerUuid", island.ownerUuid());
-        values.put("name", island.name());
-        values.put("state", island.state());
-        values.put("size", island.size());
-        values.put("border", island.size());
-        values.put("level", island.level());
-        values.put("worth", island.worth());
-        values.put("publicAccess", island.publicAccess());
-        values.put("createdAt", island.createdAt());
-        values.put("updatedAt", island.updatedAt());
         return values;
     }
 
