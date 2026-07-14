@@ -1,8 +1,11 @@
 package kr.lunaf.cloudislands.paper.generator;
 
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot;
@@ -12,6 +15,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockFromToEvent;
@@ -28,6 +32,7 @@ public final class IslandGeneratorListener implements Listener {
     private final AtomicLong fluidReplacements = new AtomicLong();
     private final AtomicLong islandMisses = new AtomicLong();
     private final AtomicLong materialResolveFailures = new AtomicLong();
+    private final Set<BlockFormEvent> pendingBlockForms = Collections.newSetFromMap(new IdentityHashMap<>());
 
     public IslandGeneratorListener(ProtectionController protection, GeneratorRegistry registry, GeneratorLevelCache levels, BlockDeltaReporter blockDeltas) {
         this.protection = protection;
@@ -44,7 +49,6 @@ public final class IslandGeneratorListener implements Listener {
         }
         formEvents.incrementAndGet();
         Block block = event.getBlock();
-        Material previous = block.getType();
         UUID islandId = protection.islandAt(block).orElse(null);
         if (islandId == null) {
             islandMisses.incrementAndGet();
@@ -53,8 +57,14 @@ public final class IslandGeneratorListener implements Listener {
         Material material = generatedMaterial(levels.selection(islandId), biomeKey(block));
         if (validGeneratedMaterial(material)) {
             event.getNewState().setType(material);
+            pendingBlockForms.add(event);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onBlockFormResult(BlockFormEvent event) {
+        if (pendingBlockForms.remove(event) && !event.isCancelled()) {
             formReplacements.incrementAndGet();
-            reportReplacement(islandId, previous, material);
         }
     }
 

@@ -48,6 +48,7 @@ import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockFadeEvent;
 import org.bukkit.event.block.BlockFertilizeEvent;
+import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
@@ -211,19 +212,25 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onBucketEmpty(PlayerBucketEmptyEvent event) {
-        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.PLACE_LIQUID);
-        event.setCancelled(blocked);
+        event.setCancelled(denied(event.getPlayer(), event.getBlock(), IslandPermission.PLACE_LIQUID));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBucketEmptyAccepted(PlayerBucketEmptyEvent event) {
         Material liquid = bucketLiquid(event.getBucket());
-        if (!blocked && liquid != null) {
+        if (liquid != null) {
             protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.placed(islandId, event.getPlayer().getUniqueId(), liquid));
         }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onBucketFill(PlayerBucketFillEvent event) {
-        boolean blocked = denied(event.getPlayer(), event.getBlock(), IslandPermission.BREAK_LIQUID);
-        event.setCancelled(blocked);
-        if (!blocked && (event.getBlock().getType() == Material.WATER || event.getBlock().getType() == Material.LAVA)) {
+        event.setCancelled(denied(event.getPlayer(), event.getBlock(), IslandPermission.BREAK_LIQUID));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBucketFillAccepted(PlayerBucketFillEvent event) {
+        if (event.getBlock().getType() == Material.WATER || event.getBlock().getType() == Material.LAVA) {
             protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getPlayer().getUniqueId(), event.getBlock()));
         }
     }
@@ -372,9 +379,11 @@ public final class IslandProtectionListener implements Listener {
         boolean blocked = (event.getPlayer() != null && denied(event.getPlayer(), event.getBlock(), IslandPermission.FERTILIZE))
             || event.getBlocks().stream().anyMatch(state -> !sameIsland(event.getBlock(), state.getBlock()));
         event.setCancelled(blocked);
-        if (!blocked) {
-            event.getBlocks().forEach(state -> reportBlockReplacement(state.getBlock(), state.getType()));
-        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onFertilizeAccepted(BlockFertilizeEvent event) {
+        event.getBlocks().forEach(state -> reportBlockReplacement(state.getBlock(), state.getType()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -389,7 +398,11 @@ public final class IslandProtectionListener implements Listener {
         }
         boolean crossesBoundary = event.getBlocks().stream().anyMatch(state -> !sameIsland(source, state.getBlock()));
         event.setCancelled(crossesBoundary);
-        if (!crossesBoundary) {
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onStructureGrowAccepted(StructureGrowEvent event) {
+        if (!event.isFromBonemeal()) {
             event.getBlocks().forEach(state -> reportBlockReplacement(state.getBlock(), state.getType()));
         }
     }
@@ -600,16 +613,13 @@ public final class IslandProtectionListener implements Listener {
         if (event.getEntityType() == EntityType.ENDERMAN) {
             boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.ENDERMAN_GRIEF).allowed();
             event.setCancelled(!allowed);
-            if (allowed) {
-                protection.islandAt(event.getBlock()).ifPresent(islandId -> {
-                    if (event.getBlock().getType() != Material.AIR) {
-                        blockDeltas.broken(islandId, event.getBlock());
-                    }
-                    if (event.getTo() != Material.AIR) {
-                        blockDeltas.placed(islandId, event.getTo());
-                    }
-                });
-            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityChangeBlockAccepted(EntityChangeBlockEvent event) {
+        if (event.getEntityType() == EntityType.ENDERMAN) {
+            reportBlockReplacement(event.getBlock(), event.getTo());
         }
     }
 
@@ -638,9 +648,11 @@ public final class IslandProtectionListener implements Listener {
         }
         boolean allowed = protection.checkSystemFlag(event.getToBlock(), liquidFlag(event.getBlock().getType())).allowed();
         event.setCancelled(!allowed);
-        if (allowed) {
-            reportBlockReplacement(event.getToBlock(), event.getBlock().getType());
-        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onFluidAccepted(BlockFromToEvent event) {
+        reportBlockReplacement(event.getToBlock(), event.getBlock().getType());
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -657,9 +669,11 @@ public final class IslandProtectionListener implements Listener {
     public void onBurn(BlockBurnEvent event) {
         boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.FIRE_SPREAD).allowed();
         event.setCancelled(!allowed);
-        if (allowed) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
-        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBurnAccepted(BlockBurnEvent event) {
+        protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -680,9 +694,20 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockGrowCount(BlockGrowEvent event) {
+        if (event instanceof BlockFormEvent) {
+            return;
+        }
         if (event.getBlock().getType() != event.getNewState().getType()) {
             reportBlockReplacement(event.getBlock(), event.getNewState().getType());
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onBlockFormAccepted(BlockFormEvent event) {
+        if (event instanceof BlockSpreadEvent) {
+            return;
+        }
+        reportBlockReplacement(event.getBlock(), event.getNewState().getType());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -694,9 +719,11 @@ public final class IslandProtectionListener implements Listener {
     public void onLeavesDecay(LeavesDecayEvent event) {
         boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.LEAF_DECAY).allowed();
         event.setCancelled(!allowed);
-        if (allowed) {
-            protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
-        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onLeavesDecayAccepted(LeavesDecayEvent event) {
+        protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -704,10 +731,12 @@ public final class IslandProtectionListener implements Listener {
         if (event.getBlock().getType().getKey().getKey().contains("ice")) {
             boolean allowed = protection.checkSystemFlag(event.getBlock(), IslandFlag.ICE_MELT).allowed();
             event.setCancelled(!allowed);
-            if (allowed) {
-                reportBlockReplacement(event.getBlock(), event.getNewState().getType());
-            }
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onFadeAccepted(BlockFadeEvent event) {
+        reportBlockReplacement(event.getBlock(), event.getNewState().getType());
     }
 
     @EventHandler
