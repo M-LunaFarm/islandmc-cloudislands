@@ -314,7 +314,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "Role IDs, permissions, bans, and member APIs have unit coverage",
         "Paper permission cache/listener paths compile under the adapter matrix",
         "Version-neutral domain with Paper adapter boundary tests",
-        "Core API and permission event replay are exercised in tests",
+        "Core API and permission event replay are exercised in tests; Paper command callbacks retain immutable actor UUIDs across profile lookup and Core mutation completion",
         "replay and cache convergence are unit-tested; releaseClusterSmokeGate covers multi-Paper failover evidence",
         listOf(
             "cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/permission/PermissionResolverTest.java",
@@ -387,7 +387,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "upgrade effects apply size, limits, fly, generator tier, biome validation, and player border policy with combined bank and warehouse-item prices",
         "Paper commands compile and tests cover command policy, authoritative border serialization, and scheduler-safe live border refresh",
         "Paper adapter isolates version-sensitive runtime access",
-        "verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; authoritative size is carried through activation, restore, reset, and migration jobs, while live size changes atomically replace Paper protection, scan, and snapshot bounds; Core island response paths expose the independent authoritative BORDER limit, and async size, border, and border-policy events refresh every online player through the Paper scheduler with per-island burst deduplication; Paper tests also cover region-file cell isolation, unsafe-size fencing, world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting",
+        "verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; authoritative size is carried through activation, restore, reset, and migration jobs, while live size changes atomically replace Paper protection, scan, and snapshot bounds; Core island response paths expose the independent authoritative BORDER limit, and async size, border, border-policy, and personal-profile responses re-resolve the current online player through the Paper scheduler before Bukkit state changes; Paper tests also cover region-file cell isolation, unsafe-size fencing, world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java",
