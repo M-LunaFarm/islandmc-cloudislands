@@ -76,7 +76,8 @@ final class PaperIslandNodeRuntime {
             plugin.activeIslands,
             saveService,
             config.worker().defaultIslandSize(),
-            integrationHooks
+            integrationHooks,
+            new kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader(plugin)
         );
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(
             plugin.activeIslands,

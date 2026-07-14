@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class ActiveIslandRegistry {
     private final Map<UUID, ActiveIsland> active = new ConcurrentHashMap<>();
+    private final java.util.Set<UUID> transitioning = ConcurrentHashMap.newKeySet();
 
     public boolean acceptsActivation(UUID islandId, long fencingToken) {
         ActiveIsland current = active.get(islandId);
@@ -28,6 +29,20 @@ public final class ActiveIslandRegistry {
         return Optional.ofNullable(active.get(islandId));
     }
 
+    public boolean beginTransition(UUID islandId) {
+        return islandId != null && transitioning.add(islandId);
+    }
+
+    public void endTransition(UUID islandId) {
+        if (islandId != null) {
+            transitioning.remove(islandId);
+        }
+    }
+
+    public boolean isTransitioning(UUID islandId) {
+        return islandId != null && transitioning.contains(islandId);
+    }
+
     public Optional<ActiveIsland> resize(UUID islandId, int islandSize) {
         if (islandId == null || islandSize <= 0) {
             return Optional.empty();
@@ -37,6 +52,7 @@ public final class ActiveIslandRegistry {
 
     public void deactivated(UUID islandId) {
         active.remove(islandId);
+        transitioning.remove(islandId);
     }
 
     public int size() {

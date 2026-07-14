@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.common.protection.RegionIndex;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.cache.LocalIslandPermissionCache;
+import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleExtractor;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
@@ -83,7 +84,9 @@ class IslandActivationJobHandlerPolicyTest {
             new FileBackedCellTransfer(worldContainer),
             new ActiveIslandRegistry(),
             new IslandSaveService(storage, creationSnapshotExporter(), tempDir.resolve("exports")),
-            64
+            64,
+            IntegrationLifecycleHooks.noop(),
+            IslandCellUnloader.noop()
         );
 
         IslandActivationJobHandler.ActivationResult result = handler.handle(createJob("templates/default.tar.zst", checksum));
@@ -99,6 +102,40 @@ class IslandActivationJobHandlerPolicyTest {
     }
 
     @Test
+    void cellUnloadFailurePreventsPlacementAndReleasesTransitionFences() throws Exception {
+        byte[] bundlePayload = "portable-template-bundle".getBytes(StandardCharsets.UTF_8);
+        String checksum = Sha256Checksums.of(new ByteArrayInputStream(bundlePayload));
+        IslandBundleManifest manifest = compatibleManifest()
+            .withStoredBundle(checksum, BundleRestorePolicy.CHECKSUM_ALGORITHM, BundleRestorePolicy.COMPRESSION, "templates/default.tar.zst", bundlePayload.length);
+        TemplateBundleStorage storage = new TemplateBundleStorage(manifest, bundlePayload);
+        Path worldContainer = tempDir.resolve("worlds");
+        ProtectionController protection = protectionController();
+        ActiveIslandRegistry registry = new ActiveIslandRegistry();
+        IslandActivationJobHandler handler = new IslandActivationJobHandler(
+            storage,
+            new ShardWorldManager("ci_shard_", 1, 1024),
+            protection,
+            new IslandWorldRestorer(storage, tempDir.resolve("staging"), templateRestorePlanner(manifest)),
+            null,
+            0,
+            new FileBackedCellTransfer(worldContainer),
+            registry,
+            new IslandSaveService(storage, creationSnapshotExporter(), tempDir.resolve("exports")),
+            64,
+            IntegrationLifecycleHooks.noop(),
+            _plan -> { throw new IslandCellUnloadException("chunk ticket retained the cell"); }
+        );
+
+        IslandActivationJobHandler.ActivationResult result = handler.handle(createJob("templates/default.tar.zst", checksum));
+
+        assertFalse(result.success());
+        assertEquals("CELL_UNLOAD_FAILED", result.state());
+        assertFalse(Files.exists(worldContainer.resolve("ci_shard_001/region/r.0.0.mca")), "offline region files must remain untouched when live chunks cannot be evicted");
+        assertFalse(registry.isTransitioning(ISLAND_ID), "failed placement must release the route transition fence");
+        assertFalse(protection.isMigrating(ISLAND_ID), "failed placement must release its protection fence");
+    }
+
+    @Test
     void templateBundleCreatePolicyKeepsExplicitRestoreSignals() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/activation/IslandActivationJobHandler.java"), StandardCharsets.UTF_8);
 
@@ -106,6 +143,7 @@ class IslandActivationJobHandlerPolicyTest {
         assertTrue(source.contains("throw new IOException(\"template bundle restore is unavailable"), "bundled create must fail when no world restorer is wired");
         assertTrue(source.contains("throw new IOException(\"template bundle placement is unavailable"), "bundled create must fail when no cell transfer is wired");
         assertTrue(source.contains("worldRestorer.stageTemplateBundle"), "bundled create must stage the configured template bundle");
+        assertTrue(source.indexOf("cellUnloader.unload(placement)") < source.indexOf("cellTransfer.place(placement)"), "live cell chunks must be evicted before offline region files are replaced");
         assertTrue(source.contains("cellTransfer.place(placement)"), "staged template bundles must be placed into the shard world cell");
     }
 

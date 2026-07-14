@@ -133,6 +133,11 @@ public final class RouteTicketConsumer {
             clearRoute(playerUuid, ticket.ticketId(), "PLAYER_DISCONNECTED");
             return;
         }
+        if (islandTransitioning(ticket.islandId())) {
+            recordTeleportFailure("ISLAND_TRANSITION_IN_PROGRESS");
+            failRoute(playerUuid, ticket.ticketId(), "ISLAND_TRANSITION_IN_PROGRESS", true);
+            return;
+        }
         if (world == null) {
             if (attempt == 0 || attempt % 5 == 0) {
                 notifyPreparing(playerUuid, attempt);
@@ -190,6 +195,11 @@ public final class RouteTicketConsumer {
             clearRoute(playerUuid, ticket.ticketId(), "PLAYER_DISCONNECTED");
             return;
         }
+        if (islandTransitioning(ticket.islandId())) {
+            recordTeleportFailure("ISLAND_TRANSITION_IN_PROGRESS");
+            failRoute(playerUuid, ticket.ticketId(), "ISLAND_TRANSITION_IN_PROGRESS", true);
+            return;
+        }
         if (!SafeTeleportResolver.isSafe(target, targetRegion)) {
             recordTeleportFailure("TELEPORT_TARGET_CHANGED");
             failRoute(playerUuid, ticket.ticketId(), "TELEPORT_TARGET_CHANGED", true);
@@ -235,6 +245,11 @@ public final class RouteTicketConsumer {
             active.cellX(),
             active.cellZ()
         );
+    }
+
+    private boolean islandTransitioning(UUID islandId) {
+        ActiveIslandRegistry registry = activeIslands;
+        return registry != null && registry.isTransitioning(islandId);
     }
 
     private Optional<Location> targetLocation(World world, RouteTicket ticket, java.util.Map<String, String> payload) {

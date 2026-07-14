@@ -31,6 +31,7 @@ public final class IslandActivationJobHandler {
     private final IslandSaveService saveService;
     private final int defaultIslandSize;
     private final IntegrationLifecycleHooks integrationHooks;
+    private final IslandCellUnloader cellUnloader;
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController) {
         this(storage, shardWorldManager, protectionController, null, null, 0, null);
@@ -53,6 +54,10 @@ public final class IslandActivationJobHandler {
     }
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer, ActiveIslandRegistry activeIslands, IslandSaveService saveService, int defaultIslandSize, IntegrationLifecycleHooks integrationHooks) {
+        this(storage, shardWorldManager, protectionController, worldRestorer, preloader, preloadRadius, cellTransfer, activeIslands, saveService, defaultIslandSize, integrationHooks, cellTransfer == null ? IslandCellUnloader.noop() : IslandCellUnloader.unavailable());
+    }
+
+    public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer, ActiveIslandRegistry activeIslands, IslandSaveService saveService, int defaultIslandSize, IntegrationLifecycleHooks integrationHooks, IslandCellUnloader cellUnloader) {
         this.storage = storage;
         this.shardWorldManager = shardWorldManager;
         this.protectionController = protectionController;
@@ -64,6 +69,9 @@ public final class IslandActivationJobHandler {
         this.saveService = saveService;
         this.defaultIslandSize = Math.max(1, defaultIslandSize);
         this.integrationHooks = integrationHooks == null ? IntegrationLifecycleHooks.noop() : integrationHooks;
+        this.cellUnloader = cellUnloader == null
+            ? (cellTransfer == null ? IslandCellUnloader.noop() : IslandCellUnloader.unavailable())
+            : cellUnloader;
     }
 
     public ActivationResult handle(IslandJob job) {
@@ -71,6 +79,14 @@ public final class IslandActivationJobHandler {
             return new ActivationResult(false, "UNSUPPORTED_JOB", null, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L, "");
         }
         UUID islandId = job.islandId();
+        boolean transitionOwned = activeIslands == null || activeIslands.beginTransition(islandId);
+        if (!transitionOwned) {
+            return new ActivationResult(false, "ISLAND_TRANSITION_IN_PROGRESS", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L, "");
+        }
+        boolean migrationMarkerOwned = !protectionController.isMigrating(islandId);
+        if (migrationMarkerOwned) {
+            protectionController.markMigrating(islandId);
+        }
         ShardWorldManager.CellAssignment cell = null;
         boolean hadCellBeforeActivation = shardWorldManager.reserved(islandId);
         String placementSource = placementSource(job);
@@ -84,6 +100,7 @@ public final class IslandActivationJobHandler {
             BundleRestorePlan restorePlan = stageBundle(job, islandId, cell, snapshotNo, storagePath);
             if (restorePlan != null && cellTransfer != null) {
                 CellPlacementPlan placement = new ShardCellTransferPlanner(manifest.size()).placement(restorePlan);
+                cellUnloader.unload(placement);
                 cellTransfer.place(placement);
             }
             if (job.type() == IslandJobType.RESTORE_ISLAND && snapshotNo > 0L) {
@@ -101,6 +118,11 @@ public final class IslandActivationJobHandler {
             ActiveIslandRegistry.ActiveIsland activeIsland = new ActiveIslandRegistry.ActiveIsland(islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), Instant.now());
             integrationHooks.onIslandActivated(islandId, activeIsland).throwIfFailed();
             return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preMutationSnapshot == null ? 0L : preMutationSnapshot.snapshotNo(), preMutationSnapshot == null ? "" : preMutationSnapshot.checksum(), preMutationSnapshot == null ? 0L : preMutationSnapshot.sizeBytes(), preMutationReason(job), creationSnapshot == null ? 0L : creationSnapshot.snapshotNo(), creationSnapshot == null ? "" : creationSnapshot.checksum(), creationSnapshot == null ? 0L : creationSnapshot.sizeBytes(), placementSource);
+        } catch (IslandCellUnloadException exception) {
+            if (cell != null && !hadCellBeforeActivation) {
+                shardWorldManager.release(islandId);
+            }
+            return new ActivationResult(false, "CELL_UNLOAD_FAILED", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L, placementSource);
         } catch (ShardCellGeometryPolicy.UnsafeGeometryException exception) {
             if (cell != null && !hadCellBeforeActivation) {
                 shardWorldManager.release(islandId);
@@ -111,6 +133,13 @@ public final class IslandActivationJobHandler {
                 shardWorldManager.release(islandId);
             }
             return new ActivationResult(false, "ERROR_ACTIVATING", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L, placementSource);
+        } finally {
+            if (migrationMarkerOwned) {
+                protectionController.clearMigrating(islandId);
+            }
+            if (activeIslands != null) {
+                activeIslands.endTransition(islandId);
+            }
         }
     }
 

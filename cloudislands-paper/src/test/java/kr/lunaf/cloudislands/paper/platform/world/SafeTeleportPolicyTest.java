@@ -35,6 +35,8 @@ class SafeTeleportPolicyTest {
         assertTrue(tickets.contains("worlds.safeDestination(requested, targetRegion)"));
         assertTrue(tickets.contains("UNSAFE_TELEPORT_TARGET"));
         assertTrue(tickets.contains("TELEPORT_TARGET_CHANGED"));
+        assertTrue(tickets.contains("islandTransitioning(ticket.islandId())"));
+        assertTrue(tickets.contains("ISLAND_TRANSITION_IN_PROGRESS"));
         assertTrue(tickets.contains("worlds.safeDestination(target, null)"));
         assertTrue(boundary.contains("pendingReturns.add(playerUuid)"));
         assertTrue(boundary.contains("worlds.safeDestination(target, region)"));
