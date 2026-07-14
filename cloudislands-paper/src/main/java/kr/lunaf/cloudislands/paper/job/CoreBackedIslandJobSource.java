@@ -24,26 +24,26 @@ public final class CoreBackedIslandJobSource implements PaperIslandJobWorker.Loc
 
     @Override
     public void complete(String nodeId, UUID jobId) {
-        runtimeCommands.completeJob(nodeId, jobId, Map.of());
+        runtimeCommands.completeJob(nodeId, jobId, Map.of()).join();
     }
 
     @Override
     public void complete(String nodeId, UUID jobId, Map<String, String> payload) {
-        runtimeCommands.completeJob(nodeId, jobId, payload);
+        runtimeCommands.completeJob(nodeId, jobId, payload).join();
     }
 
     @Override
     public void complete(String nodeId, IslandJob job, Map<String, String> payload) {
-        runtimeCommands.completeJob(nodeId, job.jobId(), job.claimLease(), payload);
+        runtimeCommands.completeJob(nodeId, job.jobId(), job.claimLease(), payload).join();
     }
 
     @Override
     public void fail(String nodeId, UUID jobId, String errorMessage) {
-        runtimeCommands.failJob(nodeId, jobId, errorMessage);
+        runtimeCommands.failJob(nodeId, jobId, errorMessage).join();
     }
 
     @Override
     public void fail(String nodeId, IslandJob job, String errorMessage) {
-        runtimeCommands.failJob(nodeId, job.jobId(), job.claimLease(), errorMessage);
+        runtimeCommands.failJob(nodeId, job.jobId(), job.claimLease(), errorMessage).join();
     }
 }

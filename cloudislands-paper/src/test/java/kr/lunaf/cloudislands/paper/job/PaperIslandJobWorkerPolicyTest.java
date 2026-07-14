@@ -16,5 +16,13 @@ class PaperIslandJobWorkerPolicyTest {
         assertTrue(source.contains("PaperJobCompletionReporter"), "completion reporting must be isolated in a tested component");
         assertTrue(reporter.contains("leaving claimed job for retry"), "completion reporting failure must leave Core claim recovery as the retry path");
         assertTrue(source.contains("catch (PaperJobCompletionReporter.CompletionReportFailedException ignored)"), "worker must not convert completion-report failures into jobSource.fail");
+        assertTrue(source.contains("pendingCompletions.put(job.jobId(), payload)"), "local success must be journaled before reporting to Core");
+        assertTrue(source.contains("replayPendingCompletion(job)"), "retried jobs must replay completion without repeating world mutation");
+        int replay = source.indexOf("if (replayPendingCompletion(job))");
+        int saveBranch = source.indexOf("if (job.type() == IslandJobType.SAVE_ISLAND");
+        assertTrue(replay >= 0 && replay < saveBranch, "completion replay must short-circuit before any world mutation branch");
+        int journal = source.indexOf("pendingCompletions.put(job.jobId(), payload)");
+        int report = source.indexOf("completionReporter.report(job, payload)", journal);
+        assertTrue(journal >= 0 && journal < report, "the local-success journal must be durable before Core is contacted");
     }
 }

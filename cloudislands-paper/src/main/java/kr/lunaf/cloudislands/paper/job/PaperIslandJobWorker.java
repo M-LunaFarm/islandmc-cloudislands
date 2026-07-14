@@ -33,6 +33,7 @@ public final class PaperIslandJobWorker {
     private final String nodeId;
     private final PlatformScheduler scheduler;
     private final PaperJobCompletionReporter completionReporter;
+    private final PendingJobCompletionStore pendingCompletions;
     private TaskHandle task;
     private volatile int consecutiveFailures;
     private volatile int inFlightJobs;
@@ -64,6 +65,11 @@ public final class PaperIslandJobWorker {
             this.jobSource::complete,
             message -> this.plugin.getLogger().warning(message)
         );
+        try {
+            this.pendingCompletions = new PendingJobCompletionStore(plugin.getDataFolder().toPath().resolve("pending-job-completions.bin"));
+        } catch (java.io.IOException exception) {
+            throw new IllegalStateException("failed to open pending job completion journal", exception);
+        }
     }
 
     public void start(long intervalTicks) {
@@ -103,6 +109,9 @@ public final class PaperIslandJobWorker {
 
     private void handle(IslandJob job) {
         try {
+            if (replayPendingCompletion(job)) {
+                return;
+            }
             if (job.type() == IslandJobType.SAVE_ISLAND || job.type() == IslandJobType.SNAPSHOT_ISLAND) {
                 handleSave(job);
                 return;
@@ -233,6 +242,30 @@ public final class PaperIslandJobWorker {
     }
 
     private void reportComplete(IslandJob job, Map<String, String> payload) {
+        try {
+            pendingCompletions.put(job.jobId(), payload);
+        } catch (java.io.IOException persistenceFailure) {
+            plugin.getLogger().severe("Could not persist local job success before Core completion report: " + job.jobId() + " " + persistenceFailure.getMessage());
+        }
         completionReporter.report(job, payload);
+        clearPendingCompletion(job.jobId());
+    }
+
+    private boolean replayPendingCompletion(IslandJob job) {
+        Map<String, String> payload = pendingCompletions.find(job.jobId()).orElse(null);
+        if (payload == null) {
+            return false;
+        }
+        completionReporter.report(job, payload);
+        clearPendingCompletion(job.jobId());
+        return true;
+    }
+
+    private void clearPendingCompletion(java.util.UUID jobId) {
+        try {
+            pendingCompletions.remove(jobId);
+        } catch (java.io.IOException cleanupFailure) {
+            plugin.getLogger().warning("Core accepted job completion but local journal cleanup failed: " + jobId + " " + cleanupFailure.getMessage());
+        }
     }
 }
