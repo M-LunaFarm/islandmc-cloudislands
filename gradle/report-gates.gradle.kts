@@ -475,16 +475,18 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "integration policy, localization files, GUI components, and scoped runtime certification fixtures exist",
         "Paper integration registry certifies Vault economy, PlaceholderAPI registration, Plan distributed analytics, vanish-safe player suggestions, custom block identity, and logical stack accounting while separating diagnostic-only state-transfer adapters",
         "plugin-specific operation adapters are active only where implemented",
-        "verifyIntegrationRuntimeSmoke verifies executable runtime services including RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation while keeping probe-only adapters diagnostic",
+        "verifyIntegrationRuntimeSmoke verifies executable runtime services including RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, and scoreboard components",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java",
             "cloudislands-paper/src/main/resources/config-v2/integrations.yml",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/IslandConfirmationMenu.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/message/ConfiguredMessageComponents.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertification.java",
-            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java"
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/integration/IntegrationRuntimeCertificationTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/message/ConfiguredMessageComponentsTest.java"
         ),
-        "Vault, PlaceholderAPI, Plan, vanish, custom-item, and stacker accounting services are executable; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
+        "Vault, PlaceholderAPI, Plan, vanish, custom-item, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
     )
 )
 
