@@ -136,6 +136,47 @@ class IslandActivationJobHandlerPolicyTest {
     }
 
     @Test
+    void bundleLessCreateClearsReusedCellAndGeneratesStarterBeforeSnapshot() throws Exception {
+        TemplateBundleStorage storage = new TemplateBundleStorage(compatibleManifest(), new byte[0]);
+        Path worldContainer = tempDir.resolve("worlds");
+        Path staleRegion = worldContainer.resolve("ci_shard_001/region/r.-1.-1.mca");
+        Path staleEntities = worldContainer.resolve("ci_shard_001/entities/r.-1.-1.mca");
+        Path stalePoi = worldContainer.resolve("ci_shard_001/poi/r.-1.-1.mca");
+        for (Path stale : List.of(staleRegion, staleEntities, stalePoi)) {
+            Files.createDirectories(stale.getParent());
+            Files.writeString(stale, "previous-island");
+        }
+        java.util.concurrent.atomic.AtomicReference<StarterIslandGenerator.Plan> generated = new java.util.concurrent.atomic.AtomicReference<>();
+        IslandActivationJobHandler handler = new IslandActivationJobHandler(
+            storage,
+            new ShardWorldManager("ci_shard_", 1, 1024),
+            protectionController(),
+            null,
+            null,
+            0,
+            new FileBackedCellTransfer(worldContainer),
+            new ActiveIslandRegistry(),
+            new IslandSaveService(storage, creationSnapshotExporter(), tempDir.resolve("exports")),
+            64,
+            IntegrationLifecycleHooks.noop(),
+            IslandCellUnloader.noop(),
+            generated::set
+        );
+
+        IslandActivationJobHandler.ActivationResult result = handler.handle(createJob("", ""));
+
+        assertTrue(result.success());
+        assertEquals("builtin-starter", result.placementSource());
+        assertFalse(Files.exists(staleRegion));
+        assertFalse(Files.exists(staleEntities));
+        assertFalse(Files.exists(stalePoi));
+        assertEquals(8, generated.get().blockX());
+        assertEquals(95, generated.get().surfaceY());
+        assertEquals(-8, generated.get().blockZ());
+        assertEquals(1L, result.creationSnapshotNo());
+    }
+
+    @Test
     void templateBundleCreatePolicyKeepsExplicitRestoreSignals() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/activation/IslandActivationJobHandler.java"), StandardCharsets.UTF_8);
 
@@ -143,8 +184,12 @@ class IslandActivationJobHandlerPolicyTest {
         assertTrue(source.contains("throw new IOException(\"template bundle restore is unavailable"), "bundled create must fail when no world restorer is wired");
         assertTrue(source.contains("throw new IOException(\"template bundle placement is unavailable"), "bundled create must fail when no cell transfer is wired");
         assertTrue(source.contains("worldRestorer.stageTemplateBundle"), "bundled create must stage the configured template bundle");
-        assertTrue(source.indexOf("cellUnloader.unload(placement)") < source.indexOf("cellTransfer.place(placement)"), "live cell chunks must be evicted before offline region files are replaced");
+        int unload = source.indexOf("cellUnloader.unload(IslandCellRange.from(placement))");
+        int place = source.indexOf("cellTransfer.place(placement)");
+        assertTrue(unload >= 0 && unload < place, "live cell chunks must be evicted before offline region files are replaced");
         assertTrue(source.contains("cellTransfer.place(placement)"), "staged template bundles must be placed into the shard world cell");
+        assertTrue(source.contains("cellTransfer.clear(range.worldName()"), "bundle-less creates must remove stale cell files");
+        assertTrue(source.contains("starterIslandGenerator.generate(starterPlan(job, cell))"), "bundle-less creates must generate a playable fallback island");
     }
 
     @Test

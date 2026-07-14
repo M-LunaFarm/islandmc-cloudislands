@@ -36,6 +36,23 @@ class FileBackedCellTransferTest {
     }
 
     @Test
+    void clearRemovesChunkEntityAndPoiFilesOnlyInsideTheReusedCell() throws Exception {
+        Path world = root.resolve("worlds/ci_shard_001");
+        for (String dataSet : java.util.List.of("region", "entities", "poi")) {
+            Files.createDirectories(world.resolve(dataSet));
+            Files.writeString(world.resolve(dataSet + "/r.-1.-1.mca"), "stale-cell");
+            Files.writeString(world.resolve(dataSet + "/r.3.3.mca"), "neighbor-cell");
+        }
+
+        new FileBackedCellTransfer(root.resolve("worlds")).clear("ci_shard_001", -2, 2, -2, 2);
+
+        for (String dataSet : java.util.List.of("region", "entities", "poi")) {
+            assertFalse(Files.exists(world.resolve(dataSet + "/r.-1.-1.mca")));
+            assertEquals("neighbor-cell", Files.readString(world.resolve(dataSet + "/r.3.3.mca")));
+        }
+    }
+
+    @Test
     void mismatchedBundleCoordinatesFailBeforeChangingTheTargetCell() throws Exception {
         Path source = root.resolve("mismatched/chunks");
         Path worldRegion = root.resolve("worlds/ci_shard_001/region");

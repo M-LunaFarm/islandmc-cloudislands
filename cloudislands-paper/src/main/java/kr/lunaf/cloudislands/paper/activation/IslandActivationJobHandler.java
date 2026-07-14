@@ -32,6 +32,7 @@ public final class IslandActivationJobHandler {
     private final int defaultIslandSize;
     private final IntegrationLifecycleHooks integrationHooks;
     private final IslandCellUnloader cellUnloader;
+    private final StarterIslandGenerator starterIslandGenerator;
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController) {
         this(storage, shardWorldManager, protectionController, null, null, 0, null);
@@ -58,6 +59,10 @@ public final class IslandActivationJobHandler {
     }
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer, ActiveIslandRegistry activeIslands, IslandSaveService saveService, int defaultIslandSize, IntegrationLifecycleHooks integrationHooks, IslandCellUnloader cellUnloader) {
+        this(storage, shardWorldManager, protectionController, worldRestorer, preloader, preloadRadius, cellTransfer, activeIslands, saveService, defaultIslandSize, integrationHooks, cellUnloader, cellTransfer == null ? StarterIslandGenerator.noop() : StarterIslandGenerator.unavailable());
+    }
+
+    public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer, ActiveIslandRegistry activeIslands, IslandSaveService saveService, int defaultIslandSize, IntegrationLifecycleHooks integrationHooks, IslandCellUnloader cellUnloader, StarterIslandGenerator starterIslandGenerator) {
         this.storage = storage;
         this.shardWorldManager = shardWorldManager;
         this.protectionController = protectionController;
@@ -72,6 +77,9 @@ public final class IslandActivationJobHandler {
         this.cellUnloader = cellUnloader == null
             ? (cellTransfer == null ? IslandCellUnloader.noop() : IslandCellUnloader.unavailable())
             : cellUnloader;
+        this.starterIslandGenerator = starterIslandGenerator == null
+            ? (cellTransfer == null ? StarterIslandGenerator.noop() : StarterIslandGenerator.unavailable())
+            : starterIslandGenerator;
     }
 
     public ActivationResult handle(IslandJob job) {
@@ -102,6 +110,11 @@ public final class IslandActivationJobHandler {
                 CellPlacementPlan placement = new ShardCellTransferPlanner(manifest.size()).placement(restorePlan);
                 cellUnloader.unload(IslandCellRange.from(placement));
                 cellTransfer.place(placement);
+            } else if (blankTemplateCreate(job) && cellTransfer != null) {
+                IslandCellRange range = IslandCellRange.from(islandId, cell, manifest.size());
+                cellUnloader.unload(range);
+                cellTransfer.clear(range.worldName(), range.minChunkX(), range.maxChunkX(), range.minChunkZ(), range.maxChunkZ());
+                starterIslandGenerator.generate(starterPlan(job, cell));
             }
             if (job.type() == IslandJobType.RESTORE_ISLAND && snapshotNo > 0L) {
                 if (storagePath.isBlank()) {
@@ -210,7 +223,22 @@ public final class IslandActivationJobHandler {
     }
 
     private String placementSource(IslandJob job) {
+        if (blankTemplateCreate(job)) {
+            return "builtin-starter";
+        }
         return job.payload().getOrDefault("worldName", "").isBlank() ? "paper-allocator" : "core-payload";
+    }
+
+    private boolean blankTemplateCreate(IslandJob job) {
+        return job.type() == IslandJobType.CREATE_ISLAND
+            && job.payload().getOrDefault("templateBundlePath", "").isBlank();
+    }
+
+    private StarterIslandGenerator.Plan starterPlan(IslandJob job, ShardWorldManager.CellAssignment cell) {
+        int blockX = cell.originX() + (int) Math.floor(doubleValue(job.payload().get("localX"), 0.5D));
+        int surfaceY = (int) Math.floor(doubleValue(job.payload().get("localY"), 100.0D)) - 1;
+        int blockZ = cell.originZ() + (int) Math.floor(doubleValue(job.payload().get("localZ"), 0.5D));
+        return new StarterIslandGenerator.Plan(job.islandId(), cell.worldName(), blockX, surfaceY, blockZ);
     }
 
     private IslandSaveService.SaveResult snapshotBeforeMutation(IslandJob job) throws IOException {

@@ -19,4 +19,16 @@ public record IslandCellRange(UUID islandId, String worldName, int minChunkX, in
             Math.floorDiv(island.originZ() + half, 16)
         );
     }
+
+    public static IslandCellRange from(UUID islandId, ShardWorldManager.CellAssignment cell, int islandSize) {
+        int half = Math.max(1, islandSize / 2);
+        return new IslandCellRange(
+            islandId,
+            cell.worldName(),
+            Math.floorDiv(cell.originX() - half, 16),
+            Math.floorDiv(cell.originX() + half, 16),
+            Math.floorDiv(cell.originZ() - half, 16),
+            Math.floorDiv(cell.originZ() + half, 16)
+        );
+    }
 }

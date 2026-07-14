@@ -19,7 +19,13 @@ public final class FileBackedCellTransfer {
 
     public void place(CellPlacementPlan plan) throws IOException {
         Path world = worldDirectory(plan.worldName());
-        replaceRegionFiles(plan, world);
+        replaceRegionFiles(plan, world, false);
+    }
+
+    public void clear(String worldName, int minChunkX, int maxChunkX, int minChunkZ, int maxChunkZ) throws IOException {
+        Path unused = worldContainer.resolve(".cloudislands-empty-cell-source");
+        CellPlacementPlan plan = new CellPlacementPlan(UUID.randomUUID(), worldName, 0, 0, unused, minChunkX, maxChunkX, minChunkZ, maxChunkZ);
+        replaceRegionFiles(plan, worldDirectory(worldName), true);
     }
 
     public void extract(CellExtractionPlan plan) throws IOException {
@@ -73,7 +79,7 @@ public final class FileBackedCellTransfer {
         }
     }
 
-    private void replaceRegionFiles(CellPlacementPlan plan, Path world) throws IOException {
+    private void replaceRegionFiles(CellPlacementPlan plan, Path world, boolean clear) throws IOException {
         int minRegionX = Math.floorDiv(plan.minChunkX(), 32);
         int maxRegionX = Math.floorDiv(plan.maxChunkX(), 32);
         int minRegionZ = Math.floorDiv(plan.minChunkZ(), 32);
@@ -93,7 +99,11 @@ public final class FileBackedCellTransfer {
                 new DataSet("poi", plan.poiDirectory(), normalizedWorld.resolve("poi"), AnvilRegionRelocator.DataKind.POI)
             );
             for (DataSet dataSet : dataSets) {
-                prepareDataSet(plan, dataSet, stagedRoot.resolve(dataSet.name), minRegionX, maxRegionX, minRegionZ, maxRegionZ);
+                if (clear) {
+                    Files.createDirectories(stagedRoot.resolve(dataSet.name));
+                } else {
+                    prepareDataSet(plan, dataSet, stagedRoot.resolve(dataSet.name), minRegionX, maxRegionX, minRegionZ, maxRegionZ);
+                }
             }
             for (DataSet dataSet : dataSets) {
                 publishDataSet(dataSet, stagedRoot.resolve(dataSet.name), backup.resolve(dataSet.name), changed,
