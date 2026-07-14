@@ -79,12 +79,14 @@ final class PaperIslandNodeRuntime {
             integrationHooks,
             new kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader(plugin)
         );
+        kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader cellUnloader = new kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader(plugin);
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(
             plugin.activeIslands,
             shardWorldManager,
             plugin.agent.protection(),
             saveService,
-            integrationHooks
+            integrationHooks,
+            cellUnloader
         );
         PermissionCacheSyncService permissionSync = new PermissionCacheSyncService(plugin, client, plugin.agent.permissionCache());
         plugin.jobWorker = new PaperIslandJobWorker(

@@ -8,9 +8,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import kr.lunaf.cloudislands.paper.activation.IslandCellUnloader;
 import kr.lunaf.cloudislands.paper.activation.IslandCellUnloadException;
+import kr.lunaf.cloudislands.paper.activation.IslandCellRange;
 import kr.lunaf.cloudislands.paper.platform.scheduler.BukkitPlatformScheduler;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PlatformScheduler;
-import kr.lunaf.cloudislands.paper.world.cell.CellPlacementPlan;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -33,51 +33,51 @@ public final class BukkitIslandCellUnloader implements IslandCellUnloader {
     }
 
     @Override
-    public void unload(CellPlacementPlan plan) throws IOException {
-        if (plan == null || plan.worldName() == null || plan.worldName().isBlank()) {
+    public void unload(IslandCellRange range) throws IOException {
+        if (range == null || range.worldName() == null || range.worldName().isBlank()) {
             throw new IslandCellUnloadException("cannot unload a cell without a target world");
         }
         if (Bukkit.isPrimaryThread()) {
-            unloadOnServerThread(plan);
+            unloadOnServerThread(range);
             return;
         }
         CompletableFuture<Void> completion = new CompletableFuture<>();
         try {
             scheduler.runGlobal(() -> {
                 try {
-                    unloadOnServerThread(plan);
+                    unloadOnServerThread(range);
                     completion.complete(null);
                 } catch (Throwable error) {
                     completion.completeExceptionally(error);
                 }
             });
         } catch (RuntimeException error) {
-            throw new IslandCellUnloadException("failed to schedule island cell unload " + plan.worldName(), error);
+            throw new IslandCellUnloadException("failed to schedule island cell unload " + range.worldName(), error);
         }
-        await(plan, completion);
+        await(range, completion);
     }
 
-    private void unloadOnServerThread(CellPlacementPlan plan) throws IOException {
-        World world = Bukkit.getWorld(plan.worldName());
+    private void unloadOnServerThread(IslandCellRange range) throws IOException {
+        World world = Bukkit.getWorld(range.worldName());
         if (world == null) {
-            throw new IslandCellUnloadException("target island world is not loaded: " + plan.worldName());
+            throw new IslandCellUnloadException("target island world is not loaded: " + range.worldName());
         }
         for (Player player : world.getPlayers()) {
             int chunkX = player.getLocation().getBlockX() >> 4;
             int chunkZ = player.getLocation().getBlockZ() >> 4;
-            if (inside(plan, chunkX, chunkZ)) {
+            if (inside(range, chunkX, chunkZ)) {
                 throw new IslandCellUnloadException("island cell still contains player " + player.getUniqueId());
             }
         }
-        for (int chunkX = plan.minChunkX(); chunkX <= plan.maxChunkX(); chunkX++) {
-            for (int chunkZ = plan.minChunkZ(); chunkZ <= plan.maxChunkZ(); chunkZ++) {
+        for (int chunkX = range.minChunkX(); chunkX <= range.maxChunkX(); chunkX++) {
+            for (int chunkZ = range.minChunkZ(); chunkZ <= range.maxChunkZ(); chunkZ++) {
                 if (world.isChunkLoaded(chunkX, chunkZ) && !world.unloadChunk(chunkX, chunkZ, false)) {
                     throw new IslandCellUnloadException("Paper refused to unload island chunk " + chunkX + "," + chunkZ);
                 }
             }
         }
-        for (int chunkX = plan.minChunkX(); chunkX <= plan.maxChunkX(); chunkX++) {
-            for (int chunkZ = plan.minChunkZ(); chunkZ <= plan.maxChunkZ(); chunkZ++) {
+        for (int chunkX = range.minChunkX(); chunkX <= range.maxChunkX(); chunkX++) {
+            for (int chunkZ = range.minChunkZ(); chunkZ <= range.maxChunkZ(); chunkZ++) {
                 if (world.isChunkLoaded(chunkX, chunkZ)) {
                     throw new IslandCellUnloadException("island chunk remained loaded after unload " + chunkX + "," + chunkZ);
                 }
@@ -85,25 +85,25 @@ public final class BukkitIslandCellUnloader implements IslandCellUnloader {
         }
     }
 
-    private boolean inside(CellPlacementPlan plan, int chunkX, int chunkZ) {
-        return chunkX >= plan.minChunkX() && chunkX <= plan.maxChunkX()
-            && chunkZ >= plan.minChunkZ() && chunkZ <= plan.maxChunkZ();
+    private boolean inside(IslandCellRange range, int chunkX, int chunkZ) {
+        return chunkX >= range.minChunkX() && chunkX <= range.maxChunkX()
+            && chunkZ >= range.minChunkZ() && chunkZ <= range.maxChunkZ();
     }
 
-    private void await(CellPlacementPlan plan, CompletableFuture<Void> completion) throws IOException {
+    private void await(IslandCellRange range, CompletableFuture<Void> completion) throws IOException {
         try {
             completion.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            throw new IslandCellUnloadException("interrupted while unloading island cell " + plan.islandId(), exception);
+            throw new IslandCellUnloadException("interrupted while unloading island cell " + range.islandId(), exception);
         } catch (TimeoutException exception) {
-            throw new IslandCellUnloadException("timed out unloading island cell " + plan.islandId(), exception);
+            throw new IslandCellUnloadException("timed out unloading island cell " + range.islandId(), exception);
         } catch (ExecutionException exception) {
             Throwable cause = exception.getCause();
             if (cause instanceof IslandCellUnloadException unloadException) {
                 throw unloadException;
             }
-            throw new IslandCellUnloadException("failed to unload island cell " + plan.islandId(), cause);
+            throw new IslandCellUnloadException("failed to unload island cell " + range.islandId(), cause);
         }
     }
 }

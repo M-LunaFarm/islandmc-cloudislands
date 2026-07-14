@@ -14,6 +14,7 @@ public final class IslandDeactivationHandler {
     private final ProtectionController protectionController;
     private final IslandSaveService saveService;
     private final IntegrationLifecycleHooks integrationHooks;
+    private final IslandCellUnloader cellUnloader;
 
     public IslandDeactivationHandler(ActiveIslandRegistry activeIslands, ShardWorldManager shardWorldManager, ProtectionController protectionController) {
         this(activeIslands, shardWorldManager, protectionController, null);
@@ -24,11 +25,16 @@ public final class IslandDeactivationHandler {
     }
 
     public IslandDeactivationHandler(ActiveIslandRegistry activeIslands, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandSaveService saveService, IntegrationLifecycleHooks integrationHooks) {
+        this(activeIslands, shardWorldManager, protectionController, saveService, integrationHooks, saveService == null ? IslandCellUnloader.noop() : IslandCellUnloader.unavailable());
+    }
+
+    public IslandDeactivationHandler(ActiveIslandRegistry activeIslands, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandSaveService saveService, IntegrationLifecycleHooks integrationHooks, IslandCellUnloader cellUnloader) {
         this.activeIslands = activeIslands;
         this.shardWorldManager = shardWorldManager;
         this.protectionController = protectionController;
         this.saveService = saveService;
         this.integrationHooks = integrationHooks == null ? IntegrationLifecycleHooks.noop() : integrationHooks;
+        this.cellUnloader = cellUnloader == null ? IslandCellUnloader.unavailable() : cellUnloader;
     }
 
     public DeactivationResult deactivate(UUID islandId) {
@@ -40,6 +46,14 @@ public final class IslandDeactivationHandler {
     }
 
     public DeactivationResult deactivate(UUID islandId, boolean deleteBackup, String reason) {
+        boolean transitionOwned = activeIslands.beginTransition(islandId);
+        if (!transitionOwned) {
+            return new DeactivationResult(false, islandId, 0L, "", 0L, "ISLAND_TRANSITION_IN_PROGRESS");
+        }
+        boolean migrationMarkerOwned = !protectionController.isMigrating(islandId);
+        if (migrationMarkerOwned) {
+            protectionController.markMigrating(islandId);
+        }
         try {
             IslandSaveService.SaveResult saveResult = null;
             ActiveIslandRegistry.ActiveIsland active = activeIslands.find(islandId).orElse(null);
@@ -55,6 +69,7 @@ public final class IslandDeactivationHandler {
             if (active != null && saveService != null) {
                 saveResult = deleteBackup ? saveService.backupBeforeDelete(islandId, active) : saveService.save(islandId, active, null, reason);
                 integrationHooks.onIslandDeactivated(islandId, active, saveResult.bundleFile()).throwIfFailed();
+                cellUnloader.unload(IslandCellRange.from(active));
             }
             protectionController.unregisterIsland(islandId);
             activeIslands.deactivated(islandId);
@@ -62,6 +77,11 @@ public final class IslandDeactivationHandler {
             return new DeactivationResult(true, islandId, saveResult == null ? 0L : saveResult.snapshotNo(), saveResult == null ? "" : saveResult.checksum(), saveResult == null ? 0L : saveResult.sizeBytes(), null);
         } catch (IOException exception) {
             return new DeactivationResult(false, islandId, 0L, "", 0L, exception.getMessage());
+        } finally {
+            if (migrationMarkerOwned) {
+                protectionController.clearMigrating(islandId);
+            }
+            activeIslands.endTransition(islandId);
         }
     }
 

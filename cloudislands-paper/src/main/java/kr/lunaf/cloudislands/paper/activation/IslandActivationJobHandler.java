@@ -100,7 +100,7 @@ public final class IslandActivationJobHandler {
             BundleRestorePlan restorePlan = stageBundle(job, islandId, cell, snapshotNo, storagePath);
             if (restorePlan != null && cellTransfer != null) {
                 CellPlacementPlan placement = new ShardCellTransferPlanner(manifest.size()).placement(restorePlan);
-                cellUnloader.unload(placement);
+                cellUnloader.unload(IslandCellRange.from(placement));
                 cellTransfer.place(placement);
             }
             if (job.type() == IslandJobType.RESTORE_ISLAND && snapshotNo > 0L) {
