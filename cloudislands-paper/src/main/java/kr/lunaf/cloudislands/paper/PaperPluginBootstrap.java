@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperCoreClientFactory;
+import kr.lunaf.cloudislands.paper.bootstrap.PaperBootstrapException;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperHeartbeatRuntime;
 import kr.lunaf.cloudislands.paper.bootstrap.LifecycleRegistry;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperHealthRuntime;
@@ -62,9 +63,7 @@ final class PaperPluginBootstrap {
         try {
             runtimeCompatibility = PaperRuntimeCompatibility.selectCurrent(PaperVersionAdapterRegistry.defaults());
         } catch (RuntimeException exception) {
-            plugin.getLogger().severe("CloudIslands Paper refused to start because this server version is unsupported: " + exception.getMessage());
-            plugin.getServer().getPluginManager().disablePlugin(plugin);
-            return;
+            throw new PaperBootstrapException("unsupported Paper runtime: " + exception.getMessage(), exception);
         }
         plugin.runtimeCompatibility = runtimeCompatibility;
         plugin.getLogger().info("CloudIslands selected Paper adapter " + runtimeCompatibility.adapterId() + " for Minecraft " + runtimeCompatibility.version().normalized());
@@ -78,9 +77,7 @@ final class PaperPluginBootstrap {
         String nodeId = config.node().id();
         String velocityServerName = config.node().velocityServerName();
         AgentRole role = config.node().role();
-        if (rejectDefaultNodeIdentity(role, nodeId, velocityServerName, config.node().rejectDefaultIdentity())) {
-            return;
-        }
+        rejectDefaultNodeIdentity(role, nodeId, velocityServerName, config.node().rejectDefaultIdentity());
         warnIfDefaultNodeIdentity(role, nodeId, velocityServerName);
         CoreApiClient client = PaperCoreClientFactory.create(config.coreApi(), nodeId);
         plugin.agent = new CloudIslandsPaperAgent(plugin, role, client, nodeId);
@@ -224,14 +221,12 @@ final class PaperPluginBootstrap {
         plugin.getLogger().warning("CloudIslands node.id/velocity-server-name still use the default island-1/Island-1 identity. Set a unique node.id and Velocity server name for every Island node before running multiple Island servers.");
     }
 
-    private boolean rejectDefaultNodeIdentity(AgentRole role, String nodeId, String velocityServerName, boolean rejectDefaultIdentity) {
+    private void rejectDefaultNodeIdentity(AgentRole role, String nodeId, String velocityServerName, boolean rejectDefaultIdentity) {
         if (!plugin.defaultNodeIdentityRisk(role, nodeId, velocityServerName)
             || !rejectDefaultIdentity) {
-            return false;
+            return;
         }
-        plugin.getLogger().severe("CloudIslands ISLAND_NODE refused to start with the default island-1/Island-1 identity. Set unique node.id and node.velocity-server-name for every Island node, or set node.reject-default-identity=false only for a single-node sandbox.");
-        plugin.getServer().getPluginManager().disablePlugin(plugin);
-        return true;
+        throw new PaperBootstrapException("ISLAND_NODE refused the default island-1/Island-1 identity; set unique node.id and node.velocity-server-name values, or set node.reject-default-identity=false only for a single-node sandbox");
     }
 
     private void logSecurityPosture(PaperRuntimeConfig config) {

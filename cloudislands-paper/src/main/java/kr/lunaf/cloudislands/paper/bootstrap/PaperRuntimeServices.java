@@ -33,14 +33,23 @@ public final class PaperRuntimeServices implements RuntimeComponent {
 
     public static PaperRuntimeServices register(CloudIslandsPaperPlugin plugin, CoreApiClient client, CloudIslandsPaperAgent agent, PaperRuntimeConfig config) {
         PaperRuntimeServices services = new PaperRuntimeServices(plugin);
-        services.registerApi(client, agent, config);
-        services.registerEconomy();
-        services.registerPlaceholderExpansion(client);
-        services.registerPlanAnalytics(client);
-        services.registerPlayerVisibility();
-        services.registerCustomBlockKeys();
-        services.registerStackAmounts();
-        return services;
+        try {
+            services.registerApi(client, agent, config);
+            services.registerEconomy();
+            services.registerPlaceholderExpansion(client);
+            services.registerPlanAnalytics(client);
+            services.registerPlayerVisibility();
+            services.registerCustomBlockKeys();
+            services.registerStackAmounts();
+            return services;
+        } catch (RuntimeException | LinkageError failure) {
+            try {
+                services.stop();
+            } catch (RuntimeException | LinkageError cleanupFailure) {
+                failure.addSuppressed(cleanupFailure);
+            }
+            throw failure;
+        }
     }
 
     public EconomyBridge economyBridge() {

@@ -75,6 +75,7 @@ tasks.shadowJar {
             "CloudIslands-Paper-GUI-Node-Admin" to "node-load-drain-undrain-view-islands-move-load-shutdown-safe",
             "CloudIslands-Paper-Config-Surface" to "node,core-api,redis,storage,island-node,protection,heartbeat,routing",
             "CloudIslands-Paper-Degraded-Mode-Policy" to "core-down-active-island-local-protection-and-limited-teleport-object-storage-down-active-local-play",
+            "CloudIslands-Paper-Bootstrap-Failure-Policy" to "rollback-partial-runtime-keep-island-and-ciadmin-diagnostic-commands-retry-after-correction",
             "CloudIslands-Paper-Safe-Teleport-Policy" to "async-chunk-load-main-thread-block-scan-centered-destination-boundary-and-final-revalidation",
             "CloudIslands-Paper-Entity-Removal-Accounting" to "despawn-enter-block-out-of-world-transformation-counted;death-break-destroy-deduplicated;chunk-unload-ignored",
             "CloudIslands-Paper-Async-Player-Access" to "core-completions-return-to-main-thread-before-permission-session-inventory-or-economy-preflight-access",

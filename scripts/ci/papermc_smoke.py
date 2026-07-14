@@ -56,7 +56,7 @@ def download(url: str, target: Path, expected_checksum: str, expected_size: int)
     tmp.replace(target)
 
 
-def prepare_paper(work_dir: Path, plugin: Path, java_command: str) -> list[str]:
+def prepare_paper(work_dir: Path, plugin: Path, java_command: str, bootstrap_failure: bool = False) -> list[str]:
     cloudislands_dir = work_dir / "plugins" / "CloudIslands"
     config_v2_dir = cloudislands_dir / "config-v2"
     cloudislands_dir.mkdir(parents=True, exist_ok=True)
@@ -84,11 +84,11 @@ def prepare_paper(work_dir: Path, plugin: Path, java_command: str) -> list[str]:
         "\n".join(
             [
                 "node:",
-                "  role: LOBBY",
-                "  id: smoke-lobby",
-                "  pool: lobby",
-                "  velocity-server-name: Lobby",
-                "  reject-default-identity: false",
+                f"  role: {'ISLAND_NODE' if bootstrap_failure else 'LOBBY'}",
+                f"  id: {'island-1' if bootstrap_failure else 'smoke-lobby'}",
+                f"  pool: {'island' if bootstrap_failure else 'lobby'}",
+                f"  velocity-server-name: {'Island-1' if bootstrap_failure else 'Lobby'}",
+                f"  reject-default-identity: {'true' if bootstrap_failure else 'false'}",
                 "  supported-templates:",
                 "    - \"*\"",
                 "capacity:",
@@ -242,6 +242,45 @@ def wait_for_smoke(process: subprocess.Popen, log_path: Path, expected: list[str
     raise RuntimeError(f"server smoke failed; expected={expected} seen={sorted(seen_expected)} ready={seen_ready}\n{tail}")
 
 
+def wait_for_console_markers(process: subprocess.Popen, log_path: Path, expected: list[str], timeout: int, server_log_path: Path | None = None) -> None:
+    deadline = time.monotonic() + timeout
+    seen = set()
+    lines = []
+    selector = selectors.DefaultSelector()
+    selector.register(process.stdout, selectors.EVENT_READ)
+    with log_path.open("a", encoding="utf-8") as log:
+        while time.monotonic() < deadline:
+            if server_log_path is not None and server_log_path.exists():
+                server_log = server_log_path.read_text(encoding="utf-8", errors="replace")
+                for marker in expected:
+                    if marker in server_log:
+                        seen.add(marker)
+                if len(seen) == len(expected):
+                    selector.close()
+                    return
+            remaining = max(0.0, deadline - time.monotonic())
+            events = selector.select(timeout=min(0.25, remaining))
+            line = process.stdout.readline() if events else ""
+            if line:
+                lines.append(line)
+                log.write(line)
+                log.flush()
+                for marker in expected:
+                    if marker in line:
+                        seen.add(marker)
+                if any(marker in line for marker in ("[ERROR]", "[SEVERE]", "Exception in thread", "OutOfMemoryError")):
+                    selector.close()
+                    raise RuntimeError(f"fatal server log line during command smoke: {line.strip()}")
+                if len(seen) == len(expected):
+                    selector.close()
+                    return
+            if process.poll() is not None:
+                break
+    selector.close()
+    tail = "".join(lines[-80:])
+    raise RuntimeError(f"server command smoke failed; expected={expected} seen={sorted(seen)}\n{tail}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", choices=["paper", "velocity"], required=True)
@@ -251,6 +290,7 @@ def main() -> int:
     parser.add_argument("--cache-dir", required=True)
     parser.add_argument("--java-command", default="java")
     parser.add_argument("--timeout", type=int, default=240)
+    parser.add_argument("--paper-bootstrap-failure", action="store_true")
     args = parser.parse_args()
 
     plugin = Path(args.plugin).resolve()
@@ -269,13 +309,15 @@ def main() -> int:
     shutil.copy2(server_jar, work_dir / "server.jar")
 
     if args.project == "paper":
-        command = prepare_paper(work_dir, plugin, args.java_command)
-        expected = ["CloudIslands Paper agent enabled"]
+        command = prepare_paper(work_dir, plugin, args.java_command, args.paper_bootstrap_failure)
+        expected = ["CloudIslands Paper entered bootstrap diagnostic mode"] if args.paper_bootstrap_failure else ["CloudIslands Paper agent enabled"]
         # Paper 1.21 logs the traditional final marker, while Paper 26.1+
         # reports world readiness as "Done preparing level".
         ready = ["Done (", "Done preparing level"]
         shutdown = "stop\n"
     else:
+        if args.paper_bootstrap_failure:
+            raise RuntimeError("--paper-bootstrap-failure is only valid for Paper smoke")
         command = prepare_velocity(work_dir, plugin, args.java_command)
         expected = ["CloudIslands Velocity config loaded", "health=127.0.0.1:18788", "CloudIslands Velocity router enabled"]
         ready = ["Listening on"]
@@ -299,6 +341,30 @@ def main() -> int:
     log_path = work_dir / "server.log"
     try:
         wait_for_smoke(process, log_path, expected, ready, args.timeout)
+        if args.project == "paper" and process.stdin:
+            process.stdin.write("ciadmin status\n")
+            process.stdin.flush()
+            command_expected = [
+                "CloudIslands bootstrap=FAILED attempt=1"
+                if args.paper_bootstrap_failure
+                else "CloudIslands agent role=LOBBY node=smoke-lobby"
+            ]
+            wait_for_console_markers(process, log_path, command_expected, 30, work_dir / "logs" / "latest.log")
+            if args.paper_bootstrap_failure:
+                runtime_config = work_dir / "plugins" / "CloudIslands" / "config-v2" / "runtime.yml"
+                corrected = runtime_config.read_text(encoding="utf-8").replace("id: island-1", "id: smoke-island").replace(
+                    "velocity-server-name: Island-1", "velocity-server-name: Smoke-Island"
+                )
+                runtime_config.write_text(corrected, encoding="utf-8")
+                process.stdin.write("ciadmin retry\n")
+                process.stdin.flush()
+                wait_for_console_markers(
+                    process,
+                    log_path,
+                    ["CloudIslands Paper agent enabled as ISLAND_NODE node smoke-island", "CloudIslands bootstrap=READY attempt=2"],
+                    90,
+                    work_dir / "logs" / "latest.log",
+                )
         if process.stdin:
             process.stdin.write(shutdown)
             process.stdin.flush()

@@ -13,7 +13,7 @@ class PaperRuntimeSelectionPolicyTest {
 
         assertTrue(bootstrap.contains("PaperRuntimeCompatibility.selectCurrent(PaperVersionAdapterRegistry.defaults())"));
         assertTrue(bootstrap.contains("plugin.runtimeCompatibility = runtimeCompatibility"));
-        assertTrue(bootstrap.contains("disablePlugin(plugin)"));
+        assertTrue(bootstrap.contains("throw new PaperBootstrapException"));
         assertTrue(bootstrap.indexOf("PaperRuntimeCompatibility.selectCurrent") < bootstrap.indexOf("PaperRuntimeConfigLoader.load"));
         assertTrue(bootstrap.indexOf("PaperRuntimeCompatibility.selectCurrent") < bootstrap.indexOf("PaperRuntimeServices.register"));
     }

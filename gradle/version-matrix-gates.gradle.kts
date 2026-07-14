@@ -437,6 +437,31 @@ tasks.register("paperBootSmoke") {
     dependsOn(tasks.named(minecraftVersionMatrix.latestStable.bootSmokeTaskName))
 }
 
+tasks.register<Exec>("paperBootstrapFailureSmoke") {
+    group = "verification"
+    description = "Boots Paper with a rejected node identity and verifies diagnostic commands remain available."
+    val entry = minecraftVersionMatrix.latestStable
+    val paperJar = project(":cloudislands-paper").tasks.named<Jar>("shadowJar")
+    dependsOn(tasks.named("paperBootSmoke"))
+    dependsOn(paperJar)
+    doFirst {
+        commandLine(
+            "python3",
+            file("scripts/ci/papermc_smoke.py").absolutePath,
+            "--project", "paper",
+            "--version", entry.bootVersion,
+            "--plugin", paperJar.get().archiveFile.get().asFile.absolutePath,
+            "--work-dir", layout.buildDirectory.dir("smoke/paper-bootstrap-failure-${entry.bootVersion}").get().asFile.absolutePath,
+            "--cache-dir", layout.buildDirectory.dir("smoke/cache").get().asFile.absolutePath,
+            "--java-command", versionMatrixJavaToolchains.launcherFor {
+                languageVersion.set(JavaLanguageVersion.of(entry.javaVersion))
+            }.get().executablePath.asFile.absolutePath,
+            "--timeout", "240",
+            "--paper-bootstrap-failure"
+        )
+    }
+}
+
 tasks.register("compileAllMinecraftVersions") {
     group = "verification"
     description = "Runs all compile checks generated from the Minecraft version matrix."
@@ -470,8 +495,9 @@ tasks.register<Exec>("velocityBootSmoke") {
 
 tasks.register("ciBootSmoke") {
     group = "verification"
-    description = "Runs supported Paper and Velocity boot smoke tests."
+    description = "Runs supported Paper, bootstrap-failure recovery, and Velocity boot smoke tests."
     dependsOn(tasks.named("paperBootSmoke"))
+    dependsOn(tasks.named("paperBootstrapFailureSmoke"))
     dependsOn(tasks.named("velocityBootSmoke"))
 }
 

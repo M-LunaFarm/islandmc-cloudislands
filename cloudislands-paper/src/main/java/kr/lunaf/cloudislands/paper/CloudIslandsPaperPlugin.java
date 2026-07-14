@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.paper.activation.IslandSaveService;
 import kr.lunaf.cloudislands.paper.activation.PeriodicIslandSaveTask;
 import kr.lunaf.cloudislands.paper.activation.ShardWorldManager;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperHeartbeatRuntime;
+import kr.lunaf.cloudislands.paper.bootstrap.PaperBootstrapStatus;
 import kr.lunaf.cloudislands.paper.bootstrap.LifecycleRegistry;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperHealthRuntime;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperRuntimeServices;
@@ -25,6 +26,7 @@ import kr.lunaf.cloudislands.paper.cache.PermissionEventPoller;
 import kr.lunaf.cloudislands.paper.cache.PermissionCacheSyncService;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.command.PaperCommandRegistrar;
+import kr.lunaf.cloudislands.paper.command.PaperBootstrapStatusCommand;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigLoader;
 import kr.lunaf.cloudislands.paper.generator.ConfigGeneratorRules;
@@ -70,6 +72,7 @@ import kr.lunaf.cloudislands.paper.world.export.ExternalTarIslandBundleExporter;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.event.HandlerList;
 
 public final class CloudIslandsPaperPlugin extends JavaPlugin {
     CloudIslandsPaperAgent agent;
@@ -103,65 +106,132 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     PlayerIslandFlightService playerIslandFlightService;
     AdminChatSpyRegistry adminChatSpies;
     TeamChatModeRegistry teamChatModes;
+    private final PaperBootstrapStatus bootstrapStatus = new PaperBootstrapStatus();
+    private boolean bootstrapInProgress;
 
     @Override
     public void onEnable() {
-        new PaperPluginBootstrap(this).enable();
+        startRuntime();
     }
 
     @Override
     public void onDisable() {
-        if (lifecycle != null) {
-            lifecycle.close();
-            lifecycle = null;
+        bootstrapInProgress = false;
+        stopRuntimeState();
+        bootstrapStatus.stopped();
+    }
+
+    public PaperBootstrapStatus.Snapshot bootstrapStatus() {
+        return bootstrapStatus.snapshot();
+    }
+
+    public boolean retryBootstrap() {
+        if (bootstrapInProgress || !bootstrapStatus.snapshot().retryable()) {
+            return false;
         }
+        stopRuntimeState();
+        return startRuntime();
+    }
+
+    private boolean startRuntime() {
+        if (bootstrapInProgress) {
+            return false;
+        }
+        bootstrapInProgress = true;
+        bootstrapStatus.starting();
+        PaperBootstrapStatusCommand.install(this, bootstrapStatus);
+        try {
+            new PaperPluginBootstrap(this).enable();
+            bootstrapStatus.ready();
+            return true;
+        } catch (RuntimeException | LinkageError failure) {
+            PaperBootstrapStatus.Snapshot failed = bootstrapStatus.failed(failure);
+            stopRuntimeState();
+            PaperBootstrapStatusCommand.install(this, bootstrapStatus);
+            getLogger().warning("CloudIslands Paper entered bootstrap diagnostic mode after "
+                + failed.failureType() + ": " + failed.failureMessage());
+            getLogger().warning("Correct the startup problem and run /ciadmin retry; gameplay listeners and runtime services were rolled back.");
+            return false;
+        } finally {
+            bootstrapInProgress = false;
+        }
+    }
+
+    private void stopRuntimeState() {
+        if (lifecycle != null) {
+            LifecycleRegistry current = lifecycle;
+            lifecycle = null;
+            cleanup("lifecycle registry", current::close);
+        }
+        cleanup("Bukkit event handlers", () -> HandlerList.unregisterAll(this));
+        cleanup("Bukkit scheduler tasks", () -> getServer().getScheduler().cancelTasks(this));
+        cleanup("plugin messaging channels", () -> getServer().getMessenger().unregisterOutgoingPluginChannel(this));
         jobWorker = null;
         permissionEventPoller = null;
         periodicSaveTask = null;
         emptyIslandSaveTask = null;
         periodicLevelScanTask = null;
         levelScanService = null;
+        activeIslands = null;
         if (redisClient != null) {
-            redisClient.close();
+            PaperRedisClient current = redisClient;
             redisClient = null;
+            cleanup("Redis client", current::close);
         }
         islandStorage = null;
+        generatorLevels = null;
         generatorListener = null;
+        routeSessionListener = null;
         boundaryListener = null;
         portalListener = null;
+        proxySourceAllowlist = null;
         if (localCaches != null) {
-            localCaches.invalidateAll();
+            LocalCacheManager current = localCaches;
             localCaches = null;
+            cleanup("local caches", current::invalidateAll);
         }
         integrationRegistry = null;
         playerVisibility = null;
         customBlockKeys = null;
-        messages = null;
+        stackAmounts = null;
         if (playerLocales != null) {
-            playerLocales.clear();
+            PlayerLocaleCache current = playerLocales;
             playerLocales = null;
+            cleanup("player locale cache", current::clear);
         }
         if (playerIslandFlightService != null) {
-            playerIslandFlightService.clearAll(getServer().getOnlinePlayers());
+            PlayerIslandFlightService current = playerIslandFlightService;
             playerIslandFlightService = null;
+            cleanup("player flight state", () -> current.clearAll(getServer().getOnlinePlayers()));
         }
         playerFlightPreferences = null;
         if (adminFlightOverrides != null) {
-            adminFlightOverrides.clearAll();
+            cleanup("admin flight overrides", () -> adminFlightOverrides.clearAll());
             adminFlightOverrides = null;
         }
         if (adminChatSpies != null) {
-            adminChatSpies.clearAll();
+            cleanup("admin chat spies", () -> adminChatSpies.clearAll());
             adminChatSpies = null;
         }
         if (teamChatModes != null) {
-            teamChatModes.clearAll();
+            TeamChatModeRegistry current = teamChatModes;
             teamChatModes = null;
+            cleanup("team chat modes", current::clearAll);
         }
         GuiSessions.clear();
         kr.lunaf.cloudislands.paper.command.AddonIslandCommandRegistry.global().clear();
+        agent = null;
+        messages = null;
         runtimeConfig = null;
         runtimeCompatibility = null;
+    }
+
+    private void cleanup(String component, Runnable action) {
+        try {
+            action.run();
+        } catch (RuntimeException | LinkageError failure) {
+            getLogger().warning("CloudIslands cleanup failed for " + component + ": " + PaperBootstrapStatus.sanitize(failure.getMessage()));
+        }
     }
 
     public CloudIslandsPaperAgent agent() {
