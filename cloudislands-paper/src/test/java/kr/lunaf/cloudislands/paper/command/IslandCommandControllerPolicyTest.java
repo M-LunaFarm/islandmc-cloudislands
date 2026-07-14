@@ -723,6 +723,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpHandler.contains("runtime.routeHome(player, name)"), "single-Paper home outside an island must use the Core selected-island route");
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.warpViews"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.publicWarpViews"));
+        assertTrue(homeWarpHandler.contains("private void runSync(Player player, Runnable task)"), "Core callbacks must have one Paper scheduler return boundary");
+        assertTrue(homeWarpHandler.contains("thenAccept(homes -> runSync(player, () -> runtime.moveToPoint"), "home lookup must return to the Paper scheduler before teleporting");
+        assertTrue(homeWarpHandler.contains("thenAccept(warps -> runSync(player, () ->"), "warp lookup must return to the Paper scheduler before reading player permissions or location");
+        assertTrue(homeWarpHandler.contains("if (!runtime.coreUnavailable(error) || !runtime.teleportLocalDefaultHome(player))"), "single-Paper fallback location access must execute inside the scheduler callback");
+        assertTrue(homeWarpHandler.contains("PaperSchedulers.run(plugin, () ->"), "home and warp callbacks must use the Paper scheduler");
+        assertTrue(homeWarpHandler.contains("if (player.isOnline())"), "late home and warp callbacks must be discarded after disconnect");
         assertTrue(homeWarpHandler.contains("homePoint(homes, name)"), "home teleport must not fall back to the player's current world");
         assertTrue(homeWarpHandler.contains("warpPoint(warps, name)"), "warp teleport must not fall back to the player's current world");
         assertTrue(homeWarpHandler.contains("new Point(home.worldName(), home.x(), home.y(), home.z(), home.yaw(), home.pitch(), false)"), "home teleport point must preserve world and facing");
