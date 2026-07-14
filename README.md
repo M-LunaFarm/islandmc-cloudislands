@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.206`
+Version: `1.1.207`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,11 +698,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.206`
+Current release: `v1.1.207`
 
-Built for the CloudIslands 1.1.206 baseline.
+Built for the CloudIslands 1.1.207 baseline.
 
-Release notes for `v1.1.206`:
+Release notes for `v1.1.207`:
+
+- Paper's accepted physical block-destruction path now updates authoritative
+  island level and block-limit deltas for physics, crop destruction, mobs, and
+  command destroy operations that do not emit the narrower dependent-break hook
+- the observer runs at final MONITOR priority, ignores cancelled destruction,
+  records the actual replacement state such as air or fluid, and never cancels
+  Paper's destruction event
+- regression coverage locks the finality, non-cancellation, and replacement
+  accounting contract alongside the existing spread, growth, decay, fluid,
+  explosion, and dependent-break paths
+- the Paper module check suite passed against the current Paper API
+
+Release notes carried forward from `v1.1.206`:
 
 - schema bootstrap history now stores a SHA-256 checksum for every PostgreSQL,
   MySQL, and MariaDB migration resource
@@ -3392,7 +3405,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.206`.
+Current read: production-readiness baseline `v1.1.207`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
