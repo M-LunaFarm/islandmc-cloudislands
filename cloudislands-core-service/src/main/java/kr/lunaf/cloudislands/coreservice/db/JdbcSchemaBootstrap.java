@@ -3,12 +3,15 @@ package kr.lunaf.cloudislands.coreservice.db;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import javax.sql.DataSource;
@@ -16,6 +19,7 @@ import javax.sql.DataSource;
 public final class JdbcSchemaBootstrap {
     public static final String CORE_JDBC_BOOTSTRAP_PRODUCTS = "POSTGRESQL,MYSQL,MARIADB";
     public static final String HA_MIGRATION_LOCK_POLICY = "database-session-advisory-lock-serializes-the-complete-schema-chain-with-bounded-acquisition";
+    public static final String MIGRATION_CHECKSUM_POLICY = "sha256-history-rejects-modified-applied-migrations-with-legacy-trust-on-first-verification";
     public static final String MYSQL_COMPATIBLE_SCHEMA_RESOURCE = "/db/mysql/V1__cloudislands_mysql_schema.sql";
     public static final String MYSQL_COMPATIBLE_SCHEMA_ID = "mysql-v1";
     public static final String MARIADB_SCHEMA_POLICY = "mariadb-uses-mysql-compatible-core-schema-bootstrap";
@@ -138,6 +142,7 @@ public final class JdbcSchemaBootstrap {
             if ("MYSQL".equals(productFamily) || "MARIADB".equals(productFamily)) {
                 SchemaLock schemaLock = acquireSchemaLock(connection, Dialect.MYSQL);
                 try (schemaLock) {
+                    ensureHistory(connection, Dialect.MYSQL);
                     boolean applied = apply(connection, Dialect.MYSQL, MYSQL_COMPATIBLE_SCHEMA_ID, MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
                     for (int index = 1; index < MYSQL_MIGRATIONS.length; index++) {
                         applied |= apply(connection, Dialect.MYSQL, migrationId(MYSQL_MIGRATIONS[index]), MYSQL_MIGRATIONS[index]);
@@ -148,6 +153,7 @@ public final class JdbcSchemaBootstrap {
             if ("POSTGRESQL".equals(productFamily)) {
                 SchemaLock schemaLock = acquireSchemaLock(connection, Dialect.POSTGRESQL);
                 try (schemaLock) {
+                    ensureHistory(connection, Dialect.POSTGRESQL);
                     return applyAll(connection, Dialect.POSTGRESQL, POSTGRESQL_MIGRATIONS);
                 }
             }
@@ -249,11 +255,21 @@ public final class JdbcSchemaBootstrap {
     }
 
     private static boolean apply(Connection connection, Dialect dialect, String id, String resource) throws SQLException, IOException {
-        ensureHistory(connection, dialect);
-        if (alreadyApplied(connection, id)) {
+        String sql = readResource(resource);
+        String checksum = checksum(sql);
+        HistoryEntry history = history(connection, id);
+        if (history.applied()) {
+            if (history.checksum().isBlank()) {
+                backfillChecksum(connection, id, checksum);
+            } else if (!history.checksum().equals(checksum)) {
+                throw new SQLException(
+                    "applied schema migration checksum mismatch for " + id
+                        + ": stored=" + history.checksum() + " packaged=" + checksum
+                );
+            }
             return false;
         }
-        for (String statementSql : statements(readResource(resource))) {
+        for (String statementSql : statements(sql)) {
             try (Statement statement = connection.createStatement()) {
                 statement.execute(statementSql);
             } catch (SQLException exception) {
@@ -262,35 +278,78 @@ public final class JdbcSchemaBootstrap {
                 }
             }
         }
-        markApplied(connection, dialect, id);
+        markApplied(connection, dialect, id, checksum);
         return true;
     }
 
     private static void ensureHistory(Connection connection, Dialect dialect) throws SQLException {
         String ddl = dialect == Dialect.POSTGRESQL
-            ? "CREATE TABLE IF NOT EXISTS cloudislands_schema_bootstrap (id VARCHAR(128) PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT now())"
-            : "CREATE TABLE IF NOT EXISTS cloudislands_schema_bootstrap (id VARCHAR(128) PRIMARY KEY, applied_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6))";
+            ? "CREATE TABLE IF NOT EXISTS cloudislands_schema_bootstrap (id VARCHAR(128) PRIMARY KEY, checksum CHAR(64), applied_at TIMESTAMPTZ NOT NULL DEFAULT now())"
+            : "CREATE TABLE IF NOT EXISTS cloudislands_schema_bootstrap (id VARCHAR(128) PRIMARY KEY, checksum CHAR(64), applied_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6))";
         try (Statement statement = connection.createStatement()) {
             statement.execute(ddl);
         }
+        ensureChecksumColumn(connection);
     }
 
-    private static boolean alreadyApplied(Connection connection, String id) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("SELECT id FROM cloudislands_schema_bootstrap WHERE id = ?")) {
+    private static void ensureChecksumColumn(Connection connection) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.executeQuery("SELECT checksum FROM cloudislands_schema_bootstrap WHERE 1 = 0").close();
+            return;
+        } catch (SQLException exception) {
+            if (!missingColumn(exception)) {
+                throw exception;
+            }
+        }
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("ALTER TABLE cloudislands_schema_bootstrap ADD COLUMN checksum CHAR(64)");
+        }
+    }
+
+    private static boolean missingColumn(SQLException exception) {
+        return "42703".equals(exception.getSQLState())
+            || "42S22".equals(exception.getSQLState())
+            || exception.getErrorCode() == 1054;
+    }
+
+    private static HistoryEntry history(Connection connection, String id) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT checksum FROM cloudislands_schema_bootstrap WHERE id = ?")) {
             statement.setString(1, id);
             try (ResultSet rs = statement.executeQuery()) {
-                return rs.next();
+                return rs.next()
+                    ? new HistoryEntry(true, rs.getString("checksum"))
+                    : new HistoryEntry(false, "");
             }
         }
     }
 
-    private static void markApplied(Connection connection, Dialect dialect, String id) throws SQLException {
+    private static void backfillChecksum(Connection connection, String id, String checksum) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(
+            "UPDATE cloudislands_schema_bootstrap SET checksum = ? WHERE id = ? AND checksum IS NULL"
+        )) {
+            statement.setString(1, checksum);
+            statement.setString(2, id);
+            statement.executeUpdate();
+        }
+    }
+
+    private static void markApplied(Connection connection, Dialect dialect, String id, String checksum) throws SQLException {
         String sql = dialect == Dialect.POSTGRESQL
-            ? "INSERT INTO cloudislands_schema_bootstrap(id) VALUES (?) ON CONFLICT (id) DO NOTHING"
-            : "INSERT IGNORE INTO cloudislands_schema_bootstrap(id) VALUES (?)";
+            ? "INSERT INTO cloudislands_schema_bootstrap(id, checksum) VALUES (?, ?) ON CONFLICT (id) DO NOTHING"
+            : "INSERT IGNORE INTO cloudislands_schema_bootstrap(id, checksum) VALUES (?, ?)";
         try (PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, id);
+            statement.setString(2, checksum);
             statement.executeUpdate();
+        }
+    }
+
+    static String checksum(String sql) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest((sql == null ? "" : sql).getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
         }
     }
 
@@ -356,5 +415,11 @@ public final class JdbcSchemaBootstrap {
     private interface SchemaLock extends AutoCloseable {
         @Override
         void close() throws SQLException;
+    }
+
+    private record HistoryEntry(boolean applied, String checksum) {
+        private HistoryEntry {
+            checksum = checksum == null ? "" : checksum.trim().toLowerCase(Locale.ROOT);
+        }
     }
 }

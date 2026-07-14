@@ -17,10 +17,25 @@ class JdbcSchemaBootstrapTest {
             "database-session-advisory-lock-serializes-the-complete-schema-chain-with-bounded-acquisition",
             JdbcSchemaBootstrap.HA_MIGRATION_LOCK_POLICY
         );
+        assertEquals(
+            "sha256-history-rejects-modified-applied-migrations-with-legacy-trust-on-first-verification",
+            JdbcSchemaBootstrap.MIGRATION_CHECKSUM_POLICY
+        );
         assertEquals("POSTGRESQL", JdbcSchemaBootstrap.databaseProductFamily("PostgreSQL"));
         assertEquals("MYSQL", JdbcSchemaBootstrap.databaseProductFamily("MySQL"));
         assertEquals("MARIADB", JdbcSchemaBootstrap.databaseProductFamily("MariaDB Server"));
         assertEquals("UNSUPPORTED", JdbcSchemaBootstrap.databaseProductFamily("Microsoft SQL Server"));
+    }
+
+    @Test
+    void migrationChecksumsAreStableSha256Values() {
+        assertEquals(
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
+            JdbcSchemaBootstrap.checksum("abc")
+        );
+        assertEquals(64, JdbcSchemaBootstrap.checksum("").length());
+        assertEquals(JdbcSchemaBootstrap.checksum(""), JdbcSchemaBootstrap.checksum(null));
+        assertFalse(JdbcSchemaBootstrap.checksum("V1").equals(JdbcSchemaBootstrap.checksum("V1 ")));
     }
 
     @Test
