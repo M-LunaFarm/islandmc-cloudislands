@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.200`
+Version: `1.1.201`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -674,7 +674,7 @@ integration verification.
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests and protection smoke cover dedicated normal/glow item-frame add, rotate, and remove changes plus HIGHEST-priority pickup attempt and final entity boundaries, granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, CraftEngine furniture build/break enforcement, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, fail-closed dispenser, armor-dispense, origin-island-preserving ground items and merges, hopper, inventory-transfer, and block-projectile boundaries including migrating islands, cancellation-final natural spread, growth, formation, fade, fluid, fire, leaf, bucket, fertilize, structure, and Enderman transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns, and fail-closed player/entity cross-dimension portals inside active island regions | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests; cross-dimension island worlds remain intentionally unavailable until their lifecycle, storage, and routing are implemented end to end |
 | ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, cancellation-final and inheritance-deduplicated block transitions, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; authoritative size is carried through activation, restore, reset, and migration jobs, while live size changes atomically replace Paper protection, scan, and snapshot bounds; Core island response paths expose the independent authoritative BORDER limit, and async size, border, and border-policy events refresh every online player through the Paper scheduler with per-island burst deduplication; Paper tests also cover region-file cell isolation, unsafe-size fencing, world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting | operator deployment acceptance is still recommended; cells below 1024 blocks or not aligned to 512 blocks fail startup, and islands that cannot fit without sharing region files fail activation or are fenced on unsafe live resize |
-| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; `/is deposit *` and `/is withdraw *` resolve authoritative full balances through scheduler-safe Vault and Core queries before reusing the existing idempotent mutation, refund, and rollback paths; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
+| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; PostgreSQL and MySQL dual-Core smoke verifies same-key MISSION and CHALLENGE definitions retain independent rows and progress, including fresh and upgraded MySQL schemas, restored mission metadata, and MySQL-safe completion assignment order; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; `/is deposit *` and `/is withdraw *` resolve authoritative full balances through scheduler-safe Vault and Core queries before reusing the existing idempotent mutation, refund, and rollback paths; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus current-visible-visitor classification, Core audit/visitor route tests, and LOWEST/HIGHEST mutually exclusive local/team-chat isolation cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
@@ -683,11 +683,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.200`
+Current release: `v1.1.201`
 
-Built for the CloudIslands 1.1.200 baseline.
+Built for the CloudIslands 1.1.201 baseline.
 
-Release notes for `v1.1.200`:
+Release notes for `v1.1.201`:
+
+- mission persistence now uses `(missionKey, kind)` throughout in-memory,
+  PostgreSQL, and MySQL storage, so a MISSION and CHALLENGE can safely share a
+  key without overwriting definitions or progress
+- PostgreSQL V86 and MySQL/MariaDB V10 upgrade existing primary keys; the MySQL
+  migration also restores mission metadata columns that were absent from the
+  consolidated schema and could make addon mission registration fail
+- MySQL mission progress now computes completion before its left-to-right
+  progress assignment, preventing partial progress from becoming an invalid
+  `completed=true` row and failing the request
+- dual-Core PostgreSQL, upgraded MySQL, and clean-install MySQL integration
+  smokes all verified independent same-key progress; the complete 182-task
+  check passed
+
+Release notes carried forward from `v1.1.200`:
 
 - Paper's dedicated item-frame change event now enforces `ITEM_FRAME` for add,
   rotate, and remove actions on normal and glow item frames
@@ -3293,7 +3308,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.200`.
+Current read: production-readiness baseline `v1.1.201`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
