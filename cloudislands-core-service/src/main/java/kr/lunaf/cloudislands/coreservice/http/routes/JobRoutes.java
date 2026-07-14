@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.coreservice.job.IslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.JdbcIslandJobQueue;
 import kr.lunaf.cloudislands.coreservice.job.JobCompletionConflictException;
 import kr.lunaf.cloudislands.coreservice.job.JobCompletionService;
+import kr.lunaf.cloudislands.coreservice.job.JobCompletionReceiptStore;
 import kr.lunaf.cloudislands.coreservice.job.redis.RedisIslandJobQueue;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
@@ -68,6 +69,17 @@ public final class JobRoutes implements RouteGroup {
         }
         java.util.Optional<IslandJob> claimed = jobs.findClaimed(request.jobId(), request.claimLease());
         if (claimed.isEmpty()) {
+            JobCompletionReceiptStore.ReplayResult replay = completion.verifyCommitted(
+                request.jobId(), request.nodeId(), request.claimLease(), request.payload()
+            );
+            if (replay == JobCompletionReceiptStore.ReplayResult.MATCH) {
+                CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+                return;
+            }
+            if (replay == JobCompletionReceiptStore.ReplayResult.CONFLICT) {
+                CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_COMPLETION_CONFLICT", "Job completion replay differs from the committed receipt"));
+                return;
+            }
             CoreHttpResponses.write(exchange, 409, ApiResponses.error("JOB_CLAIM_MISMATCH", "Job is not claimed by this node"));
             return;
         }

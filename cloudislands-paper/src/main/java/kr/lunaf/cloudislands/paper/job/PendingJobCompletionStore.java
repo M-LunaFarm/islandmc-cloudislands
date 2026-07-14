@@ -16,17 +16,21 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.time.Instant;
+import java.util.List;
+import kr.lunaf.cloudislands.protocol.job.IslandJob;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 
 /** Durable local-success journal used to replay only the Core completion report. */
 final class PendingJobCompletionStore {
     private static final int MAGIC = 0x43494A43;
-    private static final int FORMAT_VERSION = 1;
+    private static final int FORMAT_VERSION = 2;
     private static final int MAX_RECORDS = 10_000;
     private static final int MAX_FIELDS = 512;
     private static final long MAX_FILE_BYTES = 16L * 1024L * 1024L;
 
     private final Path file;
-    private final Map<UUID, Map<String, String>> entries = new LinkedHashMap<>();
+    private final Map<UUID, PendingCompletion> entries = new LinkedHashMap<>();
 
     PendingJobCompletionStore(Path file) throws IOException {
         this.file = file.toAbsolutePath().normalize();
@@ -34,24 +38,25 @@ final class PendingJobCompletionStore {
     }
 
     synchronized Optional<Map<String, String>> find(UUID jobId) {
-        return Optional.ofNullable(entries.get(jobId));
+        PendingCompletion completion = entries.get(jobId);
+        return completion == null ? Optional.empty() : Optional.of(completion.payload());
     }
 
     synchronized void put(UUID jobId, Map<String, String> payload) throws IOException {
+        put(new IslandJob(jobId, null, null, "", 0, Map.of(), Instant.EPOCH), payload);
+    }
+
+    synchronized void put(IslandJob job, Map<String, String> payload) throws IOException {
+        UUID jobId = job == null ? null : job.jobId();
         if (jobId == null) {
             throw new IOException("pending completion job id is missing");
         }
-        Map<String, String> previous = entries.put(jobId, sanitized(payload));
-        try {
-            persist();
-        } catch (IOException exception) {
-            restore(jobId, previous);
-            throw exception;
-        }
+        entries.put(jobId, new PendingCompletion(jobId, job.claimLease(), sanitized(payload)));
+        persist();
     }
 
     synchronized void remove(UUID jobId) throws IOException {
-        Map<String, String> previous = entries.remove(jobId);
+        PendingCompletion previous = entries.remove(jobId);
         if (previous != null) {
             try {
                 persist();
@@ -64,6 +69,10 @@ final class PendingJobCompletionStore {
 
     synchronized int size() {
         return entries.size();
+    }
+
+    synchronized List<PendingCompletion> replayable() {
+        return entries.values().stream().filter(entry -> entry.claimLease().claimed()).toList();
     }
 
     private Map<String, String> sanitized(Map<String, String> payload) throws IOException {
@@ -80,14 +89,6 @@ final class PendingJobCompletionStore {
         return Map.copyOf(copy);
     }
 
-    private void restore(UUID jobId, Map<String, String> previous) {
-        if (previous == null) {
-            entries.remove(jobId);
-        } else {
-            entries.put(jobId, previous);
-        }
-    }
-
     private void load() throws IOException {
         if (!Files.exists(file)) {
             return;
@@ -96,8 +97,12 @@ final class PendingJobCompletionStore {
             throw new IOException("invalid pending completion journal: " + file);
         }
         try (DataInputStream input = new DataInputStream(new BufferedInputStream(Files.newInputStream(file)))) {
-            if (input.readInt() != MAGIC || input.readInt() != FORMAT_VERSION) {
+            if (input.readInt() != MAGIC) {
                 throw new IOException("unsupported pending completion journal: " + file);
+            }
+            int version = input.readInt();
+            if (version != 1 && version != FORMAT_VERSION) {
+                throw new IOException("unsupported pending completion journal version: " + version);
             }
             int count = input.readInt();
             if (count < 0 || count > MAX_RECORDS) {
@@ -105,6 +110,7 @@ final class PendingJobCompletionStore {
             }
             for (int index = 0; index < count; index++) {
                 UUID jobId = UUID.fromString(input.readUTF());
+                JobClaimLease claimLease = version == 1 ? JobClaimLease.unclaimed(jobId) : readClaimLease(input, jobId);
                 int fields = input.readInt();
                 if (fields < 0 || fields > MAX_FIELDS) {
                     throw new IOException("invalid pending completion field count: " + fields);
@@ -113,7 +119,7 @@ final class PendingJobCompletionStore {
                 for (int field = 0; field < fields; field++) {
                     payload.put(input.readUTF(), input.readUTF());
                 }
-                if (entries.putIfAbsent(jobId, Map.copyOf(payload)) != null) {
+                if (entries.putIfAbsent(jobId, new PendingCompletion(jobId, claimLease, Map.copyOf(payload))) != null) {
                     throw new IOException("duplicate pending completion job: " + jobId);
                 }
             }
@@ -137,10 +143,11 @@ final class PendingJobCompletionStore {
                 output.writeInt(MAGIC);
                 output.writeInt(FORMAT_VERSION);
                 output.writeInt(entries.size());
-                for (Map.Entry<UUID, Map<String, String>> entry : entries.entrySet().stream().sorted(Map.Entry.comparingByKey(Comparator.naturalOrder())).toList()) {
+                for (Map.Entry<UUID, PendingCompletion> entry : entries.entrySet().stream().sorted(Map.Entry.comparingByKey(Comparator.naturalOrder())).toList()) {
                     output.writeUTF(entry.getKey().toString());
-                    output.writeInt(entry.getValue().size());
-                    for (Map.Entry<String, String> field : entry.getValue().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
+                    writeClaimLease(output, entry.getValue().claimLease());
+                    output.writeInt(entry.getValue().payload().size());
+                    for (Map.Entry<String, String> field : entry.getValue().payload().entrySet().stream().sorted(Map.Entry.comparingByKey()).toList()) {
                         output.writeUTF(field.getKey());
                         output.writeUTF(field.getValue());
                     }
@@ -158,6 +165,35 @@ final class PendingJobCompletionStore {
             }
         } finally {
             Files.deleteIfExists(temporary);
+        }
+    }
+
+    private JobClaimLease readClaimLease(DataInputStream input, UUID jobId) throws IOException {
+        return new JobClaimLease(
+            jobId,
+            input.readUTF(),
+            input.readUTF(),
+            input.readUTF(),
+            input.readLong(),
+            Instant.ofEpochMilli(input.readLong()),
+            input.readInt()
+        );
+    }
+
+    private void writeClaimLease(DataOutputStream output, JobClaimLease claimLease) throws IOException {
+        JobClaimLease safe = claimLease == null ? JobClaimLease.unclaimed(null) : claimLease;
+        output.writeUTF(safe.streamId());
+        output.writeUTF(safe.claimedByNode());
+        output.writeUTF(safe.claimToken());
+        output.writeLong(safe.claimEpoch());
+        output.writeLong(safe.leaseExpiresAt().toEpochMilli());
+        output.writeInt(safe.attempt());
+    }
+
+    record PendingCompletion(UUID jobId, JobClaimLease claimLease, Map<String, String> payload) {
+        PendingCompletion {
+            claimLease = claimLease == null ? JobClaimLease.unclaimed(jobId) : claimLease;
+            payload = Map.copyOf(payload == null ? Map.of() : payload);
         }
     }
 }

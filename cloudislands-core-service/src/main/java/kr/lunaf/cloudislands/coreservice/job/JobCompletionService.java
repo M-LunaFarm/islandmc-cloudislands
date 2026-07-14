@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.job;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.UUID;
 import kr.lunaf.cloudislands.coreservice.RedisActivationLock;
 import kr.lunaf.cloudislands.coreservice.addon.AddonStateRepository;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -11,6 +12,7 @@ import kr.lunaf.cloudislands.coreservice.repository.IslandRuntimeRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.ticket.RouteTicketStore;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 
 public final class JobCompletionService {
@@ -19,6 +21,7 @@ public final class JobCompletionService {
     private final JobCompletionCoordinator coordinator;
     private final JobCompletionBackend backend;
     private final JobCompletionBackend failureBackend;
+    private final JobCompletionReceiptStore receipts;
 
     public JobCompletionService(IslandRuntimeRepository runtimes, GlobalEventPublisher events, IslandSnapshotRepository snapshots, RouteTicketStore tickets) {
         this(runtimes, events, snapshots, tickets, null);
@@ -68,7 +71,8 @@ public final class JobCompletionService {
         JobCompletionOutboxDispatcher dispatcher = new JobCompletionOutboxDispatcher(safeOutbox, events);
         this.backend = new JobCompletionBackend(runtimes, eventBuffer, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, addonStates);
         this.failureBackend = new JobCompletionBackend(runtimes, failureEvents, snapshots, tickets, jobs, islands, playerProfiles, routeTicketTtl, snapshotRetentionPolicy, activationLock, addonStates, true);
-        this.coordinator = new JobCompletionCoordinator(backend, eventBuffer, receipts == null ? new InMemoryJobCompletionReceiptStore() : receipts, safeOutbox, dispatcher);
+        this.receipts = receipts == null ? new InMemoryJobCompletionReceiptStore() : receipts;
+        this.coordinator = new JobCompletionCoordinator(backend, eventBuffer, this.receipts, safeOutbox, dispatcher);
     }
 
     public void completed(IslandJob job) {
@@ -77,6 +81,10 @@ public final class JobCompletionService {
 
     public JobCompletionResult completed(IslandJob job, Map<String, String> completionPayload) {
         return coordinator.completed(job, completionPayload);
+    }
+
+    public JobCompletionReceiptStore.ReplayResult verifyCommitted(UUID jobId, String nodeId, JobClaimLease claimLease, Map<String, String> completionPayload) {
+        return receipts.verifyCommitted(jobId, nodeId, claimLease, completionPayload);
     }
 
     public void failed(IslandJob job, String errorMessage) {

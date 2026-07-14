@@ -245,10 +245,17 @@ class JobRoutesTest {
         handlers.get("/v1/jobs/complete").handle(first);
         TestExchange replay = exchange(body);
         handlers.get("/v1/jobs/complete").handle(replay);
+        TestExchange responseLossReplay = exchange(body);
+        handlers.get("/v1/jobs/complete").handle(responseLossReplay);
+        TestExchange conflictingReplay = exchange(body.replace("\"snapshotNo\":\"12\"", "\"snapshotNo\":\"13\""));
+        handlers.get("/v1/jobs/complete").handle(conflictingReplay);
 
         assertEquals(409, first.status());
         assertTrue(first.body().contains("\"code\":\"JOB_CLAIM_MISMATCH\""));
         assertEquals(202, replay.status());
+        assertEquals(202, responseLossReplay.status());
+        assertEquals(409, conflictingReplay.status());
+        assertTrue(conflictingReplay.body().contains("\"code\":\"JOB_COMPLETION_CONFLICT\""));
         assertEquals(1, snapshots.list(islandId, 10).size());
         assertEquals(1L, events.countByType("ISLAND_SNAPSHOT_CREATED"));
         assertEquals(0L, backingJobs.countsByState().get("CLAIMED"));

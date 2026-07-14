@@ -68,7 +68,22 @@ public record JobCompletionRequest(IslandJob job, Map<String, String> completion
     }
 
     String requestPayloadJson() {
-        return json(completionPayload);
+        return completionPayloadJson(completionPayload);
+    }
+
+    static String completionPayloadJson(Map<String, String> completionPayload) {
+        return json(completionPayload == null ? Map.of() : completionPayload);
+    }
+
+    static boolean completionPayloadMatches(String storedJson, Map<String, String> completionPayload) {
+        try {
+            Map<?, ?> stored = kr.lunaf.cloudislands.common.json.SimpleJson.object(
+                kr.lunaf.cloudislands.common.json.SimpleJson.parse(storedJson)
+            );
+            return stored.equals(new TreeMap<>(completionPayload == null ? Map.of() : completionPayload));
+        } catch (RuntimeException exception) {
+            return false;
+        }
     }
 
     String receiptPayloadJson() {

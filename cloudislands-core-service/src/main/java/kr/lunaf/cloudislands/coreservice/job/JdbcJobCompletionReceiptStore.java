@@ -9,6 +9,8 @@ import java.time.Instant;
 import java.util.Locale;
 import java.util.UUID;
 import javax.sql.DataSource;
+import java.util.Map;
+import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
 
 public final class JdbcJobCompletionReceiptStore implements JobCompletionReceiptStore {
     private final DataSource dataSource;
@@ -48,6 +50,31 @@ public final class JdbcJobCompletionReceiptStore implements JobCompletionReceipt
             statement.executeUpdate();
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to remove job completion receipt", exception);
+        }
+    }
+
+    @Override
+    public ReplayResult verifyCommitted(UUID jobId, String nodeId, JobClaimLease claimLease, Map<String, String> completionPayload) {
+        String sql = "SELECT claimant_node, claim_token, claim_epoch, request_payload FROM job_completion_receipts WHERE job_id = ?";
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setObject(1, jobId);
+            try (ResultSet rs = statement.executeQuery()) {
+                if (!rs.next()) {
+                    return ReplayResult.MISSING;
+                }
+                boolean identityMatches = claimLease != null
+                    && claimLease.matches(jobId, nodeId)
+                    && claimLease.claimedByNode().equals(rs.getString("claimant_node"))
+                    && claimLease.claimToken().equals(rs.getString("claim_token"))
+                    && claimLease.claimEpoch() == rs.getLong("claim_epoch");
+                boolean payloadMatches = JobCompletionRequest.completionPayloadMatches(
+                    rs.getString("request_payload"), completionPayload
+                );
+                return identityMatches && payloadMatches ? ReplayResult.MATCH : ReplayResult.CONFLICT;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to verify committed job completion", exception);
         }
     }
 

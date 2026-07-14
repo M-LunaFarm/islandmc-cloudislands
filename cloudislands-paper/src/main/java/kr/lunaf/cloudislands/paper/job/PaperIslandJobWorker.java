@@ -91,6 +91,7 @@ public final class PaperIslandJobWorker {
             return;
         }
         try {
+            replayPendingCompletions();
             List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.SAVE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.DELETE_ISLAND, IslandJobType.MIGRATE_ISLAND, IslandJobType.RESTORE_ISLAND, IslandJobType.RESET_ISLAND), 4);
             inFlightJobs = claimed.size();
             consecutiveFailures = 0;
@@ -243,7 +244,7 @@ public final class PaperIslandJobWorker {
 
     private void reportComplete(IslandJob job, Map<String, String> payload) {
         try {
-            pendingCompletions.put(job.jobId(), payload);
+            pendingCompletions.put(job, payload);
         } catch (java.io.IOException persistenceFailure) {
             plugin.getLogger().severe("Could not persist local job success before Core completion report: " + job.jobId() + " " + persistenceFailure.getMessage());
         }
@@ -259,6 +260,23 @@ public final class PaperIslandJobWorker {
         completionReporter.report(job, payload);
         clearPendingCompletion(job.jobId());
         return true;
+    }
+
+    private void replayPendingCompletions() {
+        for (PendingJobCompletionStore.PendingCompletion pending : pendingCompletions.replayable()) {
+            IslandJob replay = new IslandJob(
+                pending.jobId(),
+                null,
+                null,
+                "",
+                0,
+                Map.of(),
+                java.time.Instant.EPOCH,
+                pending.claimLease()
+            );
+            completionReporter.report(replay, pending.payload());
+            clearPendingCompletion(pending.jobId());
+        }
     }
 
     private void clearPendingCompletion(java.util.UUID jobId) {
