@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.205`
+Version: `1.1.206`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -304,6 +304,10 @@ After migration, Core validates the JDBC types of 13 critical template, island,
 and runtime columns before serving traffic. Missing columns and incompatible
 text, integer, boolean, decimal, or bigint storage fail startup with the exact
 qualified column names instead of surfacing later during island creation.
+The same migration history stores a SHA-256 checksum for every packaged SQL
+resource. Legacy ID-only rows are backfilled once under the schema lock; after
+that trust-on-first verification, a changed applied migration fails startup
+with its ID and both digests instead of silently accepting history drift.
 MySQL/MariaDB sessions and JDBC timestamp bindings are normalized to UTC so
 heartbeats, leases, expirations, and audit timestamps remain correct regardless
 of the Core host or database server time zone.
@@ -694,11 +698,28 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.205`
+Current release: `v1.1.206`
 
-Built for the CloudIslands 1.1.205 baseline.
+Built for the CloudIslands 1.1.206 baseline.
 
-Release notes for `v1.1.205`:
+Release notes for `v1.1.206`:
+
+- schema bootstrap history now stores a SHA-256 checksum for every PostgreSQL,
+  MySQL, and MariaDB migration resource
+- legacy ID-only history tables gain the checksum column and backfill existing
+  rows once while the database-session migration lock is held
+- a later packaged SQL change for an already applied migration fails Core
+  startup with the migration ID and stored/packaged digests
+- Core configuration diagnostics and jar metadata expose the checksum policy;
+  the stale diagnostic chain labels were corrected to PostgreSQL V86 and
+  MySQL/MariaDB V10
+- real upgraded PostgreSQL and MySQL 8.4 dual-Core smokes passed, and a
+  deliberate MySQL history mutation was rejected before serving traffic then
+  restored to its original digest
+- the complete 197-task clean release pipeline and Paper 26.1.2 boot smoke
+  passed
+
+Release notes carried forward from `v1.1.205`:
 
 - Core now validates 13 critical `island_templates`, `islands`, and
   `island_runtime` column types before accepting traffic
@@ -3371,7 +3392,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.205`.
+Current read: production-readiness baseline `v1.1.206`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
