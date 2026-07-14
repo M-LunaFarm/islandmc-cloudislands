@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.213`
+Version: `1.1.214`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,11 +698,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.213`
+Current release: `v1.1.214`
 
-Built for the CloudIslands 1.1.213 baseline.
+Built for the CloudIslands 1.1.214 baseline.
 
-Release notes for `v1.1.213`:
+Release notes for `v1.1.214`:
+
+- Paper now journals every locally successful island job completion before
+  reporting it to Core, then replays only that completion payload when a claim
+  is retried instead of repeating world, snapshot, activation, or deletion work
+- the pending-completion journal survives Paper restarts, uses atomic durable
+  replacement, enforces bounded records and payloads, and fails startup instead
+  of silently discarding a corrupt local-success record
+- Core-backed completion and failure reports now wait for their asynchronous
+  HTTP result, so a delayed network failure cannot be mistaken for acceptance
+  and prematurely remove the local journal entry
+- regression coverage verifies restart replay, cleanup, replacement, corrupt
+  journal rejection, async Core failure propagation, and replay-before-mutation
+  ordering
+
+Release notes carried forward from `v1.1.213`:
 
 - permanent island deletion now purges the cell's block, entity, and POI region
   files after the final delete backup and live-chunk eviction, before releasing
@@ -3516,7 +3531,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.213`.
+Current read: production-readiness baseline `v1.1.214`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
