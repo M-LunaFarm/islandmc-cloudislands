@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.activation;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,10 +15,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.paper.world.export.IslandBundleExporter;
 import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
+import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -75,6 +78,66 @@ class IslandSaveServiceConcurrencyTest {
 
         assertEquals(2, exportCalls.get());
         assertEquals(1, maxConcurrentExports.get());
+    }
+
+    @Test
+    void flushesTheLiveWorldBeforeExportAndPublishesTheCurrentBundleSchema() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        AtomicInteger sequence = new AtomicInteger();
+        AtomicReference<IslandBundleManifest> storedManifest = new AtomicReference<>();
+        IslandStorage storage = (IslandStorage) Proxy.newProxyInstance(
+            getClass().getClassLoader(),
+            new Class<?>[] {IslandStorage.class},
+            (proxy, method, args) -> switch (method.getName()) {
+                case "readManifest" -> manifest(islandId);
+                case "writeSnapshot" -> {
+                    storedManifest.set((IslandBundleManifest) args[3]);
+                    yield new IslandStorage.StoredBundle("checksum", 8L, "snapshot", "SHA-256", "zstd");
+                }
+                case "pruneSnapshots" -> 0;
+                default -> throw new UnsupportedOperationException(method.getName());
+            }
+        );
+        IslandBundleExporter exporter = (id, active, target) -> {
+            assertEquals(1, sequence.getAndIncrement(), "world flush must complete before region-file export starts");
+            Path bundle = tempDir.resolve("flushed-bundle.tar.zst");
+            Files.writeString(bundle, "bundle");
+            return new IslandBundleExporter.ExportedIslandBundle(id, bundle, 1L);
+        };
+        IslandWorldFlush flush = active -> assertEquals(0, sequence.getAndIncrement());
+        IslandSaveService service = new IslandSaveService(
+            storage, exporter, tempDir.resolve("exports"), SnapshotRetentionPolicy.defaultPolicy(), flush
+        );
+        ActiveIslandRegistry.ActiveIsland active = new ActiveIslandRegistry.ActiveIsland(
+            islandId, "ci_shard_001", 0, 0, 0, 0, 100, 1L, 10L, Instant.now()
+        );
+
+        service.save(islandId, active);
+
+        assertEquals(2, sequence.get());
+        assertEquals(IslandBundleManifest.CURRENT_FORMAT_VERSION, storedManifest.get().formatVersion());
+    }
+
+    @Test
+    void flushFailurePreventsOfflineRegionExport() {
+        UUID islandId = UUID.randomUUID();
+        AtomicInteger exportCalls = new AtomicInteger();
+        IslandBundleExporter exporter = (id, active, target) -> {
+            exportCalls.incrementAndGet();
+            throw new IOException("export must not run");
+        };
+        IslandSaveService service = new IslandSaveService(
+            storage(manifest(islandId)), exporter, tempDir.resolve("exports"), SnapshotRetentionPolicy.defaultPolicy(),
+            active -> { throw new IOException("flush failed"); }
+        );
+        ActiveIslandRegistry.ActiveIsland active = new ActiveIslandRegistry.ActiveIsland(
+            islandId, "ci_shard_001", 0, 0, 0, 0, 100, 1L, 10L, Instant.now()
+        );
+
+        IOException exception = assertThrows(IOException.class, () -> service.save(islandId, active));
+
+        assertEquals("flush failed", exception.getMessage());
+        assertEquals(0, exportCalls.get());
     }
 
     private IslandStorage storage(IslandBundleManifest manifest) {

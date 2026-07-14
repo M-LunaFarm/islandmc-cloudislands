@@ -57,7 +57,8 @@ final class PaperIslandNodeRuntime {
             storage,
             new ExternalTarIslandBundleExporter(plugin.getServer().getWorldContainer().toPath(), integrationHooks),
             plugin.getDataFolder().toPath().resolve("exports"),
-            config.snapshots()
+            config.snapshots(),
+            new kr.lunaf.cloudislands.paper.platform.world.BukkitIslandWorldFlush(plugin)
         );
         IslandActivationJobHandler activationHandler = new IslandActivationJobHandler(
             storage,

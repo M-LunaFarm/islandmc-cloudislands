@@ -21,6 +21,7 @@ public final class IslandSaveService {
     private final IslandBundleExporter exporter;
     private final Path exportRoot;
     private final SnapshotRetentionPolicy retentionPolicy;
+    private final IslandWorldFlush worldFlush;
 
     public IslandSaveService(IslandStorage storage, IslandBundleExporter exporter, Path exportRoot) {
         this(storage, exporter, exportRoot, RETAINED_SNAPSHOTS);
@@ -31,10 +32,15 @@ public final class IslandSaveService {
     }
 
     public IslandSaveService(IslandStorage storage, IslandBundleExporter exporter, Path exportRoot, SnapshotRetentionPolicy retentionPolicy) {
+        this(storage, exporter, exportRoot, retentionPolicy, IslandWorldFlush.noop());
+    }
+
+    public IslandSaveService(IslandStorage storage, IslandBundleExporter exporter, Path exportRoot, SnapshotRetentionPolicy retentionPolicy, IslandWorldFlush worldFlush) {
         this.storage = storage;
         this.exporter = exporter;
         this.exportRoot = exportRoot;
         this.retentionPolicy = (retentionPolicy == null ? SnapshotRetentionPolicy.defaultPolicy() : retentionPolicy).normalized();
+        this.worldFlush = worldFlush == null ? IslandWorldFlush.noop() : worldFlush;
     }
 
     public SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
@@ -82,6 +88,7 @@ public final class IslandSaveService {
         if (!retentionPolicy.compress()) {
             throw new IOException("uncompressed snapshot bundles are not supported by the current storage format");
         }
+        worldFlush.flush(activeIsland);
         IslandBundleManifest previous = (baseManifest == null ? storage.readManifest(islandId) : baseManifest).withSnapshotReason(reason);
         IslandBundleExporter.ExportedIslandBundle exported = exporter.export(islandId, activeIsland, exportRoot.resolve(islandId.toString()), previous);
         long sizeBytes = Files.size(exported.bundleFile());
@@ -92,7 +99,7 @@ public final class IslandSaveService {
         IslandBundleManifest manifest = new IslandBundleManifest(
             islandId,
             previous.ownerUuid(),
-            previous.formatVersion(),
+            IslandBundleManifest.CURRENT_FORMAT_VERSION,
             previous.minecraftVersion(),
             (int) activeIsland.schemaVersion(),
             activeIsland.islandSize(),
