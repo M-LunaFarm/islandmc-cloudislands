@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.201`
+Version: `1.1.202`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -683,11 +683,25 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.201`
+Current release: `v1.1.202`
 
-Built for the CloudIslands 1.1.201 baseline.
+Built for the CloudIslands 1.1.202 baseline.
 
-Release notes for `v1.1.201`:
+Release notes for `v1.1.202`:
+
+- the generated player feature-parity report now classifies all nine audited
+  product areas as supported after separating executable integration services
+  from compatibility-only adapters and intentional security restrictions
+- Vault, PlaceholderAPI, Plan, vanish, custom-content, and stack-accounting
+  integrations remain backed by executable runtime services and smoke evidence
+- CoreProtect stays append-only and WorldEdit/FAWE stay compatibility-only:
+  CloudIslands chunk bundles remain the sole authority for world-state transfer,
+  avoiding conflicting or incomplete restore sources
+- formatting-only MiniMessage intentionally keeps click, URL, insertion,
+  selector, score, and NBT tags disabled at the untrusted-format boundary
+- the complete 182-task clean check and Paper 26.1.2 boot smoke passed
+
+Release notes carried forward from `v1.1.201`:
 
 - mission persistence now uses `(missionKey, kind)` throughout in-memory,
   PostgreSQL, and MySQL storage, so a MISSION and CHALLENGE can safely share a
@@ -3308,7 +3322,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.201`.
+Current read: production-readiness baseline `v1.1.202`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
