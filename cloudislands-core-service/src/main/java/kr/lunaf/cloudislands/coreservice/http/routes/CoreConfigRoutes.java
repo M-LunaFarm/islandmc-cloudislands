@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.coreservice.IslandPlacement;
 import kr.lunaf.cloudislands.coreservice.NodeRegistry;
 import kr.lunaf.cloudislands.coreservice.addon.AddonStateRepository;
 import kr.lunaf.cloudislands.coreservice.config.CoreServiceConfig;
+import kr.lunaf.cloudislands.coreservice.db.JdbcSchemaBootstrap;
 import kr.lunaf.cloudislands.coreservice.http.CoreHttpResponses;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
@@ -80,8 +81,9 @@ public final class CoreConfigRoutes implements RouteGroup {
         summary.put("coreSetupFallbackProductionSafeOrder", config.setupDatabaseFallbackProductionSafeOrder());
         summary.put("coreSetupDatabaseAutoSchema", config.setupDatabaseAutoSchema());
         summary.put("coreSetupDatabaseAutoSchemaPolicy", "explicit-opt-in-postgresql-mysql-mariadb-bootstrap");
-        summary.put("coreSetupDatabaseAutoSchemaResource", "postgresql=/db/migration/V1..V85,mysql-mariadb=/db/mysql/V1..V9");
+        summary.put("coreSetupDatabaseAutoSchemaResource", "postgresql=/db/migration/V1..V86,mysql-mariadb=/db/mysql/V1..V10");
         summary.put("coreSetupDatabaseAutoSchemaHistoryTable", "cloudislands_schema_bootstrap");
+        summary.put("coreSetupDatabaseAutoSchemaChecksumPolicy", JdbcSchemaBootstrap.MIGRATION_CHECKSUM_POLICY);
         summary.put("coreSetupDatabaseAutoSchemaRetryPolicy", "ignore-existing-schema-objects-and-mark-bootstrap-after-complete-apply");
         summary.put("coreSetupDatabaseAutoSchemaGuardPolicy", "generated-columns-enforce-active-unique-guards-for-mysql-mariadb");
         summary.put("coreSetupFallbackEnabled", config.setupDatabaseFallbackEnabled());

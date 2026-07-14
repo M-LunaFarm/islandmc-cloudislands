@@ -24,6 +24,8 @@ class JdbcSchemaBootstrapLockPolicyTest {
         assertTrue(source.contains("throw new SQLException(\"timed out acquiring MySQL/MariaDB schema migration lock\")"));
         assertTrue(source.contains("throw new SQLException(\"timed out acquiring PostgreSQL schema migration lock\")"));
         assertTrue(build.contains("CloudIslands-Core-JDBC-Auto-Schema-HA-Lock-Policy"));
+        assertTrue(build.contains("CloudIslands-Core-JDBC-Auto-Schema-Checksum-Policy"));
+        assertTrue(build.contains(JdbcSchemaBootstrap.MIGRATION_CHECKSUM_POLICY));
         assertTrue(build.contains("postgresql=/db/migration/V1..V86,mysql-mariadb=/db/mysql/V1..V10"));
     }
 }
