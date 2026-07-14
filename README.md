@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.217`
+Version: `1.1.218`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,9 +698,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.217`
+Current release: `v1.1.218`
 
-Built for the CloudIslands 1.1.217 baseline.
+Built for the CloudIslands 1.1.218 baseline.
+
+Release notes for `v1.1.218`:
+
+- Paper shutdown now stops new job and periodic-save intake, drains every
+  already-claimed activation or deactivation within the configured deadline,
+  and services queued cell unload, starter generation, and world flush work on
+  the global thread while it waits
+- a worker that cannot drain safely no longer races a forced final snapshot;
+  existing periodic work is quiesced without starting another export, leaving
+  Core claim leases and the durable snapshot journals as the recovery path
+- mission definition callbacks and migration return-ticket callbacks use UUIDs
+  captured on the event thread, while delayed command responses resolve the
+  current online Paper player on the global thread instead of retaining stale
+  Bukkit entity access across HTTP completion threads
+- replayed permission-check and visit events now wait for their bounded global
+  scheduler call to finish before advancing the event cursor or deduplication
+  set, so scheduler rejection or shutdown cannot silently discard delivery
 
 Release notes for `v1.1.217`:
 
@@ -3580,7 +3597,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.217`.
+Current read: production-readiness baseline `v1.1.218`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
