@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.207`
+Version: `1.1.208`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,11 +698,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.207`
+Current release: `v1.1.208`
 
-Built for the CloudIslands 1.1.207 baseline.
+Built for the CloudIslands 1.1.208 baseline.
 
-Release notes for `v1.1.207`:
+Release notes for `v1.1.208`:
+
+- template, restore, reset, and migration placement now replaces the complete
+  region-file set owned by the target island cell instead of leaving files that
+  are absent from the incoming bundle
+- a reused cell can no longer expose blocks from a deleted or previously reset
+  island when the incoming bundle contains fewer region files
+- region files are staged and atomically moved with rollback of every already
+  changed file when placement fails partway through
+- bundles whose region coordinates do not match the assigned target cell fail
+  before mutating that cell instead of silently activating an empty or partial
+  island
+- regression tests cover stale-file removal, neighboring-cell isolation,
+  coordinate mismatch fail-closed behavior, and transactional rollback
+
+Release notes carried forward from `v1.1.207`:
 
 - Paper's accepted physical block-destruction path now updates authoritative
   island level and block-limit deltas for physics, crop destruction, mobs, and
@@ -3405,7 +3420,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.207`.
+Current read: production-readiness baseline `v1.1.208`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
