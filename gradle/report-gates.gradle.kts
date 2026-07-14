@@ -373,7 +373,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "upgrade effects apply size, limits, fly, generator tier, biome validation, and player border policy with combined bank and warehouse-item prices",
         "Paper commands compile and tests cover command policy plus border runtime calculation",
         "Paper adapter isolates version-sensitive runtime access",
-        "verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; Paper tests cover world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting",
+        "verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; authoritative size is carried through activation, restore, reset, and migration jobs, while live size changes atomically replace Paper protection, scan, and snapshot bounds; Paper tests also cover region-file cell isolation, unsafe-size fencing, world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java",
@@ -382,10 +382,16 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/upgrade/UpgradeEffectApplierTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutesTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/IslandBorderRuntimePolicyTest.java",
+            "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/protection/RegionIndex.java",
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/job/JobCompletionServiceTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/activation/IslandSizeRuntimeListener.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/activation/IslandSizeRuntimeListenerTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/activation/ShardCellGeometryPolicy.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/activation/ShardCellGeometryPolicyTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/platform/world/IslandBiomeRuntimeApplier.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/environment/IslandBiomeRuntimeApplierPolicyTest.java"
         ),
-        "operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome convergence and border application policy"
+        "operator deployment acceptance is still recommended; cells below 1024 blocks or not aligned to 512 blocks fail startup, and islands that cannot fit without sharing region files fail activation or are fenced on unsafe live resize"
     ),
     FeatureParityEntry(
         "bank/economy/missions/challenges/generators/limits",
