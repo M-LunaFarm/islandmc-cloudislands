@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperBootstrapStatus;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigReloadResult;
 import kr.lunaf.cloudislands.paper.gui.GuiActionSchema;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.command.CommandSender;
 
 final class AdminConfigCommandHandler {
@@ -54,31 +55,29 @@ final class AdminConfigCommandHandler {
             return true;
         }
         if (args[1].equalsIgnoreCase("validate")) {
-            sender.sendMessage(configValidationMessage(validateConfigV2Bundle()));
+            runner.run(sender, "Config validate", asyncIo(this::validateConfigV2Bundle).thenApply(this::configValidationMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("diff")) {
-            sender.sendMessage(configDiffMessage());
+            runner.run(sender, "Config diff", asyncIo(this::configDiffMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("effective")) {
-            sender.sendMessage(writeEffectiveConfig());
+            runner.run(sender, "Config effective", asyncIo(this::writeEffectiveConfig));
             return true;
         }
         if (args[1].equalsIgnoreCase("sources")) {
-            sender.sendMessage(configSourcesMessage());
+            runner.run(sender, "Config sources", asyncIo(this::configSourcesMessage));
             return true;
         }
         if (args[1].equalsIgnoreCase("reload")) {
-            ConfigValidationResult validation = validateConfigV2Bundle();
-            if (!validation.valid()) {
-                sender.sendMessage(configValidationMessage(validation));
-                return true;
-            }
-            if (!reloadRuntimeConfig(sender)) {
-                return true;
-            }
-            runner.run(sender, "Config reload", coreApiClient.adminMaintenance().reload().thenApply(maintenanceFormatter));
+            runner.run(sender, "Config reload", asyncIo(this::validateConfigV2Bundle)
+                .thenCompose(validation -> validation.valid()
+                    ? reloadRuntimeConfig().thenCompose(result -> result.applied()
+                        ? coreApiClient.adminMaintenance().reload().thenApply(maintenance -> reloadResultMessage(result) + " | " + maintenanceFormatter.apply(maintenance))
+                        : CompletableFuture.completedFuture(reloadResultMessage(result)))
+                    : CompletableFuture.completedFuture(configValidationMessage(validation)))
+                .exceptionally(this::reloadFailureMessage));
             return true;
         }
         usageSender.send(sender, List.of(
@@ -92,30 +91,31 @@ final class AdminConfigCommandHandler {
         return true;
     }
 
-    boolean reloadRuntimeConfig(CommandSender sender) {
-        PaperRuntimeConfigReloadResult result;
-        try {
-            result = reloadRuntimeConfig();
-        } catch (RuntimeException | LinkageError failure) {
-            sender.sendMessage(text.get("admin-command-config-reload-rejected-prefix", "Paper config reload rejected; current runtime preserved: ")
-                + PaperBootstrapStatus.sanitize(failure.getMessage()));
-            return false;
+    CompletableFuture<PaperRuntimeConfigReloadResult> reloadRuntimeConfig() {
+        if (!(agent.plugin() instanceof CloudIslandsPaperPlugin plugin)) {
+            return CompletableFuture.failedFuture(new IllegalStateException("CloudIslands Paper runtime config reload requires the Paper plugin instance"));
         }
-        if (!result.applied()) {
-            sender.sendMessage(text.get("admin-command-config-reload-restart-prefix", "Paper config reload requires restart: ")
-                + String.join(",", result.restartRequiredChanges()));
-            return false;
-        }
-        String changes = result.liveChanges().isEmpty() ? "none" : String.join(",", result.liveChanges());
-        sender.sendMessage(text.get("admin-command-config-reload-applied-prefix", "Paper config reload applied: ") + changes);
-        return true;
+        return asyncIo(plugin::loadRuntimeConfigSnapshot)
+            .thenCompose(candidate -> PaperSchedulers.supply(plugin, () -> plugin.applyRuntimeConfigSnapshot(candidate)));
     }
 
-    PaperRuntimeConfigReloadResult reloadRuntimeConfig() {
-        if (agent.plugin() instanceof CloudIslandsPaperPlugin plugin) {
-            return plugin.reloadRuntimeConfig();
+    String reloadResultMessage(PaperRuntimeConfigReloadResult result) {
+        if (!result.applied()) {
+            return text.get("admin-command-config-reload-restart-prefix", "Paper config reload requires restart: ")
+                + String.join(",", result.restartRequiredChanges());
         }
-        throw new IllegalStateException("CloudIslands Paper runtime config reload requires the Paper plugin instance");
+        String changes = result.liveChanges().isEmpty() ? "none" : String.join(",", result.liveChanges());
+        return text.get("admin-command-config-reload-applied-prefix", "Paper config reload applied: ") + changes;
+    }
+
+    String reloadFailureMessage(Throwable failure) {
+        Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+        return text.get("admin-command-config-reload-rejected-prefix", "Paper config reload rejected; current runtime preserved: ")
+            + PaperBootstrapStatus.sanitize(cause.getMessage());
+    }
+
+    private <T> CompletableFuture<T> asyncIo(java.util.function.Supplier<T> supplier) {
+        return PaperSchedulers.supplyAsync(agent.plugin(), supplier);
     }
 
     String validationDiagnosticSection() {
@@ -125,12 +125,20 @@ final class AdminConfigCommandHandler {
             + "summary=" + redactDiagnostic(validation.summary()) + '\n';
     }
 
+    CompletableFuture<? extends CharSequence> validationDiagnosticSectionAsync() {
+        return asyncIo(this::validationDiagnosticSection);
+    }
+
     String effectiveConfigDiagnosticSection() {
         try {
             return "## effective-config-redacted\n" + redactDiagnostic(effectiveConfigV2Yaml(true)) + '\n';
         } catch (RuntimeException exception) {
             return "## effective-config-redacted\nerror=" + exception.getClass().getSimpleName() + ':' + exception.getMessage() + '\n';
         }
+    }
+
+    CompletableFuture<? extends CharSequence> effectiveConfigDiagnosticSectionAsync() {
+        return asyncIo(this::effectiveConfigDiagnosticSection);
     }
 
     private ConfigValidationResult validateConfigV2Bundle() {

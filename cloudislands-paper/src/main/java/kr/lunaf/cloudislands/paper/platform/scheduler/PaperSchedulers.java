@@ -33,6 +33,22 @@ public final class PaperSchedulers {
         return result;
     }
 
+    public static <T> CompletableFuture<T> supplyAsync(Plugin plugin, Supplier<T> supplier) {
+        CompletableFuture<T> result = new CompletableFuture<>();
+        try {
+            runAsync(plugin, () -> {
+                try {
+                    result.complete(supplier.get());
+                } catch (RuntimeException | LinkageError error) {
+                    result.completeExceptionally(error);
+                }
+            });
+        } catch (RuntimeException | LinkageError error) {
+            result.completeExceptionally(error);
+        }
+        return result;
+    }
+
     public static BukkitTask runLater(Plugin plugin, Runnable task, long delayTicks) {
         return plugin.getServer().getScheduler().runTaskLater(plugin, task, delayTicks);
     }

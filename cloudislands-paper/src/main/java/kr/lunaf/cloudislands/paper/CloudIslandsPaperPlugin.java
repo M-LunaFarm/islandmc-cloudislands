@@ -349,7 +349,10 @@ public final class CloudIslandsPaperPlugin extends JavaPlugin {
     }
 
     public synchronized PaperRuntimeConfigReloadResult reloadRuntimeConfig() {
-        PaperRuntimeConfig candidate = loadRuntimeConfigSnapshot();
+        return applyRuntimeConfigSnapshot(loadRuntimeConfigSnapshot());
+    }
+
+    public synchronized PaperRuntimeConfigReloadResult applyRuntimeConfigSnapshot(PaperRuntimeConfig candidate) {
         PaperRuntimeConfigReloadResult result = PaperRuntimeConfigReloadResult.analyze(runtimeConfig(), candidate);
         if (!result.restartRequiredChanges().isEmpty()) {
             return result;

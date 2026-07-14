@@ -184,8 +184,9 @@ class PaperConfigSurfaceTest {
         assertFalse(commands.contains("plugin.getConfig().getString(\"node.id\""), "commands must use the runtime snapshot for node identity");
         assertFalse(admin.contains("agent.getConfig()"), "admin commands must not read Bukkit config through the agent");
         assertFalse(admin.contains("agent.plugin().reloadConfig()"), "admin commands must refresh the runtime config snapshot instead of only reloading Bukkit config");
-        assertTrue(admin.contains("configHandler.reloadRuntimeConfig(sender)"), "admin command backend must delegate config reload to the config handler and report whether it applied");
-        assertTrue(adminConfig.contains("plugin.reloadRuntimeConfig()"), "admin config reload must refresh the active runtime config snapshot");
+        assertTrue(admin.contains("configHandler.reloadRuntimeConfig()"), "admin command backend must delegate config reload to the config handler and report whether it applied");
+        assertTrue(adminConfig.contains("plugin::loadRuntimeConfigSnapshot"), "admin config reload must load the candidate runtime config snapshot asynchronously");
+        assertTrue(adminConfig.contains("plugin.applyRuntimeConfigSnapshot(candidate)"), "admin config reload must apply the candidate runtime config snapshot on the Paper scheduler");
         assertFalse(api.contains("new StatusService(agent)"), "status API must receive the runtime config snapshot");
         assertFalse(api.contains("boolean configBoolean("), "Paper API services must not keep duplicate runtime boolean parsers");
         assertFalse(api.contains("config.getString(\"node.id\""), "status API must use the runtime snapshot for node identity");
@@ -198,6 +199,7 @@ class PaperConfigSurfaceTest {
         assertTrue(addonFile.contains("addons.yml"), "Paper addon config adapter must persist addon settings under config-v2/addons.yml");
         assertFalse(agent.contains("getConfig()"), "Paper agent must not expose a Bukkit config accessor");
         assertTrue(plugin.contains("reloadRuntimeConfig()"), "Paper plugin must expose one runtime snapshot reload boundary");
+        assertTrue(plugin.contains("applyRuntimeConfigSnapshot(PaperRuntimeConfig candidate)"), "Paper plugin must expose a preloaded snapshot apply boundary");
         assertFalse(plugin.contains("reloadConfig()"), "runtime reload must not reload legacy Bukkit config");
         assertTrue(plugin.contains("PaperRuntimeConfigLoader.load(this, this::resolveEnv)"), "runtime reload must use the same Config v2 loader as bootstrap");
         assertTrue(plugin.contains("ConfigSecretResolver.resolve"), "Paper runtime config resolver must handle Config v2 env/file secret references");

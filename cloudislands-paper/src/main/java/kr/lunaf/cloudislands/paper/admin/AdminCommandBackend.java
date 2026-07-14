@@ -71,6 +71,7 @@ import kr.lunaf.cloudislands.paper.AdminFlightOverrides;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigReloadResult;
 import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
@@ -83,6 +84,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.integration.IntegrationRuntimeCertification;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import kr.lunaf.cloudislands.paper.platform.world.AdminWorldSpawnGateway;
 import kr.lunaf.cloudislands.paper.platform.world.AdminWorldSpawnGateway.SpawnUpdateResult;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
@@ -640,13 +642,17 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("reload")) {
-            if (!configHandler.reloadRuntimeConfig(sender)) {
-                return true;
-            }
+            CompletableFuture<PaperRuntimeConfigReloadResult> configReload = configHandler.reloadRuntimeConfig();
             if (args.length > 2) {
-                run(sender, "Addon reload", api.addons().refresh(args[2]).thenApply(addon -> addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2])));
+                run(sender, "Addon reload", configReload.thenCompose(result -> result.applied()
+                    ? api.addons().refresh(args[2]).thenApply(addon -> configHandler.reloadResultMessage(result) + " | " + addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2]))
+                    : CompletableFuture.completedFuture(configHandler.reloadResultMessage(result)))
+                    .exceptionally(configHandler::reloadFailureMessage));
             } else {
-                run(sender, "Addons reload", api.addons().refreshAll().thenApply(this::addonListMessage));
+                run(sender, "Addons reload", configReload.thenCompose(result -> result.applied()
+                    ? api.addons().refreshAll().thenApply(addons -> configHandler.reloadResultMessage(result) + " | " + addonListMessage(addons))
+                    : CompletableFuture.completedFuture(configHandler.reloadResultMessage(result)))
+                    .exceptionally(configHandler::reloadFailureMessage));
             }
             return true;
         }
@@ -677,10 +683,21 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         CompletableFuture<DiagnosticSection> jobs = diagnosticSection("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage));
         CompletableFuture<DiagnosticSection> routes = diagnosticSection("route-debug", coreApiClient.adminRoutes().debug(new UUID(0L, 0L)).thenApply(this::routeDebugMessage));
         CompletableFuture<DiagnosticSection> audit = diagnosticSection("audit", coreApiClient.adminAudit().list(25).thenApply(this::auditListMessage));
-        CompletableFuture<DiagnosticSection> configValidation = CompletableFuture.completedFuture(new DiagnosticSection(configHandler.validationDiagnosticSection()));
-        CompletableFuture<DiagnosticSection> effectiveConfig = CompletableFuture.completedFuture(new DiagnosticSection(configHandler.effectiveConfigDiagnosticSection()));
+        CompletableFuture<DiagnosticSection> configValidation = configHandler.validationDiagnosticSectionAsync()
+            .thenApply(body -> new DiagnosticSection(body.toString()));
+        CompletableFuture<DiagnosticSection> effectiveConfig = configHandler.effectiveConfigDiagnosticSectionAsync()
+            .thenApply(body -> new DiagnosticSection(body.toString()));
+        DiagnosticExportContext exportContext = new DiagnosticExportContext(
+            agent.plugin().getDataFolder().toPath().resolve("diagnostics"),
+            nodeId,
+            agent.role().name(),
+            agent.plugin().getPluginMeta().getVersion(),
+            agent.plugin().getServer().getOnlinePlayers().size()
+        );
+        DiagnosticSection runtimeCompatibility = runtimeCompatibilityDiagnosticSection();
+        DiagnosticSection integrations = integrationsDiagnosticSection();
         run(sender, "Diagnostics export", CompletableFuture.allOf(config, metrics, storage, nodes, heartbeatLag, jobs, routes, audit, configValidation, effectiveConfig)
-            .thenApply(_ignored -> writeDiagnostics(List.of(config.join(), metrics.join(), storage.join(), nodes.join(), heartbeatLag.join(), jobs.join(), routes.join(), audit.join(), configValidation.join(), effectiveConfig.join(), runtimeCompatibilityDiagnosticSection(), integrationsDiagnosticSection()))));
+            .thenCompose(_ignored -> PaperSchedulers.supplyAsync(agent.plugin(), () -> writeDiagnostics(exportContext, List.of(config.join(), metrics.join(), storage.join(), nodes.join(), heartbeatLag.join(), jobs.join(), routes.join(), audit.join(), configValidation.join(), effectiveConfig.join(), runtimeCompatibility, integrations)))));
         return true;
     }
 
@@ -706,19 +723,19 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         });
     }
 
-    private String writeDiagnostics(List<DiagnosticSection> sections) {
+    private String writeDiagnostics(DiagnosticExportContext context, List<DiagnosticSection> sections) {
         try {
-            Path directory = agent.plugin().getDataFolder().toPath().resolve("diagnostics");
+            Path directory = context.directory();
             Files.createDirectories(directory);
             String timestamp = Instant.now().toString().replace(':', '-');
             Path report = directory.resolve("cloudislands-diagnostics-" + timestamp + ".txt");
             StringBuilder builder = new StringBuilder();
             builder.append("CloudIslands diagnostics export\n");
             builder.append("generatedAt=").append(Instant.now()).append('\n');
-            builder.append("nodeId=").append(nodeId).append('\n');
-            builder.append("agentRole=").append(agent.role()).append('\n');
-            builder.append("pluginVersion=").append(agent.plugin().getPluginMeta().getVersion()).append('\n');
-            builder.append("onlinePlayers=").append(agent.plugin().getServer().getOnlinePlayers().size()).append("\n\n");
+            builder.append("nodeId=").append(context.nodeId()).append('\n');
+            builder.append("agentRole=").append(context.agentRole()).append('\n');
+            builder.append("pluginVersion=").append(context.pluginVersion()).append('\n');
+            builder.append("onlinePlayers=").append(context.onlinePlayers()).append("\n\n");
             for (DiagnosticSection section : sections) {
                 builder.append(section.content()).append('\n');
             }
@@ -902,7 +919,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (section.equals("export-redacted")) {
-            sender.sendMessage(configHandler.effectiveConfigDiagnosticSection());
+            run(sender, "Setup export-redacted", configHandler.effectiveConfigDiagnosticSectionAsync());
             return true;
         }
         if (!SETUP_COMMANDS.contains(section)) {
@@ -3061,6 +3078,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         private DiagnosticSection {
             content = content == null ? "" : content;
         }
+    }
+
+    private record DiagnosticExportContext(Path directory, String nodeId, String agentRole, String pluginVersion, int onlinePlayers) {
     }
 
     private record IntegrationReportFiles(Path json, Path markdown) {

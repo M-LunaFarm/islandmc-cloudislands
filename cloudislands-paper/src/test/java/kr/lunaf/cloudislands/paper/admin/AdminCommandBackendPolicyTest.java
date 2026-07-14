@@ -68,8 +68,9 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("nodes.staleNodeCount()"), "Heartbeat diagnostics must expose typed stale node count");
         assertTrue(source.contains("nodes.heartbeatTimeoutSeconds()"), "Heartbeat diagnostics must expose typed heartbeat timeout");
         assertTrue(source.contains("coreApiClient.adminAudit().list(25)"), "Diagnostics export must include bounded typed audit context");
-        assertTrue(source.contains("configHandler.validationDiagnosticSection()"), "Diagnostics export must include local config validation");
-        assertTrue(source.contains("configHandler.effectiveConfigDiagnosticSection()"), "Diagnostics export must include redacted effective config");
+        assertTrue(source.contains("configHandler.validationDiagnosticSectionAsync()"), "Diagnostics export must include async local config validation");
+        assertTrue(source.contains("configHandler.effectiveConfigDiagnosticSectionAsync()"), "Diagnostics export must include async redacted effective config");
+        assertTrue(source.contains("PaperSchedulers.supplyAsync(agent.plugin(), () -> writeDiagnostics"), "Diagnostics filesystem writes must execute away from the Paper thread");
         assertTrue(configHandler.contains("## config-validation"), "Diagnostics bundle must have a config validation section");
         assertTrue(configHandler.contains("## effective-config-redacted"), "Diagnostics bundle must have a redacted effective config section");
         assertTrue(source.contains("pluginVersion="), "Diagnostics bundle must include runtime version context");
@@ -662,7 +663,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("handleSetup"), "Setup command must have a handler");
         assertTrue(source.contains("return handleDoctor(sender, new String[] {\"doctor\"})"), "Setup verify must delegate to doctor checks");
         assertTrue(source.contains("setupExplainMessage"), "Setup explain must have a focused explanation handler");
-        assertTrue(source.contains("configHandler.effectiveConfigDiagnosticSection()"), "Setup export-redacted must reuse redacted effective config output");
+        assertTrue(source.contains("configHandler.effectiveConfigDiagnosticSectionAsync()"), "Setup export-redacted must reuse async redacted effective config output");
         assertTrue(source.contains("args.length == 2 && args[0].equalsIgnoreCase(\"setup\")"), "Setup tab completion must use setup subcommands");
         assertTrue(source.contains("args.length == 3 && args[0].equalsIgnoreCase(\"setup\") && args[1].equalsIgnoreCase(\"explain\")"), "Setup explain tab completion must suggest setup topics");
         assertTrue(source.contains("\"setup\"") && source.contains("cloudislands.admin.\" + root"), "Setup must be a first-class admin permission root");
@@ -707,11 +708,15 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("configHandler.handle(sender, args)"), "Config command must route to a dedicated operation handler");
         assertTrue(configHandler.contains("ConfigV2Validator.validateYaml"), "Config validate must run schema and secret validation");
         assertTrue(configHandler.contains("ConfigV2Validator.redactYaml"), "Effective config output must redact secrets");
-        assertTrue(configHandler.contains("if (!validation.valid())"), "Config reload must keep the current config when validation fails");
+        assertTrue(configHandler.contains("validation.valid()"), "Config reload must keep the current config when validation fails");
         assertTrue(configHandler.contains("PaperBootstrapStatus.sanitize"), "Config reload failures must preserve the runtime and redact credential-bearing diagnostics");
         assertTrue(configHandler.contains("restartRequiredChanges"), "Config reload must report restart-required sections instead of claiming stale listeners were refreshed");
         assertTrue(configSurface.contains("reloadRuntimeConfig()"), "Config reload must refresh the active Config v2 runtime snapshot after validation passes");
-        assertTrue(configHandler.contains("plugin.reloadRuntimeConfig()"), "Admin config reload must call the Paper runtime snapshot reload boundary");
+        assertTrue(configHandler.contains("plugin::loadRuntimeConfigSnapshot"), "Admin config reload must load the candidate snapshot through the Paper runtime boundary");
+        assertTrue(configHandler.contains("plugin.applyRuntimeConfigSnapshot(candidate)"), "Admin config reload must apply a preloaded snapshot on the Paper scheduler");
+        assertTrue(configHandler.contains("PaperSchedulers.supplyAsync"), "Config filesystem operations must execute away from the Paper command thread");
+        assertTrue(configHandler.contains("PaperSchedulers.supply(plugin"), "Config runtime mutation must return to the Paper global scheduler");
+        assertFalse(configHandler.contains("sender.sendMessage"), "Async config continuations must not retain or message a command sender directly");
         assertTrue(configHandler.contains("ConfigDiff.between"), "Config diff must report changed and restart-required paths");
         assertTrue(configHandler.contains("currentConfigYaml"), "Config diff must compare against the current runtime config when available");
         assertTrue(plugin.contains("cloudislands.admin.config"), "Config command must have a plugin permission");
