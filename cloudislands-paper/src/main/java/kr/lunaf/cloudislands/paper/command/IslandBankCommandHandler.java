@@ -129,8 +129,9 @@ final class IslandBankCommandHandler {
                 runtime.message(player, message("bank-deposit-denied", "섬 은행에 입금할 권한이 없습니다."));
                 return;
             }
-            BigDecimal parsedAmount = BankUseCase.positiveAmount(amount);
-            if (parsedAmount == null) {
+            boolean all = amount != null && amount.trim().equals("*");
+            BigDecimal parsedAmount = all ? null : BankUseCase.positiveAmount(amount);
+            if (!all && parsedAmount == null) {
                 runtime.message(player, runtime.playerCodeMessage("INVALID_AMOUNT", message("input-amount-invalid", "올바른 금액을 입력해주세요.")));
                 return;
             }
@@ -139,7 +140,10 @@ final class IslandBankCommandHandler {
                 runtime.message(player, message("bank-operation-pending", "진행 중인 은행 작업이 끝난 뒤 다시 시도해주세요."));
                 return;
             }
-            bankUseCase.deposit(islandId, playerUuid, parsedAmount, runtime::mutateIdempotent)
+            CompletableFuture<BankUseCase.BankOperationResult> operation = all
+                ? bankUseCase.depositAll(islandId, playerUuid, runtime::mutateIdempotent)
+                : bankUseCase.deposit(islandId, playerUuid, parsedAmount, runtime::mutateIdempotent);
+            operation
                 .thenAccept(result -> handleDepositResult(player, result))
                 .exceptionally(error -> {
                     runtime.message(player, message("bank-deposit-failed", "섬 은행에 입금하지 못했습니다."));
@@ -155,8 +159,9 @@ final class IslandBankCommandHandler {
                 runtime.message(player, message("bank-withdraw-denied", "섬 은행에서 출금할 권한이 없습니다."));
                 return;
             }
-            BigDecimal parsedAmount = BankUseCase.positiveAmount(amount);
-            if (parsedAmount == null) {
+            boolean all = amount != null && amount.trim().equals("*");
+            BigDecimal parsedAmount = all ? null : BankUseCase.positiveAmount(amount);
+            if (!all && parsedAmount == null) {
                 runtime.message(player, runtime.playerCodeMessage("INVALID_AMOUNT", message("input-amount-invalid", "올바른 금액을 입력해주세요.")));
                 return;
             }
@@ -165,7 +170,10 @@ final class IslandBankCommandHandler {
                 runtime.message(player, message("bank-operation-pending", "진행 중인 은행 작업이 끝난 뒤 다시 시도해주세요."));
                 return;
             }
-            bankUseCase.withdraw(islandId, playerUuid, parsedAmount, runtime::mutateIdempotent)
+            CompletableFuture<BankUseCase.BankOperationResult> operation = all
+                ? bankUseCase.withdrawAll(islandId, playerUuid, runtime::mutateIdempotent)
+                : bankUseCase.withdraw(islandId, playerUuid, parsedAmount, runtime::mutateIdempotent);
+            operation
                 .thenAccept(result -> handleWithdrawResult(player, result))
                 .exceptionally(error -> {
                     runtime.message(player, message("bank-withdraw-failed", "섬 은행에서 출금하지 못했습니다."));

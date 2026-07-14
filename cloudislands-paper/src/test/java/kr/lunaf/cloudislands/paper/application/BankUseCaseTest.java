@@ -113,6 +113,40 @@ class BankUseCaseTest {
     }
 
     @Test
+    void depositAllTransfersThePlayersCurrentEconomyBalance() {
+        FakeEconomy economy = new FakeEconomy(true);
+        economy.balance = new BigDecimal("42.75");
+        ScriptedCoreBank core = new ScriptedCoreBank();
+        core.depositResult = ScriptedCoreBank.bankChange(true, "", "142.75");
+        BankUseCase useCase = new BankUseCase(coreApiClient(core), economy);
+
+        BankUseCase.BankOperationResult result = useCase.depositAll(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            (_auditAction, operation) -> operation.get()
+        ).join();
+
+        assertEquals(BankUseCase.Status.SUCCESS, result.status());
+        assertEquals(List.of("balance", "withdraw:42.75:CloudIslands island bank deposit"), economy.calls);
+        assertEquals(List.of("deposit:42.75"), core.calls);
+    }
+
+    @Test
+    void depositAllWithEmptyBalanceDoesNotMutateCore() {
+        FakeEconomy economy = new FakeEconomy(true);
+        BankUseCase useCase = new BankUseCase(coreApiClient(new ScriptedCoreBank()), economy);
+
+        BankUseCase.BankOperationResult result = useCase.depositAll(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            (_auditAction, operation) -> operation.get()
+        ).join();
+
+        assertEquals(BankUseCase.Status.ECONOMY_WITHDRAW_DENIED, result.status());
+        assertEquals(List.of("balance"), economy.calls);
+    }
+
+    @Test
     void depositReportsUnavailableProviderBeforeEconomyWithdraw() {
         FakeEconomy economy = new FakeEconomy(true);
         economy.providerState = EconomyProviderState.NOT_INSTALLED;
@@ -184,6 +218,24 @@ class BankUseCaseTest {
         assertEquals(List.of("deposit:9:CloudIslands island bank withdraw"), economy.calls);
         assertEquals(List.of("island.bank.withdraw", "island.bank.withdraw.rollback"), auditActions);
         assertEquals(List.of("withdraw:9", "deposit:9"), core.calls);
+    }
+
+    @Test
+    void withdrawAllTransfersTheCurrentIslandBankBalance() {
+        FakeEconomy economy = new FakeEconomy(true);
+        ScriptedCoreBank core = new ScriptedCoreBank();
+        core.withdrawResult = ScriptedCoreBank.bankChange(true, "", "0");
+        BankUseCase useCase = new BankUseCase(coreApiClient(core), economy);
+
+        BankUseCase.BankOperationResult result = useCase.withdrawAll(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            (_auditAction, operation) -> operation.get()
+        ).join();
+
+        assertEquals(BankUseCase.Status.SUCCESS, result.status());
+        assertEquals(List.of("withdraw:55"), core.calls);
+        assertEquals(List.of("deposit:55:CloudIslands island bank withdraw"), economy.calls);
     }
 
     @Test
@@ -332,6 +384,7 @@ class BankUseCaseTest {
         EconomyProviderState providerState = EconomyProviderState.ACTIVE;
         boolean failWithdrawPayout;
         boolean failDepositRollback;
+        BigDecimal balance = BigDecimal.ZERO;
 
         FakeEconomy(boolean withdrawResult) {
             this.withdrawResult = withdrawResult;
@@ -362,7 +415,8 @@ class BankUseCaseTest {
 
         @Override
         public CompletableFuture<BigDecimal> balance(UUID playerUuid) {
-            return CompletableFuture.completedFuture(BigDecimal.ZERO);
+            calls.add("balance");
+            return CompletableFuture.completedFuture(balance);
         }
     }
 

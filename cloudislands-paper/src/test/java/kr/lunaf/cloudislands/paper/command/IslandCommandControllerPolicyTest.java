@@ -279,6 +279,7 @@ class IslandCommandControllerPolicyTest {
         String bankUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/BankUseCase.java"));
         String vaultBridge = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/economy/VaultEconomyBridge.java"));
         String logMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandLogMenu.java"));
+        String tabCompleter = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
 
         assertTrue(backend.contains("private final IslandBankCommandHandler bankCommands;"));
         assertTrue(routerSource().contains("bankCommands.handleCommand(player, subcommand, args)"));
@@ -290,6 +291,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(bankHandler.contains("private final BankUseCase bankUseCase;"));
         assertTrue(bankHandler.contains("bankUseCase.deposit("));
         assertTrue(bankHandler.contains("bankUseCase.withdraw("));
+        assertTrue(bankHandler.contains("bankUseCase.depositAll("), "bank wildcard deposits must transfer the player's full economy balance");
+        assertTrue(bankHandler.contains("bankUseCase.withdrawAll("), "bank wildcard withdrawals must transfer the island's full bank balance");
+        assertTrue(tabCompleter.contains("List.of(\"*\", \"100\", \"1000\", \"10000\")"), "bank amount completion must advertise the all-balance wildcard");
         assertTrue(bankHandler.contains("args[1].equalsIgnoreCase(\"logs\")"), "canonical /is bank logs must not discard its logs argument");
         assertTrue(bankHandler.contains("IslandLogMenu.openBankLogs"), "bank logs must open the filtered transaction log view");
         assertTrue(logMenu.contains("ISLAND_BANK_DEPOSIT") && logMenu.contains("ISLAND_BANK_WITHDRAW"), "bank transaction view must exclude unrelated island audit entries");

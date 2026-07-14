@@ -95,6 +95,20 @@ public final class BankUseCase {
             });
     }
 
+    public CompletableFuture<BankOperationResult> depositAll(UUID islandId, UUID actorUuid, MutationRunner runner) {
+        requireIsland(islandId);
+        requireActor(actorUuid);
+        requireRunner(runner);
+        BankOperationResult unavailable = unavailableEconomyResult();
+        if (unavailable != null) {
+            return CompletableFuture.completedFuture(unavailable);
+        }
+        return economyBridge.balance(actorUuid)
+            .thenCompose(amount -> amount == null || amount.signum() <= 0
+                ? CompletableFuture.completedFuture(BankOperationResult.economyWithdrawDenied())
+                : deposit(islandId, actorUuid, amount, runner));
+    }
+
     public CompletableFuture<BankOperationResult> withdraw(UUID islandId, UUID actorUuid, BigDecimal amount, MutationRunner runner) {
         requireIsland(islandId);
         requireActor(actorUuid);
@@ -119,6 +133,23 @@ public final class BankUseCase {
                             : BankOperationResult.rollbackFailedAfterEconomyDepositFailure(rollback.balance()))
                         .exceptionally(_rollbackError -> BankOperationResult.rollbackFailedAfterEconomyDepositFailure(balance)));
             });
+    }
+
+    public CompletableFuture<BankOperationResult> withdrawAll(UUID islandId, UUID actorUuid, MutationRunner runner) {
+        requireIsland(islandId);
+        requireActor(actorUuid);
+        requireRunner(runner);
+        BankOperationResult unavailable = unavailableEconomyResult();
+        if (unavailable != null) {
+            return CompletableFuture.completedFuture(unavailable);
+        }
+        return bankQueries.islandBank(islandId).thenCompose(view -> {
+            BigDecimal amount = positiveAmount(view.balance());
+            if (amount == null) {
+                return CompletableFuture.completedFuture(BankOperationResult.coreRejected(normalizedBalance(view.balance()), "INSUFFICIENT_BANK_FUNDS"));
+            }
+            return withdraw(islandId, actorUuid, amount, runner);
+        });
     }
 
     public static BigDecimal positiveAmount(String amount) {
