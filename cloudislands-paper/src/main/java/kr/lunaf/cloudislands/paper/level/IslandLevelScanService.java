@@ -1,10 +1,13 @@
 package kr.lunaf.cloudislands.paper.level;
 
+import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -23,12 +26,12 @@ import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
-import org.bukkit.Location;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.util.BoundingBox;
 
 public final class IslandLevelScanService implements RuntimeComponent {
     static final int MAX_BLOCKS_PER_TICK = 8_192;
@@ -189,11 +192,11 @@ public final class IslandLevelScanService implements RuntimeComponent {
         private TaskHandle task = TaskHandle.noop();
         private World world;
         private IslandScanCursor cursor;
-        private BoundingBox entityBounds;
         private StackAmountService.StackSnapshot stackSnapshot;
-        private List<Entity> entities = List.of();
+        private final List<Entity> entities = new ArrayList<>();
+        private final Set<Long> capturedChunks = new HashSet<>();
+        private final Set<UUID> capturedEntityIds = new HashSet<>();
         private int entityIndex;
-        private boolean entitiesLoaded;
 
         private ScanJob(UUID islandId, ActiveIslandRegistry.ActiveIsland active) {
             this.islandId = islandId;
@@ -234,6 +237,7 @@ public final class IslandLevelScanService implements RuntimeComponent {
                 int blocks = 0;
                 while (cursor.hasNext() && blocks < MAX_BLOCKS_PER_TICK && System.nanoTime() < deadline) {
                     org.bukkit.block.Block block = world.getBlockAt(cursor.x(), cursor.y(), cursor.z());
+                    captureChunkEntities(cursor.x(), cursor.z());
                     Material type = block.getType();
                     if (!isAir(type)) {
                         String stackKey = stackSnapshot.blockKeyOverride(block);
@@ -251,20 +255,13 @@ public final class IslandLevelScanService implements RuntimeComponent {
                 if (cursor.hasNext()) {
                     return;
                 }
-                if (!entitiesLoaded) {
-                    entities = List.copyOf(world.getNearbyEntities(entityBounds));
-                    entitiesLoaded = true;
-                }
                 int checkedEntities = 0;
                 while (entityIndex < entities.size() && checkedEntities < MAX_ENTITIES_PER_TICK && System.nanoTime() < deadline) {
                     Entity entity = entities.get(entityIndex++);
-                    Location location = entity.getLocation();
-                    if (cursor.contains(location.getBlockX(), location.getBlockZ())) {
-                        long amount = stackSnapshot.entityAmount(entity);
-                        counts.merge(customBlockKeys.entityKey(entity), amount, Long::sum);
-                        if (IslandEntityLimitKeys.counts(entity)) {
-                            counts.merge(IslandEntityLimitKeys.COUNT_KEY, amount, Long::sum);
-                        }
+                    long amount = stackSnapshot.entityAmount(entity);
+                    counts.merge(customBlockKeys.entityKey(entity), amount, Long::sum);
+                    if (IslandEntityLimitKeys.counts(entity)) {
+                        counts.merge(IslandEntityLimitKeys.COUNT_KEY, amount, Long::sum);
                     }
                     checkedEntities++;
                 }
@@ -290,14 +287,6 @@ public final class IslandLevelScanService implements RuntimeComponent {
                 active.originZ() - half,
                 active.originZ() + half
             );
-            entityBounds = new BoundingBox(
-                active.originX() - half,
-                world.getMinHeight(),
-                active.originZ() - half,
-                active.originX() + half + 1.0D,
-                world.getMaxHeight(),
-                active.originZ() + half + 1.0D
-            );
             stackSnapshot = stackAmounts.snapshot(
                 world,
                 active.originX() - half,
@@ -306,6 +295,31 @@ public final class IslandLevelScanService implements RuntimeComponent {
                 active.originZ() + half
             );
             return true;
+        }
+
+        private void captureChunkEntities(int blockX, int blockZ) {
+            int chunkX = Math.floorDiv(blockX, 16);
+            int chunkZ = Math.floorDiv(blockZ, 16);
+            long chunkKey = ((long) chunkX << 32) ^ (chunkZ & 0xffffffffL);
+            if (!capturedChunks.add(chunkKey)) {
+                return;
+            }
+            Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+            for (Entity entity : chunk.getEntities()) {
+                if (entity == null) {
+                    continue;
+                }
+                UUID entityId = entity.getUniqueId();
+                if (entityId == null || capturedEntityIds.contains(entityId)) {
+                    continue;
+                }
+                Location location = entity.getLocation();
+                if (location != null
+                    && cursor.contains(location.getBlockX(), location.getBlockZ())
+                    && capturedEntityIds.add(entityId)) {
+                    entities.add(entity);
+                }
+            }
         }
 
         private boolean sameActivationStillActive() {

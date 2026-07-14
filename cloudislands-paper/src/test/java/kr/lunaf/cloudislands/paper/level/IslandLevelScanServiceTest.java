@@ -7,10 +7,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.RuntimeActionView;
 import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
@@ -19,9 +22,14 @@ import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
 import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
+import org.bukkit.Chunk;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.minecart.HopperMinecart;
 import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
 
@@ -93,10 +101,66 @@ class IslandLevelScanServiceTest {
         assertEquals(0, client.replacements);
     }
 
+    @Test
+    void capturesEntitiesPerScannedChunkAndDeduplicatesBeforeReplacement() {
+        TestRuntimeClient client = new TestRuntimeClient();
+        ManualTickScheduler scheduler = new ManualTickScheduler();
+        Set<String> requestedChunks = new HashSet<>();
+        UUID entityId = UUID.fromString("00000000-0000-0000-0000-000000000154");
+        World[] worldRef = new World[1];
+        AtomicInteger locationReads = new AtomicInteger();
+        Entity hopperMinecart = proxy(HopperMinecart.class, (method, _args) -> switch (method.getName()) {
+            case "getUniqueId" -> entityId;
+            case "getType" -> EntityType.HOPPER_MINECART;
+            case "getLocation" -> {
+                if (locationReads.incrementAndGet() > 1) {
+                    throw new AssertionError("captured entity location must remain a point-in-time snapshot");
+                }
+                yield new Location(worldRef[0], 1.0D, 0.0D, 1.0D);
+            }
+            default -> defaultValue(method.getReturnType());
+        });
+        Block block = proxy(Block.class, (method, _args) -> method.getName().equals("getType") ? Material.AIR : defaultValue(method.getReturnType()));
+        World world = proxy(World.class, (method, args) -> switch (method.getName()) {
+            case "getMinHeight" -> 0;
+            case "getMaxHeight" -> 1;
+            case "getBlockAt" -> block;
+            case "getChunkAt" -> {
+                int chunkX = (int) args[0];
+                int chunkZ = (int) args[1];
+                requestedChunks.add(chunkX + ":" + chunkZ);
+                Entity[] entities = (chunkX == 0 && (chunkZ == 0 || chunkZ == 1))
+                    ? new Entity[] {hopperMinecart}
+                    : new Entity[0];
+                yield proxy(Chunk.class, (chunkMethod, _chunkArgs) -> chunkMethod.getName().equals("getEntities")
+                    ? entities
+                    : defaultValue(chunkMethod.getReturnType()));
+            }
+            case "getNearbyEntities" -> throw new AssertionError("global loaded-only entity query must not be used");
+            default -> defaultValue(method.getReturnType());
+        });
+        worldRef[0] = world;
+        IslandLevelScanService service = service(client, scheduler, world, 34);
+
+        CompletableFuture<Void> scan = service.rescanIsland(ISLAND_ID);
+        scheduler.runUntil(scan);
+        scan.join();
+
+        assertEquals(Set.of("-2:-2", "-2:-1", "-2:0", "-2:1", "-1:-2", "-1:-1", "-1:0", "-1:1",
+            "0:-2", "0:-1", "0:0", "0:1", "1:-2", "1:-1", "1:0", "1:1"), requestedChunks);
+        assertEquals(1L, client.lastReplacement.get("entity:minecraft:hopper_minecart"));
+        assertEquals(1L, client.lastReplacement.get("cloudislands:limit/entity"));
+        assertEquals(1, locationReads.get());
+    }
+
     private static IslandLevelScanService service(TestRuntimeClient client, ManualTickScheduler scheduler, World world) {
+        return service(client, scheduler, world, 2);
+    }
+
+    private static IslandLevelScanService service(TestRuntimeClient client, ManualTickScheduler scheduler, World world, int islandSize) {
         ActiveIslandRegistry registry = new ActiveIslandRegistry();
         registry.activated(new kr.lunaf.cloudislands.paper.activation.IslandActivationJobHandler.ActivationResult(
-            true, "ACTIVE", ISLAND_ID, "world", 0, 0, 0, 0, 2, 1L, 1L,
+            true, "ACTIVE", ISLAND_ID, "world", 0, 0, 0, 0, islandSize, 1L, 1L,
             "", 0L, "", 0L, "", 0L, "", 0L, "test"
         ));
         PaperWorldGateway worlds = _worldName -> world;
@@ -116,6 +180,9 @@ class IslandLevelScanServiceTest {
             case "getMinHeight" -> minHeight;
             case "getMaxHeight" -> maxHeight;
             case "getBlockAt" -> block;
+            case "getChunkAt" -> proxy(Chunk.class, (chunkMethod, _chunkArgs) -> chunkMethod.getName().equals("getEntities")
+                ? new Entity[0]
+                : defaultValue(chunkMethod.getReturnType()));
             case "getNearbyEntities" -> List.of();
             default -> defaultValue(method.getReturnType());
         });
