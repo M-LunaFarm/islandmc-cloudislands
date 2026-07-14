@@ -23,6 +23,7 @@ class IslandCommandControllerPolicyTest {
     @Test
     void singlePaperRoutingConsumesReadyTicketsLocally() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandRoutingCommandHandler.java"));
+        String consumer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/RouteTicketConsumer.java"));
         String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/PaperCommandRegistrar.java"));
         String routeSessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/bootstrap/PaperRouteSessionRuntimeFactory.java"));
         String routeSessionListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperRouteSessionListener.java"));
@@ -32,6 +33,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(registrar.contains("routing().directLocalTeleport()"));
         assertTrue(registrar.contains("islandController.enableLocalRouting(agent.routeTickets(), plugin.runtimeConfig().routing().localFallbackWorld())"));
         assertTrue(source.contains("localRouteConsumer.teleportToWorldSpawn(player.getUniqueId(), localFallbackWorld)"));
+        assertTrue(consumer.contains("supply(plugin, () -> worlds.worldSpawn(worldName))"), "single-Paper fallback world lookup must run on the Paper scheduler");
+        assertTrue(consumer.contains("thenCompose(destination -> PaperSchedulers.supply(plugin"), "single-Paper fallback player lookup and teleport must return to the Paper scheduler");
         assertTrue(routeSessions.contains("islandNode && !safeConfig.routing().directLocalTeleport()"));
         assertTrue(routeSessions.contains("listener.disableRouteSessionConsumption()"));
         assertTrue(routeSessionListener.contains("if (!routeSessionConsumptionEnabled)"));
@@ -876,6 +879,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(overviewHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
         assertTrue(overviewHandler.contains("IslandInfoMenu.open"));
         assertTrue(overviewHandler.contains("IslandMyIslandsMenu.open"));
+        assertTrue(overviewHandler.contains("GuiSession session = GuiSessions.begin(player, \"island.info-target\")"), "target lookup must reserve a GUI session before the asynchronous Core request");
+        assertTrue(overviewHandler.contains("thenAccept(islandId -> GuiSessions.runIfCurrent(plugin, player, session"), "resolved target info must return to the Paper scheduler and discard stale responses");
+        assertTrue(overviewHandler.contains("if (player.isOnline())"), "resolved target info must not open an inventory after disconnect");
+        assertTrue(overviewHandler.contains("GuiStateMenus.openError(plugin, player, session"), "target lookup failures must replace the matching loading session with an actionable error state");
     }
 
     @Test

@@ -4,6 +4,9 @@ import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
+import kr.lunaf.cloudislands.paper.gui.GuiSession;
+import kr.lunaf.cloudislands.paper.gui.GuiSessions;
+import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandInfoMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMyIslandsMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -80,10 +83,21 @@ final class IslandOverviewCommandHandler {
     }
 
     private void openTargetInfo(Player player, String target) {
+        MessageRenderer messages = runtime.messagesFor(player);
+        GuiSession session = GuiSessions.begin(player, "island.info-target");
+        GuiStateMenus.openLoading(plugin, player, session, messages,
+            runtime.routeMessage("overview-target-loading", "섬 정보를 찾는 중입니다."));
         targetResolver.resolve(target)
-            .thenAccept(islandId -> IslandInfoMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)))
+            .thenAccept(islandId -> GuiSessions.runIfCurrent(plugin, player, session, () -> {
+                if (player.isOnline()) {
+                    IslandInfoMenu.open(plugin, coreApiClient, player, islandId, messages);
+                }
+            }))
             .exceptionally(error -> {
-                runtime.message(player, runtime.routeMessage("overview-target-not-found", "정보를 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                GuiStateMenus.openError(plugin, player, session, messages,
+                    runtime.routeMessage("overview-target-error-title", "섬 정보"),
+                    runtime.routeMessage("overview-target-not-found", "정보를 확인할 섬 또는 플레이어를 찾지 못했습니다."),
+                    "island.info.open", "island.main.open");
                 return null;
             });
     }

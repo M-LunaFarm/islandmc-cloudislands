@@ -17,6 +17,7 @@ import kr.lunaf.cloudislands.paper.event.RouteTicketConsumedEvent;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import kr.lunaf.cloudislands.paper.platform.world.BukkitWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.SafeTeleportResolver;
@@ -78,16 +79,16 @@ public final class RouteTicketConsumer {
     }
 
     public CompletableFuture<Boolean> teleportToWorldSpawn(UUID playerUuid, String worldName) {
-        Location target = worlds.worldSpawn(worldName);
-        if (target == null) {
-            return CompletableFuture.completedFuture(false);
-        }
-        return worlds.safeDestination(target, null).thenApply(destination -> {
-            Player player = players.onlinePlayer(playerUuid);
-            return player != null && destination.isPresent()
-                && SafeTeleportResolver.isSafe(destination.get(), null)
-                && players.teleport(player, destination.get());
-        });
+        return PaperSchedulers.supply(plugin, () -> worlds.worldSpawn(worldName))
+            .thenCompose(target -> target == null
+                ? CompletableFuture.completedFuture(Optional.empty())
+                : worlds.safeDestination(target, null))
+            .thenCompose(destination -> PaperSchedulers.supply(plugin, () -> {
+                Player player = players.onlinePlayer(playerUuid);
+                return player != null && destination.isPresent()
+                    && SafeTeleportResolver.isSafe(destination.get(), null)
+                    && players.teleport(player, destination.get());
+            }));
     }
 
     private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {

@@ -397,6 +397,8 @@ overview-info-island-required: "섬 안에서만 정보를 확인할 수 있습�
 overview-island-select-failed: "소속된 섬만 기본 섬으로 선택할 수 있습니다."
 overview-island-selected: "기본 섬을 선택했습니다."
 overview-selection-required: "선택할 섬 또는 플레이어를 입력해주세요."
+overview-target-error-title: "섬 정보"
+overview-target-loading: "섬 정보를 찾는 중입니다."
 overview-target-not-found: "정보를 확인할 섬 또는 플레이어를 찾지 못했습니다."
 my-islands-menu-click-to-visit: "좌클릭: 이 섬으로 이동"
 my-islands-menu-right-click-to-select: "우클릭: 기본 섬으로 선택"
