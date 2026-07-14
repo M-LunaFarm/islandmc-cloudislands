@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 public final class LifecycleRegistry implements AutoCloseable {
     private final Logger logger;
+    private final Deque<NamedComponent> stopFirst = new ArrayDeque<>();
     private final Deque<NamedComponent> started = new ArrayDeque<>();
 
     public LifecycleRegistry(Logger logger) {
@@ -17,10 +18,19 @@ public final class LifecycleRegistry implements AutoCloseable {
         started.push(new NamedComponent(name, Objects.requireNonNull(component, "component")));
     }
 
+    public void startedToStopFirst(String name, RuntimeComponent component) {
+        stopFirst.push(new NamedComponent(name, Objects.requireNonNull(component, "component")));
+    }
+
     @Override
     public void close() {
-        while (!started.isEmpty()) {
-            NamedComponent component = started.pop();
+        stopComponents(stopFirst);
+        stopComponents(started);
+    }
+
+    private void stopComponents(Deque<NamedComponent> components) {
+        while (!components.isEmpty()) {
+            NamedComponent component = components.pop();
             try {
                 component.component().stop();
             } catch (RuntimeException exception) {

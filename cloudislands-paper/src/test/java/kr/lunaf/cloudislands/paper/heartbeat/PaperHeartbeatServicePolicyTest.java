@@ -8,16 +8,35 @@ import org.junit.jupiter.api.Test;
 
 class PaperHeartbeatServicePolicyTest {
     @Test
-    void asynchronousCoreFailureReachesTheHeartbeatFailureLogger() throws Exception {
+    void heartbeatUsesGlobalBukkitReadsAndObservesAsyncCoreFailure() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/heartbeat/PaperHeartbeatService.java"));
 
         assertTrue(
-            source.contains("runtimeCommands.publishHeartbeat(heartbeat).join()"),
-            "heartbeat publishing must await the HTTP result so asynchronous failures reach publish()"
+            source.contains("task = scheduler.repeatGlobal(interval, interval, this::publish)"),
+            "heartbeat snapshots read Bukkit state and must run on the global thread"
         );
         assertTrue(
-            source.contains("catch (RuntimeException exception)") && source.contains("logHeartbeatFailure(exception)"),
+            source.contains("runtimeCommands.publishHeartbeat(heartbeat).whenComplete"),
+            "heartbeat publishing must observe the asynchronous HTTP result without blocking the Bukkit thread"
+        );
+        assertTrue(
+            !source.contains("publishHeartbeat(heartbeat).join()"),
+            "heartbeat HTTP must never block plugin enable, tick, or disable threads"
+        );
+        assertTrue(
+            source.contains("logHeartbeatFailure(cause)"),
             "failed heartbeat results must remain rate-limited and operator-visible"
         );
+    }
+
+    @Test
+    void gracefulStopPublishesShutdownBeforeCoreCanRouteMoreWork() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/heartbeat/PaperHeartbeatService.java"));
+        int stop = source.indexOf("public void stop()");
+        int cancel = source.indexOf("cancelScheduledHeartbeat();", stop);
+        int shutdown = source.indexOf("publish(NodeState.SHUTTING_DOWN);", stop);
+
+        assertTrue(stop >= 0 && cancel > stop && shutdown > cancel, "stop must cancel periodic READY heartbeats before publishing SHUTTING_DOWN");
+        assertTrue(source.contains("public void start(long intervalTicks) {\n        cancelScheduledHeartbeat();"), "restart must not emit a false SHUTTING_DOWN heartbeat");
     }
 }

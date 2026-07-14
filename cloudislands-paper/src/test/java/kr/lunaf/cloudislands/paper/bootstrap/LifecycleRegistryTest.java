@@ -36,4 +36,18 @@ class LifecycleRegistryTest {
 
         assertEquals(List.of("last", "broken", "first"), stopped);
     }
+
+    @Test
+    void stopFirstComponentsFenceTrafficBeforeOrdinaryShutdownWork() {
+        LifecycleRegistry lifecycle = new LifecycleRegistry(null);
+        List<String> stopped = new ArrayList<>();
+
+        lifecycle.started("storage-flush", () -> stopped.add("storage-flush"));
+        lifecycle.startedToStopFirst("heartbeat", () -> stopped.add("heartbeat"));
+        lifecycle.started("job-worker", () -> stopped.add("job-worker"));
+
+        lifecycle.close();
+
+        assertEquals(List.of("heartbeat", "job-worker", "storage-flush"), stopped);
+    }
 }

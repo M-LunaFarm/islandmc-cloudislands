@@ -124,6 +124,22 @@ class NodeAllocatorTest {
     }
 
     @Test
+    void rejectsShuttingDownNodeForNewAndExistingRoutesImmediately() {
+        NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
+        NodeLoad shuttingDown = node("node-stopping", "server-stopping", NodeState.SHUTTING_DOWN, 1, 1, 18.0, 0);
+
+        assertTrue(allocator.selectReadyNode(List.of(shuttingDown), NOW, "default", "1.0.0", "island").isEmpty());
+        assertEquals(
+                "STATE_SHUTTING_DOWN",
+                allocator.readyNodeBlockReason(List.of(shuttingDown), NOW, "default", "1.0.0", "island")
+        );
+        assertEquals(
+                "STATE_SHUTTING_DOWN",
+                allocator.existingRouteBlockReason(List.of(shuttingDown), shuttingDown, NOW, "default", "1.0.0", "island")
+        );
+    }
+
+    @Test
     void appliesStorageTemplateAndVersionHardFiltersBeforeScoring() {
         NodeAllocator allocator = new NodeAllocator(Duration.ofSeconds(5));
         List<NodeLoad> nodes = List.of(

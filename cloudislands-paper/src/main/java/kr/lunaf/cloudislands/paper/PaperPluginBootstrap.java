@@ -198,7 +198,7 @@ final class PaperPluginBootstrap {
             () -> plugin.jobWorker == null ? 0 : plugin.jobWorker.activationQueue(),
             () -> plugin.jobWorker == null ? 0 : plugin.jobWorker.recentFailurePenalty()
         );
-        plugin.lifecycle.started("heartbeat", heartbeatRuntime);
+        plugin.lifecycle.startedToStopFirst("heartbeat", heartbeatRuntime);
         PaperHealthRuntime healthRuntime = PaperHealthRuntime.startIfEnabled(
             plugin,
             config.health(),

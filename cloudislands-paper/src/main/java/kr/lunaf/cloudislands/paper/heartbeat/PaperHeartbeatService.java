@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.heartbeat;
 
 import java.time.Duration;
+import java.util.concurrent.CompletionException;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleSupplier;
 import java.util.function.IntSupplier;
@@ -85,13 +86,18 @@ public final class PaperHeartbeatService {
     }
 
     public void start(long intervalTicks) {
-        stop();
+        cancelScheduledHeartbeat();
         publish(NodeState.STARTING);
         Duration interval = Duration.ofMillis(Math.max(1L, intervalTicks) * 50L);
-        task = scheduler.repeatAsync(interval, interval, this::publish);
+        task = scheduler.repeatGlobal(interval, interval, this::publish);
     }
 
     public void stop() {
+        cancelScheduledHeartbeat();
+        publish(NodeState.SHUTTING_DOWN);
+    }
+
+    private void cancelScheduledHeartbeat() {
         if (task != null) {
             task.cancel();
             task = null;
@@ -144,10 +150,15 @@ public final class PaperHeartbeatService {
             storageOk,
             supportedTemplatesSupplier.get()
         );
-        runtimeCommands.publishHeartbeat(heartbeat).join();
+        runtimeCommands.publishHeartbeat(heartbeat).whenComplete((_result, error) -> {
+            if (error != null) {
+                Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+                logHeartbeatFailure(cause);
+            }
+        });
     }
 
-    private void logHeartbeatFailure(RuntimeException exception) {
+    private void logHeartbeatFailure(Throwable exception) {
         long now = System.currentTimeMillis();
         if (now - lastFailureLogMillis < 30_000L) {
             return;
