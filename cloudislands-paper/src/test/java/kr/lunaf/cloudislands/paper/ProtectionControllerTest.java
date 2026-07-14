@@ -326,6 +326,8 @@ class ProtectionControllerTest {
         assertTrue(listener.contains("onBlockGrowCount(BlockGrowEvent event)"));
         assertTrue(listener.contains("event.getBlock().getType() != event.getNewState().getType()"));
         assertTrue(listener.contains("onDependentBlockBreak(BlockBreakBlockEvent event)"));
+        assertTrue(listener.contains("onPhysicalBlockDestroyAccepted(BlockDestroyEvent event)"));
+        assertTrue(listener.contains("event.getNewState().getMaterial()"));
         assertTrue(listener.contains("blockDeltas.broken(islandId, event.getBlock())"));
     }
 

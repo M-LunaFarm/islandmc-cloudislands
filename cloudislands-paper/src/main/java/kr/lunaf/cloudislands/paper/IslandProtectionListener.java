@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import io.papermc.paper.event.block.BlockBreakBlockEvent;
 import io.papermc.paper.event.player.PlayerItemFrameChangeEvent;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
@@ -752,6 +753,11 @@ public final class IslandProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR)
     public void onDependentBlockBreak(BlockBreakBlockEvent event) {
         protection.islandAt(event.getBlock()).ifPresent(islandId -> blockDeltas.broken(islandId, event.getBlock()));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPhysicalBlockDestroyAccepted(BlockDestroyEvent event) {
+        reportBlockReplacement(event.getBlock(), event.getNewState().getMaterial());
     }
 
     @EventHandler(ignoreCancelled = true)

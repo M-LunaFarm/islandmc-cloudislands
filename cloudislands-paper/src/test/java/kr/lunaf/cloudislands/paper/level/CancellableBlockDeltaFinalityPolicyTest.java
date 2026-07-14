@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import com.destroystokyo.paper.event.block.BlockDestroyEvent;
 import org.bukkit.event.block.BlockFormEvent;
 import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.block.BlockSpreadEvent;
@@ -32,6 +33,7 @@ class CancellableBlockDeltaFinalityPolicyTest {
             "onFertilizeAccepted(BlockFertilizeEvent event)",
             "onStructureGrowAccepted(StructureGrowEvent event)",
             "onEntityChangeBlockAccepted(EntityChangeBlockEvent event)",
+            "onPhysicalBlockDestroyAccepted(BlockDestroyEvent event)",
             "onFluidAccepted(BlockFromToEvent event)",
             "onBurnAccepted(BlockBurnEvent event)",
             "onBlockFormAccepted(BlockFormEvent event)",
@@ -57,6 +59,10 @@ class CancellableBlockDeltaFinalityPolicyTest {
         assertTrue(blockForm.contains("event instanceof BlockSpreadEvent"));
         assertTrue(BlockGrowEvent.class.isAssignableFrom(BlockFormEvent.class));
         assertTrue(BlockFormEvent.class.isAssignableFrom(BlockSpreadEvent.class));
+
+        String physicalDestroy = methodBody(listener, "onPhysicalBlockDestroyAccepted(BlockDestroyEvent event)");
+        assertTrue(physicalDestroy.contains("event.getNewState().getMaterial()"));
+        assertFalse(physicalDestroy.contains("setCancelled("));
     }
 
     @Test
