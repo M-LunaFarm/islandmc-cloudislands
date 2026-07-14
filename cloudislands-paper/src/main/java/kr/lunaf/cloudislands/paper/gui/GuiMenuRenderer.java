@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 
@@ -16,13 +17,13 @@ public final class GuiMenuRenderer {
     }
 
     public static Inventory render(GuiMenuDefinition definition, MessageRenderer messages, String fallbackTitle, Predicate<GuiMenuDefinition.MenuItem> visible) {
-        Inventory inventory = GuiInventories.create(definition.id(), definition.size(), message(messages, definition.titleKey(), fallbackTitle));
+        Inventory inventory = GuiInventories.create(definition.id(), definition.size(), component(messages, definition.titleKey(), fallbackTitle));
         populate(inventory, definition, messages, visible);
         return inventory;
     }
 
     public static Inventory render(GuiMenuDefinition definition, GuiSession session, MessageRenderer messages, String fallbackTitle, Predicate<GuiMenuDefinition.MenuItem> visible) {
-        Inventory inventory = GuiInventories.create(definition.id(), session, definition.size(), message(messages, definition.titleKey(), fallbackTitle));
+        Inventory inventory = GuiInventories.create(definition.id(), session, definition.size(), component(messages, definition.titleKey(), fallbackTitle));
         populate(inventory, definition, messages, visible);
         return inventory;
     }
@@ -71,6 +72,14 @@ public final class GuiMenuRenderer {
         }
         String rendered = messages.plain(key);
         return rendered.isBlank() ? fallback : rendered;
+    }
+
+    public static Component component(MessageRenderer messages, String key, String fallback) {
+        if (messages == null) {
+            return Component.text(fallback);
+        }
+        String rendered = messages.plain(key);
+        return rendered.isBlank() ? Component.text(fallback) : messages.component(key);
     }
 
     public static Material material(String key) {
@@ -143,20 +152,23 @@ public final class GuiMenuRenderer {
         if (data != null) {
             mergedData.putAll(data);
         }
-        java.util.ArrayList<String> renderedLore = new java.util.ArrayList<>(lore(item, messages));
+        java.util.ArrayList<Component> renderedLore = new java.util.ArrayList<>(loreComponents(item, messages));
         if (extraLore != null) {
             for (String line : extraLore) {
                 if (line != null && !line.isBlank()) {
-                    renderedLore.add(line);
+                    renderedLore.add(Component.text(line));
                 }
             }
         }
+        Component name = displayName == null || displayName.isBlank()
+            ? component(messages, item.nameKey(), item.fallbackName())
+            : Component.text(displayName);
         return GuiItems.action(
             material(materialKey),
-            displayName == null || displayName.isBlank() ? message(messages, item.nameKey(), item.fallbackName()) : displayName,
+            name,
             actionIdOverride == null ? definition.action(item.actionKey(), item.actionKey()) : actionIdOverride,
             mergedData,
-            renderedLore.toArray(String[]::new)
+            renderedLore
         );
     }
 
@@ -169,6 +181,20 @@ public final class GuiMenuRenderer {
             String line = message(messages, key, fallback);
             if (!line.isBlank()) {
                 lore.add(line);
+            }
+        }
+        return List.copyOf(lore);
+    }
+
+    private static List<Component> loreComponents(GuiMenuDefinition.MenuItem item, MessageRenderer messages) {
+        java.util.ArrayList<Component> lore = new java.util.ArrayList<>();
+        int count = Math.max(item.loreKeys().size(), item.fallbackLore().size());
+        for (int index = 0; index < count; index++) {
+            String key = index < item.loreKeys().size() ? item.loreKeys().get(index) : "";
+            String fallback = index < item.fallbackLore().size() ? item.fallbackLore().get(index) : "";
+            String line = message(messages, key, fallback);
+            if (!line.isBlank()) {
+                lore.add(component(messages, key, fallback));
             }
         }
         return List.copyOf(lore);

@@ -11,20 +11,32 @@ public final class GuiInventories {
     }
 
     public static Inventory create(String menuId, int size, String title) {
+        return create(menuId, size, Component.text(title));
+    }
+
+    public static Inventory create(String menuId, int size, Component title) {
         CloudIslandsMenuHolder holder = new CloudIslandsMenuHolder(menuId);
-        Inventory inventory = Bukkit.createInventory(holder, size, Component.text(title));
+        Inventory inventory = Bukkit.createInventory(holder, size, title == null ? Component.empty() : title);
         holder.attach(inventory);
         return inventory;
     }
 
     public static Inventory create(String menuId, UUID sessionId, int size, String title) {
+        return create(menuId, sessionId, size, Component.text(title));
+    }
+
+    public static Inventory create(String menuId, UUID sessionId, int size, Component title) {
         CloudIslandsMenuHolder holder = new CloudIslandsMenuHolder(menuId, sessionId);
-        Inventory inventory = Bukkit.createInventory(holder, size, Component.text(title));
+        Inventory inventory = Bukkit.createInventory(holder, size, title == null ? Component.empty() : title);
         holder.attach(inventory);
         return inventory;
     }
 
     public static Inventory create(String menuId, GuiSession session, int size, String title) {
+        return create(menuId, session == null ? null : session.sessionId(), size, title);
+    }
+
+    public static Inventory create(String menuId, GuiSession session, int size, Component title) {
         return create(menuId, session == null ? null : session.sessionId(), size, title);
     }
 

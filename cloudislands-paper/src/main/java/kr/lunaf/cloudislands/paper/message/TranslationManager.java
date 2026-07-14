@@ -7,6 +7,7 @@ import java.util.Locale;
 import java.util.Map;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
+import net.kyori.adventure.text.Component;
 
 public final class TranslationManager {
     private final String locale;
@@ -51,6 +52,15 @@ public final class TranslationManager {
         return render(template, locale, variables);
     }
 
+    public Component component(String key, String... variables) {
+        return ConfiguredMessageComponents.render(translations.getOrDefault(normalize(key), ""), serviceName, locale, variables);
+    }
+
+    public Component componentForLocale(String requestedLocale, String key, String... variables) {
+        String normalizedLocale = PlayerIslandProfile.normalizeLocale(requestedLocale);
+        return ConfiguredMessageComponents.render(localizedText(normalizedLocale, key), serviceName, normalizedLocale, variables);
+    }
+
     public String textForLocale(String requestedLocale, String key, String... variables) {
         String normalizedLocale = PlayerIslandProfile.normalizeLocale(requestedLocale);
         String template = localizedText(normalizedLocale, key);
@@ -74,6 +84,20 @@ public final class TranslationManager {
             rendered.add(render(template, normalizedLocale, variables));
         }
         return rendered;
+    }
+
+    public List<Component> componentLines(String key, String... variables) {
+        return componentLinesForLocale(locale, key, variables);
+    }
+
+    public List<Component> componentLinesForLocale(String requestedLocale, String key, String... variables) {
+        List<String> templates = lineTranslations.getOrDefault(normalize(key), List.of());
+        String normalizedLocale = PlayerIslandProfile.normalizeLocale(requestedLocale);
+        List<Component> rendered = new ArrayList<>(templates.size());
+        for (String template : templates) {
+            rendered.add(ConfiguredMessageComponents.render(template, serviceName, normalizedLocale, variables));
+        }
+        return List.copyOf(rendered);
     }
 
     public String locale() {

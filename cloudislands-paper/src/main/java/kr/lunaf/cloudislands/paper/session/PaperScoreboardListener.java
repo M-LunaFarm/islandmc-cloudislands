@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.session;
 
 import java.util.List;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -14,6 +15,7 @@ import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
+import org.bukkit.scoreboard.Team;
 
 public final class PaperScoreboardListener implements Listener {
     private final MessageRenderer messages;
@@ -63,20 +65,24 @@ public final class PaperScoreboardListener implements Listener {
         String locale = locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player);
         Objective objective = scoreboard.registerNewObjective("cloudislands", Criteria.DUMMY, messages.componentForLocale(locale, "scoreboard-title"));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
-        List<String> lines = messages.linesForLocale(locale, "scoreboard-lines",
+        List<Component> lines = messages.componentLinesForLocale(locale, "scoreboard-lines",
             "player", player.getName(),
             "online", Integer.toString(Bukkit.getOnlinePlayers().size()),
             "world", player.getWorld().getName()
         );
-        int score = lines.size();
-        int suffix = 0;
-        for (String line : lines) {
-            objective.getScore(uniqueLine(line, suffix++)).setScore(score--);
+        int visibleLines = Math.min(15, lines.size());
+        int score = visibleLines;
+        for (int index = 0; index < visibleLines; index++) {
+            String entry = uniqueEntry(index);
+            Team team = scoreboard.registerNewTeam("ci_line_" + index);
+            team.addEntry(entry);
+            team.prefix(lines.get(index));
+            objective.getScore(entry).setScore(score--);
         }
         player.setScoreboard(scoreboard);
     }
 
-    private String uniqueLine(String line, int suffix) {
-        return line + " ".repeat(suffix);
+    private String uniqueEntry(int index) {
+        return "\u00a7" + Integer.toHexString(index);
     }
 }

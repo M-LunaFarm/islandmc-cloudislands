@@ -21,11 +21,11 @@ public final class MessageRenderer {
     }
 
     public Component component(String key, String... variables) {
-        return Component.text(plain(key, variables));
+        return locale.isBlank() ? translations.component(key, variables) : translations.componentForLocale(locale, key, variables);
     }
 
     public Component componentForLocale(String locale, String key, String... variables) {
-        return Component.text(plainForLocale(locale, key, variables));
+        return translations.componentForLocale(locale, key, variables);
     }
 
     public String plain(String key, String... variables) {
@@ -42,5 +42,13 @@ public final class MessageRenderer {
 
     public List<String> linesForLocale(String locale, String key, String... variables) {
         return translations.linesForLocale(locale, key, variables);
+    }
+
+    public List<Component> componentLines(String key, String... variables) {
+        return locale.isBlank() ? translations.componentLines(key, variables) : translations.componentLinesForLocale(locale, key, variables);
+    }
+
+    public List<Component> componentLinesForLocale(String locale, String key, String... variables) {
+        return translations.componentLinesForLocale(locale, key, variables);
     }
 }

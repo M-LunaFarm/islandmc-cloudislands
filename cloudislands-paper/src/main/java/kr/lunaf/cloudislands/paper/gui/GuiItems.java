@@ -24,11 +24,15 @@ public final class GuiItems {
     }
 
     public static ItemStack action(Material material, String name, String actionId, Map<String, String> data, String... lore) {
+        return action(material, Component.text(name), actionId, data, List.of(lore).stream().map(line -> (Component) Component.text(line)).toList());
+    }
+
+    public static ItemStack action(Material material, Component name, String actionId, Map<String, String> data, List<Component> lore) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.displayName(Component.text(name));
-            meta.lore(List.of(lore).stream().map(Component::text).toList());
+            meta.displayName(name == null ? Component.empty() : name);
+            meta.lore(lore == null ? List.of() : List.copyOf(lore));
             PersistentDataContainer pdc = meta.getPersistentDataContainer();
             pdc.set(ACTION_ID, PersistentDataType.STRING, actionId);
             if (!data.isEmpty()) {
