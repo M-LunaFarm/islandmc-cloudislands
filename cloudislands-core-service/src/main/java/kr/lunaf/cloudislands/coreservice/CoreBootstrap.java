@@ -25,6 +25,7 @@ import kr.lunaf.cloudislands.coreservice.db.BoundedDataSource;
 import kr.lunaf.cloudislands.coreservice.db.DriverManagerDataSource;
 import kr.lunaf.cloudislands.coreservice.db.JdbcDialectDataSource;
 import kr.lunaf.cloudislands.coreservice.db.JdbcSchemaBootstrap;
+import kr.lunaf.cloudislands.coreservice.db.JdbcSchemaContract;
 import kr.lunaf.cloudislands.coreservice.db.MeteredDataSource;
 import kr.lunaf.cloudislands.coreservice.event.CompositeGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
@@ -148,6 +149,9 @@ final class CoreBootstrap {
         boolean coreJdbcActive = config.jdbcRepositories() || config.jdbcJobs();
         if (coreJdbcActive && config.setupDatabaseAutoSchema()) {
             logger.info("CloudIslands database schema bootstrap applied=" + JdbcSchemaBootstrap.apply(dataSource));
+        }
+        if (coreJdbcActive) {
+            logger.info("CloudIslands database schema contract validatedColumns=" + JdbcSchemaContract.validate(dataSource));
         }
         RedisStreamWriterAdapter redisEventWriter = config.redisEvents() ? new RedisStreamWriterAdapter(config.redisUri()) : null;
         RedisStreamEventPublisher redisEventPublisher = redisEventWriter == null ? null : new RedisStreamEventPublisher(redisEventWriter);
