@@ -149,17 +149,18 @@ public final class IslandMissionProgressListener implements Listener {
     }
 
     private void progressAt(Player player, Block block, String triggerType, String targetKey, long amount, List<MissionProgressTriggers.Trigger> fallbackTriggers) {
+        UUID actorUuid = player.getUniqueId();
         UUID islandId = protection.islandAt(block).orElse(null);
-        if (islandId == null || !protection.memberOrTrusted(islandId, player.getUniqueId())) {
+        if (islandId == null || !protection.memberOrTrusted(islandId, actorUuid)) {
             ignored.incrementAndGet();
             return;
         }
         matchingDefinitionTriggers(islandId, triggerType, targetKey, amount)
             .thenApply(definitionTriggers -> MissionProgressTriggers.merge(fallbackTriggers, definitionTriggers))
-            .thenAccept(triggers -> triggers.forEach(trigger -> progress(islandId, player.getUniqueId(), trigger)))
+            .thenAccept(triggers -> triggers.forEach(trigger -> progress(islandId, actorUuid, trigger)))
             .exceptionally(exception -> {
                 failures.incrementAndGet();
-                fallbackTriggers.forEach(trigger -> progress(islandId, player.getUniqueId(), trigger));
+                fallbackTriggers.forEach(trigger -> progress(islandId, actorUuid, trigger));
                 return null;
             });
     }

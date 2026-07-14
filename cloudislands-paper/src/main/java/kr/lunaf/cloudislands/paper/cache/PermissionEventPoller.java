@@ -539,14 +539,22 @@ public final class PermissionEventPoller {
     }
 
     private void createMigrationReturnTicket(Player player, UUID islandId, String targetNode, IslandRegion region, Location location) {
+        UUID playerUuid = player.getUniqueId();
         double localX = location.getX() - region.originX();
         double localZ = location.getZ() - region.originZ();
-        client.createMigrationReturnTicket(player.getUniqueId(), islandId, targetNode, localX, location.getY(), localZ, location.getYaw(), location.getPitch())
-            .thenAccept(ticket -> waitMigrationReturnTicket(player.getUniqueId(), ticket, 0))
+        client.createMigrationReturnTicket(playerUuid, islandId, targetNode, localX, location.getY(), localZ, location.getYaw(), location.getPitch())
+            .thenAccept(ticket -> waitMigrationReturnTicket(playerUuid, ticket, 0))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> player.sendActionBar(component(player, "migration-return-register-failed", "섬 이동 준비를 등록하지 못했습니다.")));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnRegistrationFailed(playerUuid));
                 return null;
             });
+    }
+
+    private void migrationReturnRegistrationFailed(UUID playerUuid) {
+        Player player = players.onlinePlayer(playerUuid);
+        if (player != null) {
+            player.sendActionBar(component(player, "migration-return-register-failed", "섬 이동 준비를 등록하지 못했습니다."));
+        }
     }
 
     private void waitMigrationReturnTicket(UUID playerUuid, RouteTicket ticket, int attempt) {

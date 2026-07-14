@@ -28,6 +28,20 @@ class PermissionEventPollerThreadingPolicyTest {
             "an event must remain replayable until all local handling has been accepted");
     }
 
+    @Test
+    void migrationTicketCallbacksUseCapturedIdentityAndResolveTheLivePlayerOnGlobalThread() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPoller.java"));
+        int create = source.indexOf("private void createMigrationReturnTicket");
+        int wait = source.indexOf("private void waitMigrationReturnTicket", create);
+        String method = source.substring(create, wait);
+
+        assertTrue(method.contains("UUID playerUuid = player.getUniqueId();"));
+        assertTrue(method.contains("waitMigrationReturnTicket(playerUuid, ticket, 0)"));
+        assertTrue(method.contains("PaperSchedulers.run(plugin, () -> migrationReturnRegistrationFailed(playerUuid))"));
+        assertTrue(method.contains("players.onlinePlayer(playerUuid)"));
+        assertTrue(!method.substring(method.indexOf(".thenAccept")).contains("player.getUniqueId()"));
+    }
+
     private void assertScheduled(String source, String constructor) {
         int event = source.indexOf(constructor);
         int scheduler = source.lastIndexOf("PaperSchedulers.run(plugin", event);

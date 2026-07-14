@@ -31,6 +31,19 @@ class IslandMissionProgressListenerPolicyTest {
         assertTrue(source.contains("MissionProgressTriggers.crafting(materialKey(result.getType()), craftedAmount)"));
     }
 
+    @Test
+    void asyncDefinitionAndProgressCallbacksUseCapturedPlayerIdentity() throws IOException {
+        String source = source();
+        int progressAt = source.indexOf("private void progressAt(");
+        int matchingDefinitions = source.indexOf("private CompletableFuture<List<MissionProgressTriggers.Trigger>>", progressAt);
+        String method = source.substring(progressAt, matchingDefinitions);
+
+        assertTrue(method.contains("UUID actorUuid = player.getUniqueId();"));
+        assertTrue(method.contains("progress(islandId, actorUuid, trigger)"));
+        assertFalse(method.substring(method.indexOf("matchingDefinitionTriggers")).contains("player.getUniqueId()"),
+            "HTTP completion callbacks must not access a live Bukkit Player off-thread");
+    }
+
     private static String source() throws IOException {
         Path root = repositoryRoot();
         return Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/IslandMissionProgressListener.java"));

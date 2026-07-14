@@ -48,6 +48,17 @@ final class IslandCommandMessenger {
     }
 
     void message(Player player, String message) {
-        PaperSchedulers.run(plugin, () -> player.sendMessage(component(player, message)));
+        if (player == null) {
+            return;
+        }
+        PaperSchedulers.run(plugin, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            Player activePlayer = plugin.getServer().getPlayer(player.getUniqueId());
+            if (activePlayer != null && activePlayer.isOnline()) {
+                activePlayer.sendMessage(component(activePlayer, message));
+            }
+        });
     }
 }

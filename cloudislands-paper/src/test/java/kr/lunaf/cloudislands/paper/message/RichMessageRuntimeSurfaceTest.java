@@ -41,7 +41,10 @@ class RichMessageRuntimeSurfaceTest {
         assertTrue(boundary.contains("sendActionBar(component(player"));
         assertTrue(flags.contains("sendActionBar(component("));
         assertTrue(router.contains("player.showTitle(Title.title(\n            runtime.component(player, title)"));
-        assertTrue(messenger.contains("player.sendMessage(component(player, message))"));
+        assertTrue(messenger.contains("Player activePlayer = plugin.getServer().getPlayer(player.getUniqueId())"));
+        assertTrue(messenger.contains("activePlayer.sendMessage(component(activePlayer, message))"));
+        assertTrue(messenger.indexOf("PaperSchedulers.run(plugin") < messenger.indexOf("player.getUniqueId()"),
+            "command responses must resolve the current Player only inside the global scheduler callback");
         assertTrue(protection.contains("messages.componentTextForLocale(PlayerLocaleCache.clientLocale(player), message)"));
         assertTrue(admin.contains("messages.componentText(payload.title())"));
         assertTrue(admin.contains("messages.componentText(message)"));
