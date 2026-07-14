@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.coreservice.mission;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,7 +29,7 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
     public Optional<IslandMissionSnapshot> complete(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         ensureDefaults(islandId);
         Map<String, IslandMissionSnapshot> islandMissions = missions.getOrDefault(islandId, Map.of());
-        IslandMissionSnapshot current = islandMissions.get(missionKey.toLowerCase());
+        IslandMissionSnapshot current = islandMissions.get(identity(missionKey, kind));
         if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind))) {
             return Optional.empty();
         }
@@ -36,7 +37,7 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
             return Optional.empty();
         }
         IslandMissionSnapshot completed = updated(current, current.goal(), true);
-        islandMissions.put(current.missionKey(), completed);
+        islandMissions.put(identity(current.missionKey(), current.kind()), completed);
         return Optional.of(completed);
     }
 
@@ -44,7 +45,7 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
     public Optional<IslandMissionSnapshot> progress(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
         ensureDefaults(islandId);
         Map<String, IslandMissionSnapshot> islandMissions = missions.getOrDefault(islandId, Map.of());
-        IslandMissionSnapshot current = islandMissions.get(missionKey.toLowerCase());
+        IslandMissionSnapshot current = islandMissions.get(identity(missionKey, kind));
         if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind))) {
             return Optional.empty();
         }
@@ -53,27 +54,27 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         }
         long nextProgress = Math.min(current.goal(), current.progress() + Math.max(0L, amount));
         IslandMissionSnapshot next = updated(current, nextProgress, nextProgress >= current.goal());
-        islandMissions.put(current.missionKey(), next);
+        islandMissions.put(identity(current.missionKey(), current.kind()), next);
         return Optional.of(next);
     }
 
     @Override
     public synchronized boolean reopenAfterRewardFailure(UUID islandId, String missionKey, String kind) {
-        IslandMissionSnapshot current = missions.getOrDefault(islandId, Map.of()).get(missionKey.toLowerCase());
+        IslandMissionSnapshot current = missions.getOrDefault(islandId, Map.of()).get(identity(missionKey, kind));
         if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind)) || !current.completed()) {
             return false;
         }
-        missions.get(islandId).put(current.missionKey(), updated(current, Math.max(0L, current.goal() - 1L), false));
+        missions.get(islandId).put(identity(current.missionKey(), current.kind()), updated(current, Math.max(0L, current.goal() - 1L), false));
         return true;
     }
 
     @Override
     public synchronized boolean resetRepeatableAfterReward(UUID islandId, String missionKey, String kind) {
-        IslandMissionSnapshot current = missions.getOrDefault(islandId, Map.of()).get(missionKey.toLowerCase());
+        IslandMissionSnapshot current = missions.getOrDefault(islandId, Map.of()).get(identity(missionKey, kind));
         if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind)) || !current.completed() || !current.repeatable()) {
             return false;
         }
-        missions.get(islandId).put(current.missionKey(), updated(current, 0L, false));
+        missions.get(islandId).put(identity(current.missionKey(), current.kind()), updated(current, 0L, false));
         return true;
     }
 
@@ -81,12 +82,14 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
     public IslandMissionSnapshot importCompleted(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         ensureDefaults(islandId);
         Map<String, IslandMissionSnapshot> islandMissions = missions.computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>());
-        String key = missionKey.toLowerCase();
-        IslandMissionSnapshot current = islandMissions.get(key);
+        String key = normalizedKey(missionKey);
+        String safeKind = MissionCatalog.normalizeKind(kind);
+        String identity = identity(key, safeKind);
+        IslandMissionSnapshot current = islandMissions.get(identity);
         IslandMissionSnapshot completed = current == null
-            ? new IslandMissionSnapshot(islandId, key, MissionCatalog.normalizeKind(kind), key, 1L, 1L, true, "", Instant.now())
+            ? new IslandMissionSnapshot(islandId, key, safeKind, key, 1L, 1L, true, "", Instant.now())
             : updated(current, current.goal(), true);
-        islandMissions.put(key, completed);
+        islandMissions.put(identity, completed);
         return completed;
     }
 
@@ -95,7 +98,9 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         String provider = providerId == null || providerId.isBlank() ? "" : providerId.trim();
         return providerDefinitions.values().stream()
             .filter(definition -> provider.isBlank() || definition.providerId().equals(provider))
-            .sorted(Comparator.comparing(MissionProviderDefinitionSnapshot::providerId).thenComparing(MissionProviderDefinitionSnapshot::missionKey))
+            .sorted(Comparator.comparing(MissionProviderDefinitionSnapshot::providerId)
+                .thenComparing(MissionProviderDefinitionSnapshot::missionKey)
+                .thenComparing(MissionProviderDefinitionSnapshot::kind))
             .toList();
     }
 
@@ -105,7 +110,7 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
         for (MissionProviderDefinitionSnapshot definition : definitions == null ? List.<MissionProviderDefinitionSnapshot>of() : definitions) {
             MissionProviderDefinitionSnapshot normalized = new MissionProviderDefinitionSnapshot(provider, definition.missionKey(), definition.kind(), definition.category(), definition.title(), definition.description(), definition.triggerType(), definition.targetKey(), definition.goal(), definition.rewardType(), definition.reward(), definition.repeatable(), definition.dailyReset(), definition.enabled(), Instant.now());
             if (!normalized.missionKey().isBlank()) {
-                providerDefinitions.put(normalized.missionKey(), normalized);
+                providerDefinitions.put(identity(normalized.missionKey(), normalized.kind()), normalized);
             }
         }
         return listProviderDefinitions(provider);
@@ -117,7 +122,7 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
             if (!definition.enabled()) {
                 continue;
             }
-            islandMissions.putIfAbsent(definition.missionKey(), definition.snapshot(islandId, 0L, false, Instant.EPOCH));
+            islandMissions.putIfAbsent(identity(definition.missionKey(), definition.kind()), definition.snapshot(islandId, 0L, false, Instant.EPOCH));
         }
     }
 
@@ -148,5 +153,13 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
             current.dailyReset(),
             Instant.now()
         );
+    }
+
+    private static String identity(String missionKey, String kind) {
+        return MissionCatalog.normalizeKind(kind) + '\u0000' + normalizedKey(missionKey);
+    }
+
+    private static String normalizedKey(String missionKey) {
+        return missionKey == null ? "" : missionKey.trim().toLowerCase(Locale.ROOT);
     }
 }

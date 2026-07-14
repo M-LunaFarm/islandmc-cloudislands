@@ -414,6 +414,76 @@ def run_player_interaction_smoke(base_url: str, admin_url: str, island_id: str, 
     if not migration_dry_run:
         raise RuntimeError("expected SuperiorSkyblock2 migration dry-run response body")
 
+    shared_mission_key = "dual_kind_" + uuid.uuid4().hex[:8]
+    definitions = [
+        {
+            "missionKey": shared_mission_key,
+            "kind": "MISSION",
+            "category": "identity",
+            "title": "Dual Kind Mission",
+            "description": "Mission identity smoke",
+            "triggerType": "BLOCK_BREAK",
+            "targetKey": "minecraft:stone",
+            "goal": 3,
+            "rewardType": "",
+            "reward": "",
+            "repeatable": False,
+            "dailyReset": False,
+            "enabled": True,
+        },
+        {
+            "missionKey": shared_mission_key,
+            "kind": "CHALLENGE",
+            "category": "identity",
+            "title": "Dual Kind Challenge",
+            "description": "Challenge identity smoke",
+            "triggerType": "BLOCK_BREAK",
+            "targetKey": "minecraft:deepslate",
+            "goal": 7,
+            "rewardType": "",
+            "reward": "",
+            "repeatable": False,
+            "dailyReset": False,
+            "enabled": True,
+        },
+    ]
+    registered = request(
+        base_url,
+        "POST",
+        "/v1/addons/missions/register",
+        {"providerId": "integration.dual-kind", "missions": definitions},
+        expect=(202,),
+    )
+    registered_entries = [
+        entry for entry in registered.get("missions", [])
+        if entry.get("missionKey") == shared_mission_key
+    ]
+    if len(registered_entries) != 2 or {entry.get("kind") for entry in registered_entries} != {"MISSION", "CHALLENGE"}:
+        raise RuntimeError(f"expected same-key mission and challenge definitions, got {registered}")
+
+    request(
+        base_url,
+        "POST",
+        "/v1/islands/missions/progress",
+        {"islandId": island_id, "actorUuid": owner_uuid, "missionKey": shared_mission_key, "kind": "MISSION", "amount": 2},
+        expect=(202,),
+    )
+    request(
+        base_url,
+        "POST",
+        "/v1/islands/missions/progress",
+        {"islandId": island_id, "actorUuid": owner_uuid, "missionKey": shared_mission_key, "kind": "CHALLENGE", "amount": 5},
+        expect=(202,),
+    )
+    mission_rows = request(base_url, "POST", "/v1/islands/missions", {"islandId": island_id, "kind": "MISSION"}, expect=(200,)).get("missions", [])
+    challenge_rows = request(base_url, "POST", "/v1/islands/missions", {"islandId": island_id, "kind": "CHALLENGE"}, expect=(200,)).get("missions", [])
+    mission_row = next((entry for entry in mission_rows if entry.get("missionKey") == shared_mission_key), None)
+    challenge_row = next((entry for entry in challenge_rows if entry.get("missionKey") == shared_mission_key), None)
+    if mission_row is None or mission_row.get("progress") != 2 or mission_row.get("goal") != 3:
+        raise RuntimeError(f"same-key MISSION progress was not isolated: {mission_row}")
+    if challenge_row is None or challenge_row.get("progress") != 5 or challenge_row.get("goal") != 7:
+        raise RuntimeError(f"same-key CHALLENGE progress was not isolated: {challenge_row}")
+
     return {
         "bankDeposit": deposit.get("balance"),
         "bankWithdraw": withdraw.get("bank", {}).get("balance"),
@@ -422,6 +492,7 @@ def run_player_interaction_smoke(base_url: str, admin_url: str, island_id: str, 
         "memberRemoved": member_uuid,
         "warpRouteTargetNode": warp_route.get("targetNode"),
         "migrationDryRunObserved": True,
+        "missionKindIdentity": shared_mission_key,
     }
 
 
@@ -1281,6 +1352,7 @@ def player_interaction_evidence(interaction: dict | None) -> dict[str, list[str]
         "snapshot-record-restore": True,
         "node-down-recovery": True,
         "migration-dry-run": interaction.get("migrationDryRunObserved") is True,
+        "mission-kind-identity": bool(interaction.get("missionKindIdentity")),
     }
     missing = [name for name, present in required.items() if not present]
     if missing:

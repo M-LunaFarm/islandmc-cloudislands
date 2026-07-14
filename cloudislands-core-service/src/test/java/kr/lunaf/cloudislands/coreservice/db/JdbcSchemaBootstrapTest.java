@@ -28,15 +28,15 @@ class JdbcSchemaBootstrapTest {
         assertEquals("mariadb-uses-mysql-compatible-core-schema-bootstrap", JdbcSchemaBootstrap.MARIADB_SCHEMA_POLICY);
         assertEquals("/db/mysql/V1__cloudislands_mysql_schema.sql", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
         assertEquals("mysql-v1", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_ID);
-        assertEquals("mysql-compatible-migration-chain:9", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
-        assertEquals("mysql-compatible-migration-chain:9", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
+        assertEquals("mysql-compatible-migration-chain:10", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
+        assertEquals("mysql-compatible-migration-chain:10", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
         assertEquals("cloudislands:core-schema-bootstrap:v1", JdbcSchemaBootstrap.MYSQL_MIGRATION_LOCK_NAME);
         assertEquals(60, JdbcSchemaBootstrap.MIGRATION_LOCK_TIMEOUT_SECONDS);
     }
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
-        assertEquals("postgresql-migration-chain:85", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
+        assertEquals("postgresql-migration-chain:86", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
         assertTrue(JdbcSchemaBootstrap.POSTGRESQL_MIGRATION_LOCK_KEY > 0L);
     }
@@ -113,6 +113,32 @@ class JdbcSchemaBootstrapTest {
                 assertTrue(migration.contains("border_color IN ('blue', 'green', 'red')"));
             }
         }
+    }
+
+    @Test
+    void missionKindParticipatesInEveryPersistentIdentityAndUpsert() throws IOException {
+        for (String resource : new String[]{
+            "/db/migration/V86__mission_kind_identity.sql",
+            "/db/mysql/V10__mission_kind_identity.sql",
+            "/db/mysql/V1__cloudislands_mysql_schema.sql"
+        }) {
+            try (var input = JdbcSchemaBootstrapTest.class.getResourceAsStream(resource)) {
+                assertTrue(input != null, "missing migration " + resource);
+                String migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+                assertTrue(migration.contains("PRIMARY KEY (island_id, mission_key, kind)"));
+                assertTrue(migration.contains("PRIMARY KEY (mission_key, kind)"));
+                if (resource.contains("mysql")) {
+                    assertTrue(migration.contains("category VARCHAR(64) NOT NULL DEFAULT 'general'"));
+                    assertTrue(migration.contains("trigger_type VARCHAR(64) NOT NULL DEFAULT ''"));
+                    assertTrue(migration.contains("daily_reset BOOLEAN NOT NULL DEFAULT false"));
+                }
+            }
+        }
+        String repository = java.nio.file.Files.readString(java.nio.file.Path.of(
+            "src/main/java/kr/lunaf/cloudislands/coreservice/mission/JdbcIslandMissionRepository.java"
+        ));
+        assertTrue(repository.contains("ON CONFLICT (island_id, mission_key, kind)"));
+        assertTrue(repository.contains("ON CONFLICT (mission_key, kind)"));
     }
 
     @Test

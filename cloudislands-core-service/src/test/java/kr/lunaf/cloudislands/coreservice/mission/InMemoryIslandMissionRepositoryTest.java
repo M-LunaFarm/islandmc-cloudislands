@@ -10,6 +10,27 @@ import org.junit.jupiter.api.Test;
 
 class InMemoryIslandMissionRepositoryTest {
     @Test
+    void missionAndChallengeWithTheSameKeyKeepIndependentProgress() {
+        InMemoryIslandMissionRepository repository = new InMemoryIslandMissionRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+
+        repository.registerProviderDefinitions("addon.dual-kind", List.of(
+            definition("shared_key", "MISSION", 3L),
+            definition("shared_key", "CHALLENGE", 7L)
+        ));
+
+        assertEquals(2L, repository.progress(islandId, actorUuid, "shared_key", "MISSION", 2L).orElseThrow().progress());
+        assertEquals(5L, repository.progress(islandId, actorUuid, "shared_key", "CHALLENGE", 5L).orElseThrow().progress());
+        assertEquals(2L, repository.list(islandId, "MISSION").stream()
+            .filter(mission -> mission.missionKey().equals("shared_key"))
+            .findFirst().orElseThrow().progress());
+        assertEquals(5L, repository.list(islandId, "CHALLENGE").stream()
+            .filter(mission -> mission.missionKey().equals("shared_key"))
+            .findFirst().orElseThrow().progress());
+    }
+
+    @Test
     void registeredProviderDefinitionsSeedIslandMissions() {
         InMemoryIslandMissionRepository repository = new InMemoryIslandMissionRepository();
         UUID islandId = UUID.randomUUID();
@@ -97,5 +118,12 @@ class InMemoryIslandMissionRepositoryTest {
         var nextCycle = repository.progress(islandId, actorUuid, "repeat", "MISSION", 1L).orElseThrow();
         assertEquals(1L, nextCycle.progress());
         assertTrue(!nextCycle.completed());
+    }
+
+    private static MissionProviderDefinitionSnapshot definition(String key, String kind, long goal) {
+        return new MissionProviderDefinitionSnapshot(
+            "addon.dual-kind", key, kind, "identity", key, "", "BLOCK_BREAK", "*", goal,
+            "", "", false, false, true, null
+        );
     }
 }
