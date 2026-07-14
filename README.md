@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.210`
+Version: `1.1.211`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,11 +698,30 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.210`
+Current release: `v1.1.211`
 
-Built for the CloudIslands 1.1.210 baseline.
+Built for the CloudIslands 1.1.211 baseline.
 
-Release notes for `v1.1.210`:
+Release notes for `v1.1.211`:
+
+- restore, reset, migration, activation, and template placement now establish a
+  node-local transition fence before touching the target cell
+- route-ticket teleports are rejected both before asynchronous destination
+  preparation and immediately before teleport while a cell transition is active
+- Paper saves the live world first, then checks the bounded target cell for
+  players and unloads every loaded target chunk without resaving stale state
+- file-backed Anvil replacement starts only after every target chunk is verified
+  unloaded; players, plugin tickets, missing worlds, scheduling failures, and
+  timeouts fail closed as `CELL_UNLOAD_FAILED`
+- failed and successful transitions release their routing and protection fences,
+  while concurrent transitions for the same island have a single owner
+- production wiring requires the Bukkit cell unloader whenever file placement is
+  enabled, preventing an omitted adapter from silently restoring unsafely
+- Paper module and full-project regression suites cover unload-before-place
+  ordering, bounded chunk inspection, route fencing, failure cleanup, and the
+  platform boundary
+
+Release notes carried forward from `v1.1.210`:
 
 - every production island bundle export now completes a scheduler-safe Paper
   world save before reading offline block, entity, and POI region files
@@ -3460,7 +3479,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.210`.
+Current read: production-readiness baseline `v1.1.211`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
