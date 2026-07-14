@@ -11,11 +11,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import java.util.zip.DeflaterOutputStream;
+import java.util.zip.GZIPOutputStream;
 import java.util.zip.InflaterInputStream;
+import net.jpountz.lz4.LZ4BlockOutputStream;
 import net.querz.nbt.io.NBTDeserializer;
 import net.querz.nbt.io.NBTSerializer;
 import net.querz.nbt.io.NamedTag;
@@ -139,6 +142,20 @@ class AnvilRegionRelocatorTest {
         assertArrayEquals(new int[] {1029, 64, 6}, movedRecord.getIntArray("pos").orElseThrow());
     }
 
+    @Test
+    void acceptsEveryModernInternalAnvilCompressionType() throws Exception {
+        for (int compression : new int[] {1, 2, 3, 4}) {
+            Path source = root.resolve("compression-" + compression + "/source");
+            Path target = root.resolve("compression-" + compression + "/target");
+            Files.createDirectories(source);
+            writeRegion(source.resolve("r.0.0.mca"), sampleChunk(), compression);
+
+            new AnvilRegionRelocator().relocate(source, target, 1024, 0);
+
+            assertEquals(64, readChunk(target.resolve("r.2.0.mca"), 64, 0).getInt("xPos").orElseThrow());
+        }
+    }
+
     private CompoundTag sampleChunk() {
         CompoundTag rootTag = new CompoundTag();
         rootTag.putInt("DataVersion", 4438);
@@ -194,9 +211,20 @@ class AnvilRegionRelocatorTest {
     }
 
     private void writeRegion(Path path, CompoundTag rootTag) throws Exception {
+        writeRegion(path, rootTag, 2);
+    }
+
+    private void writeRegion(Path path, CompoundTag rootTag, int compressionType) throws Exception {
         ByteArrayOutputStream compressed = new ByteArrayOutputStream();
-        try (DeflaterOutputStream zlib = new DeflaterOutputStream(compressed)) {
-            new NBTSerializer(false).toStream(new NamedTag("", rootTag), zlib);
+        OutputStream encoder = switch (compressionType) {
+            case 1 -> new GZIPOutputStream(compressed);
+            case 2 -> new DeflaterOutputStream(compressed);
+            case 3 -> compressed;
+            case 4 -> new LZ4BlockOutputStream(compressed);
+            default -> throw new IllegalArgumentException("unsupported test compression: " + compressionType);
+        };
+        try (encoder) {
+            new NBTSerializer(false).toStream(new NamedTag("", rootTag), encoder);
         }
         byte[] payload = compressed.toByteArray();
         int sectors = Math.floorDiv(payload.length + 5 + 4095, 4096);
@@ -206,7 +234,7 @@ class AnvilRegionRelocatorTest {
             output.writeInt(123456789);
             output.write(new byte[4096 - 4]);
             output.writeInt(payload.length + 1);
-            output.writeByte(2);
+            output.writeByte(compressionType);
             output.write(payload);
             output.write(new byte[sectors * 4096 - payload.length - 5]);
         }

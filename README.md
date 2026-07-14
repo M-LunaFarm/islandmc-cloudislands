@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.208`
+Version: `1.1.209`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,11 +698,33 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.208`
+Current release: `v1.1.209`
 
-Built for the CloudIslands 1.1.208 baseline.
+Built for the CloudIslands 1.1.209 baseline.
 
-Release notes for `v1.1.208`:
+Release notes for `v1.1.209`:
+
+- portable bundle schema 5 records the physical source origin and carries all
+  three Java world datasets: block chunks, entity regions, and POI regions
+- restore, reset, template placement, and migration can now move a bundle to a
+  different physical shard cell by rewriting modern Anvil headers and NBT
+  coordinates instead of rejecting every cross-cell placement
+- GZIP, ZLIB, uncompressed, and Paper LZ4 region chunks are accepted and
+  rewritten as bounded ZLIB MCA data; malformed, overlapping, oversized, and
+  external `.mcc` chunks fail before target mutation
+- block entities, scheduled block and fluid ticks, structure references and
+  bounding boxes, entity positions and fixed targets, passengers, villager and
+  sniffer memories, and POI record positions are relocated horizontally
+- block, entity, and POI datasets are fully staged and validated before one
+  transactional publish; a failure in a later dataset rolls back files already
+  changed by an earlier dataset
+- schema 4 and older bundles remain readable without a POI directory, while a
+  schema 5 bundle that omits its declared POI data is rejected before restore
+- real MCA/NBT regression fixtures cover GZIP, ZLIB, uncompressed, and LZ4
+  inputs, cross-region relocation, legacy fail-closed behavior, sidecar
+  rejection, and multi-dataset rollback
+
+Release notes carried forward from `v1.1.208`:
 
 - template, restore, reset, and migration placement now replaces the complete
   region-file set owned by the target island cell instead of leaving files that
@@ -3420,7 +3442,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.208`.
+Current read: production-readiness baseline `v1.1.209`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
