@@ -15,6 +15,7 @@ import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.zip.DeflaterOutputStream;
@@ -37,6 +38,10 @@ final class AnvilRegionRelocator {
     private static final int MAX_DECOMPRESSED_CHUNK_BYTES = 64 * 1024 * 1024;
 
     void relocate(Path source, Path target, int blockOffsetX, int blockOffsetZ) throws IOException {
+        relocate(source, target, blockOffsetX, blockOffsetZ, DataKind.CHUNKS);
+    }
+
+    void relocate(Path source, Path target, int blockOffsetX, int blockOffsetZ, DataKind kind) throws IOException {
         if (blockOffsetX % 16 != 0 || blockOffsetZ % 16 != 0) {
             throw new IOException("cell relocation offset must be chunk aligned");
         }
@@ -55,7 +60,7 @@ final class AnvilRegionRelocator {
                 }
                 RegionCoordinate fileCoordinate = RegionCoordinate.parse(path.getFileName().toString());
                 if (fileCoordinate != null) {
-                    readRegion(path, fileCoordinate, blockOffsetX, blockOffsetZ, relocated);
+                    readRegion(path, fileCoordinate, blockOffsetX, blockOffsetZ, kind, relocated);
                 }
             }
         }
@@ -64,7 +69,7 @@ final class AnvilRegionRelocator {
         }
     }
 
-    private void readRegion(Path path, RegionCoordinate fileCoordinate, int blockOffsetX, int blockOffsetZ,
+    private void readRegion(Path path, RegionCoordinate fileCoordinate, int blockOffsetX, int blockOffsetZ, DataKind kind,
                             Map<RegionCoordinate, RegionChunks> relocated) throws IOException {
         long fileSize = Files.size(path);
         if (fileSize < HEADER_BYTES || fileSize % SECTOR_BYTES != 0) {
@@ -119,12 +124,12 @@ final class AnvilRegionRelocator {
                 CompoundTag root = deserialize(payload, 0, payload.length, compression, path);
                 int expectedX = fileCoordinate.regionX * 32 + index % 32;
                 int expectedZ = fileCoordinate.regionZ * 32 + index / 32;
-                int sourceX = requiredInt(root, "xPos", path);
-                int sourceZ = requiredInt(root, "zPos", path);
-                if (sourceX != expectedX || sourceZ != expectedZ) {
+                int sourceX = expectedX;
+                int sourceZ = expectedZ;
+                if (!coordinatesMatch(root, kind, expectedX, expectedZ)) {
                     throw new IOException("chunk coordinates do not match Anvil header slot in " + path.getFileName());
                 }
-                relocateNbt(root, blockOffsetX, blockOffsetZ);
+                relocateNbt(root, blockOffsetX, blockOffsetZ, kind);
                 int targetX = Math.addExact(sourceX, blockOffsetX / 16);
                 int targetZ = Math.addExact(sourceZ, blockOffsetZ / 16);
                 RegionCoordinate targetRegion = new RegionCoordinate(Math.floorDiv(targetX, 32), Math.floorDiv(targetZ, 32));
@@ -219,15 +224,114 @@ final class AnvilRegionRelocator {
         }
     }
 
-    private void relocateNbt(CompoundTag root, int offsetX, int offsetZ) throws IOException {
+    private boolean coordinatesMatch(CompoundTag root, DataKind kind, int expectedX, int expectedZ) throws IOException {
+        if (kind == DataKind.POI) {
+            return true;
+        }
+        if (kind == DataKind.ENTITIES) {
+            int[] position = root.getIntArray("Position").orElseThrow(() -> new IOException("entity chunk is missing Position"));
+            return position.length == 2 && position[0] == expectedX && position[1] == expectedZ;
+        }
+        return requiredInt(root, "xPos", null) == expectedX && requiredInt(root, "zPos", null) == expectedZ;
+    }
+
+    private void relocateNbt(CompoundTag root, int offsetX, int offsetZ, DataKind kind) throws IOException {
         int chunkOffsetX = offsetX / 16;
         int chunkOffsetZ = offsetZ / 16;
+        if (kind == DataKind.ENTITIES) {
+            int[] position = root.getIntArray("Position").orElseThrow(() -> new IOException("entity chunk is missing Position"));
+            position[0] = Math.addExact(position[0], chunkOffsetX);
+            position[1] = Math.addExact(position[1], chunkOffsetZ);
+            relocateEntities(root.getListTag("Entities"), offsetX, offsetZ);
+            return;
+        }
+        if (kind == DataKind.POI) {
+            relocatePoi(root, offsetX, offsetZ);
+            return;
+        }
         root.putInt("xPos", Math.addExact(requiredInt(root, "xPos", null), chunkOffsetX));
         root.putInt("zPos", Math.addExact(requiredInt(root, "zPos", null), chunkOffsetZ));
         relocatePositionList(root.getListTag("block_entities"), offsetX, offsetZ);
         relocatePositionList(root.getListTag("block_ticks"), offsetX, offsetZ);
         relocatePositionList(root.getListTag("fluid_ticks"), offsetX, offsetZ);
         relocateStructures(root.getCompoundTag("structures"), offsetX, offsetZ, chunkOffsetX, chunkOffsetZ);
+    }
+
+    private void relocateEntities(ListTag<?> entities, int offsetX, int offsetZ) {
+        if (entities == null) return;
+        for (Tag<?> tag : entities) {
+            if (!(tag instanceof CompoundTag entity)) continue;
+            relocateEntityPosition(entity, offsetX, offsetZ);
+            addIntPair(entity.getCompoundTag("Leash"), "X", "Z", offsetX, offsetZ);
+            addIntPair(entity, "xTile", "zTile", offsetX, offsetZ);
+            addIntPair(entity, "SleepingX", "SleepingZ", offsetX, offsetZ);
+            addIntPair(entity, "TileX", "TileZ", offsetX, offsetZ);
+            addIntPair(entity, "HomePosX", "HomePosZ", offsetX, offsetZ);
+            addIntPair(entity, "TravelPosX", "TravelPosZ", offsetX, offsetZ);
+            addIntPair(entity, "TreasurePosX", "TreasurePosZ", offsetX, offsetZ);
+            addIntPair(entity, "BoundX", "BoundZ", offsetX, offsetZ);
+            addIntPair(entity, "AX", "AZ", offsetX, offsetZ);
+            addIntPair(entity, "APX", "APZ", offsetX, offsetZ);
+            addIntPair(entity.getCompoundTag("WanderTarget"), "X", "Z", offsetX, offsetZ);
+            addIntPair(entity.getCompoundTag("PatrolTarget"), "X", "Z", offsetX, offsetZ);
+            addIntPair(entity.getCompoundTag("BeamTarget"), "X", "Z", offsetX, offsetZ);
+            addIntPair(entity.getCompoundTag("Owner"), "X", "Z", offsetX, offsetZ);
+            addIntPair(entity.getCompoundTag("Target"), "X", "Z", offsetX, offsetZ);
+            relocateVillagerMemories(entity, offsetX, offsetZ);
+            relocateSnifferMemories(entity, offsetX, offsetZ);
+            relocatePositionList(entity.getCompoundTag("TileEntityData") == null ? null : singleton(entity.getCompoundTag("TileEntityData")), offsetX, offsetZ);
+            relocateIntArrayPosition(entity.getIntArrayTag("home_pos"), offsetX, offsetZ);
+            relocateEntities(entity.getListTag("Passengers"), offsetX, offsetZ);
+        }
+    }
+
+    private ListTag<CompoundTag> singleton(CompoundTag value) {
+        ListTag<CompoundTag> list = new ListTag<>(CompoundTag.class);
+        list.add(value);
+        return list;
+    }
+
+    private void relocateVillagerMemories(CompoundTag entity, int offsetX, int offsetZ) {
+        CompoundTag brain = entity.getCompoundTag("Brain");
+        CompoundTag memories = brain == null ? null : brain.getCompoundTag("memories");
+        if (memories == null) return;
+        for (String key : List.of("minecraft:meeting_point", "minecraft:home", "minecraft:job_site")) {
+            CompoundTag memory = memories.getCompoundTag(key);
+            if (memory == null) continue;
+            relocateIntArrayPosition(memory.getIntArrayTag("pos"), offsetX, offsetZ);
+        }
+    }
+
+    private void relocateSnifferMemories(CompoundTag entity, int offsetX, int offsetZ) {
+        CompoundTag brain = entity.getCompoundTag("Brain");
+        CompoundTag memories = brain == null ? null : brain.getCompoundTag("memories");
+        CompoundTag explored = memories == null ? null : memories.getCompoundTag("minecraft:sniffer_explored_positions");
+        ListTag<?> values = explored == null ? null : explored.getListTag("value");
+        if (values == null) return;
+        for (Tag<?> tag : values) {
+            if (tag instanceof CompoundTag value) relocateIntArrayPosition(value.getIntArrayTag("pos"), offsetX, offsetZ);
+        }
+    }
+
+    private void relocatePoi(CompoundTag root, int offsetX, int offsetZ) {
+        CompoundTag sections = root.getCompoundTag("Sections");
+        if (sections == null) return;
+        for (Map.Entry<String, Tag<?>> entry : sections) {
+            if (!(entry.getValue() instanceof CompoundTag section)) continue;
+            ListTag<?> records = section.getListTag("Records");
+            if (records == null) continue;
+            for (Tag<?> recordTag : records) {
+                if (recordTag instanceof CompoundTag record) {
+                    relocateIntArrayPosition(record.getIntArrayTag("pos"), offsetX, offsetZ);
+                }
+            }
+        }
+    }
+
+    private void relocateIntArrayPosition(IntArrayTag tag, int offsetX, int offsetZ) {
+        if (tag == null || tag.getValue().length != 3) return;
+        tag.getValue()[0] = Math.addExact(tag.getValue()[0], offsetX);
+        tag.getValue()[2] = Math.addExact(tag.getValue()[2], offsetZ);
     }
 
     private void relocatePositionList(ListTag<?> list, int offsetX, int offsetZ) {
@@ -343,6 +447,12 @@ final class AnvilRegionRelocator {
     }
 
     private record RelocatedChunk(CompoundTag root, int timestamp) {}
+
+    enum DataKind {
+        CHUNKS,
+        ENTITIES,
+        POI
+    }
 
     private static final class RegionChunks {
         private final RelocatedChunk[] chunks = new RelocatedChunk[1024];

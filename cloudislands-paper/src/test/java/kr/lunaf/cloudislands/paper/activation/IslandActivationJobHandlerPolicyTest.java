@@ -194,6 +194,8 @@ class IslandActivationJobHandlerPolicyTest {
     private static BundleRestorePlanner templateRestorePlanner(IslandBundleManifest manifest) {
         return new BundleRestorePlanner((bundleFile, targetDirectory) -> {
             Files.createDirectories(targetDirectory.resolve("chunks"));
+            Files.createDirectories(targetDirectory.resolve("entities"));
+            Files.createDirectories(targetDirectory.resolve("poi"));
             Files.writeString(targetDirectory.resolve("chunks/r.0.0.mca"), "region", StandardCharsets.UTF_8);
             Path manifestPath = targetDirectory.resolve("manifest.json");
             Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);

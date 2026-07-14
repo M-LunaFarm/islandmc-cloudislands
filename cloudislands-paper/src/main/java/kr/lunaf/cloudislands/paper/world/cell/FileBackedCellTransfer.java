@@ -6,9 +6,8 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 public final class FileBackedCellTransfer {
@@ -19,27 +18,30 @@ public final class FileBackedCellTransfer {
     }
 
     public void place(CellPlacementPlan plan) throws IOException {
-        Path worldRegion = worldRegion(plan.worldName());
-        Files.createDirectories(worldRegion);
-        replaceRegionFiles(plan, worldRegion);
+        Path world = worldDirectory(plan.worldName());
+        replaceRegionFiles(plan, world);
     }
 
     public void extract(CellExtractionPlan plan) throws IOException {
-        Path worldRegion = worldRegion(plan.worldName());
+        Path world = worldDirectory(plan.worldName());
         Files.createDirectories(plan.targetChunksDirectory());
-        copyRegionFiles(worldRegion, plan.targetChunksDirectory(), plan.minChunkX(), plan.maxChunkX(), plan.minChunkZ(), plan.maxChunkZ());
+        Files.createDirectories(plan.targetEntitiesDirectory());
+        Files.createDirectories(plan.targetPoiDirectory());
+        copyRegionFiles(world.resolve("region"), plan.targetChunksDirectory(), plan.minChunkX(), plan.maxChunkX(), plan.minChunkZ(), plan.maxChunkZ());
+        copyRegionFiles(world.resolve("entities"), plan.targetEntitiesDirectory(), plan.minChunkX(), plan.maxChunkX(), plan.minChunkZ(), plan.maxChunkZ());
+        copyRegionFiles(world.resolve("poi"), plan.targetPoiDirectory(), plan.minChunkX(), plan.maxChunkX(), plan.minChunkZ(), plan.maxChunkZ());
     }
 
-    private Path worldRegion(String worldName) throws IOException {
+    private Path worldDirectory(String worldName) throws IOException {
         if (worldName == null || worldName.isBlank() || worldName.contains("/") || worldName.contains("\\") || worldName.contains("..")) {
             throw new IOException("invalid world name: " + worldName);
         }
         Path root = worldContainer.toAbsolutePath().normalize();
-        Path region = root.resolve(worldName).resolve("region").normalize();
-        if (!region.startsWith(root)) {
-            throw new IOException("world region escapes container: " + worldName);
+        Path world = root.resolve(worldName).normalize();
+        if (!world.startsWith(root)) {
+            throw new IOException("world directory escapes container: " + worldName);
         }
-        return region;
+        return world;
     }
 
     private void copyRegionFiles(Path source, Path target, int minChunkX, int maxChunkX, int minChunkZ, int maxChunkZ) throws IOException {
@@ -71,51 +73,34 @@ public final class FileBackedCellTransfer {
         }
     }
 
-    private void replaceRegionFiles(CellPlacementPlan plan, Path target) throws IOException {
+    private void replaceRegionFiles(CellPlacementPlan plan, Path world) throws IOException {
         int minRegionX = Math.floorDiv(plan.minChunkX(), 32);
         int maxRegionX = Math.floorDiv(plan.maxChunkX(), 32);
         int minRegionZ = Math.floorDiv(plan.minChunkZ(), 32);
         int maxRegionZ = Math.floorDiv(plan.maxChunkZ(), 32);
-        Path normalizedTarget = target.toAbsolutePath().normalize();
-        Path transactionRoot = normalizedTarget.getParent().resolve(".cloudislands-cell-place-" + UUID.randomUUID());
-        Path staged = transactionRoot.resolve("staged");
+        Path normalizedWorld = world.toAbsolutePath().normalize();
+        Files.createDirectories(normalizedWorld);
+        Path transactionRoot = normalizedWorld.resolve(".cloudislands-cell-place-" + UUID.randomUUID());
+        Path stagedRoot = transactionRoot.resolve("staged");
         Path backup = transactionRoot.resolve("backup");
-        Set<RegionCoordinate> changed = new HashSet<>();
-        Files.createDirectories(staged);
+        Map<Path, Path> changed = new HashMap<>();
+        Files.createDirectories(stagedRoot);
         Files.createDirectories(backup);
         try {
-            Path source = plan.chunksDirectory();
-            if (plan.sourceOriginKnown() && (plan.sourceOriginX() != plan.originX() || plan.sourceOriginZ() != plan.originZ())) {
-                new AnvilRegionRelocator().relocate(source, staged, plan.originX() - plan.sourceOriginX(), plan.originZ() - plan.sourceOriginZ());
-                source = staged;
+            List<DataSet> dataSets = List.of(
+                new DataSet("region", plan.chunksDirectory(), normalizedWorld.resolve("region"), AnvilRegionRelocator.DataKind.CHUNKS),
+                new DataSet("entities", plan.entitiesDirectory(), normalizedWorld.resolve("entities"), AnvilRegionRelocator.DataKind.ENTITIES),
+                new DataSet("poi", plan.poiDirectory(), normalizedWorld.resolve("poi"), AnvilRegionRelocator.DataKind.POI)
+            );
+            for (DataSet dataSet : dataSets) {
+                prepareDataSet(plan, dataSet, stagedRoot.resolve(dataSet.name), minRegionX, maxRegionX, minRegionZ, maxRegionZ);
             }
-            Map<RegionCoordinate, Path> sourceFiles = sourceRegionFiles(source, minRegionX, maxRegionX, minRegionZ, maxRegionZ);
-            for (Map.Entry<RegionCoordinate, Path> entry : sourceFiles.entrySet()) {
-                Path destination = staged.resolve(entry.getKey().fileName());
-                if (!entry.getValue().equals(destination)) {
-                    Files.copy(entry.getValue(), destination, StandardCopyOption.REPLACE_EXISTING);
-                }
-            }
-            for (int regionX = minRegionX; regionX <= maxRegionX; regionX++) {
-                for (int regionZ = minRegionZ; regionZ <= maxRegionZ; regionZ++) {
-                    RegionCoordinate coordinate = new RegionCoordinate(regionX, regionZ);
-                    Path destination = normalizedTarget.resolve(coordinate.fileName());
-                    if (Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
-                        if (!Files.isRegularFile(destination, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(destination)) {
-                            throw new IOException("invalid destination region file: " + destination);
-                        }
-                        Files.move(destination, backup.resolve(coordinate.fileName()), StandardCopyOption.ATOMIC_MOVE);
-                        changed.add(coordinate);
-                    }
-                    Path replacement = staged.resolve(coordinate.fileName());
-                    if (Files.isRegularFile(replacement, LinkOption.NOFOLLOW_LINKS)) {
-                        Files.move(replacement, destination, StandardCopyOption.ATOMIC_MOVE);
-                        changed.add(coordinate);
-                    }
-                }
+            for (DataSet dataSet : dataSets) {
+                publishDataSet(dataSet, stagedRoot.resolve(dataSet.name), backup.resolve(dataSet.name), changed,
+                    minRegionX, maxRegionX, minRegionZ, maxRegionZ);
             }
         } catch (IOException | RuntimeException exception) {
-            rollbackReplacement(normalizedTarget, backup, changed, exception);
+            rollbackReplacement(changed, exception);
             try {
                 deleteRecursively(transactionRoot);
             } catch (IOException cleanupFailure) {
@@ -127,6 +112,48 @@ public final class FileBackedCellTransfer {
             deleteRecursively(transactionRoot);
         } catch (IOException ignored) {
             // Publishing is already committed; leftover hidden backup files are safer than reporting a false restore failure.
+        }
+    }
+
+    private void prepareDataSet(CellPlacementPlan plan, DataSet dataSet, Path staged,
+                                int minRegionX, int maxRegionX, int minRegionZ, int maxRegionZ) throws IOException {
+        Files.createDirectories(staged);
+        Path source = dataSet.source;
+        if (plan.sourceOriginKnown() && (plan.sourceOriginX() != plan.originX() || plan.sourceOriginZ() != plan.originZ())) {
+            new AnvilRegionRelocator().relocate(source, staged, plan.originX() - plan.sourceOriginX(), plan.originZ() - plan.sourceOriginZ(), dataSet.kind);
+            source = staged;
+        }
+        Map<RegionCoordinate, Path> sourceFiles = sourceRegionFiles(source, minRegionX, maxRegionX, minRegionZ, maxRegionZ);
+        for (Map.Entry<RegionCoordinate, Path> entry : sourceFiles.entrySet()) {
+            Path destination = staged.resolve(entry.getKey().fileName());
+            if (!entry.getValue().equals(destination)) {
+                Files.copy(entry.getValue(), destination, StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
+    }
+
+    private void publishDataSet(DataSet dataSet, Path staged, Path backup, Map<Path, Path> changed,
+                                int minRegionX, int maxRegionX, int minRegionZ, int maxRegionZ) throws IOException {
+        Files.createDirectories(dataSet.target);
+        Files.createDirectories(backup);
+        for (int regionX = minRegionX; regionX <= maxRegionX; regionX++) {
+            for (int regionZ = minRegionZ; regionZ <= maxRegionZ; regionZ++) {
+                RegionCoordinate coordinate = new RegionCoordinate(regionX, regionZ);
+                Path destination = dataSet.target.resolve(coordinate.fileName());
+                Path previous = backup.resolve(coordinate.fileName());
+                if (Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
+                    if (!Files.isRegularFile(destination, LinkOption.NOFOLLOW_LINKS) || Files.isSymbolicLink(destination)) {
+                        throw new IOException("invalid destination region file: " + destination);
+                    }
+                    Files.move(destination, previous, StandardCopyOption.ATOMIC_MOVE);
+                    changed.put(destination, previous);
+                }
+                Path replacement = staged.resolve(coordinate.fileName());
+                if (Files.isRegularFile(replacement, LinkOption.NOFOLLOW_LINKS)) {
+                    Files.move(replacement, destination, StandardCopyOption.ATOMIC_MOVE);
+                    changed.putIfAbsent(destination, previous);
+                }
+            }
         }
     }
 
@@ -156,10 +183,10 @@ public final class FileBackedCellTransfer {
         return files;
     }
 
-    private void rollbackReplacement(Path target, Path backup, Set<RegionCoordinate> changed, Exception original) {
-        for (RegionCoordinate coordinate : changed) {
-            Path destination = target.resolve(coordinate.fileName());
-            Path previous = backup.resolve(coordinate.fileName());
+    private void rollbackReplacement(Map<Path, Path> changed, Exception original) {
+        for (Map.Entry<Path, Path> entry : changed.entrySet()) {
+            Path destination = entry.getKey();
+            Path previous = entry.getValue();
             try {
                 Files.deleteIfExists(destination);
                 if (Files.exists(previous, LinkOption.NOFOLLOW_LINKS)) {
@@ -170,6 +197,8 @@ public final class FileBackedCellTransfer {
             }
         }
     }
+
+    private record DataSet(String name, Path source, Path target, AnvilRegionRelocator.DataKind kind) {}
 
     private void deleteRecursively(Path root) throws IOException {
         if (!Files.exists(root)) {

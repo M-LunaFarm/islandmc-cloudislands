@@ -54,6 +54,7 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
         Files.createDirectories(staging.resolve("chunks"));
         Files.createDirectories(staging.resolve("entities"));
         Files.createDirectories(staging.resolve("block-entities"));
+        Files.createDirectories(staging.resolve("poi"));
         CellExtractionPlan extraction = new ShardCellTransferPlanner(activeIsland.islandSize())
             .extraction(islandId, activeIsland.worldName(), activeIsland.originX(), activeIsland.originZ(), staging.resolve("chunks"));
         new FileBackedCellTransfer(worldContainer).extract(extraction);

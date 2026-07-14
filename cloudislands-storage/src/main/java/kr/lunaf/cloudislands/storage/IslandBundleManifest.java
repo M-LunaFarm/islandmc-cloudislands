@@ -36,7 +36,7 @@ public record IslandBundleManifest(
     int sourceOriginZ,
     boolean sourceOriginKnown
 ) {
-    public static final int CURRENT_FORMAT_VERSION = 4;
+    public static final int CURRENT_FORMAT_VERSION = 5;
     public static final int CURRENT_MINECRAFT_DATA_VERSION = 4435;
     public static final String DEFAULT_PLUGIN_VERSION = "unknown";
     public static final int DEFAULT_MINECRAFT_DATA_VERSION = 0;
@@ -224,6 +224,10 @@ public record IslandBundleManifest(
         if (sourceOriginKnown) {
             capabilities.add("source-origin");
             capabilities.add("cross-cell-remap");
+        }
+        if (formatVersion >= 5) {
+            capabilities.add("entity-region-data");
+            capabilities.add("poi-region-data");
         }
         if (minecraftDataVersion < CURRENT_MINECRAFT_DATA_VERSION) {
             capabilities.add("datafixer-upgrade");

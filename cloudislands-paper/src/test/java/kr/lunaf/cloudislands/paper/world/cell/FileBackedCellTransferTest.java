@@ -66,6 +66,29 @@ class FileBackedCellTransferTest {
         assertTrue(Files.isDirectory(worldRegion.resolve("r.0.0.mca")));
     }
 
+    @Test
+    void poiPublishFailureRollsBackAlreadyPublishedChunkAndEntityRegions() throws Exception {
+        Path source = root.resolve("multi/chunks");
+        Path sourceEntities = root.resolve("multi/entities");
+        Path world = root.resolve("worlds/ci_shard_001");
+        Files.createDirectories(source);
+        Files.createDirectories(sourceEntities);
+        Files.createDirectories(world.resolve("region"));
+        Files.createDirectories(world.resolve("entities"));
+        Files.createDirectories(world.resolve("poi"));
+        Files.writeString(source.resolve("r.-1.-1.mca"), "new-chunks");
+        Files.writeString(sourceEntities.resolve("r.-1.-1.mca"), "new-entities");
+        Files.writeString(world.resolve("region/r.-1.-1.mca"), "old-chunks");
+        Files.writeString(world.resolve("entities/r.-1.-1.mca"), "old-entities");
+        Files.createDirectory(world.resolve("poi/r.0.0.mca"));
+
+        assertThrows(IOException.class, () -> new FileBackedCellTransfer(root.resolve("worlds")).place(plan(source)));
+
+        assertEquals("old-chunks", Files.readString(world.resolve("region/r.-1.-1.mca")));
+        assertEquals("old-entities", Files.readString(world.resolve("entities/r.-1.-1.mca")));
+        assertTrue(Files.isDirectory(world.resolve("poi/r.0.0.mca")));
+    }
+
     private CellPlacementPlan plan(Path source) {
         return new CellPlacementPlan(
             UUID.fromString("00000000-0000-0000-0000-000000001301"),

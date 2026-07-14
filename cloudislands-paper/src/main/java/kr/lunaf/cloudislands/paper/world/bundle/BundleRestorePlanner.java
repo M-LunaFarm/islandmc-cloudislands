@@ -19,7 +19,12 @@ public final class BundleRestorePlanner {
             restorePlan.originZ(),
             restorePlan.stagedBundle(),
             extracted.rootDirectory(),
-            extracted.chunksDirectory()
+            extracted.chunksDirectory(),
+            extracted.entitiesDirectory(),
+            extracted.poiDirectory(),
+            0,
+            0,
+            false
         );
     }
 }

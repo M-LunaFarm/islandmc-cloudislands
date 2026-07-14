@@ -58,6 +58,7 @@ public final class IslandWorldRestorer {
         RestorePlan restorePlan = new RestorePlan(islandId, worldName, originX, originZ, bundle);
         BundleRestorePlan plan = restorePlanner.plan(restorePlan);
         IslandBundleManifest manifest = validateExtractedManifest(islandId, plan.extractedRoot().resolve("manifest.json"));
+        validateRequiredWorldData(plan, manifest);
         IntegrationLifecycleHooks.LifecycleBatch integrations = integrationHooks.restoreState(islandId, worldName, cellX, cellZ, originX, originZ, fencingToken, snapshotNo, storagePath, bundle, plan.extractedRoot(), manifest);
         integrations.throwIfFailed();
         integrations.writeIfPresent(plan.extractedRoot().resolve("integrations/restore.json"));
@@ -84,6 +85,7 @@ public final class IslandWorldRestorer {
         RestorePlan restorePlan = new RestorePlan(islandId, worldName, originX, originZ, bundle);
         BundleRestorePlan plan = restorePlanner.plan(restorePlan);
         IslandBundleManifest embeddedManifest = validateExtractedTemplateManifest(islandId, plan.extractedRoot().resolve("manifest.json"));
+        validateRequiredWorldData(plan, embeddedManifest);
         IntegrationLifecycleHooks.LifecycleBatch integrations = integrationHooks.restoreState(islandId, worldName, cellX, cellZ, originX, originZ, fencingToken, 0L, storagePath, bundle, plan.extractedRoot(), embeddedManifest);
         integrations.throwIfFailed();
         integrations.writeIfPresent(plan.extractedRoot().resolve("integrations/restore.json"));
@@ -165,6 +167,15 @@ public final class IslandWorldRestorer {
             throw new IOException("unsupported island bundle compression: " + manifest.compression());
         }
         BundleCompatibilityPolicy.requireCompatible(manifest);
+    }
+
+    private void validateRequiredWorldData(BundleRestorePlan plan, IslandBundleManifest manifest) throws IOException {
+        if (manifest.formatVersion() >= 5 && !Files.isDirectory(plan.poiDirectory())) {
+            throw new IOException("bundle schema " + manifest.formatVersion() + " is missing poi region data");
+        }
+        if (!Files.isDirectory(plan.entitiesDirectory())) {
+            throw new IOException("island bundle is missing entity region data");
+        }
     }
 
     private boolean supportedChecksumAlgorithm(String algorithm) {

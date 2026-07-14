@@ -23,6 +23,7 @@ import net.querz.nbt.tag.CompoundTag;
 import net.querz.nbt.tag.IntArrayTag;
 import net.querz.nbt.tag.ListTag;
 import net.querz.nbt.tag.LongArrayTag;
+import net.querz.nbt.tag.DoubleTag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -83,6 +84,59 @@ class AnvilRegionRelocatorTest {
 
         assertTrue(exception.getMessage().contains(".mcc"));
         assertEquals("existing", Files.readString(worldRegion.resolve("r.2.0.mca")));
+    }
+
+    @Test
+    void entityAndPoiRegionsRelocateTheirOwnCoordinateSchemas() throws Exception {
+        Path entities = root.resolve("source/entities");
+        Path poi = root.resolve("source/poi");
+        Files.createDirectories(entities);
+        Files.createDirectories(poi);
+
+        CompoundTag entityRoot = new CompoundTag();
+        entityRoot.put("Position", new IntArrayTag(new int[] {0, 0}));
+        CompoundTag entity = new CompoundTag();
+        entity.putString("id", "minecraft:item_frame");
+        ListTag<DoubleTag> position = new ListTag<>(DoubleTag.class);
+        position.add(new DoubleTag(3.5D));
+        position.add(new DoubleTag(70.0D));
+        position.add(new DoubleTag(4.5D));
+        entity.put("Pos", position);
+        entity.putInt("TileX", 3);
+        entity.putInt("TileY", 70);
+        entity.putInt("TileZ", 4);
+        ListTag<CompoundTag> entityList = new ListTag<>(CompoundTag.class);
+        entityList.add(entity);
+        entityRoot.put("Entities", entityList);
+        writeRegion(entities.resolve("r.0.0.mca"), entityRoot);
+
+        CompoundTag poiRoot = new CompoundTag();
+        CompoundTag sections = new CompoundTag();
+        CompoundTag section = new CompoundTag();
+        CompoundTag record = new CompoundTag();
+        record.put("pos", new IntArrayTag(new int[] {5, 64, 6}));
+        ListTag<CompoundTag> records = new ListTag<>(CompoundTag.class);
+        records.add(record);
+        section.put("Records", records);
+        sections.put("4", section);
+        poiRoot.put("Sections", sections);
+        writeRegion(poi.resolve("r.0.0.mca"), poiRoot);
+
+        Path relocatedEntities = root.resolve("relocated/entities");
+        Path relocatedPoi = root.resolve("relocated/poi");
+        AnvilRegionRelocator relocator = new AnvilRegionRelocator();
+        relocator.relocate(entities, relocatedEntities, 1024, 0, AnvilRegionRelocator.DataKind.ENTITIES);
+        relocator.relocate(poi, relocatedPoi, 1024, 0, AnvilRegionRelocator.DataKind.POI);
+
+        CompoundTag movedEntityRoot = readChunk(relocatedEntities.resolve("r.2.0.mca"), 64, 0);
+        assertArrayEquals(new int[] {64, 0}, movedEntityRoot.getIntArray("Position").orElseThrow());
+        CompoundTag movedEntity = (CompoundTag) movedEntityRoot.getListTag("Entities").get(0);
+        assertEquals(1027.5D, ((DoubleTag) movedEntity.getListTag("Pos").get(0)).asDouble());
+        assertEquals(1027, movedEntity.getInt("TileX").orElseThrow());
+
+        CompoundTag movedPoiRoot = readChunk(relocatedPoi.resolve("r.2.0.mca"), 64, 0);
+        CompoundTag movedRecord = (CompoundTag) movedPoiRoot.getCompoundTag("Sections").getCompoundTag("4").getListTag("Records").get(0);
+        assertArrayEquals(new int[] {1029, 64, 6}, movedRecord.getIntArray("pos").orElseThrow());
     }
 
     private CompoundTag sampleChunk() {

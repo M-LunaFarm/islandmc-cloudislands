@@ -68,7 +68,13 @@ public final class ExternalTarBundleExtractor implements BundleExtractor {
             verifyChecksums(staging, checksums);
             syncExtractedTree(staging);
             publishDirectoryAtomically(staging, target);
-            return new ExtractedBundle(target, target.resolve(BundleIntegrityPolicy.MANIFEST_FILE), target.resolve(BundleIntegrityPolicy.CHUNKS_DIRECTORY));
+            return new ExtractedBundle(
+                target,
+                target.resolve(BundleIntegrityPolicy.MANIFEST_FILE),
+                target.resolve(BundleIntegrityPolicy.CHUNKS_DIRECTORY),
+                target.resolve(BundleIntegrityPolicy.ENTITIES_DIRECTORY),
+                target.resolve(BundleIntegrityPolicy.POI_DIRECTORY)
+            );
         } catch (IOException | RuntimeException exception) {
             deleteRecursively(staging);
             throw exception;

@@ -13,12 +13,12 @@ public final class ShardCellTransferPlanner {
 
     public CellPlacementPlan placement(BundleRestorePlan restorePlan) {
         Bounds bounds = bounds(restorePlan.originX(), restorePlan.originZ());
-        return new CellPlacementPlan(restorePlan.islandId(), restorePlan.worldName(), restorePlan.originX(), restorePlan.originZ(), restorePlan.chunksDirectory(), bounds.minChunkX(), bounds.maxChunkX(), bounds.minChunkZ(), bounds.maxChunkZ(), restorePlan.sourceOriginX(), restorePlan.sourceOriginZ(), restorePlan.sourceOriginKnown());
+        return new CellPlacementPlan(restorePlan.islandId(), restorePlan.worldName(), restorePlan.originX(), restorePlan.originZ(), restorePlan.chunksDirectory(), restorePlan.entitiesDirectory(), restorePlan.poiDirectory(), bounds.minChunkX(), bounds.maxChunkX(), bounds.minChunkZ(), bounds.maxChunkZ(), restorePlan.sourceOriginX(), restorePlan.sourceOriginZ(), restorePlan.sourceOriginKnown());
     }
 
     public CellExtractionPlan extraction(UUID islandId, String worldName, int originX, int originZ, Path targetChunksDirectory) {
         Bounds bounds = bounds(originX, originZ);
-        return new CellExtractionPlan(islandId, worldName, originX, originZ, targetChunksDirectory, bounds.minChunkX(), bounds.maxChunkX(), bounds.minChunkZ(), bounds.maxChunkZ());
+        return new CellExtractionPlan(islandId, worldName, originX, originZ, targetChunksDirectory, targetChunksDirectory.resolveSibling("entities"), targetChunksDirectory.resolveSibling("poi"), bounds.minChunkX(), bounds.maxChunkX(), bounds.minChunkZ(), bounds.maxChunkZ());
     }
 
     private Bounds bounds(int originX, int originZ) {

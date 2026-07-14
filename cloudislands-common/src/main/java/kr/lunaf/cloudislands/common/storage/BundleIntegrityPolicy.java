@@ -12,6 +12,7 @@ public final class BundleIntegrityPolicy {
     public static final String CHUNKS_DIRECTORY = "chunks";
     public static final String ENTITIES_DIRECTORY = "entities";
     public static final String BLOCK_ENTITIES_DIRECTORY = "block-entities";
+    public static final String POI_DIRECTORY = "poi";
     public static final String CHECKSUM_COVERAGE_POLICY = "every-restored-regular-file-except-checksums-sha256-must-be-listed";
     public static final String RESTORE_SAFETY_POLICY = "reject-path-escape-absolute-path-windows-drive-symlink-and-unsupported-entry";
     public static final String RESTORE_GATE_POLICY = "restore-is-allowed-only-after-manifest-required-directories-and-checksums-pass";

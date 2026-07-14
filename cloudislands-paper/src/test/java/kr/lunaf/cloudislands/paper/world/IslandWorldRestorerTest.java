@@ -66,6 +66,8 @@ class IslandWorldRestorerTest {
             stagingRoot,
             new BundleRestorePlanner((bundleFile, targetDirectory) -> {
                 Files.createDirectories(targetDirectory.resolve("chunks"));
+                Files.createDirectories(targetDirectory.resolve("entities"));
+                Files.createDirectories(targetDirectory.resolve("poi"));
                 Files.createDirectories(targetDirectory.resolve("integrations/stacker/RoseStacker"));
                 Path manifestPath = targetDirectory.resolve("manifest.json");
                 Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
@@ -99,6 +101,8 @@ class IslandWorldRestorerTest {
             stagingRoot,
             new BundleRestorePlanner((bundleFile, targetDirectory) -> {
                 Files.createDirectories(targetDirectory.resolve("chunks"));
+                Files.createDirectories(targetDirectory.resolve("entities"));
+                Files.createDirectories(targetDirectory.resolve("poi"));
                 Path manifestPath = targetDirectory.resolve("manifest.json");
                 Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
                 return new BundleExtractor.ExtractedBundle(targetDirectory, manifestPath, targetDirectory.resolve("chunks"));
