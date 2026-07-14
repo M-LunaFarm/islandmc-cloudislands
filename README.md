@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.203`
+Version: `1.1.204`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -103,8 +103,10 @@ state before the legacy provider is removed.
 
 Use `/ciadmin doctor` first for Core, Redis, DB, storage, Velocity, Paper node,
 route ticket, template checksum, integration, and migration-lock health. Use
-`/ciadmin route debug`, `/ciadmin island inspect`, `/ciadmin storage verify`,
-and support bundles for targeted failures. Player-facing messages must avoid
+`/ciadmin island info <island>` for a compact base/effect/role-limit/upgrade
+summary; use `/ciadmin route debug`, `/ciadmin island inspect`,
+`/ciadmin storage verify`, and support bundles for targeted failures.
+Player-facing messages must avoid
 internal node IDs, storage keys, and database errors; operator views carry the
 failure code and recovery command.
 
@@ -683,11 +685,24 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.203`
+Current release: `v1.1.204`
 
-Built for the CloudIslands 1.1.203 baseline.
+Built for the CloudIslands 1.1.204 baseline.
 
-Release notes for `v1.1.203`:
+Release notes for `v1.1.204`:
+
+- `/ciadmin island info <uuid|name>` now combines typed island, limit, and
+  progression queries so operators can see active effects, role limits, and
+  upgrade levels without running several commands
+- optional sections are emitted only when they contain values, preventing the
+  empty headings and trailing blank lines reported in SuperiorSkyblock2 #2980
+- external keys are normalized to one line and output ordering is stable, so
+  malformed addon data cannot inject blank or multi-line admin output
+- limit or upgrade query failures fall back to the base island summary instead
+  of turning a useful operator lookup into a total failure
+- the complete 197-task clean check and Paper 26.1.2 boot smoke passed
+
+Release notes carried forward from `v1.1.203`:
 
 - release checksums now cover the CycloneDX SBOM as well as archives, plugin
   jars, tools, and the changelog
@@ -3333,7 +3348,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.203`.
+Current read: production-readiness baseline `v1.1.204`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
