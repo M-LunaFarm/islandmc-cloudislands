@@ -743,7 +743,7 @@ class GuiMenuDefinitionTest {
         assertEquals(Map.of("color", "green"), border.itemAt(11).orElseThrow().data());
         assertEquals("C", border.itemAt(12).orElseThrow().symbol());
         assertEquals("island.border.color.set", border.action(border.itemAt(12).orElseThrow().actionKey(), ""));
-        assertEquals(Map.of("color", "aqua"), border.itemAt(12).orElseThrow().data());
+        assertEquals(Map.of("color", "red"), border.itemAt(12).orElseThrow().data());
         assertEquals("B", border.itemAt(13).orElseThrow().symbol());
         assertEquals("island.border.color.set", border.action(border.itemAt(13).orElseThrow().actionKey(), ""));
         assertEquals(Map.of("color", "blue"), border.itemAt(13).orElseThrow().data());

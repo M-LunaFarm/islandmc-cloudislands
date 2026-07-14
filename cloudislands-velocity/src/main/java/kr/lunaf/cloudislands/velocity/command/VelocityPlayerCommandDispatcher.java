@@ -107,19 +107,23 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             return;
         }
         if (args[0].equalsIgnoreCase("border") || args[0].equalsIgnoreCase("border-ui") || args[0].equals("경계")) {
+            if (args.length > 1 && isBorderColor(args[1])) {
+                playerProgression.setBorderColor(player, args[1]);
+                return;
+            }
             UUID islandId = args.length > 1 ? parseUuidOrNil(args[1]) : new UUID(0L, 0L);
             playerRouting.showIslandBorder(player, islandId);
             return;
         }
         if (args[0].equalsIgnoreCase("border-visible") || args[0].equals("경계표시")) {
-            playerMembership.setBooleanFlag(player, new UUID(0L, 0L), kr.lunaf.cloudislands.api.model.IslandFlag.BORDER_VISIBLE, parseToggle(args, 1, true), "경계 표시");
+            playerProgression.toggleBorder(player, new UUID(0L, 0L), Boolean.toString(parseToggle(args, 1, true)));
             return;
         }
         if (args[0].equalsIgnoreCase("border-color") || args[0].equals("경계색상")) {
             if (args.length < 2) {
                 player.sendMessage(Component.text("사용법: /섬 border-color <color>"));
             } else {
-                playerMembership.setTextFlag(player, new UUID(0L, 0L), kr.lunaf.cloudislands.api.model.IslandFlag.BORDER_COLOR, args[1], "경계 색상");
+                playerProgression.setBorderColor(player, args[1]);
             }
             return;
         }
@@ -509,6 +513,11 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             return;
         }
         sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 command list");
+    }
+
+    private static boolean isBorderColor(String value) {
+        return value.equalsIgnoreCase("blue") || value.equalsIgnoreCase("green") || value.equalsIgnoreCase("red")
+            || value.equals("파랑") || value.equals("초록") || value.equals("빨강");
     }
 
 

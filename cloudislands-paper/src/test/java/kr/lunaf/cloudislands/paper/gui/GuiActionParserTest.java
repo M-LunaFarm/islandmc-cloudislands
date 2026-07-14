@@ -234,11 +234,11 @@ class GuiActionParserTest {
 
     @Test
     void parsesBorderColorSetIntoTypedAction() {
-        GuiAction action = GuiActionParser.parse("island.border.color.set", Map.of("color", " Aqua ")).orElseThrow();
+        GuiAction action = GuiActionParser.parse("island.border.color.set", Map.of("color", " Red ")).orElseThrow();
 
         assertTrue(action instanceof GuiAction.BorderColorSet);
         assertEquals("island.border.color.set", action.actionId());
-        assertEquals(Map.of("color", "aqua"), action.data());
+        assertEquals(Map.of("color", "red"), action.data());
     }
 
     @Test

@@ -102,7 +102,8 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V81__core_idempotency.sql",
         "/db/migration/V82__warehouse_settlement_recovery.sql",
         "/db/migration/V83__player_island_fly_preference.sql",
-        "/db/migration/V84__player_visual_preferences.sql"
+        "/db/migration/V84__player_visual_preferences.sql",
+        "/db/migration/V85__player_border_color.sql"
     };
     private static final String[] MYSQL_MIGRATIONS = {
         MYSQL_COMPATIBLE_SCHEMA_RESOURCE,
@@ -111,7 +112,8 @@ public final class JdbcSchemaBootstrap {
         "/db/mysql/V4__core_idempotency.sql",
         "/db/mysql/V5__warehouse_settlement_recovery.sql",
         "/db/mysql/V6__player_island_fly_preference.sql",
-        "/db/mysql/V7__player_visual_preferences.sql"
+        "/db/mysql/V7__player_visual_preferences.sql",
+        "/db/mysql/V8__player_border_color.sql"
     };
 
     private enum Dialect {

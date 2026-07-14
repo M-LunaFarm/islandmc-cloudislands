@@ -20,6 +20,7 @@ import kr.lunaf.cloudislands.coreclient.CoreGuiViews.IslandInfoView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LimitView;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.application.IslandBorderRuntimePolicy;
+import kr.lunaf.cloudislands.paper.application.IslandBorderColorPolicy;
 import kr.lunaf.cloudislands.paper.application.IslandEnvironmentUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandEnvironmentUseCase.EnvironmentActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
@@ -28,6 +29,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandBiomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandLimitMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
+import kr.lunaf.cloudislands.paper.platform.world.WorldBorderTransitionAdapter;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.WorldBorder;
@@ -85,7 +87,7 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, message("input-border-color-required", "경계 색상을 입력해주세요. 예: /is border-color blue"));
                 return true;
             }
-            setBorderFlag(player, IslandFlag.BORDER_COLOR, IslandBorderRuntimePolicy.normalizeColor(args[1]), true);
+            setPersonalBorderColor(player, args[1]);
             return true;
         }
         if (subcommand.equals("border-visible") || subcommand.equals("경계표시")) {
@@ -167,7 +169,7 @@ final class IslandEnvironmentCommandHandler {
             return true;
         }
         if (action instanceof GuiAction.BorderColorSet colorSet) {
-            setBorderFlag(player, IslandFlag.BORDER_COLOR, IslandBorderRuntimePolicy.normalizeColor(colorSet.color()), true);
+            setPersonalBorderColor(player, colorSet.color());
             return true;
         }
         if (action instanceof GuiAction.NoPayload noPayload) {
@@ -279,7 +281,10 @@ final class IslandEnvironmentCommandHandler {
         runtime.currentIsland(player, message("border-show-island-required", "섬 안에서만 경계를 확인할 수 있습니다.")).ifPresent(islandId -> {
             CompletableFuture<IslandInfoView> info = environmentUseCase.islandInfoView(islandId);
             CompletableFuture<Map<IslandFlag, String>> flags = environmentUseCase.flagValues(islandId);
-            info.thenCombine(flags, this::borderSummary)
+            CompletableFuture<PlayerProfileView> profile = playerProfiles.profile(player.getUniqueId());
+            info.thenCombine(flags, (infoView, flagValues) -> new BorderSummaryView(infoView, flagValues, null))
+                .thenCombine(profile, (view, playerProfile) -> new BorderSummaryView(view.info(), view.flags(), playerProfile))
+                .thenApply(this::borderSummary)
                 .thenAccept(summary -> runtime.message(player, summary))
                 .exceptionally(error -> {
                     runtime.message(player, message("border-load-failed", "섬 경계를 불러오지 못했습니다."));
@@ -295,6 +300,10 @@ final class IslandEnvironmentCommandHandler {
             return;
         }
         String mode = args[1].toLowerCase(Locale.ROOT);
+        if (isBorderColor(mode)) {
+            setPersonalBorderColor(player, mode);
+            return;
+        }
         if (mode.equals("apply") || mode.equals("적용")) {
             applyBorder(player, true);
             return;
@@ -313,7 +322,7 @@ final class IslandEnvironmentCommandHandler {
                 runtime.message(player, message("input-border-color-required", "경계 색상을 입력해주세요. 예: /is border color blue"));
                 return;
             }
-            setBorderFlag(player, IslandFlag.BORDER_COLOR, IslandBorderRuntimePolicy.normalizeColor(args[2]), true);
+            setPersonalBorderColor(player, args[2]);
             return;
         }
         if (mode.equals("warning") || mode.equals("경고")) {
@@ -408,6 +417,22 @@ final class IslandEnvironmentCommandHandler {
             });
     }
 
+    private void setPersonalBorderColor(Player player, String requestedColor) {
+        String color = IslandBorderRuntimePolicy.normalizeColor(requestedColor);
+        playerProfileCommands.setBorderColor(player.getUniqueId(), color)
+            .thenCompose(profile -> profile.worldBorderEnabled()
+                ? CompletableFuture.completedFuture(profile)
+                : playerProfileCommands.setWorldBorderEnabled(player.getUniqueId(), true))
+            .thenAccept(profile -> {
+                runtime.message(player, message("border-personal-color-prefix", "개인 섬 경계 색상을 변경했습니다: ") + profile.borderColor());
+                applyBorder(player, false);
+            })
+            .exceptionally(error -> {
+                runtime.message(player, message("border-color-set-failed", "개인 섬 경계 색상을 변경하지 못했습니다."));
+                return null;
+            });
+    }
+
     private void setBorderFlag(Player player, IslandFlag flag, String value, boolean applyAfterSave) {
         runtime.currentIsland(player, message("border-set-island-required", "섬 안에서만 경계 정책을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
@@ -459,13 +484,17 @@ final class IslandEnvironmentCommandHandler {
         }
         WorldBorder border = Bukkit.createWorldBorder();
         border.setCenter(settings.centerX(), settings.centerZ());
-        border.setSize(settings.size());
+        IslandBorderColorPolicy.Transition transition = IslandBorderColorPolicy.transition(settings.size(), view.profile().borderColor());
+        border.setSize(transition.initialSize());
+        if (transition.animated()) {
+            WorldBorderTransitionAdapter.changeSize(border, transition.targetSize(), transition.durationTicks());
+        }
         border.setWarningDistance(settings.warningDistance());
         border.setWarningTimeTicks(100);
         player.setWorldBorder(border);
         managedBorders.add(player.getUniqueId());
         if (announce) {
-            runtime.message(player, message("border-apply-prefix", "섬 경계 UI 적용: ") + message("border-color-label", "색상=") + settings.color() + message("border-policy-label", ", 정책=") + settings.policy() + message("border-size-label", ", 크기=") + view.info().border());
+            runtime.message(player, message("border-apply-prefix", "섬 경계 UI 적용: ") + message("border-color-label", "색상=") + transition.color() + message("border-policy-label", ", 정책=") + settings.policy() + message("border-size-label", ", 크기=") + view.info().border());
         }
     }
 
@@ -535,13 +564,13 @@ final class IslandEnvironmentCommandHandler {
         return message("biome-set-success-prefix", "섬 바이옴 변경 완료: ") + biomeKey;
     }
 
-    private String borderSummary(IslandInfoView info, Map<IslandFlag, String> flags) {
+    private String borderSummary(BorderSummaryView view) {
         return message("border-summary-prefix", "섬 경계: ")
-            + message("border-summary-size-label", "크기=") + info.border()
-            + message("border-summary-visible-label", ", 표시=") + (IslandBorderRuntimePolicy.visible(flags) ? message("toggle-on-label", "켜짐") : message("toggle-off-label", "꺼짐"))
-            + message("border-summary-color-label", ", 색상=") + IslandBorderRuntimePolicy.flagValue(flags, IslandFlag.BORDER_COLOR, "blue")
-            + message("border-summary-policy-label", ", 정책=") + IslandBorderRuntimePolicy.flagValue(flags, IslandFlag.BORDER_POLICY, "visible")
-            + message("border-summary-warning-label", ", 경고거리=") + IslandBorderRuntimePolicy.flagValue(flags, IslandFlag.BORDER_WARNING_BLOCKS, "8");
+            + message("border-summary-size-label", "크기=") + view.info().border()
+            + message("border-summary-visible-label", ", 표시=") + (view.profile() != null && view.profile().worldBorderEnabled() && IslandBorderRuntimePolicy.visible(view.flags()) ? message("toggle-on-label", "켜짐") : message("toggle-off-label", "꺼짐"))
+            + message("border-summary-color-label", ", 색상=") + (view.profile() == null ? "blue" : view.profile().borderColor())
+            + message("border-summary-policy-label", ", 정책=") + IslandBorderRuntimePolicy.flagValue(view.flags(), IslandFlag.BORDER_POLICY, "visible")
+            + message("border-summary-warning-label", ", 경고거리=") + IslandBorderRuntimePolicy.flagValue(view.flags(), IslandFlag.BORDER_WARNING_BLOCKS, "8");
     }
 
     private String limitListMessage(List<LimitView> limits) {
@@ -564,6 +593,11 @@ final class IslandEnvironmentCommandHandler {
             return "false";
         }
         return "true";
+    }
+
+    private static boolean isBorderColor(String value) {
+        return value.equalsIgnoreCase("blue") || value.equalsIgnoreCase("green") || value.equalsIgnoreCase("red")
+            || value.equals("파랑") || value.equals("초록") || value.equals("빨강");
     }
 
     private static long longValue(String value, long fallback) {
@@ -593,4 +627,5 @@ final class IslandEnvironmentCommandHandler {
     }
 
     private record BorderView(IslandInfoView info, Map<IslandFlag, String> flags, IslandRegion region, PlayerProfileView profile) {}
+    private record BorderSummaryView(IslandInfoView info, Map<IslandFlag, String> flags, PlayerProfileView profile) {}
 }

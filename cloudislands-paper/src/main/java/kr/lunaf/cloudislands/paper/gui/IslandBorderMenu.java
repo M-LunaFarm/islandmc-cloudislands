@@ -98,7 +98,7 @@ public final class IslandBorderMenu implements Listener {
     }
 
     private static String colorLore(String color, BorderView view, MessageRenderer messages) {
-        String current = view.flags().getOrDefault(IslandFlag.BORDER_COLOR, "blue");
+        String current = view.profile() == null ? "blue" : view.profile().borderColor();
         return message(messages, "border-menu-current-color", "현재 색상: ") + current + (current.equalsIgnoreCase(color) ? " *" : "");
     }
 

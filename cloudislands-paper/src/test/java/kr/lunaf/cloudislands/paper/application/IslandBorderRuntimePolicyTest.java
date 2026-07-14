@@ -26,7 +26,7 @@ class IslandBorderRuntimePolicyTest {
     void appliesWorldBorderFromIslandRegionAndCoreSize() {
         IslandBorderRuntimePolicy.BorderSettings settings = IslandBorderRuntimePolicy.settings(150L, Map.of(
             IslandFlag.BORDER_VISIBLE, "true",
-            IslandFlag.BORDER_COLOR, "aqua",
+            IslandFlag.BORDER_COLOR, "green",
             IslandFlag.BORDER_WARNING_BLOCKS, "12"
         ), REGION);
 
@@ -35,7 +35,7 @@ class IslandBorderRuntimePolicyTest {
         assertEquals(-0.5D, settings.centerZ());
         assertEquals(150.0D, settings.size());
         assertEquals(12, settings.warningDistance());
-        assertEquals("aqua", settings.color());
+        assertEquals("green", settings.color());
         assertEquals("visible", settings.policy());
     }
 
@@ -53,7 +53,7 @@ class IslandBorderRuntimePolicyTest {
     @Test
     void normalizesPlayerFacingBorderOptions() {
         assertEquals("red", IslandBorderRuntimePolicy.normalizeColor("빨강"));
-        assertEquals("aqua", IslandBorderRuntimePolicy.normalizeColor("cyan"));
+        assertEquals("blue", IslandBorderRuntimePolicy.normalizeColor("cyan"));
         assertEquals("blue", IslandBorderRuntimePolicy.normalizeColor("unknown"));
         assertEquals("warning", IslandBorderRuntimePolicy.normalizePolicy("경고"));
         assertEquals("hidden", IslandBorderRuntimePolicy.normalizePolicy("hide"));

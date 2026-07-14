@@ -155,7 +155,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
             return categoryPageSuggestions(args[1], args[2]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("border") || args[0].equalsIgnoreCase("border-ui") || args[0].equals("경계"))) {
-            return literalMatches(List.of("apply", "visible", "hidden", "show", "hide", "color", "warning", "적용", "표시", "숨김", "색상", "경고"), args[1]);
+            return literalMatches(List.of("blue", "green", "red", "파랑", "초록", "빨강", "apply", "visible", "hidden", "show", "hide", "color", "warning", "적용", "표시", "숨김", "색상", "경고"), args[1]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("toggle") || args[0].equals("토글"))) {
             return literalMatches(List.of("border", "border-visible", "blocks", "stacked-blocks", "경계", "경계표시", "블록", "스택블록"), args[1]);
@@ -166,8 +166,11 @@ final class IslandCommandTabCompleter implements TabCompleter {
         if (args.length == 2 && (args[0].equalsIgnoreCase("teamchat") || args[0].equalsIgnoreCase("team-chat") || args[0].equals("팀채팅"))) {
             return literalMatches(List.of("toggle", "mode", "on", "off", "전환", "모드"), args[1]);
         }
-        if (args.length == 3 && (args[0].equalsIgnoreCase("border-color") || args[0].equalsIgnoreCase("경계색상") || ((args[0].equalsIgnoreCase("border") || args[0].equals("경계")) && (args[1].equalsIgnoreCase("color") || args[1].equals("색상"))))) {
-            return literalMatches(List.of("blue", "green", "red", "aqua", "yellow", "purple", "파랑", "초록", "빨강", "하늘", "노랑", "보라"), args[2]);
+        if (args.length == 2 && (args[0].equalsIgnoreCase("border-color") || args[0].equalsIgnoreCase("경계색상"))) {
+            return literalMatches(List.of("blue", "green", "red", "파랑", "초록", "빨강"), args[1]);
+        }
+        if (args.length == 3 && ((args[0].equalsIgnoreCase("border") || args[0].equals("경계")) && (args[1].equalsIgnoreCase("color") || args[1].equals("색상")))) {
+            return literalMatches(List.of("blue", "green", "red", "파랑", "초록", "빨강"), args[2]);
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("border-visible") || args[0].equalsIgnoreCase("경계표시") || ((args[0].equalsIgnoreCase("border") || args[0].equals("경계")) && (args[1].equalsIgnoreCase("visible") || args[1].equals("표시"))))) {
             return literalMatches(List.of("true", "false", "on", "off", "show", "hide", "켜기", "끄기", "표시", "숨김"), args[2]);

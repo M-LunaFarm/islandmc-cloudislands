@@ -62,6 +62,14 @@ final class JdkPlayerProfileCommandClient implements PlayerProfileCommandClient 
     }
 
     @Override
+    public CompletableFuture<PlayerProfileView> setBorderColor(UUID playerUuid, String color) {
+        requireId(playerUuid, "playerUuid");
+        return core.postResultBody("/v1/players/border-color", CoreJsonPayload.object("playerUuid", playerUuid, "color", color == null ? "" : color))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
     public CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId) {
         requireId(playerUuid, "playerUuid");
         requireId(islandId, "islandId");

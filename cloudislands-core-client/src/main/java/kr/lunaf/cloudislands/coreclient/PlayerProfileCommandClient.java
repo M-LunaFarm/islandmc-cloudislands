@@ -16,6 +16,8 @@ public interface PlayerProfileCommandClient {
 
     CompletableFuture<PlayerProfileView> setBlocksStackerEnabled(UUID playerUuid, boolean enabled);
 
+    CompletableFuture<PlayerProfileView> setBorderColor(UUID playerUuid, String color);
+
     CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId);
 
     CompletableFuture<PlayerProfileView> selectPrimaryIsland(UUID playerUuid, UUID islandId);

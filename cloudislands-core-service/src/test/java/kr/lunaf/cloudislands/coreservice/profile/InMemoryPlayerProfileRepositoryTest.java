@@ -34,6 +34,9 @@ class InMemoryPlayerProfileRepositoryTest {
         assertFalse(touched.blocksStackerEnabled());
         assertTrue(repository.setWorldBorderEnabled(playerUuid, true).worldBorderEnabled());
         assertFalse(repository.find(playerUuid).blocksStackerEnabled());
+        assertEquals("red", repository.setBorderColor(playerUuid, "RED").borderColor());
+        assertEquals("red", repository.touch(playerUuid, "Viewer", "ko_kr").borderColor());
+        assertEquals("blue", repository.setBorderColor(playerUuid, "purple").borderColor());
     }
 
     @Test

@@ -42,7 +42,7 @@ class PlayerProfileRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(12, paths.size());
+        assertEquals(13, paths.size());
         assertTrue(paths.contains("/v1/admin/players/info"));
         assertTrue(paths.contains("/v1/players/info"));
         assertTrue(paths.contains("/v1/players/touch"));
@@ -50,6 +50,7 @@ class PlayerProfileRoutesTest {
         assertTrue(paths.contains("/v1/players/island-fly"));
         assertTrue(paths.contains("/v1/players/world-border"));
         assertTrue(paths.contains("/v1/players/blocks-stacker"));
+        assertTrue(paths.contains("/v1/players/border-color"));
         assertTrue(paths.contains("/v1/players/select-island"));
         assertTrue(paths.contains("/v1/admin/players/setisland"));
         assertTrue(paths.contains("/v1/admin/players/clearisland"));
@@ -70,6 +71,7 @@ class PlayerProfileRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/players/island-fly"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/world-border"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/blocks-stacker"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/border-color"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/select-island"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/setisland"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/clearisland"));
@@ -97,6 +99,7 @@ class PlayerProfileRoutesTest {
         assertEquals(Boolean.TRUE, root.get("islandFlyEnabled"));
         assertEquals(Boolean.TRUE, root.get("worldBorderEnabled"));
         assertEquals(Boolean.TRUE, root.get("blocksStackerEnabled"));
+        assertEquals("blue", root.get("borderColor"));
     }
 
     @Test
@@ -131,6 +134,22 @@ class PlayerProfileRoutesTest {
         assertFalse(profiles.find(playerUuid).blocksStackerEnabled());
         assertTrue(audit.toJson().contains("PLAYER_WORLD_BORDER_SET"));
         assertTrue(audit.toJson().contains("PLAYER_BLOCKS_STACKER_SET"));
+    }
+
+    @Test
+    void persistsNormalizesAndAuditsPersonalBorderColor() throws Exception {
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000307");
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryAuditLogger audit = new InMemoryAuditLogger();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new PlayerProfileRoutes(profiles, audit).register(handlers::put);
+
+        TestExchange exchange = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"color\":\"GREEN\"}");
+        handlers.get("/v1/players/border-color").handle(exchange);
+
+        assertEquals(202, exchange.status());
+        assertEquals("green", profiles.find(playerUuid).borderColor());
+        assertTrue(audit.toJson().contains("PLAYER_BORDER_COLOR_SET"));
     }
 
     @Test

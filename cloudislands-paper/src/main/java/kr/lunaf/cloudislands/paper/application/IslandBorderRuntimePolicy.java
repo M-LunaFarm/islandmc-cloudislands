@@ -46,9 +46,6 @@ public final class IslandBorderRuntimePolicy {
         return switch ((value == null ? "" : value).toLowerCase(Locale.ROOT)) {
             case "red", "빨강" -> "red";
             case "green", "초록" -> "green";
-            case "aqua", "cyan", "하늘" -> "aqua";
-            case "yellow", "노랑" -> "yellow";
-            case "purple", "보라" -> "purple";
             default -> "blue";
         };
     }

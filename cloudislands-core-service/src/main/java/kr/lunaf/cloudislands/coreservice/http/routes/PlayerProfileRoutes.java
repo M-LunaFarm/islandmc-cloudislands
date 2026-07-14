@@ -45,6 +45,7 @@ public final class PlayerProfileRoutes implements RouteGroup {
         registry.routePost("/v1/players/island-fly", this::islandFly);
         registry.routePost("/v1/players/world-border", this::worldBorder);
         registry.routePost("/v1/players/blocks-stacker", this::blocksStacker);
+        registry.routePost("/v1/players/border-color", this::borderColor);
         registry.routePost("/v1/players/select-island", this::selectIsland);
         registry.routePost("/v1/admin/players/setisland", this::setIsland);
         registry.routePost("/v1/admin/players/clearisland", this::clearIsland);
@@ -125,6 +126,14 @@ public final class PlayerProfileRoutes implements RouteGroup {
         CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setBlocksStackerEnabled(playerUuid, enabled)));
     }
 
+    private void borderColor(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        String color = PlayerIslandProfile.normalizeBorderColor(JsonFields.text(body, "color", "blue"));
+        audit.log(playerUuid, "PLAYER", "PLAYER_BORDER_COLOR_SET", "PLAYER", playerUuid.toString(), Map.of("color", color));
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setBorderColor(playerUuid, color)));
+    }
+
     private void setIsland(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
@@ -167,6 +176,7 @@ public final class PlayerProfileRoutes implements RouteGroup {
         values.put("islandFlyEnabled", profile.islandFlyEnabled());
         values.put("worldBorderEnabled", profile.worldBorderEnabled());
         values.put("blocksStackerEnabled", profile.blocksStackerEnabled());
+        values.put("borderColor", profile.borderColor());
         return SimpleJson.stringify(values);
     }
 }

@@ -74,6 +74,14 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     }
 
     @Override
+    public PlayerIslandProfile setBorderColor(UUID playerUuid, String color) {
+        return profiles.compute(playerUuid, (_uuid, stored) -> {
+            PlayerIslandProfile current = current(playerUuid, stored);
+            return new PlayerIslandProfile(current.playerUuid(), current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled(), color);
+        });
+    }
+
+    @Override
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
@@ -110,7 +118,7 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     }
 
     private static PlayerIslandProfile copy(PlayerIslandProfile current, String lastName, Optional<UUID> islandId, Instant lastSeenAt, String locale, int disbandsRemaining, boolean fly, boolean border, boolean blocks) {
-        return new PlayerIslandProfile(current.playerUuid(), lastName, islandId, lastSeenAt, locale, disbandsRemaining, fly, border, blocks);
+        return new PlayerIslandProfile(current.playerUuid(), lastName, islandId, lastSeenAt, locale, disbandsRemaining, fly, border, blocks, current.borderColor());
     }
 
     private static int saturatingNonNegativeAdd(int current, int delta) {

@@ -13,6 +13,7 @@ public interface PlayerProfileRepository {
     PlayerIslandProfile setIslandFlyEnabled(UUID playerUuid, boolean enabled);
     PlayerIslandProfile setWorldBorderEnabled(UUID playerUuid, boolean enabled);
     PlayerIslandProfile setBlocksStackerEnabled(UUID playerUuid, boolean enabled);
+    PlayerIslandProfile setBorderColor(UUID playerUuid, String color);
     PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId);
     PlayerIslandProfile clearPrimaryIsland(UUID playerUuid);
     PlayerIslandProfile setDisbandsRemaining(UUID playerUuid, int value);

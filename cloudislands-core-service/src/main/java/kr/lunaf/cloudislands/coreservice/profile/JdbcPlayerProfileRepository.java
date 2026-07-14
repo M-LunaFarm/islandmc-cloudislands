@@ -21,7 +21,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     public PlayerIslandProfile find(UUID playerUuid) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale, disbands_remaining, island_fly_enabled, world_border_enabled, blocks_stacker_enabled FROM player_profiles WHERE uuid = ?")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale, disbands_remaining, island_fly_enabled, world_border_enabled, blocks_stacker_enabled, border_color FROM player_profiles WHERE uuid = ?")) {
             statement.setObject(1, playerUuid);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? profile(rs) : new PlayerIslandProfile(playerUuid, "", Optional.empty(), Instant.EPOCH);
@@ -37,7 +37,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             return Optional.empty();
         }
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale, disbands_remaining, island_fly_enabled, world_border_enabled, blocks_stacker_enabled FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY CASE WHEN last_seen_at IS NULL THEN 1 ELSE 0 END, last_seen_at DESC LIMIT 1")) {
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid, last_name, primary_island_id, last_seen_at, locale, disbands_remaining, island_fly_enabled, world_border_enabled, blocks_stacker_enabled, border_color FROM player_profiles WHERE lower(last_name) = lower(?) ORDER BY CASE WHEN last_seen_at IS NULL THEN 1 ELSE 0 END, last_seen_at DESC LIMIT 1")) {
             statement.setString(1, lastName);
             try (ResultSet rs = statement.executeQuery()) {
                 return rs.next() ? Optional.of(profile(rs)) : Optional.empty();
@@ -110,6 +110,20 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     @Override
     public PlayerIslandProfile setBlocksStackerEnabled(UUID playerUuid, boolean enabled) {
         return setBooleanPreference(playerUuid, "blocks_stacker_enabled", enabled, "blocks stacker");
+    }
+
+    @Override
+    public PlayerIslandProfile setBorderColor(UUID playerUuid, String color) {
+        ensure(playerUuid);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET border_color = ?, updated_at = now() WHERE uuid = ?")) {
+            statement.setString(1, PlayerIslandProfile.normalizeBorderColor(color));
+            statement.setObject(2, playerUuid);
+            statement.executeUpdate();
+            return find(playerUuid);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to set player border color preference", exception);
+        }
     }
 
     private PlayerIslandProfile setBooleanPreference(UUID playerUuid, String column, boolean enabled, String label) {
@@ -240,7 +254,8 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             rs.getInt("disbands_remaining"),
             rs.getBoolean("island_fly_enabled"),
             rs.getBoolean("world_border_enabled"),
-            rs.getBoolean("blocks_stacker_enabled")
+            rs.getBoolean("blocks_stacker_enabled"),
+            rs.getString("border_color")
         );
     }
 }

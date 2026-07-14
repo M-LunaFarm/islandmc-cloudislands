@@ -195,6 +195,7 @@ class IslandCommandCatalogTest {
         assertTrue(dispatcher.contains("playerProgression.showTeamChatMode"), "Velocity teamchat toggle must be handled before message dispatch");
         assertTrue(actions.contains("playerProfileCommands().setWorldBorderEnabled(player.getUniqueId(), enabled)"), "Velocity toggle border must write the personal player-profile preference");
         assertTrue(actions.contains("playerProfiles().profile(player.getUniqueId())"), "Velocity toggle border must read the current player preference when no explicit value is supplied");
+        assertTrue(dispatcher.contains("playerProgression.setBorderColor(player, args[1])"), "Velocity must route /is border <color> and /is border-color through the personal profile action");
         assertTrue(suggestions.contains("List.of(\"border\", \"border-visible\", \"경계\", \"경계표시\")"), "Velocity toggle suggestions must expose border targets");
     }
 

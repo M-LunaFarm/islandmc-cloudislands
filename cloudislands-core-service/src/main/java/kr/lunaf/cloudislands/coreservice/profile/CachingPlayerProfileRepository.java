@@ -74,6 +74,11 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
     }
 
     @Override
+    public PlayerIslandProfile setBorderColor(UUID playerUuid, String color) {
+        return mutated(delegate.setBorderColor(playerUuid, color));
+    }
+
+    @Override
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         return mutated(delegate.setPrimaryIsland(playerUuid, islandId));
     }
@@ -169,12 +174,13 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
             + "|" + profile.disbandsRemaining()
             + "|" + profile.islandFlyEnabled()
             + "|" + profile.worldBorderEnabled()
-            + "|" + profile.blocksStackerEnabled();
+            + "|" + profile.blocksStackerEnabled()
+            + "|" + encodeText(profile.borderColor());
     }
 
     private static PlayerIslandProfile profileFromJson(String value) {
         String[] parts = value.split("\\|", -1);
-        if (parts.length < 4 || parts.length > 9) {
+        if (parts.length < 4 || parts.length > 10) {
             throw new IllegalArgumentException("invalid cached player profile");
         }
         return new PlayerIslandProfile(
@@ -186,7 +192,8 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
             parts.length >= 6 ? integer(parts[5]) : 0,
             parts.length >= 7 && Boolean.parseBoolean(parts[6]),
             parts.length < 8 || Boolean.parseBoolean(parts[7]),
-            parts.length < 9 || Boolean.parseBoolean(parts[8])
+            parts.length < 9 || Boolean.parseBoolean(parts[8]),
+            parts.length >= 10 ? decodeText(parts[9]) : "blue"
         );
     }
 

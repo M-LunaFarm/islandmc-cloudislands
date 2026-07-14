@@ -27,16 +27,16 @@ items:
     data:
       color: green
   C:
-    material: DIAMOND
-    name-key: border-menu-cyan-name
-    fallback-name: 청록 보더
+    material: RED_DYE
+    name-key: border-menu-red-name
+    fallback-name: 빨강 보더
     lore-keys:
       - border-menu-color-lore
     fallback-lore:
-      - "클릭하면 보더 색상을 청록으로 변경합니다."
+      - "클릭하면 보더 색상을 빨강으로 변경합니다."
     action: color
     data:
-      color: aqua
+      color: red
   B:
     material: EMERALD
     name-key: border-menu-blue-name

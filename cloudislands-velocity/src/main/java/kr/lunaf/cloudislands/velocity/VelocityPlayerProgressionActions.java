@@ -234,6 +234,15 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             .thenApply(profile -> profile.blocksStackerEnabled() ? "개인 스택 블록 표시를 켰습니다." : "개인 스택 블록 표시를 껐습니다."), "스택 블록 표시를 전환하지 못했습니다.");
     }
 
+    public void setBorderColor(Player player, String requestedColor) {
+        String color = kr.lunaf.cloudislands.api.model.PlayerIslandProfile.normalizeBorderColor(requestedColor);
+        sendTextResult(player, coreApiClient.playerProfileCommands().setBorderColor(player.getUniqueId(), color)
+            .thenCompose(profile -> profile.worldBorderEnabled()
+                ? java.util.concurrent.CompletableFuture.completedFuture(profile)
+                : coreApiClient.playerProfileCommands().setWorldBorderEnabled(player.getUniqueId(), true))
+            .thenApply(profile -> "개인 섬 경계 색상을 변경했습니다: " + profile.borderColor()), "개인 섬 경계 색상을 변경하지 못했습니다.");
+    }
+
     public void sendIslandChat(Player player, UUID islandId, String channel, String message) {
         if (message == null || message.isBlank()) {
             player.sendMessage(Component.text("보낼 메시지를 입력해주세요."));

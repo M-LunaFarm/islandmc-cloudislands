@@ -1980,7 +1980,12 @@ tasks.register("verifyPersonalVisualPreferenceParity") {
         layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/mysql/V7__player_visual_preferences.sql"),
         layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java"),
         layout.projectDirectory.file("cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerProgressionActions.java"),
-        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java")
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandBackend.java"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/migration/V85__player_border_color.sql"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/mysql/V8__player_border_color.sql"),
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/IslandBorderColorPolicy.java"),
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/platform/world/WorldBorderTransitionAdapter.java"),
+        layout.projectDirectory.file("cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java")
     )
     inputs.files(files)
     doLast {
@@ -1996,7 +2001,14 @@ tasks.register("verifyPersonalVisualPreferenceParity") {
             "setBlocksStackerEnabled(player.getUniqueId(), enabled)",
             "activeBorderRegions",
             "managedBorders.remove(player.getUniqueId())",
-            "environmentCommands.onMove(event.getPlayer(), event.getFrom(), event.getTo())"
+            "environmentCommands.onMove(event.getPlayer(), event.getFrom(), event.getTo())",
+            "String borderColor",
+            "/v1/players/border-color",
+            "border_color VARCHAR(16) NOT NULL DEFAULT 'blue'",
+            "setBorderColor(player.getUniqueId(), color)",
+            "IslandBorderColorPolicy.transition",
+            "WorldBorderTransitionAdapter.changeSize(border, transition.targetSize(), transition.durationTicks())",
+            "WorldBorder.class.getMethod(name, double.class, long.class)"
         )
         val missing = requiredSignals.filterNot(source::contains)
         if (missing.isNotEmpty()) {
@@ -2006,6 +2018,13 @@ tasks.register("verifyPersonalVisualPreferenceParity") {
         val velocity = files[5].asFile.readText()
         if (paper.contains("setFlag(player, IslandFlag.BORDER_VISIBLE") || velocity.contains("setFlag(resolved, player.getUniqueId(), IslandFlag.BORDER_VISIBLE")) {
             throw GradleException("Canonical border toggle must not mutate the island-wide BORDER_VISIBLE flag")
+        }
+        val dispatcher = files[11].asFile.readText()
+        if (dispatcher.contains("setBooleanFlag(player, new UUID(0L, 0L), kr.lunaf.cloudislands.api.model.IslandFlag.BORDER_VISIBLE")) {
+            throw GradleException("Velocity border-visible must not mutate the island-wide BORDER_VISIBLE flag")
+        }
+        if (paper.contains("setBorderFlag(player, IslandFlag.BORDER_COLOR") || dispatcher.contains("setTextFlag(player, new UUID(0L, 0L), kr.lunaf.cloudislands.api.model.IslandFlag.BORDER_COLOR")) {
+            throw GradleException("Canonical border color must not mutate the island-wide BORDER_COLOR flag")
         }
         if (paper.contains("STACKED_BLOCKS_VISIBLE_LIMIT_KEY") || velocity.contains("STACKED_BLOCKS_VISIBLE_LIMIT_KEY")) {
             throw GradleException("Canonical block display toggle must not mutate an island-wide limit")
