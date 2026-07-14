@@ -15,6 +15,9 @@ import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase;
 import kr.lunaf.cloudislands.paper.PlayerIslandFlightService;
 import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase.SettingsActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
+import kr.lunaf.cloudislands.paper.gui.GuiSession;
+import kr.lunaf.cloudislands.paper.gui.GuiSessions;
+import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandFlagMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandSettingsMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -46,19 +49,19 @@ final class IslandSettingsCommandHandler {
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
         if (subcommand.equals("public") || subcommand.equals("open") || subcommand.equals("공개")) {
-            setPublicAccess(player, true);
+            setPublicAccess(player, true, false);
             return true;
         }
         if (subcommand.equals("private") || subcommand.equals("close") || subcommand.equals("비공개")) {
-            setPublicAccess(player, false);
+            setPublicAccess(player, false, false);
             return true;
         }
         if (subcommand.equals("lock") || subcommand.equals("잠금")) {
-            setLocked(player, true);
+            setLocked(player, true, false);
             return true;
         }
         if (subcommand.equals("unlock") || subcommand.equals("잠금해제")) {
-            setLocked(player, false);
+            setLocked(player, false, false);
             return true;
         }
         if (subcommand.equals("settings") || subcommand.equals("setting") || subcommand.equals("설정")) {
@@ -148,11 +151,11 @@ final class IslandSettingsCommandHandler {
                     yield true;
                 }
                 case PUBLIC_TOGGLE -> {
-                    setPublicAccess(player, !rightClick);
+                    setPublicAccess(player, !rightClick, true);
                     yield true;
                 }
                 case LOCK_TOGGLE -> {
-                    setLocked(player, rightClick);
+                    setLocked(player, rightClick, true);
                     yield true;
                 }
                 case FLAGS_OPEN -> {
@@ -173,41 +176,37 @@ final class IslandSettingsCommandHandler {
         runtime.currentIsland(player, message("settings-menu-island-required", "섬 안에서만 설정 메뉴를 열 수 있습니다.")).ifPresent(islandId -> IslandSettingsMenu.open(plugin, coreApiClient, player, islandId, runtime.messagesFor(player)));
     }
 
-    private void setPublicAccess(Player player, boolean publicAccess) {
+    private void setPublicAccess(Player player, boolean publicAccess, boolean reopenSettings) {
         runtime.currentIsland(player, message("access-change-island-required", "섬 안에서만 공개 상태를 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
                 runtime.message(player, message("access-change-denied", "섬 공개 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            settingsUseCase.setPublicAccessAction(islandId, player.getUniqueId(), publicAccess, runtime::mutate)
-                .thenAccept(result -> {
-                    runtime.message(player, settingsActionMessage(publicAccess ? "access-public-action-label" : "access-private-action-label", publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId.toString(), result));
-                    if (result.accepted()) {
-                        PaperSchedulers.run(plugin, () -> openSettings(player));
-                    }
-                })
+            UUID actorUuid = player.getUniqueId();
+            GuiSession session = beginSettingsMutation(player, reopenSettings);
+            settingsUseCase.setPublicAccessAction(islandId, actorUuid, publicAccess, runtime::mutate)
+                .thenAccept(result -> completeSettingsMutation(actorUuid, session, result,
+                    settingsActionMessage(publicAccess ? "access-public-action-label" : "access-private-action-label", publicAccess ? "섬 공개 설정" : "섬 비공개 설정", islandId.toString(), result)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("access-change-failed", "섬 공개 상태를 변경하지 못했습니다."));
+                    failSettingsMutation(actorUuid, session, error, message("access-change-failed", "섬 공개 상태를 변경하지 못했습니다."));
                     return null;
                 });
         });
     }
 
-    private void setLocked(Player player, boolean locked) {
+    private void setLocked(Player player, boolean locked, boolean reopenSettings) {
         runtime.currentIsland(player, message("lock-change-island-required", "섬 안에서만 잠금 상태를 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
                 runtime.message(player, message("lock-change-denied", "섬 잠금 상태를 변경할 권한이 없습니다."));
                 return;
             }
-            settingsUseCase.setLockedAction(islandId, player.getUniqueId(), locked, runtime::mutate)
-                .thenAccept(result -> {
-                    runtime.message(player, settingsActionMessage(locked ? "lock-action-label" : "unlock-action-label", locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId.toString(), result));
-                    if (result.accepted()) {
-                        PaperSchedulers.run(plugin, () -> openSettings(player));
-                    }
-                })
+            UUID actorUuid = player.getUniqueId();
+            GuiSession session = beginSettingsMutation(player, reopenSettings);
+            settingsUseCase.setLockedAction(islandId, actorUuid, locked, runtime::mutate)
+                .thenAccept(result -> completeSettingsMutation(actorUuid, session, result,
+                    settingsActionMessage(locked ? "lock-action-label" : "unlock-action-label", locked ? "섬 잠금 설정" : "섬 잠금 해제", islandId.toString(), result)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("lock-change-failed", "섬 잠금 상태를 변경하지 못했습니다."));
+                    failSettingsMutation(actorUuid, session, error, message("lock-change-failed", "섬 잠금 상태를 변경하지 못했습니다."));
                     return null;
                 });
         });
@@ -219,17 +218,63 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, message("name-change-denied", "섬 이름을 변경할 권한이 없습니다."));
                 return;
             }
-            settingsUseCase.setNameAction(islandId, player.getUniqueId(), name, runtime::mutate)
-                .thenAccept(result -> {
-                    runtime.message(player, settingsActionMessage("name-change-action-label", "섬 이름 변경", name, result));
-                    if (result.accepted()) {
-                        PaperSchedulers.run(plugin, () -> openSettings(player));
-                    }
-                })
+            UUID actorUuid = player.getUniqueId();
+            settingsUseCase.setNameAction(islandId, actorUuid, name, runtime::mutate)
+                .thenAccept(result -> deliverSettingsMessage(actorUuid, settingsActionMessage("name-change-action-label", "섬 이름 변경", name, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("name-change-failed", "섬 이름을 변경하지 못했습니다."));
+                    deliverSettingsMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("name-change-failed", "섬 이름을 변경하지 못했습니다.")));
                     return null;
                 });
+        });
+    }
+
+    private GuiSession beginSettingsMutation(Player player, boolean reopenSettings) {
+        if (!reopenSettings) {
+            return null;
+        }
+        return GuiStateMenus.openSaving(plugin, player, runtime.messagesFor(player), message("settings-mutation-title", "섬 설정 저장"));
+    }
+
+    private void completeSettingsMutation(UUID actorUuid, GuiSession session, SettingsActionResult result, String detail) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(actorUuid);
+            if (activePlayer == null || !activePlayer.isOnline()) {
+                return;
+            }
+            runtime.message(activePlayer, detail);
+            if (session == null || !GuiSessions.isCurrent(activePlayer, session)) {
+                return;
+            }
+            if (result.accepted()) {
+                openSettings(activePlayer);
+                return;
+            }
+            GuiStateMenus.openConflict(plugin, activePlayer, session, runtime.messagesFor(activePlayer),
+                message("settings-mutation-title", "섬 설정 저장"), detail, "island.settings.open", "island.main.open");
+        });
+    }
+
+    private void failSettingsMutation(UUID actorUuid, GuiSession session, Throwable error, String fallback) {
+        String detail = runtime.coreWriteFailureMessage(error, fallback);
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(actorUuid);
+            if (activePlayer == null || !activePlayer.isOnline()) {
+                return;
+            }
+            runtime.message(activePlayer, detail);
+            if (session != null && GuiSessions.isCurrent(activePlayer, session)) {
+                GuiStateMenus.openError(plugin, activePlayer, session, runtime.messagesFor(activePlayer),
+                    message("settings-mutation-title", "섬 설정 저장"), detail, "island.settings.open", "island.main.open");
+            }
+        });
+    }
+
+    private void deliverSettingsMessage(UUID actorUuid, String detail) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(actorUuid);
+            if (activePlayer != null && activePlayer.isOnline()) {
+                runtime.message(activePlayer, detail);
+            }
         });
     }
 

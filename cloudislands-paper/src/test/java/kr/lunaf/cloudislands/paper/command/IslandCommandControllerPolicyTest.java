@@ -865,6 +865,15 @@ class IslandCommandControllerPolicyTest {
         assertTrue(environment.contains("setWorldBorderEnabled(playerUuid, enabled)"), "visual preference callbacks must use immutable player identity");
         assertTrue(environment.contains("scheduleBorderApply(playerUuid, false)"), "border state returned by Core must be applied on the Paper scheduler");
         assertTrue(settings.contains("locales.remember(playerUuid, applied)"), "locale callbacks must update caches by immutable player identity");
+        assertTrue(settings.contains("setPublicAccess(player, true, false)"), "command mutations must not open a delayed settings GUI");
+        assertTrue(settings.contains("setLocked(player, true, false)"), "command lock mutations must not open a delayed settings GUI");
+        assertTrue(settings.contains("setPublicAccess(player, !rightClick, true)"), "GUI access toggles must reserve a settings mutation session");
+        assertTrue(settings.contains("setLocked(player, rightClick, true)"), "GUI lock toggles must reserve a settings mutation session");
+        assertTrue(settings.contains("GuiStateMenus.openSaving(plugin, player"), "GUI settings mutations must expose a saving state");
+        assertTrue(settings.contains("GuiSessions.isCurrent(activePlayer, session)"), "late settings responses must not replace a newer GUI session");
+        assertTrue(settings.contains("plugin.getServer().getPlayer(actorUuid)"), "settings callbacks must re-resolve the currently online player by UUID");
+        assertFalse(settings.contains("PaperSchedulers.run(plugin, () -> openSettings(player))"), "delayed settings callbacks must not reopen a captured Player GUI");
+        assertFalse(settings.contains("setNameAction(islandId, player.getUniqueId()"), "name callbacks must use a command-thread identity snapshot");
         assertTrue(chat.contains("deliverChatFailure(playerUuid"), "Core chat failures must return to the Paper scheduler by UUID");
         assertTrue(chat.contains("plugin.getServer().getPlayer(playerUuid)"), "chat failure delivery must re-resolve the current online Player");
         assertFalse(chat.contains("exceptionally(error -> {\n                    player.sendMessage"), "Core callbacks must not send through a captured Player");
