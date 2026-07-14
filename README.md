@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.214`
+Version: `1.1.215`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,11 +698,29 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.214`
+Current release: `v1.1.215`
 
-Built for the CloudIslands 1.1.214 baseline.
+Built for the CloudIslands 1.1.215 baseline.
 
-Release notes for `v1.1.214`:
+Release notes for `v1.1.215`:
+
+- pending Paper completions now retain their original claim lease and are
+  reconciled before the worker claims any new world mutation, including when
+  Core committed the completion but its HTTP response was lost
+- Core completion receipts now idempotently accept only the exact same node,
+  lease, and payload after queue acknowledgement; changed or forged replays are
+  rejected as completion conflicts
+- the completion journal upgrades the 1.1.214 format in place, preserves older
+  records for normal claim replay, and keeps a newly successful completion in
+  memory even when the durable write itself fails
+- Paper heartbeat publishing now awaits the asynchronous HTTP result so Core
+  outages reach the existing rate-limited operator warning instead of appearing
+  successful
+- dual-Core PostgreSQL and MySQL 8.4 smoke now verifies accepted response-loss
+  replay, rejected conflicting replay, and refreshes its simulated Paper
+  heartbeat before the load probe
+
+Release notes carried forward from `v1.1.214`:
 
 - Paper now journals every locally successful island job completion before
   reporting it to Core, then replays only that completion payload when a claim
@@ -3531,7 +3549,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.214`.
+Current read: production-readiness baseline `v1.1.215`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
