@@ -393,7 +393,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "bank safety, conflict-safe upgrade charging with compensating refunds, economy hooks, mission triggers/rewards, challenges, generator rules, and limits have verification gates",
         "Paper mission listeners, bank rollback UX, and generator listeners have targeted tests",
         "version-neutral plus Paper/Satis runtime boundaries",
-        "verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope",
+        "verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; `/is deposit *` and `/is withdraw *` resolve authoritative full balances through scheduler-safe Vault and Core queries before reusing the existing idempotent mutation, refund, and rollback paths; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/IslandMissionProgressListener.java",
@@ -414,6 +414,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-core-service/src/main/resources/db/migration/V82__warehouse_settlement_recovery.sql",
             "cloudislands-core-service/src/main/resources/db/mysql/V5__warehouse_settlement_recovery.sql",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/BankUseCaseTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/BankUseCase.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandBankCommandHandler.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/WarehouseItemPolicy.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandControllerPolicyTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/IslandGeneratorListener.java",
