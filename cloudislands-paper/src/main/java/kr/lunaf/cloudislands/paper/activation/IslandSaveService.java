@@ -75,6 +75,10 @@ public final class IslandSaveService {
         }
     }
 
+    public void prepareShutdown(Iterable<ActiveIslandRegistry.ActiveIsland> activeIslands) throws IOException {
+        worldFlush.prepareShutdown(activeIslands);
+    }
+
     private SaveResult save(UUID islandId, ActiveIslandRegistry.ActiveIsland activeIsland, boolean deleteBackup, boolean pruneAfterSave, IslandBundleManifest baseManifest, String reason) throws IOException {
         synchronized (saveLock(islandId)) {
             return saveLocked(islandId, activeIsland, deleteBackup, pruneAfterSave, baseManifest, reason);

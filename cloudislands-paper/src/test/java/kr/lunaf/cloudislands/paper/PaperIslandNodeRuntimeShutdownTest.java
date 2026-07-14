@@ -16,6 +16,14 @@ class PaperIslandNodeRuntimeShutdownTest {
         assertTrue(periodicRegistration >= 0);
         assertTrue(jobRegistration > periodicRegistration, "LifecycleRegistry stops components in reverse registration order");
         assertTrue(runtime.contains("periodicSaveTask.shutdown(Duration.ofSeconds(config.worker().shutdownSaveTimeoutSeconds()))"));
+        assertTrue(saveTaskUsesMainThreadPreparation(), "shutdown must drain pending world flushes before waiting for async export");
+    }
+
+    private boolean saveTaskUsesMainThreadPreparation() throws Exception {
+        String saveTask = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/activation/PeriodicIslandSaveTask.java"));
+        int prepare = saveTask.indexOf("saveService.prepareShutdown(activeIslands.snapshot())");
+        int await = saveTask.indexOf("ShutdownSaveCoordinator.awaitIdleAndFlush");
+        return prepare >= 0 && await > prepare;
     }
 
     @Test

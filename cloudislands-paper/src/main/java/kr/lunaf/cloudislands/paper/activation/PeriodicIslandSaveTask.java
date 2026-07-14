@@ -74,7 +74,16 @@ public final class PeriodicIslandSaveTask {
     public boolean shutdown(Duration timeout) {
         stop();
         AtomicBoolean flushFailed = new AtomicBoolean();
+        try {
+            saveService.prepareShutdown(activeIslands.snapshot());
+        } catch (java.io.IOException | RuntimeException error) {
+            flushFailed.set(true);
+            plugin.getLogger().severe("Failed to flush active Paper worlds before shutdown snapshot export: " + error.getMessage());
+        }
         boolean completed = ShutdownSaveCoordinator.awaitIdleAndFlush(running::get, runningMonitor, () -> {
+            if (flushFailed.get()) {
+                return;
+            }
             try {
                 saveAll(true);
             } catch (RuntimeException error) {
