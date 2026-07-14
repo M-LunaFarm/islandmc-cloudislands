@@ -375,6 +375,7 @@ final class IslandProgressionCommandHandler {
     }
 
     private void recalculateLevel(Player player) {
+        UUID actorUuid = player.getUniqueId();
         runtime.currentIsland(player, message("level-recalculate-island-required", "섬 안에서만 레벨을 계산할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.START_LEVEL_CALC)) {
                 runtime.message(player, message("level-recalculate-denied", "섬 레벨을 계산할 권한이 없습니다."));
@@ -382,7 +383,7 @@ final class IslandProgressionCommandHandler {
             }
             player.sendActionBar(runtime.component(player, message("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.")));
             CompletableFuture<Void> rescan = levelScanService == null ? CompletableFuture.completedFuture(null) : levelScanService.rescanIsland(islandId);
-            rescan.thenCompose(_ignored -> progressionUseCase.recalculateLevelView(islandId, player.getUniqueId()))
+            rescan.thenCompose(_ignored -> progressionUseCase.recalculateLevelView(islandId, actorUuid))
                 .thenAccept(level -> runtime.message(player, message("level-recalculate-success-prefix", "섬 레벨 계산 완료: ")
                     + message("level-label", "레벨 ") + level.level()
                     + message("worth-separator-label", " / 가치 ") + level.worth()))

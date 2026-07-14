@@ -293,12 +293,13 @@ final class IslandSettingsCommandHandler {
     }
 
     private void setPlayerLocale(Player player, String value) {
+        UUID playerUuid = player.getUniqueId();
         String locale = PlayerIslandProfile.normalizeLocale(value);
-        runtime.mutate("player.locale.set", () -> coreApiClient.playerProfileCommands().setLocale(player.getUniqueId(), locale))
+        runtime.mutate("player.locale.set", () -> coreApiClient.playerProfileCommands().setLocale(playerUuid, locale))
             .thenAccept(profile -> {
                 String applied = profile.locale().isBlank() ? locale : PlayerIslandProfile.normalizeLocale(profile.locale());
                 if (locales != null) {
-                    locales.remember(player.getUniqueId(), applied);
+                    locales.remember(playerUuid, applied);
                 }
                 runtime.message(player, message("player-locale-updated", "언어 설정을 변경했습니다.") + " locale=" + applied);
             })

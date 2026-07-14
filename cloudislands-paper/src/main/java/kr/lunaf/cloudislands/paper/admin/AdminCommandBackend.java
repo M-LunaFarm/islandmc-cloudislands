@@ -1508,7 +1508,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                     run(sender, "Storage verify", storageVerifyMessage(islandId));
                 }
             }).exceptionally(error -> {
-                sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[2]);
+                message(sender, adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[2]);
                 return null;
             });
             return true;
@@ -1570,7 +1570,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 resolvedArgs[2] = resolvedIslandId.toString();
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> handleIsland(sender, resolvedArgs));
             }).exceptionally(error -> {
-                sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[2]);
+                message(sender, adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[2]);
                 return null;
             });
             return true;
@@ -1902,7 +1902,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 run(sender, label, action.thenApply(result -> memberActionMessage(label, result)));
             });
         }).exceptionally(error -> {
-            sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[3]);
+            message(sender, adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[3]);
             return null;
         });
         return true;
@@ -1966,7 +1966,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 resolvedArgs[3] = resolvedIslandId.toString();
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> handleIslandBank(sender, resolvedArgs));
             }).exceptionally(error -> {
-                sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[3]);
+                message(sender, adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[3]);
                 return null;
             });
             return true;
@@ -2074,7 +2074,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 "/ciadmin player givedisbands <playerUuid|playerName> <delta>"
             ));
         }).exceptionally(error -> {
-            sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
+            message(sender, adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
             return null;
         });
         return true;
@@ -2452,7 +2452,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
             run(sender, "Island syncbonus", coreApiClient.progressionCommands().adminRecalculateUpgrades(islandId).thenApply(result -> bonusSyncMessage("Island syncbonus", result)));
         }).exceptionally(error -> {
-            sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[1]);
+            message(sender, adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + args[1]);
             return null;
         });
         return true;
@@ -2474,7 +2474,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 }
                 run(sender, "Route debug", coreApiClient.adminRoutes().debug(playerUuid).thenApply(this::routeDebugMessage));
             }).exceptionally(error -> {
-                sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
+                message(sender, adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
                 return null;
             });
             return true;
@@ -2494,7 +2494,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                     }
                     run(sender, "Route ticket", coreApiClient.adminRoutes().ticketForPlayer(playerUuid).thenApply(this::routeTicketMessage));
                 }).exceptionally(error -> {
-                    sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
+                    message(sender, adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
                     return null;
                 });
             }
@@ -2515,7 +2515,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 }
                 run(sender, "Route clear", coreApiClient.adminRoutes().clear(playerUuid, ticketId).thenApply(this::routeClearMessage));
             }).exceptionally(error -> {
-                sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
+                message(sender, adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
                 return null;
             });
             return true;
@@ -2562,6 +2562,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleGameplayModifier(CommandSender sender, String[] args) {
+        UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
         if (args[0].equalsIgnoreCase("setblockamount")) {
             if (args.length < 4) {
                 sendCommandUsage(sender, List.of("/ciadmin setblockamount <island> <materialKey> <amount>"));
@@ -2571,7 +2572,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 if (islandId == null) {
                     return;
                 }
-                UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
                 run(sender, "Set block amount", coreApiClient.environmentCommands().setLimit(islandId, actorUuid, GameplayParityPolicy.blockAmountLimitKey(args[2]), number(args[3], 0L)).thenApply(result -> gameplayModifierMessage("Set block amount", result)));
             });
             return true;
@@ -2585,7 +2585,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 if (islandId == null) {
                     return;
                 }
-                UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
                 run(sender, "Set island effect", coreApiClient.environmentCommands().setLimit(islandId, actorUuid, "EFFECT:" + normalizeGameplayKey(args[2]), number(args[3], 0L)).thenApply(result -> gameplayModifierMessage("Set island effect", result)));
             });
             return true;
@@ -2603,7 +2602,6 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                 if (islandId == null) {
                     return;
                 }
-                UUID actorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
                 run(sender, gameplayModifierLabel(args[0]), coreApiClient.environmentCommands().setLimit(islandId, actorUuid, gameplayModifierLimitKey(args[0]), number(args[2], 100L)).thenApply(result -> gameplayModifierMessage(gameplayModifierLabel(args[0]), result)));
             });
             return true;
@@ -4726,7 +4724,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return coreApiClient.adminIslands().infoByName(value).thenApply(island -> {
             UUID islandId = uuidOrNull(island.islandId());
             if (islandId == null) {
-                sender.sendMessage(adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + value);
+                message(sender, adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + value);
             }
             return islandId;
         });
@@ -4735,7 +4733,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private CompletableFuture<UUID> resolvePlayerUuid(CommandSender sender, String value) {
         return findPlayerUuid(value).thenApply(playerUuid -> {
             if (playerUuid == null) {
-                sender.sendMessage(adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + value);
+                message(sender, adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + value);
             }
             return playerUuid;
         });

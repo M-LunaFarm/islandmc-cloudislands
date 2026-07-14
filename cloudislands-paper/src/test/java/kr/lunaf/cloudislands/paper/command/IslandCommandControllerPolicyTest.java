@@ -842,6 +842,9 @@ class IslandCommandControllerPolicyTest {
         String permissions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandPermissionCommandHandler.java"));
         String membership = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
         String overview = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandOverviewCommandHandler.java"));
+        String progression = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandProgressionCommandHandler.java"));
+        String environment = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java"));
+        String settings = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSettingsCommandHandler.java"));
         String chat = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java"));
 
         assertTrue(permissions.contains("saveStagedChangesSequentially(islandId, actorUuid, changes)"));
@@ -852,6 +855,10 @@ class IslandCommandControllerPolicyTest {
         assertFalse(membership.contains("banVisitorAction(islandId, player.getUniqueId()"), "visitor callbacks must not read Bukkit Player identity");
         assertTrue(membership.contains("resolveInviteTarget(UUID actorUuid, String target)"), "invite resolution must carry immutable actor identity");
         assertTrue(overview.contains("selectPrimaryIsland(actorUuid, islandId)"), "primary-island selection must use the pre-resolved actor identity");
+        assertTrue(progression.contains("recalculateLevelView(islandId, actorUuid)"), "level rescans must retain the command-thread actor identity");
+        assertTrue(environment.contains("setWorldBorderEnabled(playerUuid, enabled)"), "visual preference callbacks must use immutable player identity");
+        assertTrue(environment.contains("scheduleBorderApply(playerUuid, false)"), "border state returned by Core must be applied on the Paper scheduler");
+        assertTrue(settings.contains("locales.remember(playerUuid, applied)"), "locale callbacks must update caches by immutable player identity");
         assertTrue(chat.contains("deliverChatFailure(playerUuid"), "Core chat failures must return to the Paper scheduler by UUID");
         assertTrue(chat.contains("plugin.getServer().getPlayer(playerUuid)"), "chat failure delivery must re-resolve the current online Player");
         assertFalse(chat.contains("exceptionally(error -> {\n                    player.sendMessage"), "Core callbacks must not send through a captured Player");
