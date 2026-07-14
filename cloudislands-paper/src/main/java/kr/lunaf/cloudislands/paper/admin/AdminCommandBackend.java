@@ -646,13 +646,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             if (args.length > 2) {
                 run(sender, "Addon reload", configReload.thenCompose(result -> result.applied()
                     ? api.addons().refresh(args[2]).thenApply(addon -> configHandler.reloadResultMessage(result) + " | " + addon.map(this::addonInfoMessage).orElse(adminText("admin-command-addons-not-found", "Addon: not found ") + args[2]))
-                    : CompletableFuture.completedFuture(configHandler.reloadResultMessage(result)))
-                    .exceptionally(configHandler::reloadFailureMessage));
+                    : CompletableFuture.completedFuture(configHandler.reloadResultMessage(result))));
             } else {
                 run(sender, "Addons reload", configReload.thenCompose(result -> result.applied()
                     ? api.addons().refreshAll().thenApply(addons -> configHandler.reloadResultMessage(result) + " | " + addonListMessage(addons))
-                    : CompletableFuture.completedFuture(configHandler.reloadResultMessage(result)))
-                    .exceptionally(configHandler::reloadFailureMessage));
+                    : CompletableFuture.completedFuture(configHandler.reloadResultMessage(result))));
             }
             return true;
         }

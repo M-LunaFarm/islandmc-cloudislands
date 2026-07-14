@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.logging.Level;
 import java.util.stream.Stream;
 import kr.lunaf.cloudislands.common.config.ConfigDiff;
 import kr.lunaf.cloudislands.common.config.ConfigIssue;
@@ -72,11 +73,7 @@ final class AdminConfigCommandHandler {
         }
         if (args[1].equalsIgnoreCase("reload")) {
             runner.run(sender, "Config reload", asyncIo(this::validateConfigV2Bundle)
-                .thenCompose(validation -> validation.valid()
-                    ? reloadRuntimeConfig().thenCompose(result -> result.applied()
-                        ? coreApiClient.adminMaintenance().reload().thenApply(maintenance -> reloadResultMessage(result) + " | " + maintenanceFormatter.apply(maintenance))
-                        : CompletableFuture.completedFuture(reloadResultMessage(result)))
-                    : CompletableFuture.completedFuture(configValidationMessage(validation)))
+                .thenCompose(this::reloadValidatedRuntimeConfig)
                 .exceptionally(this::reloadFailureMessage));
             return true;
         }
@@ -99,6 +96,28 @@ final class AdminConfigCommandHandler {
             .thenCompose(candidate -> PaperSchedulers.supply(plugin, () -> plugin.applyRuntimeConfigSnapshot(candidate)));
     }
 
+    private CompletableFuture<CharSequence> reloadValidatedRuntimeConfig(ConfigValidationResult validation) {
+        if (!validation.valid()) {
+            return CompletableFuture.completedFuture(configValidationMessage(validation));
+        }
+        return reloadRuntimeConfig()
+            .<CompletableFuture<CharSequence>>handle((result, error) -> error == null
+                ? reloadCoreAfterLocalApply(result)
+                : CompletableFuture.<CharSequence>completedFuture(reloadFailureMessage(error)))
+            .thenCompose(future -> future);
+    }
+
+    private CompletableFuture<CharSequence> reloadCoreAfterLocalApply(PaperRuntimeConfigReloadResult result) {
+        String localResult = reloadResultMessage(result);
+        if (!result.applied()) {
+            return CompletableFuture.completedFuture(localResult);
+        }
+        return coreApiClient.adminMaintenance().reload()
+            .handle((maintenance, error) -> (CharSequence) (error == null
+                ? localResult + " | " + maintenanceFormatter.apply(maintenance)
+                : localResult));
+    }
+
     String reloadResultMessage(PaperRuntimeConfigReloadResult result) {
         if (!result.applied()) {
             return text.get("admin-command-config-reload-restart-prefix", "Paper config reload requires restart: ")
@@ -109,9 +128,17 @@ final class AdminConfigCommandHandler {
     }
 
     String reloadFailureMessage(Throwable failure) {
-        Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+        Throwable cause = failure;
+        while (cause.getCause() != null && cause.getCause() != cause) {
+            cause = cause.getCause();
+        }
+        String detail = cause.getMessage();
+        if (detail == null || detail.isBlank()) {
+            detail = cause.getClass().getSimpleName();
+        }
+        agent.plugin().getLogger().log(Level.WARNING, "Paper runtime config reload rejected; current runtime preserved", cause);
         return text.get("admin-command-config-reload-rejected-prefix", "Paper config reload rejected; current runtime preserved: ")
-            + PaperBootstrapStatus.sanitize(cause.getMessage());
+            + PaperBootstrapStatus.sanitize(detail);
     }
 
     private <T> CompletableFuture<T> asyncIo(java.util.function.Supplier<T> supplier) {

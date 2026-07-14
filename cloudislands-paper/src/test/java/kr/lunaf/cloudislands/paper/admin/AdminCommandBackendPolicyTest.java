@@ -717,6 +717,10 @@ class AdminCommandBackendPolicyTest {
         assertTrue(configHandler.contains("PaperSchedulers.supplyAsync"), "Config filesystem operations must execute away from the Paper command thread");
         assertTrue(configHandler.contains("PaperSchedulers.supply(plugin"), "Config runtime mutation must return to the Paper global scheduler");
         assertFalse(configHandler.contains("sender.sendMessage"), "Async config continuations must not retain or message a command sender directly");
+        assertTrue(configHandler.contains("reloadCoreAfterLocalApply"), "Core maintenance reload must run only after the local Paper snapshot result is known");
+        assertTrue(configHandler.contains(".handle((maintenance, error) -> (CharSequence) (error == null"), "Core maintenance transport failure must not be misreported as a rejected local Paper reload");
+        assertTrue(configHandler.contains(": localResult"), "A locally applied Paper config result must remain visible when Core maintenance is unavailable");
+        assertFalse(source.contains("exceptionally(configHandler::reloadFailureMessage)"), "Addon refresh transport failure must not be misreported as a rejected local Paper reload");
         assertTrue(configHandler.contains("ConfigDiff.between"), "Config diff must report changed and restart-required paths");
         assertTrue(configHandler.contains("currentConfigYaml"), "Config diff must compare against the current runtime config when available");
         assertTrue(plugin.contains("cloudislands.admin.config"), "Config command must have a plugin permission");
