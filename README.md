@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.189`
+Version: `1.1.190`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -651,22 +651,35 @@ integration verification.
 | lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify main-thread template permission preflight, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, fail-closed dispenser, armor-dispense, ground-item hopper, inventory-transfer, and block-projectile boundaries including migrating islands, natural spread, material transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns, and fail-closed player/entity cross-dimension portals inside active island regions | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests; cross-dimension island worlds remain intentionally unavailable until their lifecycle, storage, and routing are implemented end to end |
-| ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
+| ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/Slimefun custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; authoritative size is carried through activation, restore, reset, and migration jobs, while live size changes atomically replace Paper protection, scan, and snapshot bounds; Core island response paths expose the independent authoritative BORDER limit, and async size, border, and border-policy events refresh every online player through the Paper scheduler with per-island burst deduplication; Paper tests also cover region-file cell isolation, unsafe-size fencing, world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting | operator deployment acceptance is still recommended; cells below 1024 blocks or not aligned to 512 blocks fail startup, and islands that cannot fit without sharing region files fail activation or are fenced on unsafe live resize |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; `/is deposit *` and `/is withdraw *` resolve authoritative full balances through scheduler-safe Vault and Core queries before reusing the existing idempotent mutation, refund, and rollback paths; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus current-visible-visitor classification, Core audit/visitor route tests, and LOWEST/HIGHEST mutually exclusive local/team-chat isolation cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
-| integrations/localization/GUI | PARTIAL_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services including RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components | Vault, PlaceholderAPI, Plan, vanish, custom-item, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist |
+| integrations/localization/GUI | PARTIAL_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services including Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components | Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/Slimefun custom-block, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist |
 <!-- feature-parity:end -->
 
 ## Release
 
-Current release: `v1.1.189`
+Current release: `v1.1.190`
 
-Built for the CloudIslands 1.1.189 baseline.
+Built for the CloudIslands 1.1.190 baseline.
 
-Release notes for `v1.1.189`:
+Release notes for `v1.1.190`:
+
+- Slimefun is now an executable custom-block identity integration instead of a
+  diagnostic-only plugin entry
+- deployed Slimefun machines resolve through the official
+  `BlockStorage.checkID(Block)` contract and receive stable `slimefun:<id>` keys
+- block deltas and bounded island rescans now feed those keys into authoritative
+  level, worth, ranking, and custom block-value calculations
+- the adapter stays optional and reflection-isolated; missing or incompatible
+  Slimefun APIs fall back to vanilla material keys without breaking Paper boot
+- API-probe and realistic test-fixture coverage plus the complete 182-task check
+  certify runtime registration, ID normalization, and safe fallback behavior
+
+Release notes carried forward from `v1.1.189`:
 
 - hoppers and hopper minecarts can no longer absorb ground items across an
   island, wilderness, or neighboring-island protection boundary
