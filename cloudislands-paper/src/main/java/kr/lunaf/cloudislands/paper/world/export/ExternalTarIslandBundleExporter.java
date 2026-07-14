@@ -82,7 +82,7 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
         IslandBundleManifest manifest = new IslandBundleManifest(
             islandId,
             source == null ? new UUID(0L, 0L) : source.ownerUuid(),
-            source == null ? 3 : source.formatVersion(),
+            IslandBundleManifest.CURRENT_FORMAT_VERSION,
             source == null ? "unknown" : source.minecraftVersion(),
             source == null ? (int) activeIsland.schemaVersion() : source.schemaVersion(),
             source == null ? activeIsland.islandSize() : source.size(),
@@ -104,7 +104,10 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
             source == null ? IslandBundleManifest.DEFAULT_PLUGIN_VERSION : source.pluginVersion(),
             source == null ? IslandBundleManifest.CURRENT_MINECRAFT_DATA_VERSION : source.minecraftDataVersion(),
             source == null ? IslandBundleManifest.DEFAULT_PAPER_API_BASELINE : source.paperApiBaseline(),
-            source == null ? IslandBundleManifest.DEFAULT_TEMPLATE_VERSION : source.templateVersion()
+            source == null ? IslandBundleManifest.DEFAULT_TEMPLATE_VERSION : source.templateVersion(),
+            activeIsland.originX(),
+            activeIsland.originZ(),
+            true
         );
         Files.writeString(manifestPath, IslandManifestJson.write(manifest), StandardCharsets.UTF_8);
     }

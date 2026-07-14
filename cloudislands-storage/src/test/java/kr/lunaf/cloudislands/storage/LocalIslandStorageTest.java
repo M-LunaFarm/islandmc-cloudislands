@@ -163,7 +163,7 @@ class LocalIslandStorageTest {
         IslandBundleManifest manifest = new IslandBundleManifest(
                 ISLAND_ID,
                 OWNER_ID,
-                3,
+                IslandBundleManifest.CURRENT_FORMAT_VERSION,
                 "1.21.11",
                 12,
                 300,
@@ -185,7 +185,10 @@ class LocalIslandStorageTest {
                 "1.0.1",
                 4435,
                 "1.21.11",
-                "skyblock-default@4"
+                "skyblock-default@4",
+                2048,
+                -1024,
+                true
         );
 
         String json = IslandManifestJson.write(manifest);
@@ -196,9 +199,12 @@ class LocalIslandStorageTest {
         assertTrue(json.contains("\"minecraftDataVersion\":4435"));
         assertTrue(json.contains("\"sourceMinecraftVersion\":\"1.21.11\""));
         assertTrue(json.contains("\"sourceAdapterId\":\"1.21.11\""));
-        assertTrue(json.contains("\"bundleSchemaVersion\":3"));
+        assertTrue(json.contains("\"bundleSchemaVersion\":" + IslandBundleManifest.CURRENT_FORMAT_VERSION));
         assertTrue(json.contains("\"worldDataVersion\":4435"));
-        assertTrue(json.contains("\"minimumReaderVersion\":3"));
+        assertTrue(json.contains("\"minimumReaderVersion\":" + IslandBundleManifest.CURRENT_FORMAT_VERSION));
+        assertTrue(json.contains("\"sourceOriginX\":2048"));
+        assertTrue(json.contains("\"sourceOriginZ\":-1024"));
+        assertTrue(json.contains("\"sourceOriginKnown\":true"));
         assertTrue(json.contains("\"featureCapabilities\""));
         assertTrue(json.contains("\"restoreCompatibilitySummary\":\"compatible-current\""));
         assertTrue(json.contains("\"restoreMigrationAdapter\":\"" + BundleCompatibilityPolicy.TARGET_ADAPTER_ID + "\""));
@@ -206,6 +212,10 @@ class LocalIslandStorageTest {
         assertEquals(4435, parsed.minecraftDataVersion());
         assertEquals("1.21.11", parsed.paperApiBaseline());
         assertEquals("skyblock-default@4", parsed.templateVersion());
+        assertEquals(2048, parsed.sourceOriginX());
+        assertEquals(-1024, parsed.sourceOriginZ());
+        assertTrue(parsed.sourceOriginKnown());
+        assertTrue(parsed.featureCapabilities().contains("cross-cell-remap"));
         assertEquals("compatible-current", parsed.restoreCompatibilitySummary());
     }
 
@@ -234,12 +244,16 @@ class LocalIslandStorageTest {
     @Test
     void manifestJsonReadsLegacyManifestsWithoutSchemaVersion() {
         String legacyJson = IslandManifestJson.write(manifest("LEGACY"))
-                .replace("\"manifestSchemaVersion\":" + IslandManifestJson.CURRENT_MANIFEST_SCHEMA_VERSION + ",", "");
+                .replace("\"manifestSchemaVersion\":" + IslandManifestJson.CURRENT_MANIFEST_SCHEMA_VERSION + ",", "")
+                .replace("\"sourceOriginX\":0,", "")
+                .replace("\"sourceOriginZ\":0,", "")
+                .replace("\"sourceOriginKnown\":false,", "");
 
         IslandBundleManifest parsed = IslandManifestJson.read(legacyJson);
 
         assertEquals(ISLAND_ID, parsed.islandId());
         assertEquals("LEGACY", parsed.snapshotReason());
+        assertFalse(parsed.sourceOriginKnown());
     }
 
     @Test

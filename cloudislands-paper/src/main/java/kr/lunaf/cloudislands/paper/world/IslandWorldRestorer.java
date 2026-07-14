@@ -61,7 +61,7 @@ public final class IslandWorldRestorer {
         IntegrationLifecycleHooks.LifecycleBatch integrations = integrationHooks.restoreState(islandId, worldName, cellX, cellZ, originX, originZ, fencingToken, snapshotNo, storagePath, bundle, plan.extractedRoot(), manifest);
         integrations.throwIfFailed();
         integrations.writeIfPresent(plan.extractedRoot().resolve("integrations/restore.json"));
-        return plan;
+        return plan.withSourceOrigin(manifest.sourceOriginX(), manifest.sourceOriginZ(), manifest.sourceOriginKnown());
     }
 
     public BundleRestorePlan stageTemplateBundle(UUID islandId, String worldName, int cellX, int cellZ, int originX, int originZ, long fencingToken, String storagePath, String expectedChecksum) throws IOException {
@@ -87,7 +87,7 @@ public final class IslandWorldRestorer {
         IntegrationLifecycleHooks.LifecycleBatch integrations = integrationHooks.restoreState(islandId, worldName, cellX, cellZ, originX, originZ, fencingToken, 0L, storagePath, bundle, plan.extractedRoot(), embeddedManifest);
         integrations.throwIfFailed();
         integrations.writeIfPresent(plan.extractedRoot().resolve("integrations/restore.json"));
-        return plan;
+        return plan.withSourceOrigin(embeddedManifest.sourceOriginX(), embeddedManifest.sourceOriginZ(), embeddedManifest.sourceOriginKnown());
     }
 
     private void verifyStagedBundle(UUID islandId, Path bundle, long snapshotNo, String storagePath) throws IOException {

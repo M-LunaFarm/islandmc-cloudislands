@@ -11,7 +11,7 @@ import kr.lunaf.cloudislands.storage.MinecraftKeyMigrations;
 
 public final class IslandManifestJson {
     public static final int LEGACY_MANIFEST_SCHEMA_VERSION = 1;
-    public static final int CURRENT_MANIFEST_SCHEMA_VERSION = 3;
+    public static final int CURRENT_MANIFEST_SCHEMA_VERSION = 4;
 
     private IslandManifestJson() {}
 
@@ -32,6 +32,9 @@ public final class IslandManifestJson {
             + "\"paperApiBaseline\":\"" + escape(manifest.paperApiBaseline()) + "\","
             + "\"sourceAdapterId\":\"" + escape(manifest.sourceAdapterId()) + "\","
             + "\"templateVersion\":\"" + escape(manifest.templateVersion()) + "\","
+            + "\"sourceOriginX\":" + manifest.sourceOriginX() + ","
+            + "\"sourceOriginZ\":" + manifest.sourceOriginZ() + ","
+            + "\"sourceOriginKnown\":" + manifest.sourceOriginKnown() + ","
             + "\"featureCapabilities\":" + stringArray(manifest.featureCapabilities()) + ","
             + "\"schemaVersion\":" + manifest.schemaVersion() + ","
             + "\"size\":" + manifest.size() + ","
@@ -81,6 +84,9 @@ public final class IslandManifestJson {
         int minecraftDataVersion = integer(root, "worldDataVersion", integer(root, "minecraftDataVersion", IslandBundleManifest.DEFAULT_MINECRAFT_DATA_VERSION));
         String paperApiBaseline = text(root, "sourceAdapterId", text(root, "paperApiBaseline", IslandBundleManifest.DEFAULT_PAPER_API_BASELINE));
         String templateVersion = text(root, "templateVersion", IslandBundleManifest.DEFAULT_TEMPLATE_VERSION);
+        int sourceOriginX = integer(root, "sourceOriginX", 0);
+        int sourceOriginZ = integer(root, "sourceOriginZ", 0);
+        boolean sourceOriginKnown = bool(root, "sourceOriginKnown", false);
         int schemaVersion = integer(root, "schemaVersion", 12);
         int size = integer(root, "size", 300);
         Map<?, ?> spawnJson = object(root, "spawn");
@@ -108,7 +114,7 @@ public final class IslandManifestJson {
         boolean portable = bool(root, "portable", true);
         String placementPolicy = text(root, "placementPolicy", "node-agnostic-shard-cell-remap");
         String restorePolicy = text(root, "restorePolicy", "verify-checksum-then-restore-to-current-active-node");
-        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, portable, placementPolicy, restorePolicy, pluginVersion, minecraftDataVersion, paperApiBaseline, templateVersion);
+        return new IslandBundleManifest(islandId, ownerUuid, formatVersion, minecraftVersion, schemaVersion, size, spawn, homes, warps, biomes, createdAt, savedAt, checksum, checksumAlgorithm, compression, storagePath, sizeBytes, snapshotReason, portable, placementPolicy, restorePolicy, pluginVersion, minecraftDataVersion, paperApiBaseline, templateVersion, sourceOriginX, sourceOriginZ, sourceOriginKnown);
     }
 
     public static IslandBundleManifest minimal(UUID islandId, UUID ownerUuid, String checksum) {
