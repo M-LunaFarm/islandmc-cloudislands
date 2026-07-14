@@ -343,10 +343,10 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     FeatureParityEntry(
         "ranking/level/worth/bank/block values",
         "IMPLEMENTED_VERIFIED",
-        "ranking, dirty recalculation, authoritative bank balance ordering, typed block values, custom block identity, logical stack amounts, and tick-budgeted reconciliation have service tests",
+        "ranking, dirty recalculation, authoritative bank balance ordering, typed block values, custom block identity, logical stack amounts, and chunk-complete tick-budgeted reconciliation have service tests",
         "Paper-facing values compile; no per-version runtime divergence is claimed",
         "version-neutral",
-        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, bounded scans, serialized writes, and concurrent-mutation rejection",
+        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection",
         "not recovery-specific",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java",
