@@ -16,6 +16,12 @@ class BukkitStarterIslandGeneratorPolicyTest {
         assertTrue(source.contains("Material.GRASS_BLOCK"));
         assertTrue(source.contains("Material.DIRT"));
         assertTrue(source.contains("Material.BEDROCK"));
+        assertTrue(source.contains("Material.CHEST"));
+        assertTrue(source.contains("Material.LAVA_BUCKET"));
+        assertTrue(source.contains("Material.ICE, 2"));
+        assertTrue(source.contains("Material.OAK_SAPLING, 2"));
+        assertTrue(source.contains("Material.WHEAT_SEEDS, 4"));
+        assertTrue(source.contains("chest.update(true, false)"));
         assertTrue(source.contains("completion.get(timeout.toMillis()"));
     }
 }

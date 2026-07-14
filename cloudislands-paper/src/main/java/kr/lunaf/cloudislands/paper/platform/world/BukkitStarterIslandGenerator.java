@@ -12,6 +12,8 @@ import kr.lunaf.cloudislands.paper.platform.scheduler.PlatformScheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Chest;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 /** Creates the safe, dependency-free fallback island used by bundle-less templates. */
@@ -83,10 +85,32 @@ public final class BukkitStarterIslandGenerator implements StarterIslandGenerato
             }
             world.getBlockAt(plan.blockX(), surfaceY - 3, plan.blockZ()).setType(Material.BEDROCK, false);
             world.getBlockAt(plan.blockX() + 2, surfaceY + 1, plan.blockZ()).setType(Material.OAK_SAPLING, false);
+            populateStarterChest(world, plan.blockX() - 2, surfaceY + 1, plan.blockZ());
             completion.complete(null);
         } catch (Throwable error) {
             completion.completeExceptionally(error);
         }
+    }
+
+    private void populateStarterChest(World world, int blockX, int blockY, int blockZ) throws IOException {
+        org.bukkit.block.Block block = world.getBlockAt(blockX, blockY, blockZ);
+        block.setType(Material.CHEST, false);
+        if (!(block.getState() instanceof Chest chest)) {
+            throw new IOException("failed to create built-in starter chest");
+        }
+        chest.getBlockInventory().clear();
+        chest.getBlockInventory().addItem(
+            new ItemStack(Material.LAVA_BUCKET),
+            new ItemStack(Material.ICE, 2),
+            new ItemStack(Material.OAK_SAPLING, 2),
+            new ItemStack(Material.BONE_MEAL, 4),
+            new ItemStack(Material.WHEAT_SEEDS, 4),
+            new ItemStack(Material.MELON_SEEDS, 2),
+            new ItemStack(Material.PUMPKIN_SEEDS, 2),
+            new ItemStack(Material.CACTUS),
+            new ItemStack(Material.SUGAR_CANE, 2)
+        );
+        chest.update(true, false);
     }
 
     private void await(Plan plan, CompletableFuture<Void> completion) throws IOException {
