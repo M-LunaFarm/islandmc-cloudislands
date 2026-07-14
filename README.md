@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.215`
+Version: `1.1.216`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,9 +698,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.215`
+Current release: `v1.1.216`
 
-Built for the CloudIslands 1.1.215 baseline.
+Built for the CloudIslands 1.1.216 baseline.
+
+Release notes for `v1.1.216`:
+
+- Paper now captures Bukkit player and TPS heartbeat data on the global
+  scheduler while observing Core HTTP failures asynchronously, so heartbeat
+  delivery never blocks plugin enable, tick, or disable threads
+- graceful Paper shutdown cancels periodic READY heartbeats and publishes
+  `SHUTTING_DOWN` before job workers and snapshot flushing begin, immediately
+  fencing both new activations and existing-island routes in Core
+- island nodes now start heartbeat publication only after the worker, storage,
+  save, and scan runtime is installed, preventing a slow bootstrap from
+  advertising a node that cannot yet accept claims
+- regression coverage fixes the lifecycle stop-first ordering and verifies that
+  `SHUTTING_DOWN` nodes are rejected for both new and existing routes
 
 Release notes for `v1.1.215`:
 
@@ -3549,7 +3563,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.215`.
+Current read: production-readiness baseline `v1.1.216`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
