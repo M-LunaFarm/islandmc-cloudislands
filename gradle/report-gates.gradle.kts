@@ -322,7 +322,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "Gameplay and permission flags are represented in the domain",
         "Paper protection listeners, granular painting, item-frame, and leash-knot permissions, extensible database permission-key guards, SS2-style natural and per-player time/weather flags, automation and growth boundaries, natural material transitions, dependent block breaks, and cache paths have unit coverage",
         "Bukkit-facing behavior is kept inside Paper runtime code",
-        "unit verified; Paper policy tests cover granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns",
+        "unit verified; Paper policy tests cover granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns, and fail-closed player/entity cross-dimension portals inside active island regions",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/ProtectionControllerTest.java",
@@ -331,10 +331,12 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/PlayerIslandFlightService.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/platform/world/SafeTeleportPolicyTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/IslandPortalListener.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/IslandPortalListenerTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/IslandGameplayFlagListener.java",
             "cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/permission/defaults/DefaultIslandPermissionsTest.java"
         ),
-        "runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests"
+        "runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests; cross-dimension island worlds remain intentionally unavailable until their lifecycle, storage, and routing are implemented end to end"
     ),
     FeatureParityEntry(
         "ranking/level/worth/bank/block values",
