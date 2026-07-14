@@ -820,7 +820,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(listener.contains("@EventHandler(priority = EventPriority.HIGHEST)"), "team chat isolation must be reasserted after intermediate plugins");
         assertTrue(listener.contains("event.renderer((_source, _sourceDisplayName, _message, _viewer) -> Component.empty())"), "team chat must fail closed to an empty renderer");
         assertTrue(listener.contains("PaperSchedulers.run(plugin, () -> sendTeamChat"), "async chat must return to the Paper scheduler before location access");
-        assertTrue(listener.contains("communicationCommands().sendChat(islandId, player.getUniqueId(), \"TEAM\""), "team-mode messages must use the typed Core team-chat channel");
+        assertTrue(listener.contains("communicationCommands().sendChat(islandId, playerUuid, \"TEAM\""), "team-mode messages must use the typed Core team-chat channel with a scheduler-captured UUID");
         assertTrue(listener.contains("teamChatModes.clear(event.getPlayer().getUniqueId())"), "disconnects must clear local chat mode state");
         assertTrue(bootstrap.contains("plugin.teamChatModes"), "commands and chat listener must share one runtime mode registry");
     }
@@ -833,8 +833,28 @@ class IslandCommandControllerPolicyTest {
         assertTrue(handler.contains("teamChatModes.toggleIsland(player.getUniqueId())"));
         assertTrue(listener.contains("teamChatModes.islandEnabled(event.getPlayer().getUniqueId())"));
         assertTrue(listener.contains("PaperSchedulers.run(plugin, () -> sendLocalChat"), "async local chat must return to the Paper scheduler before location access");
-        assertTrue(listener.contains("communicationCommands().sendChat(islandId, player.getUniqueId(), \"ISLAND\""));
+        assertTrue(listener.contains("communicationCommands().sendChat(islandId, playerUuid, \"ISLAND\""));
         assertTrue(listener.contains("teamChatEnabled(event) || islandChatEnabled(event)"), "both private modes must be re-isolated at HIGHEST");
+    }
+
+    @Test
+    void asynchronousPlayerActionsCaptureIdentityBeforeCoreCallbacks() throws Exception {
+        String permissions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandPermissionCommandHandler.java"));
+        String membership = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandMembershipCommandHandler.java"));
+        String overview = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandOverviewCommandHandler.java"));
+        String chat = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java"));
+
+        assertTrue(permissions.contains("saveStagedChangesSequentially(islandId, actorUuid, changes)"));
+        assertFalse(permissions.contains("setPermissionOverrideAction(islandId, player.getUniqueId()"), "permission resolution callbacks must use a command-thread identity snapshot");
+        assertFalse(membership.contains("removeMemberAction(islandId, player.getUniqueId()"), "membership callbacks must not read Bukkit Player identity");
+        assertFalse(membership.contains("setRoleAction(islandId, player.getUniqueId()"), "role callbacks must not read Bukkit Player identity");
+        assertFalse(membership.contains("transferOwnershipAction(islandId, player.getUniqueId()"), "ownership callbacks must not read Bukkit Player identity");
+        assertFalse(membership.contains("banVisitorAction(islandId, player.getUniqueId()"), "visitor callbacks must not read Bukkit Player identity");
+        assertTrue(membership.contains("resolveInviteTarget(UUID actorUuid, String target)"), "invite resolution must carry immutable actor identity");
+        assertTrue(overview.contains("selectPrimaryIsland(actorUuid, islandId)"), "primary-island selection must use the pre-resolved actor identity");
+        assertTrue(chat.contains("deliverChatFailure(playerUuid"), "Core chat failures must return to the Paper scheduler by UUID");
+        assertTrue(chat.contains("plugin.getServer().getPlayer(playerUuid)"), "chat failure delivery must re-resolve the current online Player");
+        assertFalse(chat.contains("exceptionally(error -> {\n                    player.sendMessage"), "Core callbacks must not send through a captured Player");
     }
 
     @Test

@@ -103,8 +103,9 @@ final class IslandOverviewCommandHandler {
     }
 
     private void selectIsland(Player player, String target) {
+        UUID actorUuid = player.getUniqueId();
         targetResolver.resolve(target)
-            .thenCompose(islandId -> coreApiClient.playerProfileCommands().selectPrimaryIsland(player.getUniqueId(), islandId))
+            .thenCompose(islandId -> coreApiClient.playerProfileCommands().selectPrimaryIsland(actorUuid, islandId))
             .thenAccept(profile -> runtime.message(player, runtime.routeMessage("overview-island-selected", "기본 섬을 선택했습니다.")))
             .exceptionally(error -> {
                 runtime.message(player, runtime.routeMessage("overview-island-select-failed", "소속된 섬만 기본 섬으로 선택할 수 있습니다."));

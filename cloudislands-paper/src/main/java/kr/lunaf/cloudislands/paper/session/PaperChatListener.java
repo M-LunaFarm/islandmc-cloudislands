@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.session;
 
+import java.util.UUID;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.AdminChatSpyRegistry;
@@ -90,10 +91,11 @@ public final class PaperChatListener implements Listener {
     }
 
     private void sendTeamChat(Player player, String message) {
+        UUID playerUuid = player.getUniqueId();
         protection.islandAt(player.getLocation().getBlock()).ifPresentOrElse(islandId ->
-            coreApiClient.communicationCommands().sendChat(islandId, player.getUniqueId(), "TEAM", message)
+            coreApiClient.communicationCommands().sendChat(islandId, playerUuid, "TEAM", message)
                 .exceptionally(error -> {
-                    player.sendMessage(Component.text("팀 채팅을 전송하지 못했습니다."));
+                    deliverChatFailure(playerUuid, "팀 채팅을 전송하지 못했습니다.");
                     return null;
                 }),
             () -> player.sendMessage(Component.text("섬 안에서만 팀 채팅 모드를 사용할 수 있습니다."))
@@ -101,14 +103,24 @@ public final class PaperChatListener implements Listener {
     }
 
     private void sendLocalChat(Player player, String message) {
+        UUID playerUuid = player.getUniqueId();
         protection.islandAt(player.getLocation().getBlock()).ifPresentOrElse(islandId ->
-            coreApiClient.communicationCommands().sendChat(islandId, player.getUniqueId(), "ISLAND", message)
+            coreApiClient.communicationCommands().sendChat(islandId, playerUuid, "ISLAND", message)
                 .exceptionally(error -> {
-                    player.sendMessage(Component.text("섬 채팅을 전송하지 못했습니다."));
+                    deliverChatFailure(playerUuid, "섬 채팅을 전송하지 못했습니다.");
                     return null;
                 }),
             () -> player.sendMessage(Component.text("섬 안에서만 로컬 채팅 모드를 사용할 수 있습니다."))
         );
+    }
+
+    private void deliverChatFailure(UUID playerUuid, String message) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+            if (activePlayer != null && activePlayer.isOnline()) {
+                activePlayer.sendMessage(Component.text(message));
+            }
+        });
     }
 
     private boolean teamChatEnabled(AsyncChatEvent event) {
