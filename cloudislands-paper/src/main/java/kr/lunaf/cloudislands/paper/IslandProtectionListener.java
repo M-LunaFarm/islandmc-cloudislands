@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import io.papermc.paper.event.block.BlockBreakBlockEvent;
+import io.papermc.paper.event.player.PlayerItemFrameChangeEvent;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
@@ -84,18 +85,19 @@ import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
+import org.bukkit.event.player.PlayerAttemptPickupItemEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketEntityEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
-import org.bukkit.event.player.PlayerPickupArrowEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerPickupArrowEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTakeLecternBookEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerShearEntityEvent;
 import org.bukkit.event.player.PlayerUnleashEntityEvent;
 import org.bukkit.event.raid.RaidTriggerEvent;
@@ -353,13 +355,24 @@ public final class IslandProtectionListener implements Listener {
         ));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onItemFrameChange(PlayerItemFrameChangeEvent event) {
+        event.setCancelled(denied(
+            event.getPlayer(),
+            event.getItemFrame().getLocation().getBlock(),
+            IslandPermission.ITEM_FRAME
+        ));
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onPickupAttempt(PlayerAttemptPickupItemEvent event) {
+        event.setCancelled(pickupDenied(event.getPlayer(), event.getItem()));
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPickup(EntityPickupItemEvent event) {
         if (event.getEntity() instanceof Player player) {
-            Block itemBlock = event.getItem().getLocation().getBlock();
-            event.setCancelled(IslandItemOrigin.origin(event.getItem())
-                .map(islandId -> denied(player, itemBlock, islandId, IslandPermission.PICKUP_ITEM))
-                .orElseGet(() -> denied(player, itemBlock, IslandPermission.PICKUP_ITEM)));
+            event.setCancelled(pickupDenied(player, event.getItem()));
         }
     }
 
@@ -850,6 +863,13 @@ public final class IslandProtectionListener implements Listener {
             case PICKUP_ITEM, DROP_ITEM -> "이 섬에서 아이템을 옮길 권한이 없습니다.";
             default -> "이 섬에서 사용할 권한이 없습니다.";
         };
+    }
+
+    private boolean pickupDenied(Player player, org.bukkit.entity.Item item) {
+        Block itemBlock = item.getLocation().getBlock();
+        return IslandItemOrigin.origin(item)
+            .map(islandId -> denied(player, itemBlock, islandId, IslandPermission.PICKUP_ITEM))
+            .orElseGet(() -> denied(player, itemBlock, IslandPermission.PICKUP_ITEM));
     }
 
     private Player attackingPlayer(org.bukkit.entity.Entity damager) {

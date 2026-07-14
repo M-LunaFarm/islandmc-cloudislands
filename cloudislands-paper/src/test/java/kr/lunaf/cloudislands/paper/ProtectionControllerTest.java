@@ -252,6 +252,21 @@ class ProtectionControllerTest {
         assertTrue(listener.contains("IslandPermission.ITEM_FRAME"));
         assertTrue(listener.contains("onHangingPlace(HangingPlaceEvent event)"));
         assertTrue(listener.contains("onHangingBreak(HangingBreakByEntityEvent event)"));
+        assertTrue(listener.contains("onItemFrameChange(PlayerItemFrameChangeEvent event)"));
+        assertTrue(listener.contains("event.getItemFrame().getLocation().getBlock()"));
+    }
+
+    @Test
+    void pickupProtectionRunsAtAttemptAndFinalEntityBoundaries() throws Exception {
+        String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
+
+        assertTrue(listener.contains("onPickupAttempt(PlayerAttemptPickupItemEvent event)"));
+        assertTrue(listener.contains("onPickup(EntityPickupItemEvent event)"));
+        assertTrue(listener.contains("pickupDenied(event.getPlayer(), event.getItem())"));
+        assertTrue(listener.contains("pickupDenied(player, event.getItem())"));
+        assertTrue(listener.contains("priority = EventPriority.HIGHEST"));
+        assertTrue(listener.contains("IslandItemOrigin.origin(item)"));
+        assertTrue(listener.contains("denied(player, itemBlock, islandId, IslandPermission.PICKUP_ITEM)"));
     }
 
     @Test
