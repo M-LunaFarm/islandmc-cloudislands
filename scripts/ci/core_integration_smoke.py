@@ -1469,21 +1469,34 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         create_job = claim_one(primary_url, active_node, "CREATE_ISLAND")
         if int(create_job.get("payload", {}).get("fencingToken", "0")) <= 0:
             raise RuntimeError(f"expected create job fencing token, got {create_job}")
+        create_completion_payload = {
+            "worldName": "ci_smoke_world_" + run_id,
+            "cellX": "1",
+            "cellZ": "2",
+            "snapshotNo": "1",
+            "reason": "CREATED",
+            "checksum": "sha256:integration-smoke-create",
+            "sizeBytes": "2048",
+            "placementSource": "integration-smoke",
+        }
         complete_job(
             secondary_url,
             active_node,
             create_job,
-            {
-                "worldName": "ci_smoke_world_" + run_id,
-                "cellX": "1",
-                "cellZ": "2",
-                "snapshotNo": "1",
-                "reason": "CREATED",
-                "checksum": "sha256:integration-smoke-create",
-                "sizeBytes": "2048",
-                "placementSource": "integration-smoke",
-            },
+            create_completion_payload,
         )
+        committed_replay_request = {
+            "nodeId": active_node,
+            "jobId": create_job["jobId"],
+            "claimLease": create_job.get("claimLease", {}),
+            "payload": create_completion_payload,
+        }
+        request(primary_url, "POST", "/v1/jobs/complete", committed_replay_request, admin=True, expect=(202,))
+        conflicting_replay = dict(committed_replay_request)
+        conflicting_replay["payload"] = dict(create_completion_payload, checksum="sha256:conflicting-replay")
+        conflict = request(primary_url, "POST", "/v1/jobs/complete", conflicting_replay, admin=True, expect=(409,))
+        if response_code(conflict) != "JOB_COMPLETION_CONFLICT":
+            raise RuntimeError(f"expected committed completion replay conflict, got {conflict}")
         activation_latency = time.perf_counter() - activation_start
 
         ready_ticket = request(
@@ -1587,6 +1600,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         if recovered_fencing_token <= 0:
             raise RuntimeError(f"expected recovered runtime fencing token, got {recovered}")
 
+        heartbeat(primary_url, standby_node, node_servers[standby_node], active_islands=1)
         load_metrics = run_load_probe(
             primary_url,
             primary_admin_url,
