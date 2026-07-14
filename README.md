@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.219`
+Version: `1.1.220`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -698,15 +698,32 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.219`
+Current release: `v1.1.220`
 
-Built for the CloudIslands 1.1.219 baseline.
+Built for the CloudIslands 1.1.220 baseline.
+
+Release notes for `v1.1.220`:
+
+- Paper administrator player operations validate operation names, required
+  arguments, island UUIDs, numeric values, and bonus mutations before starting
+  an asynchronous player lookup, so malformed commands cannot trigger avoidable
+  Core traffic or retain a command sender in lookup continuations
+- Config validation, diff, source listing, effective-config generation, runtime
+  snapshot loading, and diagnostic export file writes now run away from the
+  Paper command thread; only the preloaded runtime snapshot mutation returns to
+  the global scheduler
+- home and warp Core callbacks return to the Paper scheduler before reading
+  player location or permissions, and late callbacks are discarded after the
+  player disconnects
+- admin-node loading, island creation progress, and staged permission saving are
+  bound to GUI sessions, so responses arriving after close or navigation cannot
+  replace a newer screen; node retry actions preserve the selected node ID
 
 Release notes for `v1.1.219`:
 
 - Paper permission, membership, invite, ownership, visitor, primary-island,
-  level-recalculation, locale, and administrator gameplay mutations now capture
-  the actor UUID before any Core lookup or asynchronous continuation
+  level-recalculation, locale, and administrator gameplay mutations capture the
+  actor UUID before any Core lookup or asynchronous continuation
 - personal border color and visibility responses return to the global scheduler,
   resolve the current online player by UUID, and only then read island location
   or mutate Bukkit `WorldBorder` state; reconnects no longer target stale Player
@@ -3610,7 +3627,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.219`.
+Current read: production-readiness baseline `v1.1.220`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
