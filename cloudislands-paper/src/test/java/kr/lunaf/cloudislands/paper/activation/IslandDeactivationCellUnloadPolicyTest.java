@@ -16,10 +16,16 @@ class IslandDeactivationCellUnloadPolicyTest {
 
         int save = source.indexOf("saveService.save(islandId, active");
         int unload = source.indexOf("cellUnloader.unload(IslandCellRange.from(active))");
+        if (unload < 0) {
+            unload = source.indexOf("cellUnloader.unload(range)");
+        }
+        int clear = source.indexOf("cellTransfer.clear(range.worldName()");
         int unregister = source.indexOf("protectionController.unregisterIsland(islandId)");
         int release = source.indexOf("shardWorldManager.release(islandId)");
         assertTrue(save >= 0 && save < unload);
-        assertTrue(unload < unregister && unregister < release);
+        assertTrue(unload < clear && clear < unregister && unregister < release);
+        assertTrue(source.contains("if (deleteBackup)"));
+        assertTrue(source.contains("deleted island cell cleanup is unavailable"));
         assertTrue(source.contains("activeIslands.beginTransition(islandId)"));
         assertTrue(source.contains("activeIslands.endTransition(islandId)"));
     }

@@ -53,6 +53,8 @@ final class PaperIslandNodeRuntime {
             new IslandSizeRuntimeListener(plugin.activeIslands, shardWorldManager, plugin.agent.protection(), plugin.getLogger())
         );
         IntegrationLifecycleHooks integrationHooks = IntegrationLifecycleHooks.fromRegistry(plugin.integrationRegistry, nodeId);
+        FileBackedCellTransfer cellTransfer = new FileBackedCellTransfer(plugin.getServer().getWorldContainer().toPath());
+        kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader cellUnloader = new kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader(plugin);
         IslandSaveService saveService = new IslandSaveService(
             storage,
             new ExternalTarIslandBundleExporter(plugin.getServer().getWorldContainer().toPath(), integrationHooks),
@@ -72,22 +74,22 @@ final class PaperIslandNodeRuntime {
             ),
             new ShardWorldPreloader(plugin),
             config.worker().activationPreloadRadius(),
-            new FileBackedCellTransfer(plugin.getServer().getWorldContainer().toPath()),
+            cellTransfer,
             plugin.activeIslands,
             saveService,
             config.worker().defaultIslandSize(),
             integrationHooks,
-            new kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader(plugin),
+            cellUnloader,
             new kr.lunaf.cloudislands.paper.platform.world.BukkitStarterIslandGenerator(plugin)
         );
-        kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader cellUnloader = new kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader(plugin);
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(
             plugin.activeIslands,
             shardWorldManager,
             plugin.agent.protection(),
             saveService,
             integrationHooks,
-            cellUnloader
+            cellUnloader,
+            cellTransfer
         );
         PermissionCacheSyncService permissionSync = new PermissionCacheSyncService(plugin, client, plugin.agent.permissionCache());
         plugin.jobWorker = new PaperIslandJobWorker(

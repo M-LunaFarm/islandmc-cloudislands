@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.UUID;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
+import kr.lunaf.cloudislands.paper.world.cell.FileBackedCellTransfer;
 
 public final class IslandDeactivationHandler {
     private static final String DEACTIVATION_SNAPSHOT_REASON = "DEACTIVATION";
@@ -15,6 +16,7 @@ public final class IslandDeactivationHandler {
     private final IslandSaveService saveService;
     private final IntegrationLifecycleHooks integrationHooks;
     private final IslandCellUnloader cellUnloader;
+    private final FileBackedCellTransfer cellTransfer;
 
     public IslandDeactivationHandler(ActiveIslandRegistry activeIslands, ShardWorldManager shardWorldManager, ProtectionController protectionController) {
         this(activeIslands, shardWorldManager, protectionController, null);
@@ -29,12 +31,17 @@ public final class IslandDeactivationHandler {
     }
 
     public IslandDeactivationHandler(ActiveIslandRegistry activeIslands, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandSaveService saveService, IntegrationLifecycleHooks integrationHooks, IslandCellUnloader cellUnloader) {
+        this(activeIslands, shardWorldManager, protectionController, saveService, integrationHooks, cellUnloader, null);
+    }
+
+    public IslandDeactivationHandler(ActiveIslandRegistry activeIslands, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandSaveService saveService, IntegrationLifecycleHooks integrationHooks, IslandCellUnloader cellUnloader, FileBackedCellTransfer cellTransfer) {
         this.activeIslands = activeIslands;
         this.shardWorldManager = shardWorldManager;
         this.protectionController = protectionController;
         this.saveService = saveService;
         this.integrationHooks = integrationHooks == null ? IntegrationLifecycleHooks.noop() : integrationHooks;
         this.cellUnloader = cellUnloader == null ? IslandCellUnloader.unavailable() : cellUnloader;
+        this.cellTransfer = cellTransfer;
     }
 
     public DeactivationResult deactivate(UUID islandId) {
@@ -69,7 +76,14 @@ public final class IslandDeactivationHandler {
             if (active != null && saveService != null) {
                 saveResult = deleteBackup ? saveService.backupBeforeDelete(islandId, active) : saveService.save(islandId, active, null, reason);
                 integrationHooks.onIslandDeactivated(islandId, active, saveResult.bundleFile()).throwIfFailed();
-                cellUnloader.unload(IslandCellRange.from(active));
+                IslandCellRange range = IslandCellRange.from(active);
+                cellUnloader.unload(range);
+                if (deleteBackup) {
+                    if (cellTransfer == null) {
+                        throw new IOException("deleted island cell cleanup is unavailable: " + islandId);
+                    }
+                    cellTransfer.clear(range.worldName(), range.minChunkX(), range.maxChunkX(), range.minChunkZ(), range.maxChunkZ());
+                }
             }
             protectionController.unregisterIsland(islandId);
             activeIslands.deactivated(islandId);
