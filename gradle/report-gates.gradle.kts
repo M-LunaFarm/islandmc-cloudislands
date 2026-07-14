@@ -322,7 +322,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "Gameplay and permission flags are represented in the domain",
         "Paper protection listeners, granular painting, item-frame, and leash-knot permissions, extensible database permission-key guards, SS2-style natural and per-player time/weather flags, automation and growth boundaries, natural material transitions, dependent block breaks, and cache paths have unit coverage",
         "Bukkit-facing behavior is kept inside Paper runtime code",
-        "unit verified; Paper policy tests cover granular interactions, soft-explosion target authorization and non-destructive accounting, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns",
+        "unit verified; Paper policy tests cover granular interactions, durable role-gated personal flight with external-flight ownership isolation, soft-explosion target authorization and non-destructive accounting, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, automation and growth boundaries, natural spread, material transitions, dependent block breaks, raids, mob targeting, and bounded asynchronous safe returns",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/ProtectionControllerTest.java",
