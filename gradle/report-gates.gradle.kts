@@ -291,11 +291,14 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "Core lifecycle and route tickets are covered",
         "Paper 1.21.11 and 26.1.2 boot smoke load the plugin",
         "1.21.x and 26.1.x release adapters; 26.2 compile adapter",
-        "ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap plus cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify main-thread template permission preflight, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation",
+        "ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper tests verify main-thread template permission preflight, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation",
         "node-down recovery restore is covered by ciIntegrationSmoke",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/workflow/IslandLifecycleWorkflowRestoreTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/db/JdbcSchemaBootstrapLockPolicyTest.java",
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/db/JdbcDialectDataSourceTest.java",
+            "cloudislands-core-service/src/main/resources/db/mysql/V9__repair_player_island_fly_preference.sql",
+            ".github/workflows/integration.yml",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/platform/compatibility/Paper121FamilyAdapter.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/platform/world/SafeTeleportPolicyTest.java",
             "scripts/ci/core_integration_smoke.py"

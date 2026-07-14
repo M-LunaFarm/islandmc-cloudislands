@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.195`
+Version: `1.1.196`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -293,6 +293,9 @@ When `setup.database.auto-schema` is explicitly enabled, the complete schema
 chain is serialized across Core instances with one database-session lock.
 PostgreSQL uses an advisory lock and MySQL/MariaDB use `GET_LOCK`; acquisition
 is limited to 60 seconds and startup fails instead of running concurrent DDL.
+MySQL/MariaDB sessions and JDBC timestamp bindings are normalized to UTC so
+heartbeats, leases, expirations, and audit timestamps remain correct regardless
+of the Core host or database server time zone.
 
 ## Lifecycle examples
 
@@ -666,7 +669,7 @@ integration verification.
 <!-- feature-parity:start -->
 | Area | Status | Verified evidence | Limit |
 |---|---|---|---|
-| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap plus cross-Core create, job, route, session, consume, and player-ticket cache convergence; Paper tests verify main-thread template permission preflight, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
+| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper tests verify main-thread template permission preflight, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests cover granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, CraftEngine furniture build/break enforcement, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, fail-closed dispenser, armor-dispense, ground-item hopper, inventory-transfer, and block-projectile boundaries including migrating islands, cancellation-final natural spread, growth, formation, fade, fluid, fire, leaf, bucket, fertilize, structure, and Enderman transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns, and fail-closed player/entity cross-dimension portals inside active island regions | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests; cross-dimension island worlds remain intentionally unavailable until their lifecycle, storage, and routing are implemented end to end |
 | ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, cancellation-final and inheritance-deduplicated block transitions, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
@@ -680,11 +683,26 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.195`
+Current release: `v1.1.196`
 
-Built for the CloudIslands 1.1.195 baseline.
+Built for the CloudIslands 1.1.196 baseline.
 
-Release notes for `v1.1.195`:
+Release notes for `v1.1.196`:
+
+- MySQL/MariaDB connections now force a UTC database session and use UTC
+  calendars for every implicit JDBC timestamp bind/read, preventing fresh
+  heartbeats and leases from appearing nine hours stale on Asia/Seoul hosts
+- schema bootstrap no longer mistakes MySQL `42000` syntax errors containing
+  the word `EXISTS` for harmless duplicate-object errors
+- MySQL V6 now uses valid portable DDL, while V9 repairs installations where
+  the old V6 was incorrectly recorded as applied without `island_fly_enabled`
+- CI now runs the complete two-Core Redis/MinIO integration scenario against
+  both PostgreSQL and MySQL 8.4, including creation, jobs, routing, recovery,
+  bank, membership, warps, event replay, audit visibility, and database backup
+- clean and previously affected MySQL databases, targeted regressions, and the
+  complete 182-task check passed
+
+Release notes carried forward from `v1.1.195`:
 
 - PostgreSQL schema bootstrap now holds one session advisory lock across the
   complete migration chain, preventing two Core instances from interleaving
@@ -3213,10 +3231,10 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.173`.
+Current read: production-readiness baseline `v1.1.196`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
-two Core instances, shared PostgreSQL, Redis, object storage, Paper boot smoke,
+two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
 Velocity boot smoke, virtual-player route/session coverage, backup/restore, and
 failure-injection evidence links. Operators should still run deployment-specific
 acceptance for live player traffic, vendor plugin farms, and server-specific
