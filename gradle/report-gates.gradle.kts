@@ -371,7 +371,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "upgrade effects apply size, limits, fly, generator tier, biome validation, and player border policy with combined bank and warehouse-item prices",
         "Paper commands compile and tests cover command policy plus border runtime calculation",
         "Paper adapter isolates version-sensitive runtime access",
-        "verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; Paper tests cover world-border policy and chunk-batched biome painting",
+        "verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; Paper tests cover world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java",
@@ -379,9 +379,11 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/platform/compatibility/PaperPlatformBoundaryTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/upgrade/UpgradeEffectApplierTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutesTest.java",
-            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/IslandBorderRuntimePolicyTest.java"
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/IslandBorderRuntimePolicyTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/platform/world/IslandBiomeRuntimeApplier.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/environment/IslandBiomeRuntimeApplierPolicyTest.java"
         ),
-        "operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome painting and border application policy"
+        "operator deployment acceptance is still recommended; CI verifies Core mutation plus cancellable, asynchronous Paper biome convergence and border application policy"
     ),
     FeatureParityEntry(
         "bank/economy/missions/challenges/generators/limits",
