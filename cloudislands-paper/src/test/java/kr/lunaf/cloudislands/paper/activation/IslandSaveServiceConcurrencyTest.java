@@ -104,7 +104,10 @@ class IslandSaveServiceConcurrencyTest {
             Files.writeString(bundle, "bundle");
             return new IslandBundleExporter.ExportedIslandBundle(id, bundle, 1L);
         };
-        IslandWorldFlush flush = active -> assertEquals(0, sequence.getAndIncrement());
+        IslandWorldFlush flush = (active, reason) -> {
+            assertEquals("AUTO", reason);
+            assertEquals(0, sequence.getAndIncrement());
+        };
         IslandSaveService service = new IslandSaveService(
             storage, exporter, tempDir.resolve("exports"), SnapshotRetentionPolicy.defaultPolicy(), flush
         );
@@ -128,7 +131,7 @@ class IslandSaveServiceConcurrencyTest {
         };
         IslandSaveService service = new IslandSaveService(
             storage(manifest(islandId)), exporter, tempDir.resolve("exports"), SnapshotRetentionPolicy.defaultPolicy(),
-            active -> { throw new IOException("flush failed"); }
+            (active, reason) -> { throw new IOException("flush failed"); }
         );
         ActiveIslandRegistry.ActiveIsland active = new ActiveIslandRegistry.ActiveIsland(
             islandId, "ci_shard_001", 0, 0, 0, 0, 100, 1L, 10L, Instant.now()

@@ -88,7 +88,7 @@ public final class IslandSaveService {
         if (!retentionPolicy.compress()) {
             throw new IOException("uncompressed snapshot bundles are not supported by the current storage format");
         }
-        worldFlush.flush(activeIsland);
+        worldFlush.flush(activeIsland, reason);
         IslandBundleManifest previous = (baseManifest == null ? storage.readManifest(islandId) : baseManifest).withSnapshotReason(reason);
         IslandBundleExporter.ExportedIslandBundle exported = exporter.export(islandId, activeIsland, exportRoot.resolve(islandId.toString()), previous);
         long sizeBytes = Files.size(exported.bundleFile());

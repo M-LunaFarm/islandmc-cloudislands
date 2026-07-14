@@ -17,9 +17,11 @@ import org.bukkit.plugin.Plugin;
 /** Flushes live chunk, entity, and POI state before offline region-file export. */
 public final class BukkitIslandWorldFlush implements IslandWorldFlush {
     private static final Duration DEFAULT_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration AUTO_FLUSH_REUSE = Duration.ofSeconds(30);
 
     private final PlatformScheduler scheduler;
     private final Duration timeout;
+    private final WorldFlushReusePolicy reusePolicy = new WorldFlushReusePolicy(AUTO_FLUSH_REUSE);
 
     public BukkitIslandWorldFlush(Plugin plugin) {
         this(new BukkitPlatformScheduler(plugin), DEFAULT_TIMEOUT);
@@ -31,12 +33,17 @@ public final class BukkitIslandWorldFlush implements IslandWorldFlush {
     }
 
     @Override
-    public void flush(ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException {
+    public synchronized void flush(ActiveIslandRegistry.ActiveIsland activeIsland, String reason) throws IOException {
         if (activeIsland == null || activeIsland.worldName() == null || activeIsland.worldName().isBlank()) {
             throw new IOException("cannot flush island with no active world");
         }
+        long now = System.currentTimeMillis();
+        if (!reusePolicy.requiresFlush(activeIsland.worldName(), reason, now)) {
+            return;
+        }
         if (Bukkit.isPrimaryThread()) {
             flushWorld(activeIsland.worldName());
+            recordFlush(activeIsland.worldName());
             return;
         }
         CompletableFuture<Void> completion = new CompletableFuture<>();
@@ -54,6 +61,7 @@ public final class BukkitIslandWorldFlush implements IslandWorldFlush {
         }
         try {
             completion.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            recordFlush(activeIsland.worldName());
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             throw new IOException("interrupted while flushing island world " + activeIsland.worldName(), exception);
@@ -66,6 +74,10 @@ public final class BukkitIslandWorldFlush implements IslandWorldFlush {
             }
             throw new IOException("failed to flush island world " + activeIsland.worldName(), cause);
         }
+    }
+
+    private void recordFlush(String worldName) {
+        reusePolicy.record(worldName, System.currentTimeMillis());
     }
 
     private void flushWorld(String worldName) throws IOException {

@@ -4,9 +4,9 @@ import java.io.IOException;
 
 @FunctionalInterface
 public interface IslandWorldFlush {
-    void flush(ActiveIslandRegistry.ActiveIsland activeIsland) throws IOException;
+    void flush(ActiveIslandRegistry.ActiveIsland activeIsland, String reason) throws IOException;
 
     static IslandWorldFlush noop() {
-        return ignored -> {};
+        return (ignored, reason) -> {};
     }
 }
