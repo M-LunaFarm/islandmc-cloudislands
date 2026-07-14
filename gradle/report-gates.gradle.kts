@@ -346,7 +346,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "ranking, dirty recalculation, authoritative bank balance ordering, typed block values, custom block identity, logical stack amounts, and tick-budgeted reconciliation have service tests",
         "Paper-facing values compile; no per-version runtime divergence is claimed",
         "version-neutral",
-        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/Slimefun custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, bounded scans, serialized writes, and concurrent-mutation rejection",
+        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block identity, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, bounded scans, serialized writes, and concurrent-mutation rejection",
         "not recovery-specific",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java",
@@ -493,7 +493,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "integration policy, localization files, GUI components, and scoped runtime certification fixtures exist",
         "Paper integration registry certifies Vault economy, PlaceholderAPI registration, Plan distributed analytics, vanish-safe player suggestions, custom block identity, and logical stack accounting while separating diagnostic-only state-transfer adapters",
         "plugin-specific operation adapters are active only where implemented",
-        "verifyIntegrationRuntimeSmoke verifies executable runtime services including Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components",
+        "verifyIntegrationRuntimeSmoke verifies executable runtime services including CraftEngine and Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/integration/PaperIntegrationRegistry.java",
@@ -507,7 +507,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/message/ConfiguredMessageComponentsTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/message/RichMessageRuntimeSurfaceTest.java"
         ),
-        "Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/Slimefun custom-block, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
+        "Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom-block, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
     )
 )
 
