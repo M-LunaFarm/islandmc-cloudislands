@@ -129,8 +129,16 @@ class AdminCommandBackendPolicyTest {
         assertTrue(adminSurface.contains("\"givedisbands\""), "Admin player command completion must expose givedisbands");
         assertTrue(adminSurface.contains("ciadmin player setdisbands <player> <value>"), "setdisbands must be listed in help");
         assertTrue(adminSurface.contains("ciadmin player givedisbands <player> <delta>"), "givedisbands must be listed in help");
-        assertTrue(source.contains("coreApiClient.playerProfileCommands().setDisbandsRemaining(playerUuid, value)"), "setdisbands must call the typed Core profile mutation");
-        assertTrue(source.contains("coreApiClient.playerProfileCommands().addDisbandsRemaining(playerUuid, delta)"), "givedisbands must call the typed Core profile mutation");
+        assertTrue(source.contains("coreApiClient.playerProfileCommands().setDisbandsRemaining(playerUuid, requestedDisbands)"), "setdisbands must call the typed Core profile mutation with prevalidated input");
+        assertTrue(source.contains("coreApiClient.playerProfileCommands().addDisbandsRemaining(playerUuid, requestedDisbands)"), "givedisbands must call the typed Core profile mutation with prevalidated input");
+        int playerHandler = source.indexOf("private boolean handlePlayer(CommandSender sender, String[] args)");
+        int playerResolution = source.indexOf("resolvePlayerUuid(sender, args[2]).thenAccept", playerHandler);
+        int playerResolutionEnd = source.indexOf("}).exceptionally(error ->", playerResolution);
+        String playerResolutionCallback = source.substring(playerResolution, playerResolutionEnd);
+        assertTrue(source.indexOf("UUID requestedIslandId", playerHandler) < playerResolution, "player command arguments must be validated before asynchronous profile resolution");
+        assertFalse(playerResolutionCallback.contains("sender.sendMessage"), "profile resolution callbacks must not use Bukkit CommandSender directly");
+        assertFalse(playerResolutionCallback.contains("uuid(sender"), "profile resolution callbacks must not parse and report UUIDs off-thread");
+        assertFalse(playerResolutionCallback.contains("sendCommandUsage"), "profile resolution callbacks must not render usage off-thread");
         assertTrue(source.contains("profile.disbandsRemaining()"), "Admin player output must render the remaining disband quota");
         assertTrue(profileClient.contains("setDisbandsRemaining(UUID playerUuid, int value)"), "Typed profile client must expose absolute disband quota mutation");
         assertTrue(profileClient.contains("addDisbandsRemaining(UUID playerUuid, int delta)"), "Typed profile client must expose additive disband quota mutation");
@@ -161,7 +169,8 @@ class AdminCommandBackendPolicyTest {
         assertTrue(adminSurface.contains("ciadmin syncbonus <island>"), "Syncbonus command must be listed in help");
         assertTrue(source.contains("BONUS_LIMIT_PREFIX = \"BONUS:\""), "Bonus compatibility state must use explicit Core limit key namespace");
         assertTrue(source.contains("coreApiClient.environment().limitViews(islandId).thenApply(this::bonusListMessage)"), "Bonus inspection must read typed Core limit state");
-        assertTrue(source.contains("coreApiClient.environmentCommands().adminAddLimit(islandId, bonusLimitKey(args[2]), number(args[3], 0L))"), "Addbonus must mutate typed Core limit state");
+        assertTrue(source.contains("coreApiClient.environmentCommands().adminAddLimit(islandId, bonusKey, bonusDelta)"), "Addbonus must mutate typed Core limit state using prevalidated immutable input");
+        assertTrue(source.indexOf("if (args[0].equalsIgnoreCase(\"addbonus\") && args.length < 4)") < source.indexOf("resolveIslandUuid(sender, args[1]).thenAccept"), "Addbonus usage validation must happen before asynchronous island resolution");
         assertTrue(source.contains("coreApiClient.progressionCommands().adminRecalculateUpgrades(islandId)"), "Syncbonus must recalculate upgrade effects through typed Core");
         assertTrue(source.contains("return \"cloudislands.admin.upgrade-rules\";"), "Bonus compatibility roots must use upgrade-rules admin permission");
         assertTrue(progressionClient.contains("adminRecalculateUpgrades(UUID islandId)"), "Progression command client must expose admin recalculation");

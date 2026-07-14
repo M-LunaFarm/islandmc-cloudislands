@@ -2015,64 +2015,51 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private boolean handlePlayer(CommandSender sender, String[] args) {
+        List<String> usage = List.of(
+            "/ciadmin player info <playerUuid|playerName>",
+            "/ciadmin player setisland <playerUuid|playerName> <islandUuid>",
+            "/ciadmin player clearisland <playerUuid|playerName>",
+            "/ciadmin player setdisbands <playerUuid|playerName> <value>",
+            "/ciadmin player givedisbands <playerUuid|playerName> <delta>"
+        );
         if (args.length < 3) {
-            sendCommandUsage(sender, List.of(
-                "/ciadmin player info <playerUuid|playerName>",
-                "/ciadmin player setisland <playerUuid|playerName> <islandUuid>",
-                "/ciadmin player clearisland <playerUuid|playerName>",
-                "/ciadmin player setdisbands <playerUuid|playerName> <value>",
-                "/ciadmin player givedisbands <playerUuid|playerName> <delta>"
-            ));
+            sendCommandUsage(sender, usage);
             return true;
         }
+        String operation = args[1].toLowerCase(Locale.ROOT);
+        if (!List.of("info", "setisland", "clearisland", "setdisbands", "givedisbands").contains(operation)) {
+            sendCommandUsage(sender, usage);
+            return true;
+        }
+        if ((operation.equals("setisland") || operation.equals("setdisbands") || operation.equals("givedisbands")) && args.length < 4) {
+            String key = operation.equals("setisland")
+                ? "admin-command-island-uuid-required"
+                : operation.equals("setdisbands") ? "admin-command-player-disbands-value-required" : "admin-command-player-disbands-delta-required";
+            String fallback = operation.equals("setisland")
+                ? "섬 UUID를 입력해주세요."
+                : operation.equals("setdisbands") ? "디스밴드 횟수를 입력해주세요." : "추가할 디스밴드 횟수를 입력해주세요.";
+            sender.sendMessage(adminText(key, fallback));
+            return true;
+        }
+        UUID requestedIslandId = operation.equals("setisland") ? uuid(sender, args[3]) : null;
+        if (operation.equals("setisland") && requestedIslandId == null) {
+            return true;
+        }
+        int requestedDisbands = operation.equals("setdisbands")
+            ? boundedInt(Math.max(0L, number(args[3], 0L)))
+            : operation.equals("givedisbands") ? boundedInt(number(args[3], 0L)) : 0;
         resolvePlayerUuid(sender, args[2]).thenAccept(playerUuid -> {
             if (playerUuid == null) {
                 return;
             }
-            if (args[1].equalsIgnoreCase("info")) {
-                run(sender, "Player info", coreApiClient.playerProfiles().profile(playerUuid).thenApply(this::playerInfoMessage));
-                return;
-            }
-            if (args[1].equalsIgnoreCase("setisland")) {
-                if (args.length < 4) {
-                    sender.sendMessage(adminText("admin-command-island-uuid-required", "섬 UUID를 입력해주세요."));
-                    return;
-                }
-                UUID islandId = uuid(sender, args[3]);
-                if (islandId != null) {
-                    run(sender, "Player setisland", coreApiClient.playerProfileCommands().setPrimaryIsland(playerUuid, islandId).thenApply(profile -> playerActionMessage("Player setisland", profile)));
-                }
-                return;
-            }
-            if (args[1].equalsIgnoreCase("clearisland")) {
-                run(sender, "Player clearisland", coreApiClient.playerProfileCommands().clearPrimaryIsland(playerUuid).thenApply(profile -> playerActionMessage("Player clearisland", profile)));
-                return;
-            }
-            if (args[1].equalsIgnoreCase("setdisbands")) {
-                if (args.length < 4) {
-                    sender.sendMessage(adminText("admin-command-player-disbands-value-required", "디스밴드 횟수를 입력해주세요."));
-                    return;
-                }
-                int value = boundedInt(Math.max(0L, number(args[3], 0L)));
-                run(sender, "Player setdisbands", coreApiClient.playerProfileCommands().setDisbandsRemaining(playerUuid, value).thenApply(profile -> playerDisbandsActionMessage("Player setdisbands", profile)));
-                return;
-            }
-            if (args[1].equalsIgnoreCase("givedisbands")) {
-                if (args.length < 4) {
-                    sender.sendMessage(adminText("admin-command-player-disbands-delta-required", "추가할 디스밴드 횟수를 입력해주세요."));
-                    return;
-                }
-                int delta = boundedInt(number(args[3], 0L));
-                run(sender, "Player givedisbands", coreApiClient.playerProfileCommands().addDisbandsRemaining(playerUuid, delta).thenApply(profile -> playerDisbandsActionMessage("Player givedisbands", profile)));
-                return;
-            }
-            sendCommandUsage(sender, List.of(
-                "/ciadmin player info <playerUuid|playerName>",
-                "/ciadmin player setisland <playerUuid|playerName> <islandUuid>",
-                "/ciadmin player clearisland <playerUuid|playerName>",
-                "/ciadmin player setdisbands <playerUuid|playerName> <value>",
-                "/ciadmin player givedisbands <playerUuid|playerName> <delta>"
-            ));
+            CompletableFuture<? extends CharSequence> action = switch (operation) {
+                case "info" -> coreApiClient.playerProfiles().profile(playerUuid).thenApply(this::playerInfoMessage);
+                case "setisland" -> coreApiClient.playerProfileCommands().setPrimaryIsland(playerUuid, requestedIslandId).thenApply(profile -> playerActionMessage("Player setisland", profile));
+                case "clearisland" -> coreApiClient.playerProfileCommands().clearPrimaryIsland(playerUuid).thenApply(profile -> playerActionMessage("Player clearisland", profile));
+                case "setdisbands" -> coreApiClient.playerProfileCommands().setDisbandsRemaining(playerUuid, requestedDisbands).thenApply(profile -> playerDisbandsActionMessage("Player setdisbands", profile));
+                default -> coreApiClient.playerProfileCommands().addDisbandsRemaining(playerUuid, requestedDisbands).thenApply(profile -> playerDisbandsActionMessage("Player givedisbands", profile));
+            };
+            run(sender, "Player " + operation, action);
         }).exceptionally(error -> {
             message(sender, adminText("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ") + args[2]);
             return null;
@@ -2434,20 +2421,23 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             ));
             return true;
         }
+        if (args[0].equalsIgnoreCase("addbonus") && args.length < 4) {
+            sendCommandUsage(sender, List.of("/ciadmin addbonus <islandUuid|islandName> <bonusKey> <delta>"));
+            return true;
+        }
+        String operation = args[0].toLowerCase(Locale.ROOT);
+        String bonusKey = operation.equals("addbonus") ? bonusLimitKey(args[2]) : "";
+        long bonusDelta = operation.equals("addbonus") ? number(args[3], 0L) : 0L;
         resolveIslandUuid(sender, args[1]).thenAccept(islandId -> {
             if (islandId == null) {
                 return;
             }
-            if (args[0].equalsIgnoreCase("bonus")) {
+            if (operation.equals("bonus")) {
                 run(sender, "Island bonus", coreApiClient.environment().limitViews(islandId).thenApply(this::bonusListMessage));
                 return;
             }
-            if (args[0].equalsIgnoreCase("addbonus")) {
-                if (args.length < 4) {
-                    sendCommandUsage(sender, List.of("/ciadmin addbonus <islandUuid|islandName> <bonusKey> <delta>"));
-                    return;
-                }
-                run(sender, "Island addbonus", coreApiClient.environmentCommands().adminAddLimit(islandId, bonusLimitKey(args[2]), number(args[3], 0L)).thenApply(result -> gameplayModifierMessage("Island addbonus", result)));
+            if (operation.equals("addbonus")) {
+                run(sender, "Island addbonus", coreApiClient.environmentCommands().adminAddLimit(islandId, bonusKey, bonusDelta).thenApply(result -> gameplayModifierMessage("Island addbonus", result)));
                 return;
             }
             run(sender, "Island syncbonus", coreApiClient.progressionCommands().adminRecalculateUpgrades(islandId).thenApply(result -> bonusSyncMessage("Island syncbonus", result)));
