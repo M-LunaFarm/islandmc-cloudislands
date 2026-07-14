@@ -10,6 +10,7 @@ REQUIRED_LISTENER_MARKERS = {
     "interact": ["PlayerInteractEvent", "interactionPermission"],
     "container_open": ["InventoryOpenEvent", "IslandPermission.OPEN_CONTAINER"],
     "hopper_transfer": ["InventoryMoveItemEvent", "sameIsland"],
+    "item_origin": ["ItemSpawnEvent", "IslandItemOrigin.mark", "ItemMergeEvent", "protection.checkIsland", "IslandItemOrigin.destinationAllowed"],
     "bucket_empty_fill": ["PlayerBucketEmptyEvent", "PlayerBucketFillEvent", "PLACE_LIQUID", "BREAK_LIQUID"],
     "lava_water_spread": ["BlockFromToEvent", "LAVA_FLOW", "WATER_FLOW"],
     "fire_spread": ["BlockIgniteEvent", "BlockBurnEvent", "FIRE_SPREAD"],
@@ -29,6 +30,17 @@ REQUIRED_ROLE_MARKERS = [
     'cache.putRoleKey(ISLAND, TRUSTED, "TRUSTED")',
     'cache.putRoleKey(ISLAND, BANNED, "BANNED")',
     "admin bypass",
+    "originIslandPermissionSurvivesItemMovementOutsideItsRegion",
+]
+
+REQUIRED_ITEM_ORIGIN_MARKERS = [
+    'new NamespacedKey("cloudislands", "origin-island")',
+    "PersistentDataType.STRING",
+    "source.equals(target)",
+    "destinationIslandId.filter(originIslandId::equals).isPresent()",
+    "originCodecRejectsMissingAndMalformedValues",
+    "onlyEquivalentOriginsCanMerge",
+    "protectedItemsCanOnlyEnterTheirOriginIslandInventory",
 ]
 
 REQUIRED_BOOT_MARKERS = [
@@ -45,6 +57,12 @@ def main() -> int:
     root = Path(__file__).resolve().parents[2]
     listener = (root / "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java").read_text(encoding="utf-8")
     test = (root / "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/ProtectionControllerTest.java").read_text(encoding="utf-8")
+    item_origin = "\n".join(
+        [
+            (root / "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/IslandItemOrigin.java").read_text(encoding="utf-8"),
+            (root / "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/IslandItemOriginTest.java").read_text(encoding="utf-8"),
+        ]
+    )
     build = "\n".join(
         [
             (root / "build.gradle.kts").read_text(encoding="utf-8"),
@@ -65,6 +83,10 @@ def main() -> int:
     if missing_roles:
         failures.append(f"role_matrix: missing test markers {', '.join(missing_roles)}")
 
+    missing_item_origin = [marker for marker in REQUIRED_ITEM_ORIGIN_MARKERS if marker not in item_origin]
+    if missing_item_origin:
+        failures.append(f"item_origin_policy: missing policy/test markers {', '.join(missing_item_origin)}")
+
     missing_boot = [marker for marker in REQUIRED_BOOT_MARKERS if marker not in build]
     if missing_boot:
         failures.append(f"boot_smoke_link: missing Gradle markers {', '.join(missing_boot)}")
@@ -74,6 +96,7 @@ def main() -> int:
         "passed": not failures,
         "listenerScenarios": passed,
         "roleMatrixVerified": not missing_roles,
+        "itemOriginPolicyVerified": not missing_item_origin,
         "bootSmokeLinked": not missing_boot,
         "failures": failures,
     }

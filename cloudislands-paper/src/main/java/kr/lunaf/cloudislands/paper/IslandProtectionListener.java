@@ -67,6 +67,8 @@ import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityDropItemEvent;
+import org.bukkit.event.entity.ItemMergeEvent;
+import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
@@ -337,10 +339,27 @@ public final class IslandProtectionListener implements Listener {
         event.setCancelled(denied(event.getPlayer(), event.getPlayer().getLocation().getBlock(), IslandPermission.DROP_ITEM));
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onItemSpawn(ItemSpawnEvent event) {
+        protection.islandAt(event.getLocation().getBlock()).ifPresent(islandId ->
+            IslandItemOrigin.mark(event.getEntity(), islandId));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onItemMerge(ItemMergeEvent event) {
+        event.setCancelled(!IslandItemOrigin.compatible(
+            IslandItemOrigin.origin(event.getEntity()),
+            IslandItemOrigin.origin(event.getTarget())
+        ));
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onPickup(EntityPickupItemEvent event) {
         if (event.getEntity() instanceof Player player) {
-            event.setCancelled(denied(player, event.getItem().getLocation().getBlock(), IslandPermission.PICKUP_ITEM));
+            Block itemBlock = event.getItem().getLocation().getBlock();
+            event.setCancelled(IslandItemOrigin.origin(event.getItem())
+                .map(islandId -> denied(player, itemBlock, islandId, IslandPermission.PICKUP_ITEM))
+                .orElseGet(() -> denied(player, itemBlock, IslandPermission.PICKUP_ITEM)));
         }
     }
 
@@ -574,7 +593,14 @@ public final class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onInventoryPickup(InventoryPickupItemEvent event) {
-        if (event.getInventory().getLocation() != null) {
+        Optional<UUID> originIslandId = IslandItemOrigin.origin(event.getItem());
+        if (originIslandId.isPresent()) {
+            event.setCancelled(event.getInventory().getLocation() == null
+                || !IslandItemOrigin.destinationAllowed(
+                    originIslandId.get(),
+                    protection.islandAt(event.getInventory().getLocation().getBlock())
+                ));
+        } else if (event.getInventory().getLocation() != null) {
             event.setCancelled(!sameIsland(event.getItem().getLocation().getBlock(), event.getInventory().getLocation().getBlock()));
         }
     }
@@ -747,6 +773,16 @@ public final class IslandProtectionListener implements Listener {
     private boolean denied(Player player, Block block, IslandPermission permission) {
         PermissionResult result = protection.checkBlock(player.getUniqueId(), block.getWorld().getName(), block.getX(), block.getY(), block.getZ(), permission, player.hasPermission("cloudislands.admin.bypass"));
         protection.islandAt(block).ifPresent(islandId -> kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandPermissionCheckEvent(islandId, player.getUniqueId(), player, block, permission, result)));
+        return denyResult(player, permission, result);
+    }
+
+    private boolean denied(Player player, Block block, UUID islandId, IslandPermission permission) {
+        PermissionResult result = protection.checkIsland(player.getUniqueId(), islandId, permission, player.hasPermission("cloudislands.admin.bypass"));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandPermissionCheckEvent(islandId, player.getUniqueId(), player, block, permission, result));
+        return denyResult(player, permission, result);
+    }
+
+    private boolean denyResult(Player player, IslandPermission permission, PermissionResult result) {
         boolean denied = !result.allowed();
         if (denied) {
             sendDenyMessage(player, permission);

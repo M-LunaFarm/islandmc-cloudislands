@@ -119,6 +119,27 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void originIslandPermissionSurvivesItemMovementOutsideItsRegion() {
+        LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
+        ProtectionController protection = new ProtectionController(new RegionIndex(), cache);
+        protection.registerIsland(ISLAND, "ci_shard_001", 0, 0, 300, 2, 3);
+        cache.putRoleKey(ISLAND, OWNER, "OWNER");
+        cache.putRoleKey(ISLAND, VISITOR, "VISITOR");
+
+        assertTrue(protection.checkIsland(OWNER, ISLAND, IslandPermission.PICKUP_ITEM, false).allowed());
+        assertFalse(protection.checkIsland(VISITOR, ISLAND, IslandPermission.PICKUP_ITEM, false).allowed());
+        assertTrue(protection.checkIsland(VISITOR, ISLAND, IslandPermission.PICKUP_ITEM, true).allowed());
+
+        cache.putFlag(ISLAND, IslandFlag.VISITOR_PICKUP, "true");
+        assertTrue(protection.checkIsland(VISITOR, ISLAND, IslandPermission.PICKUP_ITEM, false).allowed());
+
+        protection.markMigrating(ISLAND);
+        var migrating = protection.checkIsland(OWNER, ISLAND, IslandPermission.PICKUP_ITEM, false);
+        assertFalse(migrating.allowed());
+        assertEquals("ISLAND_MIGRATING", migrating.reason());
+    }
+
+    @Test
     void cropTramplingUsesBuildPermissionNotVisitorInteractFlag() throws Exception {
         String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandProtectionListener.java"));
 
@@ -200,6 +221,11 @@ class ProtectionControllerTest {
         assertTrue(listener.contains("onSpecialTeleport(PlayerTeleportEvent event)"));
         assertTrue(listener.contains("cause.equals(\"ENDER_PEARL\")"));
         assertTrue(listener.contains("cause.equals(\"CHORUS_FRUIT\")"));
+        assertTrue(listener.contains("onItemSpawn(ItemSpawnEvent event)"));
+        assertTrue(listener.contains("IslandItemOrigin.mark(event.getEntity(), islandId)"));
+        assertTrue(listener.contains("onItemMerge(ItemMergeEvent event)"));
+        assertTrue(listener.contains("protection.checkIsland(player.getUniqueId(), islandId"));
+        assertTrue(listener.contains("IslandItemOrigin.destinationAllowed"));
     }
 
     @Test

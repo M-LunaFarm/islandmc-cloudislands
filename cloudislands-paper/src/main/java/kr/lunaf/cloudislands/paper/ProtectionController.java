@@ -113,21 +113,23 @@ public final class ProtectionController {
 
     public PermissionResult checkBlock(UUID playerUuid, String world, int blockX, int blockY, int blockZ, IslandPermission permission, boolean adminBypass) {
         return regionIndex.find(world, blockX, blockZ)
-            .map(region -> {
-                if (migratingIslands.contains(region.islandId())) {
-                    return PermissionResult.deny("ISLAND_MIGRATING", RoleId.of(VISITOR_ROLE_KEY));
-                }
-                String roleKey = adminBypass ? OWNER_ROLE_KEY : permissionCache.roleKey(region.islandId(), playerUuid);
-                if (permissionCache.allowed(region.islandId(), playerUuid, permission, adminBypass)) {
-                    return PermissionResult.allow(RoleId.of(roleKey));
-                }
-                IslandFlag visitorFlag = visitorFlag(permission);
-                if (roleKey.equals(VISITOR_ROLE_KEY) && visitorFlag != null && permissionCache.flagAllowed(region.islandId(), visitorFlag)) {
-                    return PermissionResult.allow(RoleId.of(VISITOR_ROLE_KEY));
-                }
-                return PermissionResult.deny("DEFAULT_DENY", RoleId.of(roleKey));
-            })
+            .map(region -> checkIsland(playerUuid, region.islandId(), permission, adminBypass))
             .orElseGet(() -> PermissionResult.deny("OUTSIDE_ISLAND", RoleId.of(VISITOR_ROLE_KEY)));
+    }
+
+    public PermissionResult checkIsland(UUID playerUuid, UUID islandId, IslandPermission permission, boolean adminBypass) {
+        if (migratingIslands.contains(islandId)) {
+            return PermissionResult.deny("ISLAND_MIGRATING", RoleId.of(VISITOR_ROLE_KEY));
+        }
+        String roleKey = adminBypass ? OWNER_ROLE_KEY : permissionCache.roleKey(islandId, playerUuid);
+        if (permissionCache.allowed(islandId, playerUuid, permission, adminBypass)) {
+            return PermissionResult.allow(RoleId.of(roleKey));
+        }
+        IslandFlag visitorFlag = visitorFlag(permission);
+        if (roleKey.equals(VISITOR_ROLE_KEY) && visitorFlag != null && permissionCache.flagAllowed(islandId, visitorFlag)) {
+            return PermissionResult.allow(RoleId.of(VISITOR_ROLE_KEY));
+        }
+        return PermissionResult.deny("DEFAULT_DENY", RoleId.of(roleKey));
     }
 
     public PermissionResult checkSystem(Block block, IslandPermission permission) {
