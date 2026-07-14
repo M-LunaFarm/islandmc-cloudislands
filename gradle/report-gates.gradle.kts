@@ -289,9 +289,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "lifecycle/templates/homes/warps/visits",
         "IMPLEMENTED_VERIFIED",
         "Core lifecycle and route tickets are covered",
-        "Paper 1.21.11 and 26.1.2 boot smoke load the plugin",
+        "Paper 1.21.11 and 26.1.2 boot smoke load the plugin; Paper 26.1.2 also verifies transactional failed-bootstrap rollback, diagnostic commands, and corrected-config retry recovery",
         "1.21.x and 26.1.x release adapters; 26.2 compile adapter",
-        "ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper tests verify main-thread template permission preflight, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation",
+        "ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper 26.1.2 smoke verifies normal command registration plus rejected-bootstrap rollback, diagnostic /is and /ciadmin, corrected-config retry, and second-attempt READY recovery; Paper tests verify main-thread template permission preflight, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation",
         "node-down recovery restore is covered by ciIntegrationSmoke",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/workflow/IslandLifecycleWorkflowRestoreTest.java",
@@ -301,6 +301,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             ".github/workflows/integration.yml",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/platform/compatibility/Paper121FamilyAdapter.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/platform/world/SafeTeleportPolicyTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/bootstrap/PaperBootstrapRecoveryPolicyTest.java",
+            "scripts/ci/papermc_smoke.py",
+            "gradle/version-matrix-gates.gradle.kts",
             "scripts/ci/core_integration_smoke.py"
         ),
         "26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available"
