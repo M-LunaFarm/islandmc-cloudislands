@@ -507,10 +507,10 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
     ),
     FeatureParityEntry(
         "integrations/localization/GUI",
-        "PARTIAL_VERIFIED",
+        "IMPLEMENTED_VERIFIED",
         "integration policy, localization files, GUI components, and scoped runtime certification fixtures exist",
-        "Paper integration registry certifies Vault economy, PlaceholderAPI registration, Plan distributed analytics, vanish-safe player suggestions, custom block identity, and logical stack accounting while separating diagnostic-only state-transfer adapters",
-        "plugin-specific operation adapters are active only where implemented",
+        "Paper integration registry certifies Vault economy, PlaceholderAPI registration, Plan distributed analytics, vanish-safe player suggestions, custom block identity, and logical stack accounting while keeping CoreProtect append-only and CloudIslands chunk bundles authoritative over WorldEdit/FAWE world state",
+        "plugin-specific runtime services are active only where implemented; compatibility-only adapters are reported as diagnostic by design rather than as incomplete state-transfer executors",
         "verifyIntegrationRuntimeSmoke verifies executable runtime services including CraftEngine block/furniture and Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components; Paper 26.1.2 smoke proves atomic config reload by applying message changes to already-created renderers and refusing node changes as restart-required without mutating active runtime",
         "not recovery-specific",
         listOf(
@@ -529,7 +529,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/message/MessageRendererReloadTest.java",
             "scripts/ci/papermc_smoke.py"
         ),
-        "Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom-content, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay disabled; external lifecycle and state-transfer operations remain diagnostic until real executors exist"
+        "Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom-content, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay intentionally disabled as an untrusted-format security boundary; CoreProtect remains append-only and WorldEdit/FAWE remain compatibility-only because CloudIslands chunk bundles own world-state transfer"
     )
 )
 
