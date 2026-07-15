@@ -866,6 +866,11 @@ class IslandCommandControllerPolicyTest {
         String chat = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java"));
 
         assertTrue(permissions.contains("saveStagedChangesSequentially(islandId, actorUuid, changes)"));
+        assertTrue(permissions.contains("StagedPermissionChangePolicy.removeSaved(current, savedChanges)"), "completed saves must preserve permission edits staged while the save was in flight");
+        assertTrue(permissions.contains("PaperOnlinePlayer.run(plugin, actorUuid, activePlayer"), "permission GUI completion must re-resolve the current online player");
+        assertTrue(permissions.contains("thenCompose(targetUuid -> permissionUseCase.setPermissionOverrideAction"), "permission target lookup and mutation must form one observable completion chain");
+        assertFalse(permissions.contains("thenAccept(result -> runtime.message(player"), "permission callbacks must not message a captured Player");
+        assertFalse(permissions.contains("GuiStateMenus.openSuccess(plugin, player, session"), "permission save completion must not update a captured Player GUI");
         assertFalse(permissions.contains("setPermissionOverrideAction(islandId, player.getUniqueId()"), "permission resolution callbacks must use a command-thread identity snapshot");
         assertFalse(membership.contains("removeMemberAction(islandId, player.getUniqueId()"), "membership callbacks must not read Bukkit Player identity");
         assertFalse(membership.contains("setRoleAction(islandId, player.getUniqueId()"), "role callbacks must not read Bukkit Player identity");

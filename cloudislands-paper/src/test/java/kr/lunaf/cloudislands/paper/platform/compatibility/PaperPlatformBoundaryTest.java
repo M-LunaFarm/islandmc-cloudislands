@@ -1108,8 +1108,9 @@ class PaperPlatformBoundaryTest {
         assertTrue(permissionHandler.contains("GuiStateMenus.openSuccess"), "Permission save must show a Success state");
         assertTrue(permissionHandler.contains("GuiStateMenus.openConflict"), "Permission save failures must show Conflict/Error recovery state");
         assertTrue(permissionHandler.contains("GuiSession session = GuiStateMenus.openSaving"), "Permission save terminal UI must remain bound to its saving session");
-        assertTrue(permissionHandler.contains("openSuccess(plugin, player, session"), "Late permission save success must not replace a newer menu");
-        assertTrue(permissionHandler.contains("openConflict(plugin, player, session"), "Late permission save conflict must not replace a newer menu");
+        assertTrue(permissionHandler.contains("openSuccess(plugin, activePlayer, session"), "Late permission save success must not replace a newer menu");
+        assertTrue(permissionHandler.contains("openConflict(plugin, activePlayer, session"), "Late permission save conflict must not replace a newer menu");
+        assertTrue(permissionHandler.contains("StagedPermissionChangePolicy.removeSaved(current, savedChanges)"), "A completed save must preserve edits staged while it was in flight");
         assertTrue(menu.contains("\"island.permissions.save\""), "Permission menu must expose an explicit save button");
         assertTrue(menu.contains("\"island.permissions.reset\""), "Permission menu must expose a reset/cancel button");
         assertTrue(!membershipHandler.contains("case \"island.permissions.set\""), "Permission cell clicks must not use raw string fallback routing");
