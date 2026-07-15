@@ -13,6 +13,7 @@ class AddonIslandCommandRoutingPolicyTest {
         String completion = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
         String api = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/api/PaperCloudIslandsApi.java"));
         String plugin = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/CloudIslandsPaperPlugin.java"));
+        String registry = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/AddonIslandCommandRegistry.java"));
 
         assertTrue(router.contains("AddonIslandCommandRegistry.global().execute(player, label, effectiveArgs)"));
         assertTrue(router.contains("commands.addAll(AddonIslandCommandRegistry.global().helpCommands())"));
@@ -20,5 +21,8 @@ class AddonIslandCommandRoutingPolicyTest {
         assertTrue(api.contains("AddonIslandCommandRegistry.global().unregisterAddon(safeId)"));
         assertTrue(api.contains("Disabled addon cannot register island commands"));
         assertTrue(plugin.contains("AddonIslandCommandRegistry.global().clear()"));
+        assertTrue(registry.contains("PaperSchedulers.run(ticket.expectedPlugin()"));
+        assertTrue(registry.contains("ticket.isCurrent(plugin, lifecycleGeneration.get(), activePlayer)"));
+        assertTrue(registry.contains("never fall back to Bukkit calls on the completion thread"));
     }
 }

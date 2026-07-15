@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.addon.AddonIslandCommand;
 import kr.lunaf.cloudislands.api.addon.AddonIslandCommandContext;
 import kr.lunaf.cloudislands.api.addon.AddonIslandCommandResult;
@@ -24,6 +25,7 @@ public final class AddonIslandCommandRegistry {
 
     private final Map<String, RegisteredCommand> commandsByAlias = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> aliasesByAddon = new ConcurrentHashMap<>();
+    private final AtomicLong lifecycleGeneration = new AtomicLong();
     private volatile Plugin plugin;
 
     private AddonIslandCommandRegistry() {
@@ -34,7 +36,8 @@ public final class AddonIslandCommandRegistry {
     }
 
     public void configure(Plugin plugin) {
-        this.plugin = plugin;
+        this.plugin = java.util.Objects.requireNonNull(plugin, "plugin");
+        lifecycleGeneration.incrementAndGet();
     }
 
     public synchronized AddonIslandCommandSnapshot register(AddonIslandCommand command) {
@@ -85,6 +88,11 @@ public final class AddonIslandCommandRegistry {
         if (registered == null) {
             return false;
         }
+        Plugin configuredPlugin = plugin;
+        if (configuredPlugin == null) {
+            player.sendMessage("Addon island commands are unavailable while CloudIslands is stopping.");
+            return true;
+        }
         AddonIslandCommand command = registered.command();
         String permission = safe(command.permission());
         if (!permission.isBlank() && !player.hasPermission(permission)) {
@@ -109,23 +117,33 @@ public final class AddonIslandCommandRegistry {
             player.sendMessage("Addon island command failed: command returned no result");
             return true;
         }
-        execution.copy().orTimeout(EXECUTION_TIMEOUT_SECONDS, java.util.concurrent.TimeUnit.SECONDS).whenComplete((result, error) -> deliver(() -> {
+        AddonCommandDeliveryTicket delivery = new AddonCommandDeliveryTicket(
+            configuredPlugin,
+            lifecycleGeneration.get(),
+            player,
+            player.getUniqueId()
+        );
+        execution.copy().orTimeout(EXECUTION_TIMEOUT_SECONDS, java.util.concurrent.TimeUnit.SECONDS).whenComplete((result, error) -> deliver(delivery, activePlayer -> {
             if (error != null) {
-                player.sendMessage("Addon island command failed: " + rootMessage(error));
+                activePlayer.sendMessage("Addon island command failed: " + rootMessage(error));
                 return;
             }
             AddonIslandCommandResult safeResult = result == null ? AddonIslandCommandResult.rejected("Addon island command returned no result") : result;
-            safeResult.messages().forEach(player::sendMessage);
+            safeResult.messages().forEach(activePlayer::sendMessage);
         }));
         return true;
     }
 
-    private void deliver(Runnable action) {
-        Plugin configuredPlugin = plugin;
-        if (configuredPlugin == null) {
-            action.run();
-        } else {
-            PaperSchedulers.run(configuredPlugin, action);
+    private void deliver(AddonCommandDeliveryTicket ticket, java.util.function.Consumer<Player> action) {
+        try {
+            PaperSchedulers.run(ticket.expectedPlugin(), () -> {
+                Player activePlayer = ticket.expectedPlugin().getServer().getPlayer(ticket.playerUuid());
+                if (ticket.isCurrent(plugin, lifecycleGeneration.get(), activePlayer)) {
+                    action.accept(activePlayer);
+                }
+            });
+        } catch (RuntimeException ignored) {
+            // Plugin disable can race completion; never fall back to Bukkit calls on the completion thread.
         }
     }
 
@@ -174,6 +192,7 @@ public final class AddonIslandCommandRegistry {
     }
 
     public synchronized void clear() {
+        lifecycleGeneration.incrementAndGet();
         commandsByAlias.clear();
         aliasesByAddon.clear();
         plugin = null;
