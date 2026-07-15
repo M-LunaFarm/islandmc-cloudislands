@@ -92,17 +92,22 @@ public final class IslandBoundaryListener implements Listener {
             }
             return;
         }
+        BoundaryReturnRequest request = BoundaryReturnRequest.capture(player, from);
         worlds.safeDestination(target, region).whenComplete((destination, error) -> runSync(() -> {
             try {
-                if (error != null || destination == null || destination.isEmpty()
-                    || !SafeTeleportResolver.isSafe(destination.get(), region)) {
-                    player.sendActionBar(component(player, "boundary-return-unsafe", "섬 안에서 안전한 복귀 위치를 찾을 수 없습니다."));
+                org.bukkit.entity.Player activePlayer = players.onlinePlayer(playerUuid);
+                if (!request.isCurrent(activePlayer)) {
                     return;
                 }
-                if (players.teleport(player, destination.get())) {
-                    player.sendActionBar(member
-                        ? component(player, "boundary-member-return", "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다.")
-                        : component(player, "boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다."));
+                if (error != null || destination == null || destination.isEmpty()
+                    || !SafeTeleportResolver.isSafe(destination.get(), region)) {
+                    activePlayer.sendActionBar(component(activePlayer, "boundary-return-unsafe", "섬 안에서 안전한 복귀 위치를 찾을 수 없습니다."));
+                    return;
+                }
+                if (players.teleport(activePlayer, destination.get())) {
+                    activePlayer.sendActionBar(member
+                        ? component(activePlayer, "boundary-member-return", "섬 경계 밖으로 이동할 수 없어 섬 스폰으로 돌려보냈습니다.")
+                        : component(activePlayer, "boundary-visitor-return", "섬 경계 밖으로 이동할 수 없어 방문자 위치로 돌려보냈습니다."));
                 }
             } finally {
                 pendingReturns.remove(playerUuid);

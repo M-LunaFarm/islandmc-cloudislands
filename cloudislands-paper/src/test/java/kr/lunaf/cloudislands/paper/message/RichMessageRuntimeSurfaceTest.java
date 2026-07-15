@@ -38,7 +38,9 @@ class RichMessageRuntimeSurfaceTest {
         assertFalse(routeConsumer.contains("sendActionBar(Component.text(playerMessage"));
         assertFalse(routeSession.contains("Component.text(playerMessage"));
         assertTrue(routeSession.contains("playerComponent(\"route-login-session-required\""));
-        assertTrue(boundary.contains("sendActionBar(component(player"));
+        assertTrue(boundary.contains("component(player, \"boundary-")
+            && boundary.contains("component(activePlayer, \"boundary-"),
+            "both immediate and delayed boundary responses must render configured components");
         assertTrue(flags.contains("sendActionBar(component("));
         assertTrue(router.contains("player.showTitle(Title.title(\n            runtime.component(player, title)"));
         assertTrue(messenger.contains("Player activePlayer = plugin.getServer().getPlayer(player.getUniqueId())"));

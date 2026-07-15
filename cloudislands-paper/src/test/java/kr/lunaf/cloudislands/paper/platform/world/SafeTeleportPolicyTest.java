@@ -39,6 +39,9 @@ class SafeTeleportPolicyTest {
         assertTrue(tickets.contains("ISLAND_TRANSITION_IN_PROGRESS"));
         assertTrue(tickets.contains("worlds.safeDestination(target, null)"));
         assertTrue(boundary.contains("pendingReturns.add(playerUuid)"));
+        assertTrue(boundary.contains("BoundaryReturnRequest.capture(player, from)"));
+        assertTrue(boundary.contains("players.onlinePlayer(playerUuid)"));
+        assertTrue(boundary.contains("request.isCurrent(activePlayer)"));
         assertTrue(boundary.contains("worlds.safeDestination(target, region)"));
         assertTrue(boundary.contains("SafeTeleportResolver.isSafe(destination.get(), region)"));
         assertTrue(boundary.contains("boundary-return-unsafe"));
