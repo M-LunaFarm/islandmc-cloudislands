@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.233`
+Version: `1.1.234`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -725,15 +725,26 @@ integration verification.
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; gameplay progress delivery carries Core idempotency metadata, while monotonic absolute progress keeps repeated authoritative bank balances and island levels from double-counting or regressing; level recalculation advances the built-in level mission; PostgreSQL and MySQL dual-Core smoke verifies same-key MISSION and CHALLENGE definitions retain independent rows and progress, including fresh and upgraded MySQL schemas, restored mission metadata, and MySQL-safe completion assignment order; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; `/is deposit *` and `/is withdraw *` resolve authoritative full balances through scheduler-safe Vault and Core queries before reusing the existing idempotent mutation, refund, and rollback paths; delayed balance, target, deposit, and withdrawal results re-resolve the current online player by UUID before Paper feedback; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus current-visible-visitor classification, Core audit/visitor route tests, LOWEST/HIGHEST mutually exclusive local/team-chat isolation, MONITOR-only accepted global-spy delivery, scheduler-bound permission and message calls, and same-instance reconnect fencing cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services; Paper policy tests verify delayed snapshot list/create/restore responses cross the scheduler and re-resolve the current online player | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
-| Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
+| Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline; Paper tests fence asynchronous addon command results to the originating plugin lifecycle and same online Player instance, with scheduler-only delivery and no disable-time completion-thread fallback | external addon certification depends on testkit evidence supplied by the addon |
 | integrations/localization/GUI | IMPLEMENTED_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services including CraftEngine block/furniture and Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components, while all revision-guarded GUI loaders reject disconnected or replaced Player instances before opening inventories and the shared GUI click boundary rejects null and AIR slots before resolving actions; Paper 26.1.2 smoke proves atomic config reload by applying message changes to already-created renderers and refusing node changes as restart-required without mutating active runtime | Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom-content, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay intentionally disabled as an untrusted-format security boundary; CoreProtect remains append-only and WorldEdit/FAWE remain compatibility-only because CloudIslands chunk bundles own world-state transfer |
 <!-- feature-parity:end -->
 
 ## Release
 
-Current release: `v1.1.233`
+Current release: `v1.1.234`
 
-Built for the CloudIslands 1.1.233 baseline.
+Built for the CloudIslands 1.1.234 baseline.
+
+Release notes for `v1.1.234`:
+
+- asynchronous addon island-command results now always return through Paper's
+  scheduler instead of calling Bukkit from an arbitrary completion thread
+- plugin disable, registry clear, or reconfiguration invalidates all queued
+  addon results through an explicit lifecycle generation fence
+- disconnecting and reconnecting with the same UUID cannot deliver an older
+  addon result to the replacement Player instance
+- focused tests cover plugin replacement, lifecycle rollover, offline players,
+  same-UUID reconnects, routing integration, and the existing addon testkit
 
 Release notes for `v1.1.233`:
 

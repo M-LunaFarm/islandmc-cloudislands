@@ -524,12 +524,15 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "public API, events, addon metadata, and compatibility contract are tested",
         "Paper API bridge has unit coverage",
         "version-neutral API with runtime metadata compatibility check",
-        "apiCompatibilityCheck verifies release contract metadata and the public API signature baseline",
+        "apiCompatibilityCheck verifies release contract metadata and the public API signature baseline; Paper tests fence asynchronous addon command results to the originating plugin lifecycle and same online Player instance, with scheduler-only delivery and no disable-time completion-thread fallback",
         "not recovery-specific",
         listOf(
             "cloudislands-testkit/src/main/java/kr/lunaf/cloudislands/testkit/ApiCompatibilityCheckCli.java",
             "cloudislands-testkit/src/test/java/kr/lunaf/cloudislands/testkit/ApiContractVerifierTest.java",
-            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/AddonRoutesTest.java"
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/AddonRoutesTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/AddonCommandDeliveryTicket.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/AddonCommandDeliveryTicketTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/AddonIslandCommandRoutingPolicyTest.java"
         ),
         "external addon certification depends on testkit evidence supplied by the addon"
     ),
