@@ -161,6 +161,14 @@ final class VelocityPlayerMembershipCommandDispatcher extends VelocityCommandSup
             playerMembership.setLocked(player, islandId, false);
             return true;
         }
+        if (args[0].equalsIgnoreCase("description") || args[0].equalsIgnoreCase("setdescription") || args[0].equalsIgnoreCase("desc") || args[0].equals("설명")) {
+            if (args.length < 2) {
+                player.sendMessage(Component.text("사용법: /is description <text|clear>"));
+            } else {
+                playerMembership.setTextFlag(player, new UUID(0L, 0L), kr.lunaf.cloudislands.api.model.IslandFlag.PROFILE_DESCRIPTION, joinArgs(args, 1), "설명");
+            }
+            return true;
+        }
         if (args[0].equalsIgnoreCase("setdiscord") || args[0].equalsIgnoreCase("discord") || args[0].equals("디스코드")) {
             if (args.length < 2) {
                 player.sendMessage(Component.text("사용법: /is setdiscord <handle|clear>"));

@@ -241,9 +241,23 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     }
 
     public void setTextFlag(Player player, UUID islandId, kr.lunaf.cloudislands.api.model.IslandFlag flag, String value, String label) {
-        String normalized = value == null || value.equalsIgnoreCase("clear") ? "" : value.trim();
+        String normalized = normalizeProfileValue(value);
+        int maxLength = flag == kr.lunaf.cloudislands.api.model.IslandFlag.PROFILE_DESCRIPTION ? 256 : 128;
+        if (normalized == null || normalized.length() > maxLength) {
+            player.sendMessage(Component.text("섬 " + label + " 값은 " + maxLength + "자 이하의 일반 텍스트여야 합니다."));
+            return;
+        }
         withResolvedIsland(player, islandId, "설정할 섬을 찾지 못했습니다.", "섬 " + label + " 설정을 변경하지 못했습니다.",
             resolved -> sendTextResult(player, coreApiClient.settingsCommands().setFlag(resolved, player.getUniqueId(), flag, normalized).thenApply(result -> islandMessages.settingsAction("섬 " + label + " 설정", result)), "섬 " + label + " 설정을 변경하지 못했습니다."));
+    }
+
+    private static String normalizeProfileValue(String value) {
+        String normalized = value == null ? "" : value.trim();
+        String lower = normalized.toLowerCase(java.util.Locale.ROOT);
+        if (java.util.Set.of("clear", "reset", "remove", "none", "삭제", "초기화").contains(lower)) {
+            return "";
+        }
+        return normalized.chars().anyMatch(Character::isISOControl) ? null : normalized;
     }
 
     public void listFlags(Player player, UUID islandId) {

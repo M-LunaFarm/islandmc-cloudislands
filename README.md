@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.225`
+Version: `1.1.226`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -438,6 +438,14 @@ primary island through Core. In migration mode, `warp <player|island> [warp]`
 uses the same resolver instead of accepting UUIDs only or silently treating the
 target as a local warp name.
 
+Island owners with `MANAGE_FLAGS` can publish a bounded plain-text profile with
+`/is description <text>` (or `/is 설명 <text>`) and remove it with `clear`.
+The authoritative Core value appears in island info, public visit listings, and
+the `%cloudislands_description%`/`%cloudislands_island_description%`
+placeholders. Core rejects descriptions above 256 characters, social values
+above 128 characters, and all control characters even when callers bypass
+Paper and invoke the API directly.
+
 ## Custom block values
 
 When ItemsAdder, Oraxen, Nexo, CraftEngine, or Slimefun is enabled,
@@ -698,11 +706,20 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.225`
+Current release: `v1.1.226`
 
-Built for the CloudIslands 1.1.225 baseline.
+Built for the CloudIslands 1.1.226 baseline.
 
-Release notes for `v1.1.225`:
+Release notes for `v1.1.226`:
+
+- public island descriptions now persist through typed Core metadata and are
+  exposed in island info, paged visit menus, and PlaceholderAPI
+- `/is description <text|clear>` and Korean aliases use the existing audited,
+  permission-checked, scheduler-safe profile mutation path
+- Core now bounds description and social metadata at its trust boundary, so
+  direct HTTP clients cannot bypass Paper validation or inject control text
+- public island API records carry descriptions with backward-compatible client
+  constructors for existing addons
 
 - teleport warmups now cancel immediately when a player starts falling, even if
   the player is still inside the same block coordinates
@@ -3713,7 +3730,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.225`.
+Current read: production-readiness baseline `v1.1.226`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
