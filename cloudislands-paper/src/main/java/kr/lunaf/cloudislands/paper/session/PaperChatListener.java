@@ -103,7 +103,7 @@ public final class PaperChatListener implements Listener {
         protection.islandAt(player.getLocation().getBlock()).ifPresentOrElse(islandId ->
             coreApiClient.communicationCommands().sendChat(islandId, playerUuid, "TEAM", message)
                 .exceptionally(error -> {
-                    deliverChatFailure(playerUuid, "팀 채팅을 전송하지 못했습니다.");
+                    deliverChatFailure(player, "팀 채팅을 전송하지 못했습니다.");
                     return null;
                 }),
             () -> player.sendMessage(Component.text("섬 안에서만 팀 채팅 모드를 사용할 수 있습니다."))
@@ -115,17 +115,18 @@ public final class PaperChatListener implements Listener {
         protection.islandAt(player.getLocation().getBlock()).ifPresentOrElse(islandId ->
             coreApiClient.communicationCommands().sendChat(islandId, playerUuid, "ISLAND", message)
                 .exceptionally(error -> {
-                    deliverChatFailure(playerUuid, "섬 채팅을 전송하지 못했습니다.");
+                    deliverChatFailure(player, "섬 채팅을 전송하지 못했습니다.");
                     return null;
                 }),
             () -> player.sendMessage(Component.text("섬 안에서만 로컬 채팅 모드를 사용할 수 있습니다."))
         );
     }
 
-    private void deliverChatFailure(UUID playerUuid, String message) {
+    private void deliverChatFailure(Player expectedPlayer, String message) {
+        UUID playerUuid = expectedPlayer.getUniqueId();
         PaperSchedulers.run(plugin, () -> {
             Player activePlayer = plugin.getServer().getPlayer(playerUuid);
-            if (activePlayer != null && activePlayer.isOnline()) {
+            if (ChatPlayerIdentityPolicy.isCurrent(expectedPlayer, activePlayer)) {
                 activePlayer.sendMessage(Component.text(message));
             }
         });

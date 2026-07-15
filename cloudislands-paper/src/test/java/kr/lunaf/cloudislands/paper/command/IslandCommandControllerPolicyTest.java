@@ -879,6 +879,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(listener.contains("@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)"), "global chat side effects must observe final cancellation state");
         assertTrue(listener.contains("runIfStillOnline(event.getPlayer(), activePlayer -> sendTeamChat(activePlayer, message))"), "async team chat must re-resolve the same online player before location access");
         assertTrue(listener.contains("ChatPlayerIdentityPolicy.isCurrent(expectedPlayer, activePlayer)"), "queued chat must not replay through a stale or reconnected Player instance");
+        assertTrue(listener.contains("deliverChatFailure(player, \"팀 채팅을 전송하지 못했습니다.\")"), "team-chat failures must retain the exact player session that initiated the request");
         assertTrue(listener.contains("communicationCommands().sendChat(islandId, playerUuid, \"TEAM\""), "team-mode messages must use the typed Core team-chat channel with a scheduler-captured UUID");
         assertTrue(listener.contains("teamChatModes.clear(event.getPlayer().getUniqueId())"), "disconnects must clear local chat mode state");
         assertTrue(bootstrap.contains("plugin.teamChatModes"), "commands and chat listener must share one runtime mode registry");
@@ -893,6 +894,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(listener.contains("teamChatModes.islandEnabled(event.getPlayer().getUniqueId())"));
         assertTrue(listener.contains("runIfStillOnline(event.getPlayer(), activePlayer -> sendLocalChat(activePlayer, message))"), "async local chat must re-resolve the same online player before location access");
         assertTrue(listener.contains("communicationCommands().sendChat(islandId, playerUuid, \"ISLAND\""));
+        assertTrue(listener.contains("deliverChatFailure(player, \"섬 채팅을 전송하지 못했습니다.\")"), "island-chat failures must retain the exact player session that initiated the request");
         assertTrue(listener.contains("teamChatEnabled(event) || islandChatEnabled(event)"), "both private modes must be re-isolated at HIGHEST");
     }
 
@@ -941,8 +943,9 @@ class IslandCommandControllerPolicyTest {
         assertFalse(settings.contains("setNameAction(islandId, player.getUniqueId()"), "name callbacks must use a command-thread identity snapshot");
         assertFalse(settings.contains("thenAccept(flags -> runtime.message(player"), "flag callbacks must not message a captured Player");
         assertFalse(settings.contains("thenAccept(result -> runtime.message(player"), "settings callbacks must not message a captured Player");
-        assertTrue(chat.contains("deliverChatFailure(playerUuid"), "Core chat failures must return to the Paper scheduler by UUID");
+        assertTrue(chat.contains("deliverChatFailure(Player expectedPlayer"), "Core chat failures must retain the initiating Player identity across the async boundary");
         assertTrue(chat.contains("plugin.getServer().getPlayer(playerUuid)"), "chat failure delivery must re-resolve the current online Player");
+        assertTrue(chat.contains("ChatPlayerIdentityPolicy.isCurrent(expectedPlayer, activePlayer)"), "chat failure delivery must reject a replacement Player from a later reconnect");
         assertTrue(chat.contains("runIfStillOnline(event.getPlayer(), activePlayer -> sendTeamChat"), "team chat scheduling must reject stale Player instances");
         assertTrue(chat.contains("runIfStillOnline(event.getPlayer(), activePlayer -> sendLocalChat"), "local chat scheduling must reject stale Player instances");
         assertFalse(chat.contains("exceptionally(error -> {\n                    player.sendMessage"), "Core callbacks must not send through a captured Player");
