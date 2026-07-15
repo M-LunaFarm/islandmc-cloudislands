@@ -128,6 +128,7 @@ public final class IslandPermissionSystemPolicy {
             IslandFlag.BORDER_COLOR,
             IslandFlag.BORDER_WARNING_BLOCKS,
             IslandFlag.BORDER_POLICY,
+            IslandFlag.PROFILE_DESCRIPTION,
             IslandFlag.SOCIAL_DISCORD,
             IslandFlag.SOCIAL_PAYPAL
     );

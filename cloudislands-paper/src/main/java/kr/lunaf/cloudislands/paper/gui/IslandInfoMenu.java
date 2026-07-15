@@ -92,6 +92,7 @@ public final class IslandInfoMenu implements Listener {
             Inventory inventory = GuiMenuRenderer.render(MENU, session, messages, TITLE, item -> true);
             setInfoItem(inventory, "A", messages,
                 message(messages, "info-menu-island-name", "섬 이름: ") + fallback(view.name(), message(messages, "info-menu-no-name", "이름 없음")),
+                message(messages, "info-menu-description", "설명: ") + fallback(view.description(), message(messages, "info-menu-no-description", "설명 없음")),
                 message(messages, "info-menu-state", "상태: ") + fallback(view.state(), message(messages, "info-menu-unknown", "알 수 없음")),
                 message(messages, "info-menu-island-id", "섬 ID: ") + shortId(view.islandId(), messages));
             setInfoItem(inventory, "B", messages,

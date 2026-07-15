@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.coreservice.http.routes;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpHandler;
@@ -15,10 +16,12 @@ import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandCatalogRoutesTest {
@@ -94,10 +97,35 @@ class IslandCatalogRoutesTest {
         assertEquals(450L, ((Number) rendered.get("border")).longValue());
     }
 
+    @Test
+    void rendersPublicIslandDescriptionFromAuthoritativeMetadata() {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000021");
+        IslandSnapshot island = new IslandSnapshot(
+            islandId, UUID.fromString("00000000-0000-0000-0000-000000000022"), "Profiled", IslandState.ACTIVE, 100, 1L, "2", true, Instant.EPOCH, Instant.EPOCH
+        );
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        metadata.setFlag(islandId, IslandFlag.PROFILE_DESCRIPTION, "Public island description");
+
+        Map<?, ?> rendered = SimpleJson.object(SimpleJson.parse(IslandCatalogRoutes.islandJson(island, null, metadata)));
+
+        assertEquals("Public island description", SimpleJson.text(rendered.get("description")));
+    }
+
+    @Test
+    void boundsProfileTextAtTheCoreTrustBoundary() {
+        assertTrue(IslandSettingsRoutes.validProfileValue(IslandFlag.PROFILE_DESCRIPTION, "x".repeat(256)));
+        assertFalse(IslandSettingsRoutes.validProfileValue(IslandFlag.PROFILE_DESCRIPTION, "x".repeat(257)));
+        assertTrue(IslandSettingsRoutes.validProfileValue(IslandFlag.SOCIAL_DISCORD, "x".repeat(128)));
+        assertFalse(IslandSettingsRoutes.validProfileValue(IslandFlag.SOCIAL_PAYPAL, "x".repeat(129)));
+        assertFalse(IslandSettingsRoutes.validProfileValue(IslandFlag.PROFILE_DESCRIPTION, "line\nfeed"));
+        assertTrue(IslandSettingsRoutes.validProfileValue(IslandFlag.PVP, "arbitrary-policy-value"));
+    }
+
     private static void assertIsland(UUID islandId, UUID ownerUuid, Map<?, ?> island) {
         assertEquals(islandId.toString(), SimpleJson.text(island.get("islandId")));
         assertEquals(ownerUuid.toString(), SimpleJson.text(island.get("ownerUuid")));
         assertEquals("Sky \"Base\"", SimpleJson.text(island.get("name")));
+        assertEquals("", SimpleJson.text(island.get("description")));
         assertEquals("ACTIVE", SimpleJson.text(island.get("state")));
         assertEquals(100, ((Number) island.get("size")).intValue());
         assertEquals(100, ((Number) island.get("border")).intValue());

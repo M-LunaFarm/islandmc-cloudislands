@@ -84,6 +84,14 @@ final class IslandSettingsCommandHandler {
             setName(player, joined(args, 1));
             return true;
         }
+        if (subcommand.equals("description") || subcommand.equals("setdescription") || subcommand.equals("desc") || subcommand.equals("설명")) {
+            if (args.length < 2) {
+                runtime.message(player, message("input-description-required", "섬 설명을 입력해주세요. clear로 비울 수 있습니다."));
+                return true;
+            }
+            setProfileFlag(player, IslandFlag.PROFILE_DESCRIPTION, "description-action-label", "섬 설명 설정", joined(args, 1), 256);
+            return true;
+        }
         if (subcommand.equals("setdiscord") || subcommand.equals("discord") || subcommand.equals("디스코드")) {
             if (args.length < 2) {
                 runtime.message(player, message("input-social-value-required", "저장할 소셜 값을 입력해주세요. clear로 비울 수 있습니다."));
@@ -320,21 +328,25 @@ final class IslandSettingsCommandHandler {
     }
 
     private void setSocialFlag(Player player, IslandFlag flag, String labelKey, String labelFallback, String rawValue) {
-        String value = normalizeSocialValue(rawValue);
+        setProfileFlag(player, flag, labelKey, labelFallback, rawValue, 128);
+    }
+
+    private void setProfileFlag(Player player, IslandFlag flag, String labelKey, String labelFallback, String rawValue, int maxLength) {
+        String value = normalizeProfileValue(rawValue, maxLength);
         if (value == null) {
-            runtime.message(player, message("input-social-value-invalid", "소셜 값은 128자 이하의 일반 텍스트여야 합니다."));
+            runtime.message(player, message("input-profile-value-invalid", "프로필 값은 허용 길이 이내의 일반 텍스트여야 합니다."));
             return;
         }
-        runtime.currentIsland(player, message("social-set-island-required", "섬 안에서만 소셜 정보를 변경할 수 있습니다.")).ifPresent(islandId -> {
+        runtime.currentIsland(player, message("profile-set-island-required", "섬 안에서만 프로필 정보를 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
-                runtime.message(player, message("social-set-denied", "섬 소셜 정보를 변경할 권한이 없습니다."));
+                runtime.message(player, message("profile-set-denied", "섬 프로필 정보를 변경할 권한이 없습니다."));
                 return;
             }
             UUID actorUuid = player.getUniqueId();
             settingsUseCase.setFlagAction(islandId, actorUuid, flag, value, runtime::mutate)
                 .thenAccept(result -> deliverMessage(actorUuid, settingsActionMessage(labelKey, labelFallback, socialActionTarget(value), result)))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("social-set-failed", "섬 소셜 정보를 변경하지 못했습니다.")));
+                    deliverMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("profile-set-failed", "섬 프로필 정보를 변경하지 못했습니다.")));
                     return null;
                 });
         });
@@ -521,13 +533,13 @@ final class IslandSettingsCommandHandler {
         return builder.toString();
     }
 
-    private static String normalizeSocialValue(String value) {
+    private static String normalizeProfileValue(String value, int maxLength) {
         String trimmed = value == null ? "" : value.trim();
         String lower = trimmed.toLowerCase(Locale.ROOT);
         if (lower.equals("clear") || lower.equals("reset") || lower.equals("remove") || lower.equals("none") || lower.equals("삭제") || lower.equals("초기화")) {
             return "";
         }
-        if (trimmed.length() > 128 || trimmed.chars().anyMatch(Character::isISOControl)) {
+        if (trimmed.length() > maxLength || trimmed.chars().anyMatch(Character::isISOControl)) {
             return null;
         }
         return trimmed;

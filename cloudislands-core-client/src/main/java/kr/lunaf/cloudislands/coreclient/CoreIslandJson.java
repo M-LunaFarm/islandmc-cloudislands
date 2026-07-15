@@ -20,7 +20,8 @@ final class CoreIslandJson {
             CoreJson.number(root, "border"),
             CoreJson.text(root, "ownerUuid"),
             CoreJson.text(root, "createdAt"),
-            CoreJson.text(root, "updatedAt")
+            CoreJson.text(root, "updatedAt"),
+            CoreJson.text(root, "description")
         );
     }
 }

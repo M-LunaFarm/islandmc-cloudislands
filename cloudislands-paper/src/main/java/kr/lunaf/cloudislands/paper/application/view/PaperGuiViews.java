@@ -129,7 +129,7 @@ public final class PaperGuiViews {
     }
 
     private static IslandInfoView islandInfo(CoreGuiViews.IslandInfoView view) {
-        return new IslandInfoView(view.name(), view.state(), view.islandId(), view.level(), view.worth(), view.publicAccess(), view.locked(), view.size(), view.border(), view.ownerUuid());
+        return new IslandInfoView(view.name(), view.state(), view.islandId(), view.level(), view.worth(), view.publicAccess(), view.locked(), view.size(), view.border(), view.ownerUuid(), view.description());
     }
 
     private static BankView bank(CoreGuiViews.BankView view) {
@@ -161,7 +161,7 @@ public final class PaperGuiViews {
     }
 
     private static PublicIslandView publicIsland(CoreGuiViews.PublicIslandView view) {
-        return new PublicIslandView(view.islandId(), view.ownerUuid(), view.name(), view.level(), view.worth());
+        return new PublicIslandView(view.islandId(), view.ownerUuid(), view.name(), view.description(), view.level(), view.worth());
     }
 
     private static BanView ban(CoreGuiViews.BanView view) {
@@ -216,7 +216,10 @@ public final class PaperGuiViews {
         return new NodeSummaryView(nodeId == null ? "" : nodeId, "UNKNOWN", "island", 0L, 0L, 0L, 0L, 0L, 0L, 0L, "0", true, false, 0L, -1L, false, true, "");
     }
 
-    public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid) {
+    public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid, String description) {
+        public IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid) {
+            this(name, state, islandId, level, worth, publicAccess, locked, size, border, ownerUuid, "");
+        }
     }
 
     public record BankView(String balance, String updatedAt) {
@@ -243,7 +246,7 @@ public final class PaperGuiViews {
     public record PlayerIslandView(String islandId, String name, String state, String role, long level, String worth, boolean primary) {
     }
 
-    public record PublicIslandView(String islandId, String ownerUuid, String name, long level, String worth) {
+    public record PublicIslandView(String islandId, String ownerUuid, String name, String description, long level, String worth) {
     }
 
     public record BanView(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt) {

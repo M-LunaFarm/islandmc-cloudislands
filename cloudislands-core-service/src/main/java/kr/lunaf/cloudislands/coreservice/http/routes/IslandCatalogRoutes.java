@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
+import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.RoutingOrchestrator;
@@ -75,7 +76,7 @@ public final class IslandCatalogRoutes implements RouteGroup {
         Optional<IslandSnapshot> island = islandId.equals(EMPTY_UUID)
             ? ownerUuid.equals(EMPTY_UUID) ? islandRepository.findByName(name) : islandRepository.findByOwner(ownerUuid)
             : islandRepository.findById(islandId);
-        CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(value -> islandJson(value, limitRepository)).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+        CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(value -> islandJson(value, limitRepository, metadataRepository)).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
     }
 
     private void publicIslands(HttpExchange exchange) throws IOException {
@@ -87,7 +88,7 @@ public final class IslandCatalogRoutes implements RouteGroup {
             .flatMap(Optional::stream)
             .sorted(Comparator.comparingLong(IslandSnapshot::level).reversed().thenComparing(IslandSnapshot::name))
             .toList();
-        CoreHttpResponses.write(exchange, 200, islandsJson(islands, limitRepository));
+        CoreHttpResponses.write(exchange, 200, islandsJson(islands, limitRepository, metadataRepository));
     }
 
     private void create(HttpExchange exchange) throws IOException {
@@ -121,9 +122,13 @@ public final class IslandCatalogRoutes implements RouteGroup {
     }
 
     static String islandsJson(List<IslandSnapshot> islands, IslandLimitRepository limits) {
+        return islandsJson(islands, limits, null);
+    }
+
+    static String islandsJson(List<IslandSnapshot> islands, IslandLimitRepository limits, IslandMetadataRepository metadata) {
         List<Object> renderedIslands = new ArrayList<>();
         for (IslandSnapshot island : islands) {
-            renderedIslands.add(islandMap(island, limits));
+            renderedIslands.add(islandMap(island, limits, metadata));
         }
         return SimpleJson.stringify(Map.of("islands", renderedIslands));
     }
@@ -133,14 +138,23 @@ public final class IslandCatalogRoutes implements RouteGroup {
     }
 
     static String islandJson(IslandSnapshot island, IslandLimitRepository limits) {
-        return SimpleJson.stringify(islandMap(island, limits));
+        return islandJson(island, limits, null);
+    }
+
+    static String islandJson(IslandSnapshot island, IslandLimitRepository limits, IslandMetadataRepository metadata) {
+        return SimpleJson.stringify(islandMap(island, limits, metadata));
     }
 
     static Map<String, Object> islandMap(IslandSnapshot island, IslandLimitRepository limits) {
+        return islandMap(island, limits, null);
+    }
+
+    static Map<String, Object> islandMap(IslandSnapshot island, IslandLimitRepository limits, IslandMetadataRepository metadata) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("islandId", island.islandId());
         values.put("ownerUuid", island.ownerUuid());
         values.put("name", island.name());
+        values.put("description", metadata == null ? "" : metadata.flags(island.islandId()).values().getOrDefault(IslandFlag.PROFILE_DESCRIPTION, ""));
         values.put("state", island.state());
         values.put("size", island.size());
         values.put("border", authoritativeBorder(island, limits));

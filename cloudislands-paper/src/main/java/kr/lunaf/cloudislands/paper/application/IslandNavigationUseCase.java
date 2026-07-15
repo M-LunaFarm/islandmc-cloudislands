@@ -144,7 +144,7 @@ public final class IslandNavigationUseCase {
     }
 
     private static PublicIslandView publicIslandView(CoreGuiViews.PublicIslandView view) {
-        return new PublicIslandView(view.islandId(), view.ownerUuid(), view.name(), view.level(), view.worth());
+        return new PublicIslandView(view.islandId(), view.ownerUuid(), view.name(), view.description(), view.level(), view.worth());
     }
 
     private static ReviewListView reviewViews(kr.lunaf.cloudislands.coreclient.ReviewListView view) {

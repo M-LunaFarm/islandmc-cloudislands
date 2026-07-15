@@ -106,12 +106,7 @@ public final class IslandVisitMenu implements Listener {
                     int slot = islandSlots.get(index);
                     MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, island.name(),
                         Map.of("target", island.islandId()),
-                        List.of(
-                            message(messages, "visit-menu-owner", "소유자: ") + shortId(island.ownerUuid()),
-                            message(messages, "visit-menu-level", "레벨: ") + island.level(),
-                            message(messages, "visit-menu-worth", "가치: ") + island.worth(),
-                            message(messages, "visit-menu-click-to-visit", "클릭하면 방문합니다.")
-                        ))));
+                        islandLore(island, messages))));
                 }
                 if (page > 0) {
                     setPageItem(inventory, "W", page - 1, messages);
@@ -143,6 +138,18 @@ public final class IslandVisitMenu implements Listener {
             return "알 수 없음";
         }
         return value.length() <= 8 ? value : value.substring(0, 8);
+    }
+
+    private static List<String> islandLore(PublicIslandView island, MessageRenderer messages) {
+        java.util.ArrayList<String> lore = new java.util.ArrayList<>();
+        if (island.description() != null && !island.description().isBlank()) {
+            lore.add(message(messages, "visit-menu-description", "설명: ") + island.description());
+        }
+        lore.add(message(messages, "visit-menu-owner", "소유자: ") + shortId(island.ownerUuid()));
+        lore.add(message(messages, "visit-menu-level", "레벨: ") + island.level());
+        lore.add(message(messages, "visit-menu-worth", "가치: ") + island.worth());
+        lore.add(message(messages, "visit-menu-click-to-visit", "클릭하면 방문합니다."));
+        return List.copyOf(lore);
     }
 
 }

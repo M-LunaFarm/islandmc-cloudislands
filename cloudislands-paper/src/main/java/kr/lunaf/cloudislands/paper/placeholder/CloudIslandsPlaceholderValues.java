@@ -54,6 +54,9 @@ final class CloudIslandsPlaceholderValues {
             case "has_associated_island" -> "true";
             case "island_id", "id" -> data.islandId();
             case "island_name", "name" -> data.name();
+            case "description", "island_description" -> flagValue(data.flags(), "PROFILE_DESCRIPTION");
+            case "discord", "island_discord" -> flagValue(data.flags(), "SOCIAL_DISCORD");
+            case "paypal", "island_paypal" -> flagValue(data.flags(), "SOCIAL_PAYPAL");
             case "owner_uuid", "owner" -> data.ownerUuid();
             case "leader", "island_leader" -> leader;
             case "state", "island_state" -> data.state();
@@ -104,6 +107,13 @@ final class CloudIslandsPlaceholderValues {
 
     private static boolean booleanWhenMissing(String key) {
         return key.equals("has_island") || key.equals("has_associated_island") || key.startsWith("is_") || key.startsWith("island_is_");
+    }
+
+    private static String flagValue(Map<String, String> flags, String key) {
+        if (flags == null) {
+            return "";
+        }
+        return flags.getOrDefault(key, "");
     }
 
     private static String names(List<Member> members) {

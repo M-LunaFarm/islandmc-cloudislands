@@ -216,6 +216,10 @@ public final class IslandSettingsRoutes implements RouteGroup {
         IslandFlag flag = JsonFields.enumValue(IslandFlag.class, body, "flag", IslandFlag.VISITOR_INTERACT);
         String value = JsonFields.text(body, "value", "false");
         UUID actorUuid = JsonFields.uuid(body, "actorUuid", EMPTY_UUID);
+        if (!validProfileValue(flag, value)) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_PROFILE_VALUE", "Island profile value is invalid"));
+            return;
+        }
         if (!requireIslandPermission(exchange, islandId, actorUuid, IslandPermission.MANAGE_FLAGS)) {
             return;
         }
@@ -239,6 +243,10 @@ public final class IslandSettingsRoutes implements RouteGroup {
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
         IslandFlag flag = JsonFields.enumValue(IslandFlag.class, body, "flag", IslandFlag.VISITOR_INTERACT);
         String value = JsonFields.text(body, "value", "false");
+        if (!validProfileValue(flag, value)) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("INVALID_PROFILE_VALUE", "Island profile value is invalid"));
+            return;
+        }
         if (islandRepository.findById(islandId).isEmpty()) {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
             return;
@@ -256,6 +264,15 @@ public final class IslandSettingsRoutes implements RouteGroup {
         islandLogs.append(islandId, EMPTY_UUID, "ISLAND_FLAG_ADMIN_SET", Map.of("flag", flag.name(), "value", value));
         events.publish(CloudIslandEventType.ISLAND_FLAG_CHANGED.name(), Map.of("islandId", islandId.toString(), "actorType", "ADMIN", "flag", flag.name(), "value", value));
         CoreHttpResponses.write(exchange, 202, ApiResponses.ok(true));
+    }
+
+    static boolean validProfileValue(IslandFlag flag, String value) {
+        if (flag != IslandFlag.PROFILE_DESCRIPTION && flag != IslandFlag.SOCIAL_DISCORD && flag != IslandFlag.SOCIAL_PAYPAL) {
+            return true;
+        }
+        String normalized = value == null ? "" : value.trim();
+        int maxLength = flag == IslandFlag.PROFILE_DESCRIPTION ? 256 : 128;
+        return normalized.length() <= maxLength && normalized.chars().noneMatch(Character::isISOControl);
     }
 
     private void adminResetFlags(HttpExchange exchange) throws IOException {

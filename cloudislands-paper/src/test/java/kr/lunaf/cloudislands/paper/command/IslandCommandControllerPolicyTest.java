@@ -705,7 +705,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(settingsHandler.contains("setSocialFlag(player, IslandFlag.SOCIAL_DISCORD"));
         assertTrue(settingsHandler.contains("setSocialFlag(player, IslandFlag.SOCIAL_PAYPAL"));
         assertTrue(settingsHandler.contains("settingsUseCase.setFlagAction(islandId, actorUuid, flag, value, runtime::mutate)"));
-        assertTrue(settingsHandler.contains("normalizeSocialValue"));
+        assertTrue(settingsHandler.contains("normalizeProfileValue"));
         assertTrue(settingsHandler.contains("lower.equals(\"clear\")"));
         assertTrue(flags.contains("SOCIAL_DISCORD"));
         assertTrue(flags.contains("SOCIAL_PAYPAL"));
@@ -718,6 +718,21 @@ class IslandCommandControllerPolicyTest {
         assertTrue(enMessages.contains("social-paypal-action-label:"));
         assertTrue(gates.contains("permissionParity(\"player\", \"superior.island.setdiscord\", \"cloudislands.island.settings\", \"SUPPORTED_VERIFIED\""));
         assertTrue(gates.contains("permissionParity(\"player\", \"superior.island.setpaypal\", \"cloudislands.island.settings\", \"SUPPORTED_VERIFIED\""));
+    }
+
+    @Test
+    void islandDescriptionUsesTypedMetadataAndAppearsInVisitProfiles() throws Exception {
+        String registry = Files.readString(Path.of("../cloudislands-protocol/src/main/java/kr/lunaf/cloudislands/protocol/command/IslandPlayerCommandRegistry.java"));
+        String settingsHandler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandSettingsCommandHandler.java"));
+        String visitMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandVisitMenu.java"));
+        String placeholders = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/placeholder/CloudIslandsPlaceholderValues.java"));
+
+        assertTrue(registry.contains("\"description\"") && registry.contains("\"설명\""));
+        assertTrue(registry.contains("\"섬 설명 <text|clear>\""));
+        assertTrue(settingsHandler.contains("IslandFlag.PROFILE_DESCRIPTION"));
+        assertTrue(settingsHandler.contains("setProfileFlag(player"));
+        assertTrue(visitMenu.contains("island.description()"));
+        assertTrue(placeholders.contains("\"description\", \"island_description\""));
     }
 
     @Test

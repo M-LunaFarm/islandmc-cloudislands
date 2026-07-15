@@ -99,7 +99,7 @@ final class IslandCommandTabCompleter implements TabCompleter {
             if (first.equals("language") || first.equals("locale") || first.equals("언어")) {
                 return literalMatches(List.of("ko_kr", "en_us"), args[1]);
             }
-            if (first.equals("setdiscord") || first.equals("discord") || first.equals("디스코드") || first.equals("setpaypal") || first.equals("paypal") || first.equals("페이팔")) {
+            if (first.equals("description") || first.equals("setdescription") || first.equals("desc") || first.equals("설명") || first.equals("setdiscord") || first.equals("discord") || first.equals("디스코드") || first.equals("setpaypal") || first.equals("paypal") || first.equals("페이팔")) {
                 return literalMatches(List.of("clear", "reset", "remove", "none", "삭제", "초기화"), args[1]);
             }
             if (first.equals("warehouse-deposit") || first.equals("warehouse-withdraw") || first.equals("창고입금") || first.equals("창고출금")) {
