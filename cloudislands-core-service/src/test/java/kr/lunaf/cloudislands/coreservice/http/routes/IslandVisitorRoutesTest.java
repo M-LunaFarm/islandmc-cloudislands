@@ -116,6 +116,20 @@ class IslandVisitorRoutesTest {
     }
 
     @Test
+    void inviteCreationEventCarriesEnoughIdentityForCrossNodeNotification() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandVisitorRoutes.java"));
+        int event = source.indexOf("events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name()", source.indexOf("private void createInvite"));
+        int nextMethod = source.indexOf("\n    private void acceptInvite", event);
+
+        assertTrue(event >= 0 && nextMethod > event);
+        String payload = source.substring(event, nextMethod);
+        assertTrue(payload.contains("\"inviterUuid\", inviterUuid.toString()"));
+        assertTrue(payload.contains("\"targetUuid\", targetUuid.toString()"));
+        assertTrue(payload.contains("\"inviteId\", invite.inviteId().toString()"));
+        assertTrue(payload.contains("\"state\", invite.state()"));
+    }
+
+    @Test
     void jdbcInviteAcceptanceCommitsMembershipAndInitialPrimaryTogether() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/repository/JdbcIslandMetadataRepository.java"));
         int accept = source.indexOf("public String acceptInviteResult(UUID inviteId, UUID playerUuid, long maxMembers)");

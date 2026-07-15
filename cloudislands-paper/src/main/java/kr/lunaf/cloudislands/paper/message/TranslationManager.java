@@ -229,6 +229,14 @@ public final class TranslationManager {
         values.put("input-invite-accept-target-required", "수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요.");
         values.put("input-invite-decline-target-required", "거절할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요.");
         values.put("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요.");
+        values.put("invite-notification", "새 섬 초대가 도착했습니다. 섬={island}");
+        values.put("invite-notification-accept", "[수락]");
+        values.put("invite-notification-accept-hover", "클릭하면 이 초대를 수락합니다.");
+        values.put("invite-notification-decline", "[거절]");
+        values.put("invite-notification-decline-hover", "클릭하면 이 초대를 거절합니다.");
+        values.put("invite-notification-more", "표시하지 않은 초대가 {count}개 더 있습니다.");
+        values.put("invite-notification-view", "[목록]");
+        values.put("invite-notification-view-hover", "클릭하면 대기 중인 초대 목록을 엽니다.");
         values.put("input-remove-player-required", "추방할 플레이어를 입력해주세요.");
         values.put("input-trust-player-required", "신뢰할 플레이어를 입력해주세요.");
         values.put("input-untrust-player-required", "신뢰 해제할 플레이어를 입력해주세요.");

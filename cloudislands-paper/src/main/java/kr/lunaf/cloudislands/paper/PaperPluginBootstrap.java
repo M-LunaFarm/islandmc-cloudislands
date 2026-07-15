@@ -42,6 +42,7 @@ import kr.lunaf.cloudislands.paper.platform.compatibility.PaperVersionAdapterReg
 import kr.lunaf.cloudislands.paper.redis.PaperRedisClient;
 import kr.lunaf.cloudislands.paper.session.PaperBrandingListener;
 import kr.lunaf.cloudislands.paper.session.PaperChatListener;
+import kr.lunaf.cloudislands.paper.session.PaperInviteNotificationListener;
 import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
 import kr.lunaf.cloudislands.paper.session.PaperScoreboardListener;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
@@ -110,6 +111,7 @@ final class PaperPluginBootstrap {
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperPlayerProfileListener(plugin, client, plugin.playerLocales, plugin.playerFlightPreferences, plugin.playerIslandFlightService));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperBrandingListener(plugin, plugin.messages, plugin.playerLocales));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperChatListener(plugin, client, plugin.agent.protection(), plugin.messages, plugin.playerLocales, plugin.adminChatSpies, plugin.teamChatModes));
+        kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperInviteNotificationListener(plugin, client, plugin.messages, plugin.playerLocales));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new PaperScoreboardListener(plugin, plugin.messages, plugin.playerLocales));
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(plugin, new MissionRewardDeliveryListener(plugin));
         if (role == AgentRole.ISLAND_NODE) {
