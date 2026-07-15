@@ -105,12 +105,12 @@ public final class UpgradeEffectApplier {
     private static String configuredLimitKey(String effectKey) {
         return switch (effectKey) {
             case "size", "island-size" -> "SIZE";
-            case "team-limit", "members", "member-limit" -> "MEMBERS";
+            case "team-limit", "members", "member-limit", "max-members" -> "MEMBERS";
             case "warps-limit", "warps", "warp-limit" -> "WARPS";
-            case "homes-limit", "homes", "home-limit" -> "HOMES";
+            case "homes-limit", "homes", "home-limit", "max-homes" -> "HOMES";
             case "border-size" -> "BORDER";
-            case "hopper-limit", "hoppers-limit", "hoppers" -> "HOPPER";
-            case "spawner-limit", "spawners-limit", "spawners" -> "SPAWNER";
+            case "hopper-limit", "hoppers-limit", "hoppers", "max-hoppers" -> "HOPPER";
+            case "spawner-limit", "spawners-limit", "spawners", "max-spawners" -> "SPAWNER";
             case "mob-limit", "entity-limit", "entities-limit" -> "ENTITY";
             case "redstone-limit", "redstone" -> "REDSTONE";
             case "bank-limit", "bank" -> "BANK";
@@ -157,6 +157,9 @@ public final class UpgradeEffectApplier {
 
     private void applyLimitEffect(UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {
         java.util.OptionalLong configuredValue = rule == null ? java.util.OptionalLong.empty() : rule.limitValueForLevel(level);
+        if (rule != null && !rule.levelEffects().isEmpty() && configuredValue.isEmpty()) {
+            return;
+        }
         IslandLimitSnapshot snapshot = switch (type) {
             case ISLAND_SIZE -> setMonotonicLimit(islandId, "SIZE", configuredValue.orElse(100L + Math.max(0L, level - 1L) * 50L), actorUuid);
             case MAX_MEMBERS, MEMBER_LIMIT -> setMonotonicLimit(islandId, "MEMBERS", configuredValue.orElse(3L + Math.max(0L, level - 1L) * 2L), actorUuid);

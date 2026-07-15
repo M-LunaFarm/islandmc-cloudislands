@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.coreservice.upgrade;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -84,5 +85,33 @@ class ConfigUpgradeItemPriceTest {
             "island-effects.haste", 1L,
             "role-limits.trusted", 5L
         ), rule.effectsForLevel(2));
+    }
+
+    @Test
+    void acceptsQuotedLevelsPriceAndDeepMapsFromSs2Layout() throws Exception {
+        Path config = tempDir.resolve("ss2-upgrades.yml");
+        Files.writeString(config, """
+            upgrades:
+              island-generators:
+                '1':
+                  price: 100000.0
+                  price-type: money
+                  crops-growth: 1.25
+                  generator-rates:
+                    normal:
+                      STONE: 85
+                      COAL_ORE: 15
+            """);
+
+        UpgradeRule rule = ConfigUpgradePolicy.load(config.toString()).rule("island-generators");
+
+        assertEquals("100000.0", rule.costForNextLevel(0).toPlainString());
+        assertEquals(1, rule.maxLevel());
+        assertTrue(rule.limitValueForLevel(1).isEmpty(), "a custom composite upgrade must not inherit an unrelated size effect");
+        assertEquals(Map.of(
+            "crops-growth", 125L,
+            "generator-rates.normal.stone", 85L,
+            "generator-rates.normal.coal-ore", 15L
+        ), rule.effectsForLevel(1));
     }
 }

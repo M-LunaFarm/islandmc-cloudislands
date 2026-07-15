@@ -46,14 +46,17 @@ public final class ConfigUpgradePolicy {
         Map<Integer, Map<String, Long>> levelItemCosts = new LinkedHashMap<>();
         Map<Integer, Map<String, Long>> levelEffects = new LinkedHashMap<>();
         int currentLevel = 0;
+        int currentLevelIndent = 0;
         boolean collectingItemCosts = false;
         String effectGroup = "";
+        String effectSubgroup = "";
         for (String rawLine : yaml.split("\\R")) {
             String line = stripComment(rawLine);
+            int indent = indentation(rawLine);
             if (line.isBlank() || !rawLine.startsWith("  ")) {
                 continue;
             }
-            if (rawLine.startsWith("  ") && !rawLine.startsWith("    ") && line.endsWith(":")) {
+            if (indent == 2 && line.endsWith(":")) {
                 if (!currentKey.isBlank()) {
                     putRule(rules, currentKey, currentType, explicitMaxLevel, explicitBaseCost, explicitMultiplier, levelCosts, levelValues, levelItemCosts, levelEffects);
                 }
@@ -67,8 +70,10 @@ public final class ConfigUpgradePolicy {
                 levelItemCosts = new LinkedHashMap<>();
                 levelEffects = new LinkedHashMap<>();
                 currentLevel = 0;
+                currentLevelIndent = 0;
                 collectingItemCosts = false;
                 effectGroup = "";
+                effectSubgroup = "";
                 continue;
             }
             if (currentKey.isBlank()) {
@@ -82,40 +87,55 @@ public final class ConfigUpgradePolicy {
                 explicitBaseCost = decimal(value(line), null);
             } else if (line.startsWith("multiplier:")) {
                 explicitMultiplier = decimal(value(line), null);
-            } else if (rawLine.startsWith("      ") && !rawLine.startsWith("        ") && line.endsWith(":")) {
-                currentLevel = integer(line.substring(0, line.length() - 1).trim(), 0);
+            } else if ((indent == 4 || indent == 6) && line.endsWith(":") && levelNumber(line) > 0) {
+                currentLevel = levelNumber(line);
+                currentLevelIndent = indent;
                 collectingItemCosts = false;
                 effectGroup = "";
-            } else if (rawLine.startsWith("        ") && !rawLine.startsWith("          ") && line.equals("item-costs:")) {
+                effectSubgroup = "";
+            } else if (indent == currentLevelIndent + 2 && currentLevel > 0 && line.equals("item-costs:")) {
                 collectingItemCosts = currentLevel > 0;
                 effectGroup = "";
-            } else if (rawLine.startsWith("        ") && !rawLine.startsWith("          ") && line.endsWith(":")) {
+                effectSubgroup = "";
+            } else if (indent == currentLevelIndent + 2 && currentLevel > 0 && line.endsWith(":")) {
                 collectingItemCosts = false;
                 effectGroup = effectKeyName(line.substring(0, line.length() - 1));
-            } else if (rawLine.startsWith("          ") && collectingItemCosts && currentLevel > 0 && line.contains(":")) {
+                effectSubgroup = "";
+            } else if (indent == currentLevelIndent + 4 && collectingItemCosts && currentLevel > 0 && line.contains(":")) {
                 int separator = line.lastIndexOf(':');
                 String materialKey = line.substring(0, separator).trim();
                 Long amount = longValue(line.substring(separator + 1).trim(), null);
                 if (!materialKey.isBlank() && amount != null && amount > 0L) {
                     levelItemCosts.computeIfAbsent(currentLevel, ignored -> new LinkedHashMap<>()).put(materialKey, amount);
                 }
-            } else if (rawLine.startsWith("          ") && !effectGroup.isBlank() && currentLevel > 0 && line.contains(":")) {
+            } else if (indent == currentLevelIndent + 4 && !effectGroup.isBlank() && currentLevel > 0 && line.endsWith(":")) {
+                effectSubgroup = effectKeyName(line.substring(0, line.length() - 1));
+            } else if (indent == currentLevelIndent + 4 && !effectGroup.isBlank() && currentLevel > 0 && line.contains(":")) {
                 int separator = line.lastIndexOf(':');
                 String nestedKey = line.substring(0, separator).trim();
                 Long effectValue = longValue(line.substring(separator + 1).trim(), null);
                 if (!nestedKey.isBlank() && effectValue != null && effectValue >= 0L) {
                     putEffect(levelEffects, currentLevel, effectGroup + "." + effectKeyName(nestedKey), effectValue);
                 }
-            } else if (rawLine.startsWith("        ") && line.startsWith("cost:")) {
+            } else if (indent == currentLevelIndent + 6 && !effectGroup.isBlank() && !effectSubgroup.isBlank() && currentLevel > 0 && line.contains(":")) {
+                int separator = line.lastIndexOf(':');
+                String nestedKey = line.substring(0, separator).trim();
+                Long effectValue = longValue(line.substring(separator + 1).trim(), null);
+                if (!nestedKey.isBlank() && effectValue != null && effectValue >= 0L) {
+                    putEffect(levelEffects, currentLevel, effectGroup + "." + effectSubgroup + "." + effectKeyName(nestedKey), effectValue);
+                }
+            } else if (indent == currentLevelIndent + 2 && currentLevel > 0 && (line.startsWith("cost:") || line.startsWith("price:"))) {
                 collectingItemCosts = false;
                 effectGroup = "";
+                effectSubgroup = "";
                 BigDecimal cost = decimal(value(line), null);
                 if (cost != null && cost.signum() >= 0) {
                     levelCosts.put(currentLevel, cost);
                 }
-            } else if (rawLine.startsWith("        ") && currentLevel > 0) {
+            } else if (indent == currentLevelIndent + 2 && currentLevel > 0 && line.contains(":")) {
                 collectingItemCosts = false;
                 effectGroup = "";
+                effectSubgroup = "";
                 String configuredEffectKey = effectKeyName(line.substring(0, line.indexOf(':')));
                 Long limitValue = configuredEffectValue(configuredEffectKey, value(line));
                 if (limitValue != null && limitValue >= 0L && effectKey(line)) {
@@ -150,8 +170,7 @@ public final class ConfigUpgradePolicy {
             .filter(java.util.Objects::nonNull)
             .findFirst()
             .ifPresent(value -> selected.put(level, value)));
-        fallback.forEach(selected::putIfAbsent);
-        return selected;
+        return selected.isEmpty() && effects.isEmpty() ? fallback : selected;
     }
 
     private static java.util.List<String> primaryEffectKeys(UpgradeType type) {
@@ -160,12 +179,12 @@ public final class ConfigUpgradePolicy {
         }
         return switch (type) {
             case ISLAND_SIZE -> java.util.List.of("size", "island-size", "border-size");
-            case MAX_MEMBERS, MEMBER_LIMIT -> java.util.List.of("team-limit", "members", "member-limit");
+            case MAX_MEMBERS, MEMBER_LIMIT -> java.util.List.of("team-limit", "members", "member-limit", "max-members");
             case MAX_WARPS, WARP_LIMIT -> java.util.List.of("warps-limit", "warps", "warp-limit");
-            case HOME_LIMIT -> java.util.List.of("homes-limit", "homes", "home-limit");
+            case HOME_LIMIT -> java.util.List.of("homes-limit", "homes", "home-limit", "max-homes");
             case BORDER_SIZE -> java.util.List.of("border-size", "size");
-            case HOPPER_LIMIT -> java.util.List.of("hopper-limit", "hoppers-limit", "hoppers");
-            case SPAWNER_LIMIT -> java.util.List.of("spawner-limit", "spawners-limit", "spawners");
+            case HOPPER_LIMIT -> java.util.List.of("hopper-limit", "hoppers-limit", "hoppers", "max-hoppers");
+            case SPAWNER_LIMIT -> java.util.List.of("spawner-limit", "spawners-limit", "spawners", "max-spawners");
             case MOB_LIMIT -> java.util.List.of("mob-limit", "entity-limit", "entities-limit");
             case CROP_GROWTH -> java.util.List.of("crops-growth", "crop-growth");
             case REDSTONE_LIMIT -> java.util.List.of("redstone-limit", "redstone");
@@ -181,6 +200,19 @@ public final class ConfigUpgradePolicy {
 
     private static String effectKeyName(String key) {
         return key.trim().toLowerCase().replace('_', '-');
+    }
+
+    private static int levelNumber(String line) {
+        String candidate = line.substring(0, line.length() - 1).trim().replace("'", "").replace("\"", "");
+        return integer(candidate, 0);
+    }
+
+    private static int indentation(String line) {
+        int spaces = 0;
+        while (spaces < line.length() && line.charAt(spaces) == ' ') {
+            spaces++;
+        }
+        return spaces;
     }
 
     private static Long configuredEffectValue(String effectKey, String value) {

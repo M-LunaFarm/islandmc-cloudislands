@@ -194,6 +194,33 @@ class UpgradeEffectApplierTest {
     }
 
     @Test
+    void customCompositeUpgradeDoesNotApplyDefaultTypeFallback() {
+        InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
+        UpgradeRule rule = new UpgradeRule(
+            "custom-composite",
+            UpgradeType.ISLAND_SIZE,
+            2,
+            BigDecimal.ZERO,
+            BigDecimal.ONE,
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(2, Map.of("crops-growth", 150L))
+        );
+
+        new UpgradeEffectApplier(
+            limits,
+            new InMemoryIslandRepository(),
+            new InMemoryIslandMetadataRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryGlobalEventPublisher()
+        ).apply(ISLAND_ID, OWNER_ID, rule, UpgradeType.ISLAND_SIZE, 2);
+
+        assertEquals(100L, limitValue(limits, "SIZE"));
+        assertEquals(150L, limitValue(limits, "RATE:CROP_GROWTH"));
+    }
+
+    @Test
     void atomicMinimumWritesConvergeToTheHighestConcurrentLimit() throws Exception {
         InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
         UUID lowWriter = UUID.fromString("00000000-0000-0000-0000-000000000603");
