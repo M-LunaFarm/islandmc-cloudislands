@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandSnapshotMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import kr.lunaf.cloudislands.storage.snapshot.SnapshotRetentionPolicy;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -107,10 +108,11 @@ final class IslandSnapshotCommandHandler {
 
     private void listSnapshots(Player player, int limit) {
         runtime.currentIsland(player, message("snapshot-list-island-required", "섬 안에서만 스냅샷을 확인할 수 있습니다.")).ifPresent(islandId -> {
+            UUID playerUuid = player.getUniqueId();
             snapshotUseCase.snapshotViews(islandId, limit)
-                .thenAccept(snapshots -> runtime.message(player, snapshotListMessage(snapshots)))
+                .thenAccept(snapshots -> deliverMessage(playerUuid, snapshotListMessage(snapshots)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("snapshot-list-load-failed", "섬 스냅샷을 불러오지 못했습니다."));
+                    deliverMessage(playerUuid, message("snapshot-list-load-failed", "섬 스냅샷을 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -126,10 +128,11 @@ final class IslandSnapshotCommandHandler {
                 runtime.message(player, runtime.routeMessage("snapshot-create-denied", "섬 스냅샷을 생성할 관리자 권한이 없습니다."));
                 return;
             }
+            UUID playerUuid = player.getUniqueId();
             snapshotUseCase.requestSnapshotAction(islandId, reason, runtime::mutate)
-                .thenAccept(result -> runtime.message(player, snapshotActionMessage(message("snapshot-create-request-label", "섬 스냅샷 생성 요청"), islandId, result)))
+                .thenAccept(result -> deliverMessage(playerUuid, snapshotActionMessage(message("snapshot-create-request-label", "섬 스냅샷 생성 요청"), islandId, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("snapshot-create-request-failed", "섬 스냅샷 생성을 요청하지 못했습니다."));
+                    deliverMessage(playerUuid, message("snapshot-create-request-failed", "섬 스냅샷 생성을 요청하지 못했습니다."));
                     return null;
                 });
         });
@@ -145,12 +148,22 @@ final class IslandSnapshotCommandHandler {
                 runtime.message(player, runtime.routeMessage("input-snapshot-number-invalid", "올바른 스냅샷 번호를 입력해주세요."));
                 return;
             }
+            UUID playerUuid = player.getUniqueId();
             snapshotUseCase.restoreSnapshotAction(islandId, snapshotNo, runtime::mutateIdempotent)
-                .thenAccept(result -> runtime.message(player, snapshotActionMessage(message("snapshot-restore-request-label", "섬 스냅샷 복원 요청") + " #" + snapshotNo, islandId, result)))
+                .thenAccept(result -> deliverMessage(playerUuid, snapshotActionMessage(message("snapshot-restore-request-label", "섬 스냅샷 복원 요청") + " #" + snapshotNo, islandId, result)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("snapshot-restore-request-failed", "섬 스냅샷 복원을 요청하지 못했습니다."));
+                    deliverMessage(playerUuid, message("snapshot-restore-request-failed", "섬 스냅샷 복원을 요청하지 못했습니다."));
                     return null;
                 });
+        });
+    }
+
+    private void deliverMessage(UUID playerUuid, String detail) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+            if (activePlayer != null && activePlayer.isOnline()) {
+                runtime.message(activePlayer, detail);
+            }
         });
     }
 
