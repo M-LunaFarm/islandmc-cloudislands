@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
@@ -42,18 +43,24 @@ final class IslandRoutingCommandHandler {
     }
 
     void routeWarp(Player player, UUID islandId, String warpName) {
-        routeTicket(player, routingUseCase.createWarpTicket(player.getUniqueId(), islandId, warpName, runtime::mutate), "해당 워프로 이동할 수 없습니다.");
+        UUID playerUuid = player.getUniqueId();
+        routeTicket(playerUuid, routingUseCase.createWarpTicket(playerUuid, islandId, warpName, runtime::mutate), "해당 워프로 이동할 수 없습니다.");
     }
 
     void routeHome(Player player, String homeName) {
-        routeTicket(player, routingUseCase.createHomeTicket(player.getUniqueId(), homeName, runtime::mutate), "해당 섬 홈으로 이동할 수 없습니다.");
+        UUID playerUuid = player.getUniqueId();
+        routeTicket(playerUuid, routingUseCase.createHomeTicket(playerUuid, homeName, runtime::mutate), "해당 섬 홈으로 이동할 수 없습니다.");
     }
 
     void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
-        ticketFuture.thenAccept(ticket -> runSync(() -> routeTicket(player, ticket, failureMessage, 0))).exceptionally(error -> {
-            runSync(() -> {
-                clearRouteLoading(player);
-                runtime.message(player, routeFailureMessage(error, failureMessage));
+        routeTicket(player.getUniqueId(), ticketFuture, failureMessage);
+    }
+
+    private void routeTicket(UUID playerUuid, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
+        ticketFuture.thenAccept(ticket -> routeTicket(playerUuid, ticket, failureMessage, 0)).exceptionally(error -> {
+            runSync(playerUuid, activePlayer -> {
+                clearRouteLoading(activePlayer);
+                runtime.message(activePlayer, routeFailureMessage(error, failureMessage));
             });
             return null;
         });
@@ -72,26 +79,31 @@ final class IslandRoutingCommandHandler {
     }
 
     boolean connectPlayerToFallback(Player player, String successMessage, String failureMessage) {
+        UUID playerUuid = player.getUniqueId();
         if (localRouteConsumer != null) {
-            localRouteConsumer.teleportToWorldSpawn(player.getUniqueId(), localFallbackWorld).whenComplete((teleported, error) -> runSync(() -> {
+            localRouteConsumer.teleportToWorldSpawn(playerUuid, localFallbackWorld).whenComplete((teleported, error) -> runSync(playerUuid, activePlayer -> {
                 if (error != null || !Boolean.TRUE.equals(teleported)) {
-                    player.sendMessage(runtime.playerMessage(failureMessage));
+                    activePlayer.sendMessage(runtime.playerMessage(failureMessage));
                     return;
                 }
-                player.sendMessage(runtime.playerMessage(successMessage));
+                activePlayer.sendMessage(runtime.playerMessage(successMessage));
             }));
             return true;
         }
-        connectPlayerToServer(player, fallbackServerName, successMessage, failureMessage);
+        connectPlayerToServer(playerUuid, fallbackServerName, successMessage, failureMessage);
         return true;
     }
 
-    private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
+    private void routeTicket(UUID playerUuid, RouteTicket ticket, String failureMessage, int attempt) {
+        runSync(playerUuid, player -> routeTicketSync(player, playerUuid, ticket, failureMessage, attempt));
+    }
+
+    private void routeTicketSync(Player player, UUID playerUuid, RouteTicket ticket, String failureMessage, int attempt) {
         if (ticket.state().name().equals("READY")) {
             String target = routeTargetName(ticket);
             showRouteLoading(player, 1.0f, runtime.routeMessage(player, "route-loading-complete", target + " 로딩 완료", "target", target));
             player.sendActionBar(routeComponent(player, "route-ready", "잠시 후 " + target + "으로 이동합니다.", "target", target));
-            publishAndConnect(player, ticket, failureMessage);
+            publishAndConnect(playerUuid, ticket, failureMessage);
             return;
         }
         if (attempt >= routeWaitSeconds) {
@@ -105,17 +117,19 @@ final class IslandRoutingCommandHandler {
         showRouteLoading(player, RoutePreparationProgressPolicy.preparingProgress(attempt), runtime.routeMessage(player, "route-loading-progress", RoutePreparationProgressPolicy.loadingTitle(target, attempt), "target", target, "progress", progressValue));
         player.sendActionBar(routeComponent(player, "route-preparing-progress", RoutePreparationProgressPolicy.preparingActionBar(target, attempt), "target", target, "progress", progressValue));
         CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() ->
-            routingUseCase.routeTicketStatus(ticket).thenAccept(status -> runSync(() -> {
+            routingUseCase.routeTicketStatus(ticket).thenAccept(status -> {
                 if (status.isPresent()) {
-                    routeTicket(player, status.get(), failureMessage, attempt + 1);
+                    routeTicket(playerUuid, status.get(), failureMessage, attempt + 1);
                 } else {
-                    clearRouteLoading(player);
-                    runtime.message(player, failureMessage);
+                    runSync(playerUuid, activePlayer -> {
+                        clearRouteLoading(activePlayer);
+                        runtime.message(activePlayer, failureMessage);
+                    });
                 }
-            })).exceptionally(error -> {
-                runSync(() -> {
-                    clearRouteLoading(player);
-                    runtime.message(player, routeFailureMessage(error, failureMessage));
+            }).exceptionally(error -> {
+                runSync(playerUuid, activePlayer -> {
+                    clearRouteLoading(activePlayer);
+                    runtime.message(activePlayer, routeFailureMessage(error, failureMessage));
                 });
                 return null;
             })
@@ -143,30 +157,30 @@ final class IslandRoutingCommandHandler {
         return runtime.component(player, runtime.routeMessage(player, key, fallback, variables));
     }
 
-    private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
+    private void publishAndConnect(UUID playerUuid, RouteTicket ticket, String failureMessage) {
         RouteTicketConsumer localConsumer = localRouteConsumer;
         if (localConsumer != null) {
-            clearRouteLoading(player);
-            localConsumer.consumeAndTeleport(ticket.ticketId(), player.getUniqueId(), ticket.nonce());
+            runSync(playerUuid, this::clearRouteLoading);
+            localConsumer.consumeAndTeleport(ticket.ticketId(), playerUuid, ticket.nonce());
             return;
         }
         routingUseCase.publishRouteSession(ticket, runtime::mutate).thenRun(() -> {
-            runSync(() -> {
-                clearRouteLoading(player);
-                connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
+            runSync(playerUuid, activePlayer -> {
+                clearRouteLoading(activePlayer);
+                connectWithTicket(activePlayer, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
             });
         }).exceptionally(error -> {
             clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
-            runSync(() -> {
-                clearRouteLoading(player);
-                runtime.message(player, routeFailureMessage(error, failureMessage));
+            runSync(playerUuid, activePlayer -> {
+                clearRouteLoading(activePlayer);
+                runtime.message(activePlayer, routeFailureMessage(error, failureMessage));
             });
             return null;
         });
     }
 
-    private void runSync(Runnable task) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, task);
+    private void runSync(UUID playerUuid, Consumer<Player> task) {
+        PaperOnlinePlayer.run(plugin, playerUuid, task);
     }
 
     private void showRouteLoading(Player player, float progress, String title) {
@@ -180,25 +194,23 @@ final class IslandRoutingCommandHandler {
     }
 
     private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            if (targetServerName == null || targetServerName.isBlank()) {
-                clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
-                runtime.message(player, runtime.routeMessage("route-command-failed", "섬으로 이동하지 못했습니다."));
-                return;
-            }
-            if (!canUseBungeeConnect()) {
-                clearFailedRoute(ticket, "BUNGEE_CONNECT_UNAVAILABLE");
-                runtime.message(player, runtime.routeMessage("route-command-publish-failed", "섬 이동 경로를 준비하지 못했습니다."));
-                return;
-            }
-            try {
-                sendConnectPluginMessage(player, targetServerName);
-                runtime.message(player, runtime.routeMessage("route-command-started", "섬으로 이동합니다."));
-            } catch (IOException | RuntimeException exception) {
-                clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
-                runtime.message(player, runtime.routeMessage("route-command-failed", "섬으로 이동하지 못했습니다."));
-            }
-        });
+        if (targetServerName == null || targetServerName.isBlank()) {
+            clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
+            runtime.message(player, runtime.routeMessage("route-command-failed", "섬으로 이동하지 못했습니다."));
+            return;
+        }
+        if (!canUseBungeeConnect()) {
+            clearFailedRoute(ticket, "BUNGEE_CONNECT_UNAVAILABLE");
+            runtime.message(player, runtime.routeMessage("route-command-publish-failed", "섬 이동 경로를 준비하지 못했습니다."));
+            return;
+        }
+        try {
+            sendConnectPluginMessage(player, targetServerName);
+            runtime.message(player, runtime.routeMessage("route-command-started", "섬으로 이동합니다."));
+        } catch (IOException | RuntimeException exception) {
+            clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
+            runtime.message(player, runtime.routeMessage("route-command-failed", "섬으로 이동하지 못했습니다."));
+        }
     }
 
     private void clearFailedRoute(RouteTicket ticket, String reason) {
@@ -220,8 +232,8 @@ final class IslandRoutingCommandHandler {
         };
     }
 
-    private void connectPlayerToServer(Player player, String targetServerName, String successMessage, String failureMessage) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+    private void connectPlayerToServer(UUID playerUuid, String targetServerName, String successMessage, String failureMessage) {
+        runSync(playerUuid, player -> {
             if (targetServerName == null || targetServerName.isBlank()) {
                 player.sendMessage(runtime.playerMessage(failureMessage));
                 return;
