@@ -362,7 +362,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "ranking, dirty recalculation, authoritative bank balance ordering, typed block values, custom block identity, logical stack amounts, and chunk-complete tick-budgeted reconciliation have service tests",
         "Paper-facing values compile; no per-version runtime divergence is claimed",
         "version-neutral",
-        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, cancellation-final and inheritance-deduplicated block transitions, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection",
+        "verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal including external plugin removals, cancellation-final and inheritance-deduplicated block transitions, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection",
         "not recovery-specific",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/ranking/DirtyRankingRecalculationTaskTest.java",
@@ -378,6 +378,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/limit/LogicalStackDeltaBridgeTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/limit/LogicalEntityRemovalBridge.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/limit/LogicalEntityRemovalBridgeTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/limit/EntityRemovalAccountingPolicy.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/limit/EntityRemovalAccountingPolicyTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/limit/RuntimeLimitEnforcementPolicyTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/limit/MobDropRateScaler.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/limit/MobDropRateScalerTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/level/ExplosionDeltaFinalityPolicyTest.java",

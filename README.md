@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.229`
+Version: `1.1.230`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -720,7 +720,7 @@ integration verification.
 | lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper 26.1.2 smoke verifies normal command registration plus rejected-bootstrap rollback, diagnostic /is and /ciadmin, corrected-config retry, and second-attempt READY recovery; Paper tests verify main-thread template permission preflight, UUID-based online-player revalidation for delayed create/delete/reset and home/warp completion, one observable warp-to-island-info lookup chain, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, final online-player revalidation, bounded destination revalidation, and teleport warmup cancellation as soon as a player moves or starts falling within the same block | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests; Paper command callbacks retain immutable actor UUIDs across profile lookup and Core mutation completion | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests and protection smoke cover LOWEST-priority custom-machine right-click fencing through the independent container permission for ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun blocks, dedicated normal/glow item-frame add, rotate, and remove changes plus HIGHEST-priority pickup attempt and final entity boundaries, granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, CraftEngine furniture build/break enforcement, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, fail-closed dispenser, armor-dispense, origin-island-preserving ground items and merges, hopper, inventory-transfer, and block-projectile boundaries including migrating islands, cancellation-final natural spread, growth, formation, fade, fluid, fire, leaf, bucket, fertilize, structure, and Enderman transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns, and fail-closed player/entity cross-dimension portals inside active island regions | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests; cross-dimension island worlds remain intentionally unavailable until their lifecycle, storage, and routing are implemented end to end |
-| ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, cancellation-final and inheritance-deduplicated block transitions, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
+| ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal including external plugin removals, cancellation-final and inheritance-deduplicated block transitions, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; one level now preserves and applies concurrent size/team/warp/coop/role limits, crop/spawner/drop multipliers, island effects, normal-world per-material generator rates, arbitrary block limits, and per-entity limits from either CloudIslands or quoted-level SS2 layouts without reducing administrator or mission overrides; Paper enforces exact material and entity-type counts, including logical stacker spawns, alongside existing aggregate limits; authoritative size is carried through activation, restore, reset, and migration jobs, while live size changes atomically replace Paper protection, scan, and snapshot bounds; Core island response paths expose the independent authoritative BORDER limit, and async size, border, border-policy, and personal-profile responses re-resolve the current online player through the Paper scheduler before Bukkit state changes; Paper tests also cover region-file cell isolation, unsafe-size fencing, world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting | normal-world per-material generator rates, arbitrary block limits, and per-entity limits are runtime-applied; Nether and End generator-rate maps remain preserved but intentionally inactive until cross-dimension island lifecycle, storage, and routing exist end to end; operator deployment acceptance is still recommended; cells below 1024 blocks or not aligned to 512 blocks fail startup, and islands that cannot fit without sharing region files fail activation or are fenced on unsafe live resize |
 | bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; gameplay progress delivery carries Core idempotency metadata, while monotonic absolute progress keeps repeated authoritative bank balances and island levels from double-counting or regressing; level recalculation advances the built-in level mission; PostgreSQL and MySQL dual-Core smoke verifies same-key MISSION and CHALLENGE definitions retain independent rows and progress, including fresh and upgraded MySQL schemas, restored mission metadata, and MySQL-safe completion assignment order; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; `/is deposit *` and `/is withdraw *` resolve authoritative full balances through scheduler-safe Vault and Core queries before reusing the existing idempotent mutation, refund, and rollback paths; delayed balance, target, deposit, and withdrawal results re-resolve the current online player by UUID before Paper feedback; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus current-visible-visitor classification, Core audit/visitor route tests, and LOWEST/HIGHEST mutually exclusive local/team-chat isolation cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
@@ -731,9 +731,21 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.229`
+Current release: `v1.1.230`
 
-Built for the CloudIslands 1.1.229 baseline.
+Built for the CloudIslands 1.1.230 baseline.
+
+Release notes for `v1.1.230`:
+
+- entities permanently removed through another plugin's `Entity#remove()` path
+  now decrement both aggregate and exact entity-type island counters
+- Paper `PLUGIN` and `DISCARD` removal causes are reconciled immediately instead
+  of leaving limits falsely occupied until a manual or periodic rescan
+- chunk unloads, player-quit vehicle detaches, deaths, explosions, and direct
+  hit removals remain excluded from this path because they persist or are
+  already accounted by their dedicated accepted event
+- focused policy tests and the release parity gate preserve the removal-cause
+  split across supported Paper runtimes
 
 Release notes for `v1.1.229`:
 
@@ -1620,8 +1632,10 @@ Release notes carried forward from `v1.1.171`:
   per-type level/worth counters
 - chunk unloads remain deliberately uncounted because their entities persist
   and will return when the chunk loads again
-- death, hanging-break, vehicle-destroy, explosion, and plugin removal causes
-  stay on their existing accounting paths, preventing duplicate decrements
+- death, hanging-break, vehicle-destroy, and explosion causes stay on their
+  dedicated accounting paths, preventing duplicate decrements
+- direct plugin and internal discard removals are permanent and decrement both
+  aggregate entity limits and exact per-type counters immediately
 - stacked entities removed by a permanent natural cause subtract their complete
   RoseStacker or WildStacker logical amount instead of one physical entity
 - a Paper removal-cause regression policy protects the distinction across the
