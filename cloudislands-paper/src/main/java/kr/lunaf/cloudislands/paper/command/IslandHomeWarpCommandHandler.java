@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -18,7 +19,6 @@ import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandHomeMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandWarpMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
-import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -46,10 +46,11 @@ final class IslandHomeWarpCommandHandler {
                 return true;
             }
             String warpName = args.length > 2 ? args[2] : "default";
+            UUID playerUuid = player.getUniqueId();
             targetResolver.resolve(args[1])
-                .thenAccept(islandId -> runSync(player, () -> runtime.routeWarp(player, islandId, warpName)))
+                .thenAccept(islandId -> runSync(playerUuid, activePlayer -> runtime.routeWarp(activePlayer, islandId, warpName)))
                 .exceptionally(error -> {
-                    runSync(player, () -> runtime.message(player, message("input-island-target-not-found")));
+                    deliverMessage(playerUuid, message("input-island-target-not-found"));
                     return null;
                 });
             return true;
@@ -243,67 +244,74 @@ final class IslandHomeWarpCommandHandler {
     }
 
     private void setHome(Player player, String name) {
+        UUID playerUuid = player.getUniqueId();
+        IslandLocation location = runtime.location(player.getLocation());
         runtime.currentIsland(player, message("home-set-island-required")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.SET_HOME)) {
                 runtime.message(player, message("home-set-denied"));
                 return;
             }
-            homeWarpUseCase.setHomeAction(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), runtime::mutate)
-                .thenAccept(result -> runSync(player, () -> runtime.message(player, homeWarpActionMessage("home-set-action-label", name, result))))
+            homeWarpUseCase.setHomeAction(islandId, playerUuid, name, location, runtime::mutate)
+                .thenAccept(result -> deliverMessage(playerUuid, homeWarpActionMessage("home-set-action-label", name, result)))
                 .exceptionally(error -> {
-                    runSync(player, () -> runtime.message(player, message("home-set-failed")));
+                    deliverMessage(playerUuid, message("home-set-failed"));
                     return null;
                 });
         });
     }
 
     private void setWarp(Player player, String name, String category) {
+        UUID playerUuid = player.getUniqueId();
+        IslandLocation location = runtime.location(player.getLocation());
         runtime.currentIsland(player, message("warp-set-island-required")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_WARPS)) {
                 runtime.message(player, message("warp-set-denied"));
                 return;
             }
-            homeWarpUseCase.setWarpAction(islandId, player.getUniqueId(), name, runtime.location(player.getLocation()), false, category, runtime::mutate)
-                .thenAccept(result -> runSync(player, () -> runtime.message(player, homeWarpActionMessage("warp-set-action-label", name, result))))
+            homeWarpUseCase.setWarpAction(islandId, playerUuid, name, location, false, category, runtime::mutate)
+                .thenAccept(result -> deliverMessage(playerUuid, homeWarpActionMessage("warp-set-action-label", name, result)))
                 .exceptionally(error -> {
-                    runSync(player, () -> runtime.message(player, message("warp-set-failed")));
+                    deliverMessage(playerUuid, message("warp-set-failed"));
                     return null;
                 });
         });
     }
 
     private void deleteHome(Player player, String name) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("home-delete-island-required")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.SET_HOME)) {
                 runtime.message(player, message("home-delete-denied"));
                 return;
             }
-            homeWarpUseCase.deleteHomeAction(islandId, player.getUniqueId(), name, runtime::mutateIdempotent)
-                .thenAccept(result -> runSync(player, () -> runtime.message(player, homeWarpActionMessage("home-delete-action-label", name, result))))
+            homeWarpUseCase.deleteHomeAction(islandId, playerUuid, name, runtime::mutateIdempotent)
+                .thenAccept(result -> deliverMessage(playerUuid, homeWarpActionMessage("home-delete-action-label", name, result)))
                 .exceptionally(error -> {
-                    runSync(player, () -> runtime.message(player, message("home-delete-failed")));
+                    deliverMessage(playerUuid, message("home-delete-failed"));
                     return null;
                 });
         });
     }
 
     private void listHomes(Player player) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("home-list-island-required")).ifPresent(islandId -> {
             homeWarpUseCase.homeViews(islandId)
-                .thenAccept(homes -> runSync(player, () -> runtime.message(player, homeListMessage(homes))))
+                .thenAccept(homes -> deliverMessage(playerUuid, homeListMessage(homes)))
                 .exceptionally(error -> {
-                    runSync(player, () -> runtime.message(player, message("home-load-failed")));
+                    deliverMessage(playerUuid, message("home-load-failed"));
                     return null;
                 });
         });
     }
 
     private void listWarps(Player player) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("warp-list-island-required")).ifPresent(islandId -> {
             homeWarpUseCase.warpViews(islandId)
-                .thenAccept(warps -> runSync(player, () -> runtime.message(player, warpListMessage(warps))))
+                .thenAccept(warps -> deliverMessage(playerUuid, warpListMessage(warps)))
                 .exceptionally(error -> {
-                    runSync(player, () -> runtime.message(player, message("warp-load-failed")));
+                    deliverMessage(playerUuid, message("warp-load-failed"));
                     return null;
                 });
         });
@@ -318,6 +326,7 @@ final class IslandHomeWarpCommandHandler {
     }
 
     private void teleportHome(Player player, String name) {
+        UUID playerUuid = player.getUniqueId();
         Optional<UUID> currentIsland = runtime.currentIsland(player);
         if (currentIsland.isEmpty()) {
             runtime.routeHome(player, name);
@@ -329,11 +338,11 @@ final class IslandHomeWarpCommandHandler {
             return;
         }
         homeWarpUseCase.homeViews(islandId)
-            .thenAccept(homes -> runSync(player, () -> runtime.moveToPoint(player, islandId, homePoint(homes, name), message("home-not-found"), message("home-teleport-success"))))
+            .thenAccept(homes -> runSync(playerUuid, activePlayer -> runtime.moveToPoint(activePlayer, islandId, homePoint(homes, name), message("home-not-found"), message("home-teleport-success"))))
             .exceptionally(error -> {
-                runSync(player, () -> {
-                    if (!runtime.coreUnavailable(error) || !runtime.teleportLocalDefaultHome(player)) {
-                        runtime.message(player, message("home-load-failed"));
+                runSync(playerUuid, activePlayer -> {
+                    if (!runtime.coreUnavailable(error) || !runtime.teleportLocalDefaultHome(activePlayer)) {
+                        runtime.message(activePlayer, message("home-load-failed"));
                     }
                 });
                 return null;
@@ -341,69 +350,73 @@ final class IslandHomeWarpCommandHandler {
     }
 
     private void teleportWarp(Player player, String name) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("warp-teleport-island-required")).ifPresent(islandId -> {
             homeWarpUseCase.warpViews(islandId)
-                .thenAccept(warps -> runSync(player, () -> {
+                .thenCompose(warps -> {
                     Point point = warpPoint(warps, name);
                     if (point == null) {
-                        runtime.moveToPoint(player, islandId, null, message("warp-not-found"), message("warp-teleport-success"));
+                        return CompletableFuture.completedFuture(new WarpTeleportView(null, false, false));
+                    }
+                    return homeWarpUseCase.islandInfoView(islandId)
+                        .handle((info, error) -> new WarpTeleportView(point, error == null && info.publicAccess(), error != null));
+                })
+                .thenAccept(view -> runSync(playerUuid, activePlayer -> {
+                    if (view.infoLoadFailed()) {
+                        runtime.message(activePlayer, message("island-info-load-failed"));
                         return;
                     }
-                    homeWarpUseCase.islandInfoView(islandId).thenAccept(info -> {
-                        runSync(player, () -> {
-                            if (!runtime.publicWarpAllowed(player, point, info.publicAccess()) && !runtime.allowed(player, IslandPermission.INTERACT)) {
-                                runtime.message(player, message("warp-teleport-denied"));
-                                return;
-                            }
-                            runtime.moveToPoint(player, islandId, point, message("warp-not-found"), message("warp-teleport-success"));
-                        });
-                    }).exceptionally(error -> {
-                        runSync(player, () -> runtime.message(player, message("island-info-load-failed")));
-                        return null;
-                    });
+                    if (view.point() != null && !runtime.publicWarpAllowed(activePlayer, view.point(), view.publicAccess()) && !runtime.allowed(activePlayer, IslandPermission.INTERACT)) {
+                        runtime.message(activePlayer, message("warp-teleport-denied"));
+                        return;
+                    }
+                    runtime.moveToPoint(activePlayer, islandId, view.point(), message("warp-not-found"), message("warp-teleport-success"));
                 }))
                 .exceptionally(error -> {
-                    runSync(player, () -> runtime.message(player, message("warp-load-failed")));
+                    deliverMessage(playerUuid, message("warp-load-failed"));
                     return null;
                 });
         });
     }
 
     private void deleteWarp(Player player, String name) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("warp-delete-island-required")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_WARPS)) {
                 runtime.message(player, message("warp-delete-denied"));
                 return;
             }
-            homeWarpUseCase.deleteWarpAction(islandId, player.getUniqueId(), name, runtime::mutateIdempotent)
-                .thenAccept(result -> runSync(player, () -> runtime.message(player, homeWarpActionMessage("warp-delete-action-label", name, result))))
+            homeWarpUseCase.deleteWarpAction(islandId, playerUuid, name, runtime::mutateIdempotent)
+                .thenAccept(result -> deliverMessage(playerUuid, homeWarpActionMessage("warp-delete-action-label", name, result)))
                 .exceptionally(error -> {
-                    runSync(player, () -> runtime.message(player, message("warp-delete-failed")));
+                    deliverMessage(playerUuid, message("warp-delete-failed"));
                     return null;
                 });
         });
     }
 
     private void setWarpPublicAccess(Player player, String name, boolean publicAccess) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("warp-access-island-required")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_WARPS)) {
                 runtime.message(player, message("warp-access-denied"));
                 return;
             }
-            homeWarpUseCase.setWarpPublicAccessAction(islandId, player.getUniqueId(), name, publicAccess, runtime::mutate)
-                .thenAccept(result -> runSync(player, () -> runtime.message(player, homeWarpActionMessage(publicAccess ? "warp-public-action-label" : "warp-private-action-label", name, result))))
+            homeWarpUseCase.setWarpPublicAccessAction(islandId, playerUuid, name, publicAccess, runtime::mutate)
+                .thenAccept(result -> deliverMessage(playerUuid, homeWarpActionMessage(publicAccess ? "warp-public-action-label" : "warp-private-action-label", name, result)))
                 .exceptionally(error -> {
-                    runSync(player, () -> runtime.message(player, message("warp-access-failed")));
+                    deliverMessage(playerUuid, message("warp-access-failed"));
                     return null;
                 });
         });
     }
 
     private void listPublicWarps(Player player, String category, String query) {
+        UUID playerUuid = player.getUniqueId();
         homeWarpUseCase.publicWarpViews(20, category, query)
-            .thenAccept(warps -> runSync(player, () -> runtime.message(player, publicWarpListMessage(warps, category, query))))
+            .thenAccept(warps -> deliverMessage(playerUuid, publicWarpListMessage(warps, category, query)))
             .exceptionally(error -> {
-                runSync(player, () -> runtime.message(player, message("public-warp-list-load-failed")));
+                deliverMessage(playerUuid, message("public-warp-list-load-failed"));
                 return null;
         });
     }
@@ -506,12 +519,15 @@ final class IslandHomeWarpCommandHandler {
         return runtime.routeMessage(key, key);
     }
 
-    private void runSync(Player player, Runnable task) {
-        PaperSchedulers.run(plugin, () -> {
-            if (player.isOnline()) {
-                task.run();
-            }
-        });
+    private void deliverMessage(UUID playerUuid, String renderedMessage) {
+        runSync(playerUuid, activePlayer -> runtime.message(activePlayer, renderedMessage));
+    }
+
+    private void runSync(UUID playerUuid, Consumer<Player> task) {
+        PaperOnlinePlayer.run(plugin, playerUuid, task);
+    }
+
+    private record WarpTeleportView(Point point, boolean publicAccess, boolean infoLoadFailed) {
     }
 
     private static String joined(String[] args, int start) {
