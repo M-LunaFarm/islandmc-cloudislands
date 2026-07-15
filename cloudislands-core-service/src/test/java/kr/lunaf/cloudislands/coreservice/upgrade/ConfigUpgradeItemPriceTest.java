@@ -45,9 +45,9 @@ class ConfigUpgradeItemPriceTest {
                 levels:
                   1:
                     cost: 1000
-                    size: 125
                     crops-growth: 110
                     team-limit: 4
+                    size: 125
                     island-effects:
                       SPEED: 1
                     role-limits:

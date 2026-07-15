@@ -130,10 +130,48 @@ public final class ConfigUpgradePolicy {
     }
 
     private static void putRule(Map<String, UpgradeRule> rules, String key, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, BigDecimal> levelCosts, Map<Integer, Long> levelValues, Map<Integer, Map<String, Long>> levelItemCosts, Map<Integer, Map<String, Long>> levelEffects) {
+        UpgradeType resolvedType = type == null ? UpgradePolicy.typeFor(key) : type;
+        Map<Integer, Long> resolvedLevelValues = primaryLevelValues(resolvedType, levelValues, levelEffects);
         int inferredMaxLevel = maxLevel > 0 ? maxLevel : Math.max(1, Math.max(levelEffects.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), Math.max(levelItemCosts.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), Math.max(levelCosts.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), levelValues.keySet().stream().mapToInt(Integer::intValue).max().orElse(0)))));
         BigDecimal inferredBaseCost = baseCost != null && baseCost.signum() >= 0 ? baseCost : levelCosts.values().stream().filter(cost -> cost.signum() > 0).findFirst().orElse(BigDecimal.ZERO);
         BigDecimal inferredMultiplier = multiplier != null && multiplier.signum() > 0 ? multiplier : inferMultiplier(levelCosts, inferredBaseCost);
-        rules.put(key.toLowerCase(), new UpgradeRule(key.toLowerCase(), type == null ? UpgradePolicy.typeFor(key) : type, inferredMaxLevel, inferredBaseCost, inferredMultiplier, levelCosts, levelValues, levelItemCosts, levelEffects));
+        rules.put(key.toLowerCase(), new UpgradeRule(key.toLowerCase(), resolvedType, inferredMaxLevel, inferredBaseCost, inferredMultiplier, levelCosts, resolvedLevelValues, levelItemCosts, levelEffects));
+    }
+
+    private static Map<Integer, Long> primaryLevelValues(UpgradeType type, Map<Integer, Long> fallback, Map<Integer, Map<String, Long>> effects) {
+        java.util.List<String> keys = primaryEffectKeys(type);
+        if (keys.isEmpty() || effects.isEmpty()) {
+            return fallback;
+        }
+        Map<Integer, Long> selected = new LinkedHashMap<>();
+        effects.forEach((level, levelEffects) -> keys.stream()
+            .map(levelEffects::get)
+            .filter(java.util.Objects::nonNull)
+            .findFirst()
+            .ifPresent(value -> selected.put(level, value)));
+        fallback.forEach(selected::putIfAbsent);
+        return selected;
+    }
+
+    private static java.util.List<String> primaryEffectKeys(UpgradeType type) {
+        if (type == null) {
+            return java.util.List.of();
+        }
+        return switch (type) {
+            case ISLAND_SIZE -> java.util.List.of("size", "island-size", "border-size");
+            case MAX_MEMBERS, MEMBER_LIMIT -> java.util.List.of("team-limit", "members", "member-limit");
+            case MAX_WARPS, WARP_LIMIT -> java.util.List.of("warps-limit", "warps", "warp-limit");
+            case HOME_LIMIT -> java.util.List.of("homes-limit", "homes", "home-limit");
+            case BORDER_SIZE -> java.util.List.of("border-size", "size");
+            case HOPPER_LIMIT -> java.util.List.of("hopper-limit", "hoppers-limit", "hoppers");
+            case SPAWNER_LIMIT -> java.util.List.of("spawner-limit", "spawners-limit", "spawners");
+            case MOB_LIMIT -> java.util.List.of("mob-limit", "entity-limit", "entities-limit");
+            case CROP_GROWTH -> java.util.List.of("crops-growth", "crop-growth");
+            case REDSTONE_LIMIT -> java.util.List.of("redstone-limit", "redstone");
+            case BANK_LIMIT -> java.util.List.of("bank-limit", "bank");
+            case GENERATOR_LEVEL -> java.util.List.of("generator-level", "generator");
+            case BIOME_UNLOCK, FLY_ACCESS, BORDER_COLOR_UNLOCK, KEEP_INVENTORY_ENABLE -> java.util.List.of();
+        };
     }
 
     private static void putEffect(Map<Integer, Map<String, Long>> effects, int level, String key, long value) {

@@ -7,6 +7,7 @@ import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import kr.lunaf.cloudislands.coreservice.event.GlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.generator.IslandGeneratorRepository;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
@@ -48,8 +49,110 @@ public final class UpgradeEffectApplier {
 
     public void apply(UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {
         applyLimitEffect(islandId, actorUuid, rule, type, level);
+        applyConfiguredEffects(islandId, actorUuid, rule, type, level);
         applyGeneratorEffect(islandId, actorUuid, rule, type, level);
         applyFlagEffect(islandId, actorUuid, type);
+    }
+
+    private void applyConfiguredEffects(UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {
+        if (rule == null) {
+            return;
+        }
+        String primaryLimitKey = primaryLimitKey(type);
+        rule.effectsForLevel(level).forEach((effectKey, value) -> {
+            String limitKey = configuredLimitKey(effectKey);
+            if (limitKey == null || limitKey.equals(primaryLimitKey)) {
+                return;
+            }
+            IslandLimitSnapshot snapshot = setMonotonicLimit(islandId, limitKey, value, actorUuid);
+            if (limitKey.equals("SIZE")) {
+                applyIslandSize(islandId, snapshot.value());
+            }
+            events.publish(CloudIslandEventType.ISLAND_LIMIT_CHANGED.name(), Map.of(
+                "islandId", islandId.toString(),
+                "limitKey", snapshot.limitKey(),
+                "value", Long.toString(snapshot.value())
+            ));
+            islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_EFFECT", Map.of(
+                "effect", "CONFIGURED:" + effectKey,
+                "limitKey", snapshot.limitKey(),
+                "value", Long.toString(snapshot.value())
+            ));
+        });
+    }
+
+    private static String primaryLimitKey(UpgradeType type) {
+        if (type == null) {
+            return null;
+        }
+        return switch (type) {
+            case ISLAND_SIZE -> "SIZE";
+            case MAX_MEMBERS, MEMBER_LIMIT -> "MEMBERS";
+            case MAX_WARPS, WARP_LIMIT -> "WARPS";
+            case HOME_LIMIT -> "HOMES";
+            case BORDER_SIZE -> "BORDER";
+            case BIOME_UNLOCK -> "BIOME_UNLOCK";
+            case HOPPER_LIMIT -> "HOPPER";
+            case SPAWNER_LIMIT -> "SPAWNER";
+            case MOB_LIMIT -> "ENTITY";
+            case REDSTONE_LIMIT -> "REDSTONE";
+            case BANK_LIMIT -> "BANK";
+            case CROP_GROWTH -> "CROP_GROWTH";
+            case GENERATOR_LEVEL, FLY_ACCESS, BORDER_COLOR_UNLOCK, KEEP_INVENTORY_ENABLE -> null;
+        };
+    }
+
+    private static String configuredLimitKey(String effectKey) {
+        return switch (effectKey) {
+            case "size", "island-size" -> "SIZE";
+            case "team-limit", "members", "member-limit" -> "MEMBERS";
+            case "warps-limit", "warps", "warp-limit" -> "WARPS";
+            case "homes-limit", "homes", "home-limit" -> "HOMES";
+            case "border-size" -> "BORDER";
+            case "hopper-limit", "hoppers-limit", "hoppers" -> "HOPPER";
+            case "spawner-limit", "spawners-limit", "spawners" -> "SPAWNER";
+            case "mob-limit", "entity-limit", "entities-limit" -> "ENTITY";
+            case "redstone-limit", "redstone" -> "REDSTONE";
+            case "bank-limit", "bank" -> "BANK";
+            case "crops-growth", "crop-growth" -> "RATE:CROP_GROWTH";
+            case "mob-drops" -> "RATE:MOB_DROPS";
+            case "spawner-rates" -> "RATE:SPAWNER_RATES";
+            case "coop-limit" -> GameplayParityPolicy.roleLimitKey("TRUSTED");
+            default -> configuredNestedLimitKey(effectKey);
+        };
+    }
+
+    private static String configuredNestedLimitKey(String effectKey) {
+        int separator = effectKey.indexOf('.');
+        if (separator <= 0 || separator == effectKey.length() - 1) {
+            return null;
+        }
+        String group = effectKey.substring(0, separator);
+        String nestedKey = effectKey.substring(separator + 1);
+        return switch (group) {
+            case "island-effects" -> "EFFECT:" + GameplayParityPolicy.normalizeGameplayKey(effectAlias(nestedKey), "UNKNOWN");
+            case "role-limits" -> GameplayParityPolicy.roleLimitKey(nestedKey);
+            case "block-limits" -> switch (GameplayParityPolicy.normalizeGameplayKey(nestedKey, "UNKNOWN")) {
+                case "HOPPER", "MINECRAFT:HOPPER" -> "HOPPER";
+                case "SPAWNER", "MINECRAFT:SPAWNER" -> "SPAWNER";
+                case "REDSTONE", "MINECRAFT:REDSTONE" -> "REDSTONE";
+                default -> null;
+            };
+            case "entity-limits" -> switch (GameplayParityPolicy.normalizeGameplayKey(nestedKey, "UNKNOWN")) {
+                case "ALL", "GLOBAL", "*" -> "ENTITY";
+                default -> null;
+            };
+            default -> null;
+        };
+    }
+
+    private static String effectAlias(String effectKey) {
+        return switch (effectKey) {
+            case "fast-digging" -> "HASTE";
+            case "jump" -> "JUMP_BOOST";
+            case "regen" -> "REGENERATION";
+            default -> effectKey;
+        };
     }
 
     private void applyLimitEffect(UUID islandId, UUID actorUuid, UpgradeRule rule, UpgradeType type, int level) {

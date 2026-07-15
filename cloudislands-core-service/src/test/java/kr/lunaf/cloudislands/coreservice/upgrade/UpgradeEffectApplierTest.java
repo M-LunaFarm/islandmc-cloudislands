@@ -120,6 +120,80 @@ class UpgradeEffectApplierTest {
     }
 
     @Test
+    void oneUpgradeLevelAppliesEverySupportedConfiguredEffect() {
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
+        islands.createOwnedIsland(ISLAND_ID, OWNER_ID, "default", "base");
+        UpgradeRule rule = new UpgradeRule(
+            "utility",
+            UpgradeType.ISLAND_SIZE,
+            2,
+            BigDecimal.ZERO,
+            BigDecimal.ONE,
+            Map.of(),
+            Map.of(1, 125L),
+            Map.of(),
+            Map.of(1, Map.of(
+                "size", 125L,
+                "team-limit", 4L,
+                "coop-limit", 5L,
+                "crops-growth", 140L,
+                "mob-drops", 175L,
+                "spawner-rates", 80L,
+                "island-effects.speed", 2L,
+                "island-effects.fast-digging", 1L,
+                "role-limits.member", 12L
+            ))
+        );
+
+        new UpgradeEffectApplier(
+            limits,
+            islands,
+            new InMemoryIslandMetadataRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryGlobalEventPublisher()
+        ).apply(ISLAND_ID, OWNER_ID, rule, UpgradeType.ISLAND_SIZE, 1);
+
+        assertEquals(125L, limitValue(limits, "SIZE"));
+        assertEquals(4L, limitValue(limits, "MEMBERS"));
+        assertEquals(5L, limitValue(limits, "ROLE_LIMIT:TRUSTED"));
+        assertEquals(12L, limitValue(limits, "ROLE_LIMIT:MEMBER"));
+        assertEquals(140L, limitValue(limits, "RATE:CROP_GROWTH"));
+        assertEquals(175L, limitValue(limits, "RATE:MOB_DROPS"));
+        assertEquals(80L, limitValue(limits, "RATE:SPAWNER_RATES"));
+        assertEquals(2L, limitValue(limits, "EFFECT:SPEED"));
+        assertEquals(1L, limitValue(limits, "EFFECT:HASTE"));
+        assertEquals(125, islands.findById(ISLAND_ID).orElseThrow().size());
+    }
+
+    @Test
+    void configuredEffectsDoNotReduceAdministrativeOverrides() {
+        InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
+        limits.set(ISLAND_ID, "RATE:CROP_GROWTH", 250L, OWNER_ID);
+        UpgradeRule rule = new UpgradeRule(
+            "crop",
+            UpgradeType.CROP_GROWTH,
+            1,
+            BigDecimal.ZERO,
+            BigDecimal.ONE,
+            Map.of(),
+            Map.of(1, 1L),
+            Map.of(),
+            Map.of(1, Map.of("crops-growth", 140L))
+        );
+
+        new UpgradeEffectApplier(
+            limits,
+            new InMemoryIslandRepository(),
+            new InMemoryIslandMetadataRepository(),
+            new InMemoryIslandLogRepository(),
+            new InMemoryGlobalEventPublisher()
+        ).apply(ISLAND_ID, OWNER_ID, rule, UpgradeType.CROP_GROWTH, 1);
+
+        assertEquals(250L, limitValue(limits, "RATE:CROP_GROWTH"));
+    }
+
+    @Test
     void atomicMinimumWritesConvergeToTheHighestConcurrentLimit() throws Exception {
         InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
         UUID lowWriter = UUID.fromString("00000000-0000-0000-0000-000000000603");
