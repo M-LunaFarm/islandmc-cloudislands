@@ -516,6 +516,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(chatLogHandler.contains("IslandCommunicationUseCase"));
         assertTrue(chatLogHandler.contains("communicationUseCase.sendChatAction"));
         assertTrue(chatLogHandler.contains("communicationUseCase.logViews"));
+        assertTrue(chatLogHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid"), "chat and log callbacks must use the shared online-player delivery boundary");
+        assertTrue(chatLogHandler.contains("sendChatAction(islandId, playerUuid"), "chat sends must retain immutable sender identity");
+        assertFalse(chatLogHandler.contains("thenAccept(result -> {\n                    if (!result.accepted()) {\n                        runtime.message(player"), "chat callbacks must not message a captured Player");
+        assertFalse(chatLogHandler.contains("thenAccept(logs -> runtime.message(player"), "log callbacks must not message a captured Player");
         assertFalse(chatLogHandler.contains("coreApiClient.sendIslandChat"));
         assertFalse(chatLogHandler.contains("coreApiClient.listIslandLogs"));
         assertFalse(communicationUseCase.contains("public CompletableFuture<String> sendChat("), "chat send usecase must expose typed actions instead of raw JSON");
@@ -810,6 +814,11 @@ class IslandCommandControllerPolicyTest {
         assertTrue(visitReviewHandler.indexOf("if (subcommand.equals(\"visitors\"))") < visitReviewHandler.indexOf("if (subcommand.equals(\"visitor-stats\")"), "visitors must list current guests before historical-stat aliases are evaluated");
         assertTrue(visitReviewHandler.contains("navigationUseCase.setReviewAction"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.deleteReviewAction"));
+        assertTrue(visitReviewHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid"), "review callbacks must use the shared online-player delivery boundary");
+        assertTrue(visitReviewHandler.contains("setReviewAction(islandId, playerUuid"), "review writes must retain immutable reviewer identity");
+        assertTrue(visitReviewHandler.contains("deleteReviewAction(islandId, playerUuid"), "review deletes must retain immutable reviewer identity");
+        assertFalse(visitReviewHandler.contains("thenAccept(islands -> runtime.message(player"), "public island reads must not message a captured Player");
+        assertFalse(visitReviewHandler.contains("thenAccept(result -> {\n                if (!result.accepted()) {\n                    runtime.message(player"), "review mutations must not message a captured Player");
         assertFalse(visitReviewHandler.contains("coreApiClient.createVisitTicket"));
         assertFalse(visitReviewHandler.contains("coreApiClient.createRandomVisitTicket"));
         assertFalse(visitReviewHandler.contains("coreApiClient.listPublicIslands"));

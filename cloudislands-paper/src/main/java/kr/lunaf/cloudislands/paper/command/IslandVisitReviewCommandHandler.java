@@ -187,20 +187,22 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void listPublicIslands(Player player, int limit) {
+        UUID playerUuid = player.getUniqueId();
         navigationUseCase.publicIslandViews(limit)
-            .thenAccept(islands -> runtime.message(player, publicIslandListMessage(islands)))
+            .thenAccept(islands -> deliverMessage(playerUuid, publicIslandListMessage(islands)))
             .exceptionally(error -> {
-                runtime.message(player, message("public-island-list-load-failed", "공개 섬 목록을 불러오지 못했습니다."));
+                deliverMessage(playerUuid, message("public-island-list-load-failed", "공개 섬 목록을 불러오지 못했습니다."));
                 return null;
             });
     }
 
     private void listIslandReviews(Player player, int limit) {
         runtime.currentIsland(player, message("review-list-island-required", "섬 안에서만 후기를 확인할 수 있습니다.")).ifPresent(islandId -> {
+            UUID playerUuid = player.getUniqueId();
             navigationUseCase.reviewViews(islandId, limit)
-                .thenAccept(reviews -> runtime.message(player, reviewListMessage(reviews)))
+                .thenAccept(reviews -> deliverMessage(playerUuid, reviewListMessage(reviews)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("review-list-load-failed", "섬 후기를 불러오지 못했습니다."));
+                    deliverMessage(playerUuid, message("review-list-load-failed", "섬 후기를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -208,10 +210,11 @@ final class IslandVisitReviewCommandHandler {
 
     private void listVisitorStats(Player player, int limit) {
         runtime.currentIsland(player, message("visitor-stats-island-required", "섬 안에서만 방문 통계를 확인할 수 있습니다.")).ifPresent(islandId -> {
+            UUID playerUuid = player.getUniqueId();
             navigationUseCase.visitorStats(islandId, limit)
-                .thenAccept(stats -> runtime.message(player, visitorStatsMessage(stats)))
+                .thenAccept(stats -> deliverMessage(playerUuid, visitorStatsMessage(stats)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("visitor-stats-load-failed", "방문 통계를 불러오지 못했습니다."));
+                    deliverMessage(playerUuid, message("visitor-stats-load-failed", "방문 통계를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -235,16 +238,17 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void submitIslandReview(Player player, UUID islandId, int rating, String comment) {
-        navigationUseCase.setReviewAction(islandId, player.getUniqueId(), rating, comment, runtime::mutateIdempotent)
+        UUID playerUuid = player.getUniqueId();
+        navigationUseCase.setReviewAction(islandId, playerUuid, rating, comment, runtime::mutateIdempotent)
             .thenAccept(result -> {
                 if (!result.accepted()) {
-                    runtime.message(player, reviewFailureMessage(result));
+                    deliverMessage(playerUuid, reviewFailureMessage(result));
                     return;
                 }
-                runtime.message(player, message("review-save-success-prefix", "섬 평가 저장 완료: ") + rating + "/5");
+                deliverMessage(playerUuid, message("review-save-success-prefix", "섬 평가 저장 완료: ") + rating + "/5");
             })
             .exceptionally(error -> {
-                runtime.message(player, runtime.coreWriteFailureMessage(error, message("review-save-failed", "섬 평가를 저장하지 못했습니다.")));
+                deliverMessage(playerUuid, runtime.coreWriteFailureMessage(error, message("review-save-failed", "섬 평가를 저장하지 못했습니다.")));
                 return null;
             });
     }
@@ -263,18 +267,19 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void submitReviewDelete(Player player, UUID islandId) {
-        navigationUseCase.deleteReviewAction(islandId, player.getUniqueId(), runtime::mutateIdempotent)
+        UUID playerUuid = player.getUniqueId();
+        navigationUseCase.deleteReviewAction(islandId, playerUuid, runtime::mutateIdempotent)
             .thenAccept(result -> {
                 if (!result.accepted()) {
-                    runtime.message(player, result.code().equals("REVIEW_NOT_FOUND")
+                    deliverMessage(playerUuid, result.code().equals("REVIEW_NOT_FOUND")
                         ? message("review-delete-not-found", "삭제할 섬 후기가 없습니다.")
                         : runtime.playerCodeMessage(result.code(), message("review-delete-failed", "섬 후기를 삭제하지 못했습니다.")));
                     return;
                 }
-                runtime.message(player, message("review-delete-success", "섬 후기 삭제 완료"));
+                deliverMessage(playerUuid, message("review-delete-success", "섬 후기 삭제 완료"));
             })
             .exceptionally(error -> {
-                runtime.message(player, runtime.coreWriteFailureMessage(error, message("review-delete-failed", "섬 후기를 삭제하지 못했습니다.")));
+                deliverMessage(playerUuid, runtime.coreWriteFailureMessage(error, message("review-delete-failed", "섬 후기를 삭제하지 못했습니다.")));
                 return null;
             });
     }
@@ -356,6 +361,10 @@ final class IslandVisitReviewCommandHandler {
             builder.append(args[index]);
         }
         return builder.toString();
+    }
+
+    private void deliverMessage(UUID playerUuid, String detail) {
+        PaperOnlinePlayer.run(plugin, playerUuid, player -> runtime.message(player, detail));
     }
 
     private String message(String key, String fallback) {

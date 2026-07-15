@@ -142,16 +142,17 @@ final class IslandChatLogCommandHandler {
     private void sendChat(Player player, String channel, String chatMessage, String labelKey, String labelFallback, String missingKey, String missingFallback) {
         runtime.currentIsland(player, message(missingKey, missingFallback)).ifPresent(islandId -> {
             String label = message(labelKey, labelFallback);
-            communicationUseCase.sendChatAction(islandId, player.getUniqueId(), channel, chatMessage, runtime::mutate)
+            UUID playerUuid = player.getUniqueId();
+            communicationUseCase.sendChatAction(islandId, playerUuid, channel, chatMessage, runtime::mutate)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        runtime.message(player, label + message("chat-send-failed-suffix", "을 전송하지 못했습니다."));
+                        deliverMessage(playerUuid, label + message("chat-send-failed-suffix", "을 전송하지 못했습니다."));
                         return;
                     }
-                    runtime.message(player, label + message("chat-send-success-suffix", "을 전송했습니다."));
+                    deliverMessage(playerUuid, label + message("chat-send-success-suffix", "을 전송했습니다."));
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, label + message("chat-send-failed-suffix", "을 전송하지 못했습니다."));
+                    deliverMessage(playerUuid, label + message("chat-send-failed-suffix", "을 전송하지 못했습니다."));
                     return null;
                 });
         });
@@ -163,10 +164,11 @@ final class IslandChatLogCommandHandler {
 
     private void listLogs(Player player, int limit) {
         runtime.currentIsland(player, message("log-list-island-required", "섬 안에서만 로그를 확인할 수 있습니다.")).ifPresent(islandId -> {
+            UUID playerUuid = player.getUniqueId();
             communicationUseCase.logViews(islandId, limit)
-                .thenAccept(logs -> runtime.message(player, logListMessage(logs)))
+                .thenAccept(logs -> deliverMessage(playerUuid, logListMessage(logs)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("log-list-load-failed", "섬 로그를 불러오지 못했습니다."));
+                    deliverMessage(playerUuid, message("log-list-load-failed", "섬 로그를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -182,6 +184,10 @@ final class IslandChatLogCommandHandler {
             .map(log -> log.action() + (log.actorUuid().isBlank() ? "" : message("log-list-actor-prefix", " by ") + log.actorUuid()))
             .toList();
         return entries.isEmpty() ? message("log-list-empty", "섬 로그가 없습니다.") : message("log-list-prefix", "섬 로그: ") + String.join(" | ", entries);
+    }
+
+    private void deliverMessage(UUID playerUuid, String detail) {
+        PaperOnlinePlayer.run(plugin, playerUuid, player -> runtime.message(player, detail));
     }
 
     private String message(String key, String fallback) {
