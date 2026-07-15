@@ -281,7 +281,7 @@ legacy-ss2-admin-alias-middle: " 은(는) 플레이어 명령으로 실행하지
 legacy-ss2-admin-alias-prefix: "이전 관리자 명령 /is "
 legacy-ss2-admin-alias-suffix: " 를 확인하세요."
 island-command-warmup: "섬 이동을 준비하고 있습니다. 움직이면 취소될 수 있습니다."
-island-command-warmup-cancelled: "움직여서 섬 명령 준비가 취소되었습니다."
+island-command-warmup-cancelled: "이동하거나 낙하하여 섬 명령 준비가 취소되었습니다."
 island-command-warmup-pending: "이미 준비 중인 섬 명령이 있습니다."
 island-command-warmup-subtitle: "잠시 후 명령이 실행됩니다."
 island-command-warmup-title: "섬 이동 준비 중"

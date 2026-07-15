@@ -2,7 +2,6 @@ package kr.lunaf.cloudislands.paper.command;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import kr.lunaf.cloudislands.api.model.AddonIslandCommandSnapshot;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -231,13 +230,14 @@ final class IslandCommandRouter {
     }
 
     void cancelWarmupOnMove(Player player, Location from, Location to) {
-        if (player == null || from == null || to == null || !movedBlock(from, to)) {
+        if (player == null || from == null || to == null) {
             return;
         }
-        warmupPolicy.cancelOnMove(player.getUniqueId(), IslandCommandWarmupPolicy.BlockPosition.from(to))
+        boolean falling = player.getFallDistance() > 0.0F;
+        warmupPolicy.cancelOnMove(player.getUniqueId(), IslandCommandWarmupPolicy.BlockPosition.from(to), falling)
             .ifPresent(pending -> {
                 delayPolicy.clear(player.getUniqueId(), pending.subject());
-                runtime.message(player, runtime.routeMessage(IslandCommandWarmupPolicy.WARMUP_CANCELLED_MESSAGE_KEY, "움직여서 섬 명령 준비가 취소되었습니다."));
+                runtime.message(player, runtime.routeMessage(IslandCommandWarmupPolicy.WARMUP_CANCELLED_MESSAGE_KEY, "이동하거나 낙하하여 섬 명령 준비가 취소되었습니다."));
             });
     }
 
@@ -482,13 +482,6 @@ final class IslandCommandRouter {
             return false;
         }
         return true;
-    }
-
-    private boolean movedBlock(Location from, Location to) {
-        return from.getBlockX() != to.getBlockX()
-            || from.getBlockY() != to.getBlockY()
-            || from.getBlockZ() != to.getBlockZ()
-            || !Objects.equals(from.getWorld(), to.getWorld());
     }
 
     private void sendWarmupWaitingState(Player player) {

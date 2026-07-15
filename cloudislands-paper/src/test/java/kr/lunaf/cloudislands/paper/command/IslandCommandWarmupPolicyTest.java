@@ -20,11 +20,26 @@ class IslandCommandWarmupPolicyTest {
         policy.start(player, IslandCommandDelayPolicy.DelaySubject.HOME, start, task);
 
         assertTrue(policy.hasPending(player));
-        assertTrue(policy.cancelOnMove(player, new IslandCommandWarmupPolicy.BlockPosition("world", 10, 64, 10)).isEmpty());
+        assertTrue(policy.cancelOnMove(player, new IslandCommandWarmupPolicy.BlockPosition("world", 10, 64, 10), false).isEmpty());
 
         IslandCommandWarmupPolicy.PendingWarmup cancelled = policy
-            .cancelOnMove(player, new IslandCommandWarmupPolicy.BlockPosition("world", 11, 64, 10))
+            .cancelOnMove(player, new IslandCommandWarmupPolicy.BlockPosition("world", 11, 64, 10), false)
             .orElseThrow();
+
+        assertSame(IslandCommandDelayPolicy.DelaySubject.HOME, cancelled.subject());
+        assertTrue(task.cancelled);
+        assertFalse(policy.hasPending(player));
+    }
+
+    @Test
+    void pendingWarmupCancelsWhenFallingInsideTheSameBlock() {
+        UUID player = UUID.randomUUID();
+        RecordingTask task = new RecordingTask();
+        IslandCommandWarmupPolicy.BlockPosition start = new IslandCommandWarmupPolicy.BlockPosition("world", 10, 64, 10);
+
+        policy.start(player, IslandCommandDelayPolicy.DelaySubject.HOME, start, task);
+
+        IslandCommandWarmupPolicy.PendingWarmup cancelled = policy.cancelOnMove(player, start, true).orElseThrow();
 
         assertSame(IslandCommandDelayPolicy.DelaySubject.HOME, cancelled.subject());
         assertTrue(task.cancelled);

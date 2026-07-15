@@ -228,6 +228,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(router.contains("runtime.scheduleCommandWarmup(player, delayTicks"), "warmup commands must run after the waiting window instead of immediately");
         assertTrue(router.contains("warmupPolicy.complete(player.getUniqueId())"), "scheduled commands must only execute while their pending warmup remains valid");
         assertTrue(router.contains("void cancelWarmupOnMove(Player player, Location from, Location to)"), "movement must cancel pending warmups");
+        assertTrue(router.contains("player.getFallDistance() > 0.0F"), "falling inside the same block must cancel pending warmups");
         assertTrue(router.contains("void markCombat(Player player)"), "combat must block warmup-gated movement commands");
         assertTrue(router.contains("delayPolicy.clear(player.getUniqueId(), pending.subject())"), "cancelled warmups must not consume the command cooldown");
         assertTrue(router.contains("player.sendActionBar(runtime.component(player, message))"), "warmup state must be visible as a configured Adventure component in the actionbar");

@@ -29,12 +29,12 @@ final class IslandCommandWarmupPolicy {
             .ifPresent(PendingWarmup::cancelTask);
     }
 
-    Optional<PendingWarmup> cancelOnMove(UUID playerUuid, BlockPosition position) {
+    Optional<PendingWarmup> cancelOnMove(UUID playerUuid, BlockPosition position, boolean falling) {
         if (playerUuid == null || position == null) {
             return Optional.empty();
         }
         PendingWarmup pending = pendingWarmups.get(playerUuid);
-        if (pending == null || pending.startPosition().equals(position)) {
+        if (pending == null || (!falling && pending.startPosition().equals(position))) {
             return Optional.empty();
         }
         return cancel(playerUuid);
