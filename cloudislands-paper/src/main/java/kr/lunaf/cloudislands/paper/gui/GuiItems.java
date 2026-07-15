@@ -60,8 +60,10 @@ public final class GuiItems {
     }
 
     public static boolean topInventoryClick(InventoryClickEvent event) {
-        return event.getClickedInventory() != null
+        return event != null
+            && event.getClickedInventory() != null
             && GuiInventoryEventPolicy.acceptsMenuActionSlot(
+                present(event.getCurrentItem()),
                 event.getClickedInventory() == event.getView().getTopInventory(),
                 event.getRawSlot(),
                 event.getView().getTopInventory().getSize(),
@@ -71,6 +73,10 @@ public final class GuiItems {
 
     public static boolean menuClick(InventoryClickEvent event, String menuId) {
         return topInventoryClick(event) && GuiInventories.isMenu(event.getView().getTopInventory(), menuId);
+    }
+
+    static boolean present(ItemStack item) {
+        return item != null && !item.getType().isAir();
     }
 
     private static String encode(Map<String, String> data) {

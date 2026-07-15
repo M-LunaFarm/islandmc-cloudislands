@@ -124,6 +124,7 @@ class GuiSystemPolicyTest {
         assertTrue(guard.contains("GuiInventoryEventPolicy.cancelClick"), "click guard must delegate cancellation decisions to the tested policy");
         assertTrue(guard.contains("event.setCancelled(true)"), "CloudIslands GUI clicks, including player-inventory clicks, must be cancelled");
         assertTrue(items.contains("GuiInventoryEventPolicy.acceptsMenuActionSlot"), "menu actions must route slot decisions through the tested policy");
+        assertTrue(items.contains("present(event.getCurrentItem())"), "empty and AIR slots must be rejected before any menu action is resolved");
         assertTrue(items.contains("GuiClick.from(event)"), "menu action slot checks must include the Bukkit click type");
         assertTrue(policy.contains("click.supported() && clickedTopInventory && rawSlot >= 0 && rawSlot < topSize"), "menu actions must only execute for supported clicks on top inventory raw slots");
     }
