@@ -291,7 +291,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "Core lifecycle and route tickets are covered",
         "Paper 1.21.11 and 26.1.2 boot smoke load the plugin; Paper 26.1.2 also verifies transactional failed-bootstrap rollback, diagnostic commands, and corrected-config retry recovery",
         "1.21.x and 26.1.x release adapters; 26.2 compile adapter",
-        "ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper 26.1.2 smoke verifies normal command registration plus rejected-bootstrap rollback, diagnostic /is and /ciadmin, corrected-config retry, and second-attempt READY recovery; Paper tests verify main-thread template permission preflight, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation",
+        "ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper 26.1.2 smoke verifies normal command registration plus rejected-bootstrap rollback, diagnostic /is and /ciadmin, corrected-config retry, and second-attempt READY recovery; Paper tests verify main-thread template permission preflight, UUID-based online-player revalidation for delayed create/delete/reset completion, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, and final bounded destination revalidation",
         "node-down recovery restore is covered by ciIntegrationSmoke",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/workflow/IslandLifecycleWorkflowRestoreTest.java",
@@ -302,6 +302,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/platform/compatibility/Paper121FamilyAdapter.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/platform/world/SafeTeleportPolicyTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/bootstrap/PaperBootstrapRecoveryPolicyTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/gui/IslandCreateMenuPolicyTest.java",
             "scripts/ci/papermc_smoke.py",
             "gradle/version-matrix-gates.gradle.kts",
             "scripts/ci/core_integration_smoke.py"
@@ -416,7 +417,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "bank safety, conflict-safe upgrade charging with compensating refunds, economy hooks, mission triggers/rewards, challenges, generator rules, and limits have verification gates",
         "Paper mission listeners, bank rollback UX, and generator listeners have targeted tests",
         "version-neutral plus Paper/Satis runtime boundaries",
-        "verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; PostgreSQL and MySQL dual-Core smoke verifies same-key MISSION and CHALLENGE definitions retain independent rows and progress, including fresh and upgraded MySQL schemas, restored mission metadata, and MySQL-safe completion assignment order; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; `/is deposit *` and `/is withdraw *` resolve authoritative full balances through scheduler-safe Vault and Core queries before reusing the existing idempotent mutation, refund, and rollback paths; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope",
+        "verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; PostgreSQL and MySQL dual-Core smoke verifies same-key MISSION and CHALLENGE definitions retain independent rows and progress, including fresh and upgraded MySQL schemas, restored mission metadata, and MySQL-safe completion assignment order; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; `/is deposit *` and `/is withdraw *` resolve authoritative full balances through scheduler-safe Vault and Core queries before reusing the existing idempotent mutation, refund, and rollback paths; delayed balance, target, deposit, and withdrawal results re-resolve the current online player by UUID before Paper feedback; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/mission/IslandMissionProgressListener.java",
@@ -436,6 +437,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/JdbcCoreIdempotencyStore.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/CoreHttpRouteRegistrarTest.java",
             "cloudislands-core-client/src/test/java/kr/lunaf/cloudislands/coreclient/CoreMutationContextTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandControllerPolicyTest.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/WarehouseSettlement.java",
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandWarehouseCommandHandler.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/WarehouseSettlementTest.java",
@@ -481,12 +483,13 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "bundle validation, extraction, migration, and rollback paths have tests",
         "Paper snapshot and restore hooks compile and 1.21.x boots",
         "bundle compatibility is checked before restore",
-        "ciIntegrationSmoke verifies recovery restore with shared services",
+        "ciIntegrationSmoke verifies recovery restore with shared services; Paper policy tests verify delayed snapshot list/create/restore responses cross the scheduler and re-resolve the current online player",
         "node-down recovery and bundle compatibility are verified",
         listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/world/bundle/ExternalTarBundleExtractorTest.java",
             "cloudislands-migration/src/test/java/kr/lunaf/cloudislands/migration/rollback/MigrationRollbackServiceTest.java",
-            "cloudislands-testkit/src/test/java/kr/lunaf/cloudislands/testkit/ClusterSmokeVerifierTest.java"
+            "cloudislands-testkit/src/test/java/kr/lunaf/cloudislands/testkit/ClusterSmokeVerifierTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandControllerPolicyTest.java"
         ),
         "releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence"
     ),
