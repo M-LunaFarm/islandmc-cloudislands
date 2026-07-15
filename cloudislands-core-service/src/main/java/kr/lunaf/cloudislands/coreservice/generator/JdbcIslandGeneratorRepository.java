@@ -50,6 +50,21 @@ public final class JdbcIslandGeneratorRepository implements IslandGeneratorRepos
     }
 
     @Override
+    public IslandGeneratorSnapshot setProfileAtLeast(UUID islandId, String generatorKey, int minimumLevel) {
+        IslandGeneratorSnapshot normalized = new IslandGeneratorSnapshot(islandId, generatorKey, minimumLevel, Instant.now());
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(setProfileAtLeastSql(connection))) {
+            statement.setObject(1, normalized.islandId());
+            statement.setString(2, normalized.generatorKey());
+            statement.setInt(3, normalized.level());
+            statement.executeUpdate();
+            return profile(islandId);
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to raise island generator profile", exception);
+        }
+    }
+
+    @Override
     public IslandGeneratorSnapshot addProfile(UUID islandId, String generatorKey, int levels) {
         IslandGeneratorSnapshot initial = new IslandGeneratorSnapshot(islandId, generatorKey, saturatingLevelAdd(1, levels), Instant.now());
         try (Connection connection = dataSource.getConnection();
@@ -154,6 +169,13 @@ public final class JdbcIslandGeneratorRepository implements IslandGeneratorRepos
             return "INSERT INTO island_generator_profiles(island_id, generator_key, level) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE generator_key = VALUES(generator_key), level = CAST(LEAST(2147483647, GREATEST(1, CAST(level AS DECIMAL(11,0)) + CAST(? AS DECIMAL(11,0)))) AS SIGNED), updated_at = now()";
         }
         return "INSERT INTO island_generator_profiles(island_id, generator_key, level) VALUES (?, ?, ?) ON CONFLICT (island_id) DO UPDATE SET generator_key = EXCLUDED.generator_key, level = CAST(LEAST(2147483647, GREATEST(1, CAST(island_generator_profiles.level AS BIGINT) + CAST(? AS BIGINT))) AS INTEGER), updated_at = now()";
+    }
+
+    private String setProfileAtLeastSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT INTO island_generator_profiles(island_id, generator_key, level) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE generator_key = IF(VALUES(level) >= level, VALUES(generator_key), generator_key), updated_at = IF(VALUES(level) >= level, now(), updated_at), level = GREATEST(level, VALUES(level))";
+        }
+        return "INSERT INTO island_generator_profiles(island_id, generator_key, level) VALUES (?, ?, ?) ON CONFLICT (island_id) DO UPDATE SET generator_key = EXCLUDED.generator_key, level = EXCLUDED.level, updated_at = now() WHERE island_generator_profiles.level <= EXCLUDED.level";
     }
 
     private static int saturatingLevelAdd(int current, int levels) {

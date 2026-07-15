@@ -29,4 +29,25 @@ class InMemoryIslandGeneratorRepositoryTest {
         assertEquals("elite", repository.profile(islandId).generatorKey());
         assertEquals(1, repository.addProfile(islandId, "default", Integer.MIN_VALUE).level());
     }
+
+    @Test
+    void monotonicProfileWritesRejectLateLowerUpgradeEffects() throws Exception {
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000092");
+        InMemoryIslandGeneratorRepository repository = new InMemoryIslandGeneratorRepository();
+
+        try (var workers = Executors.newFixedThreadPool(8)) {
+            for (int level = 1; level <= 1_000; level++) {
+                int requestedLevel = level;
+                workers.submit(() -> repository.setProfileAtLeast(islandId, "level-" + requestedLevel, requestedLevel));
+            }
+            workers.shutdown();
+            assertTrue(workers.awaitTermination(10, TimeUnit.SECONDS));
+        }
+
+        assertEquals(1_000, repository.profile(islandId).level());
+        assertEquals("level-1000", repository.profile(islandId).generatorKey());
+        assertEquals(1_000, repository.setProfileAtLeast(islandId, "late-level-5", 5).level());
+        assertEquals("level-1000", repository.profile(islandId).generatorKey());
+        assertEquals("recalculated-level-1000", repository.setProfileAtLeast(islandId, "recalculated-level-1000", 1_000).generatorKey());
+    }
 }

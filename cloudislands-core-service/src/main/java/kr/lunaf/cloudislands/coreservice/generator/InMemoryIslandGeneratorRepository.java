@@ -32,6 +32,17 @@ public final class InMemoryIslandGeneratorRepository implements IslandGeneratorR
     }
 
     @Override
+    public IslandGeneratorSnapshot setProfileAtLeast(UUID islandId, String generatorKey, int minimumLevel) {
+        return profiles.compute(islandId, (_islandId, current) -> {
+            int requestedLevel = Math.max(1, minimumLevel);
+            if (current != null && current.level() > requestedLevel) {
+                return current;
+            }
+            return new IslandGeneratorSnapshot(islandId, generatorKey, requestedLevel, Instant.now());
+        });
+    }
+
+    @Override
     public IslandGeneratorSnapshot addProfile(UUID islandId, String generatorKey, int levels) {
         return profiles.compute(islandId, (_islandId, current) -> {
             int currentLevel = current == null ? 1 : current.level();

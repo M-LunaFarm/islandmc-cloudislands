@@ -38,6 +38,11 @@ public final class CachingIslandGeneratorRepository implements IslandGeneratorRe
     }
 
     @Override
+    public IslandGeneratorSnapshot setProfileAtLeast(UUID islandId, String generatorKey, int minimumLevel) {
+        return cacheProfile(delegate.setProfileAtLeast(islandId, generatorKey, minimumLevel));
+    }
+
+    @Override
     public IslandGeneratorSnapshot addProfile(UUID islandId, String generatorKey, int levels) {
         return cacheProfile(delegate.addProfile(islandId, generatorKey, levels));
     }
