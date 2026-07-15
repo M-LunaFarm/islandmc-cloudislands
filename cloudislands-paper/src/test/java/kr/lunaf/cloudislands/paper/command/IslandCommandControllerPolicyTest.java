@@ -902,6 +902,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(lifecycleHandler.contains("IslandCreationUseCase"));
         assertTrue(lifecycleHandler.contains("creationUseCase.create("));
         assertTrue(lifecycleHandler.contains("creationUseCase.resetAction("));
+        assertTrue(lifecycleHandler.contains("creationUseCase.delete(actorUuid, islandId"), "delete callbacks must use a command-thread identity snapshot");
+        assertTrue(lifecycleHandler.contains("creationUseCase.resetAction(islandId, actorUuid"), "reset callbacks must use a command-thread identity snapshot");
+        assertTrue(lifecycleHandler.contains("deliverMessage(actorUuid"), "destructive lifecycle results must return through an online-player scheduler boundary");
+        assertTrue(lifecycleHandler.contains("plugin.getServer().getPlayer(playerUuid)"), "lifecycle callbacks must re-resolve the current online player");
+        assertFalse(lifecycleHandler.contains("creationUseCase.delete(player.getUniqueId()"), "delete callbacks must not retain Bukkit Player identity");
+        assertFalse(lifecycleHandler.contains("resetAction(islandId, player.getUniqueId()"), "reset callbacks must not retain Bukkit Player identity");
         assertFalse(lifecycleHandler.contains("coreApiClient.createIsland"));
         assertFalse(lifecycleHandler.contains("coreApiClient.deleteIsland"));
         assertFalse(lifecycleHandler.contains("coreApiClient.resetIslandResult"));

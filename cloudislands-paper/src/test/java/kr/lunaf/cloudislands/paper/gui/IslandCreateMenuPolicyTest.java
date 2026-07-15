@@ -45,8 +45,11 @@ class IslandCreateMenuPolicyTest {
         assertTrue(handler.contains("GuiStateMenus.openSuccess"), "Accepted create requests must show a success state");
         assertTrue(handler.contains("GuiStateMenus.openError"), "Rejected or failed create requests must show an error state");
         assertTrue(handler.contains("GuiSession session = GuiStateMenus.openSaving"), "Create progress must reserve a GUI session before asynchronous work");
-        assertTrue(handler.contains("openSuccess(plugin, player, session"), "Late create success must not replace a newer menu");
-        assertTrue(handler.contains("openError(plugin, player, session"), "Late create failure must not replace a newer menu");
+        assertTrue(handler.contains("openSuccess(plugin, activePlayer, session"), "Late create success must not replace a newer menu");
+        assertTrue(handler.contains("openError(plugin, activePlayer, session"), "Late create failure must not replace a newer menu");
+        assertTrue(handler.contains("finishCreate(playerUuid, session, messages, result)"), "Create completion must cross a UUID-based scheduler boundary");
+        assertTrue(handler.contains("Player activePlayer = onlinePlayer(playerUuid)"), "Create completion must re-resolve the current online player");
+        assertFalse(handler.contains("GuiStateMenus.openSuccess(plugin, player, session"), "Create completion must not manipulate a captured Player from the Core callback");
         assertTrue(handler.contains("runtime.playerCodeMessage(result.code()"), "Create errors must preserve code-specific player messaging");
     }
 
@@ -58,9 +61,9 @@ class IslandCreateMenuPolicyTest {
         String messages = read("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandMessages.java");
 
         assertTrue(handler.contains("coreApiClient.templates().get(normalizedTemplateId)"), "Direct /is create <template> must load template metadata before mutation");
-        assertTrue(handler.contains("canUseTemplate(player, template)"), "Direct create must check template requiredPermission");
-        assertTrue(handler.contains("PaperSchedulers.supply(plugin, () -> canUseTemplate(player, template))"), "Template permissions must be read on the Paper main thread after the Core response");
-        assertTrue(handler.contains("player.isOnline() &&"), "Disconnected players must not be charged after a delayed template lookup");
+        assertTrue(handler.contains("canUseTemplate(playerUuid, template)"), "Direct create must check template requiredPermission");
+        assertTrue(handler.contains("PaperSchedulers.supply(plugin, () -> canUseTemplate(playerUuid, template))"), "Template permissions must be read on the Paper main thread after the Core response");
+        assertTrue(handler.contains("Player activePlayer = onlinePlayer(playerUuid)"), "Disconnected or reconnected players must be resolved after delayed template lookup");
         assertTrue(menu.contains("thenAccept(templates -> PaperSchedulers.run(plugin, () -> {"), "Confirmation permission checks must return to the Paper main thread");
         assertTrue(handler.contains("TEMPLATE_PERMISSION_DENIED"), "Direct create must reject locked templates without calling Core create");
         assertTrue(backend.contains("new IslandLifecycleCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices)"), "Lifecycle create handler must receive the economy bridge");
