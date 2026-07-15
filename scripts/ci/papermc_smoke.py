@@ -71,6 +71,9 @@ def prepare_paper(work_dir: Path, plugin: Path, java_command: str, bootstrap_fai
                 "server-port=25580",
                 "enable-query=false",
                 "enable-rcon=false",
+                "allow-nether=false",
+                "generate-structures=false",
+                "level-type=minecraft:flat",
                 "spawn-protection=0",
                 "view-distance=2",
                 "simulation-distance=2",
@@ -78,6 +81,10 @@ def prepare_paper(work_dir: Path, plugin: Path, java_command: str, bootstrap_fai
                 "",
             ]
         ),
+        encoding="utf-8",
+    )
+    (work_dir / "bukkit.yml").write_text(
+        "settings:\n  allow-end: false\n",
         encoding="utf-8",
     )
     (config_v2_dir / "runtime.yml").write_text(

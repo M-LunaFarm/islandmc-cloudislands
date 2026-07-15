@@ -274,6 +274,9 @@ class ProductionReadinessPolicyTest {
 
         assertTrue(smoke.contains("ready = [\"Done (\", \"Done preparing level\"]"));
         assertTrue(smoke.contains("seen_ready and len(seen_expected) == len(expected)"));
+        assertTrue(smoke.contains("\"allow-nether=false\""));
+        assertTrue(smoke.contains("\"level-type=minecraft:flat\""));
+        assertTrue(smoke.contains("allow-end: false"));
     }
 
     @Test

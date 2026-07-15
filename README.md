@@ -745,6 +745,9 @@ Release notes for `v1.1.233`:
   is loading invalidate that return instead of pulling the player back later
 - focused continuation-policy tests cover replacement instances, offline state,
   same-world movement, cross-world movement, and the accepted original block
+- clean CI boot smoke uses a flat overworld without unused Nether, End, or
+  structure generation so Paper startup verification is not consumed by spawn
+  preparation before CloudIslands reaches its bootstrap checks
 
 Release notes for `v1.1.232`:
 
