@@ -45,7 +45,9 @@ class ConfigUpgradeItemPriceTest {
                 levels:
                   1:
                     cost: 1000
-                    crops-growth: 110
+                    crops-growth: 1.1
+                    mob-drops: 1.75
+                    spawner-rates: 0.8
                     team-limit: 4
                     size: 125
                     island-effects:
@@ -54,7 +56,7 @@ class ConfigUpgradeItemPriceTest {
                       trusted: 5
                   2:
                     cost: 2000
-                    crops-growth: 140
+                    crops-growth: 1.4
                     island-effects:
                       SPEED: 2
                       HASTE: 1
@@ -66,6 +68,8 @@ class ConfigUpgradeItemPriceTest {
         assertEquals(Map.of(
             "size", 125L,
             "crops-growth", 110L,
+            "mob-drops", 175L,
+            "spawner-rates", 80L,
             "team-limit", 4L,
             "island-effects.speed", 1L,
             "role-limits.trusted", 5L
@@ -73,6 +77,8 @@ class ConfigUpgradeItemPriceTest {
         assertEquals(Map.of(
             "size", 125L,
             "crops-growth", 140L,
+            "mob-drops", 175L,
+            "spawner-rates", 80L,
             "team-limit", 4L,
             "island-effects.speed", 2L,
             "island-effects.haste", 1L,

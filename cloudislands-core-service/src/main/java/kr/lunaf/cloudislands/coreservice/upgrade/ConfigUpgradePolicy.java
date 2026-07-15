@@ -116,10 +116,11 @@ public final class ConfigUpgradePolicy {
             } else if (rawLine.startsWith("        ") && currentLevel > 0) {
                 collectingItemCosts = false;
                 effectGroup = "";
-                Long limitValue = longValue(value(line), null);
+                String configuredEffectKey = effectKeyName(line.substring(0, line.indexOf(':')));
+                Long limitValue = configuredEffectValue(configuredEffectKey, value(line));
                 if (limitValue != null && limitValue >= 0L && effectKey(line)) {
                     levelValues.putIfAbsent(currentLevel, limitValue);
-                    putEffect(levelEffects, currentLevel, effectKeyName(line.substring(0, line.indexOf(':'))), limitValue);
+                    putEffect(levelEffects, currentLevel, configuredEffectKey, limitValue);
                 }
             }
         }
@@ -180,6 +181,21 @@ public final class ConfigUpgradePolicy {
 
     private static String effectKeyName(String key) {
         return key.trim().toLowerCase().replace('_', '-');
+    }
+
+    private static Long configuredEffectValue(String effectKey, String value) {
+        if (effectKey.equals("crops-growth") || effectKey.equals("crop-growth") || effectKey.equals("mob-drops") || effectKey.equals("spawner-rates")) {
+            BigDecimal multiplier = decimal(value, null);
+            if (multiplier == null || multiplier.signum() < 0) {
+                return null;
+            }
+            try {
+                return multiplier.multiply(BigDecimal.valueOf(100L)).setScale(0, java.math.RoundingMode.HALF_UP).longValueExact();
+            } catch (ArithmeticException ignored) {
+                return null;
+            }
+        }
+        return longValue(value, null);
     }
 
     private static BigDecimal inferMultiplier(Map<Integer, BigDecimal> levelCosts, BigDecimal baseCost) {
