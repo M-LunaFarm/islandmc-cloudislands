@@ -107,6 +107,7 @@ class ConfigUpgradeItemPriceTest {
 
         assertEquals("100000.0", rule.costForNextLevel(0).toPlainString());
         assertEquals(1, rule.maxLevel());
+        assertEquals(kr.lunaf.cloudislands.api.upgrade.UpgradeType.GENERATOR_LEVEL, rule.type());
         assertTrue(rule.limitValueForLevel(1).isEmpty(), "a custom composite upgrade must not inherit an unrelated size effect");
         assertEquals(Map.of(
             "crops-growth", 125L,

@@ -72,6 +72,53 @@ class UpgradeEffectApplierTest {
     }
 
     @Test
+    void ss2GeneratorRatesCreateIsolatedWeightedProfileForEachLevel() {
+        InMemoryIslandGeneratorRepository generators = new InMemoryIslandGeneratorRepository();
+        UpgradeRule rule = new UpgradeRule(
+            "island-generators",
+            UpgradeType.GENERATOR_LEVEL,
+            2,
+            BigDecimal.ZERO,
+            BigDecimal.ONE,
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            Map.of(
+                1, Map.of(
+                    "generator-rates.normal.stone", 85L,
+                    "generator-rates.normal.coal-ore", 15L
+                ),
+                2, Map.of(
+                    "generator-rates.normal.stone", 70L,
+                    "generator-rates.normal.diamond-ore", 30L,
+                    "generator-rates.nether.basalt", 100L
+                )
+            )
+        );
+        UpgradeEffectApplier applier = new UpgradeEffectApplier(
+            new InMemoryIslandLimitRepository(),
+            new InMemoryIslandRepository(),
+            new InMemoryIslandMetadataRepository(),
+            generators,
+            new InMemoryIslandLogRepository(),
+            new InMemoryGlobalEventPublisher()
+        );
+
+        applier.apply(ISLAND_ID, OWNER_ID, rule, UpgradeType.GENERATOR_LEVEL, 1);
+
+        assertEquals("upgrade:island-generators:level:1", generators.profile(ISLAND_ID).generatorKey());
+        assertEquals(1, generators.profile(ISLAND_ID).level());
+        assertEquals(Map.of("minecraft:stone", 85.0D, "minecraft:coal_ore", 15.0D), generatorWeights(generators, "upgrade:island-generators:level:1"));
+
+        applier.apply(ISLAND_ID, OWNER_ID, rule, UpgradeType.GENERATOR_LEVEL, 2);
+
+        assertEquals("upgrade:island-generators:level:2", generators.profile(ISLAND_ID).generatorKey());
+        assertEquals(2, generators.profile(ISLAND_ID).level());
+        assertEquals(Map.of("minecraft:stone", 70.0D, "minecraft:diamond_ore", 30.0D), generatorWeights(generators, "upgrade:island-generators:level:2"));
+        assertEquals(Map.of("minecraft:stone", 85.0D, "minecraft:coal_ore", 15.0D), generatorWeights(generators, "upgrade:island-generators:level:1"));
+    }
+
+    @Test
     void borderHomeAndBiomeUpgradesUpdateAuthoritativeLimits() {
         InMemoryIslandLimitRepository limits = new InMemoryIslandLimitRepository();
 
@@ -256,5 +303,12 @@ class UpgradeEffectApplierTest {
             .findFirst()
             .orElseThrow()
             .value();
+    }
+
+    private static Map<String, Double> generatorWeights(InMemoryIslandGeneratorRepository generators, String generatorKey) {
+        return generators.rules(generatorKey).stream().collect(java.util.stream.Collectors.toMap(
+            kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot::materialKey,
+            kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot::chance
+        ));
     }
 }

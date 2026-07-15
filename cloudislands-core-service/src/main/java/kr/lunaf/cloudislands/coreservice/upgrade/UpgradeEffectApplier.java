@@ -1,7 +1,9 @@
 package kr.lunaf.cloudislands.coreservice.upgrade;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandLimitSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
@@ -193,20 +195,77 @@ public final class UpgradeEffectApplier {
         if (type != UpgradeType.GENERATOR_LEVEL || generators == null) {
             return;
         }
-        String generatorKey = generatorKey(rule);
-        int effectiveLevel = (int) Math.max(1L, Math.min(Integer.MAX_VALUE, rule == null ? level : rule.limitValueForLevel(level).orElse(level)));
-        var snapshot = generators.setProfile(islandId, generatorKey, effectiveLevel);
+        List<GeneratorRuleSnapshot> configuredRules = configuredGeneratorRules(rule, level);
+        String generatorKey = configuredRules.isEmpty() ? generatorKey(rule) : configuredGeneratorKey(rule, level);
+        int effectiveLevel = configuredRules.isEmpty()
+            ? (int) Math.max(1L, Math.min(Integer.MAX_VALUE, rule == null ? level : rule.limitValueForLevel(level).orElse(level)))
+            : Math.max(1, level);
+        if (!configuredRules.isEmpty()) {
+            configuredRules = generators.setRules(generatorKey, configuredRules);
+        }
+        var snapshot = generators.setProfileAtLeast(islandId, generatorKey, effectiveLevel);
         events.publish(CloudIslandEventType.ISLAND_UPGRADE.name(), Map.of(
             "islandId", islandId.toString(),
             "upgradeType", type.name(),
             "generatorKey", snapshot.generatorKey(),
-            "level", Integer.toString(snapshot.level())
+            "level", Integer.toString(snapshot.level()),
+            "ruleCount", Integer.toString(configuredRules.size())
         ));
         islandLogs.append(islandId, actorUuid, "ISLAND_UPGRADE_EFFECT", Map.of(
             "effect", type.name(),
             "generatorKey", snapshot.generatorKey(),
-            "level", Integer.toString(snapshot.level())
+            "level", Integer.toString(snapshot.level()),
+            "ruleCount", Integer.toString(configuredRules.size())
         ));
+    }
+
+    private static List<GeneratorRuleSnapshot> configuredGeneratorRules(UpgradeRule rule, int level) {
+        if (rule == null) {
+            return List.of();
+        }
+        String generatorKey = configuredGeneratorKey(rule, level);
+        Map<String, Long> configuredLevel = rule.levelEffects().entrySet().stream()
+            .filter(entry -> entry.getKey() <= level)
+            .filter(entry -> entry.getValue().keySet().stream().anyMatch(key -> key.startsWith("generator-rates.")))
+            .max(Map.Entry.comparingByKey())
+            .map(Map.Entry::getValue)
+            .orElse(Map.of());
+        return configuredLevel.entrySet().stream()
+            .filter(entry -> entry.getValue() > 0L)
+            .map(entry -> generatorRule(generatorKey, entry))
+            .filter(java.util.Objects::nonNull)
+            .sorted(java.util.Comparator.comparing(GeneratorRuleSnapshot::materialKey))
+            .toList();
+    }
+
+    private static GeneratorRuleSnapshot generatorRule(String generatorKey, Map.Entry<String, Long> effect) {
+        String[] parts = effect.getKey().split("\\.", 3);
+        if (parts.length != 3 || !parts[0].equals("generator-rates") || !normalEnvironment(parts[1])) {
+            return null;
+        }
+        String materialKey = generatorMaterialKey(parts[2]);
+        if (materialKey.isBlank()) {
+            return null;
+        }
+        return new GeneratorRuleSnapshot(generatorKey, materialKey, effect.getValue().doubleValue(), 0, 1, "*", true);
+    }
+
+    private static boolean normalEnvironment(String environmentKey) {
+        return environmentKey.equals("normal") || environmentKey.equals("overworld") || environmentKey.equals("minecraft:overworld");
+    }
+
+    private static String generatorMaterialKey(String configuredKey) {
+        String normalized = configuredKey == null ? "" : configuredKey.trim().toLowerCase().replace('-', '_');
+        if (normalized.isBlank()) {
+            return "";
+        }
+        return normalized.contains(":") ? normalized : "minecraft:" + normalized;
+    }
+
+    private static String configuredGeneratorKey(UpgradeRule rule, int level) {
+        String upgradeKey = rule == null ? "generator" : rule.upgradeKey();
+        String normalized = upgradeKey == null ? "generator" : upgradeKey.trim().toLowerCase().replaceAll("[^a-z0-9_.:-]+", "_");
+        return "upgrade:" + (normalized.isBlank() ? "generator" : normalized) + ":level:" + Math.max(1, level);
     }
 
     private static String generatorKey(UpgradeRule rule) {

@@ -151,12 +151,19 @@ public final class ConfigUpgradePolicy {
     }
 
     private static void putRule(Map<String, UpgradeRule> rules, String key, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, BigDecimal> levelCosts, Map<Integer, Long> levelValues, Map<Integer, Map<String, Long>> levelItemCosts, Map<Integer, Map<String, Long>> levelEffects) {
-        UpgradeType resolvedType = type == null ? UpgradePolicy.typeFor(key) : type;
+        UpgradeType resolvedType = type == null ? inferredType(key, levelEffects) : type;
         Map<Integer, Long> resolvedLevelValues = primaryLevelValues(resolvedType, levelValues, levelEffects);
         int inferredMaxLevel = maxLevel > 0 ? maxLevel : Math.max(1, Math.max(levelEffects.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), Math.max(levelItemCosts.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), Math.max(levelCosts.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), levelValues.keySet().stream().mapToInt(Integer::intValue).max().orElse(0)))));
         BigDecimal inferredBaseCost = baseCost != null && baseCost.signum() >= 0 ? baseCost : levelCosts.values().stream().filter(cost -> cost.signum() > 0).findFirst().orElse(BigDecimal.ZERO);
         BigDecimal inferredMultiplier = multiplier != null && multiplier.signum() > 0 ? multiplier : inferMultiplier(levelCosts, inferredBaseCost);
         rules.put(key.toLowerCase(), new UpgradeRule(key.toLowerCase(), resolvedType, inferredMaxLevel, inferredBaseCost, inferredMultiplier, levelCosts, resolvedLevelValues, levelItemCosts, levelEffects));
+    }
+
+    private static UpgradeType inferredType(String upgradeKey, Map<Integer, Map<String, Long>> effects) {
+        boolean generatorRates = effects.values().stream()
+            .flatMap(levelEffects -> levelEffects.keySet().stream())
+            .anyMatch(effectKey -> effectKey.startsWith("generator-rates."));
+        return generatorRates ? UpgradeType.GENERATOR_LEVEL : UpgradePolicy.typeFor(upgradeKey);
     }
 
     private static Map<Integer, Long> primaryLevelValues(UpgradeType type, Map<Integer, Long> fallback, Map<Integer, Map<String, Long>> effects) {
