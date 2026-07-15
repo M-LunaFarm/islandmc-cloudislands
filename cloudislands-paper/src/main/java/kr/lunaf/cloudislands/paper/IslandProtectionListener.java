@@ -13,8 +13,10 @@ import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.common.protection.BlockSpreadPolicy;
 import kr.lunaf.cloudislands.paper.application.IslandAutomationBoundaryPolicy;
 import kr.lunaf.cloudislands.paper.event.IslandPermissionCheckEvent;
-import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
+import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockInteractionPolicy;
+import kr.lunaf.cloudislands.paper.integration.customitem.CustomBlockKeyService;
 import kr.lunaf.cloudislands.paper.integration.stacker.StackAmountService;
+import kr.lunaf.cloudislands.paper.level.BlockDeltaReporter;
 import kr.lunaf.cloudislands.paper.limit.EntityRemovalAccountingPolicy;
 import kr.lunaf.cloudislands.paper.limit.IslandEntityLimitKeys;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -115,19 +117,20 @@ public final class IslandProtectionListener implements Listener {
     private final long denyMessageCooldownMs;
     private final Map<IslandPermission, String> denyMessages;
     private final StackAmountService stackAmounts;
+    private final CustomBlockKeyService customBlockKeys;
     private final MessageRenderer messages;
     private final Map<UUID, Long> denyMessageTimes = new ConcurrentHashMap<>();
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas) {
-        this(protection, blockDeltas, 1000L, Map.of(), StackAmountService.physicalOnly(), null);
+        this(protection, blockDeltas, 1000L, Map.of(), StackAmountService.physicalOnly(), CustomBlockKeyService.vanillaOnly(), null);
     }
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas, long denyMessageCooldownMs) {
-        this(protection, blockDeltas, denyMessageCooldownMs, Map.of(), StackAmountService.physicalOnly(), null);
+        this(protection, blockDeltas, denyMessageCooldownMs, Map.of(), StackAmountService.physicalOnly(), CustomBlockKeyService.vanillaOnly(), null);
     }
 
     public IslandProtectionListener(ProtectionController protection, BlockDeltaReporter blockDeltas, long denyMessageCooldownMs, Map<IslandPermission, String> denyMessages) {
-        this(protection, blockDeltas, denyMessageCooldownMs, denyMessages, StackAmountService.physicalOnly(), null);
+        this(protection, blockDeltas, denyMessageCooldownMs, denyMessages, StackAmountService.physicalOnly(), CustomBlockKeyService.vanillaOnly(), null);
     }
 
     public IslandProtectionListener(
@@ -137,7 +140,7 @@ public final class IslandProtectionListener implements Listener {
         Map<IslandPermission, String> denyMessages,
         StackAmountService stackAmounts
     ) {
-        this(protection, blockDeltas, denyMessageCooldownMs, denyMessages, stackAmounts, null);
+        this(protection, blockDeltas, denyMessageCooldownMs, denyMessages, stackAmounts, CustomBlockKeyService.vanillaOnly(), null);
     }
 
     public IslandProtectionListener(
@@ -148,11 +151,24 @@ public final class IslandProtectionListener implements Listener {
         StackAmountService stackAmounts,
         MessageRenderer messages
     ) {
+        this(protection, blockDeltas, denyMessageCooldownMs, denyMessages, stackAmounts, CustomBlockKeyService.vanillaOnly(), messages);
+    }
+
+    public IslandProtectionListener(
+        ProtectionController protection,
+        BlockDeltaReporter blockDeltas,
+        long denyMessageCooldownMs,
+        Map<IslandPermission, String> denyMessages,
+        StackAmountService stackAmounts,
+        CustomBlockKeyService customBlockKeys,
+        MessageRenderer messages
+    ) {
         this.protection = protection;
         this.blockDeltas = blockDeltas;
         this.denyMessageCooldownMs = Math.max(0L, denyMessageCooldownMs);
         this.denyMessages = denyMessages == null ? Map.of() : Map.copyOf(denyMessages);
         this.stackAmounts = stackAmounts == null ? StackAmountService.physicalOnly() : stackAmounts;
+        this.customBlockKeys = customBlockKeys == null ? CustomBlockKeyService.vanillaOnly() : customBlockKeys;
         this.messages = messages;
     }
 
@@ -198,7 +214,7 @@ public final class IslandProtectionListener implements Listener {
                 blockDeltas.placed(islandId, event.getPlayer().getUniqueId(), state.getBlock())));
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInteract(PlayerInteractEvent event) {
         if (event.getClickedBlock() != null) {
             event.setCancelled(denied(event.getPlayer(), event.getClickedBlock(), interactionPermission(event)));
@@ -905,7 +921,12 @@ public final class IslandProtectionListener implements Listener {
         if (event.getAction() == Action.PHYSICAL && event.getClickedBlock() != null && event.getClickedBlock().getType() == Material.TURTLE_EGG) {
             return IslandPermission.TURTLE_EGG_TRAMPLE;
         }
-        return interactionPermission(event.getClickedBlock().getType());
+        IslandPermission fallback = interactionPermission(event.getClickedBlock().getType());
+        return CustomBlockInteractionPolicy.requiredPermission(
+            event.getAction(),
+            customBlockKeys.isCustomBlock(event.getClickedBlock()),
+            fallback
+        );
     }
 
     private IslandPermission entityInteractionPermission(Player player, org.bukkit.entity.Entity entity, org.bukkit.inventory.EquipmentSlot hand) {

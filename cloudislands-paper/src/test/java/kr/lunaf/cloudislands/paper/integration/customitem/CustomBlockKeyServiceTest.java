@@ -22,6 +22,7 @@ class CustomBlockKeyServiceTest {
         ));
 
         assertEquals("oraxen:ruby_block", service.blockKey(block));
+        assertTrue(service.isCustomBlock(block));
         assertEquals("oraxen:ruby_chair", service.entityKey(furniture));
         assertTrue(service.supports("Oraxen"));
         assertTrue(service.runtimeDetails("Oraxen").get("consumers").contains("ranking"));
@@ -32,6 +33,7 @@ class CustomBlockKeyServiceTest {
         CustomBlockKeyService service = CustomBlockKeyService.vanillaOnly();
 
         assertEquals("minecraft:stone", service.blockKey(block(Material.STONE)));
+        assertFalse(service.isCustomBlock(block(Material.STONE)));
         assertEquals("entity:minecraft:cow", service.entityKey(entity(EntityType.COW)));
         assertFalse(service.supports("ItemsAdder"));
         assertEquals("itemsadder:namespace:machine", CustomBlockKeyService.customKey("ItemsAdder", "namespace:machine"));
@@ -44,9 +46,12 @@ class CustomBlockKeyServiceTest {
         CustomBlockKeyService service = new CustomBlockKeyService(List.of(slimefun));
 
         assertEquals("slimefun:electric_motor", service.blockKey(block(Material.NOTE_BLOCK)));
+        assertTrue(service.isCustomBlock(block(Material.NOTE_BLOCK)));
         assertEquals("minecraft:stone", service.blockKey(block(Material.STONE)));
+        assertFalse(service.isCustomBlock(block(Material.STONE)));
         assertTrue(service.supports("Slimefun"));
         assertTrue(service.runtimeDetails("Slimefun").get("adapter").contains("block-storage"));
+        assertTrue(service.runtimeDetails("Slimefun").get("consumers").contains("protection"));
         assertTrue(CustomBlockKeyService.supportedPlugins().contains("Slimefun"));
     }
 
@@ -57,6 +62,7 @@ class CustomBlockKeyServiceTest {
         CustomBlockKeyService service = new CustomBlockKeyService(List.of(craftEngine));
 
         assertEquals("craftengine:custom:machine", service.blockKey(block(Material.NOTE_BLOCK)));
+        assertTrue(service.isCustomBlock(block(Material.NOTE_BLOCK)));
         assertEquals("minecraft:stone", service.blockKey(block(Material.STONE)));
         assertEquals("minecraft:barrier", service.blockKey(block(Material.BARRIER)));
         assertTrue(service.supports("CraftEngine"));

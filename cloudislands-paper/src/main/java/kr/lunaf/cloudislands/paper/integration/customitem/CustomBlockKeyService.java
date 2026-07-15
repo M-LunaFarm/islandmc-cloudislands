@@ -80,6 +80,18 @@ public final class CustomBlockKeyService {
         return block.getType().getKey().toString();
     }
 
+    public boolean isCustomBlock(Block block) {
+        if (block == null) {
+            return false;
+        }
+        for (Adapter adapter : adapters) {
+            if (!resolve(adapter.blockResolver(), block).isBlank()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public String entityKey(Entity entity) {
         if (entity == null) {
             return "";
@@ -102,7 +114,7 @@ public final class CustomBlockKeyService {
         return Map.of(
             "adapter", adapter == null ? "unavailable" : adapter.description(),
             "blockKeyFormat", pluginName == null ? "" : pluginName.toLowerCase(Locale.ROOT) + ":<id>",
-            "consumers", "block-delta,island-level-rescan,worth,level,ranking",
+            "consumers", "protection,block-delta,island-level-rescan,worth,level,ranking",
             "furniture", Boolean.toString(adapter != null && adapter.entityResolver() != null)
         );
     }

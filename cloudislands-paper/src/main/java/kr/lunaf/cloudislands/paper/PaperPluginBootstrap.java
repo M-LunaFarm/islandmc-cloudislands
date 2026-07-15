@@ -122,6 +122,7 @@ final class PaperPluginBootstrap {
                 config.protection().denyMessageCooldownMs(),
                 config.protection().denyMessages(),
                 plugin.stackAmounts,
+                plugin.customBlockKeys,
                 plugin.messages
             ));
             plugin.boundaryListener = new IslandBoundaryListener(plugin, plugin.agent.protection(), plugin.messages);

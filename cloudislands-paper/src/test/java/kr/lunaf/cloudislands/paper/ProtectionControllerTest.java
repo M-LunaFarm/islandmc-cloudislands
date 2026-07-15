@@ -44,6 +44,21 @@ class ProtectionControllerTest {
     }
 
     @Test
+    void visitorInteractDoesNotGrantCustomMachineContainerAccess() {
+        LocalIslandPermissionCache cache = new LocalIslandPermissionCache();
+        ProtectionController protection = new ProtectionController(new RegionIndex(), cache);
+        protection.registerIsland(ISLAND, "ci_shard_001", 0, 0, 300, 2, 3);
+        cache.putRoleKey(ISLAND, VISITOR, "VISITOR");
+        cache.putFlag(ISLAND, IslandFlag.VISITOR_INTERACT, "true");
+
+        assertTrue(protection.checkBlock(VISITOR, "ci_shard_001", 0, 100, 0, IslandPermission.INTERACT).allowed());
+        assertFalse(protection.checkBlock(VISITOR, "ci_shard_001", 0, 100, 0, IslandPermission.OPEN_CONTAINER).allowed());
+
+        cache.putFlag(ISLAND, IslandFlag.VISITOR_CONTAINER, "true");
+        assertTrue(protection.checkBlock(VISITOR, "ci_shard_001", 0, 100, 0, IslandPermission.OPEN_CONTAINER).allowed());
+    }
+
+    @Test
     void exposesSynchronousHotPathPolicy() {
         ProtectionController protection = new ProtectionController(new RegionIndex(), new LocalIslandPermissionCache());
 
