@@ -44,10 +44,7 @@ public final class GuiStateMenus implements Listener {
     }
 
     public static void openLoading(Plugin plugin, Player player, GuiSession session, MessageRenderer messages, String title) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            if (!GuiSessions.isCurrent(player, session)) {
-                return;
-            }
+        GuiSessions.runIfCurrent(plugin, player, session, () -> {
             Inventory inventory = stateInventory(session.sessionId(), messages, title, "Loading", false, false);
             setStateItem(inventory, "L", messages, null);
             player.openInventory(inventory);

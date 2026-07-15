@@ -1083,7 +1083,10 @@ class PaperPlatformBoundaryTest {
         String sessions = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiSessions.java"));
         assertTrue(sessions.contains("isCurrent("), "GUI session registry must expose current-session checks");
         assertTrue(sessions.contains("runIfCurrent("), "GUI session registry must guard main-thread rendering");
+        assertTrue(sessions.contains("plugin.getServer().getPlayer(session.playerId())"), "GUI completion must resolve the current server-side Player instance");
+        assertTrue(sessions.contains("activePlayer == player && activePlayer.isOnline()"), "GUI completion must reject disconnected and replaced Player instances");
         String states = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/GuiStateMenus.java"));
+        assertTrue(states.contains("GuiSessions.runIfCurrent(plugin, player, session, () ->"), "loading states must use the same online current-session guard as terminal states");
         assertTrue(states.contains("InventoryCloseEvent"), "GUI sessions must be invalidated when menus close");
         assertTrue(states.contains("GuiSessions.invalidate"), "GUI state listener must invalidate stale sessions");
     }

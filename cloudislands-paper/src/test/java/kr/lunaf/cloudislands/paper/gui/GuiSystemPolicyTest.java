@@ -731,6 +731,8 @@ class GuiSystemPolicyTest {
         assertTrue(sessions.contains("CURRENT.put(player.getUniqueId(), session)"), "opening a GUI must replace the current player session");
         assertTrue(sessions.contains("session.equals(CURRENT.get(player.getUniqueId()))"), "delayed GUI responses must check the current player session");
         assertTrue(sessions.contains("runIfCurrent"), "async GUI rendering must be guarded by the current session");
+        assertTrue(sessions.contains("plugin.getServer().getPlayer(session.playerId())"), "delayed GUI responses must re-resolve the server's current Player instance");
+        assertTrue(sessions.contains("activePlayer == player && activePlayer.isOnline()"), "late responses from disconnected or replaced Player instances must be discarded");
         assertTrue(sessions.contains("CURRENT.clear()"), "GUI sessions must expose a lifecycle cleanup hook");
         assertTrue(inventories.contains("create(String menuId, GuiSession session"), "async-rendered GUI inventories must carry the current session id");
         assertTrue(guard.contains("InventoryCloseEvent"), "all CloudIslands GUI closes must invalidate the current session");

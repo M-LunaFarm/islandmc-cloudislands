@@ -25,8 +25,12 @@ public final class GuiSessions {
     }
 
     public static void runIfCurrent(Plugin plugin, Player player, GuiSession session, Runnable action) {
+        if (plugin == null || player == null || session == null || action == null) {
+            return;
+        }
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            if (isCurrent(player, session)) {
+            Player activePlayer = plugin.getServer().getPlayer(session.playerId());
+            if (activePlayer == player && activePlayer.isOnline() && isCurrent(activePlayer, session)) {
                 action.run();
             }
         });
