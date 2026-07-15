@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
 import kr.lunaf.cloudislands.coreclient.ProgressionQueryClient;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.MissionView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.UpgradeView;
+import kr.lunaf.cloudislands.paper.mission.MissionProgressDelivery;
 
 public final class IslandProgressionUseCase {
     private final ProgressionQueryClient progressionQueries;
@@ -72,7 +73,15 @@ public final class IslandProgressionUseCase {
     private CompletableFuture<IslandLevelView> recalculateLevelResult(UUID islandId, UUID actorUuid) {
         requireIsland(islandId);
         requireActor(actorUuid);
-        return progressionCommands.recalculateLevel(islandId, actorUuid).thenApply(IslandProgressionUseCase::levelView);
+        return progressionCommands.recalculateLevel(islandId, actorUuid)
+            .thenCompose(view -> MissionProgressDelivery.advanceTo(
+                progressionCommands,
+                islandId,
+                actorUuid,
+                "island_level_10",
+                "MISSION",
+                view.level()
+            ).thenApply(_mission -> levelView(view)));
     }
 
     public CompletableFuture<IslandLevelView> recalculateLevelView(UUID islandId, UUID actorUuid) {

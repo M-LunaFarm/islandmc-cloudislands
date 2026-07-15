@@ -78,6 +78,26 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
     }
 
     @Override
+    public Optional<IslandMissionSnapshot> progressTo(UUID islandId, UUID actorUuid, String missionKey, String kind, long progress) {
+        ensureDefaults(islandId);
+        long safeProgress = Math.max(0L, progress);
+        String safeKey = normalizedKey(missionKey);
+        String safeKind = MissionCatalog.normalizeKind(kind);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement(progressToUpdateSql())) {
+            statement.setLong(1, safeProgress);
+            statement.setLong(2, safeProgress);
+            statement.setObject(3, actorUuid);
+            statement.setObject(4, islandId);
+            statement.setString(5, safeKey);
+            statement.setString(6, safeKind);
+            return statement.executeUpdate() > 0 ? find(islandId, safeKey, safeKind) : Optional.empty();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to synchronize island mission progress", exception);
+        }
+    }
+
+    @Override
     public boolean reopenAfterRewardFailure(UUID islandId, String missionKey, String kind) {
         return settleCompletion(islandId, missionKey, kind, false);
     }
@@ -301,5 +321,9 @@ public final class JdbcIslandMissionRepository implements IslandMissionRepositor
 
     static String progressUpdateSql() {
         return "UPDATE island_missions SET completed = LEAST(goal, progress + ?) >= goal, progress = LEAST(goal, progress + ?), updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? AND completed = false";
+    }
+
+    static String progressToUpdateSql() {
+        return "UPDATE island_missions SET completed = GREATEST(progress, ?) >= goal, progress = LEAST(goal, GREATEST(progress, ?)), updated_by = ?, updated_at = now() WHERE island_id = ? AND mission_key = ? AND kind = ? AND completed = false";
     }
 }

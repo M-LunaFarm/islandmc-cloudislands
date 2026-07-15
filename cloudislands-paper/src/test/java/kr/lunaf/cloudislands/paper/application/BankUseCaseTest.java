@@ -109,7 +109,7 @@ class BankUseCaseTest {
 
         assertEquals(BankUseCase.Status.SUCCESS, result.status());
         assertEquals("125.75", result.balance());
-        assertEquals(List.of("bank_balance:MISSION:125"), progression.calls);
+        assertEquals(List.of("absolute:bank_balance:MISSION:125"), progression.calls);
     }
 
     @Test
@@ -450,7 +450,13 @@ class BankUseCaseTest {
 
         @Override
         public CompletableFuture<ProgressionMissionCompletionView> progressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount) {
-            calls.add(missionKey + ":" + kind + ":" + amount);
+            calls.add("increment:" + missionKey + ":" + kind + ":" + amount);
+            return CompletableFuture.completedFuture(new ProgressionMissionCompletionView(true, "", missionKey, missionKey, ""));
+        }
+
+        @Override
+        public CompletableFuture<ProgressionMissionCompletionView> progressMissionTo(UUID islandId, UUID actorUuid, String missionKey, String kind, long progress) {
+            calls.add("absolute:" + missionKey + ":" + kind + ":" + progress);
             return CompletableFuture.completedFuture(new ProgressionMissionCompletionView(true, "", missionKey, missionKey, ""));
         }
 

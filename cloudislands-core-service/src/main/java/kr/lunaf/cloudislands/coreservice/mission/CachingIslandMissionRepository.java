@@ -53,6 +53,14 @@ public final class CachingIslandMissionRepository implements IslandMissionReposi
     }
 
     @Override
+    public Optional<IslandMissionSnapshot> progressTo(UUID islandId, UUID actorUuid, String missionKey, String kind, long progress) {
+        String normalized = MissionCatalog.normalizeKind(kind);
+        Optional<IslandMissionSnapshot> progressed = delegate.progressTo(islandId, actorUuid, missionKey, normalized, progress);
+        cache(islandId, normalized, delegate.list(islandId, normalized));
+        return progressed;
+    }
+
+    @Override
     public boolean reopenAfterRewardFailure(UUID islandId, String missionKey, String kind) {
         String normalized = MissionCatalog.normalizeKind(kind);
         boolean reopened = delegate.reopenAfterRewardFailure(islandId, missionKey, normalized);

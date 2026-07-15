@@ -74,6 +74,23 @@ public final class JdkProgressionCommandClient implements ProgressionCommandClie
     }
 
     @Override
+    public CompletableFuture<ProgressionMissionCompletionView> progressMissionTo(UUID islandId, UUID actorUuid, String missionKey, String kind, long progress) {
+        requireId(islandId, "islandId");
+        requireId(actorUuid, "actorUuid");
+        String normalizedKind = kind == null || kind.isBlank() ? "MISSION" : kind;
+        return core.postResultBody("/v1/islands/missions/progress", CoreJsonPayload.object(
+                "islandId", islandId,
+                "actorUuid", actorUuid,
+                "missionKey", missionKey == null ? "" : missionKey,
+                "kind", normalizedKind,
+                "amount", Math.max(0L, progress),
+                "mode", "ABSOLUTE_MAX"
+            ))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(body -> missionCompletionResult(body, islandId, missionKey, normalizedKind));
+    }
+
+    @Override
     public CompletableFuture<ProgressionMissionCompletionView> adminCompleteMission(UUID islandId, UUID actorUuid, String missionKey, String kind) {
         requireId(islandId, "islandId");
         requireId(actorUuid, "actorUuid");

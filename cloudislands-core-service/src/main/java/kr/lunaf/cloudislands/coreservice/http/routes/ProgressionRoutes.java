@@ -185,10 +185,14 @@ public final class ProgressionRoutes implements RouteGroup {
             String missionKey = JsonFields.text(body, "missionKey", "");
             String kind = JsonFields.text(body, "kind", "MISSION");
             long amount = Math.max(0L, JsonFields.longValue(body, "amount", 1L));
+            String mode = JsonFields.text(body, "mode", "INCREMENT");
             if (!requireMember(exchange, islandRepository, metadataRepository, islandId, actorUuid)) {
                 return;
             }
-            java.util.Optional<IslandMissionSnapshot> progressed = missionRepository.progress(islandId, actorUuid, missionKey, kind, amount);
+            boolean absoluteMax = mode.equalsIgnoreCase("ABSOLUTE_MAX");
+            java.util.Optional<IslandMissionSnapshot> progressed = absoluteMax
+                ? missionRepository.progressTo(islandId, actorUuid, missionKey, kind, amount)
+                : missionRepository.progress(islandId, actorUuid, missionKey, kind, amount);
             progressed.ifPresent(snapshot -> events.publish(CloudIslandEventType.ISLAND_MISSION_PROGRESS.name(), Map.of(
                 "islandId", islandId.toString(),
                 "missionKey", snapshot.missionKey(),
@@ -196,6 +200,7 @@ public final class ProgressionRoutes implements RouteGroup {
                 "progress", Long.toString(snapshot.progress()),
                 "goal", Long.toString(snapshot.goal()),
                 "amount", Long.toString(amount),
+                "mode", absoluteMax ? "ABSOLUTE_MAX" : "INCREMENT",
                 "completed", Boolean.toString(snapshot.completed())
             )));
             if (progressed.filter(IslandMissionSnapshot::completed).isPresent()

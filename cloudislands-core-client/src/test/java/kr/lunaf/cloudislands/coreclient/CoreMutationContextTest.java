@@ -1049,6 +1049,34 @@ class CoreMutationContextTest {
         }
     }
 
+    @Test
+    void absoluteMissionProgressCarriesModeAndIdempotencyMetadata() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        ConcurrentMap<String, String> observed = new ConcurrentHashMap<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/v1/islands/missions/progress", exchange -> {
+            observed.put("idempotency", exchange.getRequestHeaders().getFirst(CoreMutationContext.IDEMPOTENCY_KEY_HEADER));
+            observed.put("audit", exchange.getRequestHeaders().getFirst(CoreMutationContext.AUDIT_ACTION_HEADER));
+            respond(exchange, observed, "body", "{\"accepted\":true,\"code\":\"MISSION_PROGRESS\",\"missionKey\":\"bank_balance\",\"kind\":\"MISSION\",\"progress\":600,\"goal\":1000}");
+        });
+        server.start();
+        try {
+            JdkCoreApiClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2));
+
+            CoreMutationContext.with(
+                CoreMutationMetadata.idempotent("island.mission.progress-to", "mission-delivery-1"),
+                () -> client.progressionCommands().progressMissionTo(islandId, actorUuid, "bank_balance", "MISSION", 600L)
+            ).join();
+
+            assertEquals("mission-delivery-1", observed.get("idempotency"));
+            assertEquals("island.mission.progress-to", observed.get("audit"));
+            assertEquals("{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"missionKey\":\"bank_balance\",\"kind\":\"MISSION\",\"amount\":600,\"mode\":\"ABSOLUTE_MAX\"}", observed.get("body"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
     private static void respond(com.sun.net.httpserver.HttpExchange exchange, ConcurrentMap<String, String> requestBodies, String key, String responseBody) throws java.io.IOException {
         respond(exchange, requestBodies, key, responseBody, 200);
     }

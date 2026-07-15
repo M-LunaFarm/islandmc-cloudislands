@@ -46,6 +46,7 @@ class IslandProgressionUseCaseTest {
             "topLevel:0",
             "topReviews:10",
             "recalculateLevel",
+            "progressMissionTo:island_level_10:MISSION:8",
             "listIslandUpgrades",
             "audit:island.upgrade.purchase",
             "purchaseUpgrade:generator",
@@ -86,6 +87,10 @@ class IslandProgressionUseCaseTest {
                     calls.add("recalculateLevel");
                     yield CompletableFuture.completedFuture(new LevelView("00000000-0000-0000-0000-000000000080", 8L, "14.00", "2026-01-02T03:04:05Z"));
                 }
+                case "progressMissionTo" -> {
+                    calls.add("progressMissionTo:" + args[2] + ":" + args[3] + ":" + args[4]);
+                    yield CompletableFuture.completedFuture(new ProgressionMissionCompletionView(true, "MISSION_PROGRESS", islandId(args), "island_level_10", "MISSION", "Island Level", 8L, 10L, false, "500", ""));
+                }
                 case "upgrades" -> {
                     calls.add("listIslandUpgrades");
                     yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.UpgradeView("generator:ore", "GENERATOR", 3, "")));
@@ -104,6 +109,10 @@ class IslandProgressionUseCaseTest {
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });
+    }
+
+    private static String islandId(Object[] args) {
+        return ((UUID) args[0]).toString();
     }
 
     private static IslandProgressionUseCase.IdempotentMutationRunner idempotentRunner(List<String> calls) {

@@ -59,6 +59,20 @@ public final class InMemoryIslandMissionRepository implements IslandMissionRepos
     }
 
     @Override
+    public Optional<IslandMissionSnapshot> progressTo(UUID islandId, UUID actorUuid, String missionKey, String kind, long progress) {
+        ensureDefaults(islandId);
+        Map<String, IslandMissionSnapshot> islandMissions = missions.getOrDefault(islandId, Map.of());
+        IslandMissionSnapshot current = islandMissions.get(identity(missionKey, kind));
+        if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind)) || current.completed()) {
+            return Optional.empty();
+        }
+        long nextProgress = Math.min(current.goal(), Math.max(current.progress(), Math.max(0L, progress)));
+        IslandMissionSnapshot next = updated(current, nextProgress, nextProgress >= current.goal());
+        islandMissions.put(identity(current.missionKey(), current.kind()), next);
+        return Optional.of(next);
+    }
+
+    @Override
     public synchronized boolean reopenAfterRewardFailure(UUID islandId, String missionKey, String kind) {
         IslandMissionSnapshot current = missions.getOrDefault(islandId, Map.of()).get(identity(missionKey, kind));
         if (current == null || !current.kind().equals(MissionCatalog.normalizeKind(kind)) || !current.completed()) {

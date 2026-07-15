@@ -89,6 +89,21 @@ class InMemoryIslandMissionRepositoryTest {
     }
 
     @Test
+    void absoluteProgressTracksAuthoritativeValueWithoutDoubleCountingOrRegressing() {
+        InMemoryIslandMissionRepository repository = new InMemoryIslandMissionRepository();
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+
+        assertEquals(600L, repository.progressTo(islandId, actorUuid, "bank_balance", "MISSION", 600L).orElseThrow().progress());
+        assertEquals(600L, repository.progressTo(islandId, actorUuid, "bank_balance", "MISSION", 400L).orElseThrow().progress());
+        var completed = repository.progressTo(islandId, actorUuid, "bank_balance", "MISSION", 1_000L).orElseThrow();
+
+        assertEquals(1_000L, completed.progress());
+        assertTrue(completed.completed());
+        assertTrue(repository.progressTo(islandId, actorUuid, "bank_balance", "MISSION", 1_500L).isEmpty());
+    }
+
+    @Test
     void failedRewardCanReopenCompletionForRetry() {
         InMemoryIslandMissionRepository repository = new InMemoryIslandMissionRepository();
         UUID islandId = UUID.randomUUID();

@@ -18,6 +18,10 @@ public interface ProgressionCommandClient {
 
     CompletableFuture<ProgressionMissionCompletionView> progressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount);
 
+    default CompletableFuture<ProgressionMissionCompletionView> progressMissionTo(UUID islandId, UUID actorUuid, String missionKey, String kind, long progress) {
+        return progressMission(islandId, actorUuid, missionKey, kind, progress);
+    }
+
     CompletableFuture<ProgressionMissionCompletionView> adminCompleteMission(UUID islandId, UUID actorUuid, String missionKey, String kind);
 
     CompletableFuture<ProgressionMissionCompletionView> adminProgressMission(UUID islandId, UUID actorUuid, String missionKey, String kind, long amount);

@@ -183,7 +183,7 @@ public final class IslandMissionProgressListener implements Listener {
 
     private void progress(UUID islandId, UUID actorUuid, MissionProgressTriggers.Trigger trigger) {
         attempts.incrementAndGet();
-        progressionCommands.progressMission(islandId, actorUuid, trigger.missionKey(), trigger.kind(), trigger.amount())
+        MissionProgressDelivery.increment(progressionCommands, islandId, actorUuid, trigger.missionKey(), trigger.kind(), trigger.amount())
             .thenAccept(view -> handleProgress(islandId, actorUuid, trigger, view))
             .exceptionally(exception -> {
                 failures.incrementAndGet();

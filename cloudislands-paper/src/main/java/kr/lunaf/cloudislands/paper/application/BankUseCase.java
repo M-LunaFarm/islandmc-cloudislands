@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.coreclient.BankMutationView;
 import kr.lunaf.cloudislands.coreclient.BankQueryClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.ProgressionCommandClient;
+import kr.lunaf.cloudislands.paper.mission.MissionProgressDelivery;
 import kr.lunaf.cloudislands.paper.mission.MissionProgressTriggers;
 
 public final class BankUseCase {
@@ -201,7 +202,7 @@ public final class BankUseCase {
         }
         long amount = balanceAmount(balance);
         for (MissionProgressTriggers.Trigger trigger : MissionProgressTriggers.bankBalance(amount)) {
-            progressionCommands.progressMission(islandId, actorUuid, trigger.missionKey(), trigger.kind(), trigger.amount())
+            MissionProgressDelivery.advanceTo(progressionCommands, islandId, actorUuid, trigger.missionKey(), trigger.kind(), trigger.amount())
                 .exceptionally(_error -> null);
         }
     }

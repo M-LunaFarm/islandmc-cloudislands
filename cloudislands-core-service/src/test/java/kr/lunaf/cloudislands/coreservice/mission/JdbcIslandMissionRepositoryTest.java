@@ -14,4 +14,14 @@ class JdbcIslandMissionRepositoryTest {
         assertTrue(completion >= 0);
         assertTrue(progress > completion, "MySQL evaluates UPDATE assignments left to right, so completion must read the original progress first");
     }
+
+    @Test
+    void absoluteProgressUsesMonotonicAuthoritativeValue() {
+        String sql = JdbcIslandMissionRepository.progressToUpdateSql();
+
+        int completion = sql.indexOf("completed = GREATEST(progress, ?) >= goal");
+        int progress = sql.indexOf("progress = LEAST(goal, GREATEST(progress, ?))");
+        assertTrue(completion >= 0);
+        assertTrue(progress > completion, "MySQL completion must read the original progress before the authoritative value is stored");
+    }
 }
