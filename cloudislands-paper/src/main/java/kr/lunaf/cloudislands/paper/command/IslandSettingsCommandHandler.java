@@ -220,9 +220,9 @@ final class IslandSettingsCommandHandler {
             }
             UUID actorUuid = player.getUniqueId();
             settingsUseCase.setNameAction(islandId, actorUuid, name, runtime::mutate)
-                .thenAccept(result -> deliverSettingsMessage(actorUuid, settingsActionMessage("name-change-action-label", "섬 이름 변경", name, result)))
+                .thenAccept(result -> deliverMessage(actorUuid, settingsActionMessage("name-change-action-label", "섬 이름 변경", name, result)))
                 .exceptionally(error -> {
-                    deliverSettingsMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("name-change-failed", "섬 이름을 변경하지 못했습니다.")));
+                    deliverMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("name-change-failed", "섬 이름을 변경하지 못했습니다.")));
                     return null;
                 });
         });
@@ -269,7 +269,7 @@ final class IslandSettingsCommandHandler {
         });
     }
 
-    private void deliverSettingsMessage(UUID actorUuid, String detail) {
+    private void deliverMessage(UUID actorUuid, String detail) {
         PaperSchedulers.run(plugin, () -> {
             Player activePlayer = plugin.getServer().getPlayer(actorUuid);
             if (activePlayer != null && activePlayer.isOnline()) {
@@ -280,10 +280,11 @@ final class IslandSettingsCommandHandler {
 
     private void listFlags(Player player) {
         runtime.currentIsland(player, message("flag-list-island-required", "섬 안에서만 플래그를 확인할 수 있습니다.")).ifPresent(islandId -> {
+            UUID actorUuid = player.getUniqueId();
             settingsUseCase.flagValues(islandId)
-                .thenAccept(flags -> runtime.message(player, flagListMessage(flags)))
+                .thenAccept(flags -> deliverMessage(actorUuid, flagListMessage(flags)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("flag-list-load-failed", "섬 플래그를 불러오지 못했습니다."));
+                    deliverMessage(actorUuid, message("flag-list-load-failed", "섬 플래그를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -308,10 +309,11 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, message("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
                 return;
             }
-            settingsUseCase.setFlagAction(islandId, player.getUniqueId(), flag, value, runtime::mutate)
-                .thenAccept(result -> runtime.message(player, settingsActionMessage(message("flag-set-action-label", "섬 플래그 변경 ") + flag.name() + "=" + value, flag.name(), result)))
+            UUID actorUuid = player.getUniqueId();
+            settingsUseCase.setFlagAction(islandId, actorUuid, flag, value, runtime::mutate)
+                .thenAccept(result -> deliverMessage(actorUuid, settingsActionMessage(message("flag-set-action-label", "섬 플래그 변경 ") + flag.name() + "=" + value, flag.name(), result)))
                 .exceptionally(error -> {
-                    runtime.message(player, runtime.coreWriteFailureMessage(error, message("flag-set-failed", "섬 플래그를 변경하지 못했습니다.")));
+                    deliverMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("flag-set-failed", "섬 플래그를 변경하지 못했습니다.")));
                     return null;
                 });
         });
@@ -328,10 +330,11 @@ final class IslandSettingsCommandHandler {
                 runtime.message(player, message("social-set-denied", "섬 소셜 정보를 변경할 권한이 없습니다."));
                 return;
             }
-            settingsUseCase.setFlagAction(islandId, player.getUniqueId(), flag, value, runtime::mutate)
-                .thenAccept(result -> runtime.message(player, settingsActionMessage(labelKey, labelFallback, socialActionTarget(value), result)))
+            UUID actorUuid = player.getUniqueId();
+            settingsUseCase.setFlagAction(islandId, actorUuid, flag, value, runtime::mutate)
+                .thenAccept(result -> deliverMessage(actorUuid, settingsActionMessage(labelKey, labelFallback, socialActionTarget(value), result)))
                 .exceptionally(error -> {
-                    runtime.message(player, runtime.coreWriteFailureMessage(error, message("social-set-failed", "섬 소셜 정보를 변경하지 못했습니다.")));
+                    deliverMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("social-set-failed", "섬 소셜 정보를 변경하지 못했습니다.")));
                     return null;
                 });
         });
@@ -341,17 +344,25 @@ final class IslandSettingsCommandHandler {
         UUID playerUuid = player.getUniqueId();
         String locale = PlayerIslandProfile.normalizeLocale(value);
         runtime.mutate("player.locale.set", () -> coreApiClient.playerProfileCommands().setLocale(playerUuid, locale))
-            .thenAccept(profile -> {
-                String applied = profile.locale().isBlank() ? locale : PlayerIslandProfile.normalizeLocale(profile.locale());
-                if (locales != null) {
-                    locales.remember(playerUuid, applied);
-                }
-                runtime.message(player, message("player-locale-updated", "언어 설정을 변경했습니다.") + " locale=" + applied);
-            })
+            .thenAccept(profile -> deliverLocaleUpdate(playerUuid,
+                profile.locale().isBlank() ? locale : PlayerIslandProfile.normalizeLocale(profile.locale())))
             .exceptionally(error -> {
-                runtime.message(player, runtime.coreWriteFailureMessage(error, message("player-locale-update-failed", "언어 설정을 변경하지 못했습니다.")));
+                deliverMessage(playerUuid, runtime.coreWriteFailureMessage(error, message("player-locale-update-failed", "언어 설정을 변경하지 못했습니다.")));
                 return null;
             });
+    }
+
+    private void deliverLocaleUpdate(UUID playerUuid, String applied) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+            if (activePlayer == null || !activePlayer.isOnline()) {
+                return;
+            }
+            if (locales != null) {
+                locales.remember(playerUuid, applied);
+            }
+            runtime.message(activePlayer, message("player-locale-updated", "언어 설정을 변경했습니다.") + " locale=" + applied);
+        });
     }
 
     private void setPersonalFlight(Player player, String[] args) {

@@ -677,7 +677,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(permissions.contains("\"setdiscord\"") && permissions.contains("\"setpaypal\""));
         assertTrue(settingsHandler.contains("setSocialFlag(player, IslandFlag.SOCIAL_DISCORD"));
         assertTrue(settingsHandler.contains("setSocialFlag(player, IslandFlag.SOCIAL_PAYPAL"));
-        assertTrue(settingsHandler.contains("settingsUseCase.setFlagAction(islandId, player.getUniqueId(), flag, value, runtime::mutate)"));
+        assertTrue(settingsHandler.contains("settingsUseCase.setFlagAction(islandId, actorUuid, flag, value, runtime::mutate)"));
         assertTrue(settingsHandler.contains("normalizeSocialValue"));
         assertTrue(settingsHandler.contains("lower.equals(\"clear\")"));
         assertTrue(flags.contains("SOCIAL_DISCORD"));
@@ -872,8 +872,13 @@ class IslandCommandControllerPolicyTest {
         assertTrue(settings.contains("GuiStateMenus.openSaving(plugin, player"), "GUI settings mutations must expose a saving state");
         assertTrue(settings.contains("GuiSessions.isCurrent(activePlayer, session)"), "late settings responses must not replace a newer GUI session");
         assertTrue(settings.contains("plugin.getServer().getPlayer(actorUuid)"), "settings callbacks must re-resolve the currently online player by UUID");
+        assertTrue(settings.contains("thenAccept(flags -> deliverMessage(actorUuid, flagListMessage(flags)))"), "flag reads must deliver through an online-player scheduler boundary");
+        assertTrue(settings.contains("thenAccept(result -> deliverMessage(actorUuid, settingsActionMessage"), "flag writes must deliver through an online-player scheduler boundary");
+        assertTrue(settings.contains("thenAccept(profile -> deliverLocaleUpdate(playerUuid"), "locale writes must apply caches and messages on the Paper scheduler");
         assertFalse(settings.contains("PaperSchedulers.run(plugin, () -> openSettings(player))"), "delayed settings callbacks must not reopen a captured Player GUI");
         assertFalse(settings.contains("setNameAction(islandId, player.getUniqueId()"), "name callbacks must use a command-thread identity snapshot");
+        assertFalse(settings.contains("thenAccept(flags -> runtime.message(player"), "flag callbacks must not message a captured Player");
+        assertFalse(settings.contains("thenAccept(result -> runtime.message(player"), "settings callbacks must not message a captured Player");
         assertTrue(chat.contains("deliverChatFailure(playerUuid"), "Core chat failures must return to the Paper scheduler by UUID");
         assertTrue(chat.contains("plugin.getServer().getPlayer(playerUuid)"), "chat failure delivery must re-resolve the current online Player");
         assertFalse(chat.contains("exceptionally(error -> {\n                    player.sendMessage"), "Core callbacks must not send through a captured Player");
