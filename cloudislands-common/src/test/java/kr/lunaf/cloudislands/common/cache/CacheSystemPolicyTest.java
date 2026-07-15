@@ -50,6 +50,8 @@ class CacheSystemPolicyTest {
         assertTargets(CloudIslandEventType.ISLAND_PERMISSION_CHANGED, CacheInvalidationPlan.CacheTarget.PERMISSIONS);
         assertTargets(CloudIslandEventType.ISLAND_WARP_CHANGED, CacheInvalidationPlan.CacheTarget.WARPS, CacheInvalidationPlan.CacheTarget.ROUTE);
         assertTargets(CloudIslandEventType.ISLAND_RUNTIME_CHANGED, CacheInvalidationPlan.CacheTarget.RUNTIME, CacheInvalidationPlan.CacheTarget.ROUTE);
+        assertTrue(CacheInvalidationPlan.targetsFor(CloudIslandEventType.ISLAND_LEVEL_UPDATED).contains(CacheInvalidationPlan.CacheTarget.LEVEL));
+        assertTrue(CacheInvalidationPlan.targetsFor(CloudIslandEventType.ISLAND_LEVEL_UPDATED).contains(CacheInvalidationPlan.CacheTarget.GENERATOR));
         assertEquals(Set.copyOf(java.util.Arrays.asList(CacheInvalidationPlan.CacheTarget.values())), CacheInvalidationPlan.targetsFor(CloudIslandEventType.ISLAND_DELETED));
     }
 

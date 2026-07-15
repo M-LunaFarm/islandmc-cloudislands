@@ -3,12 +3,14 @@ package kr.lunaf.cloudislands.paper.generator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot;
 import kr.lunaf.cloudislands.api.generator.IslandGeneratorSnapshot;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.coreclient.LevelView;
 
 public final class GeneratorLevelCache {
     private static final long TTL_MILLIS = 30_000L;
@@ -41,19 +43,35 @@ public final class GeneratorLevelCache {
             return cached.selection();
         }
         GeneratorSelection fallback = cached == null
-            ? new GeneratorSelection(new GeneratorProfile(defaultGeneratorKey, 1), List.of())
+            ? new GeneratorSelection(new GeneratorProfile(defaultGeneratorKey, 1), 0L, List.of())
             : cached.selection();
         long refreshId = refreshSequence.incrementAndGet();
         cache.put(islandId, new CachedSelection(fallback, now + 5_000L, refreshId));
         client.generators().generator(islandId)
             .thenCompose(profile -> client.generators().generatorRules(islandId)
-                .thenApply(rules -> new GeneratorSelection(profile(profile), rules == null ? List.of() : rules)))
+                .thenCombine(
+                    loadIslandLevel(islandId),
+                    (rules, level) -> new GeneratorSelection(
+                        profile(profile),
+                        level == null ? 0L : Math.max(0L, level.level()),
+                        rules == null ? List.of() : rules
+                    )
+                ))
             .thenAccept(selection -> completeRefresh(islandId, refreshId, selection))
             .exceptionally(exception -> {
                 completeRefresh(islandId, refreshId, fallback);
                 return null;
             });
         return fallback;
+    }
+
+    private CompletableFuture<LevelView> loadIslandLevel(UUID islandId) {
+        try {
+            return client.progression().level(islandId)
+                .exceptionally(_exception -> new LevelView(islandId.toString(), 0L, "0", ""));
+        } catch (RuntimeException exception) {
+            return CompletableFuture.completedFuture(new LevelView(islandId.toString(), 0L, "0", ""));
+        }
     }
 
     public void invalidate(UUID islandId) {
@@ -130,9 +148,10 @@ public final class GeneratorLevelCache {
         }
     }
 
-    public record GeneratorSelection(GeneratorProfile profile, List<GeneratorRuleSnapshot> rules) {
+    public record GeneratorSelection(GeneratorProfile profile, long islandLevel, List<GeneratorRuleSnapshot> rules) {
         public GeneratorSelection {
             profile = profile == null ? new GeneratorProfile("default", 1) : profile;
+            islandLevel = Math.max(0L, islandLevel);
             rules = rules == null ? List.of() : List.copyOf(rules);
         }
     }

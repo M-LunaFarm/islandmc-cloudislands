@@ -467,8 +467,10 @@ tasks.register("verifyGeneratorRules") {
         "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/generator/IslandGeneratorRepository.java",
         "cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/GeneratorRoutes.java",
         "cloudislands-core-client/src/main/java/kr/lunaf/cloudislands/coreclient/GeneratorQueryClient.java",
+        "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/GeneratorLevelCache.java",
         "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/generator/IslandGeneratorListener.java",
         "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/GeneratorRoutesTest.java",
+        "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/generator/GeneratorInfoUseCaseTest.java",
         "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/generator/GeneratorSystemPolicyTest.java"
     )
     inputs.files(requiredFiles.map { layout.projectDirectory.file(it) })

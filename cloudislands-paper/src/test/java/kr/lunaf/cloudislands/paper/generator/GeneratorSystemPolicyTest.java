@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Map;
 import java.util.Random;
+import java.util.List;
+import kr.lunaf.cloudislands.api.generator.GeneratorRuleSnapshot;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -64,6 +66,28 @@ class GeneratorSystemPolicyTest {
         assertTrue(GeneratorBiomeFilter.accepts("*", "minecraft:plains"));
         assertTrue(GeneratorBiomeFilter.accepts("nether_wastes", "minecraft:nether_wastes"));
         assertTrue(GeneratorBiomeFilter.accepts("minecraft:nether_wastes", "nether_wastes"));
+    }
+
+    @Test
+    void coreGeneratorRulesRequireBothIslandAndUpgradeLevels() {
+        List<GeneratorRuleSnapshot> rules = List.of(
+            new GeneratorRuleSnapshot("default", "minecraft:cobblestone", 70.0D, 0, 1, "*", true),
+            new GeneratorRuleSnapshot("default", "minecraft:iron_ore", 20.0D, 10, 2, "*", true),
+            new GeneratorRuleSnapshot("default", "minecraft:diamond_ore", 10.0D, 25, 3, "*", true)
+        );
+
+        GeneratorLevelCache.GeneratorSelection selection = new GeneratorLevelCache.GeneratorSelection(
+            new GeneratorLevelCache.GeneratorProfile("default", 2),
+            12L,
+            rules
+        );
+
+        assertEquals(
+            List.of("minecraft:cobblestone", "minecraft:iron_ore"),
+            IslandGeneratorListener.eligibleCoreRules(selection, "minecraft:plains").stream()
+                .map(GeneratorRuleSnapshot::materialKey)
+                .toList()
+        );
     }
 
     private void assertWeights(Map<String, Integer> actual, Map<String, Integer> expected) {

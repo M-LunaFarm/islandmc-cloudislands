@@ -119,11 +119,7 @@ public final class IslandGeneratorListener implements Listener {
     }
 
     private String selectCoreRule(GeneratorLevelCache.GeneratorSelection selection, String biomeKey) {
-        List<GeneratorRuleSnapshot> eligible = selection.rules().stream()
-            .filter(GeneratorRuleSnapshot::enabled)
-            .filter(rule -> rule.minUpgradeLevel() <= selection.profile().level())
-            .filter(rule -> GeneratorBiomeFilter.accepts(rule.biomeKey(), biomeKey))
-            .toList();
+        List<GeneratorRuleSnapshot> eligible = eligibleCoreRules(selection, biomeKey);
         double total = eligible.stream().mapToDouble(GeneratorRuleSnapshot::chance).sum();
         if (total <= 0.0D) {
             return "";
@@ -137,6 +133,15 @@ public final class IslandGeneratorListener implements Listener {
             }
         }
         return eligible.get(eligible.size() - 1).materialKey();
+    }
+
+    static List<GeneratorRuleSnapshot> eligibleCoreRules(GeneratorLevelCache.GeneratorSelection selection, String biomeKey) {
+        return selection.rules().stream()
+            .filter(GeneratorRuleSnapshot::enabled)
+            .filter(rule -> rule.minIslandLevel() <= selection.islandLevel())
+            .filter(rule -> rule.minUpgradeLevel() <= selection.profile().level())
+            .filter(rule -> GeneratorBiomeFilter.accepts(rule.biomeKey(), biomeKey))
+            .toList();
     }
 
     private String biomeKey(Block block) {
