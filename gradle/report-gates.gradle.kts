@@ -388,7 +388,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "upgrade effects apply size, limits, fly, generator tier, biome validation, and player border policy with combined bank and warehouse-item prices",
         "Paper commands compile and tests cover command policy, authoritative border serialization, and scheduler-safe live border refresh",
         "Paper adapter isolates version-sensitive runtime access",
-        "verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; authoritative size is carried through activation, restore, reset, and migration jobs, while live size changes atomically replace Paper protection, scan, and snapshot bounds; Core island response paths expose the independent authoritative BORDER limit, and async size, border, border-policy, and personal-profile responses re-resolve the current online player through the Paper scheduler before Bukkit state changes; Paper tests also cover region-file cell isolation, unsafe-size fencing, world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting",
+        "verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; one level now preserves and applies concurrent size/team/warp/coop/role limits, crop/spawner/drop multipliers, and island effects from either CloudIslands or quoted-level SS2 layouts without reducing administrator or mission overrides; authoritative size is carried through activation, restore, reset, and migration jobs, while live size changes atomically replace Paper protection, scan, and snapshot bounds; Core island response paths expose the independent authoritative BORDER limit, and async size, border, border-policy, and personal-profile responses re-resolve the current online player through the Paper scheduler before Bukkit state changes; Paper tests also cover region-file cell isolation, unsafe-size fencing, world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting",
         "not recovery-specific",
         listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandEnvironmentCommandHandler.java",
@@ -398,6 +398,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandMemberRoutesTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/platform/compatibility/PaperPlatformBoundaryTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/upgrade/UpgradeEffectApplierTest.java",
+            "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/upgrade/ConfigUpgradeItemPriceTest.java",
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/http/routes/IslandSettingsRoutesTest.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/application/IslandBorderRuntimePolicyTest.java",
             "cloudislands-common/src/main/java/kr/lunaf/cloudislands/common/protection/RegionIndex.java",
@@ -409,7 +410,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/platform/world/IslandBiomeRuntimeApplier.java",
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/environment/IslandBiomeRuntimeApplierPolicyTest.java"
         ),
-        "operator deployment acceptance is still recommended; cells below 1024 blocks or not aligned to 512 blocks fail startup, and islands that cannot fit without sharing region files fail activation or are fenced on unsafe live resize"
+        "per-material generator-rate, arbitrary block-limit, and per-entity-limit maps are preserved for forward compatibility but are not reported as runtime-applied; operator deployment acceptance is still recommended; cells below 1024 blocks or not aligned to 512 blocks fail startup, and islands that cannot fit without sharing region files fail activation or are fenced on unsafe live resize"
     ),
     FeatureParityEntry(
         "bank/economy/missions/challenges/generators/limits",
