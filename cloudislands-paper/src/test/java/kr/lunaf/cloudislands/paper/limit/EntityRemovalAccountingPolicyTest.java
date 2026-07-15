@@ -10,8 +10,10 @@ class EntityRemovalAccountingPolicyTest {
     @Test
     void recordsPermanentRemovalsThatDoNotHaveAnExistingAcceptedRemovalEvent() {
         assertTrue(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.DESPAWN));
+        assertTrue(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.DISCARD));
         assertTrue(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.ENTER_BLOCK));
         assertTrue(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.OUT_OF_WORLD));
+        assertTrue(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.PLUGIN));
         assertTrue(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.TRANSFORMATION));
     }
 
@@ -21,7 +23,5 @@ class EntityRemovalAccountingPolicyTest {
         assertFalse(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.DEATH));
         assertFalse(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.EXPLODE));
         assertFalse(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.HIT));
-        assertFalse(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.PLUGIN));
-        assertFalse(EntityRemovalAccountingPolicy.records(EntityRemoveEvent.Cause.DISCARD));
     }
 }

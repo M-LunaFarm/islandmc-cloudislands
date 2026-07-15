@@ -9,8 +9,10 @@ public final class EntityRemovalAccountingPolicy {
 
     public static boolean records(EntityRemoveEvent.Cause cause) {
         return cause == EntityRemoveEvent.Cause.DESPAWN
+            || cause == EntityRemoveEvent.Cause.DISCARD
             || cause == EntityRemoveEvent.Cause.ENTER_BLOCK
             || cause == EntityRemoveEvent.Cause.OUT_OF_WORLD
+            || cause == EntityRemoveEvent.Cause.PLUGIN
             || cause == EntityRemoveEvent.Cause.TRANSFORMATION;
     }
 }
