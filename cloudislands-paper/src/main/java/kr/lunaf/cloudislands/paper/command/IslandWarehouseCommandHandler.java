@@ -118,14 +118,15 @@ final class IslandWarehouseCommandHandler {
     }
 
     private void listWarehouse(Player player, int limit) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("warehouse-list-island-required", "섬 안에서만 창고를 확인할 수 있습니다.")).ifPresent(islandId -> {
             if (!canOpenWarehouse(player)) {
                 return;
             }
             warehouseUseCase.listItems(islandId, limit)
-                .thenAccept(items -> runtime.message(player, warehouseListMessage(items)))
+                .thenAccept(items -> PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> runtime.message(activePlayer, warehouseListMessage(items))))
                 .exceptionally(error -> {
-                    runtime.message(player, message("warehouse-list-load-failed", "섬 창고를 불러오지 못했습니다."));
+                    PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> runtime.message(activePlayer, message("warehouse-list-load-failed", "섬 창고를 불러오지 못했습니다.")));
                     return null;
                 });
         });

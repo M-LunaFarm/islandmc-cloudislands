@@ -271,11 +271,12 @@ final class IslandEnvironmentCommandHandler {
     }
 
     private void showBiome(Player player) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("biome-show-island-required", "섬 안에서만 바이옴을 확인할 수 있습니다.")).ifPresent(islandId -> {
             environmentUseCase.islandBiomeValue(islandId)
-                .thenAccept(biome -> runtime.message(player, message("biome-show-prefix", "섬 바이옴: ") + biome.key()))
+                .thenAccept(biome -> deliverMessage(playerUuid, message("biome-show-prefix", "섬 바이옴: ") + biome.key()))
                 .exceptionally(error -> {
-                    runtime.message(player, message("biome-load-failed", "섬 바이옴을 불러오지 못했습니다."));
+                    deliverMessage(playerUuid, message("biome-load-failed", "섬 바이옴을 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -286,42 +287,45 @@ final class IslandEnvironmentCommandHandler {
     }
 
     private void setBiome(Player player, String biomeKey) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("biome-set-island-required", "섬 안에서만 바이옴을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.SET_BIOME)) {
                 runtime.message(player, message("biome-set-denied", "섬 바이옴을 변경할 권한이 없습니다."));
                 return;
             }
-            environmentUseCase.setBiomeAction(islandId, player.getUniqueId(), biomeKey, runtime::mutate)
-                .thenAccept(result -> runtime.message(player, biomeActionMessage(result, biomeKey)))
+            environmentUseCase.setBiomeAction(islandId, playerUuid, biomeKey, runtime::mutate)
+                .thenAccept(result -> deliverMessage(playerUuid, biomeActionMessage(result, biomeKey)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("biome-set-failed", "섬 바이옴을 변경하지 못했습니다."));
+                    deliverMessage(playerUuid, message("biome-set-failed", "섬 바이옴을 변경하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void showSize(Player player) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("size-show-island-required", "섬 안에서만 크기를 확인할 수 있습니다.")).ifPresent(islandId -> {
             environmentUseCase.islandInfoView(islandId)
-                .thenAccept(info -> runtime.message(player, message("size-show-prefix", "섬 크기: ") + info.size()))
+                .thenAccept(info -> deliverMessage(playerUuid, message("size-show-prefix", "섬 크기: ") + info.size()))
                 .exceptionally(error -> {
-                    runtime.message(player, message("size-load-failed", "섬 크기를 불러오지 못했습니다."));
+                    deliverMessage(playerUuid, message("size-load-failed", "섬 크기를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void showBorder(Player player) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("border-show-island-required", "섬 안에서만 경계를 확인할 수 있습니다.")).ifPresent(islandId -> {
             CompletableFuture<IslandInfoView> info = environmentUseCase.islandInfoView(islandId);
             CompletableFuture<Map<IslandFlag, String>> flags = environmentUseCase.flagValues(islandId);
-            CompletableFuture<PlayerProfileView> profile = playerProfiles.profile(player.getUniqueId());
+            CompletableFuture<PlayerProfileView> profile = playerProfiles.profile(playerUuid);
             info.thenCombine(flags, (infoView, flagValues) -> new BorderSummaryView(infoView, flagValues, null))
                 .thenCombine(profile, (view, playerProfile) -> new BorderSummaryView(view.info(), view.flags(), playerProfile))
                 .thenApply(this::borderSummary)
-                .thenAccept(summary -> runtime.message(player, summary))
+                .thenAccept(summary -> deliverMessage(playerUuid, summary))
                 .exceptionally(error -> {
-                    runtime.message(player, message("border-load-failed", "섬 경계를 불러오지 못했습니다."));
+                    deliverMessage(playerUuid, message("border-load-failed", "섬 경계를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -406,55 +410,64 @@ final class IslandEnvironmentCommandHandler {
     private void toggleStackedBlockVisibility(Player player) {
         UUID playerUuid = player.getUniqueId();
         playerProfiles.profile(playerUuid)
-            .thenAccept(profile -> setStackedBlockVisibility(player, playerUuid, profile.blocksStackerEnabled() ? "false" : "true"))
+            .thenCompose(profile -> setStackedBlockVisibility(playerUuid, !profile.blocksStackerEnabled()))
+            .thenAccept(profile -> deliverStackedBlockVisibility(playerUuid, profile))
             .exceptionally(error -> {
-                runtime.message(player, message("stacked-block-toggle-failed", "스택 블록 표시를 전환하지 못했습니다."));
+                deliverMessage(playerUuid, message("stacked-block-toggle-failed", "스택 블록 표시를 전환하지 못했습니다."));
                 return null;
             });
     }
 
     private void setStackedBlockVisibility(Player player, String value) {
-        setStackedBlockVisibility(player, player.getUniqueId(), value);
-    }
-
-    private void setStackedBlockVisibility(Player player, UUID playerUuid, String value) {
-        boolean enabled = !"false".equals(value);
-        playerProfileCommands.setBlocksStackerEnabled(playerUuid, enabled)
-            .thenAccept(profile -> runtime.message(player, profile.blocksStackerEnabled()
-                ? message("stacked-block-enabled", "스택 블록 표시를 켰습니다.")
-                : message("stacked-block-disabled", "스택 블록 표시를 껐습니다.")))
+        UUID playerUuid = player.getUniqueId();
+        setStackedBlockVisibility(playerUuid, !"false".equals(value))
+            .thenAccept(profile -> deliverStackedBlockVisibility(playerUuid, profile))
             .exceptionally(error -> {
-                runtime.message(player, message("stacked-block-set-failed", "스택 블록 표시를 변경하지 못했습니다."));
+                deliverMessage(playerUuid, message("stacked-block-set-failed", "스택 블록 표시를 변경하지 못했습니다."));
                 return null;
             });
+    }
+
+    private CompletableFuture<PlayerProfileView> setStackedBlockVisibility(UUID playerUuid, boolean enabled) {
+        return playerProfileCommands.setBlocksStackerEnabled(playerUuid, enabled);
+    }
+
+    private void deliverStackedBlockVisibility(UUID playerUuid, PlayerProfileView profile) {
+        deliverMessage(playerUuid, profile.blocksStackerEnabled()
+                ? message("stacked-block-enabled", "스택 블록 표시를 켰습니다.")
+                : message("stacked-block-disabled", "스택 블록 표시를 껐습니다."));
     }
 
     private void toggleBorderVisibility(Player player) {
         UUID playerUuid = player.getUniqueId();
         playerProfiles.profile(playerUuid)
-            .thenAccept(profile -> setPersonalBorderVisibility(player, playerUuid, !profile.worldBorderEnabled()))
+            .thenCompose(profile -> setPersonalBorderVisibility(playerUuid, !profile.worldBorderEnabled()))
+            .thenAccept(profile -> deliverPersonalBorderVisibility(playerUuid, profile))
             .exceptionally(error -> {
-                runtime.message(player, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
+                deliverMessage(playerUuid, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
                 return null;
             });
     }
 
     private void setPersonalBorderVisibility(Player player, boolean enabled) {
-        setPersonalBorderVisibility(player, player.getUniqueId(), enabled);
-    }
-
-    private void setPersonalBorderVisibility(Player player, UUID playerUuid, boolean enabled) {
-        playerProfileCommands.setWorldBorderEnabled(playerUuid, enabled)
-            .thenAccept(profile -> {
-                runtime.message(player, profile.worldBorderEnabled()
-                    ? message("border-personal-enabled", "개인 섬 경계 표시를 켰습니다.")
-                    : message("border-personal-disabled", "개인 섬 경계 표시를 껐습니다."));
-                schedulePersonalBorderUpdate(playerUuid, profile.worldBorderEnabled());
-            })
+        UUID playerUuid = player.getUniqueId();
+        setPersonalBorderVisibility(playerUuid, enabled)
+            .thenAccept(profile -> deliverPersonalBorderVisibility(playerUuid, profile))
             .exceptionally(error -> {
-                runtime.message(player, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
+                deliverMessage(playerUuid, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
                 return null;
             });
+    }
+
+    private CompletableFuture<PlayerProfileView> setPersonalBorderVisibility(UUID playerUuid, boolean enabled) {
+        return playerProfileCommands.setWorldBorderEnabled(playerUuid, enabled);
+    }
+
+    private void deliverPersonalBorderVisibility(UUID playerUuid, PlayerProfileView profile) {
+        deliverMessage(playerUuid, profile.worldBorderEnabled()
+            ? message("border-personal-enabled", "개인 섬 경계 표시를 켰습니다.")
+            : message("border-personal-disabled", "개인 섬 경계 표시를 껐습니다."));
+        schedulePersonalBorderUpdate(playerUuid, profile.worldBorderEnabled());
     }
 
     private void setPersonalBorderColor(Player player, String requestedColor) {
@@ -465,11 +478,11 @@ final class IslandEnvironmentCommandHandler {
                 ? CompletableFuture.completedFuture(profile)
                 : playerProfileCommands.setWorldBorderEnabled(playerUuid, true))
             .thenAccept(profile -> {
-                runtime.message(player, message("border-personal-color-prefix", "개인 섬 경계 색상을 변경했습니다: ") + profile.borderColor());
+                deliverMessage(playerUuid, message("border-personal-color-prefix", "개인 섬 경계 색상을 변경했습니다: ") + profile.borderColor());
                 scheduleBorderApply(playerUuid, false);
             })
             .exceptionally(error -> {
-                runtime.message(player, message("border-color-set-failed", "개인 섬 경계 색상을 변경하지 못했습니다."));
+                deliverMessage(playerUuid, message("border-color-set-failed", "개인 섬 경계 색상을 변경하지 못했습니다."));
                 return null;
             });
     }
@@ -483,13 +496,13 @@ final class IslandEnvironmentCommandHandler {
             }
             environmentUseCase.setFlagAction(islandId, actorUuid, flag, value, runtime::mutate)
                 .thenAccept(result -> {
-                    runtime.message(player, environmentActionMessage(result, message("border-set-success-prefix", "섬 경계 정책 변경 완료: ") + flag.name() + "=" + value, message("border-set-failed", "섬 경계 정책을 변경하지 못했습니다.")));
+                    deliverMessage(actorUuid, environmentActionMessage(result, message("border-set-success-prefix", "섬 경계 정책 변경 완료: ") + flag.name() + "=" + value, message("border-set-failed", "섬 경계 정책을 변경하지 못했습니다.")));
                     if (applyAfterSave && result.accepted()) {
                         scheduleBorderApply(actorUuid, true);
                     }
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, runtime.coreWriteFailureMessage(error, message("border-set-failed", "섬 경계 정책을 변경하지 못했습니다.")));
+                    deliverMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("border-set-failed", "섬 경계 정책을 변경하지 못했습니다.")));
                     return null;
                 });
         });
@@ -515,7 +528,7 @@ final class IslandEnvironmentCommandHandler {
                     }
                 }))
                 .exceptionally(error -> {
-                    runtime.message(player, message("border-apply-failed", "섬 경계 UI를 적용하지 못했습니다."));
+                    deliverMessage(playerUuid, message("border-apply-failed", "섬 경계 UI를 적용하지 못했습니다."));
                     return null;
                 });
         });
@@ -576,11 +589,12 @@ final class IslandEnvironmentCommandHandler {
     }
 
     private void listLimits(Player player) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("limit-list-island-required", "섬 안에서만 제한을 확인할 수 있습니다.")).ifPresent(islandId -> {
             environmentUseCase.limitViews(islandId)
-                .thenAccept(limits -> runtime.message(player, limitListMessage(limits)))
+                .thenAccept(limits -> deliverMessage(playerUuid, limitListMessage(limits)))
                 .exceptionally(error -> {
-                    runtime.message(player, message("limit-list-load-failed", "섬 제한을 불러오지 못했습니다."));
+                    deliverMessage(playerUuid, message("limit-list-load-failed", "섬 제한을 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -599,25 +613,30 @@ final class IslandEnvironmentCommandHandler {
     }
 
     private void setLimit(Player player, String limitKey, long value) {
+        UUID playerUuid = player.getUniqueId();
         runtime.currentIsland(player, message("limit-set-island-required", "섬 안에서만 제한을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_UPGRADES)) {
                 runtime.message(player, message("limit-set-denied", "섬 제한을 변경할 권한이 없습니다."));
                 return;
             }
-            environmentUseCase.setLimitAction(islandId, player.getUniqueId(), limitKey, value, runtime::mutate)
+            environmentUseCase.setLimitAction(islandId, playerUuid, limitKey, value, runtime::mutate)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        runtime.message(player, runtime.playerCodeMessage(result.code(), message("limit-set-failed", "섬 제한을 변경하지 못했습니다.")));
+                        deliverMessage(playerUuid, runtime.playerCodeMessage(result.code(), message("limit-set-failed", "섬 제한을 변경하지 못했습니다.")));
                         return;
                     }
                     String key = result.key().isBlank() ? limitKey : result.key();
-                    runtime.message(player, message("limit-set-success-prefix", "섬 제한 변경 완료: ") + key + message("limit-set-value-separator", " = ") + result.value());
+                    deliverMessage(playerUuid, message("limit-set-success-prefix", "섬 제한 변경 완료: ") + key + message("limit-set-value-separator", " = ") + result.value());
                 })
                 .exceptionally(error -> {
-                    runtime.message(player, message("limit-set-failed", "섬 제한을 변경하지 못했습니다."));
+                    deliverMessage(playerUuid, message("limit-set-failed", "섬 제한을 변경하지 못했습니다."));
                     return null;
                 });
         });
+    }
+
+    private void deliverMessage(UUID playerUuid, String renderedMessage) {
+        PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> runtime.message(activePlayer, renderedMessage));
     }
 
     private String environmentActionMessage(EnvironmentActionResult result, String successMessage, String failureMessage) {

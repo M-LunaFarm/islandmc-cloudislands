@@ -382,6 +382,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseHandler.contains("if (!canOpenWarehouse(player))"), "warehouse menu and list must enforce the island container permission before revealing contents");
         assertTrue(warehouseHandler.contains("runtime.allowed(player, IslandPermission.OPEN_CONTAINER)"), "warehouse reads must use the same island container permission as mutations");
         assertTrue(warehouseHandler.contains("warehouse-open-denied"), "denied warehouse reads must give explicit operator-configurable feedback");
+        assertTrue(warehouseHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> runtime.message(activePlayer, warehouseListMessage(items)))"), "warehouse list callbacks must re-resolve the current online player");
+        assertFalse(warehouseHandler.contains("thenAccept(items -> runtime.message(player"), "warehouse list callbacks must not message a captured Player");
         assertTrue(warehouseHandler.contains("isWarehouseMenuCommand(subcommand)"));
         assertTrue(warehouseHandler.contains("isWarehouseListCommand(subcommand)"));
         assertTrue(warehouseHandler.contains("subcommand.equals(\"chest\")"));
@@ -895,6 +897,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(overview.contains("selectPrimaryIsland(actorUuid, islandId)"), "primary-island selection must use the pre-resolved actor identity");
         assertTrue(progression.contains("recalculateLevelView(islandId, actorUuid)"), "level rescans must retain the command-thread actor identity");
         assertTrue(environment.contains("setWorldBorderEnabled(playerUuid, enabled)"), "visual preference callbacks must use immutable player identity");
+        assertTrue(environment.contains("thenCompose(profile -> setStackedBlockVisibility(playerUuid"), "stacked-block toggles must keep profile reads and writes in one observable completion chain");
+        assertTrue(environment.contains("thenCompose(profile -> setPersonalBorderVisibility(playerUuid"), "border toggles must keep profile reads and writes in one observable completion chain");
+        assertTrue(environment.contains("PaperOnlinePlayer.run(plugin, playerUuid"), "environment feedback must re-resolve the current online player");
+        assertFalse(environment.contains("thenAccept(biome -> runtime.message(player"), "environment callbacks must not message a captured Player");
         assertTrue(environment.contains("scheduleBorderApply(playerUuid, false)"), "border state returned by Core must be applied on the Paper scheduler");
         assertTrue(settings.contains("locales.remember(playerUuid, applied)"), "locale callbacks must update caches by immutable player identity");
         assertTrue(settings.contains("setPublicAccess(player, true, false)"), "command mutations must not open a delayed settings GUI");
@@ -973,9 +979,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(overviewHandler.contains("IslandInfoMenu.open"));
         assertTrue(overviewHandler.contains("IslandMyIslandsMenu.open"));
         assertTrue(overviewHandler.contains("GuiSession session = GuiSessions.begin(player, \"island.info-target\")"), "target lookup must reserve a GUI session before the asynchronous Core request");
-        assertTrue(overviewHandler.contains("thenAccept(islandId -> GuiSessions.runIfCurrent(plugin, player, session"), "resolved target info must return to the Paper scheduler and discard stale responses");
-        assertTrue(overviewHandler.contains("if (player.isOnline())"), "resolved target info must not open an inventory after disconnect");
-        assertTrue(overviewHandler.contains("GuiStateMenus.openError(plugin, player, session"), "target lookup failures must replace the matching loading session with an actionable error state");
+        assertTrue(overviewHandler.contains("thenAccept(islandId -> PaperOnlinePlayer.run(plugin, playerUuid, activePlayer"), "resolved target info must re-resolve the current online player");
+        assertTrue(overviewHandler.contains("GuiSessions.isCurrent(activePlayer, session)"), "resolved target info must discard stale responses");
+        assertTrue(overviewHandler.contains("GuiStateMenus.openError(plugin, activePlayer, session"), "target lookup failures must replace the matching loading session with an actionable error state");
+        assertTrue(overviewHandler.contains("thenAccept(profile -> deliverMessage(actorUuid"), "primary-island selection feedback must use the online-player delivery boundary");
     }
 
     @Test

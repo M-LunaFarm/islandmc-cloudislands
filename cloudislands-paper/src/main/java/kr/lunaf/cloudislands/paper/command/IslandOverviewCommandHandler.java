@@ -83,21 +83,22 @@ final class IslandOverviewCommandHandler {
     }
 
     private void openTargetInfo(Player player, String target) {
+        UUID playerUuid = player.getUniqueId();
         MessageRenderer messages = runtime.messagesFor(player);
         GuiSession session = GuiSessions.begin(player, "island.info-target");
         GuiStateMenus.openLoading(plugin, player, session, messages,
             runtime.routeMessage("overview-target-loading", "섬 정보를 찾는 중입니다."));
         targetResolver.resolve(target)
-            .thenAccept(islandId -> GuiSessions.runIfCurrent(plugin, player, session, () -> {
-                if (player.isOnline()) {
-                    IslandInfoMenu.open(plugin, coreApiClient, player, islandId, messages);
+            .thenAccept(islandId -> PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> {
+                if (GuiSessions.isCurrent(activePlayer, session)) {
+                    IslandInfoMenu.open(plugin, coreApiClient, activePlayer, islandId, messages);
                 }
             }))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages,
+                PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> GuiStateMenus.openError(plugin, activePlayer, session, messages,
                     runtime.routeMessage("overview-target-error-title", "섬 정보"),
                     runtime.routeMessage("overview-target-not-found", "정보를 확인할 섬 또는 플레이어를 찾지 못했습니다."),
-                    "island.info.open", "island.main.open");
+                    "island.info.open", "island.main.open"));
                 return null;
             });
     }
@@ -106,11 +107,15 @@ final class IslandOverviewCommandHandler {
         UUID actorUuid = player.getUniqueId();
         targetResolver.resolve(target)
             .thenCompose(islandId -> coreApiClient.playerProfileCommands().selectPrimaryIsland(actorUuid, islandId))
-            .thenAccept(profile -> runtime.message(player, runtime.routeMessage("overview-island-selected", "기본 섬을 선택했습니다.")))
+            .thenAccept(profile -> deliverMessage(actorUuid, runtime.routeMessage("overview-island-selected", "기본 섬을 선택했습니다.")))
             .exceptionally(error -> {
-                runtime.message(player, runtime.routeMessage("overview-island-select-failed", "소속된 섬만 기본 섬으로 선택할 수 있습니다."));
+                deliverMessage(actorUuid, runtime.routeMessage("overview-island-select-failed", "소속된 섬만 기본 섬으로 선택할 수 있습니다."));
                 return null;
             });
+    }
+
+    private void deliverMessage(UUID playerUuid, String message) {
+        PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> runtime.message(activePlayer, message));
     }
 
     interface Runtime {
