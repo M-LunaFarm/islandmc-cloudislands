@@ -14,6 +14,7 @@ tasks.register("verifyGradleGateSplit") {
     inputs.files(splitScripts.map { layout.projectDirectory.file(it) })
     doLast {
         val rootSource = rootBuild.asFile.readText()
+        val distributionSource = layout.projectDirectory.file("gradle/distribution.gradle.kts").asFile.readText()
         val missingScripts = splitScripts.filterNot { layout.projectDirectory.file(it).asFile.isFile }
         val missingApplies = splitScripts.filterNot { rootSource.contains("apply(from = \"$it\")") }
         val forbiddenRootSignals = listOf(
@@ -58,11 +59,22 @@ tasks.register("verifyGradleGateSplit") {
             "verifyFeatureParityEvidence"
         )
         val missingTasks = requiredTasks.filterNot(tasks.names::contains)
+        val requiredProvenanceFreshnessSignals = listOf(
+            "inputs.property(\"projectVersion\", distProjectVersion)",
+            "inputs.property(\"gitCommit\", distGitCommit)",
+            "inputs.property(\"gitDirty\", distGitDirty)",
+            "Release provenance version is stale",
+            "Release provenance commit is stale",
+            "Release provenance dirty state is stale",
+            "Release SBOM version is stale"
+        )
+        val missingProvenanceFreshnessSignals = requiredProvenanceFreshnessSignals.filterNot(distributionSource::contains)
         val failures = buildList {
             if (missingScripts.isNotEmpty()) add("Gradle split scripts missing: ${missingScripts.joinToString(", ")}")
             if (missingApplies.isNotEmpty()) add("Root build.gradle.kts missing split script apply statements: ${missingApplies.joinToString(", ")}")
             if (forbiddenRootSignals.isNotEmpty()) add("Root build.gradle.kts still owns split gate logic: ${forbiddenRootSignals.joinToString(", ")}")
             if (missingTasks.isNotEmpty()) add("Split Gradle task names were not preserved: ${missingTasks.joinToString(", ")}")
+            if (missingProvenanceFreshnessSignals.isNotEmpty()) add("Distribution provenance freshness guards missing: ${missingProvenanceFreshnessSignals.joinToString(", ")}")
         }
         if (failures.isNotEmpty()) {
             throw GradleException(failures.joinToString("\n"))

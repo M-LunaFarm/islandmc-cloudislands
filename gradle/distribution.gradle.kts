@@ -367,6 +367,13 @@ tasks.register("distChecksums") {
 
 val distSbomFile = layout.buildDirectory.file("dist/cloudislands-sbom.cdx.json")
 val distProvenanceFile = layout.buildDirectory.file("dist/provenance.json")
+val distProjectVersion = project.version.toString()
+val distGitCommit = providers.exec {
+    commandLine("git", "rev-parse", "HEAD")
+}.standardOutput.asText.map(String::trim)
+val distGitDirty = providers.exec {
+    commandLine("git", "status", "--porcelain")
+}.standardOutput.asText.map(String::trim)
 
 tasks.register("distSbom") {
     group = "distribution"
@@ -377,6 +384,7 @@ tasks.register("distSbom") {
             .map { it.layout.projectDirectory.file("gradle.lockfile").asFile }
     }
     inputs.files(lockfiles)
+    inputs.property("projectVersion", distProjectVersion)
     outputs.file(distSbomFile)
     doLast {
         val components = linkedMapOf<String, Triple<String, String, String>>()
@@ -437,13 +445,13 @@ tasks.register("distProvenance") {
     dependsOn(tasks.named("distSbom"))
     inputs.file(layout.buildDirectory.file("dist/checksums-sha256.txt"))
     inputs.file(distSbomFile)
+    inputs.property("projectVersion", distProjectVersion)
+    inputs.property("gitCommit", distGitCommit)
+    inputs.property("gitDirty", distGitDirty)
+    inputs.property("javaVersion", System.getProperty("java.version"))
+    inputs.property("gradleVersion", gradle.gradleVersion)
     outputs.file(distProvenanceFile)
     doLast {
-        fun commandOutput(vararg command: String): String {
-            return providers.exec {
-                commandLine(*command)
-            }.standardOutput.asText.get().trim()
-        }
         fun sha256(file: File): String {
             val digest = MessageDigest.getInstance("SHA-256")
             return digest.digest(file.readBytes()).joinToString("") { byte: Byte -> "%02x".format(byte) }
@@ -478,9 +486,9 @@ tasks.register("distProvenance") {
             """
             |{
             |  "project": "cloudislands",
-            |  "version": ${cloudIslandsJsonString(project.version.toString())},
-            |  "commit": ${cloudIslandsJsonString(commandOutput("git", "rev-parse", "HEAD"))},
-            |  "dirty": ${cloudIslandsJsonString(commandOutput("git", "status", "--porcelain"))},
+            |  "version": ${cloudIslandsJsonString(distProjectVersion)},
+            |  "commit": ${cloudIslandsJsonString(distGitCommit.get())},
+            |  "dirty": ${cloudIslandsJsonString(distGitDirty.get())},
             |  "javaVersion": ${cloudIslandsJsonString(System.getProperty("java.version"))},
             |  "gradleVersion": ${cloudIslandsJsonString(gradle.gradleVersion)},
             |  "artifacts": [
@@ -501,6 +509,10 @@ tasks.register("verifyReleaseSecurityGate") {
     group = "verification"
     description = "Verifies release SBOM, provenance, vulnerability review, and dependency-lock gates are wired."
     dependsOn(tasks.named("distProvenance"))
+    inputs.file(distProvenanceFile)
+    inputs.property("projectVersion", distProjectVersion)
+    inputs.property("gitCommit", distGitCommit)
+    inputs.property("gitDirty", distGitDirty)
     inputs.file(layout.projectDirectory.file(".github/workflows/build.yml"))
     inputs.file(layout.projectDirectory.file(".github/dependabot.yml"))
     inputs.files(provider {
@@ -564,6 +576,22 @@ tasks.register("verifyReleaseSecurityGate") {
         val provenance = distProvenanceFile.get().asFile.readText()
         if (!provenance.contains("cloudislands-sbom.cdx.json")) {
             throw GradleException("Release provenance must cover cloudislands-sbom.cdx.json")
+        }
+        val expectedVersion = "\"version\": ${cloudIslandsJsonString(distProjectVersion)}"
+        val expectedCommit = "\"commit\": ${cloudIslandsJsonString(distGitCommit.get())}"
+        val expectedDirty = "\"dirty\": ${cloudIslandsJsonString(distGitDirty.get())}"
+        if (!provenance.contains(expectedVersion)) {
+            throw GradleException("Release provenance version is stale; expected $distProjectVersion")
+        }
+        if (!provenance.contains(expectedCommit)) {
+            throw GradleException("Release provenance commit is stale; expected ${distGitCommit.get()}")
+        }
+        if (!provenance.contains(expectedDirty)) {
+            throw GradleException("Release provenance dirty state is stale")
+        }
+        val sbom = distSbomFile.get().asFile.readText()
+        if (!sbom.contains("\"version\": ${cloudIslandsJsonString(distProjectVersion)}")) {
+            throw GradleException("Release SBOM version is stale; expected $distProjectVersion")
         }
     }
 }
