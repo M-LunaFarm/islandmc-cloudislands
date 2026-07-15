@@ -409,15 +409,15 @@ def main() -> int:
             process.stdin.write(shutdown)
             process.stdin.flush()
         try:
-            process.wait(timeout=45)
+            process.wait(timeout=120)
         except subprocess.TimeoutExpired:
             process.terminate()
-            process.wait(timeout=20)
+            process.wait(timeout=30)
     except Exception:
         if process.poll() is None:
             process.terminate()
             try:
-                process.wait(timeout=20)
+                process.wait(timeout=30)
             except subprocess.TimeoutExpired:
                 process.kill()
         raise
