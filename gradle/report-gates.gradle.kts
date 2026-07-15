@@ -508,13 +508,16 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "bundle validation, extraction, migration, and rollback paths have tests",
         "Paper snapshot and restore hooks compile and 1.21.x boots",
         "bundle compatibility is checked before restore",
-        "ciIntegrationSmoke verifies recovery restore with shared services; Paper policy tests verify delayed snapshot list/create/restore responses cross the scheduler and re-resolve the current online player",
+        "ciIntegrationSmoke verifies recovery restore with shared services; Paper policy tests verify delayed snapshot list/create/restore responses cross the scheduler and re-resolve the current online player, while migration return tickets retain the initiating Player instance across polling, route-session publication, proxy transfer, failure feedback, and delayed BossBar cleanup",
         "node-down recovery and bundle compatibility are verified",
         listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/world/bundle/ExternalTarBundleExtractorTest.java",
             "cloudislands-migration/src/test/java/kr/lunaf/cloudislands/migration/rollback/MigrationRollbackServiceTest.java",
             "cloudislands-testkit/src/test/java/kr/lunaf/cloudislands/testkit/ClusterSmokeVerifierTest.java",
-            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandControllerPolicyTest.java"
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/IslandCommandControllerPolicyTest.java",
+            "cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/cache/MigrationPlayerSession.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/cache/MigrationPlayerSessionTest.java",
+            "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPollerThreadingPolicyTest.java"
         ),
         "releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence"
     ),
