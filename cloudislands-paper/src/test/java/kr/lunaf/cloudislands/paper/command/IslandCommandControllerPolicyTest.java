@@ -558,6 +558,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(progressionHandler.contains("progressionUseCase.purchaseUpgradeResult"));
         assertTrue(progressionHandler.contains("progressionUseCase.missionViews"));
         assertTrue(progressionHandler.contains("progressionUseCase.completeMissionResult"));
+        assertTrue(progressionHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid"), "progression callbacks must use the shared online-player delivery boundary");
+        assertTrue(progressionHandler.contains("purchaseUpgradeResult(islandId, actorUuid"), "upgrade purchases must retain immutable actor identity");
+        assertTrue(progressionHandler.contains("completeMissionResult(islandId, actorUuid"), "mission rewards must retain immutable actor identity");
+        assertTrue(progressionHandler.contains("targetResolver.resolve(target)\n            .thenCompose"), "targeted block lookup and detail loading must form one observable completion chain");
+        assertFalse(progressionHandler.contains("thenAccept(result -> runtime.message(player"), "progression mutations must not message a captured Player");
+        assertFalse(progressionHandler.contains("thenAccept(rankings -> runtime.message(player"), "ranking callbacks must not message a captured Player");
         assertFalse(progressionHandler.contains("coreApiClient.recalculateIslandLevel"));
         assertFalse(progressionHandler.contains("coreApiClient.purchaseIslandUpgrade"));
         assertFalse(progressionHandler.contains("coreApiClient.completeIslandMission"));
