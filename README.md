@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.226`
+Version: `1.1.227`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -446,6 +446,15 @@ placeholders. Core rejects descriptions above 256 characters, social values
 above 128 characters, and all control characters even when callers bypass
 Paper and invoke the API directly.
 
+Island invitations are delivered on the target player's current Paper node as
+clickable `[Accept]`, `[Decline]`, and `[Invites]` actions backed by the
+canonical `/is accept <inviteId>`, `/is decline <inviteId>`, and `/is invites`
+commands. Players who were offline when the Core event was published receive
+their still-pending invitations after joining. Delivery revalidates the
+authoritative pending state, returns to the Paper scheduler before accessing a
+player, limits join reminders to five entries, and suppresses duplicate event
+and reconnect notifications for five minutes.
+
 ## Custom block values
 
 When ItemsAdder, Oraxen, Nexo, CraftEngine, or Slimefun is enabled,
@@ -706,9 +715,20 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.226`
+Current release: `v1.1.227`
 
-Built for the CloudIslands 1.1.226 baseline.
+Built for the CloudIslands 1.1.227 baseline.
+
+Release notes for `v1.1.227`:
+
+- newly created island invitations now reach online targets through the shared
+  Core event stream with working accept, decline, and invite-list click actions
+- joining players recover still-pending invitations that arrived while they
+  were offline, with bounded output and short-lived duplicate suppression
+- notification delivery revalidates Core state asynchronously and re-resolves
+  the current online player on the Paper scheduler before sending components
+- invite creation events now include inviter, target, island, and invite IDs so
+  distributed consumers have complete notification identity
 
 Release notes for `v1.1.226`:
 
@@ -3730,7 +3750,7 @@ Release notes carried forward from `v1.1.0`:
 
 ## Project status
 
-Current read: production-readiness baseline `v1.1.226`.
+Current read: production-readiness baseline `v1.1.227`.
 
 CloudIslands now has a release cluster evidence gate for the distributed shape:
 two Core instances, shared PostgreSQL and MySQL 8.4 authorities, Redis, object storage, Paper boot smoke,
