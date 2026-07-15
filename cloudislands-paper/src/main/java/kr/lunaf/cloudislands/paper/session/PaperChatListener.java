@@ -1,6 +1,8 @@
 package kr.lunaf.cloudislands.paper.session;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.AdminChatSpyRegistry;
@@ -57,7 +59,7 @@ public final class PaperChatListener implements Listener {
                 return;
             }
             String message = PlainTextComponentSerializer.plainText().serialize(event.message());
-            PaperSchedulers.run(plugin, () -> sendTeamChat(event.getPlayer(), message));
+            runIfStillOnline(event.getPlayer(), activePlayer -> sendTeamChat(activePlayer, message));
             return;
         }
         if (islandChatEnabled(event)) {
@@ -67,19 +69,25 @@ public final class PaperChatListener implements Listener {
                 return;
             }
             String message = PlainTextComponentSerializer.plainText().serialize(event.message());
-            PaperSchedulers.run(plugin, () -> sendLocalChat(event.getPlayer(), message));
+            runIfStillOnline(event.getPlayer(), activePlayer -> sendLocalChat(activePlayer, message));
             return;
         }
         event.renderer((source, sourceDisplayName, message, viewer) ->
             chatLine(viewerLocale(viewer), sourceDisplayName, message)
         );
-        sendAdminSpyLine(event);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void enforceTeamChatIsolation(AsyncChatEvent event) {
         if (teamChatEnabled(event) || islandChatEnabled(event)) {
             isolateTeamChat(event);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onAcceptedGlobalChat(AsyncChatEvent event) {
+        if (!teamChatEnabled(event) && !islandChatEnabled(event)) {
+            scheduleAdminSpyLine(event);
         }
     }
 
@@ -183,24 +191,44 @@ public final class PaperChatListener implements Listener {
         return locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player);
     }
 
-    private void sendAdminSpyLine(AsyncChatEvent event) {
-        if (adminChatSpies == null) {
+    private void scheduleAdminSpyLine(AsyncChatEvent event) {
+        if (adminChatSpies == null || plugin == null) {
             return;
         }
         Player source = event.getPlayer();
-        for (Audience viewer : event.viewers()) {
-            if (!(viewer instanceof Player player) || player.getUniqueId().equals(source.getUniqueId())) {
-                continue;
+        UUID sourceUuid = source.getUniqueId();
+        Component sourceDisplayName = source.displayName();
+        Component chatMessage = event.message();
+        List<ViewerIdentity> viewers = event.viewers().stream()
+            .filter(Player.class::isInstance)
+            .map(Player.class::cast)
+            .filter(player -> !player.getUniqueId().equals(sourceUuid))
+            .map(player -> new ViewerIdentity(player.getUniqueId(), player))
+            .toList();
+        PaperSchedulers.run(plugin, () -> viewers.forEach(identity -> {
+            Player player = plugin.getServer().getPlayer(identity.playerUuid());
+            if (!ChatPlayerIdentityPolicy.isCurrent(identity.expectedPlayer(), player)) {
+                return;
             }
             if (!adminChatSpies.enabled(player)) {
-                continue;
+                return;
             }
             if (!player.hasPermission("cloudislands.admin.spy")) {
                 adminChatSpies.clear(player.getUniqueId());
-                continue;
+                return;
             }
-            player.sendMessage(spyLine(viewerLocale(player), source.displayName(), event.message()));
-        }
+            player.sendMessage(spyLine(viewerLocale(player), sourceDisplayName, chatMessage));
+        }));
+    }
+
+    private void runIfStillOnline(Player expectedPlayer, Consumer<Player> action) {
+        UUID playerUuid = expectedPlayer.getUniqueId();
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
+            if (ChatPlayerIdentityPolicy.isCurrent(expectedPlayer, activePlayer)) {
+                action.accept(activePlayer);
+            }
+        });
     }
 
     private Component spyLine(String locale, Component playerName, Component chatMessage) {
@@ -222,5 +250,8 @@ public final class PaperChatListener implements Listener {
             return playerToken;
         }
         return Math.min(playerToken, messageToken);
+    }
+
+    private record ViewerIdentity(UUID playerUuid, Player expectedPlayer) {
     }
 }

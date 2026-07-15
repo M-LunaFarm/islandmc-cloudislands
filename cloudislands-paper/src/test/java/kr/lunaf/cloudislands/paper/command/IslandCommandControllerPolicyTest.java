@@ -876,7 +876,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(listener.contains("event.viewers().clear()"), "team chat must remove the global audience even if another plugin re-enables the event");
         assertTrue(listener.contains("@EventHandler(priority = EventPriority.HIGHEST)"), "team chat isolation must be reasserted after intermediate plugins");
         assertTrue(listener.contains("event.renderer((_source, _sourceDisplayName, _message, _viewer) -> Component.empty())"), "team chat must fail closed to an empty renderer");
-        assertTrue(listener.contains("PaperSchedulers.run(plugin, () -> sendTeamChat"), "async chat must return to the Paper scheduler before location access");
+        assertTrue(listener.contains("@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)"), "global chat side effects must observe final cancellation state");
+        assertTrue(listener.contains("runIfStillOnline(event.getPlayer(), activePlayer -> sendTeamChat(activePlayer, message))"), "async team chat must re-resolve the same online player before location access");
+        assertTrue(listener.contains("ChatPlayerIdentityPolicy.isCurrent(expectedPlayer, activePlayer)"), "queued chat must not replay through a stale or reconnected Player instance");
         assertTrue(listener.contains("communicationCommands().sendChat(islandId, playerUuid, \"TEAM\""), "team-mode messages must use the typed Core team-chat channel with a scheduler-captured UUID");
         assertTrue(listener.contains("teamChatModes.clear(event.getPlayer().getUniqueId())"), "disconnects must clear local chat mode state");
         assertTrue(bootstrap.contains("plugin.teamChatModes"), "commands and chat listener must share one runtime mode registry");
@@ -889,7 +891,7 @@ class IslandCommandControllerPolicyTest {
 
         assertTrue(handler.contains("teamChatModes.toggleIsland(player.getUniqueId())"));
         assertTrue(listener.contains("teamChatModes.islandEnabled(event.getPlayer().getUniqueId())"));
-        assertTrue(listener.contains("PaperSchedulers.run(plugin, () -> sendLocalChat"), "async local chat must return to the Paper scheduler before location access");
+        assertTrue(listener.contains("runIfStillOnline(event.getPlayer(), activePlayer -> sendLocalChat(activePlayer, message))"), "async local chat must re-resolve the same online player before location access");
         assertTrue(listener.contains("communicationCommands().sendChat(islandId, playerUuid, \"ISLAND\""));
         assertTrue(listener.contains("teamChatEnabled(event) || islandChatEnabled(event)"), "both private modes must be re-isolated at HIGHEST");
     }
@@ -941,6 +943,8 @@ class IslandCommandControllerPolicyTest {
         assertFalse(settings.contains("thenAccept(result -> runtime.message(player"), "settings callbacks must not message a captured Player");
         assertTrue(chat.contains("deliverChatFailure(playerUuid"), "Core chat failures must return to the Paper scheduler by UUID");
         assertTrue(chat.contains("plugin.getServer().getPlayer(playerUuid)"), "chat failure delivery must re-resolve the current online Player");
+        assertTrue(chat.contains("runIfStillOnline(event.getPlayer(), activePlayer -> sendTeamChat"), "team chat scheduling must reject stale Player instances");
+        assertTrue(chat.contains("runIfStillOnline(event.getPlayer(), activePlayer -> sendLocalChat"), "local chat scheduling must reject stale Player instances");
         assertFalse(chat.contains("exceptionally(error -> {\n                    player.sendMessage"), "Core callbacks must not send through a captured Player");
     }
 

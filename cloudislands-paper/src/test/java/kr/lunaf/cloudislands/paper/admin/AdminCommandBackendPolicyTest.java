@@ -975,7 +975,9 @@ class AdminCommandBackendPolicyTest {
         assertTrue(registry.contains("ConcurrentHashMap.newKeySet()") && registry.contains("enabled(Player player)"), "Spy registry must be thread-safe and player-addressable");
         assertTrue(bootstrap.contains("plugin.adminChatSpies = new AdminChatSpyRegistry()"), "Bootstrap must create the spy registry");
         assertTrue(bootstrap.contains("plugin.playerLocales, plugin.adminChatSpies, plugin.teamChatModes)"), "Global chat listener must receive the spy and team-chat mode registries");
-        assertTrue(chatListener.contains("sendAdminSpyLine(event)") && chatListener.contains("player.hasPermission(\"cloudislands.admin.spy\")"), "Global chat must deliver spy lines only to authorized enabled operators");
+        assertTrue(chatListener.contains("@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)") && chatListener.contains("scheduleAdminSpyLine(event)"), "Global chat spy must observe only final accepted chat events");
+        assertTrue(chatListener.contains("player.hasPermission(\"cloudislands.admin.spy\")"), "Global chat must deliver spy lines only to authorized enabled operators");
+        assertTrue(chatListener.contains("PaperSchedulers.run(plugin, () -> viewers.forEach") && chatListener.contains("ChatPlayerIdentityPolicy.isCurrent(identity.expectedPlayer(), player)"), "Global chat spy permission checks and delivery must run on Paper's scheduler and reject stale Player instances");
         assertTrue(eventPoller.contains("sendAdminSpyChat(normalizedChannel, actorName, chatMessage)"), "Core-backed island/team chat broadcasts must also be visible to spy operators");
         assertTrue(eventPoller.contains("adminSpyMessageLine") && eventPoller.contains("messages.plain(\"admin-chat-spy-format\""), "Spy chat delivery must use localizable formatting");
         assertTrue(plugin.contains("cloudislands.admin.spy"), "Spy command must have a plugin permission");
