@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.227`
+Version: `1.1.228`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -455,6 +455,16 @@ authoritative pending state, returns to the Paper scheduler before accessing a
 player, limits join reminders to five entries, and suppresses duplicate event
 and reconnect notifications for five minutes.
 
+Mission progress distinguishes incremental gameplay counters from authoritative
+values. Block, crafting, combat, fishing, statistic, advancement, and consume
+events use replay-safe idempotency keys so the Core client can retry a lost HTTP
+response without double credit. Bank-balance missions advance to the current
+Core balance instead of adding that balance again after every deposit, and
+level recalculation advances `island_level_10` to the returned level. Absolute
+progress is monotonic: a later withdrawal or lower recalculation cannot erase
+already earned progress, while repeated reports of the same value do not inflate
+it.
+
 ## Custom block values
 
 When ItemsAdder, Oraxen, Nexo, CraftEngine, or Slimefun is enabled,
@@ -706,7 +716,7 @@ integration verification.
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests and protection smoke cover dedicated normal/glow item-frame add, rotate, and remove changes plus HIGHEST-priority pickup attempt and final entity boundaries, granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, CraftEngine furniture build/break enforcement, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, fail-closed dispenser, armor-dispense, origin-island-preserving ground items and merges, hopper, inventory-transfer, and block-projectile boundaries including migrating islands, cancellation-final natural spread, growth, formation, fade, fluid, fire, leaf, bucket, fertilize, structure, and Enderman transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns, and fail-closed player/entity cross-dimension portals inside active island regions | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests; cross-dimension island worlds remain intentionally unavailable until their lifecycle, storage, and routing are implemented end to end |
 | ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal, cancellation-final and inheritance-deduplicated block transitions, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; one level now preserves and applies concurrent size/team/warp/coop/role limits, crop/spawner/drop multipliers, island effects, normal-world per-material generator rates, arbitrary block limits, and per-entity limits from either CloudIslands or quoted-level SS2 layouts without reducing administrator or mission overrides; Paper enforces exact material and entity-type counts, including logical stacker spawns, alongside existing aggregate limits; authoritative size is carried through activation, restore, reset, and migration jobs, while live size changes atomically replace Paper protection, scan, and snapshot bounds; Core island response paths expose the independent authoritative BORDER limit, and async size, border, border-policy, and personal-profile responses re-resolve the current online player through the Paper scheduler before Bukkit state changes; Paper tests also cover region-file cell isolation, unsafe-size fencing, world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting | normal-world per-material generator rates, arbitrary block limits, and per-entity limits are runtime-applied; Nether and End generator-rate maps remain preserved but intentionally inactive until cross-dimension island lifecycle, storage, and routing exist end to end; operator deployment acceptance is still recommended; cells below 1024 blocks or not aligned to 512 blocks fail startup, and islands that cannot fit without sharing region files fail activation or are fenced on unsafe live resize |
-| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; PostgreSQL and MySQL dual-Core smoke verifies same-key MISSION and CHALLENGE definitions retain independent rows and progress, including fresh and upgraded MySQL schemas, restored mission metadata, and MySQL-safe completion assignment order; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; `/is deposit *` and `/is withdraw *` resolve authoritative full balances through scheduler-safe Vault and Core queries before reusing the existing idempotent mutation, refund, and rollback paths; delayed balance, target, deposit, and withdrawal results re-resolve the current online player by UUID before Paper feedback; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
+| bank/economy/missions/challenges/generators/limits | IMPLEMENTED_VERIFIED | verifyMissionEventProgress covers final uncancelled block, farm, kill, fishing, capacity-bounded bulk crafting, enchanting, statistic, advancement, and item-consumption progress plus the bounded definition cache; gameplay progress delivery carries Core idempotency metadata, while monotonic absolute progress keeps repeated authoritative bank balances and island levels from double-counting or regressing; level recalculation advances the built-in level mission; PostgreSQL and MySQL dual-Core smoke verifies same-key MISSION and CHALLENGE definitions retain independent rows and progress, including fresh and upgraded MySQL schemas, restored mission metadata, and MySQL-safe completion assignment order; reward-settlement tests cover failure reopening, repeatable reset, and durable warehouse item delivery; PostgreSQL/MySQL shared warehouse settlement records move through PREPARED and ESCROWED before Paper replays the exact mutation key, so reconnecting on another Paper node can resume protected deposits and withdrawals; `/is deposit *` and `/is withdraw *` resolve authoritative full balances through scheduler-safe Vault and Core queries before reusing the existing idempotent mutation, refund, and rollback paths; delayed balance, target, deposit, and withdrawal results re-resolve the current online player by UUID before Paper feedback; Paper warehouse policy rejects metadata-bearing items that its material-and-amount schema cannot restore, while overflow-safe logical-stack mob-drop scaling, upgrade CAS/refund, generator, and economy safety gates cover the remaining scope | brewing completion has no reliable Bukkit actor and is intentionally not guessed; operator live-server economy/provider acceptance is still recommended |
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus current-visible-visitor classification, Core audit/visitor route tests, and LOWEST/HIGHEST mutually exclusive local/team-chat isolation cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services; Paper policy tests verify delayed snapshot list/create/restore responses cross the scheduler and re-resolve the current online player | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline | external addon certification depends on testkit evidence supplied by the addon |
@@ -715,9 +725,20 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.227`
+Current release: `v1.1.228`
 
-Built for the CloudIslands 1.1.227 baseline.
+Built for the CloudIslands 1.1.228 baseline.
+
+Release notes for `v1.1.228`:
+
+- bank-balance missions now advance to the authoritative Core balance instead
+  of adding the full balance again after every successful deposit
+- island level recalculation now advances the built-in level mission with the
+  returned authoritative level
+- absolute mission progress is monotonic and repeat-safe, so stale lower values
+  cannot regress progress and repeated equal values cannot inflate it
+- automatic gameplay and metric progress delivery now carries stable
+  idempotency metadata, enabling safe transport retries without duplicate credit
 
 Release notes for `v1.1.227`:
 
