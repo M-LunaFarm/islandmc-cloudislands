@@ -527,80 +527,92 @@ public final class PermissionEventPoller {
             Component primary = component(player, "migration-notice-primary", "섬 서버를 최적화하는 중입니다...");
             Component secondary = component(player, "migration-notice-secondary", "잠시 후 자동으로 이동됩니다.");
             BossBar bossBar = BossBar.bossBar(primary.append(Component.space()).append(secondary), 1.0F, BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS);
+            MigrationPlayerSession playerSession = MigrationPlayerSession.capture(player);
             player.sendMessage(primary);
             player.sendMessage(secondary);
             player.sendActionBar(secondary);
             player.showBossBar(bossBar);
-            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> player.hideBossBar(bossBar), 160L);
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> hideMigrationBossBar(playerSession, bossBar), 160L);
             if (!targetNode.isBlank()) {
-                createMigrationReturnTicket(player, islandId, targetNode, region, location);
+                createMigrationReturnTicket(playerSession, islandId, targetNode, region, location);
             }
         }
     }
 
-    private void createMigrationReturnTicket(Player player, UUID islandId, String targetNode, IslandRegion region, Location location) {
-        UUID playerUuid = player.getUniqueId();
+    private void hideMigrationBossBar(MigrationPlayerSession playerSession, BossBar bossBar) {
+        Player player = currentMigrationPlayer(playerSession);
+        if (player != null) {
+            player.hideBossBar(bossBar);
+        }
+    }
+
+    private void createMigrationReturnTicket(MigrationPlayerSession playerSession, UUID islandId, String targetNode, IslandRegion region, Location location) {
         double localX = location.getX() - region.originX();
         double localZ = location.getZ() - region.originZ();
-        client.createMigrationReturnTicket(playerUuid, islandId, targetNode, localX, location.getY(), localZ, location.getYaw(), location.getPitch())
-            .thenAccept(ticket -> waitMigrationReturnTicket(playerUuid, ticket, 0))
+        client.createMigrationReturnTicket(playerSession.playerUuid(), islandId, targetNode, localX, location.getY(), localZ, location.getYaw(), location.getPitch())
+            .thenAccept(ticket -> waitMigrationReturnTicket(playerSession, ticket, 0))
             .exceptionally(error -> {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnRegistrationFailed(playerUuid));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnRegistrationFailed(playerSession));
                 return null;
             });
     }
 
-    private void migrationReturnRegistrationFailed(UUID playerUuid) {
-        Player player = players.onlinePlayer(playerUuid);
+    private void migrationReturnRegistrationFailed(MigrationPlayerSession playerSession) {
+        Player player = currentMigrationPlayer(playerSession);
         if (player != null) {
             player.sendActionBar(component(player, "migration-return-register-failed", "섬 이동 준비를 등록하지 못했습니다."));
         }
     }
 
-    private void waitMigrationReturnTicket(UUID playerUuid, RouteTicket ticket, int attempt) {
+    private void waitMigrationReturnTicket(MigrationPlayerSession playerSession, RouteTicket ticket, int attempt) {
         if (ticket.state() == RouteTicketState.READY) {
-            publishMigrationReturnSession(playerUuid, ticket);
+            publishMigrationReturnSession(playerSession, ticket);
             return;
         }
         if (ticket.state() == RouteTicketState.FAILED || ticket.state() == RouteTicketState.EXPIRED || attempt >= 180) {
-            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerUuid));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerSession));
             return;
         }
         CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() ->
             client.routeTicketStatus(ticket.ticketId(), ticket.playerUuid(), ticket.nonce()).thenAccept(status -> {
                 if (status.isPresent()) {
-                    waitMigrationReturnTicket(playerUuid, status.get(), attempt + 1);
+                    waitMigrationReturnTicket(playerSession, status.get(), attempt + 1);
                 } else {
-                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerUuid));
+                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerSession));
                 }
             }).exceptionally(error -> {
                 if (attempt < 180) {
-                    waitMigrationReturnTicket(playerUuid, ticket, attempt + 1);
+                    waitMigrationReturnTicket(playerSession, ticket, attempt + 1);
                 } else {
-                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerUuid));
+                    kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerSession));
                 }
                 return null;
             })
         );
     }
 
-    private void publishMigrationReturnSession(UUID playerUuid, RouteTicket ticket) {
-        client.routingCommands().publishRouteSession(ticket).thenRun(() ->
-            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> connectMigratingPlayer(playerUuid, ticket))
-        ).exceptionally(error -> {
-            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerUuid));
-            return null;
+    private void publishMigrationReturnSession(MigrationPlayerSession playerSession, RouteTicket ticket) {
+        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
+            if (currentMigrationPlayer(playerSession) == null) {
+                return;
+            }
+            client.routingCommands().publishRouteSession(ticket).thenRun(() ->
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> connectMigratingPlayer(playerSession, ticket))
+            ).exceptionally(error -> {
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> migrationReturnFailed(playerSession));
+                return null;
+            });
         });
     }
 
-    private void connectMigratingPlayer(UUID playerUuid, RouteTicket ticket) {
-        Player player = players.onlinePlayer(playerUuid);
+    private void connectMigratingPlayer(MigrationPlayerSession playerSession, RouteTicket ticket) {
+        Player player = currentMigrationPlayer(playerSession);
         if (player == null) {
             return;
         }
         player.sendActionBar(component(player, "migration-return-start", "최적화된 섬 서버로 이동합니다."));
         if (!canUseBungeeConnect()) {
-            migrationReturnFailed(playerUuid);
+            migrationReturnFailed(playerSession);
             return;
         }
         try {
@@ -611,15 +623,20 @@ public final class PermissionEventPoller {
             player.sendPluginMessage(plugin, "BungeeCord", bytes.toByteArray());
         } catch (IOException | RuntimeException exception) {
             plugin.getLogger().warning("Failed to move migrating player to target node: " + exception.getMessage());
-            migrationReturnFailed(playerUuid);
+            migrationReturnFailed(playerSession);
         }
     }
 
-    private void migrationReturnFailed(UUID playerUuid) {
-        Player player = players.onlinePlayer(playerUuid);
+    private void migrationReturnFailed(MigrationPlayerSession playerSession) {
+        Player player = currentMigrationPlayer(playerSession);
         if (player != null) {
             player.sendActionBar(component(player, "migration-return-not-ready", "섬 서버 이동 준비가 완료되지 않았습니다. 잠시 후 /섬 홈을 사용해주세요."));
         }
+    }
+
+    private Player currentMigrationPlayer(MigrationPlayerSession playerSession) {
+        Player player = players.onlinePlayer(playerSession.playerUuid());
+        return playerSession.isCurrent(player) ? player : null;
     }
 
     private String message(String key, String fallback) {

@@ -32,17 +32,20 @@ class PermissionEventPollerThreadingPolicyTest {
     }
 
     @Test
-    void migrationTicketCallbacksUseCapturedIdentityAndResolveTheLivePlayerOnGlobalThread() throws Exception {
+    void migrationTicketCallbacksFenceTheInitiatingPlayerSessionOnGlobalThread() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPoller.java"));
         int create = source.indexOf("private void createMigrationReturnTicket");
         int wait = source.indexOf("private void waitMigrationReturnTicket", create);
         String method = source.substring(create, wait);
 
-        assertTrue(method.contains("UUID playerUuid = player.getUniqueId();"));
-        assertTrue(method.contains("waitMigrationReturnTicket(playerUuid, ticket, 0)"));
-        assertTrue(method.contains("PaperSchedulers.run(plugin, () -> migrationReturnRegistrationFailed(playerUuid))"));
-        assertTrue(method.contains("players.onlinePlayer(playerUuid)"));
-        assertTrue(!method.substring(method.indexOf(".thenAccept")).contains("player.getUniqueId()"));
+        assertTrue(method.contains("MigrationPlayerSession playerSession"));
+        assertTrue(method.contains("waitMigrationReturnTicket(playerSession, ticket, 0)"));
+        assertTrue(method.contains("PaperSchedulers.run(plugin, () -> migrationReturnRegistrationFailed(playerSession))"));
+        assertTrue(source.contains("connectMigratingPlayer(playerSession, ticket)"));
+        assertTrue(source.contains("if (currentMigrationPlayer(playerSession) == null)"),
+            "a route session must not be published after the initiating player disconnects or reconnects");
+        assertTrue(source.contains("return playerSession.isCurrent(player) ? player : null;"));
+        assertTrue(source.contains("hideMigrationBossBar(playerSession, bossBar)"));
     }
 
     private void assertAwaitedGlobalCall(String source, String constructor) {
