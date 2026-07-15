@@ -8,6 +8,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 
 public final class IslandLimitCache {
     private static final long TTL_MILLIS = 30_000L;
@@ -167,6 +168,14 @@ public final class IslandLimitCache {
     private record CachedBlockCounts(Map<String, Long> values, boolean loaded, boolean loading, long retryAtMillis, long refreshId) {
         long value(String limitKey) {
             String normalized = limitKey == null ? "" : limitKey.trim().toUpperCase();
+            if (GameplayParityPolicy.blockAmountLimit(normalized)) {
+                String materialKey = GameplayParityPolicy.blockAmountMaterialKey(normalized).toLowerCase(java.util.Locale.ROOT);
+                return values.getOrDefault(materialKey, 0L);
+            }
+            if (GameplayParityPolicy.entityTypeLimit(normalized)) {
+                String entityKey = GameplayParityPolicy.entityTypeLimitEntityKey(normalized).toLowerCase(java.util.Locale.ROOT);
+                return values.getOrDefault("entity:" + entityKey, 0L);
+            }
             Long authoritative = values.get(IslandBlockLimitKeys.COUNT_PREFIX + normalized.toLowerCase(java.util.Locale.ROOT));
             if (authoritative != null) {
                 return authoritative;

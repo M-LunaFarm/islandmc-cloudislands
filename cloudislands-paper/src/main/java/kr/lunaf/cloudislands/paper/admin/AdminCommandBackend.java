@@ -1794,7 +1794,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[1].equalsIgnoreCase("removeentitylimit")) {
-            run(sender, "Island removeentitylimit", coreApiClient.environmentCommands().adminSetLimit(islandId, "ENTITY", Long.MAX_VALUE).thenApply(result -> gameplayModifierMessage("Island removeentitylimit", result)));
+            String limitKey = args.length > 3 ? GameplayParityPolicy.entityTypeLimitKey(args[3]) : "ENTITY";
+            run(sender, "Island removeentitylimit", coreApiClient.environmentCommands().adminSetLimit(islandId, limitKey, Long.MAX_VALUE).thenApply(result -> gameplayModifierMessage("Island removeentitylimit", result)));
             return true;
         }
         if (args[1].equalsIgnoreCase("setrolelimit")) {
@@ -1821,10 +1822,19 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         String adminLimitKey = adminLimitKey(args[1]);
         if (!adminLimitKey.isBlank()) {
             if (args.length < 4) {
-                sendCommandUsage(sender, List.of("/ciadmin island " + args[1].toLowerCase(Locale.ROOT) + " <islandUuid|islandName> <value>"));
+                sendCommandUsage(sender, args[1].toLowerCase(Locale.ROOT).contains("entitylimit")
+                    ? List.of(
+                        "/ciadmin island " + args[1].toLowerCase(Locale.ROOT) + " <islandUuid|islandName> <value>",
+                        "/ciadmin island " + args[1].toLowerCase(Locale.ROOT) + " <islandUuid|islandName> <entityType> <value>"
+                    )
+                    : List.of("/ciadmin island " + args[1].toLowerCase(Locale.ROOT) + " <islandUuid|islandName> <value>"));
                 return true;
             }
-            long value = number(args[3], 0L);
+            boolean typedEntityLimit = args[1].toLowerCase(Locale.ROOT).contains("entitylimit") && args.length > 4;
+            if (typedEntityLimit) {
+                adminLimitKey = GameplayParityPolicy.entityTypeLimitKey(args[3]);
+            }
+            long value = number(args[typedEntityLimit ? 4 : 3], 0L);
             String label = "Island " + args[1].toLowerCase(Locale.ROOT);
             if (args[1].toLowerCase(Locale.ROOT).startsWith("add")) {
                 run(sender, label, coreApiClient.environmentCommands().adminAddLimit(islandId, adminLimitKey, value).thenApply(result -> gameplayModifierMessage(label, result)));
@@ -2891,9 +2901,9 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island cleargenerator <islandUuid|islandName>",
             "/ciadmin island setbanklimit <islandUuid|islandName> <value>",
             "/ciadmin island addbanklimit <islandUuid|islandName> <delta>",
-            "/ciadmin island setentitylimit <islandUuid|islandName> <value>",
-            "/ciadmin island addentitylimit <islandUuid|islandName> <delta>",
-            "/ciadmin island removeentitylimit <islandUuid|islandName>",
+            "/ciadmin island setentitylimit <islandUuid|islandName> [entityType] <value>",
+            "/ciadmin island addentitylimit <islandUuid|islandName> [entityType] <delta>",
+            "/ciadmin island removeentitylimit <islandUuid|islandName> [entityType]",
             "/ciadmin island setteamlimit <islandUuid|islandName> <value>",
             "/ciadmin island addteamlimit <islandUuid|islandName> <delta>",
             "/ciadmin island setrolelimit <islandUuid|islandName> <role> <value>",

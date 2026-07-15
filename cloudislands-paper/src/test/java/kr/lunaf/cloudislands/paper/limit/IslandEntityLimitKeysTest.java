@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.limit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -8,10 +9,16 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Vehicle;
 import org.junit.jupiter.api.Test;
 
 class IslandEntityLimitKeysTest {
+    @Test
+    void exposesNamespacedPerTypeLimitKeys() {
+        assertEquals("ENTITY_TYPE:MINECRAFT:ZOMBIE", IslandEntityLimitKeys.limitKey(EntityType.ZOMBIE));
+    }
+
     @Test
     void countsOnlyLivingHangingAndVehicleRuntimeEntities() {
         assertTrue(IslandEntityLimitKeys.counts(proxy(ArmorStand.class)));

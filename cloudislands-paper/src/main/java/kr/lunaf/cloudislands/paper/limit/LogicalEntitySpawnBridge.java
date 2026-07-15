@@ -1,7 +1,9 @@
 package kr.lunaf.cloudislands.paper.limit;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Deque;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -35,7 +37,7 @@ public final class LogicalEntitySpawnBridge implements Listener {
     private final ProtectionController protection;
     private final IslandLimitCache limits;
     private final IslandLevelScanService levelScanService;
-    private final Map<UUID, AtomicLong> reservedByIsland = new ConcurrentHashMap<>();
+    private final Map<ReservationKey, AtomicLong> reservedByLimit = new ConcurrentHashMap<>();
     private final Map<SpawnerKey, Deque<Reservation>> reservationsBySpawner = new ConcurrentHashMap<>();
     private final AtomicBoolean compatibilityWarningLogged = new AtomicBoolean();
     private Adapter adapter;
@@ -100,28 +102,22 @@ public final class LogicalEntitySpawnBridge implements Listener {
                 return;
             }
             int requested = Math.max(0, adapter.spawnAmount(event));
-            OptionalLong resolvedLimit = limits.limitIfReady(region.islandId(), "ENTITY", Long.MAX_VALUE);
-            if (resolvedLimit.isEmpty()) {
+            LimitState globalLimit = resolveLimit(region.islandId(), "ENTITY");
+            LimitState typeLimit = entityType == null ? LimitState.unlimited(region.islandId(), "ENTITY_TYPE:UNKNOWN")
+                : resolveLimit(region.islandId(), IslandEntityLimitKeys.limitKey(entityType));
+            if (globalLimit == null || typeLimit == null) {
                 cancellable.setCancelled(true);
                 return;
             }
-            long limit = resolvedLimit.getAsLong();
-            long allowed = requested;
-            boolean finite = limit != Long.MAX_VALUE;
-            if (finite) {
-                OptionalLong resolvedCount = limits.blockCountIfReady(region.islandId(), "ENTITY");
-                if (resolvedCount.isEmpty()) {
-                    cancellable.setCancelled(true);
-                    return;
-                }
-                allowed = reserve(region.islandId(), requested, resolvedCount.getAsLong(), limit);
-                if (allowed <= 0L) {
-                    cancellable.setCancelled(true);
-                    return;
-                }
+            Reservation reservation = reserve(region.islandId(), context.key(), requested, List.of(globalLimit, typeLimit));
+            if (reservation == null || reservation.amount() <= 0L) {
+                cancellable.setCancelled(true);
+                return;
+            }
+            long allowed = reservation.amount();
+            if (allowed < requested) {
                 adapter.setSpawnAmount(event, Math.toIntExact(allowed));
             }
-            Reservation reservation = new Reservation(region.islandId(), context.key(), allowed, finite);
             reservationsBySpawner.computeIfAbsent(context.key(), ignored -> new ConcurrentLinkedDeque<>()).addLast(reservation);
             PaperSchedulers.runLater(plugin, () -> expire(reservation), RESERVATION_EXPIRY_TICKS);
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
@@ -166,16 +162,38 @@ public final class LogicalEntitySpawnBridge implements Listener {
         }
     }
 
-    private long reserve(UUID islandId, long requested, long current, long limit) {
-        AtomicLong reserved = reservedByIsland.computeIfAbsent(islandId, ignored -> new AtomicLong());
-        while (true) {
-            long existing = reserved.get();
-            long available = Math.max(0L, limit - current - existing);
-            long allowed = Math.min(Math.max(0L, requested), available);
-            if (allowed == 0L || reserved.compareAndSet(existing, existing + allowed)) {
-                return allowed;
-            }
+    private LimitState resolveLimit(UUID islandId, String limitKey) {
+        OptionalLong resolvedLimit = limits.limitIfReady(islandId, limitKey, Long.MAX_VALUE);
+        if (resolvedLimit.isEmpty()) {
+            return null;
         }
+        long limit = resolvedLimit.getAsLong();
+        if (limit == Long.MAX_VALUE) {
+            return LimitState.unlimited(islandId, limitKey);
+        }
+        OptionalLong resolvedCount = limits.blockCountIfReady(islandId, limitKey);
+        return resolvedCount.isEmpty() ? null : new LimitState(new ReservationKey(islandId, limitKey), resolvedCount.getAsLong(), limit);
+    }
+
+    private synchronized Reservation reserve(UUID islandId, SpawnerKey spawnerKey, long requested, List<LimitState> limits) {
+        long allowed = Math.max(0L, requested);
+        List<ReservationKey> finiteKeys = new ArrayList<>();
+        for (LimitState limit : limits) {
+            if (!limit.finite()) {
+                continue;
+            }
+            long existing = reservedByLimit.getOrDefault(limit.key(), new AtomicLong()).get();
+            long available = Math.max(0L, limit.limit() - limit.current() - existing);
+            allowed = Math.min(allowed, available);
+            finiteKeys.add(limit.key());
+        }
+        if (allowed <= 0L) {
+            return null;
+        }
+        for (ReservationKey key : finiteKeys) {
+            reservedByLimit.computeIfAbsent(key, ignored -> new AtomicLong()).addAndGet(allowed);
+        }
+        return new Reservation(islandId, spawnerKey, allowed, List.copyOf(finiteKeys));
     }
 
     private Reservation poll(SpawnerKey key) {
@@ -204,13 +222,15 @@ public final class LogicalEntitySpawnBridge implements Listener {
         release(reservation);
     }
 
-    private void release(Reservation reservation) {
-        if (!reservation.released().compareAndSet(false, true) || !reservation.finite()) {
+    private synchronized void release(Reservation reservation) {
+        if (!reservation.released().compareAndSet(false, true)) {
             return;
         }
-        AtomicLong reserved = reservedByIsland.get(reservation.islandId());
-        if (reserved != null && reserved.addAndGet(-reservation.amount()) <= 0L) {
-            reservedByIsland.remove(reservation.islandId(), reserved);
+        for (ReservationKey key : reservation.reservedKeys()) {
+            AtomicLong reserved = reservedByLimit.get(key);
+            if (reserved != null && reserved.addAndGet(-reservation.amount()) <= 0L) {
+                reservedByLimit.remove(key, reserved);
+            }
         }
     }
 
@@ -253,9 +273,22 @@ public final class LogicalEntitySpawnBridge implements Listener {
     private record SpawnContext(SpawnerKey key) {
     }
 
-    private record Reservation(UUID islandId, SpawnerKey key, long amount, boolean finite, AtomicBoolean released) {
-        Reservation(UUID islandId, SpawnerKey key, long amount, boolean finite) {
-            this(islandId, key, amount, finite, new AtomicBoolean());
+    private record ReservationKey(UUID islandId, String limitKey) {
+    }
+
+    private record LimitState(ReservationKey key, long current, long limit) {
+        static LimitState unlimited(UUID islandId, String limitKey) {
+            return new LimitState(new ReservationKey(islandId, limitKey), 0L, Long.MAX_VALUE);
+        }
+
+        boolean finite() {
+            return limit != Long.MAX_VALUE;
+        }
+    }
+
+    private record Reservation(UUID islandId, SpawnerKey key, long amount, List<ReservationKey> reservedKeys, AtomicBoolean released) {
+        Reservation(UUID islandId, SpawnerKey key, long amount, List<ReservationKey> reservedKeys) {
+            this(islandId, key, amount, reservedKeys, new AtomicBoolean());
         }
     }
 

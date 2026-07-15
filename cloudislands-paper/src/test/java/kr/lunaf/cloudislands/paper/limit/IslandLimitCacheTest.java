@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import org.junit.jupiter.api.Test;
 
 class IslandLimitCacheTest {
@@ -51,6 +52,8 @@ class IslandLimitCacheTest {
         assertEquals(4L, cache.blockCountIfReady(islandId, "HOPPER").orElseThrow());
         assertEquals(14L, cache.blockCountIfReady(islandId, "SPAWNER").orElseThrow());
         assertEquals(22L, cache.blockCountIfReady(islandId, "ENTITY").orElseThrow());
+        assertEquals(8L, cache.blockCountIfReady(islandId, GameplayParityPolicy.entityTypeLimitKey("zombie")).orElseThrow());
+        assertEquals(100L, cache.blockCountIfReady(islandId, GameplayParityPolicy.blockAmountLimitKey("stone")).orElseThrow());
 
         cache.recordBlockDelta(islandId, "minecraft:spawner", 3L);
         cache.recordBlockDelta(islandId, "cloudislands:limit/spawner", 3L);

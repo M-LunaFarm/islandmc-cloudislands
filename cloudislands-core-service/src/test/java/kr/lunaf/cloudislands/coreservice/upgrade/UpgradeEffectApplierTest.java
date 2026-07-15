@@ -180,16 +180,19 @@ class UpgradeEffectApplierTest {
             Map.of(),
             Map.of(1, 125L),
             Map.of(),
-            Map.of(1, Map.of(
-                "size", 125L,
-                "team-limit", 4L,
-                "coop-limit", 5L,
-                "crops-growth", 140L,
-                "mob-drops", 175L,
-                "spawner-rates", 80L,
-                "island-effects.speed", 2L,
-                "island-effects.fast-digging", 1L,
-                "role-limits.member", 12L
+            Map.of(1, Map.ofEntries(
+                Map.entry("size", 125L),
+                Map.entry("team-limit", 4L),
+                Map.entry("coop-limit", 5L),
+                Map.entry("crops-growth", 140L),
+                Map.entry("mob-drops", 175L),
+                Map.entry("spawner-rates", 80L),
+                Map.entry("island-effects.speed", 2L),
+                Map.entry("island-effects.fast-digging", 1L),
+                Map.entry("role-limits.member", 12L),
+                Map.entry("block-limits.diamond-block", 64L),
+                Map.entry("entity-limits.zombie", 12L),
+                Map.entry("entity-limits.all", 250L)
             ))
         );
 
@@ -210,6 +213,9 @@ class UpgradeEffectApplierTest {
         assertEquals(80L, limitValue(limits, "RATE:SPAWNER_RATES"));
         assertEquals(2L, limitValue(limits, "EFFECT:SPEED"));
         assertEquals(1L, limitValue(limits, "EFFECT:HASTE"));
+        assertEquals(64L, limitValue(limits, "BLOCK_AMOUNT:MINECRAFT:DIAMOND_BLOCK"));
+        assertEquals(12L, limitValue(limits, "ENTITY_TYPE:MINECRAFT:ZOMBIE"));
+        assertEquals(250L, limitValue(limits, "ENTITY"));
         assertEquals(125, islands.findById(ISLAND_ID).orElseThrow().size());
     }
 
@@ -301,7 +307,7 @@ class UpgradeEffectApplierTest {
         return limits.list(ISLAND_ID).stream()
             .filter(limit -> limit.limitKey().equals(limitKey))
             .findFirst()
-            .orElseThrow()
+            .orElseThrow(() -> new AssertionError("Missing " + limitKey + " from " + limits.list(ISLAND_ID)))
             .value();
     }
 

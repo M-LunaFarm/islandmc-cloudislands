@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.OptionalLong;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import kr.lunaf.cloudislands.common.feature.GameplayParityPolicy;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -97,6 +98,7 @@ public final class IslandLimitListener implements Listener {
             return additions;
         }
         for (Material material : materials) {
+            additions.merge(GameplayParityPolicy.blockAmountLimitKey(material.getKey().toString()), 1L, Long::sum);
             String key = IslandBlockLimitKeys.limitKey(material);
             if (key != null) {
                 additions.merge(key, 1L, Long::sum);

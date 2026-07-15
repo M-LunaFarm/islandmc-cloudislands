@@ -134,15 +134,10 @@ public final class UpgradeEffectApplier {
         return switch (group) {
             case "island-effects" -> "EFFECT:" + GameplayParityPolicy.normalizeGameplayKey(effectAlias(nestedKey), "UNKNOWN");
             case "role-limits" -> GameplayParityPolicy.roleLimitKey(nestedKey);
-            case "block-limits" -> switch (GameplayParityPolicy.normalizeGameplayKey(nestedKey, "UNKNOWN")) {
-                case "HOPPER", "MINECRAFT:HOPPER" -> "HOPPER";
-                case "SPAWNER", "MINECRAFT:SPAWNER" -> "SPAWNER";
-                case "REDSTONE", "MINECRAFT:REDSTONE" -> "REDSTONE";
-                default -> null;
-            };
+            case "block-limits" -> GameplayParityPolicy.blockAmountLimitKey(nestedKey);
             case "entity-limits" -> switch (GameplayParityPolicy.normalizeGameplayKey(nestedKey, "UNKNOWN")) {
                 case "ALL", "GLOBAL", "*" -> "ENTITY";
-                default -> null;
+                default -> GameplayParityPolicy.entityTypeLimitKey(nestedKey);
             };
             default -> null;
         };

@@ -440,7 +440,8 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("GameplayParityPolicy.blockAmountLimitKey(args[3])"), "Block limit commands must write the shared BLOCK_AMOUNT limit key");
         assertTrue(source.contains("coreApiClient.environmentCommands().adminAddLimit(islandId, limitKey, number(args[4], 0L))"), "Admin additive block limits must use typed environment client");
         assertTrue(source.contains("coreApiClient.environmentCommands().adminSetLimit(islandId, limitKey, Long.MAX_VALUE)"), "Admin block limit removal must set an unbounded limit");
-        assertTrue(source.contains("coreApiClient.environmentCommands().adminSetLimit(islandId, \"ENTITY\", Long.MAX_VALUE)"), "Admin entity limit removal must set an unbounded entity limit");
+        assertTrue(source.contains("args.length > 3 ? GameplayParityPolicy.entityTypeLimitKey(args[3]) : \"ENTITY\""), "Admin entity limit removal must preserve global syntax and support exact entity types");
+        assertTrue(source.contains("coreApiClient.environmentCommands().adminSetLimit(islandId, limitKey, Long.MAX_VALUE)"), "Admin entity limit removal must set the selected limit to unbounded");
         for (String permission : List.of("superior.admin.setblocklimit", "superior.admin.addblocklimit", "superior.admin.removeblocklimit", "superior.admin.removeentitylimit")) {
             assertTrue(parity.contains("\"" + permission + "\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark " + permission + " verified");
         }

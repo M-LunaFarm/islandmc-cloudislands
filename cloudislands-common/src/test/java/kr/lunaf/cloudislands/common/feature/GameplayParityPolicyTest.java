@@ -10,6 +10,8 @@ class GameplayParityPolicyTest {
     @Test
     void exposesStackedBlockLimitKeysAsStableGameplayContract() {
         assertEquals("BLOCK_AMOUNT:MINECRAFT:DIAMOND_BLOCK", GameplayParityPolicy.blockAmountLimitKey("minecraft:diamond block"));
+        assertEquals("BLOCK_AMOUNT:MINECRAFT:DIAMOND_BLOCK", GameplayParityPolicy.blockAmountLimitKey("DIAMOND_BLOCK"));
+        assertEquals("BLOCK_AMOUNT:MINECRAFT:DIAMOND_BLOCK", GameplayParityPolicy.blockAmountLimitKey("diamond-block"));
         assertTrue(GameplayParityPolicy.blockAmountLimit("block_amount:minecraft:diamond_block"));
         assertEquals("MINECRAFT:DIAMOND_BLOCK", GameplayParityPolicy.blockAmountMaterialKey("block_amount:minecraft:diamond_block"));
         assertEquals("", GameplayParityPolicy.blockAmountMaterialKey("HOPPER"));
@@ -26,5 +28,15 @@ class GameplayParityPolicyTest {
         assertEquals("TRUSTED", GameplayParityPolicy.roleLimitRoleKey("role_limit:trusted"));
         assertEquals("", GameplayParityPolicy.roleLimitRoleKey("MEMBERS"));
         assertFalse(GameplayParityPolicy.roleLimit(null));
+    }
+
+    @Test
+    void exposesEntityTypeLimitKeysAsStableGameplayContract() {
+        assertEquals("ENTITY_TYPE:MINECRAFT:ZOMBIE", GameplayParityPolicy.entityTypeLimitKey("zombie"));
+        assertEquals("ENTITY_TYPE:MINECRAFT:ZOMBIE_VILLAGER", GameplayParityPolicy.entityTypeLimitKey("zombie-villager"));
+        assertTrue(GameplayParityPolicy.entityTypeLimit("entity_type:minecraft:zombie"));
+        assertEquals("MINECRAFT:ZOMBIE", GameplayParityPolicy.entityTypeLimitEntityKey("entity_type:minecraft:zombie"));
+        assertEquals("", GameplayParityPolicy.entityTypeLimitEntityKey("ENTITY"));
+        assertFalse(GameplayParityPolicy.entityTypeLimit(null));
     }
 }

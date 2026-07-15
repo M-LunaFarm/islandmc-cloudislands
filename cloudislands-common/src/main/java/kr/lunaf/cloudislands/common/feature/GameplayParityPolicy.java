@@ -8,6 +8,7 @@ public final class GameplayParityPolicy {
     public static final String EFFECT_RATE_POLICY = "island-effects-crop-growth-mob-drops-and-spawner-rates-are-core-visible-admin-controlled-runtime-modifiers";
     public static final String BLOCK_VALUE_POLICY = "block-values-drive-level-worth-gui-search-admin-set-and-ranking-recalculation";
     public static final String BLOCK_AMOUNT_LIMIT_PREFIX = "BLOCK_AMOUNT:";
+    public static final String ENTITY_TYPE_LIMIT_PREFIX = "ENTITY_TYPE:";
     public static final String ROLE_LIMIT_PREFIX = "ROLE_LIMIT:";
     public static final String STACKED_BLOCKS_VISIBLE_LIMIT_KEY = "STACKED_BLOCKS_VISIBLE";
     public static final String WAREHOUSE_ROWS_LIMIT_KEY = "WAREHOUSE_ROWS";
@@ -60,7 +61,7 @@ public final class GameplayParityPolicy {
     }
 
     public static String blockAmountLimitKey(String materialKey) {
-        return BLOCK_AMOUNT_LIMIT_PREFIX + normalizeGameplayKey(materialKey, "UNKNOWN");
+        return BLOCK_AMOUNT_LIMIT_PREFIX + normalizeNamespacedGameplayKey(materialKey, "UNKNOWN");
     }
 
     public static boolean blockAmountLimit(String limitKey) {
@@ -77,6 +78,22 @@ public final class GameplayParityPolicy {
 
     public static String roleLimitKey(String roleKey) {
         return ROLE_LIMIT_PREFIX + normalizeGameplayKey(roleKey, "MEMBER");
+    }
+
+    public static String entityTypeLimitKey(String entityTypeKey) {
+        return ENTITY_TYPE_LIMIT_PREFIX + normalizeNamespacedGameplayKey(entityTypeKey, "UNKNOWN");
+    }
+
+    public static boolean entityTypeLimit(String limitKey) {
+        return normalizeIslandLimitKey(limitKey).startsWith(ENTITY_TYPE_LIMIT_PREFIX);
+    }
+
+    public static String entityTypeLimitEntityKey(String limitKey) {
+        String normalized = normalizeIslandLimitKey(limitKey);
+        if (!normalized.startsWith(ENTITY_TYPE_LIMIT_PREFIX)) {
+            return "";
+        }
+        return normalized.substring(ENTITY_TYPE_LIMIT_PREFIX.length());
     }
 
     public static boolean roleLimit(String limitKey) {
@@ -99,5 +116,10 @@ public final class GameplayParityPolicy {
     public static String normalizeGameplayKey(String value, String fallback) {
         String normalized = value == null ? "" : value.trim().toUpperCase().replaceAll("[^A-Z0-9_.:-]+", "_");
         return normalized.isBlank() ? fallback : normalized;
+    }
+
+    private static String normalizeNamespacedGameplayKey(String value, String fallback) {
+        String normalized = normalizeGameplayKey(value, fallback).replace('-', '_');
+        return normalized.contains(":") || normalized.equals(fallback) ? normalized : "MINECRAFT:" + normalized;
     }
 }

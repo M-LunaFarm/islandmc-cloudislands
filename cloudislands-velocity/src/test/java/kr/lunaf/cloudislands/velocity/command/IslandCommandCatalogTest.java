@@ -488,7 +488,7 @@ class IslandCommandCatalogTest {
         assertTrue(dispatcher.contains("adminActions.setGameplayRate(player, args[1], \"RATE:MOB_DROPS\""), "Velocity setmobdrops must route explicitly");
         assertTrue(dispatcher.contains("adminActions.setGameplayRate(player, args[1], \"RATE:SPAWNER_RATES\""), "Velocity setspawnerrates must route explicitly");
         assertTrue(actions.contains("coreApiClient.environmentCommands().setLimit"), "Velocity gameplay parity commands must write Core-visible runtime modifiers");
-        assertTrue(actions.contains("\"BLOCK_AMOUNT:\" + normalizeGameplayKey"), "Velocity setblockamount must store a namespaced block amount key");
+        assertTrue(actions.contains("GameplayParityPolicy.blockAmountLimitKey(materialKey)"), "Velocity setblockamount must use the shared namespaced block amount key");
         assertTrue(actions.contains("\"EFFECT:\" + normalizeGameplayKey"), "Velocity seteffect must store a namespaced effect key");
         assertTrue(actions.contains("writeSupportBundle"), "Velocity support bundle must write a local operator artifact");
         assertTrue(actions.contains("cloudislands-velocity-support-bundle-") && actions.contains(".zip"), "Velocity support bundle must be packaged as a zip bundle");

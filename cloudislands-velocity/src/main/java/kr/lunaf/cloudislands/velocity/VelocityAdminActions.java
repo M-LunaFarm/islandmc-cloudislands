@@ -344,7 +344,7 @@ public final class VelocityAdminActions extends VelocityActionSupport {
 
     public void setGameplayBlockAmount(Player player, String target, String materialKey, long amount) {
         adminIslandTarget(player, target, islandId ->
-            sendTextResult(player, coreApiClient.environmentCommands().setLimit(islandId, player.getUniqueId(), "BLOCK_AMOUNT:" + normalizeGameplayKey(materialKey), amount).thenApply(result -> islandMessages.environmentAction("Set block amount", result)), "블록 수량을 변경하지 못했습니다."));
+            sendTextResult(player, coreApiClient.environmentCommands().setLimit(islandId, player.getUniqueId(), kr.lunaf.cloudislands.common.feature.GameplayParityPolicy.blockAmountLimitKey(materialKey), amount).thenApply(result -> islandMessages.environmentAction("Set block amount", result)), "블록 수량을 변경하지 못했습니다."));
     }
 
     public void setGameplayEffect(Player player, String target, String effectKey, long amplifier) {
