@@ -6,17 +6,21 @@ import java.util.Map;
 import java.util.OptionalLong;
 import kr.lunaf.cloudislands.api.upgrade.UpgradeType;
 
-public record UpgradeRule(String upgradeKey, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, BigDecimal> levelCosts, Map<Integer, Long> levelValues, Map<Integer, Map<String, Long>> levelItemCosts) {
+public record UpgradeRule(String upgradeKey, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, BigDecimal> levelCosts, Map<Integer, Long> levelValues, Map<Integer, Map<String, Long>> levelItemCosts, Map<Integer, Map<String, Long>> levelEffects) {
     public UpgradeRule(String upgradeKey, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier) {
-        this(upgradeKey, type, maxLevel, baseCost, multiplier, Map.of(), Map.of(), Map.of());
+        this(upgradeKey, type, maxLevel, baseCost, multiplier, Map.of(), Map.of(), Map.of(), Map.of());
     }
 
     public UpgradeRule(String upgradeKey, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, Long> levelValues) {
-        this(upgradeKey, type, maxLevel, baseCost, multiplier, Map.of(), levelValues, Map.of());
+        this(upgradeKey, type, maxLevel, baseCost, multiplier, Map.of(), levelValues, Map.of(), Map.of());
     }
 
     public UpgradeRule(String upgradeKey, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, BigDecimal> levelCosts, Map<Integer, Long> levelValues) {
-        this(upgradeKey, type, maxLevel, baseCost, multiplier, levelCosts, levelValues, Map.of());
+        this(upgradeKey, type, maxLevel, baseCost, multiplier, levelCosts, levelValues, Map.of(), Map.of());
+    }
+
+    public UpgradeRule(String upgradeKey, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, BigDecimal> levelCosts, Map<Integer, Long> levelValues, Map<Integer, Map<String, Long>> levelItemCosts) {
+        this(upgradeKey, type, maxLevel, baseCost, multiplier, levelCosts, levelValues, levelItemCosts, Map.of());
     }
 
     public UpgradeRule {
@@ -28,6 +32,7 @@ public record UpgradeRule(String upgradeKey, UpgradeType type, int maxLevel, Big
         levelCosts = sanitizeCosts(levelCosts);
         levelValues = sanitizeValues(levelValues);
         levelItemCosts = sanitizeItemCosts(levelItemCosts);
+        levelEffects = sanitizeEffects(levelEffects);
     }
 
     public BigDecimal costForNextLevel(int currentLevel) {
@@ -55,6 +60,18 @@ public record UpgradeRule(String upgradeKey, UpgradeType type, int maxLevel, Big
 
     public Map<String, Long> itemCostsForNextLevel(int currentLevel) {
         return levelItemCosts.getOrDefault(currentLevel + 1, Map.of());
+    }
+
+    public Map<String, Long> effectsForLevel(int level) {
+        if (level <= 0 || levelEffects.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Long> effective = new LinkedHashMap<>();
+        levelEffects.entrySet().stream()
+            .filter(entry -> entry.getKey() <= level)
+            .sorted(Map.Entry.comparingByKey())
+            .forEach(entry -> effective.putAll(entry.getValue()));
+        return Map.copyOf(effective);
     }
 
     private static BigDecimal nonNegative(BigDecimal value) {
@@ -105,6 +122,29 @@ public record UpgradeRule(String upgradeKey, UpgradeType type, int maxLevel, Big
             });
             if (!items.isEmpty()) {
                 sanitized.put(level, Map.copyOf(items));
+            }
+        });
+        return Map.copyOf(sanitized);
+    }
+
+    private static Map<Integer, Map<String, Long>> sanitizeEffects(Map<Integer, Map<String, Long>> effects) {
+        if (effects == null || effects.isEmpty()) {
+            return Map.of();
+        }
+        Map<Integer, Map<String, Long>> sanitized = new LinkedHashMap<>();
+        effects.forEach((level, levelEffects) -> {
+            if (level == null || level <= 0 || levelEffects == null) {
+                return;
+            }
+            Map<String, Long> values = new LinkedHashMap<>();
+            levelEffects.forEach((effectKey, value) -> {
+                String key = effectKey == null ? "" : effectKey.trim().toLowerCase().replace('_', '-');
+                if (!key.isBlank() && value != null && value >= 0L) {
+                    values.put(key, value);
+                }
+            });
+            if (!values.isEmpty()) {
+                sanitized.put(level, Map.copyOf(values));
             }
         });
         return Map.copyOf(sanitized);

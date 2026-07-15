@@ -44,8 +44,10 @@ public final class ConfigUpgradePolicy {
         Map<Integer, BigDecimal> levelCosts = new LinkedHashMap<>();
         Map<Integer, Long> levelValues = new LinkedHashMap<>();
         Map<Integer, Map<String, Long>> levelItemCosts = new LinkedHashMap<>();
+        Map<Integer, Map<String, Long>> levelEffects = new LinkedHashMap<>();
         int currentLevel = 0;
         boolean collectingItemCosts = false;
+        String effectGroup = "";
         for (String rawLine : yaml.split("\\R")) {
             String line = stripComment(rawLine);
             if (line.isBlank() || !rawLine.startsWith("  ")) {
@@ -53,7 +55,7 @@ public final class ConfigUpgradePolicy {
             }
             if (rawLine.startsWith("  ") && !rawLine.startsWith("    ") && line.endsWith(":")) {
                 if (!currentKey.isBlank()) {
-                    putRule(rules, currentKey, currentType, explicitMaxLevel, explicitBaseCost, explicitMultiplier, levelCosts, levelValues, levelItemCosts);
+                    putRule(rules, currentKey, currentType, explicitMaxLevel, explicitBaseCost, explicitMultiplier, levelCosts, levelValues, levelItemCosts, levelEffects);
                 }
                 currentKey = line.substring(0, line.length() - 1).trim();
                 currentType = null;
@@ -63,8 +65,10 @@ public final class ConfigUpgradePolicy {
                 levelCosts = new LinkedHashMap<>();
                 levelValues = new LinkedHashMap<>();
                 levelItemCosts = new LinkedHashMap<>();
+                levelEffects = new LinkedHashMap<>();
                 currentLevel = 0;
                 collectingItemCosts = false;
+                effectGroup = "";
                 continue;
             }
             if (currentKey.isBlank()) {
@@ -81,8 +85,13 @@ public final class ConfigUpgradePolicy {
             } else if (rawLine.startsWith("      ") && !rawLine.startsWith("        ") && line.endsWith(":")) {
                 currentLevel = integer(line.substring(0, line.length() - 1).trim(), 0);
                 collectingItemCosts = false;
+                effectGroup = "";
             } else if (rawLine.startsWith("        ") && !rawLine.startsWith("          ") && line.equals("item-costs:")) {
                 collectingItemCosts = currentLevel > 0;
+                effectGroup = "";
+            } else if (rawLine.startsWith("        ") && !rawLine.startsWith("          ") && line.endsWith(":")) {
+                collectingItemCosts = false;
+                effectGroup = effectKeyName(line.substring(0, line.length() - 1));
             } else if (rawLine.startsWith("          ") && collectingItemCosts && currentLevel > 0 && line.contains(":")) {
                 int separator = line.lastIndexOf(':');
                 String materialKey = line.substring(0, separator).trim();
@@ -90,31 +99,49 @@ public final class ConfigUpgradePolicy {
                 if (!materialKey.isBlank() && amount != null && amount > 0L) {
                     levelItemCosts.computeIfAbsent(currentLevel, ignored -> new LinkedHashMap<>()).put(materialKey, amount);
                 }
+            } else if (rawLine.startsWith("          ") && !effectGroup.isBlank() && currentLevel > 0 && line.contains(":")) {
+                int separator = line.lastIndexOf(':');
+                String nestedKey = line.substring(0, separator).trim();
+                Long effectValue = longValue(line.substring(separator + 1).trim(), null);
+                if (!nestedKey.isBlank() && effectValue != null && effectValue >= 0L) {
+                    putEffect(levelEffects, currentLevel, effectGroup + "." + effectKeyName(nestedKey), effectValue);
+                }
             } else if (rawLine.startsWith("        ") && line.startsWith("cost:")) {
                 collectingItemCosts = false;
+                effectGroup = "";
                 BigDecimal cost = decimal(value(line), null);
                 if (cost != null && cost.signum() >= 0) {
                     levelCosts.put(currentLevel, cost);
                 }
             } else if (rawLine.startsWith("        ") && currentLevel > 0) {
                 collectingItemCosts = false;
+                effectGroup = "";
                 Long limitValue = longValue(value(line), null);
                 if (limitValue != null && limitValue >= 0L && effectKey(line)) {
-                    levelValues.put(currentLevel, limitValue);
+                    levelValues.putIfAbsent(currentLevel, limitValue);
+                    putEffect(levelEffects, currentLevel, effectKeyName(line.substring(0, line.indexOf(':'))), limitValue);
                 }
             }
         }
         if (!currentKey.isBlank()) {
-            putRule(rules, currentKey, currentType, explicitMaxLevel, explicitBaseCost, explicitMultiplier, levelCosts, levelValues, levelItemCosts);
+            putRule(rules, currentKey, currentType, explicitMaxLevel, explicitBaseCost, explicitMultiplier, levelCosts, levelValues, levelItemCosts, levelEffects);
         }
         return rules;
     }
 
-    private static void putRule(Map<String, UpgradeRule> rules, String key, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, BigDecimal> levelCosts, Map<Integer, Long> levelValues, Map<Integer, Map<String, Long>> levelItemCosts) {
-        int inferredMaxLevel = maxLevel > 0 ? maxLevel : Math.max(1, Math.max(levelItemCosts.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), Math.max(levelCosts.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), levelValues.keySet().stream().mapToInt(Integer::intValue).max().orElse(0))));
+    private static void putRule(Map<String, UpgradeRule> rules, String key, UpgradeType type, int maxLevel, BigDecimal baseCost, BigDecimal multiplier, Map<Integer, BigDecimal> levelCosts, Map<Integer, Long> levelValues, Map<Integer, Map<String, Long>> levelItemCosts, Map<Integer, Map<String, Long>> levelEffects) {
+        int inferredMaxLevel = maxLevel > 0 ? maxLevel : Math.max(1, Math.max(levelEffects.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), Math.max(levelItemCosts.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), Math.max(levelCosts.keySet().stream().mapToInt(Integer::intValue).max().orElse(0), levelValues.keySet().stream().mapToInt(Integer::intValue).max().orElse(0)))));
         BigDecimal inferredBaseCost = baseCost != null && baseCost.signum() >= 0 ? baseCost : levelCosts.values().stream().filter(cost -> cost.signum() > 0).findFirst().orElse(BigDecimal.ZERO);
         BigDecimal inferredMultiplier = multiplier != null && multiplier.signum() > 0 ? multiplier : inferMultiplier(levelCosts, inferredBaseCost);
-        rules.put(key.toLowerCase(), new UpgradeRule(key.toLowerCase(), type == null ? UpgradePolicy.typeFor(key) : type, inferredMaxLevel, inferredBaseCost, inferredMultiplier, levelCosts, levelValues, levelItemCosts));
+        rules.put(key.toLowerCase(), new UpgradeRule(key.toLowerCase(), type == null ? UpgradePolicy.typeFor(key) : type, inferredMaxLevel, inferredBaseCost, inferredMultiplier, levelCosts, levelValues, levelItemCosts, levelEffects));
+    }
+
+    private static void putEffect(Map<Integer, Map<String, Long>> effects, int level, String key, long value) {
+        effects.computeIfAbsent(level, ignored -> new LinkedHashMap<>()).put(key, value);
+    }
+
+    private static String effectKeyName(String key) {
+        return key.trim().toLowerCase().replace('_', '-');
     }
 
     private static BigDecimal inferMultiplier(Map<Integer, BigDecimal> levelCosts, BigDecimal baseCost) {

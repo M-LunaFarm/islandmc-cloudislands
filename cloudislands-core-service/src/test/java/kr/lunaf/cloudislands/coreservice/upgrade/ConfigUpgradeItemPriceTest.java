@@ -34,4 +34,49 @@ class ConfigUpgradeItemPriceTest {
         assertEquals(Map.of("minecraft:diamond", 4L, "minecraft:emerald", 2L), rule.itemCostsForNextLevel(0));
         assertEquals(125L, rule.limitValueForLevel(1).orElseThrow());
     }
+
+    @Test
+    void preservesConcurrentScalarAndNestedEffectsAcrossLevels() throws Exception {
+        Path config = tempDir.resolve("multi-effects.yml");
+        Files.writeString(config, """
+            upgrades:
+              utility:
+                type: "ISLAND_SIZE"
+                levels:
+                  1:
+                    cost: 1000
+                    size: 125
+                    crops-growth: 110
+                    team-limit: 4
+                    island-effects:
+                      SPEED: 1
+                    role-limits:
+                      trusted: 5
+                  2:
+                    cost: 2000
+                    crops-growth: 140
+                    island-effects:
+                      SPEED: 2
+                      HASTE: 1
+            """);
+
+        UpgradeRule rule = ConfigUpgradePolicy.load(config.toString()).rule("utility");
+
+        assertEquals(125L, rule.limitValueForLevel(1).orElseThrow(), "legacy scalar access must not be overwritten by later effects");
+        assertEquals(Map.of(
+            "size", 125L,
+            "crops-growth", 110L,
+            "team-limit", 4L,
+            "island-effects.speed", 1L,
+            "role-limits.trusted", 5L
+        ), rule.effectsForLevel(1));
+        assertEquals(Map.of(
+            "size", 125L,
+            "crops-growth", 140L,
+            "team-limit", 4L,
+            "island-effects.speed", 2L,
+            "island-effects.haste", 1L,
+            "role-limits.trusted", 5L
+        ), rule.effectsForLevel(2));
+    }
 }
