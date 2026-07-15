@@ -967,6 +967,7 @@ class IslandCommandControllerPolicyTest {
         String permissionUseCase = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/PermissionManagementUseCase.java"));
         String permissionMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandPermissionMenu.java"));
         String paperGuiViews = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/application/view/PaperGuiViews.java"));
+        String onlineDelivery = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/PaperOnlinePlayer.java"));
 
         assertTrue(backend.contains("private final IslandMembershipCommandHandler membershipCommands;"));
         assertTrue(routerSource().contains("membershipCommands.handleCommand(player, subcommand, args)"));
@@ -980,7 +981,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("case PERMISSIONS_OPEN"));
         assertTrue(membershipHandler.contains("private void listPendingInvites(Player player)"), "invite list execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void inviteIslandMember(Player player, String target)"), "invite creation execution belongs in IslandMembershipCommandHandler");
-        assertTrue(membershipHandler.contains("private void sendIslandInvite(Player player, UUID islandId, UUID actorUuid, UUID targetUuid)"), "invite creation mutation belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("private void sendIslandInvite(UUID islandId, UUID actorUuid, UUID targetUuid)"), "invite creation mutation belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void acceptIslandInviteTarget(Player player, String target)"), "invite accept execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void declineIslandInviteTarget(Player player, String target)"), "invite decline execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void listIslandMembers(Player player)"), "member list execution belongs in IslandMembershipCommandHandler");
@@ -998,6 +999,14 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("private void banIslandVisitor(Player player, String target, String reason)"), "visitor ban execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void pardonIslandVisitor(Player player, String target)"), "visitor pardon execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void kickIslandVisitor(Player player, String target)"), "visitor kick execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid"), "membership feedback must use the shared online-player callback boundary");
+        assertTrue(membershipHandler.contains("PaperOnlinePlayer.run(plugin, actorUuid, activePlayer"), "visitor mutations must re-resolve the acting player before Bukkit work");
+        assertTrue(membershipHandler.contains("thenCompose(targetUuid -> runtime.mutate"), "target resolution and mutations must form one observable completion chain");
+        assertFalse(membershipHandler.contains("thenAccept(result -> runtime.message(player"), "membership callbacks must not message a captured Player");
+        assertFalse(membershipHandler.contains("thenAccept(invites -> runtime.message(player"), "invite reads must not message a captured Player");
+        assertTrue(onlineDelivery.contains("PaperSchedulers.run(plugin"), "online-player callbacks must return to the Paper scheduler");
+        assertTrue(onlineDelivery.contains("plugin.getServer().getPlayer(playerUuid)"), "online-player callbacks must resolve the current Player instance by UUID");
+        assertTrue(onlineDelivery.contains("player != null && player.isOnline()"), "online-player callbacks must discard disconnected players");
         assertFalse(backend.contains("private void listPendingInvites(Player player)"), "invite list execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void inviteIslandMember(Player player, String target)"), "invite creation execution must not stay in IslandCommandBackend");
         assertFalse(backend.contains("private void sendIslandInvite(Player player, UUID islandId, UUID targetUuid)"), "invite creation mutation must not stay in IslandCommandBackend");
