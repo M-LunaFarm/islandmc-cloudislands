@@ -53,6 +53,7 @@ final class IslandAdminNodeCommandHandler {
     }
 
     private boolean handleAdminMenuAction(Player player, GuiAction.AdminMenuAction action) {
+        UUID playerUuid = player.getUniqueId();
         return switch (action.type()) {
             case JOBS_OPEN -> {
                 AdminJobMenu.open(player, runtime.messagesFor(player));
@@ -60,8 +61,8 @@ final class IslandAdminNodeCommandHandler {
             }
             case JOBS_LIST -> {
                 coreApiClient.jobs().list()
-                    .thenAccept(jobs -> runtime.message(player, "Jobs: count=" + jobs.size() + jobs.stream().findFirst().map(job -> " first=" + job.id() + "/" + job.state()).orElse("")))
-                    .exceptionally(error -> adminNodeFailure(player, "admin-jobs-list-failed", "작업 목록을 불러오지 못했습니다.", error));
+                    .thenAccept(jobs -> deliverMessage(playerUuid, "Jobs: count=" + jobs.size() + jobs.stream().findFirst().map(job -> " first=" + job.id() + "/" + job.state()).orElse("")))
+                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-jobs-list-failed", "작업 목록을 불러오지 못했습니다.", error));
                 yield true;
             }
             case JOBS_RETRY_PROMPT -> {
@@ -78,8 +79,8 @@ final class IslandAdminNodeCommandHandler {
             }
             case ROUTE_DEBUG -> {
                 coreApiClient.adminRoutes().debug(new UUID(0L, 0L))
-                    .thenAccept(debug -> runtime.message(player, "Route debug: sessions=" + debug.sessions().size() + " tickets=" + debug.tickets().size()))
-                    .exceptionally(error -> adminNodeFailure(player, "admin-route-debug-failed", "라우트 상태를 불러오지 못했습니다.", error));
+                    .thenAccept(debug -> deliverMessage(playerUuid, "Route debug: sessions=" + debug.sessions().size() + " tickets=" + debug.tickets().size()))
+                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-route-debug-failed", "라우트 상태를 불러오지 못했습니다.", error));
                 yield true;
             }
             case ROUTE_CLEAR_PROMPT -> {
@@ -92,8 +93,8 @@ final class IslandAdminNodeCommandHandler {
             }
             case STORAGE_STATUS -> {
                 coreApiClient.adminStorage().status()
-                    .thenAccept(status -> runtime.message(player, "Storage: nodes=" + status.nodes().size() + " unavailable=" + status.unavailableCount()))
-                    .exceptionally(error -> adminNodeFailure(player, "admin-storage-status-failed", "스토리지 상태를 불러오지 못했습니다.", error));
+                    .thenAccept(status -> deliverMessage(playerUuid, "Storage: nodes=" + status.nodes().size() + " unavailable=" + status.unavailableCount()))
+                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-storage-status-failed", "스토리지 상태를 불러오지 못했습니다.", error));
                 yield true;
             }
             case STORAGE_VERIFY_PROMPT -> {
@@ -106,20 +107,20 @@ final class IslandAdminNodeCommandHandler {
             }
             case MIGRATION_SCAN -> {
                 runtime.mutateIdempotent("admin.migration.superiorskyblock2.scan", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("scan", ""))
-                    .thenAccept(snapshot -> runtime.message(player, migrationSummary("Migration scan", snapshot.state(), snapshot.manifests(), snapshot.blockingIssues(), snapshot.warningIssues())))
-                    .exceptionally(error -> adminNodeFailure(player, "admin-migration-scan-failed", "마이그레이션 스캔을 실행하지 못했습니다.", error));
+                    .thenAccept(snapshot -> deliverMessage(playerUuid, migrationSummary("Migration scan", snapshot.state(), snapshot.manifests(), snapshot.blockingIssues(), snapshot.warningIssues())))
+                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-migration-scan-failed", "마이그레이션 스캔을 실행하지 못했습니다.", error));
                 yield true;
             }
             case MIGRATION_DRYRUN -> {
                 runtime.mutateIdempotent("admin.migration.superiorskyblock2.dryrun", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("dryrun", ""))
-                    .thenAccept(snapshot -> runtime.message(player, migrationSummary("Migration dry-run", snapshot.state(), snapshot.manifests(), snapshot.blockingIssues(), snapshot.warningIssues())))
-                    .exceptionally(error -> adminNodeFailure(player, "admin-migration-dryrun-failed", "마이그레이션 dry-run을 실행하지 못했습니다.", error));
+                    .thenAccept(snapshot -> deliverMessage(playerUuid, migrationSummary("Migration dry-run", snapshot.state(), snapshot.manifests(), snapshot.blockingIssues(), snapshot.warningIssues())))
+                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-migration-dryrun-failed", "마이그레이션 dry-run을 실행하지 못했습니다.", error));
                 yield true;
             }
             case MIGRATION_VERIFY -> {
                 runtime.mutateIdempotent("admin.migration.superiorskyblock2.verify", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("verify", ""))
-                    .thenAccept(snapshot -> runtime.message(player, "Migration verify: state=" + snapshot.state() + " passed=" + snapshot.passed() + " expected=" + snapshot.expected()))
-                    .exceptionally(error -> adminNodeFailure(player, "admin-migration-verify-failed", "마이그레이션 검증을 실행하지 못했습니다.", error));
+                    .thenAccept(snapshot -> deliverMessage(playerUuid, "Migration verify: state=" + snapshot.state() + " passed=" + snapshot.passed() + " expected=" + snapshot.expected()))
+                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-migration-verify-failed", "마이그레이션 검증을 실행하지 못했습니다.", error));
                 yield true;
             }
             case MIGRATION_IMPORT_PROMPT -> {
@@ -132,8 +133,8 @@ final class IslandAdminNodeCommandHandler {
             }
             case MIGRATION_ROLLBACK_PLAN -> {
                 runtime.mutateIdempotent("admin.migration.superiorskyblock2.rollback-plan", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("rollback-plan", ""))
-                    .thenAccept(snapshot -> runtime.message(player, "Migration rollback-plan: state=" + snapshot.state() + " available=" + snapshot.rollbackPlanAvailable()))
-                    .exceptionally(error -> adminNodeFailure(player, "admin-migration-rollback-plan-failed", "마이그레이션 롤백 계획을 불러오지 못했습니다.", error));
+                    .thenAccept(snapshot -> deliverMessage(playerUuid, "Migration rollback-plan: state=" + snapshot.state() + " available=" + snapshot.rollbackPlanAvailable()))
+                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-migration-rollback-plan-failed", "마이그레이션 롤백 계획을 불러오지 못했습니다.", error));
                 yield true;
             }
             case MIGRATION_ROLLBACK_PROMPT -> {
@@ -214,61 +215,73 @@ final class IslandAdminNodeCommandHandler {
     }
 
     private void listAdminNodes(Player player) {
+        UUID playerUuid = player.getUniqueId();
         adminNodeUseCase.listNodesSummary()
-            .thenAccept(summary -> runtime.message(player, runtime.routeMessage("admin-node-list-result-prefix", "노드 목록: ") + adminNodeBodySummary(summary)))
-            .exceptionally(error -> adminNodeFailure(player, "admin-node-list-failed", "노드 목록을 불러오지 못했습니다.", error));
+            .thenAccept(summary -> deliverMessage(playerUuid, runtime.routeMessage("admin-node-list-result-prefix", "노드 목록: ") + adminNodeBodySummary(summary)))
+            .exceptionally(error -> adminNodeFailure(playerUuid, "admin-node-list-failed", "노드 목록을 불러오지 못했습니다.", error));
     }
 
     private void refreshAdminNodeInfo(Player player, String nodeId) {
+        UUID playerUuid = player.getUniqueId();
         MessageRenderer messages = runtime.messagesFor(player);
         GuiSession session = GuiSessions.begin(player, "admin.node.refresh");
         GuiStateMenus.openLoading(plugin, player, session, messages,
             runtime.routeMessage("admin-node-info-loading", "노드 정보를 불러오는 중입니다."));
         adminNodeUseCase.nodeInfoView(nodeId)
-            .thenAccept(summary -> GuiSessions.runIfCurrent(plugin, player, session, () -> AdminNodeMenu.open(player, session, nodeId, summary, messages)))
+            .thenAccept(summary -> PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> {
+                if (GuiSessions.isCurrent(activePlayer, session)) {
+                    AdminNodeMenu.open(activePlayer, session, nodeId, summary, messages);
+                }
+            }))
             .exceptionally(error -> {
-                GuiStateMenus.openError(plugin, player, session, messages,
+                PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> GuiStateMenus.openError(plugin, activePlayer, session, messages,
                     runtime.routeMessage("admin-node-info-title", "노드 정보"),
                     runtime.routeMessage("admin-node-info-failed", "노드 정보를 불러오지 못했습니다."),
-                    "admin.node.info", Map.of("nodeId", nodeId), "admin.node.open", Map.of("nodeId", nodeId));
+                    "admin.node.info", Map.of("nodeId", nodeId), "admin.node.open", Map.of("nodeId", nodeId)));
                 return null;
             });
     }
 
     private void listAdminNodeIslands(Player player, String nodeId) {
+        UUID playerUuid = player.getUniqueId();
         adminNodeUseCase.nodeIslandsSummary(nodeId, 50)
-            .thenAccept(summary -> runtime.message(player, runtime.routeMessage("admin-node-islands-result-prefix", "노드 섬 현황: ") + adminNodeBodySummary(summary)))
-            .exceptionally(error -> adminNodeFailure(player, "admin-node-islands-failed", "노드 섬 현황을 불러오지 못했습니다.", error));
+            .thenAccept(summary -> deliverMessage(playerUuid, runtime.routeMessage("admin-node-islands-result-prefix", "노드 섬 현황: ") + adminNodeBodySummary(summary)))
+            .exceptionally(error -> adminNodeFailure(playerUuid, "admin-node-islands-failed", "노드 섬 현황을 불러오지 못했습니다.", error));
     }
 
     private void drainAdminNode(Player player, String nodeId) {
+        UUID playerUuid = player.getUniqueId();
         adminNodeUseCase.drainAction(nodeId, runtime::mutate)
-            .thenAccept(result -> runtime.message(player, adminNodeActionMessage("Node drain", nodeId, result)))
-            .exceptionally(error -> adminNodeFailure(player, "admin-node-action-failed", "Node drain 실패", error));
+            .thenAccept(result -> deliverMessage(playerUuid, adminNodeActionMessage("Node drain", nodeId, result)))
+            .exceptionally(error -> adminNodeFailure(playerUuid, "admin-node-action-failed", "Node drain 실패", error));
     }
 
     private void undrainAdminNode(Player player, String nodeId) {
+        UUID playerUuid = player.getUniqueId();
         adminNodeUseCase.undrainAction(nodeId, runtime::mutate)
-            .thenAccept(result -> runtime.message(player, adminNodeActionMessage("Node undrain", nodeId, result)))
-            .exceptionally(error -> adminNodeFailure(player, "admin-node-action-failed", "Node undrain 실패", error));
+            .thenAccept(result -> deliverMessage(playerUuid, adminNodeActionMessage("Node undrain", nodeId, result)))
+            .exceptionally(error -> adminNodeFailure(playerUuid, "admin-node-action-failed", "Node undrain 실패", error));
     }
 
     private void sweepAdminNode(Player player, String nodeId) {
+        UUID playerUuid = player.getUniqueId();
         adminNodeUseCase.sweepAction(nodeId, runtime::mutate)
-            .thenAccept(result -> runtime.message(player, adminNodeActionMessage("Node sweep", nodeId, result)))
-            .exceptionally(error -> adminNodeFailure(player, "admin-node-action-failed", "Node sweep 실패", error));
+            .thenAccept(result -> deliverMessage(playerUuid, adminNodeActionMessage("Node sweep", nodeId, result)))
+            .exceptionally(error -> adminNodeFailure(playerUuid, "admin-node-action-failed", "Node sweep 실패", error));
     }
 
     private void kickAllAdminNode(Player player, String nodeId, String reason) {
+        UUID playerUuid = player.getUniqueId();
         adminNodeUseCase.kickAllAction(nodeId, reason, runtime::mutateIdempotent)
-            .thenAccept(result -> runtime.message(player, adminNodeActionMessage("Node kickall", nodeId, result)))
-            .exceptionally(error -> adminNodeFailure(player, "admin-node-danger-action-failed", "Node kickall 실패", error));
+            .thenAccept(result -> deliverMessage(playerUuid, adminNodeActionMessage("Node kickall", nodeId, result)))
+            .exceptionally(error -> adminNodeFailure(playerUuid, "admin-node-danger-action-failed", "Node kickall 실패", error));
     }
 
     private void shutdownAdminNodeSafely(Player player, String nodeId, String reason) {
+        UUID playerUuid = player.getUniqueId();
         adminNodeUseCase.shutdownSafelyAction(nodeId, reason, runtime::mutateIdempotent)
-            .thenAccept(result -> runtime.message(player, adminNodeActionMessage("Node shutdown-safe", nodeId, result)))
-            .exceptionally(error -> adminNodeFailure(player, "admin-node-danger-action-failed", "Node shutdown-safe 실패", error));
+            .thenAccept(result -> deliverMessage(playerUuid, adminNodeActionMessage("Node shutdown-safe", nodeId, result)))
+            .exceptionally(error -> adminNodeFailure(playerUuid, "admin-node-danger-action-failed", "Node shutdown-safe 실패", error));
     }
 
     private void openAdminNodeKickAllConfirmation(Player player, String nodeId) {
@@ -295,9 +308,13 @@ final class IslandAdminNodeCommandHandler {
             "admin.node.open");
     }
 
-    private Void adminNodeFailure(Player player, String key, String fallback, Throwable error) {
-        runtime.message(player, runtime.routeMessage(key, fallback));
+    private Void adminNodeFailure(UUID playerUuid, String key, String fallback, Throwable error) {
+        deliverMessage(playerUuid, runtime.routeMessage(key, fallback));
         return null;
+    }
+
+    private void deliverMessage(UUID playerUuid, String message) {
+        PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> runtime.message(activePlayer, message));
     }
 
     private String adminNodeBodySummary(AdminNodeSummary summary) {
