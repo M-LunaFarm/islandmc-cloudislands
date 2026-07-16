@@ -28,11 +28,11 @@ class IslandCommandControllerPolicyTest {
         String routeSessions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/bootstrap/PaperRouteSessionRuntimeFactory.java"));
         String routeSessionListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperRouteSessionListener.java"));
 
-        assertTrue(source.contains("localConsumer.consumeAndTeleport(ticket.ticketId(), playerUuid, ticket.nonce())"));
+        assertTrue(source.contains("localConsumer.consumeAndTeleport(playerSession, ticket.ticketId(), ticket.nonce())"));
         assertTrue(source.indexOf("if (localConsumer != null)") < source.indexOf("routingUseCase.publishRouteSession"));
         assertTrue(registrar.contains("routing().directLocalTeleport()"));
         assertTrue(registrar.contains("islandController.enableLocalRouting(agent.routeTickets(), plugin.runtimeConfig().routing().localFallbackWorld())"));
-        assertTrue(source.contains("localRouteConsumer.teleportToWorldSpawn(playerUuid, localFallbackWorld)"));
+        assertTrue(source.contains("localRouteConsumer.teleportToWorldSpawn(playerSession, localFallbackWorld)"));
         assertTrue(consumer.contains("supply(plugin, () -> worlds.worldSpawn(worldName))"), "single-Paper fallback world lookup must run on the Paper scheduler");
         assertTrue(consumer.contains("thenCompose(destination -> PaperSchedulers.supply(plugin"), "single-Paper fallback player lookup and teleport must return to the Paper scheduler");
         assertTrue(routeSessions.contains("islandNode && !safeConfig.routing().directLocalTeleport()"));
@@ -44,11 +44,12 @@ class IslandCommandControllerPolicyTest {
     void routeFutureCallbacksReturnToThePaperSchedulerBeforePlayerUiAccess() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandRoutingCommandHandler.java"));
 
-        assertTrue(source.contains("ticketFuture.thenAccept(ticket -> routeTicket(playerUuid, ticket, failureMessage, 0))"));
+        assertTrue(source.contains("ticketFuture.thenAccept(ticket -> routeTicket(playerSession, ticket, failureMessage, 0))"));
         assertTrue(source.contains("routeTicketStatus(ticket).thenAccept(status ->"));
-        assertTrue(source.contains("runSync(playerUuid, activePlayer -> {\n                clearRouteLoading(activePlayer);\n                connectWithTicket"));
-        assertTrue(source.contains("PaperOnlinePlayer.run(plugin, playerUuid, task)"));
-        assertTrue(source.contains("private void routeTicketSync(Player player, UUID playerUuid"), "route state transitions must only touch Bukkit state after online-player resolution");
+        assertTrue(source.contains("runSync(playerSession, activePlayer -> {\n                clearRouteLoading(activePlayer);\n                connectWithTicket"));
+        assertTrue(source.contains("if (playerSession.isCurrent(activePlayer))"), "route callbacks must reject a replacement Player with the same UUID");
+        assertTrue(source.contains("private void routeTicketSync(Player player, RoutePlayerSession playerSession"), "route state transitions must retain the initiating Player session");
+        assertTrue(source.contains("clearFailedRoute(ticket, \"PLAYER_SESSION_REPLACED\")"), "a published route must be cleared when its source Player session was replaced");
         assertFalse(source.contains("runSync(() ->"), "route callbacks must not retain a captured Player without an identity boundary");
     }
 

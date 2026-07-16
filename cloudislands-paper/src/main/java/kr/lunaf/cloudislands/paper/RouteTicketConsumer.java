@@ -38,7 +38,7 @@ public final class RouteTicketConsumer {
     private final String nodeId;
     private final PaperPlayerGateway players;
     private final PaperWorldGateway worlds;
-    private final java.util.Map<UUID, BossBar> loadingBars = new ConcurrentHashMap<>();
+    private final java.util.Map<UUID, LoadingBar> loadingBars = new ConcurrentHashMap<>();
     private final AtomicLong consumeRetries = new AtomicLong();
     private final AtomicLong consumeFailures = new AtomicLong();
     private final AtomicLong worldWaitRetries = new AtomicLong();
@@ -74,80 +74,82 @@ public final class RouteTicketConsumer {
         loadingBars.remove(playerUuid);
     }
 
-    public void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce) {
-        consumeAndTeleport(ticketId, playerUuid, nonce, 0);
+    public void consumeAndTeleport(RoutePlayerSession playerSession, UUID ticketId, String nonce) {
+        consumeAndTeleport(playerSession, ticketId, nonce, 0);
     }
 
-    public CompletableFuture<Boolean> teleportToWorldSpawn(UUID playerUuid, String worldName) {
+    public CompletableFuture<Boolean> teleportToWorldSpawn(RoutePlayerSession playerSession, String worldName) {
         return PaperSchedulers.supply(plugin, () -> worlds.worldSpawn(worldName))
             .thenCompose(target -> target == null
                 ? CompletableFuture.completedFuture(Optional.empty())
                 : worlds.safeDestination(target, null))
             .thenCompose(destination -> PaperSchedulers.supply(plugin, () -> {
-                Player player = players.onlinePlayer(playerUuid);
+                Player player = currentPlayer(playerSession);
                 return player != null && destination.isPresent()
                     && SafeTeleportResolver.isSafe(destination.get(), null)
                     && players.teleport(player, destination.get());
             }));
     }
 
-    private void consumeAndTeleport(UUID ticketId, UUID playerUuid, String nonce, int attempt) {
-        if (players.onlinePlayer(playerUuid) == null) {
+    private void consumeAndTeleport(RoutePlayerSession playerSession, UUID ticketId, String nonce, int attempt) {
+        UUID playerUuid = playerSession.playerUuid();
+        if (currentPlayer(playerSession) == null) {
             recordFailure("PLAYER_DISCONNECTED");
-            clearRoute(playerUuid, ticketId, "PLAYER_DISCONNECTED");
+            clearRoute(playerSession, ticketId, "PLAYER_DISCONNECTED");
             return;
         }
         if (attempt == 0 || attempt % 5 == 0) {
-            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> notifyPreparing(playerUuid, attempt));
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> notifyPreparing(playerSession, attempt));
         }
         routingCommands.consumeTicket(ticketId, playerUuid, nodeId, nonce).thenAccept(ticket -> {
             if (ticket.isPresent()) {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> teleport(playerUuid, ticket.get(), 0));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> teleport(playerSession, ticket.get(), 0));
                 return;
             }
             if (attempt < 20) {
                 consumeRetries.incrementAndGet();
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeAndTeleport(playerSession, ticketId, nonce, attempt + 1), 20L);
             } else {
                 recordConsumeFailure("TICKET_NOT_READY");
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> failRoute(playerUuid, ticketId, "TICKET_NOT_READY", true));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> failRoute(playerSession, ticketId, "TICKET_NOT_READY", true));
             }
         }).exceptionally(error -> {
             if (attempt < 20) {
                 consumeRetries.incrementAndGet();
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeAndTeleport(ticketId, playerUuid, nonce, attempt + 1), 20L);
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeAndTeleport(playerSession, ticketId, nonce, attempt + 1), 20L);
             } else {
                 recordConsumeFailure("CONSUME_EXCEPTION");
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> failRoute(playerUuid, ticketId, "CONSUME_EXCEPTION", true));
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> failRoute(playerSession, ticketId, "CONSUME_EXCEPTION", true));
             }
             return null;
         });
     }
 
-    private void teleport(UUID playerUuid, RouteTicket ticket, int attempt) {
-        Player player = players.onlinePlayer(playerUuid);
+    private void teleport(RoutePlayerSession playerSession, RouteTicket ticket, int attempt) {
+        UUID playerUuid = playerSession.playerUuid();
+        Player player = currentPlayer(playerSession);
         String worldName = ticket.targetWorld();
         World world = worlds.world(worldName);
         if (player == null) {
             recordFailure("PLAYER_DISCONNECTED");
-            clearRoute(playerUuid, ticket.ticketId(), "PLAYER_DISCONNECTED");
+            clearRoute(playerSession, ticket.ticketId(), "PLAYER_DISCONNECTED");
             return;
         }
         if (islandTransitioning(ticket.islandId())) {
             recordTeleportFailure("ISLAND_TRANSITION_IN_PROGRESS");
-            failRoute(playerUuid, ticket.ticketId(), "ISLAND_TRANSITION_IN_PROGRESS", true);
+            failRoute(playerSession, ticket.ticketId(), "ISLAND_TRANSITION_IN_PROGRESS", true);
             return;
         }
         if (world == null) {
             if (attempt == 0 || attempt % 5 == 0) {
-                notifyPreparing(playerUuid, attempt);
+                notifyPreparing(playerSession, attempt);
             }
             if (attempt < 20) {
                 worldWaitRetries.incrementAndGet();
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> teleport(playerUuid, ticket, attempt + 1), 20L);
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> teleport(playerSession, ticket, attempt + 1), 20L);
             } else {
                 recordTeleportFailure("WORLD_NOT_READY");
-                failRoute(playerUuid, ticket.ticketId(), "WORLD_NOT_READY", true);
+                failRoute(playerSession, ticket.ticketId(), "WORLD_NOT_READY", true);
             }
             return;
         }
@@ -159,57 +161,58 @@ public final class RouteTicketConsumer {
             if (preVisit.isCancelled()) {
                 recordTeleportFailure("VISIT_CANCELLED");
                 player.sendActionBar(playerComponent(player, "route-visit-cancelled", "섬 방문이 취소되었습니다."));
-                failRoute(playerUuid, ticket.ticketId(), "VISIT_CANCELLED", true);
+                failRoute(playerSession, ticket.ticketId(), "VISIT_CANCELLED", true);
                 return;
             }
         }
         Optional<Location> maybeTarget = targetLocation(world, ticket, payload);
         if (maybeTarget.isEmpty()) {
             recordTeleportFailure("ACTIVE_ISLAND_ORIGIN_MISSING");
-            failRoute(playerUuid, ticket.ticketId(), "ACTIVE_ISLAND_ORIGIN_MISSING", true);
+            failRoute(playerSession, ticket.ticketId(), "ACTIVE_ISLAND_ORIGIN_MISSING", true);
             return;
         }
         Location requested = maybeTarget.get();
         IslandRegion targetRegion = targetRegion(ticket.islandId());
         if (targetRegion == null) {
             recordTeleportFailure("ACTIVE_ISLAND_REGION_MISSING");
-            failRoute(playerUuid, ticket.ticketId(), "ACTIVE_ISLAND_REGION_MISSING", true);
+            failRoute(playerSession, ticket.ticketId(), "ACTIVE_ISLAND_REGION_MISSING", true);
             return;
         }
         worlds.safeDestination(requested, targetRegion).whenComplete((destination, error) ->
             kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                 if (error != null || destination == null || destination.isEmpty()) {
                     recordTeleportFailure("UNSAFE_TELEPORT_TARGET");
-                    failRoute(playerUuid, ticket.ticketId(), "UNSAFE_TELEPORT_TARGET", true);
+                    failRoute(playerSession, ticket.ticketId(), "UNSAFE_TELEPORT_TARGET", true);
                     return;
                 }
-                completeTeleport(playerUuid, ticket, payload, placementSource, destination.get(), targetRegion);
+                completeTeleport(playerSession, ticket, payload, placementSource, destination.get(), targetRegion);
             })
         );
     }
 
-    private void completeTeleport(UUID playerUuid, RouteTicket ticket, java.util.Map<String, String> payload, String placementSource, Location target, IslandRegion targetRegion) {
-        Player player = players.onlinePlayer(playerUuid);
+    private void completeTeleport(RoutePlayerSession playerSession, RouteTicket ticket, java.util.Map<String, String> payload, String placementSource, Location target, IslandRegion targetRegion) {
+        UUID playerUuid = playerSession.playerUuid();
+        Player player = currentPlayer(playerSession);
         if (player == null) {
             recordFailure("PLAYER_DISCONNECTED");
-            clearRoute(playerUuid, ticket.ticketId(), "PLAYER_DISCONNECTED");
+            clearRoute(playerSession, ticket.ticketId(), "PLAYER_DISCONNECTED");
             return;
         }
         if (islandTransitioning(ticket.islandId())) {
             recordTeleportFailure("ISLAND_TRANSITION_IN_PROGRESS");
-            failRoute(playerUuid, ticket.ticketId(), "ISLAND_TRANSITION_IN_PROGRESS", true);
+            failRoute(playerSession, ticket.ticketId(), "ISLAND_TRANSITION_IN_PROGRESS", true);
             return;
         }
         if (!SafeTeleportResolver.isSafe(target, targetRegion)) {
             recordTeleportFailure("TELEPORT_TARGET_CHANGED");
-            failRoute(playerUuid, ticket.ticketId(), "TELEPORT_TARGET_CHANGED", true);
+            failRoute(playerSession, ticket.ticketId(), "TELEPORT_TARGET_CHANGED", true);
             return;
         }
         teleportAttempts.incrementAndGet();
         lastTargetType = payload.getOrDefault("targetType", ticket.action().name());
         if (players.teleport(player, target)) {
             teleportSuccesses.incrementAndGet();
-            hideLoading(player);
+            hideLoading(playerSession, player);
             player.sendActionBar(arrivalComponent(player, ticket.action()));
             kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new RouteTicketConsumedEvent(
                     ticket.ticketId(),
@@ -224,7 +227,7 @@ public final class RouteTicketConsumer {
             }
         } else {
             recordTeleportFailure("BUKKIT_TELEPORT_REJECTED");
-            failRoute(playerUuid, ticket.ticketId(), "BUKKIT_TELEPORT_REJECTED", true);
+            failRoute(playerSession, ticket.ticketId(), "BUKKIT_TELEPORT_REJECTED", true);
         }
     }
 
@@ -362,11 +365,21 @@ public final class RouteTicketConsumer {
         return componentText(player, arrivalMessage(player, action));
     }
 
-    private void notifyPreparing(UUID playerUuid, int attempt) {
-        Player player = players.onlinePlayer(playerUuid);
+    private void notifyPreparing(RoutePlayerSession playerSession, int attempt) {
+        UUID playerUuid = playerSession.playerUuid();
+        Player player = currentPlayer(playerSession);
         if (player != null) {
             Component loading = playerComponent(player, "route-consume-loading", "섬 로딩 중");
-            BossBar bar = loadingBars.computeIfAbsent(playerUuid, ignored -> BossBar.bossBar(loading, RoutePreparationProgressPolicy.handoffProgress(0), BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
+            LoadingBar loadingBar = loadingBars.compute(playerUuid, (_ignored, current) -> {
+                if (current != null && current.playerSession() == playerSession) {
+                    return current;
+                }
+                if (current != null && current.playerSession().isCurrent(player)) {
+                    player.hideBossBar(current.bossBar());
+                }
+                return new LoadingBar(playerSession, BossBar.bossBar(loading, RoutePreparationProgressPolicy.handoffProgress(0), BossBar.Color.YELLOW, BossBar.Overlay.PROGRESS));
+            });
+            BossBar bar = loadingBar.bossBar();
             bar.name(loading);
             bar.progress(RoutePreparationProgressPolicy.handoffProgress(attempt));
             player.showBossBar(bar);
@@ -374,13 +387,13 @@ public final class RouteTicketConsumer {
         }
     }
 
-    private void notifyRouteFailed(UUID playerUuid) {
-        Player player = players.onlinePlayer(playerUuid);
+    private void notifyRouteFailed(RoutePlayerSession playerSession) {
+        Player player = currentPlayer(playerSession);
         if (player == null) {
-            loadingBars.remove(playerUuid);
+            clearLoading(playerSession);
             return;
         }
-        hideLoading(player);
+        hideLoading(playerSession, player);
         player.sendActionBar(playerComponent(player, "route-consume-failed", "섬 이동 준비가 완료되지 않았습니다. 다시 시도해주세요."));
     }
 
@@ -427,25 +440,38 @@ public final class RouteTicketConsumer {
         return PlayerRouteMessagePolicy.sanitize(value);
     }
 
-    private void hideLoading(Player player) {
-        BossBar bar = loadingBars.remove(player.getUniqueId());
-        if (bar != null) {
-            player.hideBossBar(bar);
+    private void hideLoading(RoutePlayerSession playerSession, Player player) {
+        LoadingBar loadingBar = loadingBars.get(playerSession.playerUuid());
+        if (loadingBar != null && loadingBar.playerSession() == playerSession
+            && loadingBars.remove(playerSession.playerUuid(), loadingBar)) {
+            player.hideBossBar(loadingBar.bossBar());
         }
     }
 
-    private void clearRoute(UUID playerUuid, UUID ticketId, String reason) {
-        routingCommands.clearRoute(playerUuid, ticketId, reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
-        loadingBars.remove(playerUuid);
+    private void clearLoading(RoutePlayerSession playerSession) {
+        LoadingBar loadingBar = loadingBars.get(playerSession.playerUuid());
+        if (loadingBar != null && loadingBar.playerSession() == playerSession) {
+            loadingBars.remove(playerSession.playerUuid(), loadingBar);
+        }
     }
 
-    private void failRoute(UUID playerUuid, UUID ticketId, String reason, boolean clearCoreRoute) {
+    private void clearRoute(RoutePlayerSession playerSession, UUID ticketId, String reason) {
+        routingCommands.clearRoute(playerSession.playerUuid(), ticketId, reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
+        clearLoading(playerSession);
+    }
+
+    private void failRoute(RoutePlayerSession playerSession, UUID ticketId, String reason, boolean clearCoreRoute) {
         if (clearCoreRoute && ticketId != null) {
-            clearRoute(playerUuid, ticketId, reason);
+            clearRoute(playerSession, ticketId, reason);
         } else {
-            loadingBars.remove(playerUuid);
+            clearLoading(playerSession);
         }
-        notifyRouteFailed(playerUuid);
+        notifyRouteFailed(playerSession);
+    }
+
+    private Player currentPlayer(RoutePlayerSession playerSession) {
+        Player player = players.onlinePlayer(playerSession.playerUuid());
+        return playerSession.isCurrent(player) ? player : null;
     }
 
     private double decimal(java.util.Map<String, String> payload, String key, double fallback) {
@@ -455,5 +481,8 @@ public final class RouteTicketConsumer {
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private record LoadingBar(RoutePlayerSession playerSession, BossBar bossBar) {
     }
 }

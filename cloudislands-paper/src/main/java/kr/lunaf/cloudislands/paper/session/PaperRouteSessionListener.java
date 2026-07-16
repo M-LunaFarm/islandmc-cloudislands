@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.security.BackendAccessPolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.RoutePlayerSession;
 import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
@@ -148,19 +149,20 @@ public final class PaperRouteSessionListener implements Listener {
         if (!routeSessionConsumptionEnabled) {
             return;
         }
-        UUID playerUuid = event.getPlayer().getUniqueId();
+        RoutePlayerSession playerSession = RoutePlayerSession.capture(event.getPlayer());
+        UUID playerUuid = playerSession.playerUuid();
         PlayerRouteSession verified = verifiedSessions.remove(playerUuid);
         if (verified != null) {
             if (verified.expiresAt().isAfter(java.time.Instant.now())) {
-                consumeSession(playerUuid, 0, verified);
+                consumeSession(playerSession, 0, verified);
             } else if (requireRouteSession) {
-                rejectDirectJoin(playerUuid);
+                rejectDirectJoin(playerSession);
             } else {
-                consumeSession(playerUuid, 0, null);
+                consumeSession(playerSession, 0, null);
             }
             return;
         }
-        consumeSession(playerUuid, 0, null);
+        consumeSession(playerSession, 0, null);
     }
 
     @EventHandler
@@ -176,9 +178,10 @@ public final class PaperRouteSessionListener implements Listener {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> verifiedSessions.remove(playerUuid, session), delayTicks);
     }
 
-    private void consumeSession(java.util.UUID playerUuid, int attempt, PlayerRouteSession expectedSession) {
+    private void consumeSession(RoutePlayerSession playerSession, int attempt, PlayerRouteSession expectedSession) {
+        UUID playerUuid = playerSession.playerUuid();
         if (attempt == 0 || attempt == 3) {
-            showPreparing(playerUuid);
+            showPreparing(playerSession);
         }
         java.util.concurrent.CompletableFuture<java.util.Optional<PlayerRouteSession>> consume = expectedSession == null
             ? coreApiClient.consumeRouteSession(playerUuid, nodeId, attempt >= 6)
@@ -188,27 +191,27 @@ public final class PaperRouteSessionListener implements Listener {
                 var value = session.get();
                 if (expectedSession != null && !sameVerifiedSession(value, expectedSession)) {
                     if (requireRouteSession) {
-                        rejectDirectJoin(playerUuid);
+                        rejectDirectJoin(playerSession);
                     }
                     return;
                 }
-                ticketConsumer.consumeAndTeleport(value.ticketId(), value.playerUuid(), value.nonce());
+                ticketConsumer.consumeAndTeleport(playerSession, value.ticketId(), value.nonce());
                 return;
             }
             if (attempt < 6) {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeSession(playerUuid, attempt + 1, expectedSession), 10L);
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeSession(playerSession, attempt + 1, expectedSession), 10L);
             } else if (requireRouteSession) {
-                rejectDirectJoin(playerUuid);
+                rejectDirectJoin(playerSession);
             }
         }).exceptionally(error -> {
             if (attempt < 6) {
-                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeSession(playerUuid, attempt + 1, expectedSession), 10L);
+                kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> consumeSession(playerSession, attempt + 1, expectedSession), 10L);
             } else if (requireRouteSession) {
-                rejectDirectJoin(playerUuid);
+                rejectDirectJoin(playerSession);
             } else {
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
                     var player = players.onlinePlayer(playerUuid);
-                    if (player != null) {
+                    if (playerSession.isCurrent(player)) {
                         player.sendActionBar(playerComponent(player, "route-session-check-failed", "섬 입장 준비를 확인하지 못했습니다."));
                     }
                 });
@@ -224,25 +227,25 @@ public final class PaperRouteSessionListener implements Listener {
             && consumed.nonce().equals(expected.nonce());
     }
 
-    private void showPreparing(java.util.UUID playerUuid) {
+    private void showPreparing(RoutePlayerSession playerSession) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            var player = players.onlinePlayer(playerUuid);
-            if (player != null) {
+            var player = players.onlinePlayer(playerSession.playerUuid());
+            if (playerSession.isCurrent(player)) {
                 player.sendActionBar(playerComponent(player, "route-session-preparing", "섬 입장을 준비하는 중입니다..."));
             }
         });
     }
 
-    private void rejectDirectJoin(java.util.UUID playerUuid) {
+    private void rejectDirectJoin(RoutePlayerSession playerSession) {
         routeSessionRejections.incrementAndGet();
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
-            var player = players.onlinePlayer(playerUuid);
-            if (player != null) {
+            var player = players.onlinePlayer(playerSession.playerUuid());
+            if (playerSession.isCurrent(player)) {
                 player.sendActionBar(playerComponent(player, "route-session-missing-fallback", "섬 입장 요청이 없어 로비로 이동합니다."));
                 sendToFallback(player);
                 kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> {
-                    var stillHere = players.onlinePlayer(playerUuid);
-                    if (stillHere != null) {
+                    var stillHere = players.onlinePlayer(playerSession.playerUuid());
+                    if (playerSession.isCurrent(stillHere)) {
                         stillHere.kick(playerComponent(stillHere, "route-login-session-required", "정상적인 섬 입장 요청이 없습니다. /섬 홈으로 다시 이동해주세요."));
                     }
                 }, 40L);

@@ -15,8 +15,10 @@ import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
 import kr.lunaf.cloudislands.common.feature.PlayerRouteTicketView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreApiException;
+import kr.lunaf.cloudislands.paper.RoutePlayerSession;
 import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
 import kr.lunaf.cloudislands.paper.application.IslandRoutingUseCase;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import kr.lunaf.cloudislands.protocol.route.RouteFailureMessagePolicy;
 import kr.lunaf.cloudislands.protocol.route.RoutePreparationProgressPolicy;
 import net.kyori.adventure.bossbar.BossBar;
@@ -43,22 +45,22 @@ final class IslandRoutingCommandHandler {
     }
 
     void routeWarp(Player player, UUID islandId, String warpName) {
-        UUID playerUuid = player.getUniqueId();
-        routeTicket(playerUuid, routingUseCase.createWarpTicket(playerUuid, islandId, warpName, runtime::mutate), "해당 워프로 이동할 수 없습니다.");
+        RoutePlayerSession playerSession = RoutePlayerSession.capture(player);
+        routeTicket(playerSession, routingUseCase.createWarpTicket(playerSession.playerUuid(), islandId, warpName, runtime::mutate), "해당 워프로 이동할 수 없습니다.");
     }
 
     void routeHome(Player player, String homeName) {
-        UUID playerUuid = player.getUniqueId();
-        routeTicket(playerUuid, routingUseCase.createHomeTicket(playerUuid, homeName, runtime::mutate), "해당 섬 홈으로 이동할 수 없습니다.");
+        RoutePlayerSession playerSession = RoutePlayerSession.capture(player);
+        routeTicket(playerSession, routingUseCase.createHomeTicket(playerSession.playerUuid(), homeName, runtime::mutate), "해당 섬 홈으로 이동할 수 없습니다.");
     }
 
     void routeTicket(Player player, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
-        routeTicket(player.getUniqueId(), ticketFuture, failureMessage);
+        routeTicket(RoutePlayerSession.capture(player), ticketFuture, failureMessage);
     }
 
-    private void routeTicket(UUID playerUuid, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
-        ticketFuture.thenAccept(ticket -> routeTicket(playerUuid, ticket, failureMessage, 0)).exceptionally(error -> {
-            runSync(playerUuid, activePlayer -> {
+    private void routeTicket(RoutePlayerSession playerSession, CompletableFuture<RouteTicket> ticketFuture, String failureMessage) {
+        ticketFuture.thenAccept(ticket -> routeTicket(playerSession, ticket, failureMessage, 0)).exceptionally(error -> {
+            runSync(playerSession, activePlayer -> {
                 clearRouteLoading(activePlayer);
                 runtime.message(activePlayer, routeFailureMessage(error, failureMessage));
             });
@@ -79,9 +81,9 @@ final class IslandRoutingCommandHandler {
     }
 
     boolean connectPlayerToFallback(Player player, String successMessage, String failureMessage) {
-        UUID playerUuid = player.getUniqueId();
+        RoutePlayerSession playerSession = RoutePlayerSession.capture(player);
         if (localRouteConsumer != null) {
-            localRouteConsumer.teleportToWorldSpawn(playerUuid, localFallbackWorld).whenComplete((teleported, error) -> runSync(playerUuid, activePlayer -> {
+            localRouteConsumer.teleportToWorldSpawn(playerSession, localFallbackWorld).whenComplete((teleported, error) -> runSync(playerSession, activePlayer -> {
                 if (error != null || !Boolean.TRUE.equals(teleported)) {
                     activePlayer.sendMessage(runtime.playerMessage(failureMessage));
                     return;
@@ -90,20 +92,20 @@ final class IslandRoutingCommandHandler {
             }));
             return true;
         }
-        connectPlayerToServer(playerUuid, fallbackServerName, successMessage, failureMessage);
+        connectPlayerToServer(playerSession, fallbackServerName, successMessage, failureMessage);
         return true;
     }
 
-    private void routeTicket(UUID playerUuid, RouteTicket ticket, String failureMessage, int attempt) {
-        runSync(playerUuid, player -> routeTicketSync(player, playerUuid, ticket, failureMessage, attempt));
+    private void routeTicket(RoutePlayerSession playerSession, RouteTicket ticket, String failureMessage, int attempt) {
+        runSync(playerSession, player -> routeTicketSync(player, playerSession, ticket, failureMessage, attempt));
     }
 
-    private void routeTicketSync(Player player, UUID playerUuid, RouteTicket ticket, String failureMessage, int attempt) {
+    private void routeTicketSync(Player player, RoutePlayerSession playerSession, RouteTicket ticket, String failureMessage, int attempt) {
         if (ticket.state().name().equals("READY")) {
             String target = routeTargetName(ticket);
             showRouteLoading(player, 1.0f, runtime.routeMessage(player, "route-loading-complete", target + " 로딩 완료", "target", target));
             player.sendActionBar(routeComponent(player, "route-ready", "잠시 후 " + target + "으로 이동합니다.", "target", target));
-            publishAndConnect(playerUuid, ticket, failureMessage);
+            publishAndConnect(playerSession, ticket, failureMessage);
             return;
         }
         if (attempt >= routeWaitSeconds) {
@@ -119,15 +121,15 @@ final class IslandRoutingCommandHandler {
         CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() ->
             routingUseCase.routeTicketStatus(ticket).thenAccept(status -> {
                 if (status.isPresent()) {
-                    routeTicket(playerUuid, status.get(), failureMessage, attempt + 1);
+                    routeTicket(playerSession, status.get(), failureMessage, attempt + 1);
                 } else {
-                    runSync(playerUuid, activePlayer -> {
+                    runSync(playerSession, activePlayer -> {
                         clearRouteLoading(activePlayer);
                         runtime.message(activePlayer, failureMessage);
                     });
                 }
             }).exceptionally(error -> {
-                runSync(playerUuid, activePlayer -> {
+                runSync(playerSession, activePlayer -> {
                     clearRouteLoading(activePlayer);
                     runtime.message(activePlayer, routeFailureMessage(error, failureMessage));
                 });
@@ -157,21 +159,21 @@ final class IslandRoutingCommandHandler {
         return runtime.component(player, runtime.routeMessage(player, key, fallback, variables));
     }
 
-    private void publishAndConnect(UUID playerUuid, RouteTicket ticket, String failureMessage) {
+    private void publishAndConnect(RoutePlayerSession playerSession, RouteTicket ticket, String failureMessage) {
         RouteTicketConsumer localConsumer = localRouteConsumer;
         if (localConsumer != null) {
-            runSync(playerUuid, this::clearRouteLoading);
-            localConsumer.consumeAndTeleport(ticket.ticketId(), playerUuid, ticket.nonce());
+            runSync(playerSession, this::clearRouteLoading);
+            localConsumer.consumeAndTeleport(playerSession, ticket.ticketId(), ticket.nonce());
             return;
         }
         routingUseCase.publishRouteSession(ticket, runtime::mutate).thenRun(() -> {
-            runSync(playerUuid, activePlayer -> {
+            runSync(playerSession, activePlayer -> {
                 clearRouteLoading(activePlayer);
                 connectWithTicket(activePlayer, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode()));
-            });
+            }, () -> clearFailedRoute(ticket, "PLAYER_SESSION_REPLACED"));
         }).exceptionally(error -> {
             clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
-            runSync(playerUuid, activePlayer -> {
+            runSync(playerSession, activePlayer -> {
                 clearRouteLoading(activePlayer);
                 runtime.message(activePlayer, routeFailureMessage(error, failureMessage));
             });
@@ -179,8 +181,19 @@ final class IslandRoutingCommandHandler {
         });
     }
 
-    private void runSync(UUID playerUuid, Consumer<Player> task) {
-        PaperOnlinePlayer.run(plugin, playerUuid, task);
+    private void runSync(RoutePlayerSession playerSession, Consumer<Player> task) {
+        runSync(playerSession, task, () -> { });
+    }
+
+    private void runSync(RoutePlayerSession playerSession, Consumer<Player> task, Runnable staleAction) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(playerSession.playerUuid());
+            if (playerSession.isCurrent(activePlayer)) {
+                task.accept(activePlayer);
+            } else {
+                staleAction.run();
+            }
+        });
     }
 
     private void showRouteLoading(Player player, float progress, String title) {
@@ -232,8 +245,8 @@ final class IslandRoutingCommandHandler {
         };
     }
 
-    private void connectPlayerToServer(UUID playerUuid, String targetServerName, String successMessage, String failureMessage) {
-        runSync(playerUuid, player -> {
+    private void connectPlayerToServer(RoutePlayerSession playerSession, String targetServerName, String successMessage, String failureMessage) {
+        runSync(playerSession, player -> {
             if (targetServerName == null || targetServerName.isBlank()) {
                 player.sendMessage(runtime.playerMessage(failureMessage));
                 return;
