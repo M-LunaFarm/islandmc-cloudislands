@@ -36,9 +36,9 @@ tasks.register<Exec>("mysqlCoreIntegrationSmoke") {
     dependsOn(installTask)
     mustRunAfter(tasks.named("coreIntegrationSmoke"))
     environment("CI_DATABASE_TYPE", "MYSQL")
-    environment("CI_JDBC_URL", "jdbc:mysql://127.0.0.1:3306/cloudislands")
-    environment("CI_DB_USERNAME", "cloudislands")
-    environment("CI_DB_PASSWORD", "cloudislands")
+    environment("CI_JDBC_URL", providers.environmentVariable("CI_MYSQL_JDBC_URL").getOrElse("jdbc:mysql://127.0.0.1:3306/cloudislands"))
+    environment("CI_DB_USERNAME", providers.environmentVariable("CI_MYSQL_DB_USERNAME").getOrElse("cloudislands"))
+    environment("CI_DB_PASSWORD", providers.environmentVariable("CI_MYSQL_DB_PASSWORD").getOrElse("cloudislands"))
     doFirst {
         commandLine(
             "python3",
@@ -170,6 +170,9 @@ tasks.register("verifyReleaseGateCoverage") {
         val mysqlBuildSignals = listOf(
             "tasks.register<Exec>(\"mysqlCoreIntegrationSmoke\")",
             "CI_DATABASE_TYPE\", \"MYSQL",
+            "CI_MYSQL_JDBC_URL",
+            "CI_MYSQL_DB_USERNAME",
+            "CI_MYSQL_DB_PASSWORD",
             "dependsOn(tasks.named(\"mysqlCoreIntegrationSmoke\"))"
         )
         val missingMysqlBuildSignals = mysqlBuildSignals.filterNot(buildLogic::contains)

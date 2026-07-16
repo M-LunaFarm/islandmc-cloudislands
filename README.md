@@ -745,6 +745,9 @@ Release notes for `v1.1.241`:
   resumes only through the same settlement ID and idempotency key
 - focused reconnect policy coverage, feature-parity evidence, and the complete
   Paper test suite certify the inventory handoff boundary
+- `mysqlCoreIntegrationSmoke` now accepts `CI_MYSQL_JDBC_URL`,
+  `CI_MYSQL_DB_USERNAME`, and `CI_MYSQL_DB_PASSWORD`, so isolated MySQL 8.4
+  services no longer have to occupy the host's port 3306 or default account
 
 Release notes for `v1.1.240`:
 
