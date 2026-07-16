@@ -2,7 +2,9 @@ package kr.lunaf.cloudislands.paper.command;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletionException;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiSession;
 import kr.lunaf.cloudislands.paper.gui.GuiSessions;
@@ -105,17 +107,35 @@ final class IslandOverviewCommandHandler {
 
     private void selectIsland(Player player, String target) {
         UUID actorUuid = player.getUniqueId();
-        targetResolver.resolve(target)
-            .thenCompose(islandId -> coreApiClient.playerProfileCommands().selectPrimaryIsland(actorUuid, islandId))
-            .thenAccept(profile -> deliverMessage(actorUuid, runtime.routeMessage("overview-island-selected", "기본 섬을 선택했습니다.")))
+        coreApiClient.playerProfileCommands().reservePrimaryIslandSelection(actorUuid)
+            .thenCombine(targetResolver.resolve(target), SelectionRequest::new)
+            .thenCompose(request -> coreApiClient.playerProfileCommands().selectPrimaryIsland(actorUuid, request.islandId(), request.revision()))
+            .thenAccept(profile -> deliverMessage(player, runtime.routeMessage("overview-island-selected", "기본 섬을 선택했습니다.")))
             .exceptionally(error -> {
-                deliverMessage(actorUuid, runtime.routeMessage("overview-island-select-failed", "소속된 섬만 기본 섬으로 선택할 수 있습니다."));
+                if (!superseded(error)) {
+                    deliverMessage(player, runtime.routeMessage("overview-island-select-failed", "소속된 섬만 기본 섬으로 선택할 수 있습니다."));
+                }
                 return null;
             });
     }
 
-    private void deliverMessage(UUID playerUuid, String message) {
-        PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> runtime.message(activePlayer, message));
+    private void deliverMessage(Player player, String message) {
+        PaperOnlinePlayer.run(plugin, player.getUniqueId(), activePlayer -> {
+            if (activePlayer == player) {
+                runtime.message(activePlayer, message);
+            }
+        });
+    }
+
+    private static boolean superseded(Throwable error) {
+        Throwable current = error;
+        while (current instanceof CompletionException && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current instanceof CoreApiException exception && exception.code().equals("ISLAND_SELECTION_SUPERSEDED");
+    }
+
+    private record SelectionRequest(long revision, UUID islandId) {
     }
 
     interface Runtime {

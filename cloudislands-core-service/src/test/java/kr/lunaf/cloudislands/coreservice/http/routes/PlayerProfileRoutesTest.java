@@ -28,6 +28,7 @@ import java.util.UUID;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
@@ -42,7 +43,7 @@ class PlayerProfileRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(13, paths.size());
+        assertEquals(14, paths.size());
         assertTrue(paths.contains("/v1/admin/players/info"));
         assertTrue(paths.contains("/v1/players/info"));
         assertTrue(paths.contains("/v1/players/touch"));
@@ -51,6 +52,7 @@ class PlayerProfileRoutesTest {
         assertTrue(paths.contains("/v1/players/world-border"));
         assertTrue(paths.contains("/v1/players/blocks-stacker"));
         assertTrue(paths.contains("/v1/players/border-color"));
+        assertTrue(paths.contains("/v1/players/select-island/reserve"));
         assertTrue(paths.contains("/v1/players/select-island"));
         assertTrue(paths.contains("/v1/admin/players/setisland"));
         assertTrue(paths.contains("/v1/admin/players/clearisland"));
@@ -72,6 +74,7 @@ class PlayerProfileRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/players/world-border"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/blocks-stacker"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/border-color"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/select-island/reserve"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/select-island"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/setisland"));
         assertEquals(Set.of("POST"), registry.methods("/v1/admin/players/clearisland"));
@@ -183,6 +186,39 @@ class PlayerProfileRoutesTest {
         assertTrue(banned.body().contains("ISLAND_SELECTION_DENIED"));
         assertTrue(profiles.find(bannedUuid).primaryIslandId().isEmpty());
         assertTrue(audit.toJson().contains("PLAYER_SELECT_ISLAND"));
+    }
+
+    @Test
+    void newerPrimaryIslandSelectionReservationRejectsLateOlderRequest() throws Exception {
+        UUID firstIsland = UUID.fromString("00000000-0000-0000-0000-000000000311");
+        UUID secondIsland = UUID.fromString("00000000-0000-0000-0000-000000000312");
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000313");
+        UUID secondOwner = UUID.fromString("00000000-0000-0000-0000-000000000314");
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        InMemoryIslandMetadataRepository metadata = new InMemoryIslandMetadataRepository();
+        islands.createOwnedIsland(firstIsland, playerUuid, "default", "First");
+        islands.createOwnedIsland(secondIsland, secondOwner, "default", "Second");
+        metadata.upsertMemberKey(secondIsland, playerUuid, CoreRoleKeys.MEMBER);
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new PlayerProfileRoutes(profiles, islands, metadata, new InMemoryAuditLogger()).register(handlers::put);
+
+        TestExchange reserveFirst = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\"}");
+        handlers.get("/v1/players/select-island/reserve").handle(reserveFirst);
+        long firstRevision = JsonFields.longValue(reserveFirst.body(), "selectionRevision", 0L);
+        TestExchange reserveSecond = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\"}");
+        handlers.get("/v1/players/select-island/reserve").handle(reserveSecond);
+        long secondRevision = JsonFields.longValue(reserveSecond.body(), "selectionRevision", 0L);
+
+        TestExchange newest = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + secondIsland + "\",\"selectionRevision\":" + secondRevision + "}");
+        handlers.get("/v1/players/select-island").handle(newest);
+        TestExchange lateOldest = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"islandId\":\"" + firstIsland + "\",\"selectionRevision\":" + firstRevision + "}");
+        handlers.get("/v1/players/select-island").handle(lateOldest);
+
+        assertEquals(202, newest.status());
+        assertEquals(409, lateOldest.status());
+        assertTrue(lateOldest.body().contains("ISLAND_SELECTION_SUPERSEDED"));
+        assertEquals(secondIsland, profiles.find(playerUuid).primaryIslandId().orElseThrow());
     }
 
     private static TestExchange exchange(UUID playerUuid, UUID islandId) {

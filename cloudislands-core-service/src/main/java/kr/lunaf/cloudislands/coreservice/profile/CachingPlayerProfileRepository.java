@@ -84,6 +84,16 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
     }
 
     @Override
+    public long reservePrimaryIslandSelection(UUID playerUuid) {
+        return delegate.reservePrimaryIslandSelection(playerUuid);
+    }
+
+    @Override
+    public Optional<PlayerIslandProfile> setPrimaryIslandIfSelectionCurrent(UUID playerUuid, UUID islandId, long selectionRevision) {
+        return delegate.setPrimaryIslandIfSelectionCurrent(playerUuid, islandId, selectionRevision).map(this::mutated);
+    }
+
+    @Override
     public PlayerIslandProfile clearPrimaryIsland(UUID playerUuid) {
         return mutated(delegate.clearPrimaryIsland(playerUuid));
     }

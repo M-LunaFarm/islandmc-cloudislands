@@ -14,6 +14,8 @@ public interface PlayerProfileRepository {
     PlayerIslandProfile setWorldBorderEnabled(UUID playerUuid, boolean enabled);
     PlayerIslandProfile setBlocksStackerEnabled(UUID playerUuid, boolean enabled);
     PlayerIslandProfile setBorderColor(UUID playerUuid, String color);
+    long reservePrimaryIslandSelection(UUID playerUuid);
+    Optional<PlayerIslandProfile> setPrimaryIslandIfSelectionCurrent(UUID playerUuid, UUID islandId, long selectionRevision);
     PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId);
     PlayerIslandProfile clearPrimaryIsland(UUID playerUuid);
     PlayerIslandProfile setDisbandsRemaining(UUID playerUuid, int value);

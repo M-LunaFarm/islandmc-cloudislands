@@ -60,4 +60,33 @@ class InMemoryPlayerProfileRepositoryTest {
         assertEquals(0, repository.addDisbandsRemaining(playerUuid, Integer.MIN_VALUE).disbandsRemaining());
         assertEquals(0, repository.addDisbandsRemaining(playerUuid, -1).disbandsRemaining());
     }
+
+    @Test
+    void onlyNewestReservedPrimaryIslandSelectionCanApply() {
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-0000000000b1");
+        UUID firstIsland = UUID.fromString("00000000-0000-0000-0000-0000000000b2");
+        UUID secondIsland = UUID.fromString("00000000-0000-0000-0000-0000000000b3");
+        InMemoryPlayerProfileRepository repository = new InMemoryPlayerProfileRepository();
+
+        long firstRevision = repository.reservePrimaryIslandSelection(playerUuid);
+        long secondRevision = repository.reservePrimaryIslandSelection(playerUuid);
+
+        assertTrue(repository.setPrimaryIslandIfSelectionCurrent(playerUuid, secondIsland, secondRevision).isPresent());
+        assertTrue(repository.setPrimaryIslandIfSelectionCurrent(playerUuid, firstIsland, firstRevision).isEmpty());
+        assertEquals(secondIsland, repository.find(playerUuid).primaryIslandId().orElseThrow());
+    }
+
+    @Test
+    void administrativePrimaryIslandMutationFencesPendingPlayerSelection() {
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-0000000000c1");
+        UUID pendingIsland = UUID.fromString("00000000-0000-0000-0000-0000000000c2");
+        UUID adminIsland = UUID.fromString("00000000-0000-0000-0000-0000000000c3");
+        InMemoryPlayerProfileRepository repository = new InMemoryPlayerProfileRepository();
+
+        long pendingRevision = repository.reservePrimaryIslandSelection(playerUuid);
+        repository.setPrimaryIsland(playerUuid, adminIsland);
+
+        assertTrue(repository.setPrimaryIslandIfSelectionCurrent(playerUuid, pendingIsland, pendingRevision).isEmpty());
+        assertEquals(adminIsland, repository.find(playerUuid).primaryIslandId().orElseThrow());
+    }
 }

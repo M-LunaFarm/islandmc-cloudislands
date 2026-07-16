@@ -148,7 +148,7 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = ?, updated_at = now() WHERE uuid = ?")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = ?, primary_island_selection_revision = primary_island_selection_revision + 1, updated_at = now() WHERE uuid = ?")) {
             statement.setObject(1, islandId);
             statement.setObject(2, playerUuid);
             statement.executeUpdate();
@@ -162,12 +162,57 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
     public PlayerIslandProfile clearPrimaryIsland(UUID playerUuid) {
         ensure(playerUuid);
         try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = NULL, updated_at = now() WHERE uuid = ?")) {
+             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = NULL, primary_island_selection_revision = primary_island_selection_revision + 1, updated_at = now() WHERE uuid = ?")) {
             statement.setObject(1, playerUuid);
             statement.executeUpdate();
             return find(playerUuid);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to clear player primary island", exception);
+        }
+    }
+
+    @Override
+    public long reservePrimaryIslandSelection(UUID playerUuid) {
+        ensure(playerUuid);
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement update = connection.prepareStatement("UPDATE player_profiles SET primary_island_selection_revision = primary_island_selection_revision + 1, updated_at = now() WHERE uuid = ?");
+                 PreparedStatement read = connection.prepareStatement("SELECT primary_island_selection_revision FROM player_profiles WHERE uuid = ?")) {
+                update.setObject(1, playerUuid);
+                update.executeUpdate();
+                read.setObject(1, playerUuid);
+                long revision;
+                try (ResultSet result = read.executeQuery()) {
+                    if (!result.next()) {
+                        throw new SQLException("player profile disappeared while reserving island selection");
+                    }
+                    revision = result.getLong(1);
+                }
+                connection.commit();
+                return revision;
+            } catch (SQLException | RuntimeException exception) {
+                connection.rollback();
+                throw exception;
+            }
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to reserve player primary island selection", exception);
+        }
+    }
+
+    @Override
+    public Optional<PlayerIslandProfile> setPrimaryIslandIfSelectionCurrent(UUID playerUuid, UUID islandId, long selectionRevision) {
+        if (selectionRevision <= 0L) {
+            return Optional.empty();
+        }
+        ensure(playerUuid);
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET primary_island_id = ?, updated_at = now() WHERE uuid = ? AND primary_island_selection_revision = ?")) {
+            statement.setObject(1, islandId);
+            statement.setObject(2, playerUuid);
+            statement.setLong(3, selectionRevision);
+            return statement.executeUpdate() == 1 ? Optional.of(find(playerUuid)) : Optional.empty();
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to apply current player primary island selection", exception);
         }
     }
 

@@ -9,6 +9,7 @@ import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 
 public final class InMemoryPlayerProfileRepository implements PlayerProfileRepository {
     private final Map<UUID, PlayerIslandProfile> profiles = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> primaryIslandSelectionRevisions = new ConcurrentHashMap<>();
 
     @Override
     public PlayerIslandProfile find(UUID playerUuid) {
@@ -82,7 +83,8 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     }
 
     @Override
-    public PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
+    public synchronized PlayerIslandProfile setPrimaryIsland(UUID playerUuid, UUID islandId) {
+        primaryIslandSelectionRevisions.merge(playerUuid, 1L, InMemoryPlayerProfileRepository::incrementRevision);
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
             return copy(current, current.lastName(), Optional.of(islandId), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled());
@@ -90,11 +92,29 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     }
 
     @Override
-    public PlayerIslandProfile clearPrimaryIsland(UUID playerUuid) {
+    public synchronized PlayerIslandProfile clearPrimaryIsland(UUID playerUuid) {
+        primaryIslandSelectionRevisions.merge(playerUuid, 1L, InMemoryPlayerProfileRepository::incrementRevision);
         return profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
             return copy(current, current.lastName(), Optional.empty(), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled());
         });
+    }
+
+    @Override
+    public synchronized long reservePrimaryIslandSelection(UUID playerUuid) {
+        return primaryIslandSelectionRevisions.merge(playerUuid, 1L, InMemoryPlayerProfileRepository::incrementRevision);
+    }
+
+    @Override
+    public synchronized Optional<PlayerIslandProfile> setPrimaryIslandIfSelectionCurrent(UUID playerUuid, UUID islandId, long selectionRevision) {
+        if (selectionRevision <= 0L || primaryIslandSelectionRevisions.getOrDefault(playerUuid, 0L) != selectionRevision) {
+            return Optional.empty();
+        }
+        PlayerIslandProfile updated = profiles.compute(playerUuid, (_uuid, stored) -> {
+            PlayerIslandProfile current = current(playerUuid, stored);
+            return copy(current, current.lastName(), Optional.of(islandId), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), current.islandFlyEnabled(), current.worldBorderEnabled(), current.blocksStackerEnabled());
+        });
+        return Optional.of(updated);
     }
 
     @Override
@@ -127,5 +147,9 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
         } catch (ArithmeticException overflow) {
             return delta > 0 ? Integer.MAX_VALUE : 0;
         }
+    }
+
+    private static long incrementRevision(long current, long ignored) {
+        return current == Long.MAX_VALUE ? Long.MAX_VALUE : current + 1L;
     }
 }

@@ -925,7 +925,7 @@ class IslandCommandControllerPolicyTest {
         assertFalse(membership.contains("transferOwnershipAction(islandId, player.getUniqueId()"), "ownership callbacks must not read Bukkit Player identity");
         assertFalse(membership.contains("banVisitorAction(islandId, player.getUniqueId()"), "visitor callbacks must not read Bukkit Player identity");
         assertTrue(membership.contains("resolveInviteTarget(UUID actorUuid, String target)"), "invite resolution must carry immutable actor identity");
-        assertTrue(overview.contains("selectPrimaryIsland(actorUuid, islandId)"), "primary-island selection must use the pre-resolved actor identity");
+        assertTrue(overview.contains("selectPrimaryIsland(actorUuid, request.islandId(), request.revision())"), "primary-island selection must use the pre-resolved actor identity and reserved newest-intent revision");
         assertTrue(progression.contains("recalculateLevelView(islandId, actorUuid)"), "level rescans must retain the command-thread actor identity");
         assertTrue(environment.contains("setWorldBorderEnabled(playerUuid, enabled)"), "visual preference callbacks must use immutable player identity");
         assertTrue(environment.contains("thenCompose(profile -> setStackedBlockVisibility(playerUuid"), "stacked-block toggles must keep profile reads and writes in one observable completion chain");
@@ -1020,7 +1020,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(overviewHandler.contains("thenAccept(islandId -> PaperOnlinePlayer.run(plugin, playerUuid, activePlayer"), "resolved target info must re-resolve the current online player");
         assertTrue(overviewHandler.contains("GuiSessions.isCurrent(activePlayer, session)"), "resolved target info must discard stale responses");
         assertTrue(overviewHandler.contains("GuiStateMenus.openError(plugin, activePlayer, session"), "target lookup failures must replace the matching loading session with an actionable error state");
-        assertTrue(overviewHandler.contains("thenAccept(profile -> deliverMessage(actorUuid"), "primary-island selection feedback must use the online-player delivery boundary");
+        assertTrue(overviewHandler.contains("reservePrimaryIslandSelection(actorUuid)"), "primary-island selection must reserve a Core-authoritative newest-intent revision before mutation");
+        assertTrue(overviewHandler.contains("thenAccept(profile -> deliverMessage(player"), "primary-island selection feedback must retain the initiating player connection");
+        assertTrue(overviewHandler.contains("if (activePlayer == player)"), "primary-island selection feedback must reject replacement connections");
     }
 
     @Test

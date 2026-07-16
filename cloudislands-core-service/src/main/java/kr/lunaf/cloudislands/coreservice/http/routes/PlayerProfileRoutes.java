@@ -46,6 +46,7 @@ public final class PlayerProfileRoutes implements RouteGroup {
         registry.routePost("/v1/players/world-border", this::worldBorder);
         registry.routePost("/v1/players/blocks-stacker", this::blocksStacker);
         registry.routePost("/v1/players/border-color", this::borderColor);
+        registry.routePost("/v1/players/select-island/reserve", this::reserveIslandSelection);
         registry.routePost("/v1/players/select-island", this::selectIsland);
         registry.routePost("/v1/admin/players/setisland", this::setIsland);
         registry.routePost("/v1/admin/players/clearisland", this::clearIsland);
@@ -64,8 +65,25 @@ public final class PlayerProfileRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 403, ApiResponses.error("ISLAND_SELECTION_DENIED", "Player does not belong to the selected island"));
             return;
         }
-        audit.log(playerUuid, "PLAYER", "PLAYER_SELECT_ISLAND", "ISLAND", islandId.toString(), Map.of("islandId", islandId.toString()));
-        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setPrimaryIsland(playerUuid, islandId)));
+        long suppliedRevision = JsonFields.longValue(body, "selectionRevision", 0L);
+        long selectionRevision = suppliedRevision > 0L ? suppliedRevision : playerProfiles.reservePrimaryIslandSelection(playerUuid);
+        var selected = playerProfiles.setPrimaryIslandIfSelectionCurrent(playerUuid, islandId, selectionRevision);
+        if (selected.isEmpty()) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("ISLAND_SELECTION_SUPERSEDED", "A newer primary island selection replaced this request"));
+            return;
+        }
+        audit.log(playerUuid, "PLAYER", "PLAYER_SELECT_ISLAND", "ISLAND", islandId.toString(), Map.of(
+            "islandId", islandId.toString(),
+            "selectionRevision", Long.toString(selectionRevision)
+        ));
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(selected.orElseThrow()));
+    }
+
+    private void reserveIslandSelection(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        long selectionRevision = playerProfiles.reservePrimaryIslandSelection(playerUuid);
+        CoreHttpResponses.write(exchange, 202, SimpleJson.stringify(Map.of("selectionRevision", selectionRevision)));
     }
 
     private void adminInfo(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

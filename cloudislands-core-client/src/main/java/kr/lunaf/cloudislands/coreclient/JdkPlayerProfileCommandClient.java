@@ -88,6 +88,27 @@ final class JdkPlayerProfileCommandClient implements PlayerProfileCommandClient 
     }
 
     @Override
+    public CompletableFuture<Long> reservePrimaryIslandSelection(UUID playerUuid) {
+        requireId(playerUuid, "playerUuid");
+        return core.postResultBody("/v1/players/select-island/reserve", CoreJsonPayload.object("playerUuid", playerUuid))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreJson::object)
+            .thenApply(value -> CoreJson.number(value, "selectionRevision"));
+    }
+
+    @Override
+    public CompletableFuture<PlayerProfileView> selectPrimaryIsland(UUID playerUuid, UUID islandId, long selectionRevision) {
+        requireId(playerUuid, "playerUuid");
+        requireId(islandId, "islandId");
+        if (selectionRevision <= 0L) {
+            throw new IllegalArgumentException("selectionRevision must be positive");
+        }
+        return core.postResultBody("/v1/players/select-island", CoreJsonPayload.object("playerUuid", playerUuid, "islandId", islandId, "selectionRevision", selectionRevision))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
     public CompletableFuture<PlayerProfileView> clearPrimaryIsland(UUID playerUuid) {
         requireId(playerUuid, "playerUuid");
         return core.postResultBody("/v1/admin/players/clearisland", CoreJsonPayload.object("playerUuid", playerUuid))

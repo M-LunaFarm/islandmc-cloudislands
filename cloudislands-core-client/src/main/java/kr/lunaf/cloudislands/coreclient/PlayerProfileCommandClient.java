@@ -18,9 +18,13 @@ public interface PlayerProfileCommandClient {
 
     CompletableFuture<PlayerProfileView> setBorderColor(UUID playerUuid, String color);
 
+    CompletableFuture<Long> reservePrimaryIslandSelection(UUID playerUuid);
+
     CompletableFuture<PlayerProfileView> setPrimaryIsland(UUID playerUuid, UUID islandId);
 
     CompletableFuture<PlayerProfileView> selectPrimaryIsland(UUID playerUuid, UUID islandId);
+
+    CompletableFuture<PlayerProfileView> selectPrimaryIsland(UUID playerUuid, UUID islandId, long selectionRevision);
 
     CompletableFuture<PlayerProfileView> clearPrimaryIsland(UUID playerUuid);
 
