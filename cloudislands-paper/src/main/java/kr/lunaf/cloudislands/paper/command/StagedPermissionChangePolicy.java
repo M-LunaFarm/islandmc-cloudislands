@@ -8,8 +8,8 @@ final class StagedPermissionChangePolicy {
     private StagedPermissionChangePolicy() {
     }
 
-    static void removeSaved(Map<String, PermissionChange> current, List<PermissionChange> saved) {
-        if (current == null || current.isEmpty() || saved == null || saved.isEmpty()) {
+    static void removeSaved(Map<String, PermissionChange> current, Map<String, PermissionChange> stagedSession, List<PermissionChange> saved) {
+        if (current == null || current != stagedSession || current.isEmpty() || saved == null || saved.isEmpty()) {
             return;
         }
         saved.forEach(change -> current.remove(change.key(), change));

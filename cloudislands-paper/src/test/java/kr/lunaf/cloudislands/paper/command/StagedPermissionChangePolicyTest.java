@@ -21,9 +21,20 @@ class StagedPermissionChangePolicyTest {
             savedContainer.key(), savedContainer
         ));
 
-        StagedPermissionChangePolicy.removeSaved(current, List.of(savedBuild, savedContainer));
+        StagedPermissionChangePolicy.removeSaved(current, current, List.of(savedBuild, savedContainer));
 
         assertEquals(newerBuild, current.get(newerBuild.key()));
         assertFalse(current.containsKey(savedContainer.key()));
+    }
+
+    @Test
+    void doesNotClearEqualChangesFromReplacementConnectionSession() {
+        PermissionChange savedBuild = new PermissionChange("MEMBER", IslandPermission.BUILD, true, "v1");
+        Map<String, PermissionChange> originalSession = new ConcurrentHashMap<>(Map.of(savedBuild.key(), savedBuild));
+        Map<String, PermissionChange> replacementSession = new ConcurrentHashMap<>(Map.of(savedBuild.key(), savedBuild));
+
+        StagedPermissionChangePolicy.removeSaved(replacementSession, originalSession, List.of(savedBuild));
+
+        assertEquals(savedBuild, replacementSession.get(savedBuild.key()));
     }
 }

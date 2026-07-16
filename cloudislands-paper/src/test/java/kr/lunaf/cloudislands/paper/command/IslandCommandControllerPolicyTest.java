@@ -922,12 +922,17 @@ class IslandCommandControllerPolicyTest {
         String chat = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java"));
 
         assertTrue(permissions.contains("saveStagedChangesSequentially(islandId, actorUuid, changes)"));
-        assertTrue(permissions.contains("StagedPermissionChangePolicy.removeSaved(current, savedChanges)"), "completed saves must preserve permission edits staged while the save was in flight");
-        assertTrue(permissions.contains("PaperOnlinePlayer.run(plugin, actorUuid, activePlayer"), "permission GUI completion must re-resolve the current online player");
+        assertTrue(permissions.contains("StagedPermissionChangePolicy.removeSaved(current, stagedSession, savedChanges)"), "completed saves must preserve permission edits staged by another connection or while the save was in flight");
+        assertTrue(permissions.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "permission callbacks must retain the exact initiating player connection");
+        assertTrue(permissions.contains("playerSession.isCurrent(activePlayer)"), "permission messages must reject a same-UUID replacement connection");
+        assertTrue(permissions.contains("GuiStateMenus.openSuccess(plugin, playerSession.expectedPlayer(), guiSession"), "permission save success must retain the initiating player connection and GUI session");
+        assertTrue(permissions.contains("GuiStateMenus.openConflict(plugin, playerSession.expectedPlayer(), guiSession"), "permission save conflicts must retain the initiating player connection and GUI session");
         assertTrue(permissions.contains("thenCompose(targetUuid -> permissionUseCase.setPermissionOverrideAction"), "permission target lookup and mutation must form one observable completion chain");
         assertFalse(permissions.contains("thenAccept(result -> runtime.message(player"), "permission callbacks must not message a captured Player");
         assertFalse(permissions.contains("GuiStateMenus.openSuccess(plugin, player, session"), "permission save completion must not update a captured Player GUI");
         assertFalse(permissions.contains("setPermissionOverrideAction(islandId, player.getUniqueId()"), "permission resolution callbacks must use a command-thread identity snapshot");
+        assertFalse(permissions.contains("private void deliverMessage(UUID playerUuid"), "UUID-only permission feedback must not survive a reconnect");
+        assertFalse(permissions.contains("deliverMessage(actorUuid"), "permission mutation feedback must retain its initiating connection session");
         assertFalse(membership.contains("removeMemberAction(islandId, player.getUniqueId()"), "membership callbacks must not read Bukkit Player identity");
         assertFalse(membership.contains("setRoleAction(islandId, player.getUniqueId()"), "role callbacks must not read Bukkit Player identity");
         assertFalse(membership.contains("transferOwnershipAction(islandId, player.getUniqueId()"), "ownership callbacks must not read Bukkit Player identity");
