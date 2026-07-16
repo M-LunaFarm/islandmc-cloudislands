@@ -35,6 +35,23 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void adminNodeMenuRejectsReplacedConnectionsAndOlderRequests() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+
+        assertTrue(source.contains("GuiSession menuSession = GuiSessions.begin(player, \"admin.node\")"),
+            "the menu request must reserve its revision before starting the Core lookup");
+        assertTrue(source.contains("GuiStateMenus.openLoading(agent.plugin(), player, menuSession"),
+            "the reserved session must own the visible loading state");
+        assertTrue(source.contains("thenAccept(summary -> openNodeMenuIfCurrent(player, menuSession, menuMessages, summary))"));
+        assertTrue(source.contains("openNodeMenuIfCurrent(player, menuSession, menuMessages, null)"),
+            "the fallback response must share the same stale-response fence");
+        assertTrue(source.contains("GuiSessions.runIfCurrent(agent.plugin(), player, menuSession"),
+            "the final menu must require both the exact Player instance and newest GUI revision");
+        assertFalse(source.contains("PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player"),
+            "raw async callbacks must not reopen an admin menu for a stale Player instance");
+    }
+
+    @Test
     void pluginPermissionNodesAreBackedByCommandOrRuntimeChecks() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String boundaryListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandBoundaryListener.java"));

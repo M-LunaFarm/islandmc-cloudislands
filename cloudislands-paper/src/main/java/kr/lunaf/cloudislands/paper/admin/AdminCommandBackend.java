@@ -78,6 +78,9 @@ import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminStorageMenu;
+import kr.lunaf.cloudislands.paper.gui.GuiSession;
+import kr.lunaf.cloudislands.paper.gui.GuiSessions;
+import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
 import kr.lunaf.cloudislands.paper.gui.IslandChatMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandCreateMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMainMenu;
@@ -1214,10 +1217,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private boolean handleNode(CommandSender sender, String[] args) {
         if (args.length > 1 && args[1].equalsIgnoreCase("menu")) {
             if (sender instanceof Player player) {
+                MessageRenderer menuMessages = messagesFor(player);
+                GuiSession menuSession = GuiSessions.begin(player, "admin.node");
+                GuiStateMenus.openLoading(agent.plugin(), player, menuSession, menuMessages, adminText("admin-node-menu-title", "섬 노드 관리"));
                 coreApiClient.adminNodes().nodeInfo(nodeId)
-                    .thenAccept(summary -> kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, summary, messagesFor(player))))
+                    .thenAccept(summary -> openNodeMenuIfCurrent(player, menuSession, menuMessages, summary))
                     .exceptionally(error -> {
-                        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> AdminNodeMenu.open(player, nodeId, messagesFor(player)));
+                        openNodeMenuIfCurrent(player, menuSession, menuMessages, null);
                         return null;
                     });
             } else {
@@ -1270,6 +1276,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin node shutdown-safe [node]"
         ));
         return true;
+    }
+
+    private void openNodeMenuIfCurrent(Player player, GuiSession menuSession, MessageRenderer menuMessages, CoreGuiViews.NodeSummaryView summary) {
+        GuiSessions.runIfCurrent(agent.plugin(), player, menuSession, () -> {
+            if (summary == null) {
+                AdminNodeMenu.open(player, nodeId, menuMessages);
+            } else {
+                AdminNodeMenu.open(player, nodeId, summary, menuMessages);
+            }
+        });
     }
 
     private CompletableFuture<CharSequence> islandWhereMessage(String target) {
