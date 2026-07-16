@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.247`
+Version: `1.1.248`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -732,9 +732,21 @@ integration-certified.
 
 ## Release
 
-Current release: `v1.1.247`
+Current release: `v1.1.248`
 
-Built for the CloudIslands 1.1.247 baseline.
+Built for the CloudIslands 1.1.248 baseline.
+
+Release notes for `v1.1.248`:
+
+- `/ciadmin node menu` now reserves a GUI revision before requesting node data,
+  so a slower older response cannot replace the operator's newer menu
+- the loading, success, and fallback paths share `GuiSessions.runIfCurrent`,
+  which re-resolves the current online Player and requires the exact initiating
+  connection before opening an inventory
+- disconnects, reconnects, world changes, closed loading menus, and newer GUI
+  actions now discard delayed Core responses instead of reopening stale state
+- focused admin policy tests and the existing GUI/parity evidence gates certify
+  both the newest-intent and same-connection boundaries
 
 Release notes for `v1.1.247`:
 
