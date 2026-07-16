@@ -527,7 +527,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "bundle validation, extraction, migration, and rollback paths have tests",
         "Paper snapshot and restore hooks compile and 1.21.x boots",
         "bundle compatibility is checked before restore",
-        "ciIntegrationSmoke verifies recovery restore with shared services; Paper policy tests verify delayed snapshot list/create/restore responses cross the scheduler and re-resolve the current online player, while migration return tickets retain the initiating Player instance across polling, route-session publication, proxy transfer, failure feedback, and delayed BossBar cleanup",
+        "ciIntegrationSmoke verifies recovery restore with shared services; Paper policy tests verify delayed snapshot list/create/restore responses cross the scheduler and retain the exact initiating Player connection instead of a same-UUID replacement, while migration return tickets retain the initiating Player instance across polling, route-session publication, proxy transfer, failure feedback, and delayed BossBar cleanup",
         "node-down recovery and bundle compatibility are verified",
         listOf(
             "cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/world/bundle/ExternalTarBundleExtractorTest.java",

@@ -348,11 +348,14 @@ class IslandCommandControllerPolicyTest {
         assertTrue(snapshotHandler.contains("snapshotUseCase.snapshotViews("));
         assertTrue(snapshotHandler.contains("snapshotUseCase.requestSnapshotAction("));
         assertTrue(snapshotHandler.contains("snapshotUseCase.restoreSnapshotAction("));
-        assertTrue(snapshotHandler.contains("deliverMessage(playerUuid"), "snapshot callbacks must retain immutable player identity");
+        assertTrue(snapshotHandler.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "snapshot callbacks must retain the initiating connection");
+        assertTrue(snapshotHandler.contains("deliverMessage(playerSession"), "snapshot callbacks must deliver through the initiating connection");
         assertTrue(snapshotHandler.contains("PaperSchedulers.run(plugin"), "snapshot result delivery must return to the Paper scheduler");
-        assertTrue(snapshotHandler.contains("plugin.getServer().getPlayer(playerUuid)"), "snapshot callbacks must re-resolve the current online player");
+        assertTrue(snapshotHandler.contains("plugin.getServer().getPlayer(playerSession.playerUuid())"), "snapshot callbacks must re-resolve the current online player");
+        assertTrue(snapshotHandler.contains("playerSession.isCurrent(activePlayer)"), "snapshot callbacks must reject a same-UUID replacement connection");
         assertFalse(snapshotHandler.contains("thenAccept(snapshots -> runtime.message(player"), "snapshot reads must not message a captured Player");
         assertFalse(snapshotHandler.contains("thenAccept(result -> runtime.message(player"), "snapshot mutations must not message a captured Player");
+        assertFalse(snapshotHandler.contains("deliverMessage(playerUuid"), "UUID-only delivery must not let a replacement connection inherit an older restore response");
         assertTrue(snapshotHandler.contains("openRestoreConfirmation(player, SnapshotUseCase.positiveSnapshotNo(args[1]))"), "typed restore command must open confirmation before mutation");
         assertTrue(snapshotHandler.contains("private void openRestoreConfirmation(Player player, long snapshotNo)"), "snapshot restore confirmation must be shared by command and GUI flows");
         assertTrue(snapshotHandler.contains("\"island.snapshot.restore.confirm\""), "snapshot restore must use the token-protected confirm action");
