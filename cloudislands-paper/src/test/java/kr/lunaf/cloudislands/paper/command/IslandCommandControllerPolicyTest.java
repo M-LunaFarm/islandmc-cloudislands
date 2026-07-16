@@ -851,9 +851,16 @@ class IslandCommandControllerPolicyTest {
         assertTrue(visitReviewHandler.indexOf("if (subcommand.equals(\"visitors\"))") < visitReviewHandler.indexOf("if (subcommand.equals(\"visitor-stats\")"), "visitors must list current guests before historical-stat aliases are evaluated");
         assertTrue(visitReviewHandler.contains("navigationUseCase.setReviewAction"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.deleteReviewAction"));
-        assertTrue(visitReviewHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid"), "review callbacks must use the shared online-player delivery boundary");
+        assertTrue(visitReviewHandler.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "review reads and mutations must retain the exact initiating player connection");
+        assertTrue(visitReviewHandler.contains("PlayerConnectionSession viewerSession = PlayerConnectionSession.capture(player)"), "current visitor reads must retain the exact initiating viewer connection");
+        assertTrue(visitReviewHandler.contains("viewerSession.isCurrent(activeViewer)"), "current visitor reads must reject a same-UUID replacement viewer");
+        assertTrue(visitReviewHandler.contains("playerSession.isCurrent(activePlayer)"), "review feedback must reject a same-UUID replacement connection");
+        assertTrue(visitReviewHandler.contains("deliverIslandMessage(playerSession, islandId"), "island-scoped review and visitor-stat results must retain their initiating island");
+        assertTrue(visitReviewHandler.contains("runtime.currentIsland(activePlayer).filter(islandId::equals).isPresent()"), "island-scoped results must be discarded after the viewer changes islands");
         assertTrue(visitReviewHandler.contains("setReviewAction(islandId, playerUuid"), "review writes must retain immutable reviewer identity");
         assertTrue(visitReviewHandler.contains("deleteReviewAction(islandId, playerUuid"), "review deletes must retain immutable reviewer identity");
+        assertFalse(visitReviewHandler.contains("private void deliverMessage(UUID playerUuid"), "UUID-only review feedback must not survive a reconnect");
+        assertFalse(visitReviewHandler.contains("deliverMessage(playerUuid"), "review mutation feedback must retain its initiating connection session");
         assertFalse(visitReviewHandler.contains("thenAccept(islands -> runtime.message(player"), "public island reads must not message a captured Player");
         assertFalse(visitReviewHandler.contains("thenAccept(result -> {\n                if (!result.accepted()) {\n                    runtime.message(player"), "review mutations must not message a captured Player");
         assertFalse(visitReviewHandler.contains("coreApiClient.createVisitTicket"));

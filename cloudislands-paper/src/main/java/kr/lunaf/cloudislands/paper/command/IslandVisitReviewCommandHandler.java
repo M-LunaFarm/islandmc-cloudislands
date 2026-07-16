@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
+import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewActionResult;
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewListView;
@@ -139,11 +140,12 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void listCurrentVisitors(Player player) {
+        PlayerConnectionSession viewerSession = PlayerConnectionSession.capture(player);
         runtime.currentIsland(player, message("visitors-island-required", "섬 안에서만 현재 방문자를 확인할 수 있습니다.")).ifPresent(islandId -> {
-            UUID viewerUuid = player.getUniqueId();
+            UUID viewerUuid = viewerSession.playerUuid();
             coreApiClient.islands().memberSnapshots(islandId).whenComplete((members, error) -> PaperSchedulers.run(plugin, () -> {
                 Player activeViewer = plugin.getServer().getPlayer(viewerUuid);
-                if (activeViewer == null || !activeViewer.isOnline()) {
+                if (!viewerSession.isCurrent(activeViewer)) {
                     return;
                 }
                 if (error != null || members == null) {
@@ -187,22 +189,22 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void listPublicIslands(Player player, int limit) {
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
         navigationUseCase.publicIslandViews(limit)
-            .thenAccept(islands -> deliverMessage(playerUuid, publicIslandListMessage(islands)))
+            .thenAccept(islands -> deliverMessage(playerSession, publicIslandListMessage(islands)))
             .exceptionally(error -> {
-                deliverMessage(playerUuid, message("public-island-list-load-failed", "공개 섬 목록을 불러오지 못했습니다."));
+                deliverMessage(playerSession, message("public-island-list-load-failed", "공개 섬 목록을 불러오지 못했습니다."));
                 return null;
             });
     }
 
     private void listIslandReviews(Player player, int limit) {
         runtime.currentIsland(player, message("review-list-island-required", "섬 안에서만 후기를 확인할 수 있습니다.")).ifPresent(islandId -> {
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
             navigationUseCase.reviewViews(islandId, limit)
-                .thenAccept(reviews -> deliverMessage(playerUuid, reviewListMessage(reviews)))
+                .thenAccept(reviews -> deliverIslandMessage(playerSession, islandId, reviewListMessage(reviews)))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("review-list-load-failed", "섬 후기를 불러오지 못했습니다."));
+                    deliverIslandMessage(playerSession, islandId, message("review-list-load-failed", "섬 후기를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -210,11 +212,11 @@ final class IslandVisitReviewCommandHandler {
 
     private void listVisitorStats(Player player, int limit) {
         runtime.currentIsland(player, message("visitor-stats-island-required", "섬 안에서만 방문 통계를 확인할 수 있습니다.")).ifPresent(islandId -> {
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
             navigationUseCase.visitorStats(islandId, limit)
-                .thenAccept(stats -> deliverMessage(playerUuid, visitorStatsMessage(stats)))
+                .thenAccept(stats -> deliverIslandMessage(playerSession, islandId, visitorStatsMessage(stats)))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("visitor-stats-load-failed", "방문 통계를 불러오지 못했습니다."));
+                    deliverIslandMessage(playerSession, islandId, message("visitor-stats-load-failed", "방문 통계를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -238,17 +240,18 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void submitIslandReview(Player player, UUID islandId, int rating, String comment) {
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        UUID playerUuid = playerSession.playerUuid();
         navigationUseCase.setReviewAction(islandId, playerUuid, rating, comment, runtime::mutateIdempotent)
             .thenAccept(result -> {
                 if (!result.accepted()) {
-                    deliverMessage(playerUuid, reviewFailureMessage(result));
+                    deliverMessage(playerSession, reviewFailureMessage(result));
                     return;
                 }
-                deliverMessage(playerUuid, message("review-save-success-prefix", "섬 평가 저장 완료: ") + rating + "/5");
+                deliverMessage(playerSession, message("review-save-success-prefix", "섬 평가 저장 완료: ") + rating + "/5");
             })
             .exceptionally(error -> {
-                deliverMessage(playerUuid, runtime.coreWriteFailureMessage(error, message("review-save-failed", "섬 평가를 저장하지 못했습니다.")));
+                deliverMessage(playerSession, runtime.coreWriteFailureMessage(error, message("review-save-failed", "섬 평가를 저장하지 못했습니다.")));
                 return null;
             });
     }
@@ -267,19 +270,20 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void submitReviewDelete(Player player, UUID islandId) {
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        UUID playerUuid = playerSession.playerUuid();
         navigationUseCase.deleteReviewAction(islandId, playerUuid, runtime::mutateIdempotent)
             .thenAccept(result -> {
                 if (!result.accepted()) {
-                    deliverMessage(playerUuid, result.code().equals("REVIEW_NOT_FOUND")
+                    deliverMessage(playerSession, result.code().equals("REVIEW_NOT_FOUND")
                         ? message("review-delete-not-found", "삭제할 섬 후기가 없습니다.")
                         : runtime.playerCodeMessage(result.code(), message("review-delete-failed", "섬 후기를 삭제하지 못했습니다.")));
                     return;
                 }
-                deliverMessage(playerUuid, message("review-delete-success", "섬 후기 삭제 완료"));
+                deliverMessage(playerSession, message("review-delete-success", "섬 후기 삭제 완료"));
             })
             .exceptionally(error -> {
-                deliverMessage(playerUuid, runtime.coreWriteFailureMessage(error, message("review-delete-failed", "섬 후기를 삭제하지 못했습니다.")));
+                deliverMessage(playerSession, runtime.coreWriteFailureMessage(error, message("review-delete-failed", "섬 후기를 삭제하지 못했습니다.")));
                 return null;
             });
     }
@@ -363,8 +367,29 @@ final class IslandVisitReviewCommandHandler {
         return builder.toString();
     }
 
-    private void deliverMessage(UUID playerUuid, String detail) {
-        PaperOnlinePlayer.run(plugin, playerUuid, player -> runtime.message(player, detail));
+    private void deliverMessage(PlayerConnectionSession playerSession, String detail) {
+        PaperSchedulers.run(plugin, () -> messageCurrentPlayer(playerSession, detail));
+    }
+
+    private void deliverIslandMessage(PlayerConnectionSession playerSession, UUID islandId, String detail) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = currentPlayer(playerSession);
+            if (activePlayer != null && runtime.currentIsland(activePlayer).filter(islandId::equals).isPresent()) {
+                runtime.message(activePlayer, detail);
+            }
+        });
+    }
+
+    private void messageCurrentPlayer(PlayerConnectionSession playerSession, String detail) {
+        Player activePlayer = currentPlayer(playerSession);
+        if (activePlayer != null) {
+            runtime.message(activePlayer, detail);
+        }
+    }
+
+    private Player currentPlayer(PlayerConnectionSession playerSession) {
+        Player activePlayer = plugin.getServer().getPlayer(playerSession.playerUuid());
+        return playerSession.isCurrent(activePlayer) ? activePlayer : null;
     }
 
     private String message(String key, String fallback) {
