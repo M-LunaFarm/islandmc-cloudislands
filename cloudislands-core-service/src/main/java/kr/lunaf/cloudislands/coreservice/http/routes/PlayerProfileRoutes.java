@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
 
 public final class PlayerProfileRoutes implements RouteGroup {
     private static final UUID EMPTY_UUID = new UUID(0L, 0L);
+    private static final String ISLAND_FLY_PREFERENCE = "island-fly";
 
     private final PlayerProfileRepository playerProfiles;
     private final AuditLogger audit;
@@ -42,6 +43,7 @@ public final class PlayerProfileRoutes implements RouteGroup {
         registry.routePost("/v1/players/info", this::info);
         registry.routePost("/v1/players/touch", this::touch);
         registry.routePost("/v1/players/locale", this::locale);
+        registry.routePost("/v1/players/preferences/reserve", this::reservePreferenceMutation);
         registry.routePost("/v1/players/island-fly", this::islandFly);
         registry.routePost("/v1/players/world-border", this::worldBorder);
         registry.routePost("/v1/players/blocks-stacker", this::blocksStacker);
@@ -124,8 +126,29 @@ public final class PlayerProfileRoutes implements RouteGroup {
         String body = CoreHttpResponses.readBody(exchange);
         UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
         boolean enabled = JsonFields.bool(body, "enabled", false);
+        long suppliedRevision = JsonFields.longValue(body, "preferenceRevision", 0L);
+        long preferenceRevision = suppliedRevision > 0L
+            ? suppliedRevision
+            : playerProfiles.reservePreferenceMutation(playerUuid, ISLAND_FLY_PREFERENCE);
+        var updated = playerProfiles.setIslandFlyEnabledIfPreferenceCurrent(playerUuid, enabled, ISLAND_FLY_PREFERENCE, preferenceRevision);
+        if (updated.isEmpty()) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("PLAYER_PREFERENCE_SUPERSEDED", "A newer player preference request replaced this mutation"));
+            return;
+        }
         audit.log(playerUuid, "PLAYER", "PLAYER_ISLAND_FLY_SET", "PLAYER", playerUuid.toString(), Map.of("enabled", Boolean.toString(enabled)));
-        CoreHttpResponses.write(exchange, 202, playerProfileJson(playerProfiles.setIslandFlyEnabled(playerUuid, enabled)));
+        CoreHttpResponses.write(exchange, 202, playerProfileJson(updated.orElseThrow()));
+    }
+
+    private void reservePreferenceMutation(com.sun.net.httpserver.HttpExchange exchange) throws IOException {
+        String body = CoreHttpResponses.readBody(exchange);
+        UUID playerUuid = JsonFields.uuid(body, "playerUuid", EMPTY_UUID);
+        String preferenceKey = JsonFields.text(body, "preferenceKey", "");
+        if (!ISLAND_FLY_PREFERENCE.equals(preferenceKey)) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("PLAYER_PREFERENCE_KEY_INVALID", "Unsupported player preference key"));
+            return;
+        }
+        long preferenceRevision = playerProfiles.reservePreferenceMutation(playerUuid, preferenceKey);
+        CoreHttpResponses.write(exchange, 202, SimpleJson.stringify(Map.of("preferenceRevision", preferenceRevision)));
     }
 
     private void worldBorder(com.sun.net.httpserver.HttpExchange exchange) throws IOException {

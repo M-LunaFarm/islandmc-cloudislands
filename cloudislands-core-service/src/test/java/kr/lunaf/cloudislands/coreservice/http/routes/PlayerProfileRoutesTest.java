@@ -43,11 +43,12 @@ class PlayerProfileRoutesTest {
 
         assertDoesNotThrow(() -> routes.register((path, handler) -> paths.add(path)));
 
-        assertEquals(14, paths.size());
+        assertEquals(15, paths.size());
         assertTrue(paths.contains("/v1/admin/players/info"));
         assertTrue(paths.contains("/v1/players/info"));
         assertTrue(paths.contains("/v1/players/touch"));
         assertTrue(paths.contains("/v1/players/locale"));
+        assertTrue(paths.contains("/v1/players/preferences/reserve"));
         assertTrue(paths.contains("/v1/players/island-fly"));
         assertTrue(paths.contains("/v1/players/world-border"));
         assertTrue(paths.contains("/v1/players/blocks-stacker"));
@@ -70,6 +71,7 @@ class PlayerProfileRoutesTest {
         assertEquals(Set.of("POST"), registry.methods("/v1/players/info"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/touch"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/locale"));
+        assertEquals(Set.of("POST"), registry.methods("/v1/players/preferences/reserve"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/island-fly"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/world-border"));
         assertEquals(Set.of("POST"), registry.methods("/v1/players/blocks-stacker"));
@@ -120,6 +122,44 @@ class PlayerProfileRoutesTest {
         assertTrue(profiles.find(playerUuid).islandFlyEnabled());
         assertTrue(exchange.body().contains("\"islandFlyEnabled\":true"));
         assertTrue(audit.toJson().contains("PLAYER_ISLAND_FLY_SET"));
+    }
+
+    @Test
+    void newerFlightPreferenceReservationRejectsLateOlderMutation() throws Exception {
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-0000000002f1");
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new PlayerProfileRoutes(profiles, new InMemoryAuditLogger()).register(handlers::put);
+
+        TestExchange firstReserve = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"preferenceKey\":\"island-fly\"}");
+        handlers.get("/v1/players/preferences/reserve").handle(firstReserve);
+        long firstRevision = JsonFields.longValue(firstReserve.body(), "preferenceRevision", 0L);
+        TestExchange secondReserve = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"preferenceKey\":\"island-fly\"}");
+        handlers.get("/v1/players/preferences/reserve").handle(secondReserve);
+        long secondRevision = JsonFields.longValue(secondReserve.body(), "preferenceRevision", 0L);
+
+        TestExchange newest = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"enabled\":true,\"preferenceRevision\":" + secondRevision + "}");
+        handlers.get("/v1/players/island-fly").handle(newest);
+        TestExchange lateOldest = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"enabled\":false,\"preferenceRevision\":" + firstRevision + "}");
+        handlers.get("/v1/players/island-fly").handle(lateOldest);
+
+        assertEquals(202, newest.status());
+        assertEquals(409, lateOldest.status());
+        assertTrue(lateOldest.body().contains("PLAYER_PREFERENCE_SUPERSEDED"));
+        assertTrue(profiles.find(playerUuid).islandFlyEnabled());
+    }
+
+    @Test
+    void preferenceReservationRejectsUnboundedUnknownKeys() throws Exception {
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-0000000002f2");
+        Map<String, HttpHandler> handlers = new HashMap<>();
+        new PlayerProfileRoutes(new InMemoryPlayerProfileRepository(), new InMemoryAuditLogger()).register(handlers::put);
+
+        TestExchange exchange = new TestExchange("{\"playerUuid\":\"" + playerUuid + "\",\"preferenceKey\":\"unknown-setting\"}");
+        handlers.get("/v1/players/preferences/reserve").handle(exchange);
+
+        assertEquals(400, exchange.status());
+        assertTrue(exchange.body().contains("PLAYER_PREFERENCE_KEY_INVALID"));
     }
 
     @Test

@@ -937,6 +937,11 @@ class IslandCommandControllerPolicyTest {
         assertTrue(environment.contains("deliverBorderColor(playerSession, revision, profile)"), "border color responses must retain their command-time revision");
         assertFalse(environment.contains("scheduleBorderApply(playerUuid, false)"), "UUID-only border apply callbacks must not survive a reconnect or island change");
         assertTrue(settings.contains("locales.remember(playerUuid, applied)"), "locale callbacks must update caches by immutable player identity");
+        assertTrue(settings.contains("reservePreferenceMutation(playerUuid, ISLAND_FLY_PREFERENCE)"), "personal flight changes must reserve a Core-authoritative newest-intent revision");
+        assertTrue(settings.contains("setIslandFlyEnabled(playerUuid, enabled, preferenceRevision)"), "personal flight persistence must conditionally apply its reserved revision");
+        assertTrue(settings.contains("PersonalFlightUpdate(Player player, UUID updateId)"), "personal flight callbacks must retain the initiating Player connection and update token");
+        assertTrue(settings.contains("activePlayer == player") && settings.contains("finishUpdate(playerUuid, update.updateId())"), "stale flight callbacks must not apply to or unlock a replacement connection");
+        assertTrue(settings.contains("preferenceSuperseded(error)") && settings.contains("player.island-fly.reserve.retry"), "the current connection must recover when an older connection's delayed reservation briefly supersedes it");
         assertTrue(settings.contains("setPublicAccess(player, true, false)"), "command mutations must not open a delayed settings GUI");
         assertTrue(settings.contains("setLocked(player, true, false)"), "command lock mutations must not open a delayed settings GUI");
         assertTrue(settings.contains("setPublicAccess(player, !rightClick, true)"), "GUI access toggles must reserve a settings mutation session");

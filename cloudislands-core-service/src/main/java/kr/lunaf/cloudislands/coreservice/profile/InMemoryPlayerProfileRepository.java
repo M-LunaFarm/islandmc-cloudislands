@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 public final class InMemoryPlayerProfileRepository implements PlayerProfileRepository {
     private final Map<UUID, PlayerIslandProfile> profiles = new ConcurrentHashMap<>();
     private final Map<UUID, Long> primaryIslandSelectionRevisions = new ConcurrentHashMap<>();
+    private final Map<PreferenceRevisionKey, Long> preferenceRevisions = new ConcurrentHashMap<>();
 
     @Override
     public PlayerIslandProfile find(UUID playerUuid) {
@@ -51,11 +52,28 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
     }
 
     @Override
-    public PlayerIslandProfile setIslandFlyEnabled(UUID playerUuid, boolean enabled) {
-        return profiles.compute(playerUuid, (_uuid, stored) -> {
+    public synchronized PlayerIslandProfile setIslandFlyEnabled(UUID playerUuid, boolean enabled) {
+        String preferenceKey = "island-fly";
+        long revision = reservePreferenceMutation(playerUuid, preferenceKey);
+        return setIslandFlyEnabledIfPreferenceCurrent(playerUuid, enabled, preferenceKey, revision).orElseThrow();
+    }
+
+    @Override
+    public synchronized long reservePreferenceMutation(UUID playerUuid, String preferenceKey) {
+        PreferenceRevisionKey key = new PreferenceRevisionKey(playerUuid, normalizePreferenceKey(preferenceKey));
+        return preferenceRevisions.merge(key, 1L, InMemoryPlayerProfileRepository::incrementRevision);
+    }
+
+    @Override
+    public synchronized Optional<PlayerIslandProfile> setIslandFlyEnabledIfPreferenceCurrent(UUID playerUuid, boolean enabled, String preferenceKey, long preferenceRevision) {
+        PreferenceRevisionKey key = new PreferenceRevisionKey(playerUuid, normalizePreferenceKey(preferenceKey));
+        if (preferenceRevision <= 0L || preferenceRevisions.getOrDefault(key, 0L) != preferenceRevision) {
+            return Optional.empty();
+        }
+        return Optional.of(profiles.compute(playerUuid, (_uuid, stored) -> {
             PlayerIslandProfile current = current(playerUuid, stored);
             return copy(current, current.lastName(), current.primaryIslandId(), current.lastSeenAt(), current.locale(), current.disbandsRemaining(), enabled, current.worldBorderEnabled(), current.blocksStackerEnabled());
-        });
+        }));
     }
 
     @Override
@@ -151,5 +169,21 @@ public final class InMemoryPlayerProfileRepository implements PlayerProfileRepos
 
     private static long incrementRevision(long current, long ignored) {
         return current == Long.MAX_VALUE ? Long.MAX_VALUE : current + 1L;
+    }
+
+    private static String normalizePreferenceKey(String preferenceKey) {
+        String normalized = preferenceKey == null ? "" : preferenceKey.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!normalized.matches("[a-z][a-z0-9-]{0,63}")) {
+            throw new IllegalArgumentException("invalid player preference key");
+        }
+        return normalized;
+    }
+
+    private record PreferenceRevisionKey(UUID playerUuid, String preferenceKey) {
+        private PreferenceRevisionKey {
+            if (playerUuid == null) {
+                throw new IllegalArgumentException("playerUuid is required");
+            }
+        }
     }
 }

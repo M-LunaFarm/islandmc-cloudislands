@@ -30,12 +30,16 @@ public final class PlayerIslandFlightService {
         preferences.remember(playerUuid, enabled);
     }
 
-    public boolean beginUpdate(java.util.UUID playerUuid) {
+    public java.util.UUID beginUpdate(java.util.UUID playerUuid) {
         return preferences.beginUpdate(playerUuid);
     }
 
-    public void finishUpdate(java.util.UUID playerUuid) {
-        preferences.finishUpdate(playerUuid);
+    public boolean finishUpdate(java.util.UUID playerUuid, java.util.UUID updateId) {
+        return preferences.finishUpdate(playerUuid, updateId);
+    }
+
+    public boolean updateCurrent(java.util.UUID playerUuid, java.util.UUID updateId) {
+        return preferences.updateCurrent(playerUuid, updateId);
     }
 
     public boolean canEnable(Player player) {

@@ -81,7 +81,7 @@ public final class CoreConfigRoutes implements RouteGroup {
         summary.put("coreSetupFallbackProductionSafeOrder", config.setupDatabaseFallbackProductionSafeOrder());
         summary.put("coreSetupDatabaseAutoSchema", config.setupDatabaseAutoSchema());
         summary.put("coreSetupDatabaseAutoSchemaPolicy", "explicit-opt-in-postgresql-mysql-mariadb-bootstrap");
-        summary.put("coreSetupDatabaseAutoSchemaResource", "postgresql=/db/migration/V1..V87,mysql-mariadb=/db/mysql/V1..V11");
+        summary.put("coreSetupDatabaseAutoSchemaResource", "postgresql=/db/migration/V1..V88,mysql-mariadb=/db/mysql/V1..V12");
         summary.put("coreSetupDatabaseAutoSchemaHistoryTable", "cloudislands_schema_bootstrap");
         summary.put("coreSetupDatabaseAutoSchemaChecksumPolicy", JdbcSchemaBootstrap.MIGRATION_CHECKSUM_POLICY);
         summary.put("coreSetupDatabaseAutoSchemaRetryPolicy", "ignore-existing-schema-objects-and-mark-bootstrap-after-complete-apply");

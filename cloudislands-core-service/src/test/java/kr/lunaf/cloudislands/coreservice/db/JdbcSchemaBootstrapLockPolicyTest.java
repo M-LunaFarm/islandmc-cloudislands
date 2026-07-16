@@ -26,6 +26,6 @@ class JdbcSchemaBootstrapLockPolicyTest {
         assertTrue(build.contains("CloudIslands-Core-JDBC-Auto-Schema-HA-Lock-Policy"));
         assertTrue(build.contains("CloudIslands-Core-JDBC-Auto-Schema-Checksum-Policy"));
         assertTrue(build.contains(JdbcSchemaBootstrap.MIGRATION_CHECKSUM_POLICY));
-        assertTrue(build.contains("postgresql=/db/migration/V1..V87,mysql-mariadb=/db/mysql/V1..V11"));
+        assertTrue(build.contains("postgresql=/db/migration/V1..V88,mysql-mariadb=/db/mysql/V1..V12"));
     }
 }

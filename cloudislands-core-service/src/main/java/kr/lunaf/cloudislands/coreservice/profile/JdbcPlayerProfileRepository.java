@@ -90,15 +90,79 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
 
     @Override
     public PlayerIslandProfile setIslandFlyEnabled(UUID playerUuid, boolean enabled) {
+        String preferenceKey = "island-fly";
+        long revision = reservePreferenceMutation(playerUuid, preferenceKey);
+        return setIslandFlyEnabledIfPreferenceCurrent(playerUuid, enabled, preferenceKey, revision)
+            .orElseThrow(() -> new IllegalStateException("player island flight preference was superseded"));
+    }
+
+    @Override
+    public long reservePreferenceMutation(UUID playerUuid, String preferenceKey) {
         ensure(playerUuid);
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement("UPDATE player_profiles SET island_fly_enabled = ?, updated_at = now() WHERE uuid = ?")) {
-            statement.setBoolean(1, enabled);
-            statement.setObject(2, playerUuid);
-            statement.executeUpdate();
-            return find(playerUuid);
+        String normalizedKey = normalizePreferenceKey(preferenceKey);
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement insert = connection.prepareStatement(preferenceRevisionInsertSql(connection));
+                 PreparedStatement update = connection.prepareStatement("UPDATE player_preference_revisions SET revision = revision + 1, updated_at = now() WHERE player_uuid = ? AND preference_key = ?");
+                 PreparedStatement read = connection.prepareStatement("SELECT revision FROM player_preference_revisions WHERE player_uuid = ? AND preference_key = ?")) {
+                insert.setObject(1, playerUuid);
+                insert.setString(2, normalizedKey);
+                insert.executeUpdate();
+                update.setObject(1, playerUuid);
+                update.setString(2, normalizedKey);
+                update.executeUpdate();
+                read.setObject(1, playerUuid);
+                read.setString(2, normalizedKey);
+                long revision;
+                try (ResultSet result = read.executeQuery()) {
+                    if (!result.next()) {
+                        throw new SQLException("player preference revision disappeared while reserving mutation");
+                    }
+                    revision = result.getLong(1);
+                }
+                connection.commit();
+                return revision;
+            } catch (SQLException | RuntimeException exception) {
+                connection.rollback();
+                throw exception;
+            }
         } catch (SQLException exception) {
-            throw new IllegalStateException("failed to set player island flight preference", exception);
+            throw new IllegalStateException("failed to reserve player preference mutation", exception);
+        }
+    }
+
+    @Override
+    public Optional<PlayerIslandProfile> setIslandFlyEnabledIfPreferenceCurrent(UUID playerUuid, boolean enabled, String preferenceKey, long preferenceRevision) {
+        if (preferenceRevision <= 0L) {
+            return Optional.empty();
+        }
+        ensure(playerUuid);
+        String normalizedKey = normalizePreferenceKey(preferenceKey);
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try (PreparedStatement revision = connection.prepareStatement("SELECT revision FROM player_preference_revisions WHERE player_uuid = ? AND preference_key = ? FOR UPDATE");
+                 PreparedStatement update = connection.prepareStatement("UPDATE player_profiles SET island_fly_enabled = ?, updated_at = now() WHERE uuid = ?")) {
+                revision.setObject(1, playerUuid);
+                revision.setString(2, normalizedKey);
+                try (ResultSet result = revision.executeQuery()) {
+                    if (!result.next() || result.getLong(1) != preferenceRevision) {
+                        connection.rollback();
+                        return Optional.empty();
+                    }
+                }
+                update.setBoolean(1, enabled);
+                update.setObject(2, playerUuid);
+                if (update.executeUpdate() != 1) {
+                    throw new SQLException("player profile disappeared while applying preference mutation");
+                }
+                connection.commit();
+            } catch (SQLException | RuntimeException exception) {
+                connection.rollback();
+                throw exception;
+            }
+            return Optional.of(find(playerUuid));
+        } catch (SQLException exception) {
+            throw new IllegalStateException("failed to apply current player island flight preference", exception);
         }
     }
 
@@ -280,6 +344,21 @@ public final class JdbcPlayerProfileRepository implements PlayerProfileRepositor
             return "UPDATE player_profiles SET disbands_remaining = CAST(LEAST(2147483647, GREATEST(0, CAST(disbands_remaining AS DECIMAL(11,0)) + CAST(? AS DECIMAL(11,0)))) AS SIGNED), updated_at = now() WHERE uuid = ?";
         }
         return "UPDATE player_profiles SET disbands_remaining = CAST(LEAST(2147483647, GREATEST(0, CAST(disbands_remaining AS BIGINT) + CAST(? AS BIGINT))) AS INTEGER), updated_at = now() WHERE uuid = ?";
+    }
+
+    private String preferenceRevisionInsertSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT IGNORE INTO player_preference_revisions(player_uuid, preference_key, revision) VALUES (?, ?, 0)";
+        }
+        return "INSERT INTO player_preference_revisions(player_uuid, preference_key, revision) VALUES (?, ?, 0) ON CONFLICT (player_uuid, preference_key) DO NOTHING";
+    }
+
+    private static String normalizePreferenceKey(String preferenceKey) {
+        String normalized = preferenceKey == null ? "" : preferenceKey.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!normalized.matches("[a-z][a-z0-9-]{0,63}")) {
+            throw new IllegalArgumentException("invalid player preference key");
+        }
+        return normalized;
     }
 
     private boolean mysqlLike(Connection connection) throws SQLException {

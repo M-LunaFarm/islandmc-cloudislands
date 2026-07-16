@@ -6,11 +6,13 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.PlayerIslandProfile;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.CoreApiException;
 import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase;
 import kr.lunaf.cloudislands.paper.PlayerIslandFlightService;
 import kr.lunaf.cloudislands.paper.application.IslandSettingsUseCase.SettingsActionResult;
@@ -27,6 +29,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 final class IslandSettingsCommandHandler {
+    private static final String ISLAND_FLY_PREFERENCE = "island-fly";
+
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final IslandSettingsUseCase settingsUseCase;
@@ -383,23 +387,26 @@ final class IslandSettingsCommandHandler {
             return;
         }
         UUID playerUuid = player.getUniqueId();
-        if (!flightService.beginUpdate(playerUuid)) {
+        UUID updateId = flightService.beginUpdate(playerUuid);
+        if (updateId == null) {
             runtime.message(player, message("player-flight-update-pending", "개인 비행 설정을 이미 변경하고 있습니다."));
             return;
         }
+        PersonalFlightUpdate update = new PersonalFlightUpdate(player, updateId);
+        CompletableFuture<Long> revision = runtime.mutate("player.island-fly.reserve", () ->
+            coreApiClient.playerProfileCommands().reservePreferenceMutation(playerUuid, ISLAND_FLY_PREFERENCE));
         if (args.length <= 1 && !flightService.preferenceKnown(playerUuid)) {
-            coreApiClient.playerProfiles().profile(playerUuid)
-                .thenAccept(profile -> PaperSchedulers.run(plugin, () -> {
-                    Player activePlayer = plugin.getServer().getPlayer(playerUuid);
-                    if (activePlayer == null || !activePlayer.isOnline()) {
-                        flightService.finishUpdate(playerUuid);
+            revision.thenCombine(coreApiClient.playerProfiles().profile(playerUuid), FlightPreferenceIntent::new)
+                .thenAccept(intent -> PaperSchedulers.run(plugin, () -> {
+                    if (!update.current(plugin, flightService)) {
+                        flightService.finishUpdate(playerUuid, updateId);
                         return;
                     }
-                    flightService.rememberPreference(playerUuid, profile.islandFlyEnabled());
-                    persistPersonalFlight(activePlayer, !profile.islandFlyEnabled());
+                    flightService.rememberPreference(playerUuid, intent.profile().islandFlyEnabled());
+                    persistPersonalFlight(update, !intent.profile().islandFlyEnabled(), intent.revision(), false);
                 }))
                 .exceptionally(error -> {
-                    PaperSchedulers.run(plugin, () -> finishFlightFailure(playerUuid, error));
+                    PaperSchedulers.run(plugin, () -> finishFlightFailure(update, error));
                     return null;
                 });
             return;
@@ -407,46 +414,95 @@ final class IslandSettingsCommandHandler {
         boolean current = flightService.preferenceEnabled(player);
         Boolean enabled = flightToggleValue(args, 1, current);
         if (enabled == null) {
-            flightService.finishUpdate(playerUuid);
+            flightService.finishUpdate(playerUuid, updateId);
             runtime.message(player, message("input-flight-state-invalid", "비행 상태는 on 또는 off로 입력해주세요."));
             return;
         }
-        persistPersonalFlight(player, enabled);
+        revision.thenAccept(preferenceRevision -> PaperSchedulers.run(plugin, () -> persistPersonalFlight(update, enabled, preferenceRevision, false)))
+            .exceptionally(error -> {
+                PaperSchedulers.run(plugin, () -> finishFlightFailure(update, error));
+                return null;
+            });
     }
 
-    private void persistPersonalFlight(Player player, boolean enabled) {
+    private void persistPersonalFlight(PersonalFlightUpdate update, boolean enabled, long preferenceRevision, boolean retried) {
+        Player player = update.player();
         UUID playerUuid = player.getUniqueId();
+        if (!update.current(plugin, flightService)) {
+            flightService.finishUpdate(playerUuid, update.updateId());
+            return;
+        }
         if (enabled && !flightService.canEnable(player)) {
-            flightService.finishUpdate(playerUuid);
+            flightService.finishUpdate(playerUuid, update.updateId());
             runtime.message(player, message("player-flight-denied", "현재 섬에서는 개인 비행을 사용할 권한이 없거나 섬 비행이 비활성화되어 있습니다."));
             return;
         }
-        runtime.mutate("player.island-fly.set", () -> coreApiClient.playerProfileCommands().setIslandFlyEnabled(playerUuid, enabled))
+        runtime.mutate("player.island-fly.set", () -> coreApiClient.playerProfileCommands().setIslandFlyEnabled(playerUuid, enabled, preferenceRevision))
             .thenAccept(profile -> PaperSchedulers.run(plugin, () -> {
                 Player activePlayer = plugin.getServer().getPlayer(playerUuid);
-                if (activePlayer == null || !activePlayer.isOnline()) {
-                    flightService.finishUpdate(playerUuid);
+                if (!flightService.finishUpdate(playerUuid, update.updateId()) || activePlayer != player || !activePlayer.isOnline()) {
                     return;
                 }
                 boolean applied = profile.islandFlyEnabled();
                 flightService.applyPreference(activePlayer, applied);
-                flightService.finishUpdate(playerUuid);
                 runtime.message(activePlayer, applied
                     ? message("player-flight-enabled", "개인 섬 비행을 켰습니다.")
                     : message("player-flight-disabled", "개인 섬 비행을 껐습니다."));
             }))
             .exceptionally(error -> {
-                PaperSchedulers.run(plugin, () -> finishFlightFailure(playerUuid, error));
+                if (!retried && preferenceSuperseded(error)) {
+                    PaperSchedulers.run(plugin, () -> retryPersonalFlight(update, enabled));
+                } else {
+                    PaperSchedulers.run(plugin, () -> finishFlightFailure(update, error));
+                }
                 return null;
             });
     }
 
-    private void finishFlightFailure(UUID playerUuid, Throwable error) {
-        flightService.finishUpdate(playerUuid);
+    private void retryPersonalFlight(PersonalFlightUpdate update, boolean enabled) {
+        UUID playerUuid = update.player().getUniqueId();
+        if (!update.current(plugin, flightService)) {
+            flightService.finishUpdate(playerUuid, update.updateId());
+            return;
+        }
+        runtime.mutate("player.island-fly.reserve.retry", () ->
+            coreApiClient.playerProfileCommands().reservePreferenceMutation(playerUuid, ISLAND_FLY_PREFERENCE))
+            .thenAccept(preferenceRevision -> PaperSchedulers.run(plugin, () -> persistPersonalFlight(update, enabled, preferenceRevision, true)))
+            .exceptionally(error -> {
+                PaperSchedulers.run(plugin, () -> finishFlightFailure(update, error));
+                return null;
+            });
+    }
+
+    private void finishFlightFailure(PersonalFlightUpdate update, Throwable error) {
+        UUID playerUuid = update.player().getUniqueId();
+        if (!flightService.finishUpdate(playerUuid, update.updateId())) {
+            return;
+        }
         Player activePlayer = plugin.getServer().getPlayer(playerUuid);
-        if (activePlayer != null && activePlayer.isOnline()) {
+        if (activePlayer == update.player() && activePlayer.isOnline()) {
             runtime.message(activePlayer, runtime.coreWriteFailureMessage(error, message("player-flight-update-failed", "개인 비행 설정을 변경하지 못했습니다.")));
         }
+    }
+
+    private record PersonalFlightUpdate(Player player, UUID updateId) {
+        private boolean current(Plugin plugin, PlayerIslandFlightService flightService) {
+            Player activePlayer = plugin.getServer().getPlayer(player.getUniqueId());
+            return activePlayer == player
+                && activePlayer.isOnline()
+                && flightService.updateCurrent(player.getUniqueId(), updateId);
+        }
+    }
+
+    private record FlightPreferenceIntent(long revision, kr.lunaf.cloudislands.coreclient.PlayerProfileView profile) {
+    }
+
+    private static boolean preferenceSuperseded(Throwable error) {
+        Throwable current = error;
+        while (current instanceof CompletionException && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current instanceof CoreApiException exception && exception.code().equals("PLAYER_PREFERENCE_SUPERSEDED");
     }
 
     private String flagListMessage(Map<IslandFlag, String> flags) {

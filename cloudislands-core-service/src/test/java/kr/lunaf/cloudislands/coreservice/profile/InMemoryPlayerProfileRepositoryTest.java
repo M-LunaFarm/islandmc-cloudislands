@@ -89,4 +89,17 @@ class InMemoryPlayerProfileRepositoryTest {
         assertTrue(repository.setPrimaryIslandIfSelectionCurrent(playerUuid, pendingIsland, pendingRevision).isEmpty());
         assertEquals(adminIsland, repository.find(playerUuid).primaryIslandId().orElseThrow());
     }
+
+    @Test
+    void onlyNewestReservedFlightPreferenceCanApply() {
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-0000000000d1");
+        InMemoryPlayerProfileRepository repository = new InMemoryPlayerProfileRepository();
+
+        long firstRevision = repository.reservePreferenceMutation(playerUuid, "island-fly");
+        long secondRevision = repository.reservePreferenceMutation(playerUuid, "island-fly");
+
+        assertTrue(repository.setIslandFlyEnabledIfPreferenceCurrent(playerUuid, true, "island-fly", secondRevision).isPresent());
+        assertTrue(repository.setIslandFlyEnabledIfPreferenceCurrent(playerUuid, false, "island-fly", firstRevision).isEmpty());
+        assertTrue(repository.find(playerUuid).islandFlyEnabled());
+    }
 }

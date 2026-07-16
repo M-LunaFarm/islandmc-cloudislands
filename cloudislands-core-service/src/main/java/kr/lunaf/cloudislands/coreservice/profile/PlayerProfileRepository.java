@@ -10,6 +10,8 @@ public interface PlayerProfileRepository {
     PlayerIslandProfile touch(UUID playerUuid, String lastName);
     PlayerIslandProfile touch(UUID playerUuid, String lastName, String locale);
     PlayerIslandProfile setLocale(UUID playerUuid, String locale);
+    long reservePreferenceMutation(UUID playerUuid, String preferenceKey);
+    Optional<PlayerIslandProfile> setIslandFlyEnabledIfPreferenceCurrent(UUID playerUuid, boolean enabled, String preferenceKey, long preferenceRevision);
     PlayerIslandProfile setIslandFlyEnabled(UUID playerUuid, boolean enabled);
     PlayerIslandProfile setWorldBorderEnabled(UUID playerUuid, boolean enabled);
     PlayerIslandProfile setBlocksStackerEnabled(UUID playerUuid, boolean enabled);

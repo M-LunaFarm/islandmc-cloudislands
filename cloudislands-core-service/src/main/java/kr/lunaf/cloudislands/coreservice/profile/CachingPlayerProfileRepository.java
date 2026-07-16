@@ -64,6 +64,16 @@ public final class CachingPlayerProfileRepository implements PlayerProfileReposi
     }
 
     @Override
+    public long reservePreferenceMutation(UUID playerUuid, String preferenceKey) {
+        return delegate.reservePreferenceMutation(playerUuid, preferenceKey);
+    }
+
+    @Override
+    public Optional<PlayerIslandProfile> setIslandFlyEnabledIfPreferenceCurrent(UUID playerUuid, boolean enabled, String preferenceKey, long preferenceRevision) {
+        return delegate.setIslandFlyEnabledIfPreferenceCurrent(playerUuid, enabled, preferenceKey, preferenceRevision).map(this::mutated);
+    }
+
+    @Override
     public PlayerIslandProfile setWorldBorderEnabled(UUID playerUuid, boolean enabled) {
         return mutated(delegate.setWorldBorderEnabled(playerUuid, enabled));
     }

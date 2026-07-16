@@ -399,6 +399,40 @@ def run_player_interaction_smoke(primary_url: str, base_url: str, admin_url: str
     )
     assert_response_code(superseded_selection, "ISLAND_SELECTION_SUPERSEDED")
 
+    first_flight = request(
+        primary_url,
+        "POST",
+        "/v1/players/preferences/reserve",
+        {"playerUuid": owner_uuid, "preferenceKey": "island-fly"},
+        expect=(202,),
+    )
+    second_flight = request(
+        base_url,
+        "POST",
+        "/v1/players/preferences/reserve",
+        {"playerUuid": owner_uuid, "preferenceKey": "island-fly"},
+        expect=(202,),
+    )
+    first_flight_revision = int(first_flight.get("preferenceRevision", 0))
+    second_flight_revision = int(second_flight.get("preferenceRevision", 0))
+    if first_flight_revision <= 0 or second_flight_revision <= first_flight_revision:
+        raise RuntimeError(f"expected monotonic cross-Core flight revisions, got first={first_flight} second={second_flight}")
+    request(
+        base_url,
+        "POST",
+        "/v1/players/island-fly",
+        {"playerUuid": owner_uuid, "enabled": True, "preferenceRevision": second_flight_revision},
+        expect=(202,),
+    )
+    superseded_flight = request(
+        primary_url,
+        "POST",
+        "/v1/players/island-fly",
+        {"playerUuid": owner_uuid, "enabled": False, "preferenceRevision": first_flight_revision},
+        expect=(409,),
+    )
+    assert_response_code(superseded_flight, "PLAYER_PREFERENCE_SUPERSEDED")
+
     request(
         base_url,
         "POST",
@@ -527,6 +561,8 @@ def run_player_interaction_smoke(primary_url: str, base_url: str, admin_url: str
         "memberRemoved": member_uuid,
         "newestSelectionRevision": second_revision,
         "supersededSelectionCode": response_code(superseded_selection),
+        "newestFlightPreferenceRevision": second_flight_revision,
+        "supersededFlightPreferenceCode": response_code(superseded_flight),
         "warpRouteTargetNode": warp_route.get("targetNode"),
         "migrationDryRunObserved": True,
         "missionKindIdentity": shared_mission_key,
@@ -1386,6 +1422,7 @@ def player_interaction_evidence(interaction: dict | None) -> dict[str, list[str]
         "permission-denied": interaction.get("permissionDeniedCode") == "ISLAND_PERMISSION_DENIED",
         "member-invite-remove": bool(interaction.get("inviteAccepted")) and bool(interaction.get("memberRemoved")),
         "cross-core-selection-order": interaction.get("newestSelectionRevision", 0) > 0 and interaction.get("supersededSelectionCode") == "ISLAND_SELECTION_SUPERSEDED",
+        "cross-core-flight-preference-order": interaction.get("newestFlightPreferenceRevision", 0) > 0 and interaction.get("supersededFlightPreferenceCode") == "PLAYER_PREFERENCE_SUPERSEDED",
         "warp-create-route": bool(interaction.get("warpRouteTargetNode")),
         "snapshot-record-restore": True,
         "node-down-recovery": True,
@@ -1664,6 +1701,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         }
         drill_recovered = recovered
 
+        heartbeat(secondary_url, standby_node, node_servers[standby_node], active_islands=1)
         reconnect = request(
             secondary_url,
             "POST",

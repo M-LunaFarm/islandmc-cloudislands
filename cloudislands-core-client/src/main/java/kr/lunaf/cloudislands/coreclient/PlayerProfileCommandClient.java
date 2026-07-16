@@ -10,7 +10,11 @@ public interface PlayerProfileCommandClient {
 
     CompletableFuture<PlayerProfileView> setLocale(UUID playerUuid, String locale);
 
+    CompletableFuture<Long> reservePreferenceMutation(UUID playerUuid, String preferenceKey);
+
     CompletableFuture<PlayerProfileView> setIslandFlyEnabled(UUID playerUuid, boolean enabled);
+
+    CompletableFuture<PlayerProfileView> setIslandFlyEnabled(UUID playerUuid, boolean enabled, long preferenceRevision);
 
     CompletableFuture<PlayerProfileView> setWorldBorderEnabled(UUID playerUuid, boolean enabled);
 

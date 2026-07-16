@@ -46,6 +46,29 @@ final class JdkPlayerProfileCommandClient implements PlayerProfileCommandClient 
     }
 
     @Override
+    public CompletableFuture<Long> reservePreferenceMutation(UUID playerUuid, String preferenceKey) {
+        requireId(playerUuid, "playerUuid");
+        if (preferenceKey == null || preferenceKey.isBlank()) {
+            throw new IllegalArgumentException("preferenceKey is required");
+        }
+        return core.postResultBody("/v1/players/preferences/reserve", CoreJsonPayload.object("playerUuid", playerUuid, "preferenceKey", preferenceKey))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreJson::object)
+            .thenApply(value -> CoreJson.number(value, "preferenceRevision"));
+    }
+
+    @Override
+    public CompletableFuture<PlayerProfileView> setIslandFlyEnabled(UUID playerUuid, boolean enabled, long preferenceRevision) {
+        requireId(playerUuid, "playerUuid");
+        if (preferenceRevision <= 0L) {
+            throw new IllegalArgumentException("preferenceRevision must be positive");
+        }
+        return core.postResultBody("/v1/players/island-fly", CoreJsonPayload.object("playerUuid", playerUuid, "enabled", enabled, "preferenceRevision", preferenceRevision))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CorePlayerProfileJson::profile);
+    }
+
+    @Override
     public CompletableFuture<PlayerProfileView> setWorldBorderEnabled(UUID playerUuid, boolean enabled) {
         requireId(playerUuid, "playerUuid");
         return core.postResultBody("/v1/players/world-border", CoreJsonPayload.object("playerUuid", playerUuid, "enabled", enabled))

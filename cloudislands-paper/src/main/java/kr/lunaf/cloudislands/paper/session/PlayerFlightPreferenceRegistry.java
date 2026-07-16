@@ -1,5 +1,6 @@
 package kr.lunaf.cloudislands.paper.session;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,7 +10,7 @@ public final class PlayerFlightPreferenceRegistry {
     private final Set<UUID> enabledPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> knownPlayers = ConcurrentHashMap.newKeySet();
     private final Set<UUID> managedPlayers = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> pendingUpdates = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, UUID> pendingUpdates = new ConcurrentHashMap<>();
 
     public void remember(UUID playerUuid, boolean enabled) {
         if (playerUuid == null) {
@@ -35,14 +36,20 @@ public final class PlayerFlightPreferenceRegistry {
         return playerUuid != null && knownPlayers.contains(playerUuid);
     }
 
-    public boolean beginUpdate(UUID playerUuid) {
-        return playerUuid != null && pendingUpdates.add(playerUuid);
+    public UUID beginUpdate(UUID playerUuid) {
+        if (playerUuid == null) {
+            return null;
+        }
+        UUID updateId = UUID.randomUUID();
+        return pendingUpdates.putIfAbsent(playerUuid, updateId) == null ? updateId : null;
     }
 
-    public void finishUpdate(UUID playerUuid) {
-        if (playerUuid != null) {
-            pendingUpdates.remove(playerUuid);
-        }
+    public boolean finishUpdate(UUID playerUuid, UUID updateId) {
+        return playerUuid != null && updateId != null && pendingUpdates.remove(playerUuid, updateId);
+    }
+
+    public boolean updateCurrent(UUID playerUuid, UUID updateId) {
+        return playerUuid != null && updateId != null && updateId.equals(pendingUpdates.get(playerUuid));
     }
 
     public boolean managed(Player player) {
