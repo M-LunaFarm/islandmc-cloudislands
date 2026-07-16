@@ -386,7 +386,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseHandler.contains("if (!canOpenWarehouse(player))"), "warehouse menu and list must enforce the island container permission before revealing contents");
         assertTrue(warehouseHandler.contains("runtime.allowed(player, IslandPermission.OPEN_CONTAINER)"), "warehouse reads must use the same island container permission as mutations");
         assertTrue(warehouseHandler.contains("warehouse-open-denied"), "denied warehouse reads must give explicit operator-configurable feedback");
-        assertTrue(warehouseHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> runtime.message(activePlayer, warehouseListMessage(items)))"), "warehouse list callbacks must re-resolve the current online player");
+        assertTrue(warehouseHandler.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "warehouse operations must capture the exact initiating connection");
+        assertTrue(warehouseHandler.contains("thenAccept(items -> deliverMessage(playerSession, warehouseListMessage(items)))"), "warehouse list callbacks must only message the initiating connection");
         assertFalse(warehouseHandler.contains("thenAccept(items -> runtime.message(player"), "warehouse list callbacks must not message a captured Player");
         assertTrue(warehouseHandler.contains("isWarehouseMenuCommand(subcommand)"));
         assertTrue(warehouseHandler.contains("isWarehouseListCommand(subcommand)"));
@@ -413,7 +414,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(warehouseHandler.contains("warehouseQueries.pendingSettlement(playerUuid)"), "reconnect recovery must discover escrow created on another Paper node");
         assertTrue(warehouseHandler.indexOf("warehouseCommands.prepareSettlement") < warehouseHandler.indexOf("removeMaterial(activePlayer, material, settlement.amount())"), "shared PREPARED state must exist before inventory removal");
         assertTrue(warehouseSettlement.contains("idempotencyKey") && warehouseHandler.contains("settlement.idempotencyKey()"), "recovery must replay the exact Core idempotency key instead of issuing another mutation");
-        assertTrue(warehouseHandler.contains("activePlayer == null || !activePlayer.isOnline()"), "late Core completions must not mutate a disconnected Player object");
+        assertTrue(warehouseHandler.contains("playerSession.isCurrent(activePlayer)"), "late Core completions must require the exact initiating Player connection");
+        assertTrue(warehouseHandler.contains("releaseAndResumeDurableSettlement(playerSession)"), "a replaced connection may only continue through durable settlement recovery");
+        assertTrue(warehouseHandler.contains("replacement != playerSession.expectedPlayer()"), "reconnect recovery must distinguish a replacement Player instance from the initiator");
         assertTrue(backend.contains("warehouseCommands.resumePendingSettlement(event.getPlayer())") && controller.contains("public void onJoin(PlayerJoinEvent event)"), "saved warehouse settlements must resume when the player reconnects");
         assertTrue(warehouseHandler.contains("warehouse-settlement-pending"), "ambiguous Core responses must keep escrowed items protected instead of guessing a refund or delivery");
         assertTrue(warehouseHandler.contains("IslandPermission permission = IslandPermission.OPEN_CONTAINER"), "warehouse deposit and withdraw must require the container permission");
