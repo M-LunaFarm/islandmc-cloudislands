@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.249`
+Version: `1.1.250`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -732,9 +732,20 @@ integration-certified.
 
 ## Release
 
-Current release: `v1.1.249`
+Current release: `v1.1.250`
 
-Built for the CloudIslands 1.1.249 baseline.
+Built for the CloudIslands 1.1.250 baseline.
+
+Release notes for `v1.1.250`:
+
+- bank balance, target lookup, deposit, withdrawal, rollback, and refund
+  callbacks now retain the exact Player connection that started the operation
+- delayed results re-resolve the current online Player on the Paper scheduler
+  and reject a same-UUID replacement connection after a reconnect
+- account-scoped pending-operation locking and idempotent Core/economy mutations
+  remain active, while misleading stale success or recovery warnings are dropped
+- focused Paper command tests plus economy and parity gates certify the complete
+  bank callback surface
 
 Release notes for `v1.1.249`:
 
