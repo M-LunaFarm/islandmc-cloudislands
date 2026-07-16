@@ -7,6 +7,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import uuid
 import socket
@@ -197,6 +198,32 @@ def heartbeat(base_url: str, node_id: str, velocity_server_name: str, state: str
         },
         expect=(202,),
     )
+
+
+def run_with_node_heartbeat(operation, base_url: str, node_id: str, velocity_server_name: str):
+    """Keep the simulated Paper node live while a blocking external drill runs."""
+    stop = threading.Event()
+    failures = []
+
+    def maintain_heartbeat() -> None:
+        while not stop.wait(5.0):
+            try:
+                heartbeat(base_url, node_id, velocity_server_name, state="READY", active_islands=1)
+            except Exception as exc:  # surfaced after the blocking operation returns
+                failures.append(exc)
+                return
+
+    heartbeat(base_url, node_id, velocity_server_name, state="READY", active_islands=1)
+    worker = threading.Thread(target=maintain_heartbeat, name="integration-smoke-heartbeat", daemon=True)
+    worker.start()
+    try:
+        result = operation()
+    finally:
+        stop.set()
+        worker.join(timeout=2.0)
+    if failures:
+        raise RuntimeError(f"standby node heartbeat failed during external drill: {failures[0]}") from failures[0]
+    return result
 
 
 def latest_ticket(base_url: str, player_uuid: str):
@@ -1690,8 +1717,15 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         )
         load_test_evidence(load_metrics)
 
-        db_backup_artifact = create_db_backup_artifact(env, evidence_dir)
-        object_bundle = create_object_storage_bundle_drill(env, evidence_dir, island_id, run_id)
+        db_backup_artifact, object_bundle = run_with_node_heartbeat(
+            lambda: (
+                create_db_backup_artifact(env, evidence_dir),
+                create_object_storage_bundle_drill(env, evidence_dir, island_id, run_id),
+            ),
+            secondary_url,
+            standby_node,
+            node_servers[standby_node],
+        )
         runtime_artifacts.extend([db_backup_artifact, object_bundle["bundleArtifact"], object_bundle["manifestArtifact"]])
         restore_request = {
             "accepted": True,

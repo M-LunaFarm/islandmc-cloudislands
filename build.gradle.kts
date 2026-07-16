@@ -1932,6 +1932,9 @@ tasks.register("verifyPersonalIslandFlightParity") {
         layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/PlayerProfileRoutes.java"),
         layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/migration/V83__player_island_fly_preference.sql"),
         layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/mysql/V6__player_island_fly_preference.sql"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/migration/V88__player_preference_mutation_revisions.sql"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/mysql/V12__player_preference_mutation_revisions.sql"),
+        layout.projectDirectory.file("cloudislands-core-service/src/main/java/kr/lunaf/cloudislands/coreservice/profile/JdbcPlayerProfileRepository.java"),
         layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/PlayerIslandFlightService.java"),
         layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/PlayerFlightOwnershipPolicy.java"),
         layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/IslandGameplayFlagListener.java"),
@@ -1947,7 +1950,10 @@ tasks.register("verifyPersonalIslandFlightParity") {
             "/v1/players/island-fly",
             "PLAYER_ISLAND_FLY_SET",
             "island_fly_enabled BOOLEAN NOT NULL DEFAULT FALSE",
-            "setIslandFlyEnabled(playerUuid, enabled)",
+            "/v1/players/preferences/reserve",
+            "reservePreferenceMutation(playerUuid, ISLAND_FLY_PREFERENCE)",
+            "setIslandFlyEnabledIfPreferenceCurrent(playerUuid, enabled, ISLAND_FLY_PREFERENCE, preferenceRevision)",
+            "PLAYER_PREFERENCE_SUPERSEDED",
             "flightService.beginUpdate(playerUuid)",
             "flightService.preferenceKnown(playerUuid)",
             "PaperSchedulers.run(plugin",
@@ -1961,11 +1967,11 @@ tasks.register("verifyPersonalIslandFlightParity") {
         if (missing.isNotEmpty()) {
             throw GradleException("Personal island flight parity evidence missing: ${missing.joinToString(", ")}")
         }
-        val handler = files[8].asFile.readText()
+        val handler = files[11].asFile.readText()
         if (handler.contains("setFlag(player, \"FLY\"")) {
             throw GradleException("Canonical /is fly must not mutate the island-wide FLY flag")
         }
-        val listener = files[7].asFile.readText()
+        val listener = files[10].asFile.readText()
         if (listener.contains("player.setAllowFlight(allowed)")) {
             throw GradleException("Movement enforcement must not overwrite flight granted by another plugin")
         }
