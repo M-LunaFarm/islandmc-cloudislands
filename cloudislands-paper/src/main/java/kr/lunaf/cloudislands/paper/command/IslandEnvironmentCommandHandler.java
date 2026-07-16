@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
@@ -18,6 +19,7 @@ import kr.lunaf.cloudislands.coreclient.PlayerProfileQueryClient;
 import kr.lunaf.cloudislands.coreclient.PlayerProfileView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.IslandInfoView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.LimitView;
+import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.application.IslandBorderRuntimePolicy;
 import kr.lunaf.cloudislands.paper.application.IslandBorderColorPolicy;
@@ -47,6 +49,8 @@ final class IslandEnvironmentCommandHandler {
     private final Map<UUID, UUID> activeBorderRegions = new ConcurrentHashMap<>();
     private final Set<UUID> managedBorders = ConcurrentHashMap.newKeySet();
     private final Set<UUID> pendingBorderRefreshes = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Long> borderApplyRevisions = new ConcurrentHashMap<>();
+    private final AtomicLong borderApplyRevisionSequence = new AtomicLong();
 
     IslandEnvironmentCommandHandler(Plugin plugin, CoreApiClient coreApiClient, ProtectionController protection, Runtime runtime) {
         this.plugin = plugin;
@@ -215,6 +219,7 @@ final class IslandEnvironmentCommandHandler {
     void onQuit(Player player) {
         activeBorderRegions.remove(player.getUniqueId());
         managedBorders.remove(player.getUniqueId());
+        borderApplyRevisions.remove(player.getUniqueId());
     }
 
     void onLimitChange(UUID islandId, String limitKey) {
@@ -439,22 +444,26 @@ final class IslandEnvironmentCommandHandler {
     }
 
     private void toggleBorderVisibility(Player player) {
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        UUID playerUuid = playerSession.playerUuid();
+        long revision = reserveBorderApply(playerUuid);
         playerProfiles.profile(playerUuid)
             .thenCompose(profile -> setPersonalBorderVisibility(playerUuid, !profile.worldBorderEnabled()))
-            .thenAccept(profile -> deliverPersonalBorderVisibility(playerUuid, profile))
+            .thenAccept(profile -> deliverPersonalBorderVisibility(playerSession, revision, profile))
             .exceptionally(error -> {
-                deliverMessage(playerUuid, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
+                deliverBorderMessage(playerSession, revision, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
                 return null;
             });
     }
 
     private void setPersonalBorderVisibility(Player player, boolean enabled) {
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        UUID playerUuid = playerSession.playerUuid();
+        long revision = reserveBorderApply(playerUuid);
         setPersonalBorderVisibility(playerUuid, enabled)
-            .thenAccept(profile -> deliverPersonalBorderVisibility(playerUuid, profile))
+            .thenAccept(profile -> deliverPersonalBorderVisibility(playerSession, revision, profile))
             .exceptionally(error -> {
-                deliverMessage(playerUuid, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
+                deliverBorderMessage(playerSession, revision, message("border-toggle-failed", "섬 경계 표시를 전환하지 못했습니다."));
                 return null;
             });
     }
@@ -463,97 +472,77 @@ final class IslandEnvironmentCommandHandler {
         return playerProfileCommands.setWorldBorderEnabled(playerUuid, enabled);
     }
 
-    private void deliverPersonalBorderVisibility(UUID playerUuid, PlayerProfileView profile) {
-        deliverMessage(playerUuid, profile.worldBorderEnabled()
-            ? message("border-personal-enabled", "개인 섬 경계 표시를 켰습니다.")
-            : message("border-personal-disabled", "개인 섬 경계 표시를 껐습니다."));
-        schedulePersonalBorderUpdate(playerUuid, profile.worldBorderEnabled());
+    private void deliverPersonalBorderVisibility(PlayerConnectionSession playerSession, long revision, PlayerProfileView profile) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = currentBorderPlayer(playerSession, revision);
+            if (activePlayer == null) {
+                return;
+            }
+            runtime.message(activePlayer, profile.worldBorderEnabled()
+                ? message("border-personal-enabled", "개인 섬 경계 표시를 켰습니다.")
+                : message("border-personal-disabled", "개인 섬 경계 표시를 껐습니다."));
+            if (profile.worldBorderEnabled()) {
+                applyBorder(activePlayer, false, revision);
+            } else {
+                clearManagedBorder(activePlayer, false);
+            }
+        });
     }
 
     private void setPersonalBorderColor(Player player, String requestedColor) {
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        UUID playerUuid = playerSession.playerUuid();
+        long revision = reserveBorderApply(playerUuid);
         String color = IslandBorderRuntimePolicy.normalizeColor(requestedColor);
         playerProfileCommands.setBorderColor(playerUuid, color)
             .thenCompose(profile -> profile.worldBorderEnabled()
                 ? CompletableFuture.completedFuture(profile)
                 : playerProfileCommands.setWorldBorderEnabled(playerUuid, true))
-            .thenAccept(profile -> {
-                deliverMessage(playerUuid, message("border-personal-color-prefix", "개인 섬 경계 색상을 변경했습니다: ") + profile.borderColor());
-                scheduleBorderApply(playerUuid, false);
-            })
+            .thenAccept(profile -> deliverBorderColor(playerSession, revision, profile))
             .exceptionally(error -> {
-                deliverMessage(playerUuid, message("border-color-set-failed", "개인 섬 경계 색상을 변경하지 못했습니다."));
+                deliverBorderMessage(playerSession, revision, message("border-color-set-failed", "개인 섬 경계 색상을 변경하지 못했습니다."));
                 return null;
             });
     }
 
     private void setBorderFlag(Player player, IslandFlag flag, String value, boolean applyAfterSave) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = playerSession.playerUuid();
+        long revision = reserveBorderApply(actorUuid);
         runtime.currentIsland(player, message("border-set-island-required", "섬 안에서만 경계 정책을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_FLAGS)) {
                 runtime.message(player, message("flag-set-denied", "섬 플래그를 변경할 권한이 없습니다."));
                 return;
             }
             environmentUseCase.setFlagAction(islandId, actorUuid, flag, value, runtime::mutate)
-                .thenAccept(result -> {
-                    deliverMessage(actorUuid, environmentActionMessage(result, message("border-set-success-prefix", "섬 경계 정책 변경 완료: ") + flag.name() + "=" + value, message("border-set-failed", "섬 경계 정책을 변경하지 못했습니다.")));
-                    if (applyAfterSave && result.accepted()) {
-                        scheduleBorderApply(actorUuid, true);
-                    }
-                })
+                .thenAccept(result -> deliverBorderFlag(playerSession, revision, flag, value, applyAfterSave, result))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("border-set-failed", "섬 경계 정책을 변경하지 못했습니다.")));
+                    deliverBorderMessage(playerSession, revision, runtime.coreWriteFailureMessage(error, message("border-set-failed", "섬 경계 정책을 변경하지 못했습니다.")));
                     return null;
                 });
         });
     }
 
     private void applyBorder(Player player, boolean announce) {
-        UUID playerUuid = player.getUniqueId();
+        applyBorder(player, announce, reserveBorderApply(player.getUniqueId()));
+    }
+
+    private void applyBorder(Player player, boolean announce, long revision) {
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        UUID playerUuid = playerSession.playerUuid();
         runtime.currentIsland(player, message("border-apply-island-required", "섬 안에서만 경계를 적용할 수 있습니다.")).ifPresent(islandId -> {
             Optional<IslandRegion> region = protection.regionAt(player.getLocation().getBlock());
-            if (region.isEmpty()) {
+            if (region.isEmpty() || !region.get().islandId().equals(islandId)) {
                 runtime.message(player, message("border-location-missing", "섬 경계 위치를 확인하지 못했습니다."));
                 return;
             }
+            PlayerBorderApplyRequest request = new PlayerBorderApplyRequest(playerSession, islandId, revision);
             CompletableFuture<IslandInfoView> info = environmentUseCase.islandInfoView(islandId);
             CompletableFuture<Map<IslandFlag, String>> flags = environmentUseCase.flagValues(islandId);
             CompletableFuture<PlayerProfileView> profile = playerProfiles.profile(playerUuid);
             info.thenCombine(flags, (infoView, flagValues) -> new BorderView(infoView, flagValues, region.get(), null))
                 .thenCombine(profile, (view, playerProfile) -> new BorderView(view.info(), view.flags(), view.region(), playerProfile))
-                .thenAccept(view -> PaperSchedulers.run(plugin, () -> {
-                    Player activePlayer = plugin.getServer().getPlayer(playerUuid);
-                    if (activePlayer != null && activePlayer.isOnline()) {
-                        applyBorderSync(activePlayer, view, announce);
-                    }
-                }))
-                .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("border-apply-failed", "섬 경계 UI를 적용하지 못했습니다."));
-                    return null;
-                });
-        });
-    }
-
-    private void schedulePersonalBorderUpdate(UUID playerUuid, boolean enabled) {
-        PaperSchedulers.run(plugin, () -> {
-            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
-            if (activePlayer == null || !activePlayer.isOnline()) {
-                return;
-            }
-            if (enabled) {
-                applyBorder(activePlayer, false);
-            } else {
-                clearManagedBorder(activePlayer);
-            }
-        });
-    }
-
-    private void scheduleBorderApply(UUID playerUuid, boolean announce) {
-        PaperSchedulers.run(plugin, () -> {
-            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
-            if (activePlayer != null && activePlayer.isOnline()) {
-                applyBorder(activePlayer, announce);
-            }
+                .whenComplete((view, error) -> PaperSchedulers.run(plugin, () -> finishBorderApply(request, view, error, announce)));
         });
     }
 
@@ -583,9 +572,79 @@ final class IslandEnvironmentCommandHandler {
     }
 
     private void clearManagedBorder(Player player) {
+        clearManagedBorder(player, true);
+    }
+
+    private void clearManagedBorder(Player player, boolean invalidatePending) {
+        if (invalidatePending) {
+            reserveBorderApply(player.getUniqueId());
+        }
         if (managedBorders.remove(player.getUniqueId())) {
             player.setWorldBorder(null);
         }
+    }
+
+    private void finishBorderApply(PlayerBorderApplyRequest request, BorderView view, Throwable error, boolean announce) {
+        Player activePlayer = plugin.getServer().getPlayer(request.playerSession().playerUuid());
+        UUID activeIslandId = activePlayer == null ? null : protection.regionAt(activePlayer.getLocation().getBlock())
+            .map(IslandRegion::islandId)
+            .orElse(null);
+        long activeRevision = borderApplyRevisions.getOrDefault(request.playerSession().playerUuid(), -1L);
+        if (!request.isCurrent(activePlayer, activeIslandId, activeRevision)) {
+            return;
+        }
+        if (error != null || view == null) {
+            runtime.message(activePlayer, message("border-apply-failed", "섬 경계 UI를 적용하지 못했습니다."));
+            return;
+        }
+        applyBorderSync(activePlayer, view, announce);
+    }
+
+    private void deliverBorderColor(PlayerConnectionSession playerSession, long revision, PlayerProfileView profile) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = currentBorderPlayer(playerSession, revision);
+            if (activePlayer == null) {
+                return;
+            }
+            runtime.message(activePlayer, message("border-personal-color-prefix", "개인 섬 경계 색상을 변경했습니다: ") + profile.borderColor());
+            applyBorder(activePlayer, false, revision);
+        });
+    }
+
+    private void deliverBorderFlag(PlayerConnectionSession playerSession, long revision, IslandFlag flag, String value, boolean applyAfterSave, EnvironmentActionResult result) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = currentBorderPlayer(playerSession, revision);
+            if (activePlayer == null) {
+                return;
+            }
+            runtime.message(activePlayer, environmentActionMessage(result, message("border-set-success-prefix", "섬 경계 정책 변경 완료: ") + flag.name() + "=" + value, message("border-set-failed", "섬 경계 정책을 변경하지 못했습니다.")));
+            if (applyAfterSave && result.accepted()) {
+                applyBorder(activePlayer, true, revision);
+            }
+        });
+    }
+
+    private void deliverBorderMessage(PlayerConnectionSession playerSession, long revision, String detail) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = currentBorderPlayer(playerSession, revision);
+            if (activePlayer != null) {
+                runtime.message(activePlayer, detail);
+            }
+        });
+    }
+
+    private Player currentBorderPlayer(PlayerConnectionSession playerSession, long revision) {
+        Player activePlayer = plugin.getServer().getPlayer(playerSession.playerUuid());
+        return playerSession.isCurrent(activePlayer)
+            && borderApplyRevisions.getOrDefault(playerSession.playerUuid(), -1L) == revision
+            ? activePlayer
+            : null;
+    }
+
+    private long reserveBorderApply(UUID playerUuid) {
+        long revision = borderApplyRevisionSequence.incrementAndGet();
+        borderApplyRevisions.put(playerUuid, revision);
+        return revision;
     }
 
     private void listLimits(Player player) {

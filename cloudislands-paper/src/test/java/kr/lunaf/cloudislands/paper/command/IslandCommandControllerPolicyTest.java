@@ -932,7 +932,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(environment.contains("thenCompose(profile -> setPersonalBorderVisibility(playerUuid"), "border toggles must keep profile reads and writes in one observable completion chain");
         assertTrue(environment.contains("PaperOnlinePlayer.run(plugin, playerUuid"), "environment feedback must re-resolve the current online player");
         assertFalse(environment.contains("thenAccept(biome -> runtime.message(player"), "environment callbacks must not message a captured Player");
-        assertTrue(environment.contains("scheduleBorderApply(playerUuid, false)"), "border state returned by Core must be applied on the Paper scheduler");
+        assertTrue(environment.contains("PlayerBorderApplyRequest request = new PlayerBorderApplyRequest(playerSession, islandId, revision)"), "border state returned by Core must retain its initiating connection, island, and request order");
+        assertTrue(environment.contains("request.isCurrent(activePlayer, activeIslandId, activeRevision)"), "stale border responses must not mutate a replacement connection or a player on another island");
+        assertTrue(environment.contains("deliverBorderColor(playerSession, revision, profile)"), "border color responses must retain their command-time revision");
+        assertFalse(environment.contains("scheduleBorderApply(playerUuid, false)"), "UUID-only border apply callbacks must not survive a reconnect or island change");
         assertTrue(settings.contains("locales.remember(playerUuid, applied)"), "locale callbacks must update caches by immutable player identity");
         assertTrue(settings.contains("setPublicAccess(player, true, false)"), "command mutations must not open a delayed settings GUI");
         assertTrue(settings.contains("setLocked(player, true, false)"), "command lock mutations must not open a delayed settings GUI");

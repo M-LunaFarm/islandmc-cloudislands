@@ -1989,7 +1989,9 @@ tasks.register("verifyPersonalVisualPreferenceParity") {
         layout.projectDirectory.file("cloudislands-core-service/src/main/resources/db/mysql/V8__player_border_color.sql"),
         layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/IslandBorderColorPolicy.java"),
         layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/platform/world/WorldBorderTransitionAdapter.java"),
-        layout.projectDirectory.file("cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java")
+        layout.projectDirectory.file("cloudislands-velocity/src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityPlayerCommandDispatcher.java"),
+        layout.projectDirectory.file("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/PlayerBorderApplyRequest.java"),
+        layout.projectDirectory.file("cloudislands-paper/src/test/java/kr/lunaf/cloudislands/paper/command/PlayerBorderApplyRequestTest.java")
     )
     inputs.files(files)
     doLast {
@@ -2010,8 +2012,13 @@ tasks.register("verifyPersonalVisualPreferenceParity") {
             "/v1/players/border-color",
             "border_color VARCHAR(16) NOT NULL DEFAULT 'blue'",
             "setBorderColor(playerUuid, color)",
-            "scheduleBorderApply(playerUuid, false)",
-            "plugin.getServer().getPlayer(playerUuid)",
+            "deliverBorderColor(playerSession, revision, profile)",
+            "PlayerBorderApplyRequest request = new PlayerBorderApplyRequest(playerSession, islandId, revision)",
+            "request.isCurrent(activePlayer, activeIslandId, activeRevision)",
+            "playerSession.isCurrent(activePlayer)",
+            "islandId.equals(activeIslandId)",
+            "revision == activeRevision",
+            "moving to another island must invalidate the delayed border response",
             "IslandBorderColorPolicy.transition",
             "WorldBorderTransitionAdapter.changeSize(border, transition.targetSize(), transition.durationTicks())",
             "WorldBorder.class.getMethod(name, double.class, long.class)"

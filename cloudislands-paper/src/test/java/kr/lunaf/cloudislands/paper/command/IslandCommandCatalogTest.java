@@ -132,7 +132,8 @@ class IslandCommandCatalogTest {
         assertTrue(environmentHandler.contains("subcommand.equals(\"toggleblocks\")"), "official single-token toggleblocks must route without requiring migration mode");
         assertTrue(environmentHandler.contains("setBlocksStackerEnabled(playerUuid, enabled)"), "toggle blocks must persist as a personal player-profile preference using a scheduler-captured UUID");
         assertTrue(environmentHandler.contains("setWorldBorderEnabled(playerUuid, enabled)"), "toggle border must persist as a personal player-profile preference using a scheduler-captured UUID");
-        assertTrue(environmentHandler.contains("schedulePersonalBorderUpdate(playerUuid, profile.worldBorderEnabled())"), "Core profile callbacks must return to the Paper scheduler before applying a border");
+        assertTrue(environmentHandler.contains("deliverPersonalBorderVisibility(playerSession, revision, profile)"), "Core profile callbacks must retain the initiating connection and request revision");
+        assertTrue(environmentHandler.contains("PaperSchedulers.run(plugin, () ->"), "Core profile callbacks must return to the Paper scheduler before applying a border");
         assertTrue(environmentHandler.contains("setPersonalBorderColor(player, mode)"), "official /is border <red|green|blue> must update the personal border color");
         assertTrue(chatHandler.contains("isTeamChatToggle(args[1])"), "teamchat toggle mode must be handled before message dispatch");
         assertTrue(chatHandler.contains("teamChatModes.toggleIsland(player.getUniqueId())"), "localchat without a message must toggle island-local mode");
