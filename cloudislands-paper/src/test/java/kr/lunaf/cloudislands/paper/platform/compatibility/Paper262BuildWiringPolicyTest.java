@@ -11,6 +11,7 @@ class Paper262BuildWiringPolicyTest {
     void gradleExposesPaperTwentySixTwoCompileAndBootTasks() throws Exception {
         String build = Files.readString(Path.of("../gradle/version-matrix-gates.gradle.kts"));
         String matrix = Files.readString(Path.of("../gradle/minecraft-versions.toml"));
+        String workflow = Files.readString(Path.of("../.github/workflows/build.yml"));
 
         assertTrue(build.contains("tasks.register<JavaCompile>(entry.compileTaskName)"));
         assertTrue(build.contains("resolutionStrategy.force(\"io.papermc.paper:paper-api:${entry.paperApiVersion}\")"));
@@ -22,10 +23,14 @@ class Paper262BuildWiringPolicyTest {
         assertTrue(build.contains("\"--java-command\", versionMatrixJavaToolchains.launcherFor"));
         assertTrue(matrix.contains("id = \"paper-26.2\""));
         assertTrue(matrix.contains("normalizedRange = \"26.2.x\""));
-        assertTrue(matrix.contains("paperApiVersion = \"26.2.build.56-alpha\""));
+        assertTrue(matrix.contains("paperApiVersion = \"26.2.build.60-beta\""));
         assertTrue(matrix.contains("javaVersion = 25"));
         assertTrue(matrix.contains("adapterClass = \"kr.lunaf.cloudislands.paper.platform.compatibility.Paper262Adapter\""));
-        assertTrue(matrix.contains("bootSmokeEnabled = false"));
+        assertTrue(matrix.contains("bootSmokeEnabled = true"));
+        assertTrue(matrix.contains("bootChannel = \"BETA\""));
         assertTrue(matrix.contains("experimental = true"));
+        assertTrue(build.contains("\"--channel\", entry.bootChannel"));
+        assertTrue(workflow.contains("boot-task: paper262BootSmoke"));
+        assertTrue(workflow.contains("boot-smoke: \"true\""));
     }
 }

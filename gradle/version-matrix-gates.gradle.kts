@@ -40,6 +40,7 @@ private data class MinecraftVersionEntry(
     val experimental: Boolean,
     val minimumProtocolVersion: Int,
     val bootVersion: String,
+    val bootChannel: String,
     val artifactPolicy: String,
     val notes: String
 ) {
@@ -68,6 +69,7 @@ private data class MinecraftVersionMatrix(val entries: List<MinecraftVersionEntr
     }
 
     val compileEntries: List<MinecraftVersionEntry> = entries.filter { it.compileEnabled }
+    val bootEntries: List<MinecraftVersionEntry> = entries.filter { it.bootSmokeEnabled }
     val stableBootEntries: List<MinecraftVersionEntry> =
         entries.filter { it.releaseSupported && it.bootSmokeEnabled && !it.experimental }
     val latestStable: MinecraftVersionEntry = entries
@@ -83,6 +85,12 @@ private data class MinecraftVersionMatrix(val entries: List<MinecraftVersionEntr
         entries.forEach { entry ->
             if (entry.releaseSupported && entry.experimental) {
                 throw GradleException("Experimental matrix entry '${entry.id}' cannot be releaseSupported")
+            }
+            if (entry.bootChannel !in setOf("STABLE", "BETA", "ALPHA")) {
+                throw GradleException("Unsupported bootChannel '${entry.bootChannel}' for '${entry.id}'")
+            }
+            if (entry.releaseSupported && entry.bootChannel != "STABLE") {
+                throw GradleException("Release-supported matrix entry '${entry.id}' must use the STABLE boot channel")
             }
             if (entry.artifactPolicy != "universal") {
                 throw GradleException("Unsupported artifactPolicy '${entry.artifactPolicy}' for '${entry.id}'; only universal is supported")
@@ -118,6 +126,7 @@ private data class MinecraftVersionMatrix(val entries: List<MinecraftVersionEntr
             val boot = if (entry.bootSmokeEnabled) "`${entry.bootSmokeTaskName}`" else "pending official Paper build"
             val release = when {
                 entry.releaseSupported -> "release-supported"
+                entry.experimental && entry.bootSmokeEnabled -> "experimental boot-verified"
                 entry.experimental -> "experimental compile-only"
                 else -> "not release-supported"
             }
@@ -134,15 +143,15 @@ private data class MinecraftVersionMatrix(val entries: List<MinecraftVersionEntr
 
     fun detailedReport(): String {
         val rows = entries.sortedBy { it.range }.joinToString("\n") { entry ->
-            "| ${entry.id} | ${entry.normalizedRange} | ${entry.paperApiVersion} | ${entry.javaVersion} | ${entry.adapterProject} | ${entry.adapterSimpleName} | ${entry.compileEnabled} | ${entry.bootSmokeEnabled} | ${entry.releaseSupported} | ${entry.experimental} | ${entry.minimumProtocolVersion} | ${entry.artifactPolicy} | ${entry.notes} |"
+            "| ${entry.id} | ${entry.normalizedRange} | ${entry.paperApiVersion} | ${entry.javaVersion} | ${entry.adapterProject} | ${entry.adapterSimpleName} | ${entry.compileEnabled} | ${entry.bootSmokeEnabled} | ${entry.bootChannel} | ${entry.releaseSupported} | ${entry.experimental} | ${entry.minimumProtocolVersion} | ${entry.artifactPolicy} | ${entry.notes} |"
         }
         return listOf(
             "# Runtime matrix",
             "",
             "Latest stable: `${latestStable.id}` (`${latestStable.normalizedRange}`).",
             "",
-            "| ID | Range | Paper API | Java | Adapter project | Adapter | Compile | Boot smoke | Release | Experimental | Minimum protocol | Artifact | Notes |",
-            "|---|---|---|---:|---|---|---|---|---|---|---:|---|---|",
+            "| ID | Range | Paper API | Java | Adapter project | Adapter | Compile | Boot smoke | Boot channel | Release | Experimental | Minimum protocol | Artifact | Notes |",
+            "|---|---|---|---:|---|---|---|---|---|---|---|---:|---|---|",
             rows,
             ""
         ).joinToString("\n")
@@ -221,6 +230,7 @@ private data class MinecraftVersionMatrix(val entries: List<MinecraftVersionEntr
                 experimental = required(values, "experimental", file, line).toBooleanStrict(),
                 minimumProtocolVersion = required(values, "minimumProtocolVersion", file, line).toInt(),
                 bootVersion = required(values, "bootVersion", file, line),
+                bootChannel = required(values, "bootChannel", file, line),
                 artifactPolicy = required(values, "artifactPolicy", file, line),
                 notes = required(values, "notes", file, line)
             )
@@ -264,7 +274,7 @@ fun verifyMinecraftCiCoverage(workflow: String) {
     val missingCompileTasks = minecraftVersionMatrix.compileEntries
         .map { it.compileTaskName }
         .filterNot(workflow::contains)
-    val missingBootTasks = minecraftVersionMatrix.stableBootEntries
+    val missingBootTasks = minecraftVersionMatrix.bootEntries
         .map { it.bootSmokeTaskName }
         .filterNot(workflow::contains)
     val missingAggregateTasks = listOf(
@@ -419,6 +429,7 @@ minecraftVersionMatrix.entries.forEach { entry ->
                 file("scripts/ci/papermc_smoke.py").absolutePath,
                 "--project", "paper",
                 "--version", entry.bootVersion,
+                "--channel", entry.bootChannel,
                 "--plugin", paperJar.get().archiveFile.get().asFile.absolutePath,
                 "--work-dir", layout.buildDirectory.dir("smoke/paper-${entry.bootVersion}").get().asFile.absolutePath,
                 "--cache-dir", layout.buildDirectory.dir("smoke/cache").get().asFile.absolutePath,
@@ -450,6 +461,7 @@ tasks.register<Exec>("paperBootstrapFailureSmoke") {
             file("scripts/ci/papermc_smoke.py").absolutePath,
             "--project", "paper",
             "--version", entry.bootVersion,
+            "--channel", entry.bootChannel,
             "--plugin", paperJar.get().archiveFile.get().asFile.absolutePath,
             "--work-dir", layout.buildDirectory.dir("smoke/paper-bootstrap-failure-${entry.bootVersion}").get().asFile.absolutePath,
             "--cache-dir", layout.buildDirectory.dir("smoke/cache").get().asFile.absolutePath,

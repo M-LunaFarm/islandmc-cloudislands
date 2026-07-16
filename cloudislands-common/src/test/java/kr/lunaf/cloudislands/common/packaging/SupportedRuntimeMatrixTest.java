@@ -30,7 +30,7 @@ class SupportedRuntimeMatrixTest {
         assertTrue(readme.contains("<!-- minecraft-version-matrix:start -->"));
         assertTrue(readme.contains("| Paper `1.21.x` | `paper121Compile` | `paper121BootSmoke` | release-supported |"));
         assertTrue(readme.contains("| Paper `26.1.x` | `paper261Compile` | `paper261BootSmoke` | release-supported |"));
-        assertTrue(readme.contains("| Paper `26.2.x` | `paper262Compile` | pending official Paper build | experimental compile-only |"));
+        assertTrue(readme.contains("| Paper `26.2.x` | `paper262Compile` | `paper262BootSmoke` | experimental boot-verified |"));
         assertTrue(readme.contains("Velocity `3.5.0-SNAPSHOT` remains the proxy compile baseline"));
         assertTrue(readme.contains("paper121Compile"));
         assertTrue(readme.contains("paper121BootSmoke"));

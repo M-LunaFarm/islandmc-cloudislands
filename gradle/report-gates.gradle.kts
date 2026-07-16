@@ -18,6 +18,7 @@ private data class ReportMinecraftVersionEntry(
     val normalizedRange: String,
     val compileEnabled: Boolean,
     val bootSmokeEnabled: Boolean,
+    val bootChannel: String,
     val releaseSupported: Boolean,
     val experimental: Boolean,
     val adapterClass: String
@@ -67,6 +68,7 @@ private data class ReportMinecraftVersionMatrix(val entries: List<ReportMinecraf
                 normalizedRange = required(values, "normalizedRange", file, line),
                 compileEnabled = required(values, "compileEnabled", file, line).toBooleanStrict(),
                 bootSmokeEnabled = required(values, "bootSmokeEnabled", file, line).toBooleanStrict(),
+                bootChannel = required(values, "bootChannel", file, line),
                 releaseSupported = required(values, "releaseSupported", file, line).toBooleanStrict(),
                 experimental = required(values, "experimental", file, line).toBooleanStrict(),
                 adapterClass = required(values, "adapterClass", file, line)
@@ -289,9 +291,9 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "lifecycle/templates/homes/warps/visits",
         "IMPLEMENTED_VERIFIED",
         "Core lifecycle and route tickets are covered",
-        "Paper 1.21.11 and 26.1.2 boot smoke load the plugin; Paper 26.1.2 also verifies transactional failed-bootstrap rollback, diagnostic commands, and corrected-config retry recovery",
-        "1.21.x and 26.1.x release adapters; 26.2 compile adapter",
-        "ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper 26.1.2 smoke verifies normal command registration plus rejected-bootstrap rollback, diagnostic /is and /ciadmin, corrected-config retry, and second-attempt READY recovery; Paper tests verify main-thread template permission preflight, exact initiating-Player fencing for paid creation plus delete/reset feedback, automatic post-charge refund before Core creation when the connection is replaced, exact initiating-Player fencing for home/warp lookup, permission resolution, safe-destination lookup, local teleport, fallback movement, and feedback, one observable warp-to-island-info lookup chain, stale target-info response rejection, Core-authoritative newest-intent revisions for asynchronous primary-island selection across Paper nodes, exact selection-feedback connection fencing, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, final online-player revalidation, bounded destination revalidation, teleport warmup cancellation as soon as a player moves or starts falling within the same block, and exact initiating-Player fencing for both player and administrator teleports through route creation, polling, publication, local consumption, world readiness, safe-destination resolution, final teleport, fallback movement, feedback, loading bars, and delayed route-session rejection",
+        "Paper 1.21.11, 26.1.2 stable, and 26.2 build 60 beta boot smoke load the plugin; Paper 26.1.2 also verifies transactional failed-bootstrap rollback, diagnostic commands, and corrected-config retry recovery",
+        "1.21.x and 26.1.x release adapters; 26.2 beta boot-verified experimental adapter",
+        "ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper 1.21.11, 26.1.2 stable, and 26.2 build 60 beta smoke verify normal command registration and runtime startup, while Paper 26.1.2 additionally verifies rejected-bootstrap rollback, diagnostic /is and /ciadmin, corrected-config retry, and second-attempt READY recovery; Paper tests verify main-thread template permission preflight, exact initiating-Player fencing for paid creation plus delete/reset feedback, automatic post-charge refund before Core creation when the connection is replaced, exact initiating-Player fencing for home/warp lookup, permission resolution, safe-destination lookup, local teleport, fallback movement, and feedback, one observable warp-to-island-info lookup chain, stale target-info response rejection, Core-authoritative newest-intent revisions for asynchronous primary-island selection across Paper nodes, exact selection-feedback connection fencing, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, final online-player revalidation, bounded destination revalidation, teleport warmup cancellation as soon as a player moves or starts falling within the same block, and exact initiating-Player fencing for both player and administrator teleports through route creation, polling, publication, local consumption, world readiness, safe-destination resolution, final teleport, fallback movement, feedback, loading bars, and delayed route-session rejection",
         "node-down recovery restore is covered by ciIntegrationSmoke",
         listOf(
             "cloudislands-core-service/src/test/java/kr/lunaf/cloudislands/coreservice/workflow/IslandLifecycleWorkflowRestoreTest.java",
@@ -320,7 +322,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
             "gradle/version-matrix-gates.gradle.kts",
             "scripts/ci/core_integration_smoke.py"
         ),
-        "26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available"
+        "26.2 build 60 beta is compile- and boot-verified but remains experimental and is not release-supported until Paper publishes a stable channel build"
     ),
     FeatureParityEntry(
         "access/bans/membership/roles/permissions",
@@ -887,8 +889,12 @@ private fun minecraftVersionFeatureMatrixMarkdown(matrix: ReportMinecraftVersion
     matrix.entries.sortedBy { it.range }.forEach { version ->
         featureParityEntries().forEach { entry ->
             val compile = if (version.compileEnabled) "verified by `${version.compileTaskName}`" else "not verified"
-            val boot = if (version.bootSmokeEnabled) "verified by `${version.bootSmokeTaskName}`" else "pending official Paper build"
-            val integration = if (version.releaseSupported && !version.experimental) entry.integration else "compile-only adapter coverage; no boot or integration claim"
+            val boot = if (version.bootSmokeEnabled) "verified by `${version.bootSmokeTaskName}` (${version.bootChannel} channel)" else "pending official Paper build"
+            val integration = when {
+                version.releaseSupported && !version.experimental -> entry.integration
+                version.bootSmokeEnabled -> "experimental boot verified; domain integration remains certified only on release-supported targets"
+                else -> "compile-only adapter coverage; no boot or integration claim"
+            }
             appendLine("| ${version.normalizedRange} | ${entry.area} | ${entry.domain} | ${entry.paperRuntime} | ${entry.adapter} | $compile | $boot | $integration | ${entry.recovery} | ${entry.evidence.joinToString("<br>") { "`$it`" }} |")
         }
     }
@@ -904,7 +910,7 @@ private fun parityJson(matrix: ReportMinecraftVersionMatrix): String {
         """{"area":"${escape(entry.area)}","status":"${escape(entry.status)}","domain":"${escape(entry.domain)}","paperRuntime":"${escape(entry.paperRuntime)}","adapter":"${escape(entry.adapter)}","integration":"${escape(entry.integration)}","recovery":"${escape(entry.recovery)}","evidence":${array(entry.evidence)},"limitation":"${escape(entry.limitation)}"}"""
     }
     val versions = matrix.entries.sortedBy { it.range }.joinToString(",") { entry ->
-        """{"id":"${escape(entry.id)}","range":"${escape(entry.normalizedRange)}","compileVerified":${entry.compileEnabled},"bootVerified":${entry.bootSmokeEnabled},"releaseSupported":${entry.releaseSupported},"experimental":${entry.experimental},"adapter":"${escape(entry.adapterSimpleName)}"}"""
+        """{"id":"${escape(entry.id)}","range":"${escape(entry.normalizedRange)}","compileVerified":${entry.compileEnabled},"bootVerified":${entry.bootSmokeEnabled},"bootChannel":"${escape(entry.bootChannel)}","releaseSupported":${entry.releaseSupported},"experimental":${entry.experimental},"adapter":"${escape(entry.adapterSimpleName)}"}"""
     }
     val permissions = superiorSkyblock2PermissionParityEntries().joinToString(",") { entry ->
         """{"scope":"${escape(entry.scope)}","legacyNode":"${escape(entry.legacyNode)}","cloudislandsNode":"${escape(entry.cloudislandsNode)}","status":"${escape(entry.status)}","priority":"${escape(entry.priority)}","note":"${escape(entry.note)}"}"""

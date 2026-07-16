@@ -45,8 +45,8 @@ jobs:
             java: "25"
             minecraft-baseline: "26.2"
             compile-task: paper262Compile
-            boot-task: ""
-            boot-smoke: "false"
+            boot-task: paper262BootSmoke
+            boot-smoke: "true"
     env:
       CLOUDISLANDS_CI_PLATFORM: ${{ matrix.platform }}
       CLOUDISLANDS_MINECRAFT_BASELINE: ${{ matrix.minecraft-baseline }}

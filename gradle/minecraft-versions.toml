@@ -12,6 +12,7 @@ releaseSupported = true
 experimental = false
 minimumProtocolVersion = 767
 bootVersion = "1.21.11"
+bootChannel = "STABLE"
 artifactPolicy = "universal"
 notes = "current paper-api and plugin.yml baseline"
 
@@ -29,22 +30,24 @@ releaseSupported = true
 experimental = false
 minimumProtocolVersion = 2601
 bootVersion = "26.1.2"
+bootChannel = "STABLE"
 artifactPolicy = "universal"
 notes = "stable Paper 26.1.2 API compile and boot verified on Java 25"
 
 [[versions]]
 id = "paper-26.2"
 normalizedRange = "26.2.x"
-paperApiVersion = "26.2.build.56-alpha"
+paperApiVersion = "26.2.build.60-beta"
 javaVersion = 25
 adapterProject = "cloudislands-paper"
 adapterClass = "kr.lunaf.cloudislands.paper.platform.compatibility.Paper262Adapter"
 descriptorApiVersion = "1.21.11"
 compileEnabled = true
-bootSmokeEnabled = false
+bootSmokeEnabled = true
 releaseSupported = false
 experimental = true
 minimumProtocolVersion = 2602
 bootVersion = "26.2"
+bootChannel = "BETA"
 artifactPolicy = "universal"
-notes = "official alpha Paper API compile-verified on Java 25; stable boot build pending"
+notes = "official Paper 26.2 beta build 60 API compile and boot verified on Java 25; stable release channel pending"

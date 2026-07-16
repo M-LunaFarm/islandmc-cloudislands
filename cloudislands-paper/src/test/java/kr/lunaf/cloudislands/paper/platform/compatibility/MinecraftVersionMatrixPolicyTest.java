@@ -231,6 +231,12 @@ class MinecraftVersionMatrixPolicyTest {
                 if (entry.experimental() && entry.releaseSupported()) {
                     throw new IllegalStateException("Experimental entry cannot be releaseSupported");
                 }
+                if (!Set.of("STABLE", "BETA", "ALPHA").contains(entry.bootChannel())) {
+                    throw new IllegalStateException("Unsupported boot channel " + entry.bootChannel());
+                }
+                if (entry.releaseSupported() && !entry.bootChannel().equals("STABLE")) {
+                    throw new IllegalStateException("Release-supported entries must boot from STABLE");
+                }
                 Path module = root.resolve(entry.adapterProject());
                 if (!Files.exists(module.resolve("build.gradle.kts"))) {
                     throw new IllegalStateException("missing adapterProject " + entry.adapterProject());
@@ -279,6 +285,7 @@ class MinecraftVersionMatrixPolicyTest {
                 values.get("adapterProject"),
                 values.get("adapterClass"),
                 Boolean.parseBoolean(values.get("bootSmokeEnabled")),
+                values.getOrDefault("bootChannel", "STABLE"),
                 Boolean.parseBoolean(values.get("releaseSupported")),
                 Boolean.parseBoolean(values.get("experimental")),
                 values.getOrDefault("notes", "")
@@ -296,6 +303,7 @@ class MinecraftVersionMatrixPolicyTest {
         String adapterProject,
         String adapterClass,
         boolean bootSmokeEnabled,
+        String bootChannel,
         boolean releaseSupported,
         boolean experimental,
         String notes
@@ -308,7 +316,9 @@ class MinecraftVersionMatrixPolicyTest {
         String readmeRow() {
             String suffix = id.chars().filter(Character::isDigit).collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
             String boot = bootSmokeEnabled ? "`paper" + suffix + "BootSmoke`" : "pending official Paper build";
-            String release = releaseSupported ? "release-supported" : experimental ? "experimental compile-only" : "not release-supported";
+            String release = releaseSupported
+                ? "release-supported"
+                : experimental && bootSmokeEnabled ? "experimental boot-verified" : experimental ? "experimental compile-only" : "not release-supported";
             return "| Paper `" + normalizedRange + "` | `paper" + suffix + "Compile` | " + boot + " | " + release + " | " + notes + " |";
         }
     }

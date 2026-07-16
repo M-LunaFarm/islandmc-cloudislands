@@ -15,13 +15,16 @@ from pathlib import Path
 USER_AGENT = "cloudislands-ci-smoke/1.0"
 
 
-def stable_download(project: str, version: str) -> tuple[str, str, int]:
+def channel_download(project: str, version: str, channel: str) -> tuple[str, str, int]:
+    requested_channel = channel.strip().upper()
+    if requested_channel not in {"STABLE", "BETA", "ALPHA"}:
+        raise RuntimeError(f"unsupported PaperMC build channel: {channel}")
     url = f"https://fill.papermc.io/v3/projects/{project}/versions/{version}/builds"
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(request, timeout=30) as response:
         builds = json.load(response)
     for build in builds:
-        if build.get("channel") == "STABLE":
+        if build.get("channel") == requested_channel:
             downloads = build.get("downloads", {})
             server = downloads.get("server:default", {})
             download_url = server.get("url")
@@ -29,7 +32,11 @@ def stable_download(project: str, version: str) -> tuple[str, str, int]:
             size = server.get("size")
             if download_url and checksum and isinstance(size, int) and size > 0:
                 return download_url, checksum.lower(), size
-    raise RuntimeError(f"no stable {project} build found for {version}")
+    raise RuntimeError(f"no {requested_channel.lower()} {project} build found for {version}")
+
+
+def stable_download(project: str, version: str) -> tuple[str, str, int]:
+    return channel_download(project, version, "STABLE")
 
 
 def sha256(path: Path) -> str:
@@ -292,6 +299,7 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--project", choices=["paper", "velocity"], required=True)
     parser.add_argument("--version", required=True)
+    parser.add_argument("--channel", choices=["STABLE", "BETA", "ALPHA"], default="STABLE", type=str.upper)
     parser.add_argument("--plugin", required=True)
     parser.add_argument("--work-dir", required=True)
     parser.add_argument("--cache-dir", required=True)
@@ -306,7 +314,7 @@ def main() -> int:
     if not plugin.exists():
         raise RuntimeError(f"plugin jar does not exist: {plugin}")
 
-    download_url, expected_checksum, expected_size = stable_download(args.project, args.version)
+    download_url, expected_checksum, expected_size = channel_download(args.project, args.version, args.channel)
     server_jar = cache_dir / Path(download_url).name
     download(download_url, server_jar, expected_checksum, expected_size)
 
