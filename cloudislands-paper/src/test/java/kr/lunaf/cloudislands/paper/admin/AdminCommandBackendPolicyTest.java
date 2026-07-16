@@ -52,6 +52,21 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void sharedAsyncAdminRunnerRetainsTheInitiatingPlayerSession() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+
+        assertTrue(source.contains("PlayerConnectionSession playerSession = sender instanceof Player player"));
+        assertTrue(source.contains("? PlayerConnectionSession.capture(player)"),
+            "every shared async admin operation must capture the Player before its future completes");
+        assertTrue(source.contains("deliverAsyncAdminMessage(sender, playerSession, action + adminText(\"admin-command-action-complete\""));
+        assertTrue(source.contains("deliverAsyncAdminMessage(sender, playerSession, action + adminText(\"admin-command-action-failed\""));
+        assertTrue(source.contains("message(playerSession, text)"),
+            "Player feedback must reuse the exact-connection scheduler fence");
+        assertTrue(source.contains("message(sender, text)"),
+            "console and non-Player senders must retain normal async feedback");
+    }
+
+    @Test
     void pluginPermissionNodesAreBackedByCommandOrRuntimeChecks() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String boundaryListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandBoundaryListener.java"));

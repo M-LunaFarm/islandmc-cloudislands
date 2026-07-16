@@ -3113,14 +3113,25 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private void run(CommandSender sender, String action, CompletableFuture<? extends CharSequence> future) {
+        PlayerConnectionSession playerSession = sender instanceof Player player
+            ? PlayerConnectionSession.capture(player)
+            : null;
         future.thenAccept(body -> {
                 String text = body == null ? "" : body.toString();
-                message(sender, action + adminText("admin-command-action-complete", " 완료") + (text.isBlank() ? "" : ": " + text));
+                deliverAsyncAdminMessage(sender, playerSession, action + adminText("admin-command-action-complete", " 완료") + (text.isBlank() ? "" : ": " + text));
             })
             .exceptionally(error -> {
-                message(sender, action + adminText("admin-command-action-failed", " 실패"));
+                deliverAsyncAdminMessage(sender, playerSession, action + adminText("admin-command-action-failed", " 실패"));
                 return null;
         });
+    }
+
+    private void deliverAsyncAdminMessage(CommandSender sender, PlayerConnectionSession playerSession, String text) {
+        if (playerSession != null) {
+            message(playerSession, text);
+            return;
+        }
+        message(sender, text);
     }
 
     private record DiagnosticSection(String content) {
