@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.BanView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.InviteView;
 import kr.lunaf.cloudislands.coreclient.CoreGuiViews.MemberView;
+import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase;
 import kr.lunaf.cloudislands.paper.application.MemberManagementUseCase.MemberActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
@@ -22,6 +23,7 @@ import kr.lunaf.cloudislands.paper.gui.IslandInviteMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandMemberMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandRoleMenu;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -634,7 +636,8 @@ final class IslandMembershipCommandHandler {
     }
 
     private void banIslandVisitor(Player player, String target, String reason) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         runtime.currentIsland(player, message("visitor-ban-island-required", "섬 안에서만 방문자를 밴할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.BAN_VISITOR)) {
                 runtime.message(player, message("visitor-ban-denied", "섬 방문자를 밴할 권한이 없습니다."));
@@ -642,16 +645,9 @@ final class IslandMembershipCommandHandler {
             }
             runtime.resolvePlayerUuid(target).thenCompose(targetUuid ->
                 runtime.mutateIdempotent("island.visitor.ban", () -> memberManagement.banVisitorAction(islandId, actorUuid, targetUuid, reason))
-                    .thenAccept(result -> PaperOnlinePlayer.run(plugin, actorUuid, activePlayer -> {
-                        if (!result.accepted()) {
-                            runtime.message(activePlayer, memberActionMessage(message("visitor-ban-action-label", "섬 방문자 밴"), targetUuid, result));
-                            return;
-                        }
-                        runtime.moveVisitorToFallback(islandId, targetUuid, message("visitor-ban-move-success", "섬에서 밴되어 로비로 이동합니다."), message("visitor-ban-move-failed", "섬에서 밴되어 로비로 이동하지 못했습니다."));
-                        runtime.message(activePlayer, memberActionMessage(message("visitor-ban-action-label", "섬 방문자 밴"), targetUuid, result));
-                    })))
+                    .thenAccept(result -> finishVisitorBan(actorSession, islandId, targetUuid, result)))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, message("visitor-ban-failed", "섬 방문자를 밴하지 못했습니다."));
+                    deliverMessage(actorSession, message("visitor-ban-failed", "섬 방문자를 밴하지 못했습니다."));
                     return null;
                 });
         });
@@ -675,7 +671,8 @@ final class IslandMembershipCommandHandler {
     }
 
     private void kickIslandVisitor(Player player, String target) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         runtime.currentIsland(player, message("visitor-kick-island-required", "섬 안에서만 방문자를 추방할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.KICK_VISITOR)) {
                 runtime.message(player, message("visitor-kick-denied", "섬 방문자를 추방할 권한이 없습니다."));
@@ -683,30 +680,54 @@ final class IslandMembershipCommandHandler {
             }
             runtime.resolvePlayerUuid(target).thenCompose(targetUuid ->
                 runtime.mutateIdempotent("island.visitor.kick", () -> memberManagement.kickVisitorAction(islandId, actorUuid, targetUuid))
-                    .thenAccept(result -> PaperOnlinePlayer.run(plugin, actorUuid, activePlayer -> {
-                        if (!result.accepted()) {
-                            runtime.message(activePlayer, memberActionMessage(message("visitor-kick-action-label", "섬 방문자 추방"), targetUuid, result));
-                            return;
-                        }
-                        if (plugin.getServer().getPlayer(targetUuid) == null) {
-                            runtime.message(activePlayer, message("visitor-kick-target-offline", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 온라인이 아닙니다."));
-                            return;
-                        }
-                        if (!runtime.moveVisitorToFallback(islandId, targetUuid, message("visitor-kick-move-success", "섬에서 추방되어 로비로 이동합니다."), message("visitor-kick-move-failed", "섬에서 추방되어 로비로 이동하지 못했습니다."))) {
-                            runtime.message(activePlayer, message("visitor-kick-target-not-on-island", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다."));
-                            return;
-                        }
-                        runtime.message(activePlayer, memberActionMessage(message("visitor-kick-action-label", "섬 방문자 추방"), targetUuid, result));
-                    }))
+                    .thenAccept(result -> finishVisitorKick(actorSession, islandId, targetUuid, result))
                     .exceptionally(error -> {
-                        deliverMessage(actorUuid, message("visitor-kick-failed", "섬 방문자를 추방하지 못했습니다."));
+                        deliverMessage(actorSession, message("visitor-kick-failed", "섬 방문자를 추방하지 못했습니다."));
                         return null;
                     }))
             .exceptionally(error -> {
-                deliverMessage(actorUuid, message("visitor-kick-target-not-found", "대상 플레이어를 찾지 못했습니다."));
+                deliverMessage(actorSession, message("visitor-kick-target-not-found", "대상 플레이어를 찾지 못했습니다."));
                 return null;
             });
         });
+    }
+
+    private void finishVisitorBan(PlayerConnectionSession actorSession, UUID islandId, UUID targetUuid, MemberActionResult result) {
+        PaperSchedulers.run(plugin, () -> {
+            if (result.accepted()) {
+                runtime.moveVisitorToFallback(islandId, targetUuid, message("visitor-ban-move-success", "섬에서 밴되어 로비로 이동합니다."), message("visitor-ban-move-failed", "섬에서 밴되어 로비로 이동하지 못했습니다."));
+            }
+            messageCurrentActor(actorSession, memberActionMessage(message("visitor-ban-action-label", "섬 방문자 밴"), targetUuid, result));
+        });
+    }
+
+    private void finishVisitorKick(PlayerConnectionSession actorSession, UUID islandId, UUID targetUuid, MemberActionResult result) {
+        PaperSchedulers.run(plugin, () -> {
+            if (!result.accepted()) {
+                messageCurrentActor(actorSession, memberActionMessage(message("visitor-kick-action-label", "섬 방문자 추방"), targetUuid, result));
+                return;
+            }
+            if (plugin.getServer().getPlayer(targetUuid) == null) {
+                messageCurrentActor(actorSession, message("visitor-kick-target-offline", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 온라인이 아닙니다."));
+                return;
+            }
+            if (!runtime.moveVisitorToFallback(islandId, targetUuid, message("visitor-kick-move-success", "섬에서 추방되어 로비로 이동합니다."), message("visitor-kick-move-failed", "섬에서 추방되어 로비로 이동하지 못했습니다."))) {
+                messageCurrentActor(actorSession, message("visitor-kick-target-not-on-island", "방문자 추방을 기록했습니다. 대상 플레이어는 현재 이 섬에 없습니다."));
+                return;
+            }
+            messageCurrentActor(actorSession, memberActionMessage(message("visitor-kick-action-label", "섬 방문자 추방"), targetUuid, result));
+        });
+    }
+
+    private void deliverMessage(PlayerConnectionSession playerSession, String detail) {
+        PaperSchedulers.run(plugin, () -> messageCurrentActor(playerSession, detail));
+    }
+
+    private void messageCurrentActor(PlayerConnectionSession playerSession, String detail) {
+        Player activePlayer = plugin.getServer().getPlayer(playerSession.playerUuid());
+        if (activePlayer != null && playerSession.isCurrent(activePlayer)) {
+            runtime.message(activePlayer, detail);
+        }
     }
 
     private void listPendingInvites(Player player) {

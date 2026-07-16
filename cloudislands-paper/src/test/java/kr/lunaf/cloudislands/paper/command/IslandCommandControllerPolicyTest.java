@@ -1062,7 +1062,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("private void pardonIslandVisitor(Player player, String target)"), "visitor pardon execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void kickIslandVisitor(Player player, String target)"), "visitor kick execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid"), "membership feedback must use the shared online-player callback boundary");
-        assertTrue(membershipHandler.contains("PaperOnlinePlayer.run(plugin, actorUuid, activePlayer"), "visitor mutations must re-resolve the acting player before Bukkit work");
+        assertTrue(membershipHandler.contains("PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player)"), "visitor mutations must capture the exact acting connection before asynchronous work");
+        assertTrue(membershipHandler.contains("finishVisitorBan(actorSession, islandId, targetUuid, result)"), "visitor bans must finish target eviction independently from actor connectivity");
+        assertTrue(membershipHandler.contains("finishVisitorKick(actorSession, islandId, targetUuid, result)"), "visitor kicks must finish target eviction independently from actor connectivity");
+        assertTrue(membershipHandler.contains("PaperSchedulers.run(plugin, () ->"), "visitor eviction must return to the Paper scheduler");
+        assertTrue(membershipHandler.contains("playerSession.isCurrent(activePlayer)"), "visitor mutation feedback must require the exact initiating Player connection");
+        assertFalse(membershipHandler.contains("thenAccept(result -> PaperOnlinePlayer.run(plugin, actorUuid"), "actor disconnects must not suppress an accepted visitor eviction");
         assertTrue(membershipHandler.contains("thenCompose(targetUuid -> runtime.mutate"), "target resolution and mutations must form one observable completion chain");
         assertFalse(membershipHandler.contains("thenAccept(result -> runtime.message(player"), "membership callbacks must not message a captured Player");
         assertFalse(membershipHandler.contains("thenAccept(invites -> runtime.message(player"), "invite reads must not message a captured Player");
