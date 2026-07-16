@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.236`
+Version: `1.1.237`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -726,14 +726,25 @@ integration verification.
 | chat/logs/reviews | IMPLEMENTED_VERIFIED | verifyReviewModerationCoverage plus current-visible-visitor classification, Core audit/visitor route tests, LOWEST/HIGHEST mutually exclusive local/team-chat isolation, MONITOR-only accepted global-spy delivery, scheduler-bound permission and message calls, and same-instance reconnect fencing for both queued dispatch and delayed Core failure feedback cover current workflow | live multi-player chat moderation acceptance is deployment-specific outside unit CI |
 | snapshots/rollback/migration/recovery | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies recovery restore with shared services; Paper policy tests verify delayed snapshot list/create/restore responses cross the scheduler and re-resolve the current online player, while migration return tickets retain the initiating Player instance across polling, route-session publication, proxy transfer, failure feedback, and delayed BossBar cleanup | releaseClusterSmokeGate now includes database backup, object bundle, manifest checksum, restore, route, and audit evidence |
 | Java API/events/addons | IMPLEMENTED_VERIFIED | apiCompatibilityCheck verifies release contract metadata and the public API signature baseline; Paper tests fence asynchronous addon command results to the originating plugin lifecycle and same online Player instance, with scheduler-only delivery and no disable-time completion-thread fallback | external addon certification depends on testkit evidence supplied by the addon |
-| integrations/localization/GUI | IMPLEMENTED_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services including CraftEngine block/furniture and Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components, while all revision-guarded GUI loaders reject disconnected or replaced Player instances before opening inventories and the shared GUI click boundary rejects null and AIR slots before resolving actions; Paper 26.1.2 smoke proves atomic config reload by applying message changes to already-created renderers and refusing node changes as restart-required without mutating active runtime | Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom-content, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay intentionally disabled as an untrusted-format security boundary; CoreProtect remains append-only and WorldEdit/FAWE remain compatibility-only because CloudIslands chunk bundles own world-state transfer |
+| integrations/localization/GUI | IMPLEMENTED_VERIFIED | verifyIntegrationRuntimeSmoke verifies executable runtime services including CraftEngine block/furniture and Slimefun block identity plus RoseStacker, WildStacker, and AdvancedSpawners logical amount reconciliation; Paper tests also verify formatting-only MiniMessage rendering with literal dynamic placeholders across branding, GUI, scoreboard, command, title, action-bar, boss-bar, kick, migration, routing, boundary, flag, and protection-notice components, while all revision-guarded GUI loaders and asynchronous join-profile responses reject disconnected or replaced Player instances before mutating presentation or flight state and the shared GUI click boundary rejects null and AIR slots before resolving actions; Paper 26.1.2 smoke proves atomic config reload by applying message changes to already-created renderers and refusing node changes as restart-required without mutating active runtime | Vault, PlaceholderAPI, Plan, vanish, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom-content, and stacker accounting services are executable; click, URL, insertion, selector, score, and NBT MiniMessage tags stay intentionally disabled as an untrusted-format security boundary; CoreProtect remains append-only and WorldEdit/FAWE remain compatibility-only because CloudIslands chunk bundles own world-state transfer |
 <!-- feature-parity:end -->
 
 ## Release
 
-Current release: `v1.1.236`
+Current release: `v1.1.237`
 
-Built for the CloudIslands 1.1.236 baseline.
+Built for the CloudIslands 1.1.237 baseline.
+
+Release notes for `v1.1.237`:
+
+- asynchronous Core profile responses now retain the exact Player instance that
+  initiated the join event
+- disconnecting and reconnecting with the same UUID can no longer let an older
+  response overwrite the new session's locale or personal-flight preference
+- profile application still returns through Paper's scheduler and re-resolves
+  the active player before touching Bukkit location or flight state
+- focused identity and presentation-policy tests cover online, offline,
+  same-UUID replacement, mismatched identity, and null-session boundaries
 
 Release notes for `v1.1.236`:
 
