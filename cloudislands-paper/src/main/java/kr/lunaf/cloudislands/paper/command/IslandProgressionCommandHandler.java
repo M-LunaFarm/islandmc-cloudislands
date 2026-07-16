@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase.BlockDetailsView;
 import kr.lunaf.cloudislands.paper.application.IslandProgressionUseCase.BlockDetailView;
@@ -29,6 +30,7 @@ import kr.lunaf.cloudislands.paper.generator.GeneratorInfoUseCase.GeneratorInfoV
 import kr.lunaf.cloudislands.paper.generator.GeneratorInfoUseCase.GeneratorMaterialView;
 import kr.lunaf.cloudislands.paper.level.IslandLevelScanService;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -251,12 +253,12 @@ final class IslandProgressionCommandHandler {
 
     private void showLevel(Player player) {
         runtime.currentIsland(player, message("level-show-island-required", "섬 안에서만 레벨을 확인할 수 있습니다.")).ifPresent(islandId -> {
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
             progressionUseCase.islandLevel(islandId)
                 .thenCombine(progressionUseCase.topLevelViews(100), (level, rankings) -> message("level-show-prefix", "섬 레벨: ") + level.level() + growthTargetSuffix(islandId, level.level(), level.worth(), rankings, "level"))
-                .thenAccept(detail -> deliverMessage(playerUuid, detail))
+                .thenAccept(detail -> deliverMessage(playerSession, detail))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("level-load-failed", "섬 레벨을 불러오지 못했습니다."));
+                    deliverMessage(playerSession, message("level-load-failed", "섬 레벨을 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -264,12 +266,12 @@ final class IslandProgressionCommandHandler {
 
     private void showWorth(Player player) {
         runtime.currentIsland(player, message("worth-show-island-required", "섬 안에서만 가치를 확인할 수 있습니다.")).ifPresent(islandId -> {
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
             progressionUseCase.islandLevel(islandId)
                 .thenCombine(progressionUseCase.topWorthViews(100), (level, rankings) -> message("worth-show-prefix", "섬 가치: ") + level.worth() + growthTargetSuffix(islandId, level.level(), level.worth(), rankings, "worth"))
-                .thenAccept(detail -> deliverMessage(playerUuid, detail))
+                .thenAccept(detail -> deliverMessage(playerSession, detail))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("worth-load-failed", "섬 가치를 불러오지 못했습니다."));
+                    deliverMessage(playerSession, message("worth-load-failed", "섬 가치를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -277,49 +279,49 @@ final class IslandProgressionCommandHandler {
 
     private void showBlockValue(Player player, String material) {
         String normalized = BlockValueLookup.normalize(material);
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
         coreApiClient.blockValues().list()
             .thenAccept(values -> BlockValueLookup.find(values, normalized).ifPresentOrElse(
-                value -> deliverMessage(playerUuid, message("block-value-prefix", "블록 가치: ") + value.materialKey()
+                value -> deliverMessage(playerSession, message("block-value-prefix", "블록 가치: ") + value.materialKey()
                     + " " + message("block-value-worth-label", "가치=") + value.worth()
                     + " " + message("block-value-level-label", "점수=") + value.levelPoints()
                     + " " + message("block-value-limit-label", "제한=") + value.limit()),
-                () -> deliverMessage(playerUuid, message("block-value-not-found-prefix", "등록되지 않은 블록입니다: ") + normalized)))
+                () -> deliverMessage(playerSession, message("block-value-not-found-prefix", "등록되지 않은 블록입니다: ") + normalized)))
             .exceptionally(error -> {
-                deliverMessage(playerUuid, message("block-value-load-failed", "블록 가치를 불러오지 못했습니다."));
+                deliverMessage(playerSession, message("block-value-load-failed", "블록 가치를 불러오지 못했습니다."));
                 return null;
             });
     }
 
     private void showBlockDetails(Player player, int limit) {
         runtime.currentIsland(player, message("block-details-island-required", "섬 안에서만 블록 상세를 확인할 수 있습니다.")).ifPresent(islandId -> {
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
             progressionUseCase.blockDetailsView(islandId, limit)
-                .thenAccept(details -> deliverMessage(playerUuid, blockDetailsMessage(details)))
+                .thenAccept(details -> deliverMessage(playerSession, blockDetailsMessage(details)))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("block-details-load-failed", "섬 블록 상세를 불러오지 못했습니다."));
+                    deliverMessage(playerSession, message("block-details-load-failed", "섬 블록 상세를 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void showBlockDetails(Player player, String target, int limit) {
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
         targetResolver.resolve(target)
             .thenCompose(islandId -> {
                 if (islandId == null) {
-                    deliverMessage(playerUuid, message("block-details-target-not-found", "대상 플레이어 또는 섬을 찾을 수 없습니다."));
+                    deliverMessage(playerSession, message("block-details-target-not-found", "대상 플레이어 또는 섬을 찾을 수 없습니다."));
                     return CompletableFuture.completedFuture(null);
                 }
                 return progressionUseCase.blockDetailsView(islandId, limit)
-                    .thenAccept(details -> deliverMessage(playerUuid, blockDetailsMessage(details)))
+                    .thenAccept(details -> deliverMessage(playerSession, blockDetailsMessage(details)))
                     .exceptionally(error -> {
-                        deliverMessage(playerUuid, message("block-details-load-failed", "섬 블록 상세를 불러오지 못했습니다."));
+                        deliverMessage(playerSession, message("block-details-load-failed", "섬 블록 상세를 불러오지 못했습니다."));
                         return null;
                     });
             })
             .exceptionally(error -> {
-                deliverMessage(playerUuid, message("block-details-target-load-failed", "대상 섬을 확인하지 못했습니다."));
+                deliverMessage(playerSession, message("block-details-target-load-failed", "대상 섬을 확인하지 못했습니다."));
                 return null;
             });
     }
@@ -342,48 +344,49 @@ final class IslandProgressionCommandHandler {
 
     private void listRanking(Player player, boolean worthRanking, int limit) {
         int cappedLimit = Math.max(1, Math.min(limit, 100));
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
         if (worthRanking) {
             progressionUseCase.topWorthViews(cappedLimit)
-                .thenAccept(rankings -> deliverMessage(playerUuid, rankingMessage(rankings, message("ranking-worth-title", "섬 가치 랭킹"), "worth")))
+                .thenAccept(rankings -> deliverMessage(playerSession, rankingMessage(rankings, message("ranking-worth-title", "섬 가치 랭킹"), "worth")))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("ranking-worth-load-failed", "섬 가치 랭킹을 불러오지 못했습니다."));
+                    deliverMessage(playerSession, message("ranking-worth-load-failed", "섬 가치 랭킹을 불러오지 못했습니다."));
                     return null;
                 });
             return;
         }
         progressionUseCase.topLevelViews(cappedLimit)
-            .thenAccept(rankings -> deliverMessage(playerUuid, rankingMessage(rankings, message("ranking-level-title", "섬 레벨 랭킹"), "level")))
+            .thenAccept(rankings -> deliverMessage(playerSession, rankingMessage(rankings, message("ranking-level-title", "섬 레벨 랭킹"), "level")))
             .exceptionally(error -> {
-                deliverMessage(playerUuid, message("ranking-level-load-failed", "섬 레벨 랭킹을 불러오지 못했습니다."));
+                deliverMessage(playerSession, message("ranking-level-load-failed", "섬 레벨 랭킹을 불러오지 못했습니다."));
                 return null;
             });
     }
 
     private void listReviewRanking(Player player, int limit) {
         int cappedLimit = Math.max(1, Math.min(limit, 100));
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
         progressionUseCase.topReviewViews(cappedLimit)
-            .thenAccept(rankings -> deliverMessage(playerUuid, reviewRankingMessage(rankings)))
+            .thenAccept(rankings -> deliverMessage(playerSession, reviewRankingMessage(rankings)))
             .exceptionally(error -> {
-                deliverMessage(playerUuid, message("ranking-review-load-failed", "섬 후기 랭킹을 불러오지 못했습니다."));
+                deliverMessage(playerSession, message("ranking-review-load-failed", "섬 후기 랭킹을 불러오지 못했습니다."));
                 return null;
             });
     }
 
     private void listBankRanking(Player player, int limit) {
         int cappedLimit = Math.max(1, Math.min(limit, 100));
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
         progressionUseCase.topBankViews(cappedLimit)
-            .thenAccept(rankings -> deliverMessage(playerUuid, rankingMessage(rankings, message("ranking-bank-title", "섬 은행 랭킹"), "bank")))
+            .thenAccept(rankings -> deliverMessage(playerSession, rankingMessage(rankings, message("ranking-bank-title", "섬 은행 랭킹"), "bank")))
             .exceptionally(error -> {
-                deliverMessage(playerUuid, message("ranking-bank-load-failed", "섬 은행 랭킹을 불러오지 못했습니다."));
+                deliverMessage(playerSession, message("ranking-bank-load-failed", "섬 은행 랭킹을 불러오지 못했습니다."));
                 return null;
             });
     }
 
     private void recalculateLevel(Player player) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = playerSession.playerUuid();
         runtime.currentIsland(player, message("level-recalculate-island-required", "섬 안에서만 레벨을 계산할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.START_LEVEL_CALC)) {
                 runtime.message(player, message("level-recalculate-denied", "섬 레벨을 계산할 권한이 없습니다."));
@@ -392,11 +395,11 @@ final class IslandProgressionCommandHandler {
             player.sendActionBar(runtime.component(player, message("level-recalculate-started", "섬 블록을 다시 확인하는 중입니다.")));
             CompletableFuture<Void> rescan = levelScanService == null ? CompletableFuture.completedFuture(null) : levelScanService.rescanIsland(islandId);
             rescan.thenCompose(_ignored -> progressionUseCase.recalculateLevelView(islandId, actorUuid))
-                .thenAccept(level -> deliverMessage(actorUuid, message("level-recalculate-success-prefix", "섬 레벨 계산 완료: ")
+                .thenAccept(level -> deliverMessage(playerSession, message("level-recalculate-success-prefix", "섬 레벨 계산 완료: ")
                     + message("level-label", "레벨 ") + level.level()
                     + message("worth-separator-label", " / 가치 ") + level.worth()))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, message("level-recalculate-failed", "섬 레벨을 계산하지 못했습니다."));
+                    deliverMessage(playerSession, message("level-recalculate-failed", "섬 레벨을 계산하지 못했습니다."));
                     return null;
                 });
         });
@@ -404,11 +407,11 @@ final class IslandProgressionCommandHandler {
 
     private void listUpgrades(Player player) {
         runtime.currentIsland(player, message("upgrade-list-island-required", "섬 안에서만 업그레이드를 확인할 수 있습니다.")).ifPresent(islandId -> {
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
             progressionUseCase.upgradeViews(islandId)
-                .thenAccept(upgrades -> deliverMessage(playerUuid, upgradeListMessage(upgrades)))
+                .thenAccept(upgrades -> deliverMessage(playerSession, upgradeListMessage(upgrades)))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("upgrade-list-load-failed", "섬 업그레이드를 불러오지 못했습니다."));
+                    deliverMessage(playerSession, message("upgrade-list-load-failed", "섬 업그레이드를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -416,11 +419,11 @@ final class IslandProgressionCommandHandler {
 
     private void showGenerator(Player player) {
         runtime.currentIsland(player, message("generator-show-island-required", "섬 안에서만 생성기를 확인할 수 있습니다.")).ifPresent(islandId -> {
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
             generatorInfoUseCase.view(islandId)
-                .thenAccept(view -> deliverMessage(playerUuid, generatorInfoMessage(view)))
+                .thenAccept(view -> deliverMessage(playerSession, generatorInfoMessage(view)))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("generator-load-failed", "섬 생성기를 불러오지 못했습니다."));
+                    deliverMessage(playerSession, message("generator-load-failed", "섬 생성기를 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -436,17 +439,18 @@ final class IslandProgressionCommandHandler {
                 runtime.message(player, message("upgrade-purchase-denied", "섬 업그레이드를 구매할 권한이 없습니다."));
                 return;
             }
-            UUID actorUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+            UUID actorUuid = playerSession.playerUuid();
             progressionUseCase.purchaseUpgradeResult(islandId, actorUuid, upgradeKey, runtime::mutateIdempotent)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        deliverMessage(actorUuid, runtime.playerCodeMessage(result.code(), message("upgrade-purchase-failed", "섬 업그레이드를 구매하지 못했습니다.")));
+                        deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("upgrade-purchase-failed", "섬 업그레이드를 구매하지 못했습니다.")));
                         return;
                     }
-                    deliverMessage(actorUuid, upgradePurchaseMessage(result, upgradeKey));
+                    deliverMessage(playerSession, upgradePurchaseMessage(result, upgradeKey));
                 })
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, message("upgrade-purchase-failed", "섬 업그레이드를 구매하지 못했습니다."));
+                    deliverMessage(playerSession, message("upgrade-purchase-failed", "섬 업그레이드를 구매하지 못했습니다."));
                     return null;
                 });
         });
@@ -455,11 +459,11 @@ final class IslandProgressionCommandHandler {
     private void listMissions(Player player, String kind, String labelKey, String labelFallback) {
         String label = message(labelKey, labelFallback);
         runtime.currentIsland(player, message("mission-list-island-required-prefix", "섬 안에서만 ") + label + message("mission-list-island-required-suffix", "을 확인할 수 있습니다.")).ifPresent(islandId -> {
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
             progressionUseCase.missionViews(islandId, kind)
-                .thenAccept(missions -> deliverMessage(playerUuid, missionListMessage(missions, label)))
+                .thenAccept(missions -> deliverMessage(playerSession, missionListMessage(missions, label)))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, label + message("mission-list-load-failed-suffix", "을 불러오지 못했습니다."));
+                    deliverMessage(playerSession, label + message("mission-list-load-failed-suffix", "을 불러오지 못했습니다."));
                     return null;
                 });
         });
@@ -484,17 +488,18 @@ final class IslandProgressionCommandHandler {
 
     private void completeTaskWithLabel(Player player, String missionKey, String kind, String label) {
         runtime.currentIsland(player, message("mission-complete-island-required-prefix", "섬 안에서만 ") + label + message("mission-complete-island-required-suffix", "을 완료할 수 있습니다.")).ifPresent(islandId -> {
-            UUID actorUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+            UUID actorUuid = playerSession.playerUuid();
             progressionUseCase.completeMissionResult(islandId, actorUuid, missionKey, kind, runtime::mutateIdempotent)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        deliverMessage(actorUuid, runtime.playerCodeMessage(result.code(), label + message("mission-complete-failed-suffix", "을 완료하지 못했습니다.")));
+                        deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), label + message("mission-complete-failed-suffix", "을 완료하지 못했습니다.")));
                         return;
                     }
-                    deliverMessage(actorUuid, missionCompletionMessage(result, missionKey, label));
+                    deliverMessage(playerSession, missionCompletionMessage(result, missionKey, label));
                 })
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, label + message("mission-complete-failed-suffix", "을 완료하지 못했습니다."));
+                    deliverMessage(playerSession, label + message("mission-complete-failed-suffix", "을 완료하지 못했습니다."));
                     return null;
                 });
         });
@@ -641,8 +646,13 @@ final class IslandProgressionCommandHandler {
         return label + message("mission-complete-success-suffix", " 완료: ") + title + (result.reward().isBlank() ? "" : message("mission-reward-label", " / 보상 ") + result.reward());
     }
 
-    private void deliverMessage(UUID playerUuid, String detail) {
-        PaperOnlinePlayer.run(plugin, playerUuid, player -> runtime.message(player, detail));
+    private void deliverMessage(PlayerConnectionSession playerSession, String detail) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = plugin.getServer().getPlayer(playerSession.playerUuid());
+            if (playerSession.isCurrent(activePlayer)) {
+                runtime.message(activePlayer, detail);
+            }
+        });
     }
 
     private String message(String key, String fallback) {

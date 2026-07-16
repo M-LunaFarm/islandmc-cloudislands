@@ -578,7 +578,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(progressionHandler.contains("progressionUseCase.purchaseUpgradeResult"));
         assertTrue(progressionHandler.contains("progressionUseCase.missionViews"));
         assertTrue(progressionHandler.contains("progressionUseCase.completeMissionResult"));
-        assertTrue(progressionHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid"), "progression callbacks must use the shared online-player delivery boundary");
+        assertTrue(progressionHandler.contains("PlayerConnectionSession.capture(player)"), "progression callbacks must retain the initiating player connection");
+        assertTrue(progressionHandler.contains("playerSession.isCurrent(activePlayer)"), "progression callbacks must reject a replacement player connection");
         assertTrue(progressionHandler.contains("purchaseUpgradeResult(islandId, actorUuid"), "upgrade purchases must retain immutable actor identity");
         assertTrue(progressionHandler.contains("completeMissionResult(islandId, actorUuid"), "mission rewards must retain immutable actor identity");
         assertTrue(progressionHandler.contains("targetResolver.resolve(target)\n            .thenCompose"), "targeted block lookup and detail loading must form one observable completion chain");
@@ -934,6 +935,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membership.contains("resolveInviteTarget(UUID actorUuid, String target)"), "invite resolution must carry immutable actor identity");
         assertTrue(overview.contains("selectPrimaryIsland(actorUuid, request.islandId(), request.revision())"), "primary-island selection must use the pre-resolved actor identity and reserved newest-intent revision");
         assertTrue(progression.contains("recalculateLevelView(islandId, actorUuid)"), "level rescans must retain the command-thread actor identity");
+        assertTrue(progression.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "progression requests must capture the exact initiating player connection");
+        assertTrue(progression.contains("getPlayer(playerSession.playerUuid())"), "progression feedback must re-resolve the online player on the Paper scheduler");
+        assertTrue(progression.contains("playerSession.isCurrent(activePlayer)"), "progression feedback must reject a same-UUID replacement connection");
+        assertTrue(progression.contains("purchaseUpgradeResult(islandId, actorUuid") && progression.contains("completeMissionResult(islandId, actorUuid"), "progression mutations must retain the captured actor identity");
+        assertFalse(progression.contains("private void deliverMessage(UUID playerUuid"), "UUID-only progression feedback must not survive a reconnect");
+        assertFalse(progression.contains("deliverMessage(actorUuid"), "progression mutation feedback must retain its initiating connection session");
         assertTrue(environment.contains("setWorldBorderEnabled(playerUuid, enabled)"), "visual preference callbacks must use immutable player identity");
         assertTrue(environment.contains("thenCompose(profile -> setStackedBlockVisibility(playerUuid"), "stacked-block toggles must keep profile reads and writes in one observable completion chain");
         assertTrue(environment.contains("thenCompose(profile -> setPersonalBorderVisibility(playerUuid"), "border toggles must keep profile reads and writes in one observable completion chain");
