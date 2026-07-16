@@ -71,6 +71,7 @@ import kr.lunaf.cloudislands.paper.AdminFlightOverrides;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperAgent;
 import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
+import kr.lunaf.cloudislands.paper.RoutePlayerSession;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigReloadResult;
 import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
@@ -2980,10 +2981,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private void routeAdminTeleport(Player player, UUID islandId) {
-        coreApiClient.adminIslandTeleport(player.getUniqueId(), islandId)
-            .thenAccept(ticket -> routeTicket(player, ticket, adminText("admin-command-route-failed", "관리자 섬 이동에 실패했습니다."), 0))
+        RoutePlayerSession playerSession = RoutePlayerSession.capture(player);
+        coreApiClient.adminIslandTeleport(playerSession.playerUuid(), islandId)
+            .thenAccept(ticket -> routeTicket(playerSession, ticket, adminText("admin-command-route-failed", "관리자 섬 이동에 실패했습니다."), 0))
             .exceptionally(error -> {
-                message(player, routeFailureMessage(error, adminText("admin-command-route-failed", "관리자 섬 이동에 실패했습니다.")));
+                message(playerSession, routeFailureMessage(error, adminText("admin-command-route-failed", "관리자 섬 이동에 실패했습니다.")));
                 return null;
             });
     }
@@ -3006,39 +3008,47 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         return fallback;
     }
 
-    private void routeTicket(Player player, RouteTicket ticket, String failureMessage, int attempt) {
+    private void routeTicket(RoutePlayerSession playerSession, RouteTicket ticket, String failureMessage, int attempt) {
+        runIfCurrent(playerSession,
+            _player -> routeTicketCurrent(playerSession, ticket, failureMessage, attempt),
+            () -> clearFailedRoute(ticket, "PLAYER_SESSION_REPLACED"));
+    }
+
+    private void routeTicketCurrent(RoutePlayerSession playerSession, RouteTicket ticket, String failureMessage, int attempt) {
         if (ticket.state().name().equals("READY")) {
-            publishAndConnect(player, ticket, failureMessage);
+            publishAndConnect(playerSession, ticket, failureMessage);
             return;
         }
         if (attempt >= routeWaitSeconds) {
-            message(player, failureMessage);
+            message(playerSession, failureMessage);
             return;
         }
-        CompletableFuture.runAsync(() -> coreApiClient.routingCommands().routeTicketStatus(ticket).thenAccept(status -> {
-            if (status.isPresent()) {
-                routeTicket(player, status.get(), failureMessage, attempt + 1);
-            } else {
-                message(player, failureMessage);
-            }
-        }).exceptionally(error -> {
-            message(player, routeFailureMessage(error, failureMessage));
-            return null;
-        }), CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS));
-    }
-
-    private void publishAndConnect(Player player, RouteTicket ticket, String failureMessage) {
-        coreApiClient.routingCommands().publishRouteSession(ticket)
-            .thenRun(() -> connectWithTicket(player, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode())))
-            .exceptionally(error -> {
-                clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
-                message(player, routeFailureMessage(error, failureMessage));
+        CompletableFuture.delayedExecutor(1, TimeUnit.SECONDS).execute(() ->
+            coreApiClient.routingCommands().routeTicketStatus(ticket).thenAccept(status -> {
+                if (status.isPresent()) {
+                    routeTicket(playerSession, status.get(), failureMessage, attempt + 1);
+                } else {
+                    message(playerSession, failureMessage);
+                }
+            }).exceptionally(error -> {
+                message(playerSession, routeFailureMessage(error, failureMessage));
                 return null;
-            });
+            }));
     }
 
-    private void connectWithTicket(Player player, RouteTicket ticket, String targetServerName) {
-        kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(agent.plugin(), () -> {
+    private void publishAndConnect(RoutePlayerSession playerSession, RouteTicket ticket, String failureMessage) {
+        runIfCurrent(playerSession, _player -> coreApiClient.routingCommands().publishRouteSession(ticket)
+                .thenRun(() -> connectWithTicket(playerSession, ticket, ticket.payload().getOrDefault("targetServerName", ticket.targetNode())))
+                .exceptionally(error -> {
+                    clearFailedRoute(ticket, "SESSION_PUBLISH_FAILED");
+                    message(playerSession, routeFailureMessage(error, failureMessage));
+                    return null;
+                }),
+            () -> clearFailedRoute(ticket, "PLAYER_SESSION_REPLACED"));
+    }
+
+    private void connectWithTicket(RoutePlayerSession playerSession, RouteTicket ticket, String targetServerName) {
+        runIfCurrent(playerSession, player -> {
             if (targetServerName == null || targetServerName.isBlank()) {
                 clearFailedRoute(ticket, "TARGET_SERVER_NOT_FOUND");
                 player.sendMessage(adminText("admin-command-route-target-missing", "섬 이동 경로를 찾을 수 없습니다."));
@@ -3059,6 +3069,21 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             } catch (IOException | RuntimeException exception) {
                 clearFailedRoute(ticket, "PLUGIN_MESSAGE_FAILED");
                 player.sendMessage(adminText("admin-command-route-request-failed", "섬 이동 요청을 만들 수 없습니다."));
+            }
+        }, () -> clearFailedRoute(ticket, "PLAYER_SESSION_REPLACED"));
+    }
+
+    private void message(RoutePlayerSession playerSession, String text) {
+        runIfCurrent(playerSession, player -> player.sendMessage(text), () -> { });
+    }
+
+    private void runIfCurrent(RoutePlayerSession playerSession, java.util.function.Consumer<Player> action, Runnable staleAction) {
+        PaperSchedulers.run(agent.plugin(), () -> {
+            Player activePlayer = agent.plugin().getServer().getPlayer(playerSession.playerUuid());
+            if (playerSession.isCurrent(activePlayer)) {
+                action.accept(activePlayer);
+            } else {
+                staleAction.run();
             }
         });
     }

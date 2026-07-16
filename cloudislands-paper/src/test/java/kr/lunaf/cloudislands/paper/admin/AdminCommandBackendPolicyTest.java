@@ -17,6 +17,24 @@ import org.junit.jupiter.api.Test;
 
 class AdminCommandBackendPolicyTest {
     @Test
+    void adminTeleportRetainsTheInitiatingPlayerSession() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+
+        assertTrue(source.contains("RoutePlayerSession playerSession = RoutePlayerSession.capture(player)"));
+        assertTrue(source.contains("thenAccept(ticket -> routeTicket(playerSession, ticket"));
+        assertTrue(source.contains("_player -> routeTicketCurrent(playerSession, ticket, failureMessage, attempt)"),
+            "every polling transition must reject a replaced connection before another Core request");
+        assertTrue(source.contains("routeTicket(playerSession, status.get(), failureMessage, attempt + 1)"));
+        assertTrue(source.contains("runIfCurrent(playerSession, _player -> coreApiClient.routingCommands().publishRouteSession(ticket)"),
+            "route-session publication must be fenced before Core receives it");
+        assertTrue(source.contains("connectWithTicket(playerSession, ticket"));
+        assertTrue(source.contains("if (playerSession.isCurrent(activePlayer))"));
+        assertTrue(source.contains("clearFailedRoute(ticket, \"PLAYER_SESSION_REPLACED\")"),
+            "a published admin route must be cleared if the initiating connection is replaced");
+        assertFalse(source.contains("private void routeTicket(Player player, RouteTicket ticket"));
+    }
+
+    @Test
     void pluginPermissionNodesAreBackedByCommandOrRuntimeChecks() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String boundaryListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandBoundaryListener.java"));
