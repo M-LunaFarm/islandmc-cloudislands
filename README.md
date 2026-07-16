@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.250`
+Version: `1.1.251`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -732,9 +732,20 @@ integration-certified.
 
 ## Release
 
-Current release: `v1.1.250`
+Current release: `v1.1.251`
 
-Built for the CloudIslands 1.1.250 baseline.
+Built for the CloudIslands 1.1.251 baseline.
+
+Release notes for `v1.1.251`:
+
+- snapshot list, create, and restore callbacks now retain the exact Player
+  connection that initiated the command or confirmed GUI action
+- delayed Core results return through the Paper scheduler and reject a
+  same-UUID replacement connection after disconnect, reconnect, or transfer
+- restore requests remain confirmation-gated and idempotent; only stale feedback
+  is discarded, without cancelling an already accepted recovery operation
+- Paper command, snapshot restore, and feature parity gates certify all three
+  callback paths
 
 Release notes for `v1.1.250`:
 
