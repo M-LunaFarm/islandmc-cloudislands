@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.253`
+Version: `1.1.254`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -732,9 +732,21 @@ integration-certified.
 
 ## Release
 
-Current release: `v1.1.253`
+Current release: `v1.1.254`
 
-Built for the CloudIslands 1.1.253 baseline.
+Built for the CloudIslands 1.1.254 baseline.
+
+Release notes for `v1.1.254`:
+
+- member and ban lists, invite creation/list/accept/decline, leave, removal,
+  uncoop, role, temporary trust, ownership, and pardon callbacks now retain the
+  exact Player connection that initiated them
+- delayed target lookup and Core mutation results can no longer send success or
+  failure feedback to a replacement connection that later joins with the same UUID
+- accepted visitor ban and kick operations still finish target eviction even if
+  the actor disconnects, while only the stale actor feedback is discarded
+- Paper command, permission, membership-message, and feature-parity gates certify
+  the complete membership callback surface
 
 Release notes for `v1.1.253`:
 
