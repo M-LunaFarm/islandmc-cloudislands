@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.244`
+Version: `1.1.245`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -717,7 +717,7 @@ integration verification.
 <!-- feature-parity:start -->
 | Area | Status | Verified evidence | Limit |
 |---|---|---|---|
-| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper 26.1.2 smoke verifies normal command registration plus rejected-bootstrap rollback, diagnostic /is and /ciadmin, corrected-config retry, and second-attempt READY recovery; Paper tests verify main-thread template permission preflight, exact initiating-Player fencing for paid creation plus delete/reset feedback, automatic post-charge refund before Core creation when the connection is replaced, exact initiating-Player fencing for home/warp lookup, permission resolution, safe-destination lookup, local teleport, fallback movement, and feedback, one observable warp-to-island-info lookup chain, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, final online-player revalidation, bounded destination revalidation, teleport warmup cancellation as soon as a player moves or starts falling within the same block, and exact initiating-Player fencing for both player and administrator teleports through route creation, polling, publication, local consumption, world readiness, safe-destination resolution, final teleport, fallback movement, feedback, loading bars, and delayed route-session rejection | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
+| lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper 26.1.2 smoke verifies normal command registration plus rejected-bootstrap rollback, diagnostic /is and /ciadmin, corrected-config retry, and second-attempt READY recovery; Paper tests verify main-thread template permission preflight, exact initiating-Player fencing for paid creation plus delete/reset feedback, automatic post-charge refund before Core creation when the connection is replaced, exact initiating-Player fencing for home/warp lookup, permission resolution, safe-destination lookup, local teleport, fallback movement, and feedback, one observable warp-to-island-info lookup chain, stale target-info response rejection, Core-authoritative newest-intent revisions for asynchronous primary-island selection across Paper nodes, exact selection-feedback connection fencing, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, final online-player revalidation, bounded destination revalidation, teleport warmup cancellation as soon as a player moves or starts falling within the same block, and exact initiating-Player fencing for both player and administrator teleports through route creation, polling, publication, local consumption, world readiness, safe-destination resolution, final teleport, fallback movement, feedback, loading bars, and delayed route-session rejection | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
 | access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests; accepted visitor bans and kicks return to the Paper scheduler and evict the target independently from actor connectivity, while delayed actor feedback requires the exact initiating Player connection | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests and protection smoke cover LOWEST-priority custom-machine right-click fencing through the independent container permission for ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun blocks, dedicated normal/glow item-frame add, rotate, and remove changes plus HIGHEST-priority pickup attempt and final entity boundaries, granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, CraftEngine furniture build/break enforcement, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, fail-closed dispenser, armor-dispense, origin-island-preserving ground items and merges, hopper, inventory-transfer, and block-projectile boundaries including migrating islands, cancellation-final natural spread, growth, formation, fade, fluid, fire, leaf, bucket, fertilize, structure, and Enderman transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns with same-instance and authorizing-block continuation fencing, and fail-closed player/entity cross-dimension portals inside active island regions | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests; cross-dimension island worlds remain intentionally unavailable until their lifecycle, storage, and routing are implemented end to end |
 | ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal including external plugin removals, cancellation-final and inheritance-deduplicated block transitions, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
@@ -731,9 +731,23 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.244`
+Current release: `v1.1.245`
 
-Built for the CloudIslands 1.1.244 baseline.
+Built for the CloudIslands 1.1.245 baseline.
+
+Release notes for `v1.1.245`:
+
+- `/is select` now reserves a Core-authoritative per-player selection revision
+  before asynchronous target resolution, so the newest command wins across
+  multiple Paper servers even when an older lookup finishes later
+- PostgreSQL and MySQL persist and atomically compare the revision; stale
+  mutations return `ISLAND_SELECTION_SUPERSEDED` without overwriting the newer
+  primary island or showing misleading failure feedback
+- administrator and lifecycle primary-island changes also advance the revision,
+  fencing any player selection that was still in flight
+- delayed success and failure messages require the exact Player connection that
+  initiated the command, and focused ordering, migration, route, client, and
+  Paper policy tests certify the boundary
 
 Release notes for `v1.1.244`:
 

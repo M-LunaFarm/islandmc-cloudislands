@@ -317,7 +317,7 @@ def assert_list_contains(data: dict, key: str, field: str, expected) -> None:
     raise RuntimeError(f"expected {key} entry with {field}={expected!r}, got {data}")
 
 
-def run_player_interaction_smoke(base_url: str, admin_url: str, island_id: str, owner_uuid: str, active_node: str) -> dict:
+def run_player_interaction_smoke(primary_url: str, base_url: str, admin_url: str, island_id: str, owner_uuid: str, active_node: str) -> dict:
     member_uuid = str(uuid.uuid4())
     unauthorized_uuid = str(uuid.uuid4())
 
@@ -364,6 +364,41 @@ def run_player_interaction_smoke(base_url: str, admin_url: str, island_id: str, 
     )
     members = request(base_url, "POST", "/v1/islands/members", {"islandId": island_id}, expect=(200,))
     assert_list_contains(members, "members", "playerUuid", member_uuid)
+
+    first_selection = request(
+        primary_url,
+        "POST",
+        "/v1/players/select-island/reserve",
+        {"playerUuid": owner_uuid},
+        expect=(202,),
+    )
+    second_selection = request(
+        base_url,
+        "POST",
+        "/v1/players/select-island/reserve",
+        {"playerUuid": owner_uuid},
+        expect=(202,),
+    )
+    first_revision = int(first_selection.get("selectionRevision", 0))
+    second_revision = int(second_selection.get("selectionRevision", 0))
+    if first_revision <= 0 or second_revision <= first_revision:
+        raise RuntimeError(f"expected monotonic cross-Core selection revisions, got first={first_selection} second={second_selection}")
+    request(
+        base_url,
+        "POST",
+        "/v1/players/select-island",
+        {"playerUuid": owner_uuid, "islandId": island_id, "selectionRevision": second_revision},
+        expect=(202,),
+    )
+    superseded_selection = request(
+        primary_url,
+        "POST",
+        "/v1/players/select-island",
+        {"playerUuid": owner_uuid, "islandId": island_id, "selectionRevision": first_revision},
+        expect=(409,),
+    )
+    assert_response_code(superseded_selection, "ISLAND_SELECTION_SUPERSEDED")
+
     request(
         base_url,
         "POST",
@@ -490,6 +525,8 @@ def run_player_interaction_smoke(base_url: str, admin_url: str, island_id: str, 
         "permissionDeniedCode": response_code(denied),
         "inviteAccepted": invite_id,
         "memberRemoved": member_uuid,
+        "newestSelectionRevision": second_revision,
+        "supersededSelectionCode": response_code(superseded_selection),
         "warpRouteTargetNode": warp_route.get("targetNode"),
         "migrationDryRunObserved": True,
         "missionKindIdentity": shared_mission_key,
@@ -1348,6 +1385,7 @@ def player_interaction_evidence(interaction: dict | None) -> dict[str, list[str]
         "bank-deposit-withdraw": interaction.get("bankDeposit") == "100.00" and interaction.get("bankWithdraw") == "65.00",
         "permission-denied": interaction.get("permissionDeniedCode") == "ISLAND_PERMISSION_DENIED",
         "member-invite-remove": bool(interaction.get("inviteAccepted")) and bool(interaction.get("memberRemoved")),
+        "cross-core-selection-order": interaction.get("newestSelectionRevision", 0) > 0 and interaction.get("supersededSelectionCode") == "ISLAND_SELECTION_SUPERSEDED",
         "warp-create-route": bool(interaction.get("warpRouteTargetNode")),
         "snapshot-record-restore": True,
         "node-down-recovery": True,
@@ -1560,7 +1598,7 @@ def run_scenario(core_bin: Path, work_dir: Path, port: int, timeout: int, eviden
         if int(where.get("fencingToken", 0)) <= 0:
             raise RuntimeError(f"expected active runtime fencing token from secondary core, got {where}")
 
-        player_interaction = run_player_interaction_smoke(secondary_url, secondary_admin_url, island_id, player_uuid, active_node)
+        player_interaction = run_player_interaction_smoke(primary_url, secondary_url, secondary_admin_url, island_id, player_uuid, active_node)
 
         heartbeat(secondary_url, active_node, node_servers[active_node], state="DOWN", active_islands=1)
         heartbeat(primary_url, standby_node, node_servers[standby_node])
