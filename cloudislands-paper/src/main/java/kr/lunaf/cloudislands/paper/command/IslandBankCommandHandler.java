@@ -8,6 +8,7 @@ import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.application.BankUseCase;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.IslandBankMenu;
@@ -103,24 +104,24 @@ final class IslandBankCommandHandler {
     }
 
     private void showTargetBank(Player player, String target) {
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
         targetResolver.resolve(target)
-            .thenAccept(islandId -> showBank(playerUuid, islandId))
+            .thenAccept(islandId -> showBank(playerSession, islandId))
             .exceptionally(error -> {
-                deliverMessage(playerUuid, message("bank-target-not-found", "은행을 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                deliverMessage(playerSession, message("bank-target-not-found", "은행을 확인할 섬 또는 플레이어를 찾지 못했습니다."));
                 return null;
             });
     }
 
     private void showBank(Player player, UUID islandId) {
-        showBank(player.getUniqueId(), islandId);
+        showBank(PlayerConnectionSession.capture(player), islandId);
     }
 
-    private void showBank(UUID playerUuid, UUID islandId) {
+    private void showBank(PlayerConnectionSession playerSession, UUID islandId) {
         bankUseCase.bank(islandId)
-                .thenAccept(result -> deliverMessage(playerUuid, message("bank-balance-prefix", "섬 은행 잔액: ") + result.balance()))
+                .thenAccept(result -> deliverMessage(playerSession, message("bank-balance-prefix", "섬 은행 잔액: ") + result.balance()))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("bank-load-failed", "섬 은행을 불러오지 못했습니다."));
+                    deliverMessage(playerSession, message("bank-load-failed", "섬 은행을 불러오지 못했습니다."));
                     return null;
                 });
     }
@@ -141,7 +142,8 @@ final class IslandBankCommandHandler {
                 runtime.message(player, runtime.playerCodeMessage("INVALID_AMOUNT", message("input-amount-invalid", "올바른 금액을 입력해주세요.")));
                 return;
             }
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+            UUID playerUuid = playerSession.playerUuid();
             if (!pendingOperations.acquire(playerUuid)) {
                 runtime.message(player, message("bank-operation-pending", "진행 중인 은행 작업이 끝난 뒤 다시 시도해주세요."));
                 return;
@@ -150,9 +152,9 @@ final class IslandBankCommandHandler {
                 ? bankUseCase.depositAll(islandId, playerUuid, runtime::mutateIdempotent)
                 : bankUseCase.deposit(islandId, playerUuid, parsedAmount, runtime::mutateIdempotent);
             operation
-                .thenAccept(result -> handleDepositResult(playerUuid, result))
+                .thenAccept(result -> handleDepositResult(playerSession, result))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("bank-deposit-failed", "섬 은행에 입금하지 못했습니다."));
+                    deliverMessage(playerSession, message("bank-deposit-failed", "섬 은행에 입금하지 못했습니다."));
                     return null;
                 })
                 .whenComplete((ignored, error) -> pendingOperations.release(playerUuid));
@@ -171,7 +173,8 @@ final class IslandBankCommandHandler {
                 runtime.message(player, runtime.playerCodeMessage("INVALID_AMOUNT", message("input-amount-invalid", "올바른 금액을 입력해주세요.")));
                 return;
             }
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+            UUID playerUuid = playerSession.playerUuid();
             if (!pendingOperations.acquire(playerUuid)) {
                 runtime.message(player, message("bank-operation-pending", "진행 중인 은행 작업이 끝난 뒤 다시 시도해주세요."));
                 return;
@@ -180,45 +183,45 @@ final class IslandBankCommandHandler {
                 ? bankUseCase.withdrawAll(islandId, playerUuid, runtime::mutateIdempotent)
                 : bankUseCase.withdraw(islandId, playerUuid, parsedAmount, runtime::mutateIdempotent);
             operation
-                .thenAccept(result -> handleWithdrawResult(playerUuid, result))
+                .thenAccept(result -> handleWithdrawResult(playerSession, result))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("bank-withdraw-failed", "섬 은행에서 출금하지 못했습니다."));
+                    deliverMessage(playerSession, message("bank-withdraw-failed", "섬 은행에서 출금하지 못했습니다."));
                     return null;
                 })
                 .whenComplete((ignored, error) -> pendingOperations.release(playerUuid));
         });
     }
 
-    private void handleDepositResult(UUID playerUuid, BankUseCase.BankOperationResult result) {
+    private void handleDepositResult(PlayerConnectionSession playerSession, BankUseCase.BankOperationResult result) {
         switch (result.status()) {
-            case SUCCESS -> deliverMessage(playerUuid, message("bank-deposit-success-prefix", "섬 은행에 입금했습니다. 잔액: ") + result.balance());
-            case ECONOMY_UNAVAILABLE -> deliverMessage(playerUuid, message("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
-            case ECONOMY_OPERATION_FAILED -> deliverMessage(playerUuid, runtime.playerCodeMessage(result.code(), message("economy-operation-failed", "경제 플러그인 작업에 실패했습니다.")));
-            case ECONOMY_WITHDRAW_DENIED -> deliverMessage(playerUuid, runtime.playerCodeMessage(result.code(), message("bank-insufficient-balance", "잔액이 부족합니다.")));
-            case CORE_REJECTED -> deliverMessage(playerUuid, runtime.playerCodeMessage(result.code(), message("bank-deposit-failed", "섬 은행에 입금하지 못했습니다.")));
-            case REFUND_FAILED_AFTER_CORE_REJECTION -> deliverMessage(playerUuid, message("bank-deposit-refund-failed", "섬 은행 입금이 거부되었고 경제 환불도 실패했습니다. 관리자에게 문의해주세요."));
+            case SUCCESS -> deliverMessage(playerSession, message("bank-deposit-success-prefix", "섬 은행에 입금했습니다. 잔액: ") + result.balance());
+            case ECONOMY_UNAVAILABLE -> deliverMessage(playerSession, message("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
+            case ECONOMY_OPERATION_FAILED -> deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("economy-operation-failed", "경제 플러그인 작업에 실패했습니다.")));
+            case ECONOMY_WITHDRAW_DENIED -> deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("bank-insufficient-balance", "잔액이 부족합니다.")));
+            case CORE_REJECTED -> deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("bank-deposit-failed", "섬 은행에 입금하지 못했습니다.")));
+            case REFUND_FAILED_AFTER_CORE_REJECTION -> deliverMessage(playerSession, message("bank-deposit-refund-failed", "섬 은행 입금이 거부되었고 경제 환불도 실패했습니다. 관리자에게 문의해주세요."));
             case ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE, ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE ->
-                deliverMessage(playerUuid, message("bank-deposit-failed", "섬 은행에 입금하지 못했습니다."));
+                deliverMessage(playerSession, message("bank-deposit-failed", "섬 은행에 입금하지 못했습니다."));
         }
     }
 
-    private void handleWithdrawResult(UUID playerUuid, BankUseCase.BankOperationResult result) {
+    private void handleWithdrawResult(PlayerConnectionSession playerSession, BankUseCase.BankOperationResult result) {
         switch (result.status()) {
-            case SUCCESS -> deliverMessage(playerUuid, message("bank-withdraw-success-prefix", "섬 은행에서 출금했습니다. 잔액: ") + result.balance());
-            case ECONOMY_UNAVAILABLE -> deliverMessage(playerUuid, message("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
-            case ECONOMY_OPERATION_FAILED -> deliverMessage(playerUuid, runtime.playerCodeMessage(result.code(), message("economy-operation-failed", "경제 플러그인 작업에 실패했습니다.")));
-            case CORE_REJECTED -> deliverMessage(playerUuid, runtime.playerCodeMessage(result.code(), message("bank-withdraw-failed", "섬 은행에서 출금하지 못했습니다.")));
-            case ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE -> deliverMessage(playerUuid, message("bank-withdraw-economy-rollback", "경제 지급에 실패해 출금을 되돌렸습니다."));
-            case ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE -> deliverMessage(playerUuid, message("bank-withdraw-rollback-failed", "경제 지급에 실패했고 은행 되돌림도 실패했습니다. 관리자에게 문의해주세요."));
-            case ECONOMY_WITHDRAW_DENIED -> deliverMessage(playerUuid, runtime.playerCodeMessage(result.code(), message("bank-insufficient-balance", "잔액이 부족합니다.")));
-            case REFUND_FAILED_AFTER_CORE_REJECTION -> deliverMessage(playerUuid, message("bank-operation-refund-failed", "섬 은행 작업이 거부되었고 경제 환불도 실패했습니다. 관리자에게 문의해주세요."));
+            case SUCCESS -> deliverMessage(playerSession, message("bank-withdraw-success-prefix", "섬 은행에서 출금했습니다. 잔액: ") + result.balance());
+            case ECONOMY_UNAVAILABLE -> deliverMessage(playerSession, message("economy-unavailable", "경제 플러그인을 찾을 수 없습니다."));
+            case ECONOMY_OPERATION_FAILED -> deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("economy-operation-failed", "경제 플러그인 작업에 실패했습니다.")));
+            case CORE_REJECTED -> deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("bank-withdraw-failed", "섬 은행에서 출금하지 못했습니다.")));
+            case ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE -> deliverMessage(playerSession, message("bank-withdraw-economy-rollback", "경제 지급에 실패해 출금을 되돌렸습니다."));
+            case ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE -> deliverMessage(playerSession, message("bank-withdraw-rollback-failed", "경제 지급에 실패했고 은행 되돌림도 실패했습니다. 관리자에게 문의해주세요."));
+            case ECONOMY_WITHDRAW_DENIED -> deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("bank-insufficient-balance", "잔액이 부족합니다.")));
+            case REFUND_FAILED_AFTER_CORE_REJECTION -> deliverMessage(playerSession, message("bank-operation-refund-failed", "섬 은행 작업이 거부되었고 경제 환불도 실패했습니다. 관리자에게 문의해주세요."));
         }
     }
 
-    private void deliverMessage(UUID playerUuid, String detail) {
+    private void deliverMessage(PlayerConnectionSession playerSession, String detail) {
         PaperSchedulers.run(plugin, () -> {
-            Player activePlayer = plugin.getServer().getPlayer(playerUuid);
-            if (activePlayer != null && activePlayer.isOnline()) {
+            Player activePlayer = plugin.getServer().getPlayer(playerSession.playerUuid());
+            if (playerSession.isCurrent(activePlayer)) {
                 runtime.message(activePlayer, detail);
             }
         });
