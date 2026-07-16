@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.251`
+Version: `1.1.252`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -732,9 +732,20 @@ integration-certified.
 
 ## Release
 
-Current release: `v1.1.251`
+Current release: `v1.1.252`
 
-Built for the CloudIslands 1.1.251 baseline.
+Built for the CloudIslands 1.1.252 baseline.
+
+Release notes for `v1.1.252`:
+
+- delayed level, worth, block-value, block-detail, ranking, upgrade, generator,
+  and mission responses now retain the exact Player connection that requested them
+- level recalculation, upgrade purchase, and mission completion keep immutable
+  actor identity for Core mutations while rejecting stale feedback after reconnect
+- all progression results return through the Paper scheduler and cannot target a
+  replacement Player that joined later with the same UUID
+- Paper command, ranking, mission-event, and feature-parity gates certify the
+  complete progression callback surface
 
 Release notes for `v1.1.251`:
 
