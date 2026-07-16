@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.252`
+Version: `1.1.253`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -732,9 +732,20 @@ integration-certified.
 
 ## Release
 
-Current release: `v1.1.252`
+Current release: `v1.1.253`
 
-Built for the CloudIslands 1.1.252 baseline.
+Built for the CloudIslands 1.1.253 baseline.
+
+Release notes for `v1.1.253`:
+
+- delayed permission and role queries, mutations, override resolution, and
+  staged-save UI now retain the exact Player connection that initiated them
+- same-UUID reconnects can no longer inherit an older permission response,
+  success menu, or conflict recovery menu
+- an older save completion only clears its original staging map, so it cannot
+  erase equal-valued edits newly staged by a replacement connection
+- Paper command, GUI compatibility, permission, and feature-parity gates cover
+  both feedback fencing and staged-state ownership
 
 Release notes for `v1.1.252`:
 
