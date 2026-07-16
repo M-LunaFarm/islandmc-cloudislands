@@ -1185,6 +1185,8 @@ class PaperPlatformBoundaryTest {
         assertTrue(bootstrap.contains("new PaperPlayerProfileListener(plugin, client, plugin.playerLocales, plugin.playerFlightPreferences, plugin.playerIslandFlightService)"), "Core profile touch must feed locale and personal flight caches");
         assertTrue(profileListener.contains("coreApiClient.playerProfileCommands()"), "Paper profile listener must use typed Core player profile commands");
         assertTrue(profileListener.contains("profile.locale()"), "Paper profile listener must use the typed Core profile locale returned by touch");
+        assertTrue(profileListener.contains("PlayerProfileSession.capture(event.getPlayer())"), "Profile loading must retain the exact Player session that initiated the join");
+        assertTrue(profileListener.contains("if (!playerSession.isCurrent(activePlayer))"), "A stale profile response must not overwrite a replacement session after reconnect");
         assertTrue(commandMessenger.contains("messages.forLocale(locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player))"), "Command and GUI messages must prefer the Core profile locale cache");
         assertTrue(branding.contains("locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player)"), "Tab and join messages must prefer the Core profile locale cache");
         assertTrue(scoreboard.contains("locales == null ? PlayerLocaleCache.clientLocale(player) : locales.locale(player)"), "Scoreboard messages must prefer the Core profile locale cache");

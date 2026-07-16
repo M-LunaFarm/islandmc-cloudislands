@@ -34,15 +34,18 @@ public final class PaperPlayerProfileListener implements Listener {
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        java.util.UUID playerUuid = event.getPlayer().getUniqueId();
-        String playerLocale = PlayerLocaleCache.clientLocale(event.getPlayer());
+        PlayerProfileSession playerSession = PlayerProfileSession.capture(event.getPlayer());
+        java.util.UUID playerUuid = playerSession.playerUuid();
+        String playerLocale = PlayerLocaleCache.clientLocale(playerSession.expectedPlayer());
         if (locales != null) {
             locales.remember(playerUuid, playerLocale);
         }
-        playerProfiles.touch(playerUuid, event.getPlayer().getName(), playerLocale)
+        playerProfiles.touch(playerUuid, playerSession.expectedPlayer().getName(), playerLocale)
             .thenAccept(profile -> runMain(() -> {
-                org.bukkit.entity.Player activePlayer = plugin == null ? event.getPlayer() : plugin.getServer().getPlayer(playerUuid);
-                if (activePlayer == null || !activePlayer.isOnline()) {
+                org.bukkit.entity.Player activePlayer = plugin == null
+                    ? playerSession.expectedPlayer()
+                    : plugin.getServer().getPlayer(playerUuid);
+                if (!playerSession.isCurrent(activePlayer)) {
                     return;
                 }
                 if (locales != null) {
