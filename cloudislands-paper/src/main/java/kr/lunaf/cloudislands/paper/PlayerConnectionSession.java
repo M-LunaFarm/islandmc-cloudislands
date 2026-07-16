@@ -4,9 +4,9 @@ import java.util.Objects;
 import java.util.UUID;
 import org.bukkit.entity.Player;
 
-/** Fences delayed route work to the exact Player connection that requested it. */
-public record RoutePlayerSession(UUID playerUuid, Player expectedPlayer) {
-    public RoutePlayerSession {
+/** Fences delayed player work to the exact connection that initiated it. */
+public record PlayerConnectionSession(UUID playerUuid, Player expectedPlayer) {
+    public PlayerConnectionSession {
         Objects.requireNonNull(playerUuid, "playerUuid");
         Objects.requireNonNull(expectedPlayer, "expectedPlayer");
         if (!playerUuid.equals(expectedPlayer.getUniqueId())) {
@@ -14,9 +14,9 @@ public record RoutePlayerSession(UUID playerUuid, Player expectedPlayer) {
         }
     }
 
-    public static RoutePlayerSession capture(Player player) {
+    public static PlayerConnectionSession capture(Player player) {
         Objects.requireNonNull(player, "player");
-        return new RoutePlayerSession(player.getUniqueId(), player);
+        return new PlayerConnectionSession(player.getUniqueId(), player);
     }
 
     public boolean isCurrent(Player activePlayer) {

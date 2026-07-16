@@ -11,21 +11,21 @@ import java.util.UUID;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
-class RoutePlayerSessionTest {
+class PlayerConnectionSessionTest {
     @Test
     void acceptsOnlyTheSameOnlineConnection() {
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000001001");
         Player expected = player(playerUuid, true);
-        RoutePlayerSession session = RoutePlayerSession.capture(expected);
+        PlayerConnectionSession session = PlayerConnectionSession.capture(expected);
 
         assertTrue(session.isCurrent(expected));
         assertFalse(session.isCurrent(player(playerUuid, true)),
-            "a reconnect with the same UUID must not inherit an older route");
+            "a reconnect with the same UUID must not inherit older player work");
         assertFalse(session.isCurrent(player(playerUuid, false)));
         assertFalse(session.isCurrent(null));
-        assertThrows(NullPointerException.class, () -> RoutePlayerSession.capture(null));
+        assertThrows(NullPointerException.class, () -> PlayerConnectionSession.capture(null));
         assertThrows(IllegalArgumentException.class,
-            () -> new RoutePlayerSession(UUID.fromString("00000000-0000-0000-0000-000000001002"), expected));
+            () -> new PlayerConnectionSession(UUID.fromString("00000000-0000-0000-0000-000000001002"), expected));
     }
 
     @Test
@@ -38,7 +38,7 @@ class RoutePlayerSessionTest {
         assertTrue(consumer.contains("completeTeleport(playerSession, ticket"));
         assertTrue(consumer.contains("Player player = currentPlayer(playerSession)"));
         assertTrue(consumer.contains("return playerSession.isCurrent(player) ? player : null;"));
-        assertTrue(listener.contains("RoutePlayerSession.capture(event.getPlayer())"));
+        assertTrue(listener.contains("PlayerConnectionSession.capture(event.getPlayer())"));
         assertTrue(listener.contains("consumeSession(playerSession, attempt + 1, expectedSession)"));
         assertTrue(listener.contains("ticketConsumer.consumeAndTeleport(playerSession"));
         assertTrue(listener.contains("if (playerSession.isCurrent(stillHere))"),

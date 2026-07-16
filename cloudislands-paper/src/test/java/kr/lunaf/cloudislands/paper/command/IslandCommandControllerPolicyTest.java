@@ -48,7 +48,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(source.contains("routeTicketStatus(ticket).thenAccept(status ->"));
         assertTrue(source.contains("runSync(playerSession, activePlayer -> {\n                clearRouteLoading(activePlayer);\n                connectWithTicket"));
         assertTrue(source.contains("if (playerSession.isCurrent(activePlayer))"), "route callbacks must reject a replacement Player with the same UUID");
-        assertTrue(source.contains("private void routeTicketSync(Player player, RoutePlayerSession playerSession"), "route state transitions must retain the initiating Player session");
+        assertTrue(source.contains("private void routeTicketSync(Player player, PlayerConnectionSession playerSession"), "route state transitions must retain the initiating Player session");
         assertTrue(source.contains("clearFailedRoute(ticket, \"PLAYER_SESSION_REPLACED\")"), "a published route must be cleared when its source Player session was replaced");
         assertFalse(source.contains("runSync(() ->"), "route callbacks must not retain a captured Player without an identity boundary");
     }
@@ -972,8 +972,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(lifecycleHandler.contains("creationUseCase.resetAction("));
         assertTrue(lifecycleHandler.contains("creationUseCase.delete(actorUuid, islandId"), "delete callbacks must use a command-thread identity snapshot");
         assertTrue(lifecycleHandler.contains("creationUseCase.resetAction(islandId, actorUuid"), "reset callbacks must use a command-thread identity snapshot");
-        assertTrue(lifecycleHandler.contains("deliverMessage(actorUuid"), "destructive lifecycle results must return through an online-player scheduler boundary");
-        assertTrue(lifecycleHandler.contains("plugin.getServer().getPlayer(playerUuid)"), "lifecycle callbacks must re-resolve the current online player");
+        assertTrue(lifecycleHandler.contains("deliverMessage(playerSession"), "destructive lifecycle results must retain the initiating connection through the scheduler boundary");
+        assertTrue(lifecycleHandler.contains("plugin.getServer().getPlayer(playerSession.playerUuid())"), "lifecycle callbacks must re-resolve the exact current connection");
+        assertTrue(lifecycleHandler.contains("playerSession.isCurrent(activePlayer)"), "lifecycle feedback must reject a same-UUID replacement connection");
         assertFalse(lifecycleHandler.contains("creationUseCase.delete(player.getUniqueId()"), "delete callbacks must not retain Bukkit Player identity");
         assertFalse(lifecycleHandler.contains("resetAction(islandId, player.getUniqueId()"), "reset callbacks must not retain Bukkit Player identity");
         assertFalse(lifecycleHandler.contains("coreApiClient.createIsland"));

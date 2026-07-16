@@ -10,6 +10,7 @@ import kr.lunaf.cloudislands.api.economy.EconomyProviderState;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
+import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.application.IslandCreationUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandCreationUseCase.IslandActionResult;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
@@ -138,7 +139,8 @@ final class IslandLifecycleCommandHandler {
     }
 
     private void createIsland(Player player, String templateId) {
-        UUID playerUuid = player.getUniqueId();
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        UUID playerUuid = playerSession.playerUuid();
         if (!pendingCreations.acquire(playerUuid)) {
             runtime.message(player, runtime.playerCodeMessage("CREATE_IN_PROGRESS", message("create-progress-in-progress", "이미 섬 생성 요청을 처리하고 있습니다.")));
             return;
@@ -147,21 +149,21 @@ final class IslandLifecycleCommandHandler {
         GuiSession session = GuiStateMenus.openSaving(plugin, player, messages, message("create-progress-title", "섬 생성 요청 중"));
         String normalizedTemplateId = templateId == null || templateId.isBlank() ? "default" : templateId.trim();
         coreApiClient.templates().get(normalizedTemplateId)
-            .thenCompose(template -> PaperSchedulers.supply(plugin, () -> canUseTemplate(playerUuid, template))
+            .thenCompose(template -> PaperSchedulers.supply(plugin, () -> canUseTemplate(playerSession, template))
                 .thenCompose(allowed -> allowed
-                    ? createWithTemplateCost(playerUuid, normalizedTemplateId, template)
+                    ? createWithTemplateCost(playerSession, normalizedTemplateId, template)
                     : CompletableFuture.completedFuture(new CreateIslandResult(false, "TEMPLATE_PERMISSION_DENIED", null, null))))
-            .thenAccept(result -> finishCreate(playerUuid, session, messages, result))
+            .thenAccept(result -> finishCreate(playerSession, session, messages, result))
             .exceptionally(error -> {
-                failCreate(playerUuid, session, messages, error);
+                failCreate(playerSession, session, messages, error);
                 return null;
             })
             .whenComplete((_ignored, _error) -> pendingCreations.release(playerUuid));
     }
 
-    private void finishCreate(UUID playerUuid, GuiSession session, MessageRenderer messages, CreateIslandResult result) {
+    private void finishCreate(PlayerConnectionSession playerSession, GuiSession session, MessageRenderer messages, CreateIslandResult result) {
         PaperSchedulers.run(plugin, () -> {
-            Player activePlayer = onlinePlayer(playerUuid);
+            Player activePlayer = currentPlayer(playerSession);
             if (activePlayer == null) {
                 return;
             }
@@ -177,10 +179,10 @@ final class IslandLifecycleCommandHandler {
         });
     }
 
-    private void failCreate(UUID playerUuid, GuiSession session, MessageRenderer messages, Throwable error) {
+    private void failCreate(PlayerConnectionSession playerSession, GuiSession session, MessageRenderer messages, Throwable error) {
         String detail = runtime.coreWriteFailureMessage(error, message("create-progress-start-failed", "섬 생성을 시작하지 못했습니다."));
         PaperSchedulers.run(plugin, () -> {
-            Player activePlayer = onlinePlayer(playerUuid);
+            Player activePlayer = currentPlayer(playerSession);
             if (activePlayer == null) {
                 return;
             }
@@ -189,7 +191,8 @@ final class IslandLifecycleCommandHandler {
         });
     }
 
-    private CompletableFuture<CreateIslandResult> createWithTemplateCost(UUID playerUuid, String templateId, TemplateView template) {
+    private CompletableFuture<CreateIslandResult> createWithTemplateCost(PlayerConnectionSession playerSession, String templateId, TemplateView template) {
+        UUID playerUuid = playerSession.playerUuid();
         BigDecimal creationCost = creationCost(template);
         if (creationCost.signum() <= 0) {
             return creationUseCase.create(playerUuid, templateId, runtime::mutate);
@@ -202,23 +205,36 @@ final class IslandLifecycleCommandHandler {
                 if (!charged) {
                     return CompletableFuture.completedFuture(new CreateIslandResult(false, "ECONOMY_CHARGE_FAILED", null, null));
                 }
-                return creationUseCase.createWithManagedEconomySettlement(playerUuid, templateId, creationCost, runtime::mutate)
-                    .thenCompose(result -> result.accepted()
-                        ? CompletableFuture.completedFuture(result)
-                        : refundCreateCost(playerUuid, creationCost, template.id()).thenApply(_ignored -> result)
-                            .exceptionally(_refundError -> new CreateIslandResult(false, "ECONOMY_REFUND_FAILED", result.island(), result.ticket())))
-                    .exceptionallyCompose(error -> refundCreateCost(playerUuid, creationCost, template.id())
-                        .thenApply(_ignored -> new CreateIslandResult(false, "CORE_CREATE_FAILED_REFUNDED", null, null))
-                        .exceptionally(_refundError -> new CreateIslandResult(false, "ECONOMY_REFUND_FAILED", null, null)));
+                return PaperSchedulers.supply(plugin, () -> currentPlayer(playerSession) != null)
+                    .thenCompose(current -> current
+                        ? settleChargedCreate(playerUuid, templateId, template, creationCost)
+                        : refundReplacedCreate(playerUuid, creationCost, template.id()));
             });
+    }
+
+    private CompletableFuture<CreateIslandResult> settleChargedCreate(UUID playerUuid, String templateId, TemplateView template, BigDecimal creationCost) {
+        return creationUseCase.createWithManagedEconomySettlement(playerUuid, templateId, creationCost, runtime::mutate)
+            .thenCompose(result -> result.accepted()
+                ? CompletableFuture.completedFuture(result)
+                : refundCreateCost(playerUuid, creationCost, template.id()).thenApply(_ignored -> result)
+                    .exceptionally(_refundError -> new CreateIslandResult(false, "ECONOMY_REFUND_FAILED", result.island(), result.ticket())))
+            .exceptionallyCompose(error -> refundCreateCost(playerUuid, creationCost, template.id())
+                .thenApply(_ignored -> new CreateIslandResult(false, "CORE_CREATE_FAILED_REFUNDED", null, null))
+                .exceptionally(_refundError -> new CreateIslandResult(false, "ECONOMY_REFUND_FAILED", null, null)));
+    }
+
+    private CompletableFuture<CreateIslandResult> refundReplacedCreate(UUID playerUuid, BigDecimal creationCost, String templateId) {
+        return refundCreateCost(playerUuid, creationCost, templateId)
+            .thenApply(_ignored -> new CreateIslandResult(false, "PLAYER_SESSION_REPLACED", null, null))
+            .exceptionally(_refundError -> new CreateIslandResult(false, "ECONOMY_REFUND_FAILED", null, null));
     }
 
     private CompletableFuture<Void> refundCreateCost(UUID playerUuid, BigDecimal creationCost, String templateId) {
         return economyBridge.deposit(playerUuid, creationCost, "CloudIslands island creation rollback " + templateId);
     }
 
-    private boolean canUseTemplate(UUID playerUuid, TemplateView template) {
-        Player activePlayer = onlinePlayer(playerUuid);
+    private boolean canUseTemplate(PlayerConnectionSession playerSession, TemplateView template) {
+        Player activePlayer = currentPlayer(playerSession);
         return activePlayer != null && (template.requiredPermission().isBlank() || activePlayer.hasPermission(template.requiredPermission()));
     }
 
@@ -232,17 +248,18 @@ final class IslandLifecycleCommandHandler {
 
     private void deleteIsland(Player player) {
         runtime.currentIsland(player, message("delete-island-required", "섬 안에서만 섬을 삭제할 수 있습니다.")).ifPresent(islandId -> {
-            UUID actorUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+            UUID actorUuid = playerSession.playerUuid();
             creationUseCase.delete(actorUuid, islandId, runtime::mutateIdempotent)
                 .thenAccept(result -> {
                     if (!result.accepted()) {
-                        deliverMessage(actorUuid, runtime.playerCodeMessage(result.code(), message("delete-failed", "섬을 삭제하지 못했습니다.")));
+                        deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("delete-failed", "섬을 삭제하지 못했습니다.")));
                         return;
                     }
-                    deliverMessage(actorUuid, message("delete-requested", "섬 삭제를 요청했습니다."));
+                    deliverMessage(playerSession, message("delete-requested", "섬 삭제를 요청했습니다."));
                 })
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("delete-failed", "섬을 삭제하지 못했습니다.")));
+                    deliverMessage(playerSession, runtime.coreWriteFailureMessage(error, message("delete-failed", "섬을 삭제하지 못했습니다.")));
                     return null;
                 });
         });
@@ -250,28 +267,29 @@ final class IslandLifecycleCommandHandler {
 
     private void resetIsland(Player player, String reason) {
         runtime.currentIsland(player, message("reset-island-required", "섬 안에서만 섬을 리셋할 수 있습니다.")).ifPresent(islandId -> {
-            UUID actorUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+            UUID actorUuid = playerSession.playerUuid();
             creationUseCase.resetAction(islandId, actorUuid, reason, runtime::mutateIdempotent)
-                .thenAccept(result -> deliverMessage(actorUuid, lifecycleActionMessage(message("reset-request-label", "섬 리셋 요청"), islandId, result)))
+                .thenAccept(result -> deliverMessage(playerSession, lifecycleActionMessage(message("reset-request-label", "섬 리셋 요청"), islandId, result)))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, runtime.coreWriteFailureMessage(error, message("reset-failed", "섬을 리셋하지 못했습니다.")));
+                    deliverMessage(playerSession, runtime.coreWriteFailureMessage(error, message("reset-failed", "섬을 리셋하지 못했습니다.")));
                     return null;
                 });
         });
     }
 
-    private void deliverMessage(UUID playerUuid, String detail) {
+    private void deliverMessage(PlayerConnectionSession playerSession, String detail) {
         PaperSchedulers.run(plugin, () -> {
-            Player activePlayer = onlinePlayer(playerUuid);
+            Player activePlayer = currentPlayer(playerSession);
             if (activePlayer != null) {
                 runtime.message(activePlayer, detail);
             }
         });
     }
 
-    private Player onlinePlayer(UUID playerUuid) {
-        Player activePlayer = plugin.getServer().getPlayer(playerUuid);
-        return activePlayer != null && activePlayer.isOnline() ? activePlayer : null;
+    private Player currentPlayer(PlayerConnectionSession playerSession) {
+        Player activePlayer = plugin.getServer().getPlayer(playerSession.playerUuid());
+        return playerSession.isCurrent(activePlayer) ? activePlayer : null;
     }
 
     private String lifecycleActionMessage(String label, UUID islandId, IslandActionResult result) {

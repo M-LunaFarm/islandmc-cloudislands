@@ -47,8 +47,8 @@ class IslandCreateMenuPolicyTest {
         assertTrue(handler.contains("GuiSession session = GuiStateMenus.openSaving"), "Create progress must reserve a GUI session before asynchronous work");
         assertTrue(handler.contains("openSuccess(plugin, activePlayer, session"), "Late create success must not replace a newer menu");
         assertTrue(handler.contains("openError(plugin, activePlayer, session"), "Late create failure must not replace a newer menu");
-        assertTrue(handler.contains("finishCreate(playerUuid, session, messages, result)"), "Create completion must cross a UUID-based scheduler boundary");
-        assertTrue(handler.contains("Player activePlayer = onlinePlayer(playerUuid)"), "Create completion must re-resolve the current online player");
+        assertTrue(handler.contains("finishCreate(playerSession, session, messages, result)"), "Create completion must retain the initiating connection");
+        assertTrue(handler.contains("Player activePlayer = currentPlayer(playerSession)"), "Create completion must re-resolve the exact online connection");
         assertFalse(handler.contains("GuiStateMenus.openSuccess(plugin, player, session"), "Create completion must not manipulate a captured Player from the Core callback");
         assertTrue(handler.contains("runtime.playerCodeMessage(result.code()"), "Create errors must preserve code-specific player messaging");
     }
@@ -61,9 +61,9 @@ class IslandCreateMenuPolicyTest {
         String messages = read("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandMessages.java");
 
         assertTrue(handler.contains("coreApiClient.templates().get(normalizedTemplateId)"), "Direct /is create <template> must load template metadata before mutation");
-        assertTrue(handler.contains("canUseTemplate(playerUuid, template)"), "Direct create must check template requiredPermission");
-        assertTrue(handler.contains("PaperSchedulers.supply(plugin, () -> canUseTemplate(playerUuid, template))"), "Template permissions must be read on the Paper main thread after the Core response");
-        assertTrue(handler.contains("Player activePlayer = onlinePlayer(playerUuid)"), "Disconnected or reconnected players must be resolved after delayed template lookup");
+        assertTrue(handler.contains("canUseTemplate(playerSession, template)"), "Direct create must check template requiredPermission");
+        assertTrue(handler.contains("PaperSchedulers.supply(plugin, () -> canUseTemplate(playerSession, template))"), "Template permissions must be read on the Paper main thread after the Core response");
+        assertTrue(handler.contains("return playerSession.isCurrent(activePlayer) ? activePlayer : null;"), "A replacement connection must not inherit delayed template permission checks");
         assertTrue(menu.contains("thenAccept(templates -> PaperSchedulers.run(plugin, () -> {"), "Confirmation permission checks must return to the Paper main thread");
         assertTrue(handler.contains("TEMPLATE_PERMISSION_DENIED"), "Direct create must reject locked templates without calling Core create");
         assertTrue(backend.contains("new IslandLifecycleCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices)"), "Lifecycle create handler must receive the economy bridge");
@@ -86,6 +86,22 @@ class IslandCreateMenuPolicyTest {
         assertTrue(handler.contains("CORE_CREATE_FAILED_REFUNDED"), "Core exceptions with a successful refund must be explicit");
         assertTrue(messages.contains("ECONOMY_CHARGE_FAILED"), "Charge failure must have a player-safe message");
         assertTrue(messages.contains("ECONOMY_REFUND_FAILED"), "Refund failure must have a player-safe message");
+    }
+
+    @Test
+    void paidCreateRefundsBeforeCoreMutationWhenTheConnectionWasReplaced() throws IOException {
+        String handler = read("src/main/java/kr/lunaf/cloudislands/paper/command/IslandLifecycleCommandHandler.java");
+
+        assertTrue(handler.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"));
+        assertTrue(handler.contains("PaperSchedulers.supply(plugin, () -> currentPlayer(playerSession) != null)"),
+            "the connection must be revalidated after the asynchronous economy charge");
+        assertTrue(handler.contains("? settleChargedCreate(playerUuid, templateId, template, creationCost)"));
+        assertTrue(handler.contains(": refundReplacedCreate(playerUuid, creationCost, template.id())"));
+        assertTrue(handler.contains("new CreateIslandResult(false, \"PLAYER_SESSION_REPLACED\", null, null)"));
+        assertTrue(handler.indexOf("currentPlayer(playerSession) != null") < handler.indexOf("settleChargedCreate(playerUuid"),
+            "Core create must not start before the post-charge connection fence");
+        assertTrue(handler.contains("deliverMessage(playerSession"),
+            "delete and reset results must not be delivered to a replacement connection");
     }
 
     private static String read(String relative) throws IOException {

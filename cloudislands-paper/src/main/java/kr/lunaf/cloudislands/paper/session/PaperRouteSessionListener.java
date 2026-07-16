@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.common.security.BackendAccessPolicy;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
-import kr.lunaf.cloudislands.paper.RoutePlayerSession;
+import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.RouteTicketConsumer;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
 import kr.lunaf.cloudislands.paper.platform.player.BukkitPlayerGateway;
@@ -149,7 +149,7 @@ public final class PaperRouteSessionListener implements Listener {
         if (!routeSessionConsumptionEnabled) {
             return;
         }
-        RoutePlayerSession playerSession = RoutePlayerSession.capture(event.getPlayer());
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(event.getPlayer());
         UUID playerUuid = playerSession.playerUuid();
         PlayerRouteSession verified = verifiedSessions.remove(playerUuid);
         if (verified != null) {
@@ -178,7 +178,7 @@ public final class PaperRouteSessionListener implements Listener {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runLater(plugin, () -> verifiedSessions.remove(playerUuid, session), delayTicks);
     }
 
-    private void consumeSession(RoutePlayerSession playerSession, int attempt, PlayerRouteSession expectedSession) {
+    private void consumeSession(PlayerConnectionSession playerSession, int attempt, PlayerRouteSession expectedSession) {
         UUID playerUuid = playerSession.playerUuid();
         if (attempt == 0 || attempt == 3) {
             showPreparing(playerSession);
@@ -227,7 +227,7 @@ public final class PaperRouteSessionListener implements Listener {
             && consumed.nonce().equals(expected.nonce());
     }
 
-    private void showPreparing(RoutePlayerSession playerSession) {
+    private void showPreparing(PlayerConnectionSession playerSession) {
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             var player = players.onlinePlayer(playerSession.playerUuid());
             if (playerSession.isCurrent(player)) {
@@ -236,7 +236,7 @@ public final class PaperRouteSessionListener implements Listener {
         });
     }
 
-    private void rejectDirectJoin(RoutePlayerSession playerSession) {
+    private void rejectDirectJoin(PlayerConnectionSession playerSession) {
         routeSessionRejections.incrementAndGet();
         kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> {
             var player = players.onlinePlayer(playerSession.playerUuid());

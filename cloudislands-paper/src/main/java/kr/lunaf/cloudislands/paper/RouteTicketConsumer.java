@@ -74,11 +74,11 @@ public final class RouteTicketConsumer {
         loadingBars.remove(playerUuid);
     }
 
-    public void consumeAndTeleport(RoutePlayerSession playerSession, UUID ticketId, String nonce) {
+    public void consumeAndTeleport(PlayerConnectionSession playerSession, UUID ticketId, String nonce) {
         consumeAndTeleport(playerSession, ticketId, nonce, 0);
     }
 
-    public CompletableFuture<Boolean> teleportToWorldSpawn(RoutePlayerSession playerSession, String worldName) {
+    public CompletableFuture<Boolean> teleportToWorldSpawn(PlayerConnectionSession playerSession, String worldName) {
         return PaperSchedulers.supply(plugin, () -> worlds.worldSpawn(worldName))
             .thenCompose(target -> target == null
                 ? CompletableFuture.completedFuture(Optional.empty())
@@ -91,7 +91,7 @@ public final class RouteTicketConsumer {
             }));
     }
 
-    private void consumeAndTeleport(RoutePlayerSession playerSession, UUID ticketId, String nonce, int attempt) {
+    private void consumeAndTeleport(PlayerConnectionSession playerSession, UUID ticketId, String nonce, int attempt) {
         UUID playerUuid = playerSession.playerUuid();
         if (currentPlayer(playerSession) == null) {
             recordFailure("PLAYER_DISCONNECTED");
@@ -125,7 +125,7 @@ public final class RouteTicketConsumer {
         });
     }
 
-    private void teleport(RoutePlayerSession playerSession, RouteTicket ticket, int attempt) {
+    private void teleport(PlayerConnectionSession playerSession, RouteTicket ticket, int attempt) {
         UUID playerUuid = playerSession.playerUuid();
         Player player = currentPlayer(playerSession);
         String worldName = ticket.targetWorld();
@@ -190,7 +190,7 @@ public final class RouteTicketConsumer {
         );
     }
 
-    private void completeTeleport(RoutePlayerSession playerSession, RouteTicket ticket, java.util.Map<String, String> payload, String placementSource, Location target, IslandRegion targetRegion) {
+    private void completeTeleport(PlayerConnectionSession playerSession, RouteTicket ticket, java.util.Map<String, String> payload, String placementSource, Location target, IslandRegion targetRegion) {
         UUID playerUuid = playerSession.playerUuid();
         Player player = currentPlayer(playerSession);
         if (player == null) {
@@ -365,7 +365,7 @@ public final class RouteTicketConsumer {
         return componentText(player, arrivalMessage(player, action));
     }
 
-    private void notifyPreparing(RoutePlayerSession playerSession, int attempt) {
+    private void notifyPreparing(PlayerConnectionSession playerSession, int attempt) {
         UUID playerUuid = playerSession.playerUuid();
         Player player = currentPlayer(playerSession);
         if (player != null) {
@@ -387,7 +387,7 @@ public final class RouteTicketConsumer {
         }
     }
 
-    private void notifyRouteFailed(RoutePlayerSession playerSession) {
+    private void notifyRouteFailed(PlayerConnectionSession playerSession) {
         Player player = currentPlayer(playerSession);
         if (player == null) {
             clearLoading(playerSession);
@@ -440,7 +440,7 @@ public final class RouteTicketConsumer {
         return PlayerRouteMessagePolicy.sanitize(value);
     }
 
-    private void hideLoading(RoutePlayerSession playerSession, Player player) {
+    private void hideLoading(PlayerConnectionSession playerSession, Player player) {
         LoadingBar loadingBar = loadingBars.get(playerSession.playerUuid());
         if (loadingBar != null && loadingBar.playerSession() == playerSession
             && loadingBars.remove(playerSession.playerUuid(), loadingBar)) {
@@ -448,19 +448,19 @@ public final class RouteTicketConsumer {
         }
     }
 
-    private void clearLoading(RoutePlayerSession playerSession) {
+    private void clearLoading(PlayerConnectionSession playerSession) {
         LoadingBar loadingBar = loadingBars.get(playerSession.playerUuid());
         if (loadingBar != null && loadingBar.playerSession() == playerSession) {
             loadingBars.remove(playerSession.playerUuid(), loadingBar);
         }
     }
 
-    private void clearRoute(RoutePlayerSession playerSession, UUID ticketId, String reason) {
+    private void clearRoute(PlayerConnectionSession playerSession, UUID ticketId, String reason) {
         routingCommands.clearRoute(playerSession.playerUuid(), ticketId, reason == null || reason.isBlank() ? "ROUTE_FAILED" : reason).exceptionally(error -> null);
         clearLoading(playerSession);
     }
 
-    private void failRoute(RoutePlayerSession playerSession, UUID ticketId, String reason, boolean clearCoreRoute) {
+    private void failRoute(PlayerConnectionSession playerSession, UUID ticketId, String reason, boolean clearCoreRoute) {
         if (clearCoreRoute && ticketId != null) {
             clearRoute(playerSession, ticketId, reason);
         } else {
@@ -469,7 +469,7 @@ public final class RouteTicketConsumer {
         notifyRouteFailed(playerSession);
     }
 
-    private Player currentPlayer(RoutePlayerSession playerSession) {
+    private Player currentPlayer(PlayerConnectionSession playerSession) {
         Player player = players.onlinePlayer(playerSession.playerUuid());
         return playerSession.isCurrent(player) ? player : null;
     }
@@ -483,6 +483,6 @@ public final class RouteTicketConsumer {
         }
     }
 
-    private record LoadingBar(RoutePlayerSession playerSession, BossBar bossBar) {
+    private record LoadingBar(PlayerConnectionSession playerSession, BossBar bossBar) {
     }
 }

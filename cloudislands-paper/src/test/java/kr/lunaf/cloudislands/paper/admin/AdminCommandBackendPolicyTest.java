@@ -20,7 +20,7 @@ class AdminCommandBackendPolicyTest {
     void adminTeleportRetainsTheInitiatingPlayerSession() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
 
-        assertTrue(source.contains("RoutePlayerSession playerSession = RoutePlayerSession.capture(player)"));
+        assertTrue(source.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"));
         assertTrue(source.contains("thenAccept(ticket -> routeTicket(playerSession, ticket"));
         assertTrue(source.contains("_player -> routeTicketCurrent(playerSession, ticket, failureMessage, attempt)"),
             "every polling transition must reject a replaced connection before another Core request");
