@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.242`
+Version: `1.1.243`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -718,7 +718,7 @@ integration verification.
 | Area | Status | Verified evidence | Limit |
 |---|---|---|---|
 | lifecycle/templates/homes/warps/visits | IMPLEMENTED_VERIFIED | ciIntegrationSmoke verifies advisory-lock-serialized dual-Core schema bootstrap on PostgreSQL and MySQL 8.4 plus cross-Core create, job, route, session, consume, player-ticket cache convergence, node recovery, bank, membership, warp, event replay, and database backup behavior; Paper 26.1.2 smoke verifies normal command registration plus rejected-bootstrap rollback, diagnostic /is and /ciadmin, corrected-config retry, and second-attempt READY recovery; Paper tests verify main-thread template permission preflight, exact initiating-Player fencing for paid creation plus delete/reset feedback, automatic post-charge refund before Core creation when the connection is replaced, exact initiating-Player fencing for home/warp lookup, permission resolution, safe-destination lookup, local teleport, fallback movement, and feedback, one observable warp-to-island-info lookup chain, stale target-info response rejection, scheduler-bound single-Paper fallback teleport, target-island coordinates, safe destination scans, final online-player revalidation, bounded destination revalidation, teleport warmup cancellation as soon as a player moves or starts falling within the same block, and exact initiating-Player fencing for both player and administrator teleports through route creation, polling, publication, local consumption, world readiness, safe-destination resolution, final teleport, fallback movement, feedback, loading bars, and delayed route-session rejection | 26.1.2 is boot-verified; 26.2 stays compile-only until a stable Paper build is available |
-| access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests; Paper command callbacks retain immutable actor UUIDs across profile lookup and Core mutation completion | third-party permission plugins are integration-status reported, not all boot-verified |
+| access/bans/membership/roles/permissions | IMPLEMENTED_VERIFIED | Core API and permission event replay are exercised in tests; accepted visitor bans and kicks return to the Paper scheduler and evict the target independently from actor connectivity, while delayed actor feedback requires the exact initiating Player connection | third-party permission plugins are integration-status reported, not all boot-verified |
 | flags/protection | IMPLEMENTED_VERIFIED | unit verified; Paper policy tests and protection smoke cover LOWEST-priority custom-machine right-click fencing through the independent container permission for ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun blocks, dedicated normal/glow item-frame add, rotate, and remove changes plus HIGHEST-priority pickup attempt and final entity boundaries, granular interactions, durable role-gated personal flight with external-flight ownership isolation, durable per-player border visibility, real blue/green/red border color transitions, block-display preferences, transition refresh, and border ownership isolation, soft-explosion target authorization and non-destructive accounting, CraftEngine furniture build/break enforcement, RoseStacker direct-spawn flag parity, default-compatible natural flags, shard-safe player time/weather overrides, fail-closed dispenser, armor-dispense, origin-island-preserving ground items and merges, hopper, inventory-transfer, and block-projectile boundaries including migrating islands, cancellation-final natural spread, growth, formation, fade, fluid, fire, leaf, bucket, fertilize, structure, and Enderman transitions, dependent block breaks, raids, mob targeting, bounded asynchronous safe returns with same-instance and authorizing-block continuation fencing, and fail-closed player/entity cross-dimension portals inside active island regions | runtime grief/protection scenarios need manual or fixture-backed Paper interaction tests; cross-dimension island worlds remain intentionally unavailable until their lifecycle, storage, and routing are implemented end to end |
 | ranking/level/worth/bank/block values | IMPLEMENTED_VERIFIED | verifyRankingWorthCertification and verifyIntegrationRuntimeSmoke cover typed values, authoritative bank-balance ordering with ranking exclusions, ItemsAdder/Oraxen/Nexo/CraftEngine/Slimefun custom block and furniture identity, CraftEngine place/break event deltas, RoseStacker/WildStacker/AdvancedSpawners logical amounts, cause-aware permanent entity removal including external plugin removals, cancellation-final and inheritance-deduplicated block transitions, chunk-complete UUID-deduplicated entity snapshots, bounded scans, serialized writes, and concurrent-mutation rejection | custom and stacker vendor APIs remain deployment-specific live acceptance; busy islands retry reconciliation instead of publishing a mixed-time scan |
 | upgrades/size/border/biome | IMPLEMENTED_VERIFIED | verifyUpgradeEffectCoverage covers Core upgrade effects, atomic multi-price charging/refunds, rule-complete GUI views, and biome normalization; one level now preserves and applies concurrent size/team/warp/coop/role limits, crop/spawner/drop multipliers, island effects, normal-world per-material generator rates, arbitrary block limits, and per-entity limits from either CloudIslands or quoted-level SS2 layouts without reducing administrator or mission overrides; Paper enforces both generator upgrade-level and authoritative island-level rule requirements, with fail-closed level loading and event-driven cache refresh, plus exact material and entity-type counts including logical stacker spawns alongside existing aggregate limits; authoritative size is carried through activation, restore, reset, and migration jobs, while live size changes atomically replace Paper protection, scan, and snapshot bounds; Core island response paths expose the independent authoritative BORDER limit, and async size, border, border-policy, and personal-profile responses re-resolve the current online player through the Paper scheduler before Bukkit state changes; Paper tests also cover region-file cell isolation, unsafe-size fencing, world-border policy, activation-time persisted-biome reconciliation, and chunk-batched biome painting | normal-world per-material generator rates, arbitrary block limits, and per-entity limits are runtime-applied; Nether and End generator-rate maps remain preserved but intentionally inactive until cross-dimension island lifecycle, storage, and routing exist end to end; operator deployment acceptance is still recommended; cells below 1024 blocks or not aligned to 512 blocks fail startup, and islands that cannot fit without sharing region files fail activation or are fenced on unsafe live resize |
@@ -731,9 +731,20 @@ integration verification.
 
 ## Release
 
-Current release: `v1.1.242`
+Current release: `v1.1.243`
 
-Built for the CloudIslands 1.1.242 baseline.
+Built for the CloudIslands 1.1.243 baseline.
+
+Release notes for `v1.1.243`:
+
+- accepted visitor bans and kicks now evict the target on Paper even when the
+  acting administrator disconnects before the Core mutation completes
+- target location checks, fallback routing, and plugin messaging remain on the
+  Paper scheduler instead of running on a Core completion thread
+- delayed success and failure feedback is fenced to the exact Player connection
+  that initiated the visitor action, so a same-UUID reconnect cannot inherit it
+- focused actor-disconnect policy coverage, the complete Paper test suite, and
+  membership and feature-parity gates certify the visitor-removal boundary
 
 Release notes for `v1.1.242`:
 

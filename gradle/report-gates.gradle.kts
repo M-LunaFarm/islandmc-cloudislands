@@ -325,7 +325,7 @@ private fun featureParityEntries(): List<FeatureParityEntry> = listOf(
         "Role IDs, permissions, bans, and member APIs have unit coverage",
         "Paper permission cache/listener paths compile under the adapter matrix",
         "Version-neutral domain with Paper adapter boundary tests",
-        "Core API and permission event replay are exercised in tests; Paper command callbacks retain immutable actor UUIDs across profile lookup and Core mutation completion",
+        "Core API and permission event replay are exercised in tests; accepted visitor bans and kicks return to the Paper scheduler and evict the target independently from actor connectivity, while delayed actor feedback requires the exact initiating Player connection",
         "replay and cache convergence are unit-tested; releaseClusterSmokeGate covers multi-Paper failover evidence",
         listOf(
             "cloudislands-common/src/test/java/kr/lunaf/cloudislands/common/permission/PermissionResolverTest.java",
