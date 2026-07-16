@@ -4,8 +4,10 @@ import java.util.Optional;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.failure.CoreApiDegradedModePolicy;
 import kr.lunaf.cloudislands.common.protection.IslandRegion;
+import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.platform.player.PaperPlayerGateway;
+import kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers;
 import kr.lunaf.cloudislands.paper.platform.world.PaperWorldGateway;
 import kr.lunaf.cloudislands.paper.platform.world.SafeTeleportResolver;
 import org.bukkit.Location;
@@ -35,8 +37,8 @@ final class IslandCommandLocalTeleports {
     }
 
     void moveToPoint(Player player, UUID islandId, IslandHomeWarpCommandHandler.Point point, String missingMessage, String successMessage) {
-        UUID playerUuid = player.getUniqueId();
-        PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> {
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        runCurrent(playerSession, activePlayer -> {
             if (point == null) {
                 activePlayer.sendMessage(missingMessage);
                 return;
@@ -58,7 +60,7 @@ final class IslandCommandLocalTeleports {
             double targetX = region.map(value -> value.originX() + point.x()).orElse(point.x());
             double targetZ = region.map(value -> value.originZ() + point.z()).orElse(point.z());
             Location requested = new Location(world, targetX, point.y(), targetZ, point.yaw(), point.pitch());
-            worlds.safeDestination(requested, region.get()).whenComplete((destination, error) -> PaperOnlinePlayer.run(plugin, playerUuid, currentPlayer -> {
+            worlds.safeDestination(requested, region.get()).whenComplete((destination, error) -> runCurrent(playerSession, currentPlayer -> {
                 if (error != null || destination == null || destination.isEmpty()
                     || !SafeTeleportResolver.isSafe(destination.get(), region.get())) {
                     messages.message(currentPlayer, messages.routeMessage("route-target-unsafe", "안전한 이동 위치를 찾을 수 없습니다."));
@@ -70,6 +72,15 @@ final class IslandCommandLocalTeleports {
                     messages.message(currentPlayer, messages.routeMessage("route-teleport-rejected", "서버가 순간이동을 허용하지 않았습니다."));
                 }
             }));
+        });
+    }
+
+    private void runCurrent(PlayerConnectionSession playerSession, java.util.function.Consumer<Player> task) {
+        PaperSchedulers.run(plugin, () -> {
+            Player activePlayer = players.onlinePlayer(playerSession.playerUuid());
+            if (playerSession.isCurrent(activePlayer)) {
+                task.accept(activePlayer);
+            }
         });
     }
 

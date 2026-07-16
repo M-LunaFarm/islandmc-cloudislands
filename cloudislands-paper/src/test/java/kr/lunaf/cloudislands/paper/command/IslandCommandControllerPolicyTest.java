@@ -769,12 +769,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpHandler.contains("runtime.routeHome(player, name)"), "single-Paper home outside an island must use the Core selected-island route");
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.warpViews"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.publicWarpViews"));
-        assertTrue(homeWarpHandler.contains("private void runSync(UUID playerUuid, Consumer<Player> task)"), "Core callbacks must have one UUID-based Paper scheduler return boundary");
-        assertTrue(homeWarpHandler.contains("thenAccept(homes -> runSync(playerUuid, activePlayer -> runtime.moveToPoint"), "home lookup must re-resolve the current online player before teleporting");
+        assertTrue(homeWarpHandler.contains("private void runSync(PlayerConnectionSession playerSession, Consumer<Player> task)"), "Core callbacks must have one exact-connection Paper scheduler return boundary");
+        assertTrue(homeWarpHandler.contains("thenAccept(homes -> runSync(playerSession, activePlayer -> runtime.moveToPoint"), "home lookup must retain the initiating connection before teleporting");
         assertTrue(homeWarpHandler.contains("thenCompose(warps ->"), "warp and island-info lookups must form one observable completion chain");
-        assertTrue(homeWarpHandler.contains("runSync(playerUuid, activePlayer ->"), "warp lookup must return to the Paper scheduler before reading player permissions or location");
+        assertTrue(homeWarpHandler.contains("runSync(playerSession, activePlayer ->"), "warp lookup must return to the Paper scheduler with its initiating connection before reading player permissions or location");
         assertTrue(homeWarpHandler.contains("if (!runtime.coreUnavailable(error) || !runtime.teleportLocalDefaultHome(activePlayer))"), "single-Paper fallback location access must execute against the re-resolved online player");
-        assertTrue(homeWarpHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid, task)"), "home and warp callbacks must use the shared online-player scheduler boundary");
+        assertTrue(homeWarpHandler.contains("playerSession.isCurrent(activePlayer)"), "home and warp callbacks must reject same-UUID replacement connections");
         assertFalse(homeWarpHandler.contains("thenAccept(result -> runSync(player"), "home and warp mutation callbacks must not retain a captured Player");
         assertTrue(homeWarpHandler.contains("homePoint(homes, name)"), "home teleport must not fall back to the player's current world");
         assertTrue(homeWarpHandler.contains("warpPoint(warps, name)"), "warp teleport must not fall back to the player's current world");
@@ -783,8 +783,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(localTeleports.contains("if (point.worldName().isBlank())"), "local teleport must reject missing stored worlds");
         assertTrue(localTeleports.contains("protection.region(islandId)"), "local teleport coordinates must resolve against the target island rather than the player's current location");
         assertTrue(localTeleports.contains("worlds.safeDestination(requested, region.get())"), "local home and warp movement must reject blocked or hazardous destinations");
-        assertTrue(localTeleports.contains("PaperOnlinePlayer.run(plugin, playerUuid, activePlayer"), "local teleport preparation must resolve the current online player");
-        assertTrue(localTeleports.contains("whenComplete((destination, error) -> PaperOnlinePlayer.run(plugin, playerUuid, currentPlayer"), "safe-destination completion must re-resolve the player before teleporting");
+        assertTrue(localTeleports.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "local teleport preparation must capture the initiating connection");
+        assertTrue(localTeleports.contains("whenComplete((destination, error) -> runCurrent(playerSession, currentPlayer"), "safe-destination completion must retain the same initiating connection before teleporting");
+        assertTrue(localTeleports.contains("playerSession.isCurrent(activePlayer)"), "local teleport completion must reject same-UUID replacement connections");
         assertFalse(localTeleports.contains("players.teleport(player, destination.get())"), "safe-destination callbacks must not teleport a captured Player");
         assertFalse(localTeleports.contains("point.worldName().isBlank() ?"), "local teleport must not substitute the player's current world for stored home/warp worlds");
         assertFalse(homeWarpHandler.contains("coreApiClient.setIslandHomeResult"));
