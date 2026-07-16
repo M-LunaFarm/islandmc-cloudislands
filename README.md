@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.246`
+Version: `1.1.247`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -732,9 +732,21 @@ integration-certified.
 
 ## Release
 
-Current release: `v1.1.246`
+Current release: `v1.1.247`
 
-Built for the CloudIslands 1.1.246 baseline.
+Built for the CloudIslands 1.1.247 baseline.
+
+Release notes for `v1.1.247`:
+
+- Paper 26.2 support now compiles against the official build 60 beta API and
+  boots a real Paper 26.2-60 server on Java 25 in the version-matrix smoke
+- the matrix records the required PaperMC download channel explicitly, keeping
+  stable release targets pinned to `STABLE` while allowing an honest `BETA`
+  verification path for the experimental 26.2 adapter
+- GitHub Actions now runs `paper262BootSmoke`; the smoke verifies plugin startup,
+  `/ciadmin` diagnostics, live message reload, and restart-required node changes
+- Paper 26.2 remains experimental and is not release-supported until PaperMC
+  publishes a stable channel build
 
 Release notes for `v1.1.246`:
 
