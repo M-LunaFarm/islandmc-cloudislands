@@ -56,11 +56,11 @@ final class IslandMembershipCommandHandler {
             if (args.length < 2) {
                 listIslandMembers(player);
             } else {
-                UUID playerUuid = player.getUniqueId();
+                PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
                 targetResolver.resolve(args[1])
-                    .thenAccept(islandId -> listIslandMembers(playerUuid, islandId))
+                    .thenAccept(islandId -> listIslandMembers(playerSession, islandId))
                     .exceptionally(error -> {
-                        deliverMessage(playerUuid, message("member-target-not-found", "멤버를 확인할 섬 또는 플레이어를 찾지 못했습니다."));
+                        deliverMessage(playerSession, message("member-target-not-found", "멤버를 확인할 섬 또는 플레이어를 찾지 못했습니다."));
                         return null;
                     });
             }
@@ -446,41 +446,42 @@ final class IslandMembershipCommandHandler {
     }
 
     private void listIslandMembers(Player player) {
-        runtime.currentIsland(player, message("member-list-island-required", "섬 안에서만 멤버를 확인할 수 있습니다.")).ifPresent(islandId -> listIslandMembers(player.getUniqueId(), islandId));
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        runtime.currentIsland(player, message("member-list-island-required", "섬 안에서만 멤버를 확인할 수 있습니다.")).ifPresent(islandId -> listIslandMembers(playerSession, islandId));
     }
 
-    private void listIslandMembers(UUID playerUuid, UUID islandId) {
+    private void listIslandMembers(PlayerConnectionSession playerSession, UUID islandId) {
         memberManagement.listMemberViews(islandId)
-                .thenAccept(members -> deliverMessage(playerUuid, memberListMessage(members)))
+                .thenAccept(members -> deliverMessage(playerSession, memberListMessage(members)))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("member-list-load-failed", "섬 멤버를 불러오지 못했습니다."));
+                    deliverMessage(playerSession, message("member-list-load-failed", "섬 멤버를 불러오지 못했습니다."));
                     return null;
                 });
     }
 
     private void listIslandBans(Player player) {
         runtime.currentIsland(player, message("ban-list-island-required", "섬 안에서만 밴 목록을 볼 수 있습니다.")).ifPresent(islandId -> {
-            UUID playerUuid = player.getUniqueId();
+            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
             memberManagement.listBanViews(islandId)
-                .thenAccept(bans -> deliverMessage(playerUuid, banListMessage(bans)))
+                .thenAccept(bans -> deliverMessage(playerSession, banListMessage(bans)))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("ban-list-load-failed", "섬 밴 목록을 불러오지 못했습니다."));
+                    deliverMessage(playerSession, message("ban-list-load-failed", "섬 밴 목록을 불러오지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void inviteIslandMember(Player player, String target) {
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
         runtime.currentIsland(player, message("member-invite-island-required", "섬 안에서만 플레이어를 초대할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_MEMBERS)) {
                 runtime.message(player, message("member-invite-denied", "섬 멤버를 초대할 권한이 없습니다."));
                 return;
             }
-            UUID actorUuid = player.getUniqueId();
             resolveInviteTarget(target).thenAccept(targetUuid ->
-                sendIslandInvite(islandId, actorUuid, targetUuid)
+                sendIslandInvite(actorSession, islandId, targetUuid)
             ).exceptionally(error -> {
-                deliverMessage(actorUuid, message("member-invite-player-not-found", "초대할 플레이어 프로필을 찾을 수 없습니다."));
+                deliverMessage(actorSession, message("member-invite-player-not-found", "초대할 플레이어 프로필을 찾을 수 없습니다."));
                 return null;
             });
         });
@@ -503,17 +504,19 @@ final class IslandMembershipCommandHandler {
         });
     }
 
-    private void sendIslandInvite(UUID islandId, UUID actorUuid, UUID targetUuid) {
+    private void sendIslandInvite(PlayerConnectionSession actorSession, UUID islandId, UUID targetUuid) {
+        UUID actorUuid = actorSession.playerUuid();
         runtime.mutate("island.invite.create", () -> memberManagement.createInviteView(islandId, actorUuid, targetUuid))
-            .thenAccept(invite -> deliverMessage(actorUuid, inviteCreatedMessage(invite)))
+            .thenAccept(invite -> deliverMessage(actorSession, inviteCreatedMessage(invite)))
             .exceptionally(error -> {
-                deliverMessage(actorUuid, message("member-invite-failed", "섬 초대를 보내지 못했습니다."));
+                deliverMessage(actorSession, message("member-invite-failed", "섬 초대를 보내지 못했습니다."));
                 return null;
             });
     }
 
     private void removeIslandMember(Player player, String target) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         runtime.currentIsland(player, message("member-remove-island-required", "섬 안에서만 멤버를 추방할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_MEMBERS)) {
                 runtime.message(player, message("member-remove-denied", "섬 멤버를 추방할 권한이 없습니다."));
@@ -521,16 +524,17 @@ final class IslandMembershipCommandHandler {
             }
             runtime.resolvePlayerUuid(target)
                 .thenCompose(targetUuid -> runtime.mutateIdempotent("island.member.remove", () -> memberManagement.removeMemberAction(islandId, actorUuid, targetUuid))
-                    .thenAccept(result -> deliverMessage(actorUuid, memberActionMessage(message("member-remove-action-label", "섬 멤버 제거"), targetUuid, result))))
+                    .thenAccept(result -> deliverMessage(actorSession, memberActionMessage(message("member-remove-action-label", "섬 멤버 제거"), targetUuid, result))))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, message("member-remove-failed", "섬 멤버를 제거하지 못했습니다."));
+                    deliverMessage(actorSession, message("member-remove-failed", "섬 멤버를 제거하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void removeCoopMember(Player player, String target) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         runtime.currentIsland(player, message("member-remove-island-required", "섬 안에서만 협동원을 해제할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_MEMBERS)) {
                 runtime.message(player, message("member-remove-denied", "섬 협동원을 해제할 권한이 없습니다."));
@@ -539,14 +543,14 @@ final class IslandMembershipCommandHandler {
             runtime.resolvePlayerUuid(target).thenCompose(targetUuid -> memberManagement.listMemberViews(islandId)
                 .thenCompose(members -> {
                     if (!isTemporaryCoop(members, targetUuid)) {
-                        deliverMessage(actorUuid, message("member-uncoop-target-not-coop", "해당 플레이어는 이 섬의 협동원이 아닙니다."));
+                        deliverMessage(actorSession, message("member-uncoop-target-not-coop", "해당 플레이어는 이 섬의 협동원이 아닙니다."));
                         return CompletableFuture.completedFuture(null);
                     }
                     return runtime.mutateIdempotent("island.member.coop.remove", () -> memberManagement.removeMemberAction(islandId, actorUuid, targetUuid))
-                        .thenAccept(result -> deliverMessage(actorUuid, memberActionMessage(message("member-uncoop-action-label", "섬 협동 해제"), targetUuid, result)));
+                        .thenAccept(result -> deliverMessage(actorSession, memberActionMessage(message("member-uncoop-action-label", "섬 협동 해제"), targetUuid, result)));
                 }))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, message("member-uncoop-failed", "섬 협동원을 해제하지 못했습니다."));
+                    deliverMessage(actorSession, message("member-uncoop-failed", "섬 협동원을 해제하지 못했습니다."));
                     return null;
                 });
         });
@@ -561,19 +565,21 @@ final class IslandMembershipCommandHandler {
     }
 
     private void leaveIsland(Player player) {
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
         runtime.currentIsland(player, message("member-leave-island-required", "섬 안에서만 탈퇴할 수 있습니다.")).ifPresent(islandId -> {
-            UUID playerUuid = player.getUniqueId();
+            UUID playerUuid = playerSession.playerUuid();
             runtime.mutateIdempotent("island.member.leave", () -> memberManagement.removeMemberAction(islandId, playerUuid, playerUuid))
-                .thenAccept(result -> deliverMessage(playerUuid, memberActionMessage(message("member-leave-action-label", "섬 탈퇴"), playerUuid, result)))
+                .thenAccept(result -> deliverMessage(playerSession, memberActionMessage(message("member-leave-action-label", "섬 탈퇴"), playerUuid, result)))
                 .exceptionally(error -> {
-                    deliverMessage(playerUuid, message("member-leave-failed", "섬 탈퇴를 처리하지 못했습니다."));
+                    deliverMessage(playerSession, message("member-leave-failed", "섬 탈퇴를 처리하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void setIslandMemberRole(Player player, String target, String roleKey, String successMessage) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         runtime.currentIsland(player, message("member-role-island-required", "섬 안에서만 멤버 역할을 변경할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.MANAGE_ROLES)) {
                 runtime.message(player, message("member-role-denied", "섬 멤버 역할을 변경할 권한이 없습니다."));
@@ -581,9 +587,9 @@ final class IslandMembershipCommandHandler {
             }
             runtime.resolvePlayerUuid(target)
                 .thenCompose(targetUuid -> runtime.mutate("island.member.role.set", () -> memberManagement.setRoleAction(islandId, actorUuid, targetUuid, roleKey))
-                    .thenAccept(result -> deliverMessage(actorUuid, memberActionMessage(successMessage, targetUuid, result))))
+                    .thenAccept(result -> deliverMessage(actorSession, memberActionMessage(successMessage, targetUuid, result))))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, message("member-role-failed", "섬 멤버 역할을 변경하지 못했습니다."));
+                    deliverMessage(actorSession, message("member-role-failed", "섬 멤버 역할을 변경하지 못했습니다."));
                     return null;
                 });
         });
@@ -601,7 +607,8 @@ final class IslandMembershipCommandHandler {
     }
 
     private void trustIslandMemberTemporary(Player player, String target, String duration) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         long seconds = parseDurationSeconds(duration, 3600L);
         if (seconds <= 0L) {
             runtime.message(player, message("member-temp-trust-duration-invalid", "신뢰 기간을 올바르게 입력해주세요. 예: 30m, 2h, 1d"));
@@ -614,22 +621,23 @@ final class IslandMembershipCommandHandler {
             }
             runtime.resolvePlayerUuid(target)
                 .thenCompose(targetUuid -> runtime.mutate("island.member.temp-trust", () -> memberManagement.trustTemporarilyAction(islandId, actorUuid, targetUuid, seconds))
-                    .thenAccept(result -> deliverMessage(actorUuid, memberActionMessage(message("member-temp-trust-action-label", "섬 임시 신뢰 설정") + " " + formatDuration(seconds), targetUuid, result) + (result.expiresAt().isBlank() ? "" : message("member-action-expires-prefix", " 만료=") + result.expiresAt()))))
+                    .thenAccept(result -> deliverMessage(actorSession, memberActionMessage(message("member-temp-trust-action-label", "섬 임시 신뢰 설정") + " " + formatDuration(seconds), targetUuid, result) + (result.expiresAt().isBlank() ? "" : message("member-action-expires-prefix", " 만료=") + result.expiresAt()))))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, message("member-temp-trust-failed", "섬 임시 신뢰를 설정하지 못했습니다."));
+                    deliverMessage(actorSession, message("member-temp-trust-failed", "섬 임시 신뢰를 설정하지 못했습니다."));
                     return null;
                 });
         });
     }
 
     private void transferIslandOwnership(Player player, String target) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         runtime.currentIsland(player, message("ownership-transfer-island-required", "섬 안에서만 소유권을 양도할 수 있습니다.")).ifPresent(islandId -> {
             runtime.resolvePlayerUuid(target)
                 .thenCompose(targetUuid -> runtime.mutateIdempotent("island.ownership.transfer", () -> memberManagement.transferOwnershipAction(islandId, actorUuid, targetUuid))
-                    .thenAccept(result -> deliverMessage(actorUuid, memberActionMessage(message("ownership-transfer-action-label", "섬 소유권 양도"), targetUuid, result))))
+                    .thenAccept(result -> deliverMessage(actorSession, memberActionMessage(message("ownership-transfer-action-label", "섬 소유권 양도"), targetUuid, result))))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, message("ownership-transfer-failed", "섬 소유권을 양도하지 못했습니다."));
+                    deliverMessage(actorSession, message("ownership-transfer-failed", "섬 소유권을 양도하지 못했습니다."));
                     return null;
                 });
         });
@@ -654,7 +662,8 @@ final class IslandMembershipCommandHandler {
     }
 
     private void pardonIslandVisitor(Player player, String target) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         runtime.currentIsland(player, message("visitor-pardon-island-required", "섬 안에서만 방문자 밴을 해제할 수 있습니다.")).ifPresent(islandId -> {
             if (!runtime.allowed(player, IslandPermission.BAN_VISITOR)) {
                 runtime.message(player, message("visitor-pardon-denied", "섬 방문자 밴을 해제할 권한이 없습니다."));
@@ -662,9 +671,9 @@ final class IslandMembershipCommandHandler {
             }
             runtime.resolvePlayerUuid(target)
                 .thenCompose(targetUuid -> runtime.mutateIdempotent("island.visitor.pardon", () -> memberManagement.pardonVisitorAction(islandId, actorUuid, targetUuid))
-                    .thenAccept(result -> deliverMessage(actorUuid, memberActionMessage(message("visitor-pardon-action-label", "섬 방문자 밴 해제"), targetUuid, result))))
+                    .thenAccept(result -> deliverMessage(actorSession, memberActionMessage(message("visitor-pardon-action-label", "섬 방문자 밴 해제"), targetUuid, result))))
                 .exceptionally(error -> {
-                    deliverMessage(actorUuid, message("visitor-pardon-failed", "섬 방문자 밴을 해제하지 못했습니다."));
+                    deliverMessage(actorSession, message("visitor-pardon-failed", "섬 방문자 밴을 해제하지 못했습니다."));
                     return null;
                 });
         });
@@ -731,25 +740,27 @@ final class IslandMembershipCommandHandler {
     }
 
     private void listPendingInvites(Player player) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         memberManagement.listPendingInviteViews(actorUuid)
-            .thenAccept(invites -> deliverMessage(actorUuid, inviteListMessage(invites)))
+            .thenAccept(invites -> deliverMessage(actorSession, inviteListMessage(invites)))
             .exceptionally(error -> {
-                deliverMessage(actorUuid, message("invite-list-load-failed", "섬 초대 목록을 불러오지 못했습니다."));
+                deliverMessage(actorSession, message("invite-list-load-failed", "섬 초대 목록을 불러오지 못했습니다."));
                 return null;
             });
     }
 
     private void acceptIslandInviteTarget(Player player, String target) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         resolveInviteTarget(actorUuid, target).thenAccept(inviteId -> {
             if (inviteId == null) {
-                deliverMessage(actorUuid, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
+                deliverMessage(actorSession, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
                 return;
             }
-            acceptIslandInvite(actorUuid, inviteId);
+            acceptIslandInvite(actorSession, inviteId);
         }).exceptionally(error -> {
-            deliverMessage(actorUuid, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
+            deliverMessage(actorSession, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
             return null;
         });
     }
@@ -759,28 +770,30 @@ final class IslandMembershipCommandHandler {
             runtime.message(player, message("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
             return;
         }
-        acceptIslandInvite(player.getUniqueId(), inviteId);
+        acceptIslandInvite(PlayerConnectionSession.capture(player), inviteId);
     }
 
-    private void acceptIslandInvite(UUID actorUuid, UUID inviteId) {
+    private void acceptIslandInvite(PlayerConnectionSession actorSession, UUID inviteId) {
+        UUID actorUuid = actorSession.playerUuid();
         runtime.mutate("island.invite.accept", () -> memberManagement.acceptInviteAction(inviteId, actorUuid))
-            .thenAccept(result -> deliverMessage(actorUuid, inviteActionMessage(message("invite-accept-action-label", "섬 초대 수락"), inviteId, result)))
+            .thenAccept(result -> deliverMessage(actorSession, inviteActionMessage(message("invite-accept-action-label", "섬 초대 수락"), inviteId, result)))
             .exceptionally(error -> {
-                deliverMessage(actorUuid, message("invite-accept-failed", "섬 초대를 수락하지 못했습니다."));
+                deliverMessage(actorSession, message("invite-accept-failed", "섬 초대를 수락하지 못했습니다."));
                 return null;
             });
     }
 
     private void declineIslandInviteTarget(Player player, String target) {
-        UUID actorUuid = player.getUniqueId();
+        PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player);
+        UUID actorUuid = actorSession.playerUuid();
         resolveInviteTarget(actorUuid, target).thenAccept(inviteId -> {
             if (inviteId == null) {
-                deliverMessage(actorUuid, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
+                deliverMessage(actorSession, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
                 return;
             }
-            declineIslandInvite(actorUuid, inviteId);
+            declineIslandInvite(actorSession, inviteId);
         }).exceptionally(error -> {
-            deliverMessage(actorUuid, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
+            deliverMessage(actorSession, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
             return null;
         });
     }
@@ -790,14 +803,15 @@ final class IslandMembershipCommandHandler {
             runtime.message(player, message("input-invite-id-invalid", "올바른 초대 ID를 입력해주세요."));
             return;
         }
-        declineIslandInvite(player.getUniqueId(), inviteId);
+        declineIslandInvite(PlayerConnectionSession.capture(player), inviteId);
     }
 
-    private void declineIslandInvite(UUID actorUuid, UUID inviteId) {
+    private void declineIslandInvite(PlayerConnectionSession actorSession, UUID inviteId) {
+        UUID actorUuid = actorSession.playerUuid();
         runtime.mutate("island.invite.decline", () -> memberManagement.declineInviteAction(inviteId, actorUuid))
-            .thenAccept(result -> deliverMessage(actorUuid, inviteActionMessage(message("invite-decline-action-label", "섬 초대 거절"), inviteId, result)))
+            .thenAccept(result -> deliverMessage(actorSession, inviteActionMessage(message("invite-decline-action-label", "섬 초대 거절"), inviteId, result)))
             .exceptionally(error -> {
-                deliverMessage(actorUuid, message("invite-decline-failed", "섬 초대를 거절하지 못했습니다."));
+                deliverMessage(actorSession, message("invite-decline-failed", "섬 초대를 거절하지 못했습니다."));
                 return null;
             });
     }
@@ -875,10 +889,6 @@ final class IslandMembershipCommandHandler {
             builder.append(message("member-action-reason-prefix", " code=")).append(code);
         }
         return builder.toString();
-    }
-
-    private void deliverMessage(UUID playerUuid, String detail) {
-        PaperOnlinePlayer.run(plugin, playerUuid, player -> runtime.message(player, detail));
     }
 
     private String message(String key, String fallback) {
