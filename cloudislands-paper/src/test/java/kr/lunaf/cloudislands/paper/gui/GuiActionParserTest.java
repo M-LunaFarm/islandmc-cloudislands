@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class GuiActionParserTest {
@@ -207,6 +208,31 @@ class GuiActionParserTest {
             "reviewerUuid", "00000000-0000-0000-0000-000000000002",
             "moderationState", "REPORTED"
         )).isEmpty());
+    }
+
+    @Test
+    void parsesAdminJobPagesMutationsAndCancelConfirmation() {
+        String jobId = "00000000-0000-0000-0000-000000000004";
+        GuiAction page = GuiActionParser.parse("admin.jobs.page", Map.of("page", "2")).orElseThrow();
+        GuiAction retry = GuiActionParser.parse("admin.jobs.retry", Map.of("jobId", jobId, "page", "2")).orElseThrow();
+        GuiAction prepare = GuiActionParser.parse("admin.jobs.cancel.prepare", Map.of("jobId", jobId, "page", "2")).orElseThrow();
+        GuiAction confirmed = GuiActionParser.parse(
+            ConfirmationTokenPolicy.ADMIN_JOB_CANCEL_CONFIRM_ACTION,
+            ConfirmationTokenPolicy.withToken(
+                ConfirmationTokenPolicy.ADMIN_JOB_CANCEL_CONFIRM_ACTION,
+                Map.of("jobId", jobId, "page", "2")
+            )
+        ).orElseThrow();
+
+        assertTrue(page instanceof GuiAction.AdminJobPage);
+        assertEquals(2, ((GuiAction.AdminJobPage) page).page());
+        assertTrue(retry instanceof GuiAction.AdminJobRetry);
+        assertEquals(UUID.fromString(jobId), ((GuiAction.AdminJobRetry) retry).jobId());
+        assertTrue(prepare instanceof GuiAction.AdminJobCancel);
+        assertEquals(GuiAction.AdminJobCancelType.PREPARE, ((GuiAction.AdminJobCancel) prepare).type());
+        assertTrue(confirmed instanceof GuiAction.AdminJobCancel);
+        assertEquals(GuiAction.AdminJobCancelType.CONFIRM, ((GuiAction.AdminJobCancel) confirmed).type());
+        assertTrue(ConfirmationTokenPolicy.confirmed(confirmed, GuiClick.LEFT));
     }
 
     @Test
@@ -557,6 +583,16 @@ class GuiActionParserTest {
 
     private static Map<String, String> sampleDataFor(String actionId) {
         return switch (actionId) {
+            case "admin.jobs.page" -> Map.of("page", "0");
+            case "admin.jobs.retry", "admin.jobs.cancel.prepare" -> Map.of(
+                "jobId", "00000000-0000-0000-0000-000000000004",
+                "page", "0"
+            );
+            case "admin.jobs.cancel.confirm" -> Map.of(
+                "jobId", "00000000-0000-0000-0000-000000000004",
+                "page", "0",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
             case "admin.reviews.open" -> Map.of("limit", "10");
             case "admin.reviews.moderate" -> Map.of(
                 "islandId", "00000000-0000-0000-0000-000000000000",

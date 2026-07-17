@@ -2457,7 +2457,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleJobs(CommandSender sender, String[] args) {
-        if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
+        if (args.length < 2) {
+            if (sender instanceof Player player) {
+                AdminJobMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player));
+            } else {
+                run(sender, "Jobs list", coreApiClient.jobs().list().thenApply(this::jobListMessage));
+            }
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("list")) {
             run(sender, "Jobs list", coreApiClient.jobs().list().thenApply(this::jobListMessage));
             return true;
         }
@@ -2776,7 +2784,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "admin.node" -> AdminNodeMenu.open(target, nodeId, targetMessages);
             case "admin.storage" -> AdminStorageMenu.open(target, targetMessages);
             case "admin.route" -> AdminRouteMenu.open(target, targetMessages);
-            case "admin.jobs" -> AdminJobMenu.open(target, targetMessages);
+            case "admin.jobs" -> AdminJobMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.reviews" -> AdminReviewModerationMenu.open(agent.plugin(), coreApiClient, target, targetMessages, 36);
             case "admin.migration" -> AdminMigrationMenu.open(target, targetMessages);
             default -> throw new IllegalArgumentException("Unsupported menu id: " + menuId);

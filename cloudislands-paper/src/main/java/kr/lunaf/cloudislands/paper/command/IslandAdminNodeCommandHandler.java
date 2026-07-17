@@ -5,6 +5,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
+import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeActionResult;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeSummary;
@@ -14,6 +15,7 @@ import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminReviewModerationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminStorageMenu;
+import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.GuiSession;
@@ -40,6 +42,22 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminJobPage page) {
+            openJobMenu(player, page.page());
+            return true;
+        }
+        if (action instanceof GuiAction.AdminJobRetry retry) {
+            retryJob(player, retry.jobId(), retry.page());
+            return true;
+        }
+        if (action instanceof GuiAction.AdminJobCancel cancel) {
+            if (cancel.type() == GuiAction.AdminJobCancelType.PREPARE) {
+                openJobCancelConfirmation(player, cancel.jobId(), cancel.page());
+            } else if (runtime.confirmationAccepted(player, action, click)) {
+                cancelJob(player, cancel.jobId(), cancel.page());
+            }
+            return true;
+        }
         if (action instanceof GuiAction.AdminReviewModeration moderation) {
             moderateReview(player, moderation);
             return true;
@@ -64,14 +82,8 @@ final class IslandAdminNodeCommandHandler {
     private boolean handleAdminMenuAction(Player player, GuiAction.AdminMenuAction action) {
         UUID playerUuid = player.getUniqueId();
         return switch (action.type()) {
-            case JOBS_OPEN -> {
-                AdminJobMenu.open(player, runtime.messagesFor(player));
-                yield true;
-            }
-            case JOBS_LIST -> {
-                coreApiClient.jobs().list()
-                    .thenAccept(jobs -> deliverMessage(playerUuid, "Jobs: count=" + jobs.size() + jobs.stream().findFirst().map(job -> " first=" + job.id() + "/" + job.state()).orElse("")))
-                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-jobs-list-failed", "작업 목록을 불러오지 못했습니다.", error));
+            case JOBS_OPEN, JOBS_LIST -> {
+                openJobMenu(player, 0);
                 yield true;
             }
             case JOBS_RETRY_PROMPT -> {
@@ -155,6 +167,74 @@ final class IslandAdminNodeCommandHandler {
 
     private void prompt(Player player, String command) {
         runtime.message(player, runtime.routeMessage("admin-menu-command-required", "관리 명령 입력 필요: ") + command);
+    }
+
+    private void openJobMenu(Player player, int page) {
+        if (!jobManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-job-menu-permission-denied", "작업 관리 권한이 없습니다."));
+            return;
+        }
+        AdminJobMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page);
+    }
+
+    private void openJobCancelConfirmation(Player player, UUID jobId, int page) {
+        if (!jobManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-job-menu-permission-denied", "작업 관리 권한이 없습니다."));
+            return;
+        }
+        runtime.openConfirmation(player,
+            runtime.routeMessage("admin-job-menu-cancel-confirm-title", "작업 취소 확인"),
+            runtime.routeMessage("admin-job-menu-cancel-confirm-description", "선택한 작업을 취소합니다. 실행 중인 작업은 Core가 거부할 수 있습니다."),
+            Material.BARRIER,
+            runtime.routeMessage("admin-job-menu-cancel-confirm-name", "작업 취소"),
+            ConfirmationTokenPolicy.ADMIN_JOB_CANCEL_CONFIRM_ACTION,
+            Map.of("jobId", jobId.toString(), "page", Integer.toString(Math.max(0, page))),
+            runtime.routeMessage("admin-job-menu-cancel-confirm-lore", "클릭하면 Core에 작업 취소를 요청합니다."),
+            "admin.jobs.page");
+    }
+
+    private void retryJob(Player player, UUID jobId, int page) {
+        mutateJob(player, jobId, page, false);
+    }
+
+    private void cancelJob(Player player, UUID jobId, int page) {
+        mutateJob(player, jobId, page, true);
+    }
+
+    private void mutateJob(Player player, UUID jobId, int page, boolean cancel) {
+        if (!jobManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-job-menu-permission-denied", "작업 관리 권한이 없습니다."));
+            return;
+        }
+        MessageRenderer messages = runtime.messagesFor(player);
+        String operation = cancel ? "cancel" : "retry";
+        GuiSession session = GuiSessions.begin(player, "admin.jobs.mutate");
+        GuiStateMenus.openSaving(plugin, player, session, messages,
+            runtime.routeMessage(cancel ? "admin-job-menu-canceling" : "admin-job-menu-retrying",
+                cancel ? "작업을 취소하는 중입니다." : "작업을 재시도하는 중입니다."));
+        CompletableFuture<JobActionView> mutation = cancel
+            ? runtime.mutate("admin.job.cancel", () -> coreApiClient.jobCommands().cancel(jobId))
+            : runtime.mutate("admin.job.retry", () -> coreApiClient.jobCommands().retry(jobId));
+        mutation
+            .thenAccept(result -> GuiSessions.runIfCurrent(plugin, player, session, () -> {
+                runtime.message(player, runtime.routeMessage("admin-job-menu-updated-prefix", "작업 상태 변경 완료: ")
+                    + operation + "/" + (result.code().isBlank() ? Boolean.toString(result.accepted()) : result.code()));
+                AdminJobMenu.open(plugin, coreApiClient, player, messages, page);
+            }))
+            .exceptionally(error -> {
+                GuiStateMenus.openError(plugin, player, session, messages,
+                    runtime.routeMessage("admin-job-menu-title", "섬 작업 관리"),
+                    runtime.routeMessage("admin-job-menu-update-failed", "작업 상태를 변경하지 못했습니다."),
+                    "admin.jobs.page",
+                    Map.of("page", Integer.toString(Math.max(0, page))),
+                    "gui.close",
+                    Map.of());
+                return null;
+            });
+    }
+
+    private static boolean jobManagementAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.jobs");
     }
 
     private void openReviewModerationMenu(Player player, int limit) {

@@ -13,9 +13,13 @@ public final class GuiActionParser {
     private static final Set<String> REGISTERED_ACTIONS = Set.of(
         "admin.island.migrate.prompt",
         "admin.island.where.prompt",
+        "admin.jobs.cancel.confirm",
+        "admin.jobs.cancel.prepare",
         "admin.jobs.cancel.prompt",
         "admin.jobs.list",
         "admin.jobs.open",
+        "admin.jobs.page",
+        "admin.jobs.retry",
         "admin.jobs.retry.prompt",
         "admin.migration.approve.prompt",
         "admin.migration.dryrun",
@@ -230,6 +234,14 @@ public final class GuiActionParser {
                     safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
+            if (safeAction.equals("admin.jobs.cancel.prepare") || safeAction.equals(ConfirmationTokenPolicy.ADMIN_JOB_CANCEL_CONFIRM_ACTION)) {
+                return Optional.of(new GuiAction.AdminJobCancel(
+                    safeAction.equals("admin.jobs.cancel.prepare") ? GuiAction.AdminJobCancelType.PREPARE : GuiAction.AdminJobCancelType.CONFIRM,
+                    UUID.fromString(required(safeData, "jobId")),
+                    nonNegativeInteger(safeData.getOrDefault("page", "0")),
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
+                ));
+            }
             if (safeAction.equals(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION)) {
                 return Optional.of(new GuiAction.DangerResetConfirm(
                     required(safeData, DangerousGuiActionPolicy.OPERATION_KEY),
@@ -265,6 +277,11 @@ public final class GuiActionParser {
                     safeData.getOrDefault("nodeId", "")
                 ));
                 case "admin.jobs.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_OPEN));
+                case "admin.jobs.page" -> Optional.of(new GuiAction.AdminJobPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
+                case "admin.jobs.retry" -> Optional.of(new GuiAction.AdminJobRetry(
+                    UUID.fromString(required(safeData, "jobId")),
+                    nonNegativeInteger(safeData.getOrDefault("page", "0"))
+                ));
                 case "admin.reviews.open" -> Optional.of(new GuiAction.AdminReviewOpen(integer(safeData.getOrDefault("limit", "36"))));
                 case "admin.reviews.moderate" -> Optional.of(new GuiAction.AdminReviewModeration(
                     UUID.fromString(required(safeData, "islandId")),

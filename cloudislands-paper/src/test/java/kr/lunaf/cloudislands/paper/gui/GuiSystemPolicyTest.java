@@ -620,7 +620,7 @@ class GuiSystemPolicyTest {
     @Test
     void expandedAdminMenusAreBackedByConfigV2DefinitionsAndRegisteredActions() throws Exception {
         for (String[] menuCase : List.of(
-                new String[] {"AdminJobMenu", "admin-jobs.yml", "admin.jobs.list", "admin.jobs.retry.prompt", "admin.jobs.cancel.prompt"},
+                new String[] {"AdminJobMenu", "admin-jobs.yml", "admin.jobs.retry", "admin.jobs.page", "admin.jobs.cancel.prepare"},
                 new String[] {"AdminRouteMenu", "admin-route.yml", "admin.route.debug", "admin.route.clear.prompt", "admin.route.open"},
                 new String[] {"AdminStorageMenu", "admin-storage.yml", "admin.storage.status", "admin.storage.verify.prompt", "admin.storage.open"},
                 new String[] {"AdminReviewModerationMenu", "admin-reviews.yml", "admin.reviews.moderate", "admin.reviews.open", "gui.close"},

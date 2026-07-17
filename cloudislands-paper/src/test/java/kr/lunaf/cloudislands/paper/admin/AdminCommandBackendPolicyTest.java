@@ -646,6 +646,20 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void playerJobManagementOpensARealQueueWhileConsoleKeepsTextOutput() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminJobMenu.java"));
+        String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
+
+        assertTrue(source.contains("AdminJobMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player))"), "Player operators must receive a clickable job queue");
+        assertTrue(source.contains("run(sender, \"Jobs list\", coreApiClient.jobs().list()"), "Console job output must remain available");
+        assertTrue(source.contains("case \"admin.jobs\" -> AdminJobMenu.open(agent.plugin(), coreApiClient, target"), "Admin openmenu must expose the live job queue");
+        assertTrue(menu.contains("client.jobs().list()"), "Job menu must load typed Core job data");
+        assertTrue(handler.contains("coreApiClient.jobCommands().retry(jobId)"), "Job retry clicks must call the typed Core client");
+        assertTrue(handler.contains("coreApiClient.jobCommands().cancel(jobId)"), "Job cancellation clicks must call the typed Core client");
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

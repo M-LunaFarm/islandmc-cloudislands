@@ -53,6 +53,15 @@ class ConfirmationTokenPolicyTest {
         );
         assertTrue(ConfirmationTokenPolicy.confirmed(reviewReport, GuiClick.LEFT));
         assertFalse(ConfirmationTokenPolicy.confirmed(reviewReport, GuiClick.SHIFT_LEFT));
+
+        GuiAction jobCancel = new GuiAction.AdminJobCancel(
+            GuiAction.AdminJobCancelType.CONFIRM,
+            UUID.fromString("00000000-0000-0000-0000-000000000004"),
+            0,
+            ConfirmationTokenPolicy.token(ConfirmationTokenPolicy.ADMIN_JOB_CANCEL_CONFIRM_ACTION)
+        );
+        assertTrue(ConfirmationTokenPolicy.confirmed(jobCancel, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(jobCancel, GuiClick.RIGHT));
     }
 
     @Test
