@@ -11,20 +11,36 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 public final class PaperRedisClient implements Closeable {
     private final URI redisUri;
     private final int timeoutMillis;
     private final boolean enabled;
+    private final ExecutorService observer;
+    private final long refreshIntervalNanos;
+    private final AtomicBoolean refreshInFlight = new AtomicBoolean();
+    private final AtomicBoolean closed = new AtomicBoolean();
     private final AtomicLong pingsTotal = new AtomicLong();
     private final AtomicLong failuresTotal = new AtomicLong();
+    private final AtomicLong nextRefreshNanos = new AtomicLong();
     private volatile PingResult lastResult;
 
     private PaperRedisClient(URI redisUri, Duration timeout, boolean enabled, PingResult initialResult) {
         this.redisUri = redisUri;
         this.timeoutMillis = (int) Math.max(1L, timeout == null ? 1000L : timeout.toMillis());
         this.enabled = enabled;
+        this.refreshIntervalNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(1000L, timeoutMillis));
+        this.observer = Executors.newSingleThreadExecutor(task -> {
+            Thread thread = new Thread(task, "cloudislands-paper-redis-observer");
+            thread.setDaemon(true);
+            return thread;
+        });
         this.lastResult = initialResult;
     }
 
@@ -33,16 +49,29 @@ public final class PaperRedisClient implements Closeable {
             return new PaperRedisClient(null, timeout, false, PingResult.disabled());
         }
         try {
-            return new PaperRedisClient(URI.create(redisUri), timeout, true, PingResult.disabled());
+            return new PaperRedisClient(URI.create(redisUri), timeout, true, PingResult.unavailable(0.0D, 0L, 0L, "not checked yet"));
         } catch (IllegalArgumentException exception) {
             return new PaperRedisClient(null, timeout, false, PingResult.unavailable(0.0D, 0L, 0L, "invalid redis uri"));
         }
     }
 
     public PingResult ping() {
-        if (!enabled || redisUri == null) {
+        if (!enabled || redisUri == null || closed.get()) {
             return lastResult;
         }
+        long now = System.nanoTime();
+        if (now >= nextRefreshNanos.get() && refreshInFlight.compareAndSet(false, true)) {
+            nextRefreshNanos.set(now + refreshIntervalNanos);
+            try {
+                observer.execute(this::refresh);
+            } catch (RejectedExecutionException exception) {
+                refreshInFlight.set(false);
+            }
+        }
+        return lastResult;
+    }
+
+    private void refresh() {
         long started = System.nanoTime();
         try (Socket socket = new Socket()) {
             String host = redisUri.getHost() == null ? "localhost" : redisUri.getHost();
@@ -60,19 +89,25 @@ public final class PaperRedisClient implements Closeable {
             long pingCount = pingsTotal.incrementAndGet();
             double latency = (System.nanoTime() - started) / 1_000_000_000.0D;
             PingResult result = new PingResult(true, latency, pingCount, failuresTotal.get(), "");
-            lastResult = result;
-            return result;
+            if (!closed.get()) {
+                lastResult = result;
+            }
         } catch (IOException | RuntimeException exception) {
             long failureCount = failuresTotal.incrementAndGet();
             double latency = (System.nanoTime() - started) / 1_000_000_000.0D;
             PingResult result = PingResult.unavailable(latency, pingsTotal.get(), failureCount, exception.getMessage());
-            lastResult = result;
-            return result;
+            if (!closed.get()) {
+                lastResult = result;
+            }
+        } finally {
+            refreshInFlight.set(false);
         }
     }
 
     @Override
     public void close() {
+        closed.set(true);
+        observer.shutdownNow();
         lastResult = PingResult.disabled();
     }
 
