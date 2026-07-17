@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeA
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeSummary;
 import kr.lunaf.cloudislands.paper.gui.AdminAuditMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminAddonMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminAddonFeatureMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminDashboardMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminEventMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMetricsMenu;
@@ -56,6 +57,18 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminAddonFeaturePage page) {
+            openAddonFeatureMenu(player, page.addonId(), page.page(), page.listPage());
+            return true;
+        }
+        if (action instanceof GuiAction.AdminAddonFeatureToggle toggle) {
+            if (toggle.type() == GuiAction.AdminAddonFeatureToggleType.PREPARE) {
+                openAddonFeatureToggleConfirmation(player, toggle);
+            } else if (runtime.confirmationAccepted(player, action, click)) {
+                toggleAddonFeature(player, toggle);
+            }
+            return true;
+        }
         if (action instanceof GuiAction.AdminAddonPage page) {
             openAddonMenu(player, page.page());
             return true;
@@ -197,6 +210,87 @@ final class IslandAdminNodeCommandHandler {
             ),
             runtime.routeMessage("admin-addon-menu-toggle-confirm-lore", "확인하면 Config v2에 상태를 저장하고 Addon을 새로고침합니다."),
             "admin.addons.open");
+    }
+
+    private void openAddonFeatureMenu(Player player, String addonId, int page, int listPage) {
+        if (!addonManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-addon-menu-permission-denied", "Addon 관리 권한이 없습니다."));
+            return;
+        }
+        CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
+        if (api == null) {
+            runtime.message(player, runtime.routeMessage("admin-addon-menu-api-missing", "CloudIslands API가 준비되지 않았습니다."));
+            return;
+        }
+        AdminAddonFeatureMenu.open(plugin, api.addons(), player, runtime.messagesFor(player), addonId, page, listPage);
+    }
+
+    private void openAddonFeatureToggleConfirmation(Player player, GuiAction.AdminAddonFeatureToggle toggle) {
+        if (!addonManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-addon-menu-permission-denied", "Addon 관리 권한이 없습니다."));
+            return;
+        }
+        String operation = toggle.enable()
+            ? runtime.routeMessage("admin-addon-menu-enable-label", "활성화")
+            : runtime.routeMessage("admin-addon-menu-disable-label", "비활성화");
+        runtime.openConfirmation(player,
+            runtime.routeMessage("admin-addon-feature-menu-toggle-confirm-title", "Addon 기능 변경 확인"),
+            runtime.routeMessage("admin-addon-feature-menu-toggle-confirm-description", "Addon 기능의 Config v2 상태를 변경합니다."),
+            AdminAddonFeatureMenu.toggleConfirmationMaterial(toggle.enable()),
+            operation + ": " + toggle.feature(),
+            ConfirmationTokenPolicy.ADMIN_ADDON_FEATURE_TOGGLE_CONFIRM_ACTION,
+            Map.of(
+                "addonId", toggle.addonId(),
+                "feature", toggle.feature(),
+                "enable", Boolean.toString(toggle.enable()),
+                "page", Integer.toString(toggle.page()),
+                "listPage", Integer.toString(toggle.listPage())
+            ),
+            runtime.routeMessage("admin-addon-feature-menu-toggle-confirm-lore", "확인하면 기능 상태를 저장하고 Addon을 새로고침합니다."),
+            "admin.addons.open");
+    }
+
+    private void toggleAddonFeature(Player player, GuiAction.AdminAddonFeatureToggle toggle) {
+        if (!addonManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-addon-menu-permission-denied", "Addon 관리 권한이 없습니다."));
+            return;
+        }
+        CloudIslandsApi api = CloudIslandsProvider.get().orElse(null);
+        if (api == null) {
+            runtime.message(player, runtime.routeMessage("admin-addon-menu-api-missing", "CloudIslands API가 준비되지 않았습니다."));
+            return;
+        }
+        MessageRenderer messages = runtime.messagesFor(player);
+        GuiSession session = GuiSessions.begin(player, "admin.addons.feature.mutate");
+        GuiStateMenus.openSaving(plugin, player, session, messages,
+            runtime.routeMessage("admin-addon-feature-menu-saving", "Addon 기능 상태를 변경하는 중입니다."));
+        CompletableFuture<Optional<CloudIslandsAddonSnapshot>> mutation = runtime.mutateIdempotent(
+            toggle.enable() ? "admin.addon.feature.enable" : "admin.addon.feature.disable", () -> api.addons().setFeature(toggle.addonId(), toggle.feature(), toggle.enable()));
+        mutation
+            .thenAccept(result -> GuiSessions.runIfCurrent(plugin, player, session, () -> {
+                if (result.isEmpty()) {
+                    runtime.message(player, runtime.routeMessage("admin-addon-feature-menu-not-found", "Addon 또는 기능을 찾지 못했습니다."));
+                } else {
+                    runtime.message(player, runtime.routeMessage("admin-addon-feature-menu-updated-prefix", "Addon 기능 변경 완료: ")
+                        + toggle.addonId() + "/" + toggle.feature() + "=" + toggle.enable());
+                }
+                AdminAddonFeatureMenu.open(plugin, api.addons(), player, messages,
+                    toggle.addonId(), toggle.page(), toggle.listPage());
+            }))
+            .exceptionally(error -> {
+                GuiStateMenus.openError(plugin, player, session, messages,
+                    runtime.routeMessage("admin-addon-feature-menu-title", "Addon 기능 관리"),
+                    runtime.routeMessage("admin-addon-feature-menu-update-failed", "Addon 기능 상태를 변경하지 못했습니다."),
+                    "admin.addons.features.page",
+                    Map.of(
+                        "addonId", toggle.addonId(),
+                        "page", Integer.toString(toggle.page()),
+                        "listPage", Integer.toString(toggle.listPage())
+                    ),
+                    "admin.addons.page",
+                    Map.of("page", Integer.toString(toggle.listPage())));
+                return null;
+            });
     }
 
     private void toggleAddon(Player player, GuiAction.AdminAddonToggle toggle) {

@@ -1,0 +1,63 @@
+id: admin.addons.features
+rows: 6
+title-key: admin-addon-feature-menu-title
+layout:
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "____E____"
+  - "P..R.LB.N"
+items:
+  _:
+    material: REPEATER
+    name-key: admin-addon-feature-menu-entry-name
+    fallback-name: Addon 기능
+    action: entry
+  A:
+    material: LIME_DYE
+    name-key: admin-addon-feature-menu-effective-name
+    fallback-name: 적용됨
+  W:
+    material: YELLOW_DYE
+    name-key: admin-addon-feature-menu-blocked-name
+    fallback-name: 구성됨 / 적용 차단
+  D:
+    material: GRAY_DYE
+    name-key: admin-addon-feature-menu-disabled-name
+    fallback-name: 비활성
+  E:
+    material: LIGHT_GRAY_DYE
+    name-key: admin-addon-feature-menu-empty-name
+    fallback-name: 등록된 기능이 없습니다
+  P:
+    material: ARROW
+    name-key: admin-addon-feature-menu-previous-name
+    fallback-name: 이전 페이지
+    action: page
+  R:
+    material: CLOCK
+    name-key: admin-addon-feature-menu-refresh-name
+    fallback-name: 새로고침
+    action: refresh
+  L:
+    material: JIGSAW
+    name-key: admin-addon-feature-menu-addons-name
+    fallback-name: Addon 목록으로 돌아가기
+    action: addons
+  B:
+    material: COMMAND_BLOCK
+    name-key: admin-addon-feature-menu-dashboard-name
+    fallback-name: 운영 대시보드로 돌아가기
+    action: dashboard
+  N:
+    material: ARROW
+    name-key: admin-addon-feature-menu-next-name
+    fallback-name: 다음 페이지
+    action: page
+actions:
+  entry: admin.addons.feature.toggle.prepare
+  page: admin.addons.features.page
+  refresh: admin.addons.features.page
+  addons: admin.addons.page
+  dashboard: admin.dashboard.open

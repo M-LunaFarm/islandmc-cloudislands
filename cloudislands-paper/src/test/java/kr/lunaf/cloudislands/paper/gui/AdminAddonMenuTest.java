@@ -46,6 +46,7 @@ class AdminAddonMenuTest {
         assertTrue(lore.stream().anyMatch(line -> line.contains("GUI: OFF")));
         assertTrue(lore.stream().anyMatch(line -> line.contains("Placeholder: ON")));
         assertTrue(lore.stream().anyMatch(line -> line.contains("비활성화 확인")));
+        assertTrue(lore.stream().anyMatch(line -> line.contains("우클릭: 기능 관리")));
     }
 
     private static CloudIslandsAddonSnapshot addon(String id, String name, boolean enabled) {

@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminNodePage, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.AdminAddonPage, GuiAction.AdminAddonToggle, GuiAction.AdminAuditPage, GuiAction.AdminEventPage, GuiAction.AdminMetricsPage, GuiAction.AdminMigrationRollback, GuiAction.AdminTemplatePage, GuiAction.AdminTemplateToggle, GuiAction.AdminStoragePage, GuiAction.AdminJobPage, GuiAction.AdminJobRetry, GuiAction.AdminJobCancel, GuiAction.AdminRoutePage, GuiAction.AdminRouteClear, GuiAction.AdminReviewOpen, GuiAction.AdminReviewModeration, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminNodePage, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.AdminAddonPage, GuiAction.AdminAddonToggle, GuiAction.AdminAddonFeaturePage, GuiAction.AdminAddonFeatureToggle, GuiAction.AdminAuditPage, GuiAction.AdminEventPage, GuiAction.AdminMetricsPage, GuiAction.AdminMigrationRollback, GuiAction.AdminTemplatePage, GuiAction.AdminTemplateToggle, GuiAction.AdminStoragePage, GuiAction.AdminJobPage, GuiAction.AdminJobRetry, GuiAction.AdminJobCancel, GuiAction.AdminRoutePage, GuiAction.AdminRouteClear, GuiAction.AdminReviewOpen, GuiAction.AdminReviewModeration, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -313,6 +313,74 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
             values.put("addonId", addonId);
             values.put("enable", Boolean.toString(enable));
             values.put("page", Integer.toString(page));
+            if (!confirmationToken.isBlank()) {
+                values.put(ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken);
+            }
+            return Map.copyOf(values);
+        }
+    }
+
+    record AdminAddonFeaturePage(String addonId, int page, int listPage) implements GuiAction {
+        public AdminAddonFeaturePage {
+            addonId = addonId == null ? "" : addonId.trim();
+            if (addonId.isBlank()) {
+                throw new IllegalArgumentException("addonId is required");
+            }
+            page = Math.max(0, page);
+            listPage = Math.max(0, listPage);
+        }
+
+        @Override
+        public String actionId() {
+            return "admin.addons.features.page";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of(
+                "addonId", addonId,
+                "page", Integer.toString(page),
+                "listPage", Integer.toString(listPage)
+            );
+        }
+    }
+
+    enum AdminAddonFeatureToggleType {
+        PREPARE,
+        CONFIRM
+    }
+
+    record AdminAddonFeatureToggle(AdminAddonFeatureToggleType type, String addonId, String feature, boolean enable,
+                                   int page, int listPage, String confirmationToken) implements GuiAction {
+        public AdminAddonFeatureToggle {
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
+            }
+            addonId = addonId == null ? "" : addonId.trim();
+            feature = feature == null ? "" : feature.trim();
+            if (addonId.isBlank() || feature.isBlank()) {
+                throw new IllegalArgumentException("addonId and feature are required");
+            }
+            page = Math.max(0, page);
+            listPage = Math.max(0, listPage);
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type == AdminAddonFeatureToggleType.CONFIRM
+                ? ConfirmationTokenPolicy.ADMIN_ADDON_FEATURE_TOGGLE_CONFIRM_ACTION
+                : "admin.addons.feature.toggle.prepare";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+            values.put("addonId", addonId);
+            values.put("feature", feature);
+            values.put("enable", Boolean.toString(enable));
+            values.put("page", Integer.toString(page));
+            values.put("listPage", Integer.toString(listPage));
             if (!confirmationToken.isBlank()) {
                 values.put(ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken);
             }

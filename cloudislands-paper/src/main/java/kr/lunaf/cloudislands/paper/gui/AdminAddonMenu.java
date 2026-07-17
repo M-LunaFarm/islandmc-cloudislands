@@ -118,14 +118,23 @@ public final class AdminAddonMenu implements Listener {
         }
         GuiClick click = GuiClick.from(event);
         String actionId = GuiItems.actionId(event.getCurrentItem());
-        if (actionId.equals("admin.addons.toggle.prepare") && click != GuiClick.LEFT) {
-            return;
-        }
         if (!click.supported() || actionId.isBlank()) {
             return;
         }
+        Map<String, String> data = GuiItems.data(event.getCurrentItem());
+        if (actionId.equals("admin.addons.toggle.prepare")) {
+            if (click == GuiClick.RIGHT) {
+                actionId = "admin.addons.features.open";
+                data = Map.of(
+                    "addonId", data.getOrDefault("addonId", ""),
+                    "listPage", data.getOrDefault("page", "0")
+                );
+            } else if (click != GuiClick.LEFT) {
+                return;
+            }
+        }
         player.closeInventory();
-        actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), click);
+        actions.execute(player, GuiActions.from(actionId, data).orElse(null), click);
     }
 
     static List<CloudIslandsAddonSnapshot> sortedAddons(List<CloudIslandsAddonSnapshot> addons) {
@@ -156,6 +165,7 @@ public final class AdminAddonMenu implements Listener {
         lore.add(message(messages, "admin-addon-menu-updated-at-prefix", "갱신: ") + safeLine(addon.updatedAt().toString(), 32));
         lore.add(message(messages, addon.enabled() ? "admin-addon-menu-disable-action" : "admin-addon-menu-enable-action",
             addon.enabled() ? "좌클릭: 비활성화 확인" : "좌클릭: 활성화 확인"));
+        lore.add(message(messages, "admin-addon-menu-features-action", "우클릭: 기능 관리"));
         return List.copyOf(lore);
     }
 

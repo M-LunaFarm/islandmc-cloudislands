@@ -15,6 +15,10 @@ public final class GuiActionParser {
         "admin.audit.page",
         "admin.addons.open",
         "admin.addons.page",
+        "admin.addons.features.open",
+        "admin.addons.features.page",
+        "admin.addons.feature.toggle.confirm",
+        "admin.addons.feature.toggle.prepare",
         "admin.addons.toggle.confirm",
         "admin.addons.toggle.prepare",
         "admin.dashboard.open",
@@ -289,6 +293,20 @@ public final class GuiActionParser {
                     safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
+            if (safeAction.equals("admin.addons.feature.toggle.prepare")
+                || safeAction.equals(ConfirmationTokenPolicy.ADMIN_ADDON_FEATURE_TOGGLE_CONFIRM_ACTION)) {
+                return Optional.of(new GuiAction.AdminAddonFeatureToggle(
+                    safeAction.equals(ConfirmationTokenPolicy.ADMIN_ADDON_FEATURE_TOGGLE_CONFIRM_ACTION)
+                        ? GuiAction.AdminAddonFeatureToggleType.CONFIRM
+                        : GuiAction.AdminAddonFeatureToggleType.PREPARE,
+                    required(safeData, "addonId"),
+                    required(safeData, "feature"),
+                    bool(required(safeData, "enable")),
+                    nonNegativeInteger(safeData.getOrDefault("page", "0")),
+                    nonNegativeInteger(safeData.getOrDefault("listPage", "0")),
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
+                ));
+            }
             if (safeAction.equals("admin.templates.toggle.prepare")
                 || safeAction.equals(ConfirmationTokenPolicy.ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION)) {
                 return Optional.of(new GuiAction.AdminTemplateToggle(
@@ -320,6 +338,11 @@ public final class GuiActionParser {
                 case "admin.dashboard.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.DASHBOARD_OPEN));
                 case "admin.addons.open" -> Optional.of(new GuiAction.AdminAddonPage(0));
                 case "admin.addons.page" -> Optional.of(new GuiAction.AdminAddonPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
+                case "admin.addons.features.open", "admin.addons.features.page" -> Optional.of(new GuiAction.AdminAddonFeaturePage(
+                    required(safeData, "addonId"),
+                    safeAction.equals("admin.addons.features.open") ? 0 : nonNegativeInteger(safeData.getOrDefault("page", "0")),
+                    nonNegativeInteger(safeData.getOrDefault("listPage", "0"))
+                ));
                 case "admin.audit.open" -> Optional.of(new GuiAction.AdminAuditPage(0));
                 case "admin.audit.page" -> Optional.of(new GuiAction.AdminAuditPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.events.open" -> Optional.of(new GuiAction.AdminEventPage(0));

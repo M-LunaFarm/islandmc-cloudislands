@@ -99,6 +99,18 @@ class ConfirmationTokenPolicyTest {
         );
         assertTrue(ConfirmationTokenPolicy.confirmed(addonToggle, GuiClick.LEFT));
         assertFalse(ConfirmationTokenPolicy.confirmed(addonToggle, GuiClick.RIGHT));
+
+        GuiAction addonFeatureToggle = new GuiAction.AdminAddonFeatureToggle(
+            GuiAction.AdminAddonFeatureToggleType.CONFIRM,
+            "machines",
+            "commands",
+            false,
+            0,
+            0,
+            ConfirmationTokenPolicy.token(ConfirmationTokenPolicy.ADMIN_ADDON_FEATURE_TOGGLE_CONFIRM_ACTION)
+        );
+        assertTrue(ConfirmationTokenPolicy.confirmed(addonFeatureToggle, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(addonFeatureToggle, GuiClick.RIGHT));
     }
 
     @Test

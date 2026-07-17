@@ -227,6 +227,35 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesAdminAddonFeatureNavigationAndConfirmedToggleIntoTypedActions() {
+        GuiAction open = GuiActionParser.parse("admin.addons.features.open", Map.of(
+            "addonId", " machines ", "listPage", "2"
+        )).orElseThrow();
+        GuiAction page = GuiActionParser.parse("admin.addons.features.page", Map.of(
+            "addonId", "machines", "page", "3", "listPage", "2"
+        )).orElseThrow();
+        GuiAction prepare = GuiActionParser.parse("admin.addons.feature.toggle.prepare", Map.of(
+            "addonId", "machines", "feature", " commands ", "enable", "false", "page", "3", "listPage", "2"
+        )).orElseThrow();
+        String confirmAction = ConfirmationTokenPolicy.ADMIN_ADDON_FEATURE_TOGGLE_CONFIRM_ACTION;
+        GuiAction confirm = GuiActionParser.parse(confirmAction, ConfirmationTokenPolicy.withToken(confirmAction, Map.of(
+            "addonId", "machines", "feature", "commands", "enable", "false", "page", "3", "listPage", "2"
+        ))).orElseThrow();
+
+        assertTrue(open instanceof GuiAction.AdminAddonFeaturePage);
+        assertEquals(Map.of("addonId", "machines", "page", "0", "listPage", "2"), open.data());
+        assertTrue(page instanceof GuiAction.AdminAddonFeaturePage);
+        assertEquals(Map.of("addonId", "machines", "page", "3", "listPage", "2"), page.data());
+        assertTrue(prepare instanceof GuiAction.AdminAddonFeatureToggle);
+        assertEquals(GuiAction.AdminAddonFeatureToggleType.PREPARE, ((GuiAction.AdminAddonFeatureToggle) prepare).type());
+        assertEquals("commands", prepare.data().get("feature"));
+        assertTrue(confirm instanceof GuiAction.AdminAddonFeatureToggle);
+        assertEquals(GuiAction.AdminAddonFeatureToggleType.CONFIRM, ((GuiAction.AdminAddonFeatureToggle) confirm).type());
+        assertTrue(ConfirmationTokenPolicy.confirmed(confirm, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(confirm, GuiClick.RIGHT));
+    }
+
+    @Test
     void parsesAdminTemplateNavigationAndConfirmedToggleIntoTypedActions() {
         GuiAction open = GuiActionParser.parse("admin.templates.open", Map.of()).orElseThrow();
         GuiAction page = GuiActionParser.parse("admin.templates.page", Map.of("page", "3")).orElseThrow();
@@ -736,6 +765,16 @@ class GuiActionParserTest {
             );
             case "admin.addons.toggle.confirm" -> Map.of(
                 "addonId", "machines", "enable", "false", "page", "0",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
+            case "admin.addons.features.open", "admin.addons.features.page" -> Map.of(
+                "addonId", "machines", "page", "0", "listPage", "0"
+            );
+            case "admin.addons.feature.toggle.prepare" -> Map.of(
+                "addonId", "machines", "feature", "commands", "enable", "true", "page", "0", "listPage", "0"
+            );
+            case "admin.addons.feature.toggle.confirm" -> Map.of(
+                "addonId", "machines", "feature", "commands", "enable", "false", "page", "0", "listPage", "0",
                 ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
             );
             case "admin.events.page" -> Map.of("page", "0");
