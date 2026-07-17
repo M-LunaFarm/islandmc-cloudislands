@@ -32,6 +32,21 @@ class PermissionEventPollerThreadingPolicyTest {
     }
 
     @Test
+    void coldStartSnapshotsTheLatestSequenceWithoutReplayingHistoricalEffects() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPoller.java"));
+
+        assertTrue(source.contains("runTimerAsync(plugin, this::poll, 0L, intervalTicks)"),
+            "the first cursor snapshot must run immediately during startup");
+        int guard = source.indexOf("if (!eventCursorInitialized)");
+        int snapshot = source.indexOf("lastEventSequence = Math.max(0L, latestSequence);", guard);
+        int initialized = source.indexOf("eventCursorInitialized = true;", snapshot);
+        int returnStatement = source.indexOf("return;", initialized);
+        int eventLoop = source.indexOf("for (ParsedEvent event : batchEvents)", returnStatement);
+        assertTrue(guard >= 0 && snapshot > guard && initialized > snapshot && returnStatement > initialized && eventLoop > returnStatement,
+            "historical events must be skipped before normal event dispatch starts");
+    }
+
+    @Test
     void migrationTicketCallbacksFenceTheInitiatingPlayerSessionOnGlobalThread() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPoller.java"));
         int create = source.indexOf("private void createMigrationReturnTicket");

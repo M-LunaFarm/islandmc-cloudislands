@@ -121,6 +121,7 @@ public final class PermissionEventPoller {
     private final Set<String> seen = ConcurrentHashMap.newKeySet();
     private final Deque<String> seenOrder = new ArrayDeque<>();
     private long lastEventSequence;
+    private boolean eventCursorInitialized;
     private BukkitTask task;
     private final AtomicLong cacheEventInvalidations = new AtomicLong();
     private final AtomicLong cacheGapInvalidations = new AtomicLong();
@@ -186,7 +187,7 @@ public final class PermissionEventPoller {
 
     public void start(long intervalTicks) {
         stop();
-        task = kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runTimerAsync(plugin, this::poll, intervalTicks, intervalTicks);
+        task = kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.runTimerAsync(plugin, this::poll, 0L, intervalTicks);
     }
 
     public void stop() {
@@ -222,6 +223,13 @@ public final class PermissionEventPoller {
                 AdminEventStreamView stream = client.adminEvents().listSince(lastEventSequence, EVENT_BATCH_SIZE).join();
                 long oldestSequence = stream.oldestSeq();
                 long latestSequence = stream.latestSeq();
+                if (!eventCursorInitialized) {
+                    lastEventSequence = Math.max(0L, latestSequence);
+                    eventCursorInitialized = true;
+                    clearSeen();
+                    invalidateLocalCaches();
+                    return;
+                }
                 if (latestSequence > 0L && latestSequence < lastEventSequence) {
                     lastEventSequence = 0L;
                     clearSeen();

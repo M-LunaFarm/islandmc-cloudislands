@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 
 class CoreEventPollerTest {
     @Test
-    void pollsTypedAdminEventsAndAdvancesSequence() {
+    void coldStartSkipsHistoricalEventsThenConsumesNewEvents() {
         List<String> calls = new ArrayList<>();
         List<CoreEventEnvelope> received = new ArrayList<>();
         CoreApiClient raw = (CoreApiClient) Proxy.newProxyInstance(
@@ -29,10 +29,11 @@ class CoreEventPollerTest {
 
         CoreEventPoller poller = new CoreEventPoller(raw, new CoreEventJsonCodec(), received::add, 2);
         poller.pollOnce();
+        poller.pollOnce();
 
-        assertEquals(List.of("0:2"), calls);
+        assertEquals(List.of("0:2", "7:2"), calls);
         assertEquals(1, received.size());
-        assertEquals(7L, received.get(0).sequence());
+        assertEquals(8L, received.get(0).sequence());
         assertEquals("NODE_DOWN", received.get(0).type());
         assertEquals("node-a", received.get(0).fields().get("nodeId"));
     }
@@ -47,10 +48,17 @@ class CoreEventPollerTest {
             @Override
             public CompletableFuture<AdminEventStreamView> listSince(long sinceSeq, int limit) {
                 calls.add(sinceSeq + ":" + limit);
+                if (sinceSeq == 0L) {
+                    return CompletableFuture.completedFuture(new AdminEventStreamView(
+                        1,
+                        7,
+                        List.of(new AdminEventView(7, "NODE_DOWN", Map.of("nodeId", "node-old", "state", "DOWN"), "2026-06-20T00:00:00Z"))
+                    ));
+                }
                 return CompletableFuture.completedFuture(new AdminEventStreamView(
                     1,
-                    7,
-                    List.of(new AdminEventView(7, "NODE_DOWN", Map.of("nodeId", "node-a", "state", "DOWN"), "2026-06-21T00:00:00Z"))
+                    8,
+                    List.of(new AdminEventView(8, "NODE_DOWN", Map.of("nodeId", "node-a", "state", "DOWN"), "2026-06-21T00:00:00Z"))
                 ));
             }
         };

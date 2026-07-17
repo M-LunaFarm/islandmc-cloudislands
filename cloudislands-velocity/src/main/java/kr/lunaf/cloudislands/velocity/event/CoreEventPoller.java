@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.velocity.event;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import kr.lunaf.cloudislands.coreclient.AdminEventStreamView;
 import kr.lunaf.cloudislands.coreclient.AdminEventView;
@@ -13,7 +14,9 @@ public final class CoreEventPoller {
     private final Consumer<CoreEventEnvelope> eventHandler;
     private final int batchSize;
     private final Set<String> seenEvents = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean requestInFlight = new AtomicBoolean();
     private long lastEventSequence;
+    private boolean eventCursorInitialized;
 
     public CoreEventPoller(CoreApiClient coreApiClient, CoreEventCodec eventCodec, Consumer<CoreEventEnvelope> eventHandler, int batchSize) {
         this.coreApiClient = coreApiClient;
@@ -22,14 +25,23 @@ public final class CoreEventPoller {
     }
 
     public void pollOnce() {
+        if (!requestInFlight.compareAndSet(false, true)) {
+            return;
+        }
         coreApiClient.adminEvents().listSince(lastEventSequence, batchSize)
             .thenAccept(this::handleBatch)
-            .exceptionally(error -> null);
+            .whenComplete((ignored, error) -> requestInFlight.set(false));
     }
 
-    private void handleBatch(AdminEventStreamView batch) {
+    private synchronized void handleBatch(AdminEventStreamView batch) {
         long oldestSequence = batch.oldestSeq();
         long latestSequence = batch.latestSeq();
+        if (!eventCursorInitialized) {
+            lastEventSequence = Math.max(0L, latestSequence);
+            eventCursorInitialized = true;
+            seenEvents.clear();
+            return;
+        }
         if (latestSequence > 0L && latestSequence < lastEventSequence) {
             lastEventSequence = 0L;
             seenEvents.clear();
