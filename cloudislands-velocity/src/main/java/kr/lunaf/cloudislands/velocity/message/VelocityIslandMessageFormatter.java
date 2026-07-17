@@ -412,11 +412,15 @@ public final class VelocityIslandMessageFormatter {
         for (PermissionAssignmentView permission : permissions) {
             total++;
             if (entries.size() < 10) {
-                String subject = permission.role().isBlank() ? shortId(permission.playerUuid()) : permission.role();
+                String subject = permission.role().isBlank() ? permissionDisplayName(permission) : permission.role();
                 entries.add(subject + ":" + permission.permission() + "=" + (permission.allowed() ? "허용" : "거부"));
             }
         }
         return "섬 권한: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private static String permissionDisplayName(PermissionAssignmentView permission) {
+        return permission.playerName().isBlank() ? shortId(permission.playerUuid()) : permission.playerName().trim();
     }
 
     public String roleList(List<CoreGuiViews.RoleView> roles) {

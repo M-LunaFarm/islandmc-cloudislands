@@ -51,7 +51,14 @@ public final class JdkPermissionQueryClient implements PermissionQueryClient {
                 if (permission.isBlank() || (role.isBlank() && playerUuid.isBlank())) {
                     return null;
                 }
-                return new PermissionAssignmentView(role, playerUuid, permission, CoreJson.bool(object, "allowed"), version);
+                return new PermissionAssignmentView(
+                    role,
+                    playerUuid,
+                    permission,
+                    CoreJson.bool(object, "allowed"),
+                    version,
+                    CoreJson.text(object, "playerName")
+                );
             })
             .filter(java.util.Objects::nonNull)
             .toList();

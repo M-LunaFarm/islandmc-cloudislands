@@ -239,6 +239,10 @@ class VelocityIslandMessageFormatterTest {
             formatter.permissionList(List.of(new PermissionAssignmentView("MEMBER", "", "BUILD", true, "v1")))
         );
         assertEquals(
+            "섬 권한: 전체 1개 / BuilderPlayer:BREAK=거부",
+            formatter.permissionList(List.of(new PermissionAssignmentView("", "33333333-3333-3333-3333-333333333333", "BREAK", false, "v1", "BuilderPlayer")))
+        );
+        assertEquals(
             "섬 역할: 전체 1개 / MEMBER weight=10 name=Member",
             formatter.roleList(List.of(new CoreGuiViews.RoleView("MEMBER", 10, "Member")))
         );
@@ -301,6 +305,14 @@ class VelocityIslandMessageFormatterTest {
                 "",
                 ""
             )))
+        );
+    }
+
+    @Test
+    void permissionListFallsBackToCompactUuidWithoutAProfileName() {
+        assertEquals(
+            "섬 권한: 전체 1개 / 33333333:BREAK=거부",
+            formatter.permissionList(List.of(new PermissionAssignmentView("", "33333333-3333-3333-3333-333333333333", "BREAK", false, "v1")))
         );
     }
 

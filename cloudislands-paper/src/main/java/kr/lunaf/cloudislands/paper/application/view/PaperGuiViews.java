@@ -181,7 +181,7 @@ public final class PaperGuiViews {
     }
 
     private static PermissionOverrideView permissionOverride(PermissionAssignmentView view) {
-        return new PermissionOverrideView(view.playerUuid(), view.permission(), view.allowed());
+        return new PermissionOverrideView(view.playerUuid(), view.permission(), view.allowed(), view.playerName());
     }
 
     private static RoleView role(CoreGuiViews.RoleView view) {
@@ -308,7 +308,16 @@ public final class PaperGuiViews {
     public record PermissionRuleView(String role, String permission, boolean allowed, String version) {
     }
 
-    public record PermissionOverrideView(String playerUuid, String permission, boolean allowed) {
+    public record PermissionOverrideView(String playerUuid, String permission, boolean allowed, String playerName) {
+        public PermissionOverrideView(String playerUuid, String permission, boolean allowed) {
+            this(playerUuid, permission, allowed, "");
+        }
+
+        public PermissionOverrideView {
+            playerUuid = playerUuid == null ? "" : playerUuid;
+            permission = permission == null ? "" : permission;
+            playerName = playerName == null ? "" : playerName;
+        }
     }
 
     public record RoleView(String role, int weight, String displayName) {

@@ -218,7 +218,11 @@ public final class IslandPermissionMenu implements Listener {
         }
         PermissionOverrideView sample = safeOverrides.getFirst();
         return "Player Overrides: " + safeOverrides.size() + " / "
-            + shortId(sample.playerUuid()) + ":" + sample.permission() + "=" + (sample.allowed() ? "ALLOW" : "DENY");
+            + overrideDisplayName(sample) + ":" + sample.permission() + "=" + (sample.allowed() ? "ALLOW" : "DENY");
+    }
+
+    static String overrideDisplayName(PermissionOverrideView override) {
+        return override.playerName().isBlank() ? shortId(override.playerUuid()) : override.playerName().trim();
     }
 
     private static String overrideUsage(MessageRenderer messages) {

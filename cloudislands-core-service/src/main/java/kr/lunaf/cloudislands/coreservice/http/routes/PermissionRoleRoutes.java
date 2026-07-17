@@ -23,6 +23,7 @@ import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.permission.IslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
@@ -36,6 +37,7 @@ public final class PermissionRoleRoutes implements RouteGroup {
     private final IslandMetadataRepository metadataRepository;
     private final IslandPermissionRuleRepository permissionRules;
     private final IslandRoleRepository roleRepository;
+    private final PlayerProfileRepository playerProfiles;
     private final IslandLogRepository islandLogs;
     private final AuditLogger audit;
     private final GlobalEventPublisher events;
@@ -48,10 +50,23 @@ public final class PermissionRoleRoutes implements RouteGroup {
             IslandLogRepository islandLogs,
             AuditLogger audit,
             GlobalEventPublisher events) {
+        this(islandRepository, metadataRepository, permissionRules, roleRepository, null, islandLogs, audit, events);
+    }
+
+    public PermissionRoleRoutes(
+            IslandRepository islandRepository,
+            IslandMetadataRepository metadataRepository,
+            IslandPermissionRuleRepository permissionRules,
+            IslandRoleRepository roleRepository,
+            PlayerProfileRepository playerProfiles,
+            IslandLogRepository islandLogs,
+            AuditLogger audit,
+            GlobalEventPublisher events) {
         this.islandRepository = islandRepository;
         this.metadataRepository = metadataRepository;
         this.permissionRules = permissionRules;
         this.roleRepository = roleRepository;
+        this.playerProfiles = playerProfiles;
         this.islandLogs = islandLogs;
         this.audit = audit;
         this.events = events;
@@ -72,7 +87,7 @@ public final class PermissionRoleRoutes implements RouteGroup {
     private void permissions(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         UUID islandId = JsonFields.uuid(body, "islandId", EMPTY_UUID);
-        CoreHttpResponses.write(exchange, 200, permissionsJson(permissionRules.list(islandId), permissionRules.listPlayerOverrides(islandId)));
+        CoreHttpResponses.write(exchange, 200, permissionsJson(permissionRules.list(islandId), permissionRules.listPlayerOverrides(islandId), playerProfiles));
     }
 
     private void setPermission(HttpExchange exchange) throws IOException {
@@ -238,13 +253,17 @@ public final class PermissionRoleRoutes implements RouteGroup {
     }
 
     static String permissionsJson(List<IslandPermissionRuleSnapshot> rules, List<IslandPermissionOverrideSnapshot> overrides) {
+        return permissionsJson(rules, overrides, null);
+    }
+
+    static String permissionsJson(List<IslandPermissionRuleSnapshot> rules, List<IslandPermissionOverrideSnapshot> overrides, PlayerProfileRepository playerProfiles) {
         List<Object> renderedRules = new ArrayList<>();
         for (IslandPermissionRuleSnapshot rule : rules) {
             renderedRules.add(permissionRuleMap(rule));
         }
         List<Object> renderedOverrides = new ArrayList<>();
         for (IslandPermissionOverrideSnapshot override : overrides) {
-            renderedOverrides.add(permissionOverrideMap(override));
+            renderedOverrides.add(permissionOverrideMap(override, playerProfiles));
         }
         LinkedHashMap<String, Object> root = new LinkedHashMap<>();
         root.put("version", permissionVersion(rules, overrides));
@@ -327,10 +346,16 @@ public final class PermissionRoleRoutes implements RouteGroup {
         return values;
     }
 
-    private static Map<String, Object> permissionOverrideMap(IslandPermissionOverrideSnapshot override) {
+    private static Map<String, Object> permissionOverrideMap(IslandPermissionOverrideSnapshot override, PlayerProfileRepository playerProfiles) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("islandId", override.islandId());
         values.put("playerUuid", override.playerUuid());
+        if (playerProfiles != null) {
+            String playerName = playerProfiles.find(override.playerUuid()).lastName();
+            if (playerName != null && !playerName.isBlank()) {
+                values.put("playerName", playerName);
+            }
+        }
         values.put("permission", override.permission().name());
         values.put("allowed", override.allowed());
         return values;

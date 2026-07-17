@@ -777,7 +777,7 @@ class CoreTypedClientsTest {
             server.createContext("/v1/islands/" + islandId + "/permissions", exchange -> {
                 calls.add("permissions");
                 byte[] response = """
-                    {"version":"v1","rules":[{"role":"BUILDER","permission":"BUILD","allowed":true}],"overrides":[{"playerUuid":"%s","permission":"BREAK","allowed":false}]}
+                    {"version":"v1","rules":[{"role":"BUILDER","permission":"BUILD","allowed":true}],"overrides":[{"playerUuid":"%s","playerName":"BuilderPlayer","permission":"BREAK","allowed":false}]}
                     """.formatted(playerUuid).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
                 exchange.getResponseBody().write(response);
@@ -802,6 +802,7 @@ class CoreTypedClientsTest {
             assertEquals(List.of("permissions", "permissions", "roles"), calls);
             assertEquals("BUILDER", permissions.get(0).role());
             assertEquals(playerUuid.toString(), permissions.get(1).playerUuid());
+            assertEquals("BuilderPlayer", permissions.get(1).playerName());
             assertFalse(permissions.get(1).allowed());
             assertEquals("v1", permissions.get(1).version());
             assertEquals("v1", rules.version());

@@ -32,6 +32,7 @@ import kr.lunaf.cloudislands.coreservice.audit.InMemoryAuditLogger;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
+import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import kr.lunaf.cloudislands.coreservice.role.InMemoryIslandRoleRepository;
@@ -76,14 +77,16 @@ class PermissionRoleRoutesTest {
     void rendersPermissionAndRoleContracts() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        profiles.touch(playerUuid, "BuilderPlayer");
         String version = PermissionRoleRoutes.permissionVersion(
             List.of(new IslandPermissionRuleSnapshot(islandId, "MEMBER", IslandPermission.BUILD, true)),
             List.of(new IslandPermissionOverrideSnapshot(islandId, playerUuid, IslandPermission.BREAK, false))
         );
 
         assertEquals(
-            "{\"version\":\"" + version + "\",\"rules\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"MEMBER\",\"roleKey\":\"MEMBER\",\"permission\":\"BUILD\",\"allowed\":true}],\"overrides\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"permission\":\"BREAK\",\"allowed\":false}]}",
-            PermissionRoleRoutes.permissionsJson(List.of(new IslandPermissionRuleSnapshot(islandId, "MEMBER", IslandPermission.BUILD, true)), List.of(new IslandPermissionOverrideSnapshot(islandId, playerUuid, IslandPermission.BREAK, false)))
+            "{\"version\":\"" + version + "\",\"rules\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"MEMBER\",\"roleKey\":\"MEMBER\",\"permission\":\"BUILD\",\"allowed\":true}],\"overrides\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"playerName\":\"BuilderPlayer\",\"permission\":\"BREAK\",\"allowed\":false}]}",
+            PermissionRoleRoutes.permissionsJson(List.of(new IslandPermissionRuleSnapshot(islandId, "MEMBER", IslandPermission.BUILD, true)), List.of(new IslandPermissionOverrideSnapshot(islandId, playerUuid, IslandPermission.BREAK, false)), profiles)
         );
         assertEquals(
             "{\"roles\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"BUILDER\",\"roleKey\":\"BUILDER\",\"weight\":7,\"displayName\":\"Builder \\\"A\\\"\"}]}",

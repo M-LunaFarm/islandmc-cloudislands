@@ -139,7 +139,7 @@ public final class PermissionManagementUseCase {
     }
 
     private static PermissionView permissionView(kr.lunaf.cloudislands.coreclient.PermissionAssignmentView view) {
-        return new PermissionView(view.role(), view.playerUuid(), view.permission(), view.allowed());
+        return new PermissionView(view.role(), view.playerUuid(), view.permission(), view.allowed(), view.playerName());
     }
 
     private static PermissionActionResult permissionAction(PermissionActionView view) {
@@ -170,11 +170,16 @@ public final class PermissionManagementUseCase {
         }
     }
 
-    public record PermissionView(String role, String playerUuid, String permission, boolean allowed) {
+    public record PermissionView(String role, String playerUuid, String permission, boolean allowed, String playerName) {
+        public PermissionView(String role, String playerUuid, String permission, boolean allowed) {
+            this(role, playerUuid, permission, allowed, "");
+        }
+
         public PermissionView {
             role = role == null ? "" : role;
             playerUuid = playerUuid == null ? "" : playerUuid;
             permission = permission == null ? "" : permission;
+            playerName = playerName == null ? "" : playerName;
         }
     }
 

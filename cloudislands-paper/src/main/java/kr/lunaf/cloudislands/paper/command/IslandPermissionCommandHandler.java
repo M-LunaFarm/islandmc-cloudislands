@@ -301,11 +301,15 @@ final class IslandPermissionCommandHandler {
             if (!permission.role().isBlank()) {
                 entries.add(permission.role() + ":" + permission.permission() + "=" + permissionAllowedLabel(permission.allowed()));
             } else if (!permission.playerUuid().isBlank()) {
-                overrides.add(compactId(permission.playerUuid()) + ":" + permission.permission() + "=" + permissionAllowedLabel(permission.allowed()));
+                overrides.add(permissionDisplayName(permission) + ":" + permission.permission() + "=" + permissionAllowedLabel(permission.allowed()));
             }
         }
         String base = entries.isEmpty() ? message("permission-list-empty", "섬 권한 규칙이 없습니다.") : message("permission-list-prefix", "섬 권한: ") + String.join(", ", entries);
         return overrides.isEmpty() ? base : base + message("permission-list-overrides-prefix", " / 예외: ") + String.join(", ", overrides);
+    }
+
+    static String permissionDisplayName(PermissionView permission) {
+        return permission.playerName().isBlank() ? compactId(permission.playerUuid()) : permission.playerName().trim();
     }
 
     private String roleListMessage(List<RoleView> roles) {
@@ -344,7 +348,7 @@ final class IslandPermissionCommandHandler {
         return runtime.routeMessage(key, fallback);
     }
 
-    private String compactId(String value) {
+    private static String compactId(String value) {
         if (value == null || value.length() != 36 || !value.contains("-")) {
             return value;
         }

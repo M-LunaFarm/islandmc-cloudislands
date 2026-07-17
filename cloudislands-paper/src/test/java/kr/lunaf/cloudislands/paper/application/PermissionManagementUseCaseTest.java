@@ -131,6 +131,7 @@ class PermissionManagementUseCaseTest {
         assertEquals("BUILD", permissions.get(0).permission());
         assertTrue(permissions.get(0).allowed());
         assertEquals("BREAK", permissions.get(1).permission());
+        assertEquals("BuilderPlayer", permissions.get(1).playerName());
 
         PermissionActionResult set = useCase.setPermissionAction(islandId, actorUuid, new PermissionManagementUseCase.PermissionChange("builder", IslandPermission.BUILD, true, ""), mutationRunner(calls)).join();
         assertTrue(set.accepted());
@@ -205,7 +206,7 @@ class PermissionManagementUseCaseTest {
                     calls.add("listIslandPermissions");
                     yield CompletableFuture.completedFuture(List.of(
                         new PermissionAssignmentView("BUILDER", "", "BUILD", true, ""),
-                        new PermissionAssignmentView("", "00000000-0000-0000-0000-000000000080", "BREAK", false, "")
+                        new PermissionAssignmentView("", "00000000-0000-0000-0000-000000000080", "BREAK", false, "", "BuilderPlayer")
                     ));
                 }
 	                case "permissionQueries" -> (PermissionQueryClient) _proxy;
