@@ -9,8 +9,14 @@ final class CoreJobJson {
 
     static List<JobView> jobs(String body) {
         Map<?, ?> root = CoreJson.object(body);
-        return CoreJson.objects(root, "jobs").stream()
-            .map(CoreJobJson::job)
+        List<Map<?, ?>> jobs = CoreJson.objects(root, "jobs");
+        boolean legacyRedisFailures = jobs.isEmpty();
+        if (legacyRedisFailures) {
+            jobs = CoreJson.objects(root, "failedJobs");
+        }
+        boolean failedFallback = legacyRedisFailures;
+        return jobs.stream()
+            .map(object -> job(object, failedFallback))
             .toList();
     }
 
@@ -30,7 +36,7 @@ final class CoreJobJson {
         return new JobRecoveryView(accepted, accepted ? recovered : "", CoreJson.code(root, "RECOVERED", accepted));
     }
 
-    private static JobView job(Map<?, ?> object) {
+    private static JobView job(Map<?, ?> object, boolean failedFallback) {
         String id = CoreJson.text(object, "id");
         if (id.isBlank()) {
             id = CoreJson.text(object, "jobId");
@@ -39,19 +45,31 @@ final class CoreJobJson {
         if (error.isBlank()) {
             error = CoreJson.text(object, "errorMessage");
         }
+        String state = CoreJson.text(object, "state");
+        if (state.isBlank() && failedFallback) {
+            state = "FAILED";
+        }
+        long attempts = CoreJson.number(object, "attempts");
+        if (attempts == 0L && object.containsKey("attempt")) {
+            attempts = CoreJson.number(object, "attempt");
+        }
+        String updatedAt = CoreJson.text(object, "updatedAt");
+        if (updatedAt.isBlank()) {
+            updatedAt = CoreJson.text(object, "failedAt");
+        }
         return new JobView(
             id,
             CoreJson.text(object, "type"),
             CoreJson.text(object, "islandId"),
             CoreJson.text(object, "targetNode"),
-            CoreJson.text(object, "state"),
+            state,
             (int) CoreJson.number(object, "priority"),
-            CoreJson.number(object, "attempts"),
+            attempts,
             CoreJson.text(object, "lockedBy"),
             error,
             CoreJson.stringMap(CoreJson.objectValue(object, "payload")),
             CoreJson.text(object, "createdAt"),
-            CoreJson.text(object, "updatedAt")
+            updatedAt
         );
     }
 }

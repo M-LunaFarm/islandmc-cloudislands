@@ -227,6 +227,10 @@ class RedisIslandJobQueueTest {
             RedisIslandJobQueue afterRestart = new RedisIslandJobQueue(redis.uri(), Duration.ofSeconds(30));
             assertEquals(1L, afterRestart.countsByState().get("FAILED"));
             assertEquals(jobId.toString(), afterRestart.failedJobs(10).getFirst().get("jobId"));
+            assertEquals(jobId.toString(), afterRestart.failedJobs(10).getFirst().get("id"));
+            assertEquals("FAILED", afterRestart.failedJobs(10).getFirst().get("state"));
+            assertEquals("3", afterRestart.failedJobs(10).getFirst().get("attempts"));
+            assertTrue(!afterRestart.failedJobs(10).getFirst().get("updatedAt").isBlank());
             assertEquals("storage unavailable", afterRestart.failedJobs(10).getFirst().get("error"));
             assertTrue(afterRestart.retry(jobId));
             assertEquals(0L, afterRestart.countsByState().get("FAILED"));

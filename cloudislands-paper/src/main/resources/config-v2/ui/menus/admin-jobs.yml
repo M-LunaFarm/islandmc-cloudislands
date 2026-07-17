@@ -14,10 +14,34 @@ items:
     name-key: admin-job-menu-entry-name
     fallback-name: 섬 작업
     action: entry
+  f:
+    material: RED_DYE
+    name-key: admin-job-menu-failed-name
+    fallback-name: 실패한 작업
+  q:
+    material: CLOCK
+    name-key: admin-job-menu-pending-name
+    fallback-name: 대기 중인 작업
+  r:
+    material: RECOVERY_COMPASS
+    name-key: admin-job-menu-claimed-name
+    fallback-name: 실행 중인 작업
+  c:
+    material: LIME_DYE
+    name-key: admin-job-menu-completed-name
+    fallback-name: 완료된 작업
+  d:
+    material: GRAY_DYE
+    name-key: admin-job-menu-canceled-name
+    fallback-name: 취소된 작업
+  u:
+    material: PAPER
+    name-key: admin-job-menu-unknown-name
+    fallback-name: 알 수 없는 작업 상태
   E:
     material: LIME_DYE
     name-key: admin-job-menu-empty-name
-    fallback-name: 대기 중인 작업이 없습니다
+    fallback-name: 표시할 작업이 없습니다
   P:
     material: ARROW
     name-key: admin-job-menu-previous-name

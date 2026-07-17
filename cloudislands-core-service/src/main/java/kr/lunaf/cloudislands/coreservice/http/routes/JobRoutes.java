@@ -186,12 +186,14 @@ public final class JobRoutes implements RouteGroup {
         }
         if (jobs instanceof RedisIslandJobQueue redisJobs) {
             Map<String, Long> counts = redisJobs.countsByState();
+            List<Map<String, String>> failedJobs = redisJobs.failedJobs(100);
             LinkedHashMap<String, Object> values = new LinkedHashMap<>();
             values.put("mode", "REDIS");
             values.put("pending", counts.getOrDefault("PENDING", 0L));
             values.put("claimed", counts.getOrDefault("CLAIMED", 0L));
             values.put("failed", counts.getOrDefault("FAILED", 0L));
-            values.put("failedJobs", redisJobs.failedJobs(100));
+            values.put("jobs", failedJobs);
+            values.put("failedJobs", failedJobs);
             values.put("retryAttempts", redisJobs.retryAttemptsTotal());
             values.put("redisFailures", redisJobs.redisFailuresTotal());
             return SimpleJson.stringify(values);

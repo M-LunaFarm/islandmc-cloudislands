@@ -345,6 +345,10 @@ public final class RedisIslandJobQueue implements IslandJobQueue {
                 for (String key : List.of("jobId", "type", "islandId", "targetNode", "attempt", "failedAt", "error")) {
                     summary.put(key, stored.getOrDefault(key, ""));
                 }
+                summary.put("id", summary.get("jobId"));
+                summary.put("state", "FAILED");
+                summary.put("attempts", summary.get("attempt"));
+                summary.put("updatedAt", summary.get("failedAt"));
                 failures.add(Map.copyOf(summary));
             }
             return List.copyOf(failures);

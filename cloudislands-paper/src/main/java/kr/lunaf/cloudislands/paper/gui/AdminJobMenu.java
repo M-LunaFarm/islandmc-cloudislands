@@ -1,7 +1,9 @@
 package kr.lunaf.cloudislands.paper.gui;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JobView;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
@@ -66,7 +68,9 @@ public final class AdminJobMenu implements Listener {
 
     private static void openSync(Plugin plugin, Player player, GuiSession session, List<JobView> jobs, MessageRenderer messages, int requestedPage) {
         GuiSessions.runIfCurrent(plugin, player, session, () -> {
-            List<JobView> entries = jobs == null ? List.of() : List.copyOf(jobs);
+            List<JobView> entries = jobs == null
+                ? List.of()
+                : jobs.stream().filter(Objects::nonNull).toList();
             List<Integer> slots = GuiMenuRenderer.slots(MENU, "_");
             int pageSize = Math.max(1, slots.size());
             int maxPage = Math.max(0, (entries.size() - 1) / pageSize);
@@ -106,6 +110,9 @@ public final class AdminJobMenu implements Listener {
             return;
         }
         String actionId = GuiItems.actionId(event.getCurrentItem());
+        if (actionId.isBlank()) {
+            return;
+        }
         if (actionId.equals("gui.close")) {
             player.closeInventory();
             return;
@@ -117,18 +124,23 @@ public final class AdminJobMenu implements Listener {
             } else if (click != GuiClick.LEFT) {
                 return;
             }
+        } else if (actionId.equals("admin.jobs.cancel.prepare") && click != GuiClick.SHIFT_RIGHT) {
+            return;
+        } else if (!click.supported()) {
+            return;
         }
         player.closeInventory();
         actions.execute(player, GuiActions.from(actionId, GuiItems.data(event.getCurrentItem())).orElse(null), click);
     }
 
     static ItemStack jobItem(JobView job, MessageRenderer messages, int page) {
+        JobInteraction interaction = interaction(job);
         return GuiItems.action(
-            GuiMenuRenderer.material(MENU, "_", "PAPER"),
+            GuiMenuRenderer.material(MENU, interaction.materialSymbol(), interaction.fallbackMaterial()),
             jobTitle(job),
-            "admin.jobs.retry",
+            interaction.actionId(),
             jobActionData(job, page),
-            jobLore(job, messages).toArray(String[]::new)
+            jobLore(job, interaction, messages).toArray(String[]::new)
         );
     }
 
@@ -141,16 +153,52 @@ public final class AdminJobMenu implements Listener {
     }
 
     static List<String> jobLore(JobView job, MessageRenderer messages) {
-        return List.of(
+        return jobLore(job, interaction(job), messages);
+    }
+
+    static JobInteraction interaction(JobView job) {
+        String state = job == null ? "" : job.state().trim().toUpperCase(Locale.ROOT);
+        return switch (state) {
+            case "FAILED" -> new JobInteraction("admin.jobs.retry", "f", "RED_DYE", true, true, "");
+            case "PENDING" -> new JobInteraction("admin.jobs.cancel.prepare", "q", "CLOCK", false, true, "");
+            case "CLAIMED" -> new JobInteraction("", "r", "RECOVERY_COMPASS", false, false,
+                "admin-job-menu-active-no-action");
+            case "COMPLETED" -> new JobInteraction("", "c", "LIME_DYE", false, false,
+                "admin-job-menu-terminal-no-action");
+            case "CANCELED", "CANCELLED" -> new JobInteraction("", "d", "GRAY_DYE", false, false,
+                "admin-job-menu-terminal-no-action");
+            default -> new JobInteraction("", "u", "PAPER", false, false,
+                "admin-job-menu-unknown-no-action");
+        };
+    }
+
+    private static List<String> jobLore(JobView job, JobInteraction interaction, MessageRenderer messages) {
+        java.util.ArrayList<String> lore = new java.util.ArrayList<>(List.of(
             message(messages, "admin-job-menu-state-prefix", "상태: ") + safeLine(job.state(), 24),
             message(messages, "admin-job-menu-island-prefix", "섬: ") + shortId(job.islandId()),
             message(messages, "admin-job-menu-node-prefix", "대상 노드: ") + safeLine(job.targetNode(), 32),
             message(messages, "admin-job-menu-attempts-prefix", "시도 횟수: ") + job.attempts(),
             message(messages, "admin-job-menu-created-prefix", "생성: ") + safeLine(job.createdAt(), 48),
-            message(messages, "admin-job-menu-error-prefix", "오류: ") + safeLine(job.error(), 80),
-            message(messages, "admin-job-menu-left-action", "좌클릭: 작업 재시도"),
-            message(messages, "admin-job-menu-shift-right-action", "Shift+우클릭: 작업 취소 확인")
-        );
+            message(messages, "admin-job-menu-error-prefix", "오류: ") + safeLine(job.error(), 80)
+        ));
+        if (interaction.retryable()) {
+            lore.add(message(messages, "admin-job-menu-left-action", "좌클릭: 작업 재시도"));
+        }
+        if (interaction.cancelable()) {
+            lore.add(message(messages, "admin-job-menu-shift-right-action", "Shift+우클릭: 작업 취소 확인"));
+        }
+        if (!interaction.noActionMessageKey().isBlank()) {
+            lore.add(message(messages, interaction.noActionMessageKey(), noActionFallback(interaction.noActionMessageKey())));
+        }
+        return List.copyOf(lore);
+    }
+
+    private static String noActionFallback(String key) {
+        return switch (key) {
+            case "admin-job-menu-active-no-action" -> "실행 중: 완료를 기다리거나 임대 만료 후 jobs recover를 사용하세요.";
+            case "admin-job-menu-terminal-no-action" -> "완료되거나 취소된 작업은 변경할 수 없습니다.";
+            default -> "현재 상태에서는 GUI 작업을 지원하지 않습니다.";
+        };
     }
 
     private static void setPageItem(Inventory inventory, String symbol, int page, MessageRenderer messages) {
@@ -175,5 +223,15 @@ public final class AdminJobMenu implements Listener {
 
     private static String message(MessageRenderer messages, String key, String fallback) {
         return GuiMenuRenderer.message(messages, key, fallback);
+    }
+
+    record JobInteraction(String actionId, String materialSymbol, String fallbackMaterial,
+                          boolean retryable, boolean cancelable, String noActionMessageKey) {
+        JobInteraction {
+            actionId = actionId == null ? "" : actionId;
+            materialSymbol = materialSymbol == null ? "u" : materialSymbol;
+            fallbackMaterial = fallbackMaterial == null ? "PAPER" : fallbackMaterial;
+            noActionMessageKey = noActionMessageKey == null ? "" : noActionMessageKey;
+        }
     }
 }

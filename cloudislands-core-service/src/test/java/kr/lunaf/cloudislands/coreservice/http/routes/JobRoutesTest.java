@@ -90,6 +90,14 @@ class JobRoutesTest {
     }
 
     @Test
+    void redisAdminJobResponseKeepsLegacyFailuresAndExposesTypedJobs() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/JobRoutes.java"));
+
+        assertTrue(source.contains("values.put(\"jobs\", failedJobs)"));
+        assertTrue(source.contains("values.put(\"failedJobs\", failedJobs)"));
+    }
+
+    @Test
     void completeRouteCommitsCompletionBeforeAcknowledgingClaimedJob() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreservice/http/routes/JobRoutes.java"));
         int completionIndex = source.indexOf("completion.completed(claimed.get(), request.payload())");
