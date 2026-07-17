@@ -23,7 +23,9 @@ class VelocityAdminActionsTest {
         UUID reviewerUuid = UUID.randomUUID();
         ReviewModerationView review = new ReviewModerationView(
             islandId.toString(),
+            "Sky Home",
             reviewerUuid.toString(),
+            "Reviewer",
             "REPORTED",
             3,
             "spam",

@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeS
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminReviewModerationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminStorageMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
@@ -39,6 +40,14 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminReviewModeration moderation) {
+            moderateReview(player, moderation);
+            return true;
+        }
+        if (action instanceof GuiAction.AdminReviewOpen open) {
+            openReviewModerationMenu(player, open.limit());
+            return true;
+        }
         if (action instanceof GuiAction.AdminNodeAction adminNode) {
             return handleAdminNodeAction(player, adminNode, click);
         }
@@ -146,6 +155,56 @@ final class IslandAdminNodeCommandHandler {
 
     private void prompt(Player player, String command) {
         runtime.message(player, runtime.routeMessage("admin-menu-command-required", "관리 명령 입력 필요: ") + command);
+    }
+
+    private void openReviewModerationMenu(Player player, int limit) {
+        if (!reviewModerationAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-review-menu-permission-denied", "후기 신고 관리 권한이 없습니다."));
+            return;
+        }
+        AdminReviewModerationMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), limit);
+    }
+
+    private void moderateReview(Player player, GuiAction.AdminReviewModeration action) {
+        if (!reviewModerationAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-review-menu-permission-denied", "후기 신고 관리 권한이 없습니다."));
+            return;
+        }
+        MessageRenderer messages = runtime.messagesFor(player);
+        GuiSession session = GuiSessions.begin(player, "admin.reviews.mutate");
+        GuiStateMenus.openSaving(plugin, player, session, messages,
+            runtime.routeMessage("admin-review-menu-saving", "후기 상태를 변경하는 중입니다."));
+        runtime.mutateIdempotent(
+                "admin.review.moderate",
+                () -> coreApiClient.navigationCommands().moderateReview(
+                    action.islandId(),
+                    action.reviewerUuid(),
+                    player.getUniqueId(),
+                    action.moderationState(),
+                    "admin-review-gui"
+                )
+            )
+            .thenAccept(result -> GuiSessions.runIfCurrent(plugin, player, session, () -> {
+                runtime.message(player, runtime.routeMessage("admin-review-menu-updated-prefix", "후기 상태 변경 완료: ") + result.moderationState());
+                AdminReviewModerationMenu.open(plugin, coreApiClient, player, messages, 36);
+            }))
+            .exceptionally(error -> {
+                GuiStateMenus.openError(
+                    plugin,
+                    player,
+                    session,
+                    messages,
+                    runtime.routeMessage("admin-review-menu-title", "후기 신고 관리"),
+                    runtime.routeMessage("admin-review-menu-update-failed", "후기 상태를 변경하지 못했습니다."),
+                    "admin.reviews.open",
+                    "gui.close"
+                );
+                return null;
+            });
+    }
+
+    private static boolean reviewModerationAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.island");
     }
 
     private static String migrationSummary(String label, String state, int manifests, int blockingIssues, int warningIssues) {

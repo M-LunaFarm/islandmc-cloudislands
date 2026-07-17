@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.AdminReviewOpen, GuiAction.AdminReviewModeration, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -211,6 +211,51 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
 
         public String actionId() {
             return actionId;
+        }
+    }
+
+    record AdminReviewOpen(int limit) implements GuiAction {
+        public AdminReviewOpen {
+            limit = Math.max(1, Math.min(limit, 36));
+        }
+
+        @Override
+        public String actionId() {
+            return "admin.reviews.open";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("limit", Integer.toString(limit));
+        }
+    }
+
+    record AdminReviewModeration(UUID islandId, UUID reviewerUuid, String moderationState) implements GuiAction {
+        public AdminReviewModeration {
+            if (islandId == null) {
+                throw new IllegalArgumentException("islandId is required");
+            }
+            if (reviewerUuid == null) {
+                throw new IllegalArgumentException("reviewerUuid is required");
+            }
+            moderationState = moderationState == null ? "" : moderationState.trim().toUpperCase(Locale.ROOT);
+            if (!moderationState.equals("VISIBLE") && !moderationState.equals("HIDDEN")) {
+                throw new IllegalArgumentException("moderationState must be VISIBLE or HIDDEN");
+            }
+        }
+
+        @Override
+        public String actionId() {
+            return "admin.reviews.moderate";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of(
+                "islandId", islandId.toString(),
+                "reviewerUuid", reviewerUuid.toString(),
+                "moderationState", moderationState
+            );
         }
     }
 

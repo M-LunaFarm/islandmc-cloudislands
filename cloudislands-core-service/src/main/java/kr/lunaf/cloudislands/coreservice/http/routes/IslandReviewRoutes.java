@@ -165,7 +165,7 @@ public final class IslandReviewRoutes implements RouteGroup {
     private void reviewModeration(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
         int limit = Math.max(1, Math.min(JsonFields.integer(body, "limit", 10), 100));
-        CoreHttpResponses.write(exchange, 200, reviewModerationQueueJson(reviews.moderationQueue(limit)));
+        CoreHttpResponses.write(exchange, 200, reviewModerationQueueJson(reviews.moderationQueue(limit), playerProfiles, islands));
     }
 
     private void moderateReview(HttpExchange exchange) throws IOException {
@@ -188,7 +188,7 @@ public final class IslandReviewRoutes implements RouteGroup {
             "operation", "REVIEW_MODERATE",
             "moderationState", moderation.get().moderationState()
         ));
-        CoreHttpResponses.write(exchange, 202, reviewModerationAcceptedJson(moderation.get()));
+        CoreHttpResponses.write(exchange, 202, reviewModerationAcceptedJson(moderation.get(), playerProfiles, islands));
     }
 
     static String reviewsJson(List<IslandReviewSnapshot> reviews) {
@@ -243,16 +243,24 @@ public final class IslandReviewRoutes implements RouteGroup {
     }
 
     static String reviewModerationAcceptedJson(IslandReviewModerationSnapshot moderation) {
+        return reviewModerationAcceptedJson(moderation, null, null);
+    }
+
+    static String reviewModerationAcceptedJson(IslandReviewModerationSnapshot moderation, PlayerProfileRepository playerProfiles, IslandRepository islands) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("accepted", true);
-        values.put("moderation", reviewModerationMap(moderation));
+        values.put("moderation", reviewModerationMap(moderation, playerProfiles, islands));
         return SimpleJson.stringify(values);
     }
 
     static String reviewModerationQueueJson(List<IslandReviewModerationSnapshot> queue) {
+        return reviewModerationQueueJson(queue, null, null);
+    }
+
+    static String reviewModerationQueueJson(List<IslandReviewModerationSnapshot> queue, PlayerProfileRepository playerProfiles, IslandRepository islands) {
         List<Object> rendered = new ArrayList<>();
         for (IslandReviewModerationSnapshot moderation : queue) {
-            rendered.add(reviewModerationMap(moderation));
+            rendered.add(reviewModerationMap(moderation, playerProfiles, islands));
         }
         return SimpleJson.stringify(Map.of("reviews", rendered, "count", rendered.size()));
     }
@@ -269,9 +277,25 @@ public final class IslandReviewRoutes implements RouteGroup {
     }
 
     private static Map<String, Object> reviewModerationMap(IslandReviewModerationSnapshot moderation) {
+        return reviewModerationMap(moderation, null, null);
+    }
+
+    private static Map<String, Object> reviewModerationMap(IslandReviewModerationSnapshot moderation, PlayerProfileRepository playerProfiles, IslandRepository islands) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("islandId", moderation.islandId());
+        if (islands != null) {
+            islands.findById(moderation.islandId())
+                .map(island -> island.name() == null ? "" : island.name().trim())
+                .filter(name -> !name.isBlank())
+                .ifPresent(name -> values.put("islandName", name));
+        }
         values.put("reviewerUuid", moderation.reviewerUuid());
+        if (playerProfiles != null) {
+            String reviewerName = playerProfiles.find(moderation.reviewerUuid()).lastName();
+            if (reviewerName != null && !reviewerName.isBlank()) {
+                values.put("reviewerName", reviewerName.trim());
+            }
+        }
         values.put("moderationState", moderation.moderationState());
         values.put("reportCount", moderation.reportCount());
         values.put("reportReason", moderation.reportReason());

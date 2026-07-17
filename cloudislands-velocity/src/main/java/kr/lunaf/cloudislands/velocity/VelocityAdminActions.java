@@ -409,8 +409,8 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     }
 
     static String reviewModerationMessage(ReviewModerationView review) {
-        return "island=" + review.islandId()
-            + " reviewer=" + review.reviewerUuid()
+        return "island=" + (review.islandName().isBlank() ? review.islandId() : review.islandName() + "(" + review.islandId() + ")")
+            + " reviewer=" + (review.reviewerName().isBlank() ? review.reviewerUuid() : review.reviewerName() + "(" + review.reviewerUuid() + ")")
             + " state=" + review.moderationState()
             + " reports=" + review.reportCount()
             + (review.reportReason().isBlank() ? "" : " reason=" + review.reportReason())

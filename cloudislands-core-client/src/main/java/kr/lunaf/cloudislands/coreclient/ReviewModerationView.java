@@ -2,7 +2,9 @@ package kr.lunaf.cloudislands.coreclient;
 
 public record ReviewModerationView(
     String islandId,
+    String islandName,
     String reviewerUuid,
+    String reviewerName,
     String moderationState,
     int reportCount,
     String reportReason,
@@ -13,7 +15,9 @@ public record ReviewModerationView(
 ) {
     public ReviewModerationView {
         islandId = text(islandId);
+        islandName = text(islandName);
         reviewerUuid = text(reviewerUuid);
+        reviewerName = text(reviewerName);
         moderationState = text(moderationState);
         reportCount = Math.max(0, reportCount);
         reportReason = text(reportReason);

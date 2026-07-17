@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandReviewRoutesTest {
@@ -80,6 +81,28 @@ class IslandReviewRoutesTest {
         assertEquals(1, ((Number) queue.get("count")).intValue());
         assertModeration(islandId, reviewerUuid, moderatorUuid, acceptedModeration);
         assertModeration(islandId, reviewerUuid, moderatorUuid, queuedModeration);
+    }
+
+    @Test
+    void enrichesReviewModerationWithOperatorFriendlyNames() {
+        UUID islandId = UUID.randomUUID();
+        UUID ownerUuid = UUID.randomUUID();
+        UUID reviewerUuid = UUID.randomUUID();
+        IslandReviewModerationSnapshot moderation = new IslandReviewModerationSnapshot(
+            islandId, reviewerUuid, "REPORTED", 1, "spam", new UUID(0L, 0L), Instant.EPOCH, "", Instant.now()
+        );
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        islands.createOwnedIsland(islandId, ownerUuid, "default", "Sky Home");
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        profiles.touch(reviewerUuid, "Reviewer");
+
+        Map<?, ?> queue = SimpleJson.object(SimpleJson.parse(
+            IslandReviewRoutes.reviewModerationQueueJson(List.of(moderation), profiles, islands)
+        ));
+        Map<?, ?> rendered = SimpleJson.object(SimpleJson.list(queue.get("reviews")).get(0));
+
+        assertEquals("Sky Home", SimpleJson.text(rendered.get("islandName")));
+        assertEquals("Reviewer", SimpleJson.text(rendered.get("reviewerName")));
     }
 
     @Test

@@ -1,0 +1,34 @@
+id: admin.reviews
+rows: 6
+title-key: admin-review-menu-title
+layout:
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "____E____"
+  - "....R...X"
+items:
+  _:
+    material: WRITABLE_BOOK
+    name-key: admin-review-menu-entry-name
+    fallback-name: 신고된 후기
+    action: entry
+  E:
+    material: LIME_DYE
+    name-key: admin-review-menu-empty-name
+    fallback-name: 처리할 신고가 없습니다
+  R:
+    material: CLOCK
+    name-key: admin-review-menu-refresh-name
+    fallback-name: 새로고침
+    action: refresh
+  X:
+    material: OAK_DOOR
+    name-key: admin-menu-close-name
+    fallback-name: 닫기
+    action: close
+actions:
+  entry: admin.reviews.moderate
+  refresh: admin.reviews.open
+  close: gui.close

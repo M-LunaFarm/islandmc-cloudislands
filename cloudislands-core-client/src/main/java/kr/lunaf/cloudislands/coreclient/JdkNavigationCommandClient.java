@@ -142,7 +142,9 @@ public final class JdkNavigationCommandClient implements NavigationCommandClient
         long reportCount = Math.max(0L, CoreJson.number(values, "reportCount"));
         return new ReviewModerationView(
             CoreJson.text(values, "islandId"),
+            CoreJson.text(values, "islandName"),
             CoreJson.text(values, "reviewerUuid"),
+            CoreJson.text(values, "reviewerName"),
             CoreJson.text(values, "moderationState"),
             (int) Math.min(Integer.MAX_VALUE, reportCount),
             CoreJson.text(values, "reportReason"),

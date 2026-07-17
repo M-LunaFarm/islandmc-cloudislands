@@ -190,6 +190,26 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesAdminReviewModerationIntoTypedAction() {
+        GuiAction open = GuiActionParser.parse("admin.reviews.open", Map.of()).orElseThrow();
+        GuiAction moderation = GuiActionParser.parse("admin.reviews.moderate", Map.of(
+            "islandId", "00000000-0000-0000-0000-000000000001",
+            "reviewerUuid", "00000000-0000-0000-0000-000000000002",
+            "moderationState", "hidden"
+        )).orElseThrow();
+
+        assertTrue(open instanceof GuiAction.AdminReviewOpen);
+        assertEquals(36, ((GuiAction.AdminReviewOpen) open).limit());
+        assertTrue(moderation instanceof GuiAction.AdminReviewModeration);
+        assertEquals("HIDDEN", ((GuiAction.AdminReviewModeration) moderation).moderationState());
+        assertTrue(GuiActionParser.parse("admin.reviews.moderate", Map.of(
+            "islandId", "00000000-0000-0000-0000-000000000001",
+            "reviewerUuid", "00000000-0000-0000-0000-000000000002",
+            "moderationState", "REPORTED"
+        )).isEmpty());
+    }
+
+    @Test
     void parsesBankAmountsIntoTypedActions() {
         GuiAction action = GuiActionParser.parse("island.bank.deposit", Map.of("amount", "1000.00")).orElseThrow();
 
@@ -537,6 +557,12 @@ class GuiActionParserTest {
 
     private static Map<String, String> sampleDataFor(String actionId) {
         return switch (actionId) {
+            case "admin.reviews.open" -> Map.of("limit", "10");
+            case "admin.reviews.moderate" -> Map.of(
+                "islandId", "00000000-0000-0000-0000-000000000000",
+                "reviewerUuid", "00000000-0000-0000-0000-000000000001",
+                "moderationState", "HIDDEN"
+            );
             case "admin.node.kickall.confirm", "admin.node.shutdown-safe.confirm" -> Map.of(
                 "nodeId", "island-1",
                 ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)

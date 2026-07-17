@@ -626,6 +626,8 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.navigationCommands().deleteReview(islandId, reviewerUuid)"), "Admin removeratings must use typed navigation review client");
         assertTrue(source.contains("reviewModerationQueue(limit)"), "Admin review queue must use typed navigation review client");
         assertTrue(source.contains("moderateReview(islandId, reviewerUuid, moderatorUuid, moderationState, note)"), "Admin review moderation must use typed navigation review client");
+        assertTrue(source.contains("AdminReviewModerationMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player), limit)"), "Player operators must receive a clickable review moderation queue");
+        assertTrue(source.contains("case \"admin.reviews\" -> AdminReviewModerationMenu.open"), "Admin openmenu must expose review moderation");
         assertTrue(navigationClient.contains("setReview(UUID islandId, UUID reviewerUuid, int rating, String comment)"), "Navigation client must expose review set mutation");
         assertTrue(navigationClient.contains("deleteReview(UUID islandId, UUID reviewerUuid)"), "Navigation client must expose review deletion mutation");
         assertTrue(navigationClient.contains("reviewModerationQueue(int limit)"), "Navigation client must expose the moderation queue");

@@ -78,6 +78,7 @@ import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminReviewModerationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminStorageMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiSession;
 import kr.lunaf.cloudislands.paper.gui.GuiSessions;
@@ -138,6 +139,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         "admin.storage",
         "admin.route",
         "admin.jobs",
+        "admin.reviews",
         "admin.migration"
     );
     private final CloudIslandsPaperAgent agent;
@@ -1574,7 +1576,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private boolean handleIsland(CommandSender sender, String[] args) {
         if (args.length >= 2 && args[1].equalsIgnoreCase("reviews")) {
             int limit = args.length > 2 ? (int) Math.max(1L, Math.min(number(args[2], 10L), 100L)) : 10;
-            run(sender, "Review moderation queue", coreApiClient.navigationCommands().reviewModerationQueue(limit).thenApply(this::reviewModerationQueueMessage));
+            if (sender instanceof Player player) {
+                AdminReviewModerationMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player), limit);
+            } else {
+                run(sender, "Review moderation queue", coreApiClient.navigationCommands().reviewModerationQueue(limit).thenApply(this::reviewModerationQueueMessage));
+            }
             return true;
         }
         if (args.length < 3) {
@@ -2771,6 +2777,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "admin.storage" -> AdminStorageMenu.open(target, targetMessages);
             case "admin.route" -> AdminRouteMenu.open(target, targetMessages);
             case "admin.jobs" -> AdminJobMenu.open(target, targetMessages);
+            case "admin.reviews" -> AdminReviewModerationMenu.open(agent.plugin(), coreApiClient, target, targetMessages, 36);
             case "admin.migration" -> AdminMigrationMenu.open(target, targetMessages);
             default -> throw new IllegalArgumentException("Unsupported menu id: " + menuId);
         }
@@ -3622,8 +3629,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private String reviewModerationMessage(ReviewModerationView review) {
-        return "island=" + review.islandId()
-            + " reviewer=" + review.reviewerUuid()
+        return "island=" + (review.islandName().isBlank() ? review.islandId() : review.islandName() + "(" + review.islandId() + ")")
+            + " reviewer=" + (review.reviewerName().isBlank() ? review.reviewerUuid() : review.reviewerName() + "(" + review.reviewerUuid() + ")")
             + " state=" + review.moderationState()
             + " reports=" + review.reportCount()
             + (review.reportReason().isBlank() ? "" : " reason=" + review.reportReason())

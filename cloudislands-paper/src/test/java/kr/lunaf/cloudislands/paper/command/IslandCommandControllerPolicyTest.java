@@ -1246,6 +1246,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.node.refresh\")"), "node refresh must reserve a GUI session before the Core request");
         assertTrue(adminHandler.contains("thenAccept(summary -> PaperOnlinePlayer.run(plugin, playerUuid, activePlayer"), "late node summaries must re-resolve the current online administrator");
         assertTrue(adminHandler.contains("GuiSessions.isCurrent(activePlayer, session)"), "late node summaries must not replace a newer or closed menu");
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminReviewModeration"), "review moderation GUI must use a typed action");
+        assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.reviews.mutate\")"), "review moderation must reserve a GUI session before Core mutation");
+        assertTrue(adminHandler.contains("GuiSessions.runIfCurrent(plugin, player, session"), "review moderation results must retain the exact initiating player connection");
+        assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.island\")"), "review moderation clicks must recheck admin island permission");
         assertTrue(adminHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> runtime.message(activePlayer, message))"), "admin Core feedback must use the shared online-player boundary");
         assertFalse(adminHandler.contains("thenAccept(result -> runtime.message(player"), "admin mutation callbacks must not message a captured Player");
         assertTrue(adminHandler.contains("Map.of(\"nodeId\", nodeId), \"admin.node.open\", Map.of(\"nodeId\", nodeId)"), "node refresh error actions must preserve the selected node id");

@@ -26,6 +26,8 @@ public final class GuiActionParser {
         "admin.migration.scan",
         "admin.migration.verify",
         "admin.migration.wizard",
+        "admin.reviews.moderate",
+        "admin.reviews.open",
         "admin.node.drain",
         "admin.node.info",
         "admin.node.islands",
@@ -263,6 +265,12 @@ public final class GuiActionParser {
                     safeData.getOrDefault("nodeId", "")
                 ));
                 case "admin.jobs.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_OPEN));
+                case "admin.reviews.open" -> Optional.of(new GuiAction.AdminReviewOpen(integer(safeData.getOrDefault("limit", "36"))));
+                case "admin.reviews.moderate" -> Optional.of(new GuiAction.AdminReviewModeration(
+                    UUID.fromString(required(safeData, "islandId")),
+                    UUID.fromString(required(safeData, "reviewerUuid")),
+                    required(safeData, "moderationState")
+                ));
                 case "admin.jobs.list" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_LIST));
                 case "admin.jobs.retry.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_RETRY_PROMPT));
                 case "admin.jobs.cancel.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_CANCEL_PROMPT));

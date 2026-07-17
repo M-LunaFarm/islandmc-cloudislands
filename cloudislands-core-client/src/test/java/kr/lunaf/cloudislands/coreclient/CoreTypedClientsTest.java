@@ -1724,7 +1724,7 @@ class CoreTypedClientsTest {
         UUID islandId = UUID.randomUUID();
         UUID reviewerUuid = UUID.randomUUID();
         UUID moderatorUuid = UUID.randomUUID();
-        String moderationBody = "{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"moderationState\":\"HIDDEN\",\"reportCount\":2,\"reportReason\":\"spam\",\"moderatedBy\":\"" + moderatorUuid + "\",\"moderatedAt\":\"now\",\"moderationNote\":\"confirmed\",\"updatedAt\":\"later\"}";
+        String moderationBody = "{\"islandId\":\"" + islandId + "\",\"islandName\":\"Sky Home\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"reviewerName\":\"Reviewer\",\"moderationState\":\"HIDDEN\",\"reportCount\":2,\"reportReason\":\"spam\",\"moderatedBy\":\"" + moderatorUuid + "\",\"moderatedAt\":\"now\",\"moderationNote\":\"confirmed\",\"updatedAt\":\"later\"}";
         String moderationJson = "{\"accepted\":true,\"moderation\":" + moderationBody + "}";
         String queueJson = "{\"count\":1,\"reviews\":[" + moderationBody + "]}";
         List<String> calls = new ArrayList<>();
@@ -1743,6 +1743,8 @@ class CoreTypedClientsTest {
             ReviewModerationView moderated = client.moderateReview(islandId, reviewerUuid, moderatorUuid, "hidden", "confirmed").join();
 
             assertEquals("HIDDEN", queued.moderationState());
+            assertEquals("Sky Home", queued.islandName());
+            assertEquals("Reviewer", queued.reviewerName());
             assertEquals(2, queued.reportCount());
             assertEquals("confirmed", moderated.moderationNote());
             assertEquals(List.of(
