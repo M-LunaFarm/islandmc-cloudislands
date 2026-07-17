@@ -194,6 +194,14 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesAdminStoragePageIntoTypedAction() {
+        GuiAction action = GuiActionParser.parse("admin.storage.page", Map.of("page", "3")).orElseThrow();
+
+        assertTrue(action instanceof GuiAction.AdminStoragePage);
+        assertEquals(Map.of("page", "3"), action.data());
+    }
+
+    @Test
     void parsesAdminReviewModerationIntoTypedAction() {
         GuiAction open = GuiActionParser.parse("admin.reviews.open", Map.of()).orElseThrow();
         GuiAction moderation = GuiActionParser.parse("admin.reviews.moderate", Map.of(
@@ -613,6 +621,7 @@ class GuiActionParserTest {
 
     private static Map<String, String> sampleDataFor(String actionId) {
         return switch (actionId) {
+            case "admin.storage.page" -> Map.of("page", "0");
             case "admin.node.page" -> Map.of("page", "0");
             case "admin.jobs.page" -> Map.of("page", "0");
             case "admin.jobs.retry", "admin.jobs.cancel.prepare" -> Map.of(

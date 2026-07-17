@@ -1249,6 +1249,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adminHandler.contains("AdminNodeMenu.open(player, session, nodeId, summary, messages)"), "node selection must open the latest typed detail");
         assertTrue(adminHandler.contains("AdminNodeListMenu.open(plugin, coreApiClient, player"), "node list actions must open the live selector");
         assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.node\")"), "node GUI clicks must recheck node permission");
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminStoragePage"), "storage paging must use a typed action");
+        assertTrue(adminHandler.contains("AdminStorageMenu.open(plugin, coreApiClient, player"), "storage GUI actions must open live typed status");
+        assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.storage\")"), "storage GUI clicks must recheck storage permission");
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminReviewModeration"), "review moderation GUI must use a typed action");
         assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.reviews.mutate\")"), "review moderation must reserve a GUI session before Core mutation");
         assertTrue(adminHandler.contains("GuiSessions.runIfCurrent(plugin, player, session"), "review moderation results must retain the exact initiating player connection");

@@ -921,6 +921,22 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void playerStorageCommandOpensLiveDashboardWhileConsoleKeepsTextOutput() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminStorageMenu.java"));
+
+        assertTrue(source.contains("AdminStorageMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player))"),
+            "player storage command must open the live dashboard");
+        assertTrue(source.contains("run(sender, \"Storage status\", coreApiClient.adminStorage().status()"),
+            "console storage status must remain available");
+        assertTrue(source.contains("case \"admin.storage\" -> AdminStorageMenu.open(agent.plugin(), coreApiClient, target"),
+            "admin openmenu must expose the live storage dashboard");
+        assertTrue(menu.contains("client.adminStorage().status()"), "storage dashboard must load the typed Core status view");
+        assertTrue(menu.contains("GuiSessions.runIfCurrent(plugin, player, session"),
+            "storage status responses must retain the initiating player connection");
+    }
+
+    @Test
     void adminIslandInfoAndRuntimeUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

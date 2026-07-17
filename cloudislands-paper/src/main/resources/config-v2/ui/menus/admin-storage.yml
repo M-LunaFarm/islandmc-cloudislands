@@ -1,18 +1,32 @@
 id: admin.storage
-rows: 3
+rows: 6
 title-key: admin-storage-menu-title
 layout:
-  - "........."
-  - ".S.V....."
-  - "........X"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - ".H..E...."
+  - "P.VR.X..N"
 items:
-  S:
-    material: CHEST
+  _:
+    material: LIME_DYE
+    name-key: admin-storage-menu-node-name
+    fallback-name: 스토리지 노드
+  H:
+    material: BEACON
     name-key: admin-storage-menu-status-name
     fallback-name: 스토리지 상태
-    fallback-lore:
-      - "/ciadmin storage status"
     action: status
+  E:
+    material: RED_DYE
+    name-key: admin-storage-menu-empty-name
+    fallback-name: 등록된 스토리지 노드가 없습니다
+  P:
+    material: ARROW
+    name-key: admin-storage-menu-previous-name
+    fallback-name: 이전 페이지
+    action: page
   V:
     material: ENDER_EYE
     name-key: admin-storage-menu-verify-name
@@ -20,12 +34,24 @@ items:
     fallback-lore:
       - "/ciadmin storage verify <island>"
     action: verify
+  R:
+    material: CLOCK
+    name-key: admin-storage-menu-refresh-name
+    fallback-name: 새로고침
+    action: refresh
   X:
     material: OAK_DOOR
     name-key: admin-menu-close-name
     fallback-name: 닫기
     action: close
+  N:
+    material: ARROW
+    name-key: admin-storage-menu-next-name
+    fallback-name: 다음 페이지
+    action: page
 actions:
   status: admin.storage.status
+  page: admin.storage.page
+  refresh: admin.storage.page
   verify: admin.storage.verify.prompt
   close: gui.close

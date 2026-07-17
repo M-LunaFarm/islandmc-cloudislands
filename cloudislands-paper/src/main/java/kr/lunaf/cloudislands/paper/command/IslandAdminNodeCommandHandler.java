@@ -44,6 +44,10 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminStoragePage page) {
+            openStorageMenu(player, page.page());
+            return true;
+        }
         if (action instanceof GuiAction.AdminNodePage page) {
             openAdminNodeList(player, page.page());
             return true;
@@ -120,18 +124,16 @@ final class IslandAdminNodeCommandHandler {
                 prompt(player, "/ciadmin route clear <playerUuid|playerName> [ticketUuid]");
                 yield true;
             }
-            case STORAGE_OPEN -> {
-                AdminStorageMenu.open(player, runtime.messagesFor(player));
-                yield true;
-            }
-            case STORAGE_STATUS -> {
-                coreApiClient.adminStorage().status()
-                    .thenAccept(status -> deliverMessage(playerUuid, "Storage: nodes=" + status.nodes().size() + " unavailable=" + status.unavailableCount()))
-                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-storage-status-failed", "스토리지 상태를 불러오지 못했습니다.", error));
+            case STORAGE_OPEN, STORAGE_STATUS -> {
+                openStorageMenu(player, 0);
                 yield true;
             }
             case STORAGE_VERIFY_PROMPT -> {
-                prompt(player, "/ciadmin storage verify <islandUuid|islandName>");
+                if (!storageManagementAllowed(player)) {
+                    runtime.message(player, runtime.routeMessage("admin-storage-menu-permission-denied", "스토리지 관리 권한이 없습니다."));
+                } else {
+                    prompt(player, "/ciadmin storage verify <islandUuid|islandName>");
+                }
                 yield true;
             }
             case MIGRATION_OPEN, MIGRATION_WIZARD -> {
@@ -240,6 +242,18 @@ final class IslandAdminNodeCommandHandler {
 
     private static boolean routeManagementAllowed(Player player) {
         return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.route");
+    }
+
+    private void openStorageMenu(Player player, int page) {
+        if (!storageManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-storage-menu-permission-denied", "스토리지 관리 권한이 없습니다."));
+            return;
+        }
+        AdminStorageMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page);
+    }
+
+    private static boolean storageManagementAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.storage");
     }
 
     private void openJobMenu(Player player, int page) {

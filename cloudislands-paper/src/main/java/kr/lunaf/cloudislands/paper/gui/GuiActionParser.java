@@ -51,6 +51,7 @@ public final class GuiActionParser {
         "admin.route.open",
         "admin.route.page",
         "admin.storage.open",
+        "admin.storage.page",
         "admin.storage.status",
         "admin.storage.verify.prompt",
         "gui.close",
@@ -310,6 +311,7 @@ public final class GuiActionParser {
                 case "admin.route.debug" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.ROUTE_DEBUG));
                 case "admin.route.clear.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.ROUTE_CLEAR_PROMPT));
                 case "admin.storage.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.STORAGE_OPEN));
+                case "admin.storage.page" -> Optional.of(new GuiAction.AdminStoragePage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.storage.status" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.STORAGE_STATUS));
                 case "admin.storage.verify.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.STORAGE_VERIFY_PROMPT));
                 case "admin.migration.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.MIGRATION_OPEN));

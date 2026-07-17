@@ -1547,7 +1547,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleStorage(CommandSender sender, String[] args) {
-        if (args.length < 2 || args[1].equalsIgnoreCase("status")) {
+        if (args.length < 2) {
+            if (sender instanceof Player player) {
+                AdminStorageMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player));
+            } else {
+                run(sender, "Storage status", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
+            }
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("status")) {
             run(sender, "Storage status", coreApiClient.adminStorage().status().thenApply(this::storageStatusMessage));
             return true;
         }
@@ -2795,7 +2803,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "island.chat" -> IslandChatMenu.open(target, targetMessages);
             case "island.my-islands" -> IslandMyIslandsMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.node" -> AdminNodeListMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
-            case "admin.storage" -> AdminStorageMenu.open(target, targetMessages);
+            case "admin.storage" -> AdminStorageMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.route" -> AdminRouteMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.jobs" -> AdminJobMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.reviews" -> AdminReviewModerationMenu.open(agent.plugin(), coreApiClient, target, targetMessages, 36);

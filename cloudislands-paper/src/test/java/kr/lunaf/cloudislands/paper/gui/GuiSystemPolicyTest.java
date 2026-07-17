@@ -623,7 +623,7 @@ class GuiSystemPolicyTest {
                 new String[] {"AdminNodeListMenu", "admin-node-list.yml", "admin.node.open", "admin.node.page", "gui.close"},
                 new String[] {"AdminJobMenu", "admin-jobs.yml", "admin.jobs.retry", "admin.jobs.page", "admin.jobs.cancel.prepare"},
                 new String[] {"AdminRouteMenu", "admin-route.yml", "admin.route.page", "admin.route.clear.prepare", "admin.route.clear.confirm"},
-                new String[] {"AdminStorageMenu", "admin-storage.yml", "admin.storage.status", "admin.storage.verify.prompt", "admin.storage.open"},
+                new String[] {"AdminStorageMenu", "admin-storage.yml", "admin.storage.status", "admin.storage.page", "admin.storage.verify.prompt"},
                 new String[] {"AdminReviewModerationMenu", "admin-reviews.yml", "admin.reviews.moderate", "admin.reviews.open", "gui.close"},
                 new String[] {"AdminMigrationMenu", "admin-migration.yml", "admin.migration.scan", "admin.migration.dryrun", "admin.migration.approve.prompt", "admin.migration.rollback-plan", "admin.migration.rollback.prompt"}
         )) {
