@@ -39,10 +39,13 @@ public interface NodeRegistry {
     }
 
     static NodeState normalizeHeartbeatState(NodeHeartbeatRequest request, NodeState currentState) {
-        if (currentState == NodeState.DRAINING || currentState == NodeState.SHUTTING_DOWN) {
+        if (currentState == NodeState.DRAINING) {
             return currentState;
         }
         NodeState requested = request.state();
+        if (currentState == NodeState.SHUTTING_DOWN && requested != NodeState.STARTING) {
+            return currentState;
+        }
         if (requested != NodeState.READY && requested != NodeState.SOFT_FULL) {
             return requested;
         }
