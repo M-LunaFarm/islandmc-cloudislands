@@ -67,6 +67,20 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void playerNodeManagementOpensLiveSelectorWhileConsoleKeepsTextOutput() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminNodeListMenu.java"));
+
+        assertTrue(source.contains("AdminNodeListMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player))"),
+            "player node management must open the live node selector");
+        assertTrue(source.contains("run(sender, \"Node list\", coreApiClient.adminNodes().listNodesSummary()"),
+            "console node list output must remain available");
+        assertTrue(source.contains("case \"admin.node\" -> AdminNodeListMenu.open(agent.plugin(), coreApiClient, target"),
+            "admin openmenu must expose the live node selector");
+        assertTrue(menu.contains("client.adminNodes().nodes()"), "node selector must load typed Core node snapshots");
+    }
+
+    @Test
     void pluginPermissionNodesAreBackedByCommandOrRuntimeChecks() throws Exception {
         String backend = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String boundaryListener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/IslandBoundaryListener.java"));
@@ -1039,7 +1053,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(adminSurface.contains("ciadmin openmenu <player> <menuId>"), "Openmenu help must be listed for operators");
         assertTrue(source.contains("handleOpenMenu"), "openmenu must route through a focused Paper runtime handler");
         assertTrue(source.contains("ADMIN_OPEN_MENU_IDS"), "openmenu must use a fixed supported-menu allowlist");
-        assertTrue(source.contains("IslandMainMenu.open(target") && source.contains("AdminNodeMenu.open(target"), "openmenu must open supported player and admin menus");
+        assertTrue(source.contains("IslandMainMenu.open(target") && source.contains("AdminNodeListMenu.open(agent.plugin(), coreApiClient, target"), "openmenu must open supported player and admin menus");
         assertTrue(source.contains("getPlayerExact(args[1])"), "openmenu must target an online Paper player by exact name");
         assertTrue(source.contains("auditAdminOpenMenu"), "openmenu must emit an admin audit log line");
         assertTrue(plugin.contains("cloudislands.admin.openmenu"), "openmenu must have a plugin permission");

@@ -174,13 +174,15 @@ class PaperPlatformBoundaryTest {
         String router = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandRouter.java"));
         String adminHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
         String adminUseCase = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/application/IslandAdminNodeUseCase.java"));
+        String adminNodeList = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/AdminNodeListMenu.java"));
         String homeWarpHandler = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/command/IslandHomeWarpCommandHandler.java"));
         String tokens = Files.readString(root.resolve("cloudislands-paper/src/main/java/kr/lunaf/cloudislands/paper/gui/ConfirmationTokenPolicy.java"));
 
         assertTrue(router.contains("adminCommands.handleGuiAction(player, action"), "Admin node GUI actions must route through the admin handler");
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodeAction"), "Admin node GUI actions must use typed actions");
         assertTrue(adminHandler.contains("case LIST ->"), "Admin node list GUI action must call the Core usecase path");
-        assertTrue(adminHandler.contains("adminNodeUseCase.listNodesSummary()"), "Admin node list GUI action must call the typed Core usecase path");
+        assertTrue(adminHandler.contains("openAdminNodeList(player, 0)"), "Admin node list GUI action must open the live selector");
+        assertTrue(adminNodeList.contains("client.adminNodes().nodes()"), "Admin node selector must load typed Core node snapshots");
         assertTrue(adminUseCase.contains("AdminNodeQueryClient adminNodeQueries"), "Admin node reads must stay behind a typed query client");
         assertTrue(adminUseCase.contains("adminNodeQueries.listNodesSummary()"), "Admin node list usecase must read through the typed query client");
         assertTrue(!adminUseCase.contains("public CompletableFuture<String> listNodes("), "Admin node list usecase must expose typed summaries instead of raw JSON");

@@ -39,6 +39,7 @@ public final class GuiActionParser {
         "admin.node.kickall.prepare",
         "admin.node.list",
         "admin.node.open",
+        "admin.node.page",
         "admin.node.shutdown-safe.confirm",
         "admin.node.shutdown-safe.prepare",
         "admin.node.sweep",
@@ -270,6 +271,7 @@ public final class GuiActionParser {
             return switch (safeAction) {
                 case "gui.close" -> Optional.of(new GuiAction.Close());
                 case "admin.node.open" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.OPEN, safeData));
+                case "admin.node.page" -> Optional.of(new GuiAction.AdminNodePage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.node.list" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.LIST, safeData));
                 case "admin.node.info" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.INFO, safeData));
                 case "admin.node.islands" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.ISLANDS, safeData));

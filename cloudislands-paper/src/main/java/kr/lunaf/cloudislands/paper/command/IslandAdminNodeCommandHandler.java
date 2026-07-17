@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeS
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminNodeListMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminReviewModerationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminStorageMenu;
@@ -43,6 +44,10 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminNodePage page) {
+            openAdminNodeList(player, page.page());
+            return true;
+        }
         if (action instanceof GuiAction.AdminRoutePage page) {
             openRouteMenu(player, page.page());
             return true;
@@ -360,13 +365,17 @@ final class IslandAdminNodeCommandHandler {
     }
 
     private boolean handleAdminNodeAction(Player player, GuiAction.AdminNodeAction action, GuiClick click) {
+        if (!nodeManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-node-menu-permission-denied", "노드 관리 권한이 없습니다."));
+            return true;
+        }
         return switch (action.type()) {
             case OPEN -> {
-                openAdminNodeMenu(player, adminNodeId(action));
+                refreshAdminNodeInfo(player, adminNodeId(action));
                 yield true;
             }
             case LIST -> {
-                listAdminNodes(player);
+                openAdminNodeList(player, 0);
                 yield true;
             }
             case INFO -> {
@@ -417,34 +426,27 @@ final class IslandAdminNodeCommandHandler {
         return nodeId == null || nodeId.isBlank() ? configuredNodeId : nodeId;
     }
 
-    private void openAdminNodeMenu(Player player, String nodeId) {
-        AdminNodeMenu.open(player, nodeId, runtime.messagesFor(player));
-    }
-
-    private void listAdminNodes(Player player) {
-        UUID playerUuid = player.getUniqueId();
-        adminNodeUseCase.listNodesSummary()
-            .thenAccept(summary -> deliverMessage(playerUuid, runtime.routeMessage("admin-node-list-result-prefix", "노드 목록: ") + adminNodeBodySummary(summary)))
-            .exceptionally(error -> adminNodeFailure(playerUuid, "admin-node-list-failed", "노드 목록을 불러오지 못했습니다.", error));
+    private void openAdminNodeList(Player player, int page) {
+        if (!nodeManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-node-menu-permission-denied", "노드 관리 권한이 없습니다."));
+            return;
+        }
+        AdminNodeListMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page);
     }
 
     private void refreshAdminNodeInfo(Player player, String nodeId) {
-        UUID playerUuid = player.getUniqueId();
         MessageRenderer messages = runtime.messagesFor(player);
         GuiSession session = GuiSessions.begin(player, "admin.node.refresh");
         GuiStateMenus.openLoading(plugin, player, session, messages,
             runtime.routeMessage("admin-node-info-loading", "노드 정보를 불러오는 중입니다."));
         adminNodeUseCase.nodeInfoView(nodeId)
-            .thenAccept(summary -> PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> {
-                if (GuiSessions.isCurrent(activePlayer, session)) {
-                    AdminNodeMenu.open(activePlayer, session, nodeId, summary, messages);
-                }
-            }))
+            .thenAccept(summary -> GuiSessions.runIfCurrent(plugin, player, session,
+                () -> AdminNodeMenu.open(player, session, nodeId, summary, messages)))
             .exceptionally(error -> {
-                PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> GuiStateMenus.openError(plugin, activePlayer, session, messages,
+                GuiStateMenus.openError(plugin, player, session, messages,
                     runtime.routeMessage("admin-node-info-title", "노드 정보"),
                     runtime.routeMessage("admin-node-info-failed", "노드 정보를 불러오지 못했습니다."),
-                    "admin.node.info", Map.of("nodeId", nodeId), "admin.node.open", Map.of("nodeId", nodeId)));
+                    "admin.node.info", Map.of("nodeId", nodeId), "admin.node.open", Map.of("nodeId", nodeId));
                 return null;
             });
     }
@@ -545,6 +547,10 @@ final class IslandAdminNodeCommandHandler {
             builder.append(" 사유=").append(result.code());
         }
         return builder.toString();
+    }
+
+    private static boolean nodeManagementAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.node");
     }
 
     interface Runtime {

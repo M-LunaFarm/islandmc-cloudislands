@@ -168,6 +168,7 @@ class GuiActionParserTest {
     @Test
     void parsesAdminNodeActionsIntoTypedActions() {
         GuiAction open = GuiActionParser.parse("admin.node.open", Map.of("nodeId", " island-2 ")).orElseThrow();
+        GuiAction page = GuiActionParser.parse("admin.node.page", Map.of("page", "2")).orElseThrow();
         GuiAction kickAll = GuiActionParser.parse("admin.node.kickall.confirm", Map.of(
             "nodeId", " island-2 ",
             "reason", " drain ",
@@ -178,6 +179,8 @@ class GuiActionParserTest {
         assertTrue(open instanceof GuiAction.AdminNodeAction);
         assertEquals(GuiAction.AdminNodeActionType.OPEN, ((GuiAction.AdminNodeAction) open).type());
         assertEquals(Map.of("nodeId", "island-2"), open.data());
+        assertTrue(page instanceof GuiAction.AdminNodePage);
+        assertEquals(Map.of("page", "2"), page.data());
         assertTrue(kickAll instanceof GuiAction.AdminNodeAction);
         assertEquals(GuiAction.AdminNodeActionType.KICKALL_CONFIRM, ((GuiAction.AdminNodeAction) kickAll).type());
         assertEquals(Map.of(
@@ -610,6 +613,7 @@ class GuiActionParserTest {
 
     private static Map<String, String> sampleDataFor(String actionId) {
         return switch (actionId) {
+            case "admin.node.page" -> Map.of("page", "0");
             case "admin.jobs.page" -> Map.of("page", "0");
             case "admin.jobs.retry", "admin.jobs.cancel.prepare" -> Map.of(
                 "jobId", "00000000-0000-0000-0000-000000000004",

@@ -1239,13 +1239,16 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("shutdownAdminNodeSafely("), "admin danger mutations belong in IslandAdminNodeCommandHandler");
         assertTrue(adminHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodeAction"));
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodePage"), "node list paging must use a typed action");
         assertTrue(adminHandler.contains("case LIST ->"));
         assertTrue(adminHandler.contains("IslandAdminNodeUseCase"));
         assertTrue(adminHandler.contains("adminNodeUseCase.drainAction"));
         assertTrue(adminHandler.contains("adminNodeUseCase.shutdownSafelyAction"));
         assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.node.refresh\")"), "node refresh must reserve a GUI session before the Core request");
-        assertTrue(adminHandler.contains("thenAccept(summary -> PaperOnlinePlayer.run(plugin, playerUuid, activePlayer"), "late node summaries must re-resolve the current online administrator");
-        assertTrue(adminHandler.contains("GuiSessions.isCurrent(activePlayer, session)"), "late node summaries must not replace a newer or closed menu");
+        assertTrue(adminHandler.contains("thenAccept(summary -> GuiSessions.runIfCurrent(plugin, player, session"), "late node summaries must retain the initiating player connection");
+        assertTrue(adminHandler.contains("AdminNodeMenu.open(player, session, nodeId, summary, messages)"), "node selection must open the latest typed detail");
+        assertTrue(adminHandler.contains("AdminNodeListMenu.open(plugin, coreApiClient, player"), "node list actions must open the live selector");
+        assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.node\")"), "node GUI clicks must recheck node permission");
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminReviewModeration"), "review moderation GUI must use a typed action");
         assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.reviews.mutate\")"), "review moderation must reserve a GUI session before Core mutation");
         assertTrue(adminHandler.contains("GuiSessions.runIfCurrent(plugin, player, session"), "review moderation results must retain the exact initiating player connection");

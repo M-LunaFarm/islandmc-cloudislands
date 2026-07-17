@@ -76,6 +76,7 @@ import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigReloadResult;
 import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminNodeListMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminReviewModerationMenu;
@@ -1243,7 +1244,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             }
             return true;
         }
-        if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
+        if (args.length < 2) {
+            if (sender instanceof Player player) {
+                AdminNodeListMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player));
+            } else {
+                run(sender, "Node list", coreApiClient.adminNodes().listNodesSummary().thenApply(summary -> adminNodeSummaryMessage("Nodes", summary)));
+            }
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("list")) {
             run(sender, "Node list", coreApiClient.adminNodes().listNodesSummary().thenApply(summary -> adminNodeSummaryMessage("Nodes", summary)));
             return true;
         }
@@ -2785,7 +2794,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "island.visit" -> IslandVisitMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "island.chat" -> IslandChatMenu.open(target, targetMessages);
             case "island.my-islands" -> IslandMyIslandsMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
-            case "admin.node" -> AdminNodeMenu.open(target, nodeId, targetMessages);
+            case "admin.node" -> AdminNodeListMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.storage" -> AdminStorageMenu.open(target, targetMessages);
             case "admin.route" -> AdminRouteMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.jobs" -> AdminJobMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
