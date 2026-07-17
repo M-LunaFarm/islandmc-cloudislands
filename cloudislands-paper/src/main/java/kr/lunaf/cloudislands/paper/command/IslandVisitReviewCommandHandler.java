@@ -31,12 +31,14 @@ final class IslandVisitReviewCommandHandler {
     private final Plugin plugin;
     private final CoreApiClient coreApiClient;
     private final IslandNavigationUseCase navigationUseCase;
+    private final IslandTargetResolver targetResolver;
     private final Runtime runtime;
 
     IslandVisitReviewCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.navigationUseCase = new IslandNavigationUseCase(coreApiClient);
+        this.targetResolver = new IslandTargetResolver(coreApiClient);
         this.runtime = runtime;
     }
 
@@ -227,20 +229,24 @@ final class IslandVisitReviewCommandHandler {
             runtime.message(player, message("input-review-rating-invalid", "평점은 1~5 사이여야 합니다."));
             return;
         }
-        UUID islandId = uuid(target);
-        if (islandId == null && (target.equalsIgnoreCase("current") || target.equals("현재"))) {
-            runtime.currentIsland(player, message("review-current-island-required", "섬 안에서만 현재 섬을 평가할 수 있습니다.")).ifPresent(current -> submitIslandReview(player, current, rating, comment));
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        if (target.equalsIgnoreCase("current") || target.equals("현재")) {
+            runtime.currentIsland(player, message("review-current-island-required", "섬 안에서만 현재 섬을 평가할 수 있습니다.")).ifPresent(current -> submitIslandReview(playerSession, current, rating, comment));
             return;
         }
-        if (islandId == null) {
-            runtime.message(player, message("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다."));
-            return;
-        }
-        submitIslandReview(player, islandId, rating, comment);
+        targetResolver.resolve(target)
+            .thenAccept(islandId -> submitIslandReview(playerSession, islandId, rating, comment))
+            .exceptionally(error -> {
+                deliverMessage(playerSession, message("review-target-not-found", "평가할 섬 또는 플레이어를 찾지 못했습니다."));
+                return null;
+            });
     }
 
     private void submitIslandReview(Player player, UUID islandId, int rating, String comment) {
-        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        submitIslandReview(PlayerConnectionSession.capture(player), islandId, rating, comment);
+    }
+
+    private void submitIslandReview(PlayerConnectionSession playerSession, UUID islandId, int rating, String comment) {
         UUID playerUuid = playerSession.playerUuid();
         navigationUseCase.setReviewAction(islandId, playerUuid, rating, comment, runtime::mutateIdempotent)
             .thenAccept(result -> {
@@ -257,20 +263,24 @@ final class IslandVisitReviewCommandHandler {
     }
 
     private void deleteIslandReview(Player player, String target) {
-        UUID islandId = uuid(target);
-        if (islandId == null && (target == null || target.isBlank() || target.equalsIgnoreCase("current") || target.equals("현재"))) {
-            runtime.currentIsland(player, message("review-delete-current-island-required", "섬 안에서만 현재 섬 후기를 삭제할 수 있습니다.")).ifPresent(current -> submitReviewDelete(player, current));
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        if (target == null || target.isBlank() || target.equalsIgnoreCase("current") || target.equals("현재")) {
+            runtime.currentIsland(player, message("review-delete-current-island-required", "섬 안에서만 현재 섬 후기를 삭제할 수 있습니다.")).ifPresent(current -> submitReviewDelete(playerSession, current));
             return;
         }
-        if (islandId == null) {
-            runtime.message(player, message("input-island-uuid-invalid", "섬 UUID가 올바르지 않습니다."));
-            return;
-        }
-        submitReviewDelete(player, islandId);
+        targetResolver.resolve(target)
+            .thenAccept(islandId -> submitReviewDelete(playerSession, islandId))
+            .exceptionally(error -> {
+                deliverMessage(playerSession, message("review-target-not-found", "평가할 섬 또는 플레이어를 찾지 못했습니다."));
+                return null;
+            });
     }
 
     private void submitReviewDelete(Player player, UUID islandId) {
-        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        submitReviewDelete(PlayerConnectionSession.capture(player), islandId);
+    }
+
+    private void submitReviewDelete(PlayerConnectionSession playerSession, UUID islandId) {
         UUID playerUuid = playerSession.playerUuid();
         navigationUseCase.deleteReviewAction(islandId, playerUuid, runtime::mutateIdempotent)
             .thenAccept(result -> {
@@ -409,14 +419,6 @@ final class IslandVisitReviewCommandHandler {
             return 10;
         }
         return integer(args[index], 10);
-    }
-
-    private static UUID uuid(String value) {
-        try {
-            return UUID.fromString(value);
-        } catch (RuntimeException ignored) {
-            return null;
-        }
     }
 
     private static String compactId(String value) {

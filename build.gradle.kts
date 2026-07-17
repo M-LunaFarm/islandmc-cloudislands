@@ -1817,7 +1817,6 @@ tasks.register("verifyVisitReviewMessageKeyCoverage") {
         val ko = koMessages.asFile.readText()
         val en = enMessages.asFile.readText()
         val requiredKeys = listOf(
-            "input-island-uuid-invalid",
             "input-review-rating-invalid",
             "input-review-required",
             "public-island-id-label",
@@ -1841,6 +1840,7 @@ tasks.register("verifyVisitReviewMessageKeyCoverage") {
             "review-menu-island-required",
             "review-save-failed",
             "review-save-success-prefix",
+            "review-target-not-found",
             "visitor-stats-island-required",
             "visitor-stats-load-failed",
             "visitor-stats-menu-island-required",

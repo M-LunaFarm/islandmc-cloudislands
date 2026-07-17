@@ -851,6 +851,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(visitReviewHandler.indexOf("if (subcommand.equals(\"visitors\"))") < visitReviewHandler.indexOf("if (subcommand.equals(\"visitor-stats\")"), "visitors must list current guests before historical-stat aliases are evaluated");
         assertTrue(visitReviewHandler.contains("navigationUseCase.setReviewAction"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.deleteReviewAction"));
+        assertTrue(visitReviewHandler.contains("new IslandTargetResolver(coreApiClient)"), "review targets must share UUID, island-name, and player-primary resolution");
+        assertTrue(visitReviewHandler.contains("targetResolver.resolve(target)"), "review mutations must resolve named islands and player-owned islands");
+        assertTrue(visitReviewHandler.contains("submitIslandReview(playerSession, islandId"), "resolved review writes must retain the initiating connection");
+        assertTrue(visitReviewHandler.contains("submitReviewDelete(playerSession, islandId"), "resolved review deletes must retain the initiating connection");
+        assertTrue(visitReviewHandler.contains("review-target-not-found"), "review target lookup failures must return a target-aware message");
+        assertFalse(visitReviewHandler.contains("input-island-uuid-invalid"), "review mutations must not reject valid island and player names as malformed UUIDs");
         assertTrue(visitReviewHandler.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "review reads and mutations must retain the exact initiating player connection");
         assertTrue(visitReviewHandler.contains("PlayerConnectionSession viewerSession = PlayerConnectionSession.capture(player)"), "current visitor reads must retain the exact initiating viewer connection");
         assertTrue(visitReviewHandler.contains("viewerSession.isCurrent(activeViewer)"), "current visitor reads must reject a same-UUID replacement viewer");
