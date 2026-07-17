@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -948,6 +948,71 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         @Override
         public Map<String, String> data() {
             return Map.of("islandId", islandId.toString());
+        }
+    }
+
+    record ReviewReport(ReviewReportType type, UUID islandId, UUID reviewerUuid, String reviewerName, String confirmationToken) implements GuiAction {
+        public ReviewReport {
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
+            }
+            if (islandId == null) {
+                throw new IllegalArgumentException("islandId is required");
+            }
+            if (reviewerUuid == null) {
+                throw new IllegalArgumentException("reviewerUuid is required");
+            }
+            reviewerName = reviewerName == null ? "" : reviewerName.trim();
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
+        }
+
+        @Override
+        public Map<String, String> data() {
+            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+            values.put("islandId", islandId.toString());
+            values.put("reviewerUuid", reviewerUuid.toString());
+            if (!reviewerName.isBlank()) {
+                values.put("reviewerName", reviewerName);
+            }
+            if (type.confirmation()) {
+                values.put(ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken);
+            }
+            return Map.copyOf(values);
+        }
+
+        public boolean confirmation() {
+            return type.confirmation();
+        }
+
+        @Override
+        public String confirmationToken() {
+            return confirmationToken;
+        }
+    }
+
+    enum ReviewReportType {
+        PREPARE("island.review.report.prepare", false),
+        CONFIRM(ConfirmationTokenPolicy.REVIEW_REPORT_CONFIRM_ACTION, true);
+
+        private final String actionId;
+        private final boolean confirmation;
+
+        ReviewReportType(String actionId, boolean confirmation) {
+            this.actionId = actionId;
+            this.confirmation = confirmation;
+        }
+
+        public String actionId() {
+            return actionId;
+        }
+
+        public boolean confirmation() {
+            return confirmation;
         }
     }
 

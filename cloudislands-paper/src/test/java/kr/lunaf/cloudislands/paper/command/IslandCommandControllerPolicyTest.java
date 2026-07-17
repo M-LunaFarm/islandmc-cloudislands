@@ -844,7 +844,7 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("rateIslandReview("), "review mutation logic belongs in IslandVisitReviewCommandHandler");
         assertFalse(backend.contains("deleteIslandReview("), "review delete logic belongs in IslandVisitReviewCommandHandler");
         assertTrue(visitReviewHandler.contains("boolean handleCommand(Player player, String subcommand, String[] args)"));
-        assertTrue(visitReviewHandler.contains("boolean handleGuiAction(Player player, GuiAction action)"));
+        assertTrue(visitReviewHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(visitReviewHandler.contains("IslandNavigationUseCase"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.resolveVisitTarget"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.publicIslandViews"));
@@ -858,6 +858,7 @@ class IslandCommandControllerPolicyTest {
         assertTrue(visitReviewHandler.contains("CurrentIslandVisitorPolicy.visitor"), "current visitor classification must keep temporary co-ops distinct from permanent members");
         assertTrue(visitReviewHandler.indexOf("if (subcommand.equals(\"visitors\"))") < visitReviewHandler.indexOf("if (subcommand.equals(\"visitor-stats\")"), "visitors must list current guests before historical-stat aliases are evaluated");
         assertTrue(visitReviewHandler.contains("navigationUseCase.setReviewAction"));
+        assertTrue(visitReviewHandler.contains("navigationUseCase.reportReviewAction"));
         assertTrue(visitReviewHandler.contains("navigationUseCase.deleteReviewAction"));
         assertTrue(visitReviewHandler.contains("new IslandTargetResolver(coreApiClient)"), "review targets must share UUID, island-name, and player-primary resolution");
         assertTrue(visitReviewHandler.contains("targetResolver.resolve(target)"), "review mutations must resolve named islands and player-owned islands");

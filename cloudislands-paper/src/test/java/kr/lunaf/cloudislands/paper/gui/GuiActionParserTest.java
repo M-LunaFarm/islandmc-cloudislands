@@ -224,6 +224,25 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesReviewReportPrepareAndConfirmedActions() {
+        Map<String, String> identity = Map.of(
+            "islandId", "11111111-1111-1111-1111-111111111111",
+            "reviewerUuid", "33333333-3333-3333-3333-333333333333",
+            "reviewerName", " ReviewPlayer "
+        );
+        GuiAction prepare = GuiActionParser.parse("island.review.report.prepare", identity).orElseThrow();
+        Map<String, String> confirmedData = ConfirmationTokenPolicy.withToken(ConfirmationTokenPolicy.REVIEW_REPORT_CONFIRM_ACTION, identity);
+        GuiAction confirmed = GuiActionParser.parse(ConfirmationTokenPolicy.REVIEW_REPORT_CONFIRM_ACTION, confirmedData).orElseThrow();
+
+        assertTrue(prepare instanceof GuiAction.ReviewReport);
+        assertEquals(GuiAction.ReviewReportType.PREPARE, ((GuiAction.ReviewReport) prepare).type());
+        assertEquals("ReviewPlayer", ((GuiAction.ReviewReport) prepare).reviewerName());
+        assertTrue(confirmed instanceof GuiAction.ReviewReport);
+        assertEquals(GuiAction.ReviewReportType.CONFIRM, ((GuiAction.ReviewReport) confirmed).type());
+        assertTrue(ConfirmationTokenPolicy.confirmed(confirmed, GuiClick.LEFT));
+    }
+
+    @Test
     void parsesLimitSetIntoTypedAction() {
         GuiAction action = GuiActionParser.parse("island.limit.set", Map.of("limitKey", " redstone-blocks ", "value", "12")).orElseThrow();
 
@@ -557,6 +576,15 @@ class GuiActionParserTest {
             case "island.ranking.list" -> Map.of("kind", "LEVEL");
             case "island.ranking.page" -> Map.of("page", "0");
             case "island.review.delete" -> Map.of("islandId", "00000000-0000-0000-0000-000000000000");
+            case "island.review.report.confirm" -> Map.of(
+                "islandId", "00000000-0000-0000-0000-000000000000",
+                "reviewerUuid", "00000000-0000-0000-0000-000000000001",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
+            case "island.review.report.prepare" -> Map.of(
+                "islandId", "00000000-0000-0000-0000-000000000000",
+                "reviewerUuid", "00000000-0000-0000-0000-000000000001"
+            );
             case "island.review.set" -> Map.of(
                 "islandId", "00000000-0000-0000-0000-000000000000",
                 "rating", "5",

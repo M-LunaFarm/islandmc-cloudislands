@@ -43,6 +43,16 @@ class ConfirmationTokenPolicyTest {
             UUID.fromString("00000000-0000-0000-0000-000000000001"),
             ConfirmationTokenPolicy.token(ConfirmationTokenPolicy.WARP_DELETE_CONFIRM_ACTION)
         ), GuiClick.LEFT));
+
+        GuiAction reviewReport = new GuiAction.ReviewReport(
+            GuiAction.ReviewReportType.CONFIRM,
+            UUID.fromString("00000000-0000-0000-0000-000000000002"),
+            UUID.fromString("00000000-0000-0000-0000-000000000003"),
+            "ReviewPlayer",
+            ConfirmationTokenPolicy.token(ConfirmationTokenPolicy.REVIEW_REPORT_CONFIRM_ACTION)
+        );
+        assertTrue(ConfirmationTokenPolicy.confirmed(reviewReport, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(reviewReport, GuiClick.SHIFT_LEFT));
     }
 
     @Test

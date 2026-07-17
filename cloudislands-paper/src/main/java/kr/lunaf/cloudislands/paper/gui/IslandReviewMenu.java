@@ -81,7 +81,11 @@ public final class IslandReviewMenu implements Listener {
             for (int index = 0; index < entries.size() && index < slots.size(); index++) {
                 ReviewView review = entries.get(index);
                 int slot = slots.get(index);
-                MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, Map.of(), reviewLore(review, messages))));
+                UUID reviewerUuid = uuid(review.reviewerUuid());
+                boolean reportable = reviewerUuid != null && !reviewerUuid.equals(player.getUniqueId());
+                Map<String, String> data = reportable ? reviewReportData(islandId, review) : Map.of();
+                String actionId = reportable ? "island.review.report.prepare" : "island.reviews.open";
+                MENU.item("_").ifPresent(item -> inventory.setItem(slot, GuiMenuRenderer.item(MENU, item, messages, data, reviewLore(review, messages, reportable), actionId)));
             }
             if (entries.isEmpty() && !slots.isEmpty()) {
                 GuiMenuRenderer.setSymbolItem(inventory, MENU, "E", messages, Map.of(), List.of());
@@ -102,12 +106,31 @@ public final class IslandReviewMenu implements Listener {
         }
     }
 
-    private static List<String> reviewLore(ReviewView review, MessageRenderer messages) {
-        return List.of(
+    private static List<String> reviewLore(ReviewView review, MessageRenderer messages, boolean reportable) {
+        java.util.ArrayList<String> lore = new java.util.ArrayList<>(List.of(
             message(messages, "reviews-menu-reviewer", "작성자: ") + reviewerDisplayName(review),
             message(messages, "reviews-menu-rating", "평점: ") + review.rating() + "/5",
             message(messages, "reviews-menu-comment", "내용: ") + fallback(review.comment(), message(messages, "reviews-menu-no-comment", "내용 없음"))
-        );
+        ));
+        if (reportable) {
+            lore.add(message(messages, "reviews-menu-report-action", "클릭하여 이 후기를 신고합니다."));
+        }
+        return List.copyOf(lore);
+    }
+
+    static Map<String, String> reviewReportData(UUID islandId, ReviewView review) {
+        UUID reviewerUuid = uuid(review == null ? "" : review.reviewerUuid());
+        if (islandId == null || reviewerUuid == null) {
+            return Map.of();
+        }
+        LinkedHashMap<String, String> data = new LinkedHashMap<>();
+        data.put("islandId", islandId.toString());
+        data.put("reviewerUuid", reviewerUuid.toString());
+        String reviewerName = reviewerDisplayName(review);
+        if (!reviewerName.isBlank()) {
+            data.put("reviewerName", reviewerName);
+        }
+        return Map.copyOf(data);
     }
 
     static String reviewerDisplayName(ReviewView review) {
@@ -123,6 +146,18 @@ public final class IslandReviewMenu implements Listener {
             return "unknown";
         }
         return value.length() <= 8 ? value : value.substring(0, 8);
+    }
+
+    private static UUID uuid(String value) {
+        try {
+            return UUID.fromString(value == null ? "" : value.trim());
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    public static org.bukkit.Material reportConfirmationMaterial() {
+        return org.bukkit.Material.WRITABLE_BOOK;
     }
 
     private static String fallback(String value, String fallback) {

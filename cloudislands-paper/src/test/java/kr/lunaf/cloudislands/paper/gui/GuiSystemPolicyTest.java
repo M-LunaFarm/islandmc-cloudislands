@@ -245,7 +245,7 @@ class GuiSystemPolicyTest {
     }
 
     @Test
-    void reviewMenuCanWriteRatingsAndDeleteOwnReviewFromGui() throws Exception {
+    void reviewMenuCanWriteRatingsReportReviewsAndDeleteOwnReviewFromGui() throws Exception {
         String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandReviewMenu.java"));
         String config = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/reviews.yml"));
         String actions = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/GuiAction.java"));
@@ -258,11 +258,16 @@ class GuiSystemPolicyTest {
             assertTrue(config.contains("rating: " + rating), "review menu must expose rating " + rating + " as a GUI button");
         }
         assertTrue(menu.contains("renderReviewActions(inventory, islandId, messages)"), "review menu must bind current island id into write actions");
+        assertTrue(menu.contains("!reviewerUuid.equals(player.getUniqueId())"), "review menu must not offer report actions for the viewer's own review");
         assertTrue(actions.contains("record ReviewSet(UUID islandId, int rating, String comment)"), "review rating must be a typed GUI action");
+        assertTrue(actions.contains("record ReviewReport(ReviewReportType type, UUID islandId, UUID reviewerUuid"), "review reporting must be a typed GUI action");
         assertTrue(actions.contains("record ReviewDelete(UUID islandId)"), "review deletion must be a typed GUI action");
         assertTrue(parser.contains("case \"island.review.set\""), "review rating action must parse through the typed action parser");
+        assertTrue(parser.contains("safeAction.equals(\"island.review.report.prepare\")"), "review report action must parse through the typed action parser");
         assertTrue(parser.contains("case \"island.review.delete\""), "review delete action must parse through the typed action parser");
         assertTrue(handler.contains("action instanceof GuiAction.ReviewSet"), "review rating GUI actions must call the review use case");
+        assertTrue(handler.contains("action instanceof GuiAction.ReviewReport"), "review report GUI actions must call the review use case");
+        assertTrue(handler.contains("runtime.confirmationAccepted(player, action, click)"), "review reports must require a confirmed GUI action");
         assertTrue(handler.contains("action instanceof GuiAction.ReviewDelete"), "review delete GUI actions must call the review use case");
     }
 

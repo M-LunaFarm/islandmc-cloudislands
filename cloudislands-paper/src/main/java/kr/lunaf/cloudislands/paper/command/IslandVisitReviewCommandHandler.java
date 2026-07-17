@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewLis
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewView;
 import kr.lunaf.cloudislands.paper.application.view.PaperGuiViews.PublicIslandView;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
+import kr.lunaf.cloudislands.paper.gui.GuiClick;
 import kr.lunaf.cloudislands.paper.gui.IslandReviewMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitMenu;
 import kr.lunaf.cloudislands.paper.gui.IslandVisitorStatsMenu;
@@ -96,7 +97,7 @@ final class IslandVisitReviewCommandHandler {
         return false;
     }
 
-    boolean handleGuiAction(Player player, GuiAction action) {
+    boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
         if (action instanceof GuiAction.VisitTarget visitTarget) {
             routeVisitTarget(player, visitTarget.target());
             return true;
@@ -111,6 +112,20 @@ final class IslandVisitReviewCommandHandler {
         }
         if (action instanceof GuiAction.ReviewDelete reviewDelete) {
             submitReviewDelete(player, reviewDelete.islandId());
+            return true;
+        }
+        if (action instanceof GuiAction.ReviewReport reviewReport) {
+            if (reviewReport.reviewerUuid().equals(player.getUniqueId())) {
+                runtime.message(player, message("failure-code-review-self-report-denied", "자신이 작성한 후기는 신고할 수 없습니다."));
+                return true;
+            }
+            if (!reviewReport.confirmation()) {
+                openReviewReportConfirmation(player, reviewReport);
+                return true;
+            }
+            if (runtime.confirmationAccepted(player, action, click)) {
+                submitReviewReport(PlayerConnectionSession.capture(player), reviewReport.islandId(), reviewReport.reviewerUuid(), "gui-report");
+            }
             return true;
         }
         if (action instanceof GuiAction.NoPayload noPayload) {
@@ -309,6 +324,25 @@ final class IslandVisitReviewCommandHandler {
             });
     }
 
+    private void openReviewReportConfirmation(Player player, GuiAction.ReviewReport reviewReport) {
+        String reviewer = reviewReport.reviewerName().isBlank() ? compactId(reviewReport.reviewerUuid().toString()) : reviewReport.reviewerName();
+        runtime.openConfirmation(
+            player,
+            message("review-report-confirm-title", "후기 신고 확인"),
+            message("review-report-confirm-description", "선택한 후기를 운영진에게 신고합니다.") + " " + reviewer,
+            IslandReviewMenu.reportConfirmationMaterial(),
+            message("review-report-confirm-name", "후기 신고"),
+            "island.review.report.confirm",
+            Map.of(
+                "islandId", reviewReport.islandId().toString(),
+                "reviewerUuid", reviewReport.reviewerUuid().toString(),
+                "reviewerName", reviewer
+            ),
+            message("review-report-confirm-lore", "확인하면 이 후기를 신고합니다."),
+            "island.reviews.open"
+        );
+    }
+
     private void deleteIslandReview(Player player, String target) {
         PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
         if (target == null || target.isBlank() || target.equalsIgnoreCase("current") || target.equals("현재")) {
@@ -495,6 +529,10 @@ final class IslandVisitReviewCommandHandler {
         String playerCodeMessage(String code, String fallback);
 
         String coreWriteFailureMessage(Throwable error, String fallback);
+
+        void openConfirmation(Player player, String title, String description, org.bukkit.Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction);
+
+        boolean confirmationAccepted(Player player, GuiAction action, GuiClick click);
 
         <T> CompletableFuture<T> mutate(String auditAction, Supplier<CompletableFuture<T>> operation);
 

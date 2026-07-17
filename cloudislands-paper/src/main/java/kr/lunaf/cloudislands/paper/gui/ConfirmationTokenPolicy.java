@@ -10,6 +10,7 @@ public final class ConfirmationTokenPolicy {
     public static final String MEMBER_REMOVE_CONFIRM_ACTION = "island.member.remove.confirm";
     public static final String BAN_PARDON_CONFIRM_ACTION = "island.ban.pardon.confirm";
     public static final String SNAPSHOT_RESTORE_CONFIRM_ACTION = "island.snapshot.restore.confirm";
+    public static final String REVIEW_REPORT_CONFIRM_ACTION = "island.review.report.confirm";
     public static final String ADMIN_NODE_KICKALL_CONFIRM_ACTION = "admin.node.kickall.confirm";
     public static final String ADMIN_NODE_SHUTDOWN_SAFE_CONFIRM_ACTION = "admin.node.shutdown-safe.confirm";
 
@@ -20,6 +21,7 @@ public final class ConfirmationTokenPolicy {
         MEMBER_REMOVE_CONFIRM_ACTION,
         BAN_PARDON_CONFIRM_ACTION,
         SNAPSHOT_RESTORE_CONFIRM_ACTION,
+        REVIEW_REPORT_CONFIRM_ACTION,
         ADMIN_NODE_KICKALL_CONFIRM_ACTION,
         ADMIN_NODE_SHUTDOWN_SAFE_CONFIRM_ACTION
     );

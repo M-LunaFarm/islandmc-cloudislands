@@ -1,10 +1,14 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import java.util.UUID;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
 import kr.lunaf.cloudislands.paper.message.MessageRenderer;
+import kr.lunaf.cloudislands.paper.gui.GuiAction;
+import kr.lunaf.cloudislands.paper.gui.GuiClick;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 final class IslandVisitReviewRuntimeAdapter implements IslandVisitReviewCommandHandler.Runtime {
@@ -44,6 +48,16 @@ final class IslandVisitReviewRuntimeAdapter implements IslandVisitReviewCommandH
     @Override
     public String coreWriteFailureMessage(Throwable error, String fallback) {
         return runtime.coreWriteFailureMessage(error, fallback);
+    }
+
+    @Override
+    public void openConfirmation(Player player, String title, String description, Material material, String confirmName, String confirmAction, Map<String, String> data, String confirmLore, String cancelAction) {
+        runtime.openConfirmation(player, title, description, material, confirmName, confirmAction, data, confirmLore, cancelAction);
+    }
+
+    @Override
+    public boolean confirmationAccepted(Player player, GuiAction action, GuiClick click) {
+        return runtime.confirmationAccepted(player, action, click);
     }
 
     @Override

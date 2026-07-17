@@ -123,6 +123,8 @@ public final class GuiActionParser {
         "island.ranking.open",
         "island.ranking.page",
         "island.review.delete",
+        "island.review.report.confirm",
+        "island.review.report.prepare",
         "island.review.set",
         "island.reviews.open",
         "island.visitor-stats.open",
@@ -214,6 +216,15 @@ public final class GuiActionParser {
                 return Optional.of(new GuiAction.WarpDelete(
                     safeAction.equals("island.warp.delete.prepare") ? GuiAction.WarpDeleteType.PREPARE : GuiAction.WarpDeleteType.CONFIRM,
                     required(safeData, "warpName"),
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
+                ));
+            }
+            if (safeAction.equals("island.review.report.prepare") || reviewReportConfirmation(safeAction)) {
+                return Optional.of(new GuiAction.ReviewReport(
+                    safeAction.equals("island.review.report.prepare") ? GuiAction.ReviewReportType.PREPARE : GuiAction.ReviewReportType.CONFIRM,
+                    UUID.fromString(required(safeData, "islandId")),
+                    UUID.fromString(required(safeData, "reviewerUuid")),
+                    safeData.getOrDefault("reviewerName", ""),
                     safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
@@ -542,6 +553,10 @@ public final class GuiActionParser {
 
     private static boolean warpDeleteConfirmation(String actionId) {
         return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".warp.delete.confirm");
+    }
+
+    private static boolean reviewReportConfirmation(String actionId) {
+        return ConfirmationTokenPolicy.requiresToken(actionId) && actionId.endsWith(".review.report.confirm");
     }
 
     private static GuiAction.AdminNodeAction adminNode(GuiAction.AdminNodeActionType type, Map<String, String> data) {

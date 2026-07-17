@@ -298,7 +298,7 @@ final class IslandCommandRouter {
         if (homeWarpCommands.handleGuiAction(player, action, click)) {
             return;
         }
-        if (visitReviewCommands.handleGuiAction(player, action)) {
+        if (visitReviewCommands.handleGuiAction(player, action, click)) {
             return;
         }
         if (lifecycleCommands.handleGuiAction(player, action, click)) {
