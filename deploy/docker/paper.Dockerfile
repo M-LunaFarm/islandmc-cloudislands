@@ -37,6 +37,7 @@ COPY --from=paper-runtime /workspace/paper-runtime/cache/ /opt/cloudislands/pape
 COPY --from=paper-runtime /workspace/paper-runtime/versions/ /opt/cloudislands/paper-runtime/versions/
 COPY --from=build /workspace/cloudislands-paper/build/libs/CloudIslands-Paper-*.jar /opt/cloudislands/CloudIslands-Paper.jar
 COPY deploy/docker/paper-entrypoint.sh /opt/cloudislands/entrypoint.sh
-RUN chmod 0755 /opt/cloudislands/entrypoint.sh
+COPY deploy/docker/single-paper-entrypoint.sh /opt/cloudislands/single-paper-entrypoint.sh
+RUN chmod 0755 /opt/cloudislands/entrypoint.sh /opt/cloudislands/single-paper-entrypoint.sh
 EXPOSE 25565 8789
 ENTRYPOINT ["/opt/cloudislands/entrypoint.sh"]

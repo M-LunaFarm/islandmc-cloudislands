@@ -62,6 +62,7 @@ services:
       CI_JOB_QUEUE_MODE: REDIS
       CI_EVENT_BUS_MODE: REDIS
       CI_REDIS_URI: redis://redis:6379
+      CI_ISLAND_POOL: single-paper
       CI_STORAGE_TYPE: LOCAL_FILESYSTEM
       CI_STORAGE_LOCAL_PATH: /data/islands-storage
       CI_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
@@ -88,6 +89,42 @@ services:
       retries: 30
       start_period: 30s
 
+  paper:
+    build:
+      context: ../../..
+      dockerfile: deploy/docker/paper.Dockerfile
+      args:
+        PAPER_VERSION: ${CLOUDISLANDS_PAPER_VERSION:-26.1.2}
+    image: ${CLOUDISLANDS_PAPER_IMAGE:-cloudislands-paper:local}
+    restart: unless-stopped
+    entrypoint: ["/opt/cloudislands/single-paper-entrypoint.sh"]
+    depends_on:
+      core:
+        condition: service_healthy
+    environment:
+      EULA: ${MINECRAFT_EULA:?set MINECRAFT_EULA=TRUE after accepting the Minecraft EULA}
+      CLOUDISLANDS_NODE_ID: single-paper-01
+      CLOUDISLANDS_PAPER_ONLINE_MODE: ${CLOUDISLANDS_PAPER_ONLINE_MODE:-true}
+      CLOUDISLANDS_CORE_API_BASE_URL: http://core:8443
+      JAVA_OPTS: ${CLOUDISLANDS_PAPER_JAVA_OPTS:--Xms512m -Xmx1g}
+    secrets:
+      - cloudislands_core_token
+      - cloudislands_admin_token
+    volumes:
+      - paper-data:/data
+      - ${CLOUDISLANDS_STORAGE_PATH:?set CLOUDISLANDS_STORAGE_PATH to a durable absolute host directory}:/data/plugins/CloudIslands/islands-storage
+    networks:
+      - backend
+      - edge
+    ports:
+      - "${CLOUDISLANDS_PAPER_PORT:-25565}:25565"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:8789/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 40
+      start_period: 60s
+
 secrets:
   cloudislands_database_password:
     file: ${CLOUDISLANDS_DATABASE_PASSWORD_FILE:-./secrets/database-password}
@@ -99,6 +136,7 @@ secrets:
 volumes:
   postgres-data:
   redis-data:
+  paper-data:
 
 networks:
   backend:

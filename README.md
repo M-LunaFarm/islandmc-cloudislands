@@ -134,15 +134,13 @@ Quickstart, one Paper server:
   Paper server are not required
 - start from `deploy/examples/single-paper/config-pack.yml`
 - copy `deploy/examples/single-paper/.env.example` to `.env`, set
-  `CLOUDISLANDS_STORAGE_PATH` to the Paper plugin's absolute local storage
-  directory, create the three files under `secrets/`, and run
-  `docker compose up -d --build --wait` from that example directory
-- copy `deploy/examples/single-paper/config-v2/{runtime,integrations,security}.yml`
-  into `plugins/CloudIslands/config-v2/`, alongside the other generated Config
-  v2 files, copy the same Core/admin token files into
-  `plugins/CloudIslands/secrets/`, then start Paper after
-  `curl --fail http://127.0.0.1:8443/live` succeeds; `/ready` intentionally
-  becomes healthy only after the Paper node starts sending heartbeats
+  `CLOUDISLANDS_STORAGE_PATH` to a durable absolute host directory, create the
+  three files under `secrets/`, accept the EULA, and run
+  `docker compose up -d --build --wait` from that example directory; this
+  starts PostgreSQL, Redis, Core, and the public Paper server without Velocity
+- the Compose Paper entrypoint installs the direct-local Config v2 profile and
+  shares `CLOUDISLANDS_STORAGE_PATH` with Core; the standalone files under
+  `config-v2/` remain available when Paper is run outside Compose
 - keep the Paper role as `ISLAND_NODE` so the same server runs commands, GUI,
   protection, island activation, saving, and restoration
 - set `routing.direct-local-teleport: true` in Config v2 `integrations.yml`;

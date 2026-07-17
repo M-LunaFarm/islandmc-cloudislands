@@ -38,10 +38,17 @@ class PaperConfigSurfaceTest {
         assertTrue(compose.contains("CI_RUNTIME_MODE: single-paper-production"));
         assertTrue(compose.contains("CI_AUTH_MODE: TOKEN_REQUIRED"));
         assertTrue(compose.contains("CI_STORAGE_TYPE: LOCAL_FILESYSTEM"));
+        assertTrue(compose.contains("CI_ISLAND_POOL: single-paper"));
         assertTrue(compose.contains("127.0.0.1:8443:8443"));
         assertTrue(compose.contains("http://127.0.0.1:8443/live"));
         assertTrue(compose.contains("CI_DB_AUTO_SCHEMA: \"true\""));
         assertTrue(compose.contains("CI_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token"));
+        assertTrue(compose.contains("paper:"), "single-Paper Compose must actually launch Paper");
+        assertTrue(compose.contains("single-paper-entrypoint.sh"));
+        assertTrue(compose.contains("CLOUDISLANDS_PAPER_ONLINE_MODE: ${CLOUDISLANDS_PAPER_ONLINE_MODE:-true}"));
+        assertTrue(compose.contains("CLOUDISLANDS_CORE_API_BASE_URL: http://core:8443"));
+        assertTrue(compose.contains("CLOUDISLANDS_STORAGE_PATH"), "Core and Paper must share durable local bundle storage");
+        assertFalse(compose.contains("velocity:"), "single-Paper Compose must not require a proxy service");
         assertTrue(runtime.contains("role: ISLAND_NODE"));
         assertTrue(integrations.contains("direct-local-teleport: true"));
         assertTrue(integrations.contains("local-fallback-world: world"));
