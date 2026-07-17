@@ -129,7 +129,7 @@ final class IslandCommandBackend {
         this.settingsCommands = new IslandSettingsCommandHandler(plugin, coreApiClient, runtimeServices, locales, flightService);
         this.homeWarpCommands = new IslandHomeWarpCommandHandler(plugin, coreApiClient, new IslandHomeWarpRuntimeAdapter(runtimeServices, routingCommands));
         this.visitReviewCommands = new IslandVisitReviewCommandHandler(plugin, coreApiClient, new IslandVisitReviewRuntimeAdapter(runtimeServices, routingCommands));
-        this.lifecycleCommands = new IslandLifecycleCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices);
+        this.lifecycleCommands = new IslandLifecycleCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices, routingCommands);
         this.overviewCommands = new IslandOverviewCommandHandler(plugin, coreApiClient, runtimeServices);
         this.permissionCommands = new IslandPermissionCommandHandler(plugin, coreApiClient, runtimeServices);
         this.membershipCommands = new IslandMembershipCommandHandler(

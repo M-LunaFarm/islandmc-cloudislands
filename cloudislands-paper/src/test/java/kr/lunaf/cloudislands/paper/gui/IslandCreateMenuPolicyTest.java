@@ -66,7 +66,9 @@ class IslandCreateMenuPolicyTest {
         assertTrue(handler.contains("return playerSession.isCurrent(activePlayer) ? activePlayer : null;"), "A replacement connection must not inherit delayed template permission checks");
         assertTrue(menu.contains("thenAccept(templates -> PaperSchedulers.run(plugin, () -> {"), "Confirmation permission checks must return to the Paper main thread");
         assertTrue(handler.contains("TEMPLATE_PERMISSION_DENIED"), "Direct create must reject locked templates without calling Core create");
-        assertTrue(backend.contains("new IslandLifecycleCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices)"), "Lifecycle create handler must receive the economy bridge");
+        assertTrue(backend.contains("new IslandLifecycleCommandHandler(plugin, coreApiClient, economyBridge, runtimeServices, routingCommands)"), "Lifecycle create handler must receive economy and routing services");
+        assertTrue(handler.contains("CompletableFuture.completedFuture(result.ticket())"), "Accepted create tickets must enter the normal route polling flow");
+        assertTrue(handler.contains("routingCommands.routeTicket("), "Single-Paper create must consume its route ticket locally");
         assertTrue(messages.contains("TEMPLATE_PERMISSION_DENIED"), "Template permission denial must have a player-safe message");
     }
 

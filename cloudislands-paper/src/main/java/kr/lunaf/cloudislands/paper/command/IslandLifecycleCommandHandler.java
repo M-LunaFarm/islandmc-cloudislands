@@ -31,6 +31,7 @@ final class IslandLifecycleCommandHandler {
     private final EconomyBridge economyBridge;
     private final IslandCreationUseCase creationUseCase;
     private final Runtime runtime;
+    private final IslandRoutingCommandHandler routingCommands;
     private final PendingIslandCreationOperations pendingCreations = new PendingIslandCreationOperations();
 
     IslandLifecycleCommandHandler(Plugin plugin, CoreApiClient coreApiClient, Runtime runtime) {
@@ -38,11 +39,16 @@ final class IslandLifecycleCommandHandler {
     }
 
     IslandLifecycleCommandHandler(Plugin plugin, CoreApiClient coreApiClient, EconomyBridge economyBridge, Runtime runtime) {
+        this(plugin, coreApiClient, economyBridge, runtime, null);
+    }
+
+    IslandLifecycleCommandHandler(Plugin plugin, CoreApiClient coreApiClient, EconomyBridge economyBridge, Runtime runtime, IslandRoutingCommandHandler routingCommands) {
         this.plugin = plugin;
         this.coreApiClient = coreApiClient;
         this.economyBridge = economyBridge;
         this.creationUseCase = new IslandCreationUseCase(coreApiClient);
         this.runtime = runtime;
+        this.routingCommands = routingCommands;
     }
 
     boolean handleCommand(Player player, String subcommand, String[] args) {
@@ -176,6 +182,13 @@ final class IslandLifecycleCommandHandler {
             String detail = message("create-progress-started", "섬 생성을 시작했습니다.");
             GuiStateMenus.openSuccess(plugin, activePlayer, session, messages, message("create-progress-title", "섬 생성 요청 중"), detail, "island.main.open");
             runtime.message(activePlayer, detail);
+            if (result.ticket() != null && routingCommands != null) {
+                routingCommands.routeTicket(
+                    activePlayer,
+                    CompletableFuture.completedFuture(result.ticket()),
+                    message("create-route-failed", "섬은 생성됐지만 이동하지 못했습니다. /island home 명령으로 다시 시도해주세요.")
+                );
+            }
         });
     }
 
