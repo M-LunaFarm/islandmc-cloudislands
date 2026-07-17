@@ -19,6 +19,7 @@ import kr.lunaf.cloudislands.paper.job.CoreBackedIslandJobSource;
 import kr.lunaf.cloudislands.paper.job.PaperIslandJobWorker;
 import kr.lunaf.cloudislands.paper.level.PeriodicIslandLevelScanTask;
 import kr.lunaf.cloudislands.paper.limit.IslandLimitCache;
+import kr.lunaf.cloudislands.paper.session.DirectLocalJoinRecoveryListener;
 import kr.lunaf.cloudislands.paper.world.IslandWorldRestorer;
 import kr.lunaf.cloudislands.paper.world.ShardWorldPreloader;
 import kr.lunaf.cloudislands.paper.world.bundle.BundleRestorePlanner;
@@ -48,6 +49,19 @@ final class PaperIslandNodeRuntime {
         );
         plugin.activeIslands = new ActiveIslandRegistry();
         plugin.agent.routeTickets().setActiveIslands(plugin.activeIslands);
+        if (config.routing().directLocalTeleport()) {
+            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(
+                plugin,
+                new DirectLocalJoinRecoveryListener(
+                    plugin,
+                    plugin.activeIslands,
+                    plugin.agent.routeTickets(),
+                    config.routing().localFallbackWorld(),
+                    plugin.messages,
+                    plugin.playerLocales
+                )
+            );
+        }
         kr.lunaf.cloudislands.paper.platform.event.PaperEvents.register(
             plugin,
             new IslandSizeRuntimeListener(plugin.activeIslands, shardWorldManager, plugin.agent.protection(), plugin.getLogger())
