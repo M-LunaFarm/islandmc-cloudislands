@@ -52,6 +52,11 @@ class IslandCommandVanishCompletionTest {
         assertVisibleTargetWithLiteral(completer, viewer, "rate", "current");
         assertVisibleTargetWithLiteral(completer, viewer, "delete-review", "current");
         assertVisibleTargetWithLiteral(completer, viewer, "values", "10");
+        assertEquals(List.of("default", "shop", "farm", "event", "pvp"), completer.onTabComplete(viewer, null, "island", new String[]{"warp", "Visible", ""}));
+        assertEquals(List.of("10", "25", "50", "100"), completer.onTabComplete(viewer, null, "island", new String[]{"values", "Visible", ""}));
+        assertEquals(List.of("10", "25", "50", "100"), completer.onTabComplete(viewer, null, "island", new String[]{"rank", "worth", ""}));
+        assertEquals(List.of("10", "25", "50", "100"), completer.onTabComplete(viewer, null, "island", new String[]{"reviewrank", ""}));
+        assertTrue(completer.onTabComplete(viewer, null, "island", new String[]{"rank-list", ""}).containsAll(List.of("worth", "bank", "review", "10")));
     }
 
     private static void assertVisibleTargetWithLiteral(IslandCommandTabCompleter completer, Player viewer, String subcommand, String literal) {

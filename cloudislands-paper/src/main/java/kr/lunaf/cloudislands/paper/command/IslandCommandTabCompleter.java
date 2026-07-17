@@ -63,8 +63,13 @@ final class IslandCommandTabCompleter implements TabCompleter {
             if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("public-warps") || first.equals("공개워프")) {
                 return literalMatches(List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"), args[1]);
             }
-            if (first.equals("rank") || first.equals("ranking") || first.equals("top") || first.equals("leaderboard") || first.equals("랭킹")) {
+            if (first.equals("rank") || first.equals("ranking") || first.equals("top") || first.equals("leaderboard") || first.equals("rank-list") || first.equals("랭킹") || first.equals("랭킹목록")) {
                 return literalMatches(List.of("worth", "value", "bank", "balance", "review", "10", "25", "50"), args[1]);
+            }
+            if (first.equals("reviewrank") || first.equals("평가랭킹") || first.equals("후기랭킹")
+                || first.equals("worthrank") || first.equals("valuerank") || first.equals("가치랭킹")
+                || first.equals("bankrank") || first.equals("balancetop") || first.equals("은행랭킹")) {
+                return literalMatches(List.of("10", "25", "50", "100"), args[1]);
             }
             if (first.equals("blocks") || first.equals("values") || first.equals("counts") || first.equals("block-details") || first.equals("block-counts") || first.equals("블록상세") || first.equals("블록목록")) {
                 return playerTargetMatches(sender, args[1], List.of("10", "25", "50", "100"));
@@ -153,6 +158,15 @@ final class IslandCommandTabCompleter implements TabCompleter {
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setwarp") || args[0].equals("워프설정"))) {
             return literalMatches(List.of("default", "shop", "farm", "event", "pvp"), args[2]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("warp") || args[0].equalsIgnoreCase("warps") || args[0].equals("워프"))) {
+            return literalMatches(List.of("default", "shop", "farm", "event", "pvp"), args[2]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("blocks") || args[0].equalsIgnoreCase("values") || args[0].equalsIgnoreCase("counts") || args[0].equalsIgnoreCase("block-details") || args[0].equalsIgnoreCase("block-counts") || args[0].equals("블록상세") || args[0].equals("블록목록"))) {
+            return literalMatches(List.of("10", "25", "50", "100"), args[2]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("rank") || args[0].equalsIgnoreCase("ranking") || args[0].equalsIgnoreCase("top") || args[0].equalsIgnoreCase("leaderboard") || args[0].equalsIgnoreCase("rank-list") || args[0].equals("랭킹") || args[0].equals("랭킹목록"))) {
+            return literalMatches(List.of("10", "25", "50", "100"), args[2]);
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("rate") || args[0].equalsIgnoreCase("review") || args[0].equals("평가"))) {
             return literalMatches(List.of("5", "4", "3", "2", "1"), args[2]);

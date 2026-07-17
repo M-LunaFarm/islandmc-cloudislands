@@ -745,6 +745,10 @@ Unreleased changes:
   options such as `current`, `random`, and list limits
 - target suggestions reuse vanish-aware visibility checks and never disclose a
   player hidden from the command sender
+- targeted warp names, targeted block-value limits, and typed ranking limits
+  expose useful third-argument completions instead of ending discovery early
+- `/is rank value` and `/is rank-list value` now select the worth ranking just
+  like `worth` and `가치`, matching the advertised completion
 - `/ciadmin player setisland <player> <island>` accepts either an island UUID
   or exact island name and refuses unresolved targets before mutating Core
 

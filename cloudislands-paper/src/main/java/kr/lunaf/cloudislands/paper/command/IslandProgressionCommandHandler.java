@@ -91,7 +91,7 @@ final class IslandProgressionCommandHandler {
                     listBankRanking(player, rankingLimit(args, 2));
                     return true;
                 }
-                boolean worthRanking = args[1].equalsIgnoreCase("worth") || args[1].equals("가치");
+                boolean worthRanking = worthRankingArg(args[1]);
                 listRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
             } else {
                 openRankingMenu(player);
@@ -107,7 +107,7 @@ final class IslandProgressionCommandHandler {
                 listBankRanking(player, rankingLimit(args, 2));
                 return true;
             }
-            boolean worthRanking = args.length > 1 && (args[1].equalsIgnoreCase("worth") || args[1].equals("가치"));
+            boolean worthRanking = args.length > 1 && worthRankingArg(args[1]);
             listRanking(player, worthRanking, rankingLimit(args, worthRanking ? 2 : 1));
             return true;
         }
@@ -511,6 +511,10 @@ final class IslandProgressionCommandHandler {
 
     private static boolean bankRankingArg(String value) {
         return value.equalsIgnoreCase("bank") || value.equalsIgnoreCase("balance") || value.equals("은행") || value.equals("잔액");
+    }
+
+    static boolean worthRankingArg(String value) {
+        return value.equalsIgnoreCase("worth") || value.equalsIgnoreCase("value") || value.equals("가치");
     }
 
     private static int rankingLimit(String[] args, int index) {
