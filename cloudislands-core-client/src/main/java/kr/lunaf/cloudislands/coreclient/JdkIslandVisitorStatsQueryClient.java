@@ -28,7 +28,11 @@ final class JdkIslandVisitorStatsQueryClient implements IslandVisitorStatsQueryC
     static IslandVisitorStatsView stats(String body) {
         Map<?, ?> root = CoreJson.object(body);
         List<IslandVisitorStatsView.RecentVisitorView> recent = CoreJson.objects(root, "recentVisitors").stream()
-            .map(visitor -> new IslandVisitorStatsView.RecentVisitorView(CoreJson.text(visitor, "visitorUuid"), CoreJson.text(visitor, "lastVisitedAt")))
+            .map(visitor -> new IslandVisitorStatsView.RecentVisitorView(
+                CoreJson.text(visitor, "visitorUuid"),
+                CoreJson.text(visitor, "lastVisitedAt"),
+                CoreJson.text(visitor, "visitorName")
+            ))
             .toList();
         return new IslandVisitorStatsView(
             CoreJson.text(root, "islandId"),

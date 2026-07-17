@@ -366,8 +366,12 @@ final class IslandVisitReviewCommandHandler {
             + (recent.isEmpty() ? "" : " " + message("visitor-stats-recent-label", "최근=") + String.join(", ", recent));
     }
 
-    private static String visitorEntry(IslandVisitorStatsView.RecentVisitorView visitor) {
-        return compactId(visitor.visitorUuid()) + (visitor.lastVisitedAt().isBlank() ? "" : "@" + visitor.lastVisitedAt());
+    static String visitorEntry(IslandVisitorStatsView.RecentVisitorView visitor) {
+        return visitorDisplayName(visitor) + (visitor.lastVisitedAt().isBlank() ? "" : "@" + visitor.lastVisitedAt());
+    }
+
+    static String visitorDisplayName(IslandVisitorStatsView.RecentVisitorView visitor) {
+        return visitor == null || visitor.visitorName().isBlank() ? compactId(visitor == null ? "" : visitor.visitorUuid()) : visitor.visitorName().trim();
     }
 
     private static String joined(String[] args, int start) {

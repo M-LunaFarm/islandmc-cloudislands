@@ -138,7 +138,7 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
     public void showVisitorStats(Player player, UUID islandId, int limit) {
         withResolvedIsland(player, islandId, "방문 통계를 확인할 섬을 찾지 못했습니다.", "방문 통계를 불러오지 못했습니다.",
             resolved -> sendTextResult(player, coreApiClient.visitorStats().stats(resolved, Math.max(1, Math.min(limit, 100)))
-                .thenApply(stats -> "방문 통계: total=" + stats.totalVisits() + " unique=" + stats.uniqueVisitors() + " recent=" + stats.recentVisitors().size()), "방문 통계를 불러오지 못했습니다."));
+                .thenApply(VelocityPlayerProgressionActions::visitorStatsMessage), "방문 통계를 불러오지 못했습니다."));
     }
 
     public void recalculateLevel(Player player, UUID islandId) {
@@ -332,6 +332,22 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
 
     static String reviewerDisplayName(ReviewView review) {
         return review == null || review.reviewerName().isBlank() ? compactId(review == null ? "" : review.reviewerUuid()) : review.reviewerName().trim();
+    }
+
+    static String visitorStatsMessage(kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView stats) {
+        List<String> recent = stats.recentVisitors().stream()
+            .limit(10)
+            .filter(visitor -> !visitor.visitorUuid().isBlank())
+            .map(VelocityPlayerProgressionActions::visitorEntry)
+            .toList();
+        return "방문 통계: total=" + stats.totalVisits()
+            + " unique=" + stats.uniqueVisitors()
+            + (recent.isEmpty() ? "" : " recent=" + String.join(", ", recent));
+    }
+
+    static String visitorEntry(kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView.RecentVisitorView visitor) {
+        String displayName = visitor.visitorName().isBlank() ? compactId(visitor.visitorUuid()) : visitor.visitorName().trim();
+        return displayName + (visitor.lastVisitedAt().isBlank() ? "" : "@" + visitor.lastVisitedAt());
     }
 
     private static String compactId(String value) {

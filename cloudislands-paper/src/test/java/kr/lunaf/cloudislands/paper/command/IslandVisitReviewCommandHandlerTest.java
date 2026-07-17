@@ -2,6 +2,7 @@ package kr.lunaf.cloudislands.paper.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView.RecentVisitorView;
 import kr.lunaf.cloudislands.paper.application.IslandNavigationUseCase.ReviewView;
 import org.junit.jupiter.api.Test;
 
@@ -13,5 +14,11 @@ class IslandVisitReviewCommandHandlerTest {
 
         assertEquals("ReviewPlayer=5/5 great", IslandVisitReviewCommandHandler.reviewEntry(named));
         assertEquals("44444444=4/5", IslandVisitReviewCommandHandler.reviewEntry(legacy));
+    }
+
+    @Test
+    void visitorEntriesPreferNamesWithUuidFallback() {
+        assertEquals("VisitPlayer@now", IslandVisitReviewCommandHandler.visitorEntry(new RecentVisitorView("33333333-3333-3333-3333-333333333333", "now", " VisitPlayer ")));
+        assertEquals("33333333@later", IslandVisitReviewCommandHandler.visitorEntry(new RecentVisitorView("33333333-3333-3333-3333-333333333333", "later")));
     }
 }

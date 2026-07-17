@@ -13,8 +13,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.common.event.CloudIslandEventType;
+import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.event.InMemoryGlobalEventPublisher;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import org.junit.jupiter.api.Test;
 
 class EventRoutesTest {
@@ -73,6 +75,22 @@ class EventRoutesTest {
         assertTrue(!json.contains("vanished"));
         assertTrue(!json.contains("hidden"));
         assertTrue(!json.contains("silent"));
+    }
+
+    @Test
+    void visitorStatsIncludeHumanReadableVisitorNames() {
+        UUID visitorUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        profiles.touch(visitorUuid, "VisitPlayer");
+
+        Map<?, ?> stats = SimpleJson.object(SimpleJson.parse(EventRoutes.visitorStatsJson(
+            "{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"totalVisits\":1,\"uniqueVisitors\":1,\"recentVisitors\":[{\"visitorUuid\":\"" + visitorUuid + "\",\"lastVisitedAt\":\"now\"}]}",
+            profiles
+        )));
+        Map<?, ?> visitor = SimpleJson.object(SimpleJson.list(stats.get("recentVisitors")).getFirst());
+
+        assertEquals("VisitPlayer", visitor.get("visitorName"));
+        assertEquals("now", visitor.get("lastVisitedAt"));
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

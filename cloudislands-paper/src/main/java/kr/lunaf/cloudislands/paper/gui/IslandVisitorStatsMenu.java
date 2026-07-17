@@ -100,9 +100,13 @@ public final class IslandVisitorStatsMenu implements Listener {
 
     private static List<String> visitorLore(IslandVisitorStatsView.RecentVisitorView visitor, MessageRenderer messages) {
         return List.of(
-            message(messages, "visitor-stats-menu-visitor", "방문자: ") + shortId(visitor.visitorUuid()),
+            message(messages, "visitor-stats-menu-visitor", "방문자: ") + visitorDisplayName(visitor),
             message(messages, "visitor-stats-menu-last-visited", "마지막 방문: ") + fallback(visitor.lastVisitedAt(), message(messages, "visitor-stats-menu-unknown-time", "알 수 없음"))
         );
+    }
+
+    static String visitorDisplayName(IslandVisitorStatsView.RecentVisitorView visitor) {
+        return visitor == null || visitor.visitorName().isBlank() ? shortId(visitor == null ? "" : visitor.visitorUuid()) : visitor.visitorName().trim();
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

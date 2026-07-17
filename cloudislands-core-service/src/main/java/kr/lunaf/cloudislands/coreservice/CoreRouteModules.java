@@ -69,7 +69,7 @@ public final class CoreRouteModules {
         new CoreConfigRoutes(config, repositories.nodes()).register(route);
         new NodeRoutes(repositories.nodes(), config.heartbeatTimeout(), repositories.runtimeRepository()).register(route);
         new JobRoutes(repositories.jobs(), domainServices.jobCompletion(), repositories.audit()).register(route);
-        new EventRoutes(repositories.inMemoryEvents()).register(route);
+        new EventRoutes(repositories.inMemoryEvents(), repositories.playerProfiles()).register(route);
         new AuditRoutes(repositories.audit()).register(route);
         new AddonRoutes(repositories.addonStates(), repositories.audit(), events).register(route);
         new ProgressionRoutes(repositories.rankingRepository(), domainServices.upgradePolicy(), repositories.levelRepository(), repositories.missionRepository(), repositories.bankRepository(), repositories.limitRepository(), repositories.generatorRepository(), repositories.islandRepository(), repositories.metadataRepository(), repositories.permissionRules(), repositories.islandLogs(), repositories.audit(), events, repositories.warehouseRepository()).register(route);

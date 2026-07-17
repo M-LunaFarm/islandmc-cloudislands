@@ -3376,12 +3376,16 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private String visitorStatsMessage(IslandVisitorStatsView stats) {
         List<String> recent = stats.recentVisitors().stream()
             .limit(5)
-            .map(visitor -> shortId(visitor.visitorUuid()) + (visitor.lastVisitedAt().isBlank() ? "" : "@" + visitor.lastVisitedAt()))
+            .map(visitor -> visitorDisplayName(visitor) + (visitor.lastVisitedAt().isBlank() ? "" : "@" + visitor.lastVisitedAt()))
             .toList();
         return adminText("admin-command-visitor-stats-prefix", "Visitor stats: island=") + shortId(stats.islandId())
             + adminText("admin-command-visitor-stats-total-prefix", " total=") + stats.totalVisits()
             + adminText("admin-command-visitor-stats-unique-prefix", " unique=") + stats.uniqueVisitors()
             + (recent.isEmpty() ? "" : adminText("admin-command-visitor-stats-recent-prefix", " recent=") + String.join(",", recent));
+    }
+
+    private String visitorDisplayName(IslandVisitorStatsView.RecentVisitorView visitor) {
+        return visitor.visitorName().isBlank() ? shortId(visitor.visitorUuid()) : visitor.visitorName().trim();
     }
 
     private String adminCodeDetail(String code) {

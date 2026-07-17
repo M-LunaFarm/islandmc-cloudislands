@@ -32,7 +32,7 @@ items:
     lore-keys:
       - visitor-stats-menu-recent-lore
     fallback-lore:
-      - "최근 방문자 UUID와 마지막 방문 시각을 표시합니다."
+      - "최근 방문자 이름과 마지막 방문 시각을 표시합니다."
   E:
     material: PLAYER_HEAD
     name-key: visitor-stats-menu-empty-name

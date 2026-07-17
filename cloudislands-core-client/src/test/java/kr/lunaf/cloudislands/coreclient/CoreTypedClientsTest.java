@@ -1006,7 +1006,7 @@ class CoreTypedClientsTest {
         String source = assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkIslandVisitorStatsQueryClient.java")));
         IslandVisitorStatsView stats = JdkIslandVisitorStatsQueryClient.stats("""
             {"islandId":"%s","totalVisits":12,"uniqueVisitors":3,"recentVisitors":[
-              {"visitorUuid":"visitor-a","lastVisitedAt":"now"},
+              {"visitorUuid":"visitor-a","visitorName":"VisitPlayer","lastVisitedAt":"now"},
               {"visitorUuid":"visitor-b","lastVisitedAt":"later"}
             ]}
             """.formatted(islandId));
@@ -1015,6 +1015,7 @@ class CoreTypedClientsTest {
         assertEquals(12L, stats.totalVisits());
         assertEquals(3L, stats.uniqueVisitors());
         assertEquals("visitor-a", stats.recentVisitors().get(0).visitorUuid());
+        assertEquals("VisitPlayer", stats.recentVisitors().get(0).visitorName());
         assertEquals("later", stats.recentVisitors().get(1).lastVisitedAt());
         assertFalse(source.contains("private static String text("), "visitor stats parser must use shared CoreJson text helpers");
         assertTrue(source.contains("CoreJson.objects(root, \"recentVisitors\")"), "visitor stats parser must use shared CoreJson object list helpers");
