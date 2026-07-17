@@ -110,6 +110,7 @@ services:
       CI_DB_AUTO_SCHEMA: "true"
       CI_DB_FALLBACK_ENABLED: "false"
       CI_REDIS_URI: redis://redis:6379
+      CI_HEARTBEAT_TIMEOUT_SECONDS: ${CLOUDISLANDS_HEARTBEAT_TIMEOUT_SECONDS:-20}
       CI_REDIS_PASSWORD_FILE: /run/secrets/cloudislands_redis_password
       CI_STORAGE_TYPE: S3
       CI_STORAGE_ENDPOINT: http://minio:9000
@@ -173,6 +174,7 @@ services:
       CI_DB_AUTO_SCHEMA: "false"
       CI_DB_FALLBACK_ENABLED: "false"
       CI_REDIS_URI: redis://redis:6379
+      CI_HEARTBEAT_TIMEOUT_SECONDS: ${CLOUDISLANDS_HEARTBEAT_TIMEOUT_SECONDS:-20}
       CI_REDIS_PASSWORD_FILE: /run/secrets/cloudislands_redis_password
       CI_STORAGE_TYPE: S3
       CI_STORAGE_ENDPOINT: http://minio:9000

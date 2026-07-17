@@ -67,9 +67,14 @@ public final class ExternalTarIslandBundleExporter implements IslandBundleExport
         processBuilder.redirectErrorStream(true);
         try {
             Process process = processBuilder.start();
+            String output;
+            try (InputStream input = process.getInputStream()) {
+                output = new String(input.readAllBytes(), StandardCharsets.UTF_8).trim();
+            }
             int exitCode = process.waitFor();
             if (exitCode != 0) {
-                throw new IOException("bundle export failed with exit code " + exitCode);
+                String detail = output.isBlank() ? "no process output" : output;
+                throw new IOException("bundle export failed with exit code " + exitCode + ": " + detail);
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

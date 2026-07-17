@@ -829,11 +829,12 @@ def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     compose_proxy = root / "deploy/compose/haproxy.cfg"
     paper_entrypoint = root / "deploy/docker/paper-entrypoint.sh"
     velocity_entrypoint = root / "deploy/docker/velocity-entrypoint.sh"
+    paper_dockerfile = root / "deploy/docker/paper.Dockerfile"
     chart = root / "deploy/helm/cloudislands/Chart.yaml"
     values = root / "deploy/helm/cloudislands/values.yaml"
     workloads = root / "deploy/helm/cloudislands/templates/workloads.yaml"
     services = root / "deploy/helm/cloudislands/templates/services.yaml"
-    required_files = [compose, compose_proxy, paper_entrypoint, velocity_entrypoint, chart, values, workloads, services]
+    required_files = [compose, compose_proxy, paper_entrypoint, velocity_entrypoint, paper_dockerfile, chart, values, workloads, services]
     missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
     if missing:
         raise RuntimeError(f"deployment evidence files are missing: {missing}")
@@ -841,6 +842,7 @@ def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     compose_proxy_text = compose_proxy.read_text(encoding="utf-8")
     paper_entrypoint_text = paper_entrypoint.read_text(encoding="utf-8")
     velocity_entrypoint_text = velocity_entrypoint.read_text(encoding="utf-8")
+    paper_dockerfile_text = paper_dockerfile.read_text(encoding="utf-8")
     values_text = values.read_text(encoding="utf-8")
     workloads_text = workloads.read_text(encoding="utf-8")
     services_text = services.read_text(encoding="utf-8")
@@ -849,6 +851,8 @@ def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
             "compose-file": "core-1:" in compose_text and "core-2:" in compose_text and "velocity:" in compose_text and "island-paper-b:" in compose_text,
             "secret-file-env": "_FILE" in compose_text and "secrets:" in compose_text,
             "healthchecks": "healthcheck:" in compose_text,
+            "stable-heartbeat-timeout": compose_text.count("CI_HEARTBEAT_TIMEOUT_SECONDS: ${CLOUDISLANDS_HEARTBEAT_TIMEOUT_SECONDS:-20}") == 2,
+            "paper-snapshot-runtime": "curl zstd" in paper_dockerfile_text,
             "service-network-isolation": "networks:" in compose_text and "internal: true" in compose_text,
             "paper-redis-auth": compose_text.count("- cloudislands_redis_password") >= 6
             and "require_file /run/secrets/cloudislands_redis_password" in paper_entrypoint_text

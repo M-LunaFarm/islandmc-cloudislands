@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.paper.ProtectionController;
 import kr.lunaf.cloudislands.paper.integration.IntegrationLifecycleHooks;
@@ -20,6 +22,7 @@ import kr.lunaf.cloudislands.storage.IslandBundleManifest;
 import kr.lunaf.cloudislands.storage.IslandStorage;
 
 public final class IslandActivationJobHandler {
+    private static final Logger LOGGER = Logger.getLogger(IslandActivationJobHandler.class.getName());
     private final IslandStorage storage;
     private final ShardWorldManager shardWorldManager;
     private final ProtectionController protectionController;
@@ -33,6 +36,7 @@ public final class IslandActivationJobHandler {
     private final IntegrationLifecycleHooks integrationHooks;
     private final IslandCellUnloader cellUnloader;
     private final StarterIslandGenerator starterIslandGenerator;
+    private final ShardWorldProvisioner shardWorldProvisioner;
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController) {
         this(storage, shardWorldManager, protectionController, null, null, 0, null);
@@ -63,6 +67,10 @@ public final class IslandActivationJobHandler {
     }
 
     public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer, ActiveIslandRegistry activeIslands, IslandSaveService saveService, int defaultIslandSize, IntegrationLifecycleHooks integrationHooks, IslandCellUnloader cellUnloader, StarterIslandGenerator starterIslandGenerator) {
+        this(storage, shardWorldManager, protectionController, worldRestorer, preloader, preloadRadius, cellTransfer, activeIslands, saveService, defaultIslandSize, integrationHooks, cellUnloader, starterIslandGenerator, ShardWorldProvisioner.noop());
+    }
+
+    public IslandActivationJobHandler(IslandStorage storage, ShardWorldManager shardWorldManager, ProtectionController protectionController, IslandWorldRestorer worldRestorer, ShardWorldPreloader preloader, int preloadRadius, FileBackedCellTransfer cellTransfer, ActiveIslandRegistry activeIslands, IslandSaveService saveService, int defaultIslandSize, IntegrationLifecycleHooks integrationHooks, IslandCellUnloader cellUnloader, StarterIslandGenerator starterIslandGenerator, ShardWorldProvisioner shardWorldProvisioner) {
         this.storage = storage;
         this.shardWorldManager = shardWorldManager;
         this.protectionController = protectionController;
@@ -80,6 +88,7 @@ public final class IslandActivationJobHandler {
         this.starterIslandGenerator = starterIslandGenerator == null
             ? (cellTransfer == null ? StarterIslandGenerator.noop() : StarterIslandGenerator.unavailable())
             : starterIslandGenerator;
+        this.shardWorldProvisioner = shardWorldProvisioner == null ? ShardWorldProvisioner.noop() : shardWorldProvisioner;
     }
 
     public ActivationResult handle(IslandJob job) {
@@ -103,6 +112,7 @@ public final class IslandActivationJobHandler {
             shardWorldManager.requireSupportedIslandSize(manifest.size());
             IslandSaveService.SaveResult preMutationSnapshot = snapshotBeforeMutation(job);
             cell = cellFor(job, islandId);
+            shardWorldProvisioner.ensureLoaded(cell.worldName());
             long snapshotNo = longValue(job.payload().get("snapshotNo"));
             String storagePath = job.payload().getOrDefault("storagePath", "");
             BundleRestorePlan restorePlan = stageBundle(job, islandId, cell, snapshotNo, storagePath);
@@ -132,16 +142,19 @@ public final class IslandActivationJobHandler {
             integrationHooks.onIslandActivated(islandId, activeIsland).throwIfFailed();
             return new ActivationResult(true, "ACTIVE", islandId, cell.worldName(), cell.cellX(), cell.cellZ(), cell.originX(), cell.originZ(), manifest.size(), manifest.schemaVersion(), longValue(job.payload().get("fencingToken")), restorePlan == null ? null : restorePlan.extractedRoot().toString(), preMutationSnapshot == null ? 0L : preMutationSnapshot.snapshotNo(), preMutationSnapshot == null ? "" : preMutationSnapshot.checksum(), preMutationSnapshot == null ? 0L : preMutationSnapshot.sizeBytes(), preMutationReason(job), creationSnapshot == null ? 0L : creationSnapshot.snapshotNo(), creationSnapshot == null ? "" : creationSnapshot.checksum(), creationSnapshot == null ? 0L : creationSnapshot.sizeBytes(), placementSource);
         } catch (IslandCellUnloadException exception) {
+            LOGGER.log(Level.WARNING, "CloudIslands failed to unload the target cell for job " + job.jobId() + " island " + islandId, exception);
             if (cell != null && !hadCellBeforeActivation) {
                 shardWorldManager.release(islandId);
             }
             return new ActivationResult(false, "CELL_UNLOAD_FAILED", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L, placementSource);
         } catch (ShardCellGeometryPolicy.UnsafeGeometryException exception) {
+            LOGGER.log(Level.WARNING, "CloudIslands rejected unsafe cell geometry for job " + job.jobId() + " island " + islandId, exception);
             if (cell != null && !hadCellBeforeActivation) {
                 shardWorldManager.release(islandId);
             }
             return new ActivationResult(false, "ISLAND_SIZE_EXCEEDS_CELL", islandId, null, 0, 0, 0, 0, 0, 0L, 0L, null, 0L, "", 0L, "", 0L, "", 0L, placementSource);
         } catch (Exception exception) {
+            LOGGER.log(Level.WARNING, "CloudIslands activation failed for job " + job.jobId() + " island " + islandId, exception);
             if (cell != null && !hadCellBeforeActivation) {
                 shardWorldManager.release(islandId);
             }

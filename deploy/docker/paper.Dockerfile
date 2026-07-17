@@ -29,7 +29,7 @@ RUN mkdir -p /workspace/paper-runtime \
 FROM ${JAVA_RUNTIME_IMAGE}
 
 RUN apt-get update \
-    && apt-get install --yes --no-install-recommends curl \
+    && apt-get install --yes --no-install-recommends curl zstd \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /data
 COPY --from=paper-runtime /workspace/paper-server.jar /opt/cloudislands/server.jar

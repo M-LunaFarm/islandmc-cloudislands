@@ -55,6 +55,7 @@ final class PaperIslandNodeRuntime {
         IntegrationLifecycleHooks integrationHooks = IntegrationLifecycleHooks.fromRegistry(plugin.integrationRegistry, nodeId);
         FileBackedCellTransfer cellTransfer = new FileBackedCellTransfer(plugin.getServer().getWorldContainer().toPath());
         kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader cellUnloader = new kr.lunaf.cloudislands.paper.platform.world.BukkitIslandCellUnloader(plugin);
+        kr.lunaf.cloudislands.paper.platform.world.BukkitShardWorldProvisioner shardWorldProvisioner = new kr.lunaf.cloudislands.paper.platform.world.BukkitShardWorldProvisioner(plugin);
         IslandSaveService saveService = new IslandSaveService(
             storage,
             new ExternalTarIslandBundleExporter(plugin.getServer().getWorldContainer().toPath(), integrationHooks),
@@ -80,7 +81,8 @@ final class PaperIslandNodeRuntime {
             config.worker().defaultIslandSize(),
             integrationHooks,
             cellUnloader,
-            new kr.lunaf.cloudislands.paper.platform.world.BukkitStarterIslandGenerator(plugin)
+            new kr.lunaf.cloudislands.paper.platform.world.BukkitStarterIslandGenerator(plugin),
+            shardWorldProvisioner
         );
         IslandDeactivationHandler deactivationHandler = new IslandDeactivationHandler(
             plugin.activeIslands,

@@ -157,7 +157,7 @@ public record CoreServiceConfig(
             bool("CI_SUPERIORSKYBLOCK2_MIGRATION_ENABLED", configBoolean(config, "migration.superiorskyblock2-enabled", configBoolean(config, "migration.enabled", true))),
             Duration.ofSeconds(integer("CI_ROUTE_TICKET_TTL_SECONDS", configInteger(config, "routing.route-ticket-ttl-seconds", 30))),
             Duration.ofSeconds(integer("CI_ROUTE_PREPARING_TICKET_TTL_SECONDS", configInteger(config, "routing.route-preparing-ticket-ttl-seconds", 120))),
-            Duration.ofSeconds(integer("CI_HEARTBEAT_TIMEOUT_SECONDS", configInteger(config, "routing.heartbeat-timeout-seconds", 5))),
+            Duration.ofSeconds(integer("CI_HEARTBEAT_TIMEOUT_SECONDS", configInteger(config, "routing.heartbeat-timeout-seconds", 20))),
             Duration.ofSeconds(integer("CI_LEASE_SECONDS", configInteger(config, "routing.lease-duration-seconds", 30))),
             snapshotKeepLatest,
             snapshotRetentionPolicy,

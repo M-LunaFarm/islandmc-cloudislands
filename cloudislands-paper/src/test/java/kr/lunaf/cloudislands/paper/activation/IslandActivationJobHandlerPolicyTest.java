@@ -147,6 +147,7 @@ class IslandActivationJobHandlerPolicyTest {
             Files.writeString(stale, "previous-island");
         }
         java.util.concurrent.atomic.AtomicReference<StarterIslandGenerator.Plan> generated = new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicReference<String> provisionedWorld = new java.util.concurrent.atomic.AtomicReference<>();
         IslandActivationJobHandler handler = new IslandActivationJobHandler(
             storage,
             new ShardWorldManager("ci_shard_", 1, 1024),
@@ -160,12 +161,14 @@ class IslandActivationJobHandlerPolicyTest {
             64,
             IntegrationLifecycleHooks.noop(),
             IslandCellUnloader.noop(),
-            generated::set
+            generated::set,
+            provisionedWorld::set
         );
 
         IslandActivationJobHandler.ActivationResult result = handler.handle(createJob("", ""));
 
         assertTrue(result.success());
+        assertEquals("ci_shard_001", provisionedWorld.get());
         assertEquals("builtin-starter", result.placementSource());
         assertFalse(Files.exists(staleRegion));
         assertFalse(Files.exists(staleEntities));
