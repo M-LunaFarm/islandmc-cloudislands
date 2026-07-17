@@ -1720,6 +1720,42 @@ class CoreTypedClientsTest {
     }
 
     @Test
+    void navigationCommandClientListsAndModeratesReportedReviews() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID reviewerUuid = UUID.randomUUID();
+        UUID moderatorUuid = UUID.randomUUID();
+        String moderationBody = "{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"moderationState\":\"HIDDEN\",\"reportCount\":2,\"reportReason\":\"spam\",\"moderatedBy\":\"" + moderatorUuid + "\",\"moderatedAt\":\"now\",\"moderationNote\":\"confirmed\",\"updatedAt\":\"later\"}";
+        String moderationJson = "{\"accepted\":true,\"moderation\":" + moderationBody + "}";
+        String queueJson = "{\"count\":1,\"reviews\":[" + moderationBody + "]}";
+        List<String> calls = new ArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/admin/reviews/moderation", exchange -> respondMemberTest(exchange, calls, "queue", queueJson));
+            server.createContext("/v1/admin/reviews/moderate", exchange -> respondMemberTest(exchange, calls, "moderate", moderationJson));
+            server.start();
+            NavigationCommandClient client = new JdkCoreApiClient(
+                new URI("http://127.0.0.1:" + server.getAddress().getPort()),
+                "token",
+                Duration.ofSeconds(2)
+            ).navigationCommands();
+
+            ReviewModerationView queued = client.reviewModerationQueue(500).join().getFirst();
+            ReviewModerationView moderated = client.moderateReview(islandId, reviewerUuid, moderatorUuid, "hidden", "confirmed").join();
+
+            assertEquals("HIDDEN", queued.moderationState());
+            assertEquals(2, queued.reportCount());
+            assertEquals("confirmed", moderated.moderationNote());
+            assertEquals(List.of(
+                "queue:{\"limit\":100}",
+                "moderate:{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"moderatorUuid\":\"" + moderatorUuid + "\",\"moderationState\":\"HIDDEN\",\"note\":\"confirmed\"}"
+            ), calls);
+            assertThrows(IllegalArgumentException.class, () -> client.moderateReview(islandId, reviewerUuid, moderatorUuid, "typo", ""));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     void routingCommandClientReturnsTypedRouteOperations() {
         UUID playerUuid = UUID.randomUUID();
         UUID islandId = UUID.randomUUID();

@@ -61,6 +61,7 @@ import kr.lunaf.cloudislands.coreclient.ProgressionRankingEntryView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradePurchaseView;
 import kr.lunaf.cloudislands.coreclient.ProgressionUpgradeRecalculationView;
 import kr.lunaf.cloudislands.coreclient.ReviewActionView;
+import kr.lunaf.cloudislands.coreclient.ReviewModerationView;
 import kr.lunaf.cloudislands.coreclient.SettingsActionView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.coreclient.TemplateBundleVerificationView;
@@ -371,6 +372,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("bank")) {
             return matches(List.of("deposit", "withdraw"), args[2]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("reviews")) {
+            return matches(List.of("10", "25", "50", "100"), args[2]);
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("moderate-review")) {
+            return matches(onlinePlayerNames(), args[3]);
+        }
+        if (args.length == 5 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("moderate-review")) {
+            return matches(List.of("VISIBLE", "REPORTED", "HIDDEN"), args[4]);
         }
         if (args.length == 5 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("bank")) {
             return matches(List.of("100", "1000", "10000"), args[4]);
@@ -1562,6 +1572,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleIsland(CommandSender sender, String[] args) {
+        if (args.length >= 2 && args[1].equalsIgnoreCase("reviews")) {
+            int limit = args.length > 2 ? (int) Math.max(1L, Math.min(number(args[2], 10L), 100L)) : 10;
+            run(sender, "Review moderation queue", coreApiClient.navigationCommands().reviewModerationQueue(limit).thenApply(this::reviewModerationQueueMessage));
+            return true;
+        }
         if (args.length < 3) {
             sendIslandCommandUsage(sender);
             return true;
@@ -1790,6 +1805,28 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
                     return;
                 }
                 run(sender, "Island removeratings", coreApiClient.navigationCommands().deleteReview(islandId, reviewerUuid).thenApply(result -> reviewActionMessage("Island removeratings", result)));
+            });
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("moderate-review")) {
+            if (args.length < 5) {
+                sendCommandUsage(sender, List.of("/ciadmin island moderate-review <islandUuid|islandName> <reviewerUuid|reviewerName> <VISIBLE|REPORTED|HIDDEN> [note]"));
+                return true;
+            }
+            String moderationState = reviewModerationState(args[4]);
+            if (moderationState.isBlank()) {
+                sender.sendMessage("Review moderation state must be VISIBLE, REPORTED, or HIDDEN.");
+                return true;
+            }
+            String note = args.length > 5 ? joined(args, 5) : "admin-review-moderation";
+            UUID moderatorUuid = sender instanceof Player player ? player.getUniqueId() : new UUID(0L, 0L);
+            resolvePlayerUuid(sender, args[3]).thenAccept(reviewerUuid -> {
+                if (reviewerUuid == null) {
+                    return;
+                }
+                run(sender, "Review moderation", coreApiClient.navigationCommands()
+                    .moderateReview(islandId, reviewerUuid, moderatorUuid, moderationState, note)
+                    .thenApply(this::reviewModerationMessage));
             });
             return true;
         }
@@ -2903,6 +2940,8 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             "/ciadmin island inspect <playerUuid|playerName|islandUuid|islandName>",
             "/ciadmin island inspect <playerUuid|playerName|islandUuid|islandName> --json",
             "/ciadmin island visitor-stats <islandUuid|islandName>",
+            "/ciadmin island reviews [limit]",
+            "/ciadmin island moderate-review <islandUuid|islandName> <reviewerUuid|reviewerName> <VISIBLE|REPORTED|HIDDEN> [note]",
             "/ciadmin island tp <islandUuid|islandName>",
             "/ciadmin island activate <islandUuid|islandName>",
             "/ciadmin island deactivate <islandUuid|islandName>",
@@ -3572,6 +3611,35 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             + result.accepted()
             + adminText("admin-command-action-result-code-prefix", " code=")
             + result.code();
+    }
+
+    private String reviewModerationQueueMessage(List<ReviewModerationView> reviews) {
+        if (reviews.isEmpty()) {
+            return "Review moderation queue: empty";
+        }
+        return "Review moderation queue: total=" + reviews.size() + " / "
+            + String.join(" | ", reviews.stream().map(this::reviewModerationMessage).limit(20).toList());
+    }
+
+    private String reviewModerationMessage(ReviewModerationView review) {
+        return "island=" + review.islandId()
+            + " reviewer=" + review.reviewerUuid()
+            + " state=" + review.moderationState()
+            + " reports=" + review.reportCount()
+            + (review.reportReason().isBlank() ? "" : " reason=" + review.reportReason())
+            + (review.moderationNote().isBlank() ? "" : " note=" + review.moderationNote());
+    }
+
+    private static String reviewModerationState(String value) {
+        if (value == null) {
+            return "";
+        }
+        return switch (value.trim().toLowerCase(Locale.ROOT)) {
+            case "visible", "show", "restore", "표시", "복구" -> "VISIBLE";
+            case "reported", "pending", "신고", "대기" -> "REPORTED";
+            case "hidden", "hide", "숨김" -> "HIDDEN";
+            default -> "";
+        };
     }
 
     private String blockValueListMessage(List<BlockValueView> values) {

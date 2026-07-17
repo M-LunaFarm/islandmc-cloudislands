@@ -49,6 +49,19 @@ final class VelocityAdminCommandDispatcher extends VelocityCommandSupport {
             adminActions.adminIslandInfoTarget(player, args[2]);
             return;
         }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("reviews")) {
+            int limit = args.length > 2 ? (int) parseLongOrZero(args[2]) : 10;
+            adminActions.reviewModerationQueue(player, limit <= 0 ? 10 : limit);
+            return;
+        }
+        if (args.length >= 2 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("moderate-review")) {
+            if (args.length < 5) {
+                player.sendMessage(Component.text("사용법: /ciadmin island moderate-review <island> <reviewer> <VISIBLE|REPORTED|HIDDEN> [note]"));
+                return;
+            }
+            adminActions.moderateReviewTarget(player, args[2], args[3], args[4], args.length > 5 ? joinArgs(args, 5) : "admin-review-moderation");
+            return;
+        }
         if (args.length >= 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("where")) {
             adminActions.adminIslandWhereTarget(player, args[2]);
             return;

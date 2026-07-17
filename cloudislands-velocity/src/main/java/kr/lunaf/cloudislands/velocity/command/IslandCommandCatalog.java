@@ -35,6 +35,8 @@ public final class IslandCommandCatalog {
             "ciadmin command list [page]",
             "ciadmin island info <island|player>",
             "ciadmin island where <island>",
+            "ciadmin island reviews [limit]",
+            "ciadmin island moderate-review <island> <reviewer> <VISIBLE|REPORTED|HIDDEN> [note]",
             "ciadmin island tp <island>",
             "ciadmin island activate <island>",
             "ciadmin island deactivate <island>",

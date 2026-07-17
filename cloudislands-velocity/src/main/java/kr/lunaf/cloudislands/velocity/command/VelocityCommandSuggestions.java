@@ -115,6 +115,15 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
         if (args.length == 4 && args[0].equalsIgnoreCase("node") && args[1].equalsIgnoreCase("islands")) {
             addLiteralSuggestions(matches, args[3], List.of("25", "50", "100"));
         }
+        if (args.length == 3 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("reviews")) {
+            addLiteralSuggestions(matches, args[2], List.of("10", "25", "50", "100"));
+        }
+        if (args.length == 4 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("moderate-review")) {
+            addOnlinePlayerSuggestions(matches, args[3]);
+        }
+        if (args.length == 5 && args[0].equalsIgnoreCase("island") && args[1].equalsIgnoreCase("moderate-review")) {
+            addLiteralSuggestions(matches, args[4], List.of("VISIBLE", "REPORTED", "HIDDEN"));
+        }
         if (args.length == 4 && args[0].equalsIgnoreCase("node") && (args[1].equalsIgnoreCase("kickall") || args[1].equalsIgnoreCase("shutdown-safe"))) {
             addLiteralSuggestions(matches, args[3], List.of("maintenance", "restart", "drain"));
         }

@@ -11,7 +11,7 @@ final class AdminCommandCatalog {
     static final List<String> ADDON_COMMANDS = List.of("list", "info", "feature", "enable", "disable", "reload", "state", "state-summary", "endpoints");
     static final List<String> ADDON_FEATURES = List.of("commands", "machines", "storage", "factories", "generators", "upgrades", "missions", "menus", "gui", "lifecycle", "resource-nodes", "market", "contracts", "research", "maintenance", "placeholders", "migration", "addon-state", "route-events");
     static final List<String> NODE_COMMANDS = List.of("menu", "list", "info", "islands", "drain", "undrain", "sweep", "kickall", "shutdown-safe");
-    static final List<String> ISLAND_COMMANDS = List.of("info", "where", "inspect", "visitor-stats", "visitors", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "bulk-restore", "bank", "member", "join", "mission", "rankup", "rename", "setbiome", "biome", "delhome", "deletehome", "delwarp", "deletewarp", "setgenerator", "addgenerator", "cleargenerator", "setbanklimit", "addbanklimit", "setentitylimit", "addentitylimit", "removeentitylimit", "setteamlimit", "addteamlimit", "setcooplimit", "addcooplimit", "setrolelimit", "setchestrow", "setwarpslimit", "addwarpslimit", "setsize", "addsize", "setblocklimit", "addblocklimit", "removeblocklimit", "setrate", "removeratings", "setsettings", "resetsettings", "ignore", "unignore", "setpermission", "resetpermissions", "quarantine", "recover", "repair", "delete");
+    static final List<String> ISLAND_COMMANDS = List.of("info", "where", "inspect", "visitor-stats", "visitors", "reviews", "moderate-review", "tp", "activate", "deactivate", "migrate", "save", "snapshot", "snapshots", "restore", "rollback", "bulk-restore", "bank", "member", "join", "mission", "rankup", "rename", "setbiome", "biome", "delhome", "deletehome", "delwarp", "deletewarp", "setgenerator", "addgenerator", "cleargenerator", "setbanklimit", "addbanklimit", "setentitylimit", "addentitylimit", "removeentitylimit", "setteamlimit", "addteamlimit", "setcooplimit", "addcooplimit", "setrolelimit", "setchestrow", "setwarpslimit", "addwarpslimit", "setsize", "addsize", "setblocklimit", "addblocklimit", "removeblocklimit", "setrate", "removeratings", "setsettings", "resetsettings", "ignore", "unignore", "setpermission", "resetpermissions", "quarantine", "recover", "repair", "delete");
     static final List<String> PLAYER_COMMANDS = List.of("info", "setisland", "clearisland", "setdisbands", "givedisbands");
     static final List<String> JOB_COMMANDS = List.of("list", "retry", "cancel", "recover");
     static final List<String> ROUTE_COMMANDS = List.of("debug", "ticket", "tickets", "clear");
@@ -80,6 +80,8 @@ final class AdminCommandCatalog {
         "ciadmin island inspect <player|island>",
         "ciadmin island inspect <player|island> --json",
         "ciadmin island visitor-stats <island>",
+        "ciadmin island reviews [limit]",
+        "ciadmin island moderate-review <island> <reviewer> <VISIBLE|REPORTED|HIDDEN> [note]",
         "ciadmin island tp <island>",
         "ciadmin island activate <island>",
         "ciadmin island deactivate <island>",

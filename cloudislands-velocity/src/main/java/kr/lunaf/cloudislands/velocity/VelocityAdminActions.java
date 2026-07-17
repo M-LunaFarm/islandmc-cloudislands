@@ -14,6 +14,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+import kr.lunaf.cloudislands.coreclient.ReviewModerationView;
 import kr.lunaf.cloudislands.coreclient.TemplateView;
 import net.kyori.adventure.text.Component;
 
@@ -180,6 +181,39 @@ public final class VelocityAdminActions extends VelocityActionSupport {
             return;
         }
         sendTextResult(player, coreApiClient.adminIslands().infoByName(target).thenApply(islandMessages::islandInfo), "섬 정보를 불러오지 못했습니다.");
+    }
+
+    public void reviewModerationQueue(Player player, int limit) {
+        int cappedLimit = Math.max(1, Math.min(limit, 100));
+        sendTextResult(
+            player,
+            coreApiClient.navigationCommands().reviewModerationQueue(cappedLimit).thenApply(VelocityAdminActions::reviewModerationQueueMessage),
+            "후기 신고 목록을 불러오지 못했습니다."
+        );
+    }
+
+    public void moderateReviewTarget(Player player, String islandTarget, String reviewerTarget, String state, String note) {
+        String moderationState = reviewModerationState(state);
+        if (moderationState.isBlank()) {
+            player.sendMessage(Component.text("후기 상태는 VISIBLE, REPORTED, HIDDEN 중 하나여야 합니다."));
+            return;
+        }
+        adminIslandTarget(player, islandTarget, islandId -> targetResolver.resolvePlayerUuid(reviewerTarget).thenAccept(reviewerUuid -> {
+            if (reviewerUuid.equals(new UUID(0L, 0L))) {
+                player.sendMessage(Component.text("후기 작성자를 찾지 못했습니다."));
+                return;
+            }
+            sendTextResult(
+                player,
+                coreApiClient.navigationCommands()
+                    .moderateReview(islandId, reviewerUuid, player.getUniqueId(), moderationState, note)
+                    .thenApply(VelocityAdminActions::reviewModerationMessage),
+                "후기 상태를 변경하지 못했습니다."
+            );
+        }).exceptionally(error -> {
+            player.sendMessage(Component.text("후기 작성자를 찾지 못했습니다."));
+            return null;
+        }));
     }
 
     public void adminIslandWhere(Player player, UUID islandId) {
@@ -364,6 +398,35 @@ public final class VelocityAdminActions extends VelocityActionSupport {
     private static String normalizeGameplayKey(String value) {
         String normalized = value == null ? "" : value.trim().toUpperCase(java.util.Locale.ROOT).replaceAll("[^A-Z0-9_.:-]+", "_");
         return normalized.isBlank() ? "UNKNOWN" : normalized;
+    }
+
+    static String reviewModerationQueueMessage(List<ReviewModerationView> reviews) {
+        if (reviews.isEmpty()) {
+            return "Review moderation queue: empty";
+        }
+        return "Review moderation queue: total=" + reviews.size() + " / "
+            + String.join(" | ", reviews.stream().map(VelocityAdminActions::reviewModerationMessage).limit(20).toList());
+    }
+
+    static String reviewModerationMessage(ReviewModerationView review) {
+        return "island=" + review.islandId()
+            + " reviewer=" + review.reviewerUuid()
+            + " state=" + review.moderationState()
+            + " reports=" + review.reportCount()
+            + (review.reportReason().isBlank() ? "" : " reason=" + review.reportReason())
+            + (review.moderationNote().isBlank() ? "" : " note=" + review.moderationNote());
+    }
+
+    static String reviewModerationState(String value) {
+        if (value == null) {
+            return "";
+        }
+        return switch (value.trim().toLowerCase(Locale.ROOT)) {
+            case "visible", "show", "restore", "표시", "복구" -> "VISIBLE";
+            case "reported", "pending", "신고", "대기" -> "REPORTED";
+            case "hidden", "hide", "숨김" -> "HIDDEN";
+            default -> "";
+        };
     }
 
     public void migrateSuperiorSkyblock2(Player player, String action, String path) {

@@ -616,18 +616,29 @@ class AdminCommandBackendPolicyTest {
 
         assertTrue(adminSurface.contains("ciadmin island setrate <island>"), "Admin setrate must be listed in help");
         assertTrue(adminSurface.contains("ciadmin island removeratings <island>"), "Admin removeratings must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin island reviews [limit]"), "Review moderation queue must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin island moderate-review <island>"), "Review moderation action must be listed in help");
         assertTrue(catalog.contains("\"setrate\""), "Admin setrate must be cataloged for completion");
         assertTrue(catalog.contains("\"removeratings\""), "Admin removeratings must be cataloged for completion");
+        assertTrue(catalog.contains("\"reviews\""), "Review moderation queue must be cataloged for completion");
+        assertTrue(catalog.contains("\"moderate-review\""), "Review moderation action must be cataloged for completion");
         assertTrue(source.contains("coreApiClient.navigationCommands().setReview(islandId, reviewerUuid, rating, comment)"), "Admin setrate must use typed navigation review client");
         assertTrue(source.contains("coreApiClient.navigationCommands().deleteReview(islandId, reviewerUuid)"), "Admin removeratings must use typed navigation review client");
+        assertTrue(source.contains("reviewModerationQueue(limit)"), "Admin review queue must use typed navigation review client");
+        assertTrue(source.contains("moderateReview(islandId, reviewerUuid, moderatorUuid, moderationState, note)"), "Admin review moderation must use typed navigation review client");
         assertTrue(navigationClient.contains("setReview(UUID islandId, UUID reviewerUuid, int rating, String comment)"), "Navigation client must expose review set mutation");
         assertTrue(navigationClient.contains("deleteReview(UUID islandId, UUID reviewerUuid)"), "Navigation client must expose review deletion mutation");
+        assertTrue(navigationClient.contains("reviewModerationQueue(int limit)"), "Navigation client must expose the moderation queue");
+        assertTrue(navigationClient.contains("moderateReview(UUID islandId, UUID reviewerUuid, UUID moderatorUuid"), "Navigation client must expose review moderation");
         assertTrue(jdkNavigationClient.contains("\"/v1/islands/reviews/set\""), "JDK navigation client must call review set endpoint");
         assertTrue(jdkNavigationClient.contains("\"/v1/islands/reviews/delete\""), "JDK navigation client must call review delete endpoint");
+        assertTrue(jdkNavigationClient.contains("\"/v1/admin/reviews/moderation\""), "JDK navigation client must call review moderation queue endpoint");
+        assertTrue(jdkNavigationClient.contains("\"/v1/admin/reviews/moderate\""), "JDK navigation client must call review moderation action endpoint");
         assertTrue(reviewRoutes.contains("/v1/islands/reviews/set"), "Core review routes must register review set");
         assertTrue(reviewRoutes.contains("/v1/islands/reviews/delete"), "Core review routes must register review delete");
         assertTrue(reviewRoutes.contains("ISLAND_REVIEW_SET"), "Core review set route must audit review mutation");
         assertTrue(reviewRoutes.contains("ISLAND_REVIEW_DELETE"), "Core review delete route must audit review deletion");
+        assertTrue(reviewRoutes.contains("ISLAND_REVIEW_MODERATE"), "Core review moderation route must audit operator actions");
         assertTrue(parity.contains("\"superior.admin.setrate\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark superior.admin.setrate verified");
         assertTrue(parity.contains("\"superior.admin.removeratings\", \"cloudislands.admin.island\", \"SUPPORTED_VERIFIED\""), "Feature parity matrix must mark superior.admin.removeratings verified");
     }

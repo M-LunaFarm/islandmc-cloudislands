@@ -1,5 +1,7 @@
 package kr.lunaf.cloudislands.coreclient;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -85,6 +87,30 @@ public final class JdkNavigationCommandClient implements NavigationCommandClient
             .thenApply(JdkNavigationCommandClient::reviewReportActionResult);
     }
 
+    @Override
+    public CompletableFuture<List<ReviewModerationView>> reviewModerationQueue(int limit) {
+        int cappedLimit = Math.max(1, Math.min(limit, 100));
+        return core.postResultBody("/v1/admin/reviews/moderation", CoreJsonPayload.object("limit", cappedLimit))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkNavigationCommandClient::reviewModerationQueueResult);
+    }
+
+    @Override
+    public CompletableFuture<ReviewModerationView> moderateReview(UUID islandId, UUID reviewerUuid, UUID moderatorUuid, String moderationState, String note) {
+        requireId(islandId, "islandId");
+        requireId(reviewerUuid, "reviewerUuid");
+        requireId(moderatorUuid, "moderatorUuid");
+        String state = requireModerationState(moderationState);
+        return core.postResultBody("/v1/admin/reviews/moderate", CoreJsonPayload.object(
+                "islandId", islandId,
+                "reviewerUuid", reviewerUuid,
+                "moderatorUuid", moderatorUuid,
+                "moderationState", state,
+                "note", note == null ? "" : note))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkNavigationCommandClient::reviewModerationActionResult);
+    }
+
     static ReviewActionView reviewActionResult(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new ReviewActionView(CoreJson.accepted(root), CoreJson.text(root, "code"));
@@ -100,6 +126,39 @@ public final class JdkNavigationCommandClient implements NavigationCommandClient
             CoreJson.text(moderation, "moderationState"),
             (int) Math.min(Integer.MAX_VALUE, reportCount)
         );
+    }
+
+    static List<ReviewModerationView> reviewModerationQueueResult(String body) {
+        return CoreJson.entries(body, "reviews").stream()
+            .map(JdkNavigationCommandClient::reviewModerationView)
+            .toList();
+    }
+
+    static ReviewModerationView reviewModerationActionResult(String body) {
+        return reviewModerationView(CoreJson.objectValue(CoreJson.object(body), "moderation"));
+    }
+
+    private static ReviewModerationView reviewModerationView(Map<?, ?> values) {
+        long reportCount = Math.max(0L, CoreJson.number(values, "reportCount"));
+        return new ReviewModerationView(
+            CoreJson.text(values, "islandId"),
+            CoreJson.text(values, "reviewerUuid"),
+            CoreJson.text(values, "moderationState"),
+            (int) Math.min(Integer.MAX_VALUE, reportCount),
+            CoreJson.text(values, "reportReason"),
+            CoreJson.text(values, "moderatedBy"),
+            CoreJson.text(values, "moderatedAt"),
+            CoreJson.text(values, "moderationNote"),
+            CoreJson.text(values, "updatedAt")
+        );
+    }
+
+    private static String requireModerationState(String value) {
+        String state = value == null ? "" : value.trim().toUpperCase(Locale.ROOT);
+        if (!state.equals("VISIBLE") && !state.equals("REPORTED") && !state.equals("HIDDEN")) {
+            throw new IllegalArgumentException("moderationState must be VISIBLE, REPORTED, or HIDDEN");
+        }
+        return state;
     }
 
     private static void requireId(UUID id, String name) {
