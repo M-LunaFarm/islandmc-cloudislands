@@ -828,17 +828,19 @@ def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
     compose = root / "deploy/compose/docker-compose.yml"
     compose_proxy = root / "deploy/compose/haproxy.cfg"
     paper_entrypoint = root / "deploy/docker/paper-entrypoint.sh"
+    velocity_entrypoint = root / "deploy/docker/velocity-entrypoint.sh"
     chart = root / "deploy/helm/cloudislands/Chart.yaml"
     values = root / "deploy/helm/cloudislands/values.yaml"
     workloads = root / "deploy/helm/cloudislands/templates/workloads.yaml"
     services = root / "deploy/helm/cloudislands/templates/services.yaml"
-    required_files = [compose, compose_proxy, paper_entrypoint, chart, values, workloads, services]
+    required_files = [compose, compose_proxy, paper_entrypoint, velocity_entrypoint, chart, values, workloads, services]
     missing = [str(path.relative_to(root)) for path in required_files if not path.is_file()]
     if missing:
         raise RuntimeError(f"deployment evidence files are missing: {missing}")
     compose_text = compose.read_text(encoding="utf-8")
     compose_proxy_text = compose_proxy.read_text(encoding="utf-8")
     paper_entrypoint_text = paper_entrypoint.read_text(encoding="utf-8")
+    velocity_entrypoint_text = velocity_entrypoint.read_text(encoding="utf-8")
     values_text = values.read_text(encoding="utf-8")
     workloads_text = workloads.read_text(encoding="utf-8")
     services_text = services.read_text(encoding="utf-8")
@@ -852,6 +854,9 @@ def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
             and "require_file /run/secrets/cloudislands_redis_password" in paper_entrypoint_text
             and "uri: redis://redis:6379" in paper_entrypoint_text
             and 'password: "${file:/run/secrets/cloudislands_redis_password}"' in paper_entrypoint_text,
+            "protocol-smoke-auth-mode": compose_text.count("CLOUDISLANDS_VELOCITY_ONLINE_MODE: ${CLOUDISLANDS_VELOCITY_ONLINE_MODE:-true}") == 4
+            and "online-mode = ${VELOCITY_ONLINE_MODE}" in velocity_entrypoint_text
+            and "online-mode: ${VELOCITY_ONLINE_MODE}" in paper_entrypoint_text,
             "core-api-failover": "core-api:" in compose_text
             and "http://core-api:8443" in compose_text
             and "core-1 core-1:8443 check" in compose_proxy_text

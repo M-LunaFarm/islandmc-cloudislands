@@ -33,6 +33,7 @@ NODE_ID="${CLOUDISLANDS_NODE_ID:-}"
 NODE_ROLE="${CLOUDISLANDS_NODE_ROLE:-}"
 NODE_POOL="${CLOUDISLANDS_NODE_POOL:-island}"
 VELOCITY_NAME="${CLOUDISLANDS_VELOCITY_SERVER_NAME:-}"
+VELOCITY_ONLINE_MODE="${CLOUDISLANDS_VELOCITY_ONLINE_MODE:-true}"
 require_value "$NODE_ID" CLOUDISLANDS_NODE_ID
 require_value "$NODE_ROLE" CLOUDISLANDS_NODE_ROLE
 require_value "$VELOCITY_NAME" CLOUDISLANDS_VELOCITY_SERVER_NAME
@@ -46,6 +47,10 @@ esac
 case "$NODE_ROLE" in
     LOBBY|ISLAND_NODE) ;;
     *) echo "CLOUDISLANDS_NODE_ROLE must be LOBBY or ISLAND_NODE." >&2; exit 78 ;;
+esac
+case "$VELOCITY_ONLINE_MODE" in
+    true|false) ;;
+    *) echo "CLOUDISLANDS_VELOCITY_ONLINE_MODE must be true or false." >&2; exit 78 ;;
 esac
 
 FORWARDING_SECRET="$(tr -d '\r\n' < /run/secrets/cloudislands_forwarding_secret)"
@@ -79,7 +84,7 @@ _version: 31
 proxies:
   velocity:
     enabled: true
-    online-mode: true
+    online-mode: ${VELOCITY_ONLINE_MODE}
     secret: '${FORWARDING_SECRET}'
 EOF
 

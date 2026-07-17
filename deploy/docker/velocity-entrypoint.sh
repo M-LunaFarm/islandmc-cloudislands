@@ -12,6 +12,12 @@ require_file /run/secrets/cloudislands_core_token
 require_file /run/secrets/cloudislands_admin_token
 require_file /run/secrets/cloudislands_forwarding_secret
 
+VELOCITY_ONLINE_MODE="${CLOUDISLANDS_VELOCITY_ONLINE_MODE:-true}"
+case "$VELOCITY_ONLINE_MODE" in
+    true|false) ;;
+    *) echo "CLOUDISLANDS_VELOCITY_ONLINE_MODE must be true or false." >&2; exit 78 ;;
+esac
+
 FORWARDING_SECRET="$(tr -d '\r\n' < /run/secrets/cloudislands_forwarding_secret)"
 case "$FORWARDING_SECRET" in
     *[!A-Za-z0-9_-]*) echo "Forwarding secret must use URL-safe characters only." >&2; exit 78 ;;
@@ -25,12 +31,12 @@ mkdir -p plugins/cloudislands/config-v2
 cp /opt/cloudislands/CloudIslands-Velocity.jar plugins/CloudIslands-Velocity.jar
 printf '%s\n' "$FORWARDING_SECRET" > forwarding.secret
 
-cat > velocity.toml <<'EOF'
+cat > velocity.toml <<EOF
 config-version = "2.7"
 bind = "0.0.0.0:25565"
 motd = "CloudIslands"
 show-max-players = 500
-online-mode = true
+online-mode = ${VELOCITY_ONLINE_MODE}
 force-key-authentication = true
 player-info-forwarding-mode = "modern"
 forwarding-secret-file = "forwarding.secret"
