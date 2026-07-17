@@ -850,7 +850,7 @@ def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
             and "http://core-api:8443" in compose_text
             and "core-1 core-1:8443 check" in compose_proxy_text
             and "core-2 core-2:8443 check" in compose_proxy_text
-            and "option httpchk GET /ready" in compose_proxy_text,
+            and "option httpchk GET /live" in compose_proxy_text,
         },
         "helm-chart": {
             "chart": "apiVersion: v2" in chart.read_text(encoding="utf-8"),

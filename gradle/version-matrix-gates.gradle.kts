@@ -274,6 +274,7 @@ tasks.register("verifyMinecraftVersionMatrix") {
         val composeVersion = "PAPER_VERSION: \${CLOUDISLANDS_PAPER_VERSION:-${latestStable.bootVersion}}"
         val requiredSignals = mapOf(
             "Compose Paper version" to (compose.split(composeVersion).size - 1 == 3),
+            "Compose Core heap bounds" to (compose.split("JAVA_OPTS: \${CLOUDISLANDS_CORE_JAVA_OPTS:--Xms128m -Xmx768m}").size - 1 == 2),
             "Paper Docker build version" to paperDockerfile.contains("ARG PAPER_VERSION=${latestStable.bootVersion}"),
             "Paper plugin build JDK" to paperDockerfile.contains("ARG JAVA_IMAGE=eclipse-temurin:${gateJavaCurrentVersion}-jdk-jammy"),
             "Paper server preparation JDK" to paperDockerfile.contains("ARG PAPER_JAVA_IMAGE=eclipse-temurin:${latestStable.javaVersion}-jdk-jammy"),

@@ -118,6 +118,7 @@ services:
       CI_STORAGE_SECRET_KEY_FILE: /run/secrets/cloudislands_storage_secret_key
       CI_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
       CI_ADMIN_TOKEN_FILE: /run/secrets/cloudislands_admin_token
+      JAVA_OPTS: ${CLOUDISLANDS_CORE_JAVA_OPTS:--Xms128m -Xmx768m}
     secrets:
       - cloudislands_database_password
       - cloudislands_redis_password
@@ -180,6 +181,7 @@ services:
       CI_STORAGE_SECRET_KEY_FILE: /run/secrets/cloudislands_storage_secret_key
       CI_CORE_TOKEN_FILE: /run/secrets/cloudislands_core_token
       CI_ADMIN_TOKEN_FILE: /run/secrets/cloudislands_admin_token
+      JAVA_OPTS: ${CLOUDISLANDS_CORE_JAVA_OPTS:--Xms128m -Xmx768m}
     secrets:
       - cloudislands_database_password
       - cloudislands_redis_password
