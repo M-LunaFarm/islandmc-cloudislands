@@ -190,29 +190,16 @@ public final class InMemoryIslandJobPublisher implements IslandJobQueue {
     }
 
     public synchronized String toJson() {
-        StringBuilder builder = new StringBuilder("{\"jobs\":[");
-        boolean first = true;
-        for (JobRecord record : jobs) {
-            if (!first) {
-                builder.append(',');
-            }
-            first = false;
-            IslandJob job = record.job();
-            builder.append('{')
-                .append("\"id\":\"").append(job.jobId()).append("\",")
-                .append("\"type\":\"").append(job.type()).append("\",")
-                .append("\"islandId\":\"").append(job.islandId()).append("\",")
-                .append("\"targetNode\":\"").append(job.targetNode()).append("\",")
-                .append("\"state\":\"").append(record.state()).append("\",")
-                .append("\"attempts\":").append(record.attempts()).append(',')
-                .append("\"lockedBy\":\"").append(record.lockedBy() == null ? "" : record.lockedBy()).append("\",")
-                .append("\"claimToken\":\"").append(record.claimToken() == null ? "" : record.claimToken()).append("\",")
-                .append("\"claimEpoch\":").append(record.claimEpoch()).append(',')
-                .append("\"leaseExpiresAt\":\"").append(record.lockedUntil() == null ? "" : record.lockedUntil()).append("\",")
-                .append("\"error\":\"").append(record.errorMessage() == null ? "" : record.errorMessage()).append("\"")
-                .append('}');
-        }
-        return builder.append("]}").toString();
+        return JobAdminJson.jobs(jobs.stream()
+            .map(record -> JobAdminJson.entry(
+                record.job(),
+                record.state().name(),
+                record.attempts(),
+                record.lockedBy(),
+                record.errorMessage(),
+                record.updatedAt()
+            ))
+            .toList());
     }
 
     private void replace(UUID jobId, java.util.function.UnaryOperator<JobRecord> update) {

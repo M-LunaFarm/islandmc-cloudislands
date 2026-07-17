@@ -1,9 +1,11 @@
 package kr.lunaf.cloudislands.coreservice.job;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class JdbcIslandJobQueuePayloadTest {
@@ -27,5 +29,15 @@ class JdbcIslandJobQueuePayloadTest {
         assertEquals(Map.of(), JdbcIslandJobQueue.payload(JdbcIslandJobQueue.toJson(null)));
         assertEquals(Map.of(), JdbcIslandJobQueue.payload("{broken"));
         assertEquals(Map.of(), JdbcIslandJobQueue.payload("[1,2,3]"));
+    }
+
+    @Test
+    void uuidMappingSupportsPostgresUuidAndMysqlTextColumns() {
+        UUID id = UUID.randomUUID();
+
+        assertEquals(id, JdbcIslandJobQueue.uuid(id));
+        assertEquals(id, JdbcIslandJobQueue.uuid(id.toString()));
+        assertNull(JdbcIslandJobQueue.uuid(null));
+        assertNull(JdbcIslandJobQueue.uuid(" "));
     }
 }

@@ -317,31 +317,21 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
     }
 
     public String toJson() {
-        StringBuilder builder = new StringBuilder("{\"jobs\":[");
         try (Connection connection = dataSource.getConnection();
              PreparedStatement statement = connection.prepareStatement("SELECT * FROM island_jobs ORDER BY created_at DESC LIMIT 100");
              ResultSet rs = statement.executeQuery()) {
-            boolean first = true;
+            List<Map<String, Object>> jobs = new ArrayList<>();
             while (rs.next()) {
-                if (!first) {
-                    builder.append(',');
-                }
-                first = false;
-                builder.append('{')
-                    .append("\"id\":\"").append(rs.getObject("id")).append("\",")
-                    .append("\"type\":\"").append(rs.getString("job_type")).append("\",")
-                    .append("\"islandId\":\"").append(rs.getObject("island_id")).append("\",")
-                    .append("\"targetNode\":\"").append(rs.getString("target_node") == null ? "" : rs.getString("target_node")).append("\",")
-                    .append("\"state\":\"").append(rs.getString("state")).append("\",")
-                    .append("\"attempts\":").append(rs.getInt("retry_count")).append(',')
-                    .append("\"lockedBy\":\"").append(rs.getString("locked_by") == null ? "" : rs.getString("locked_by")).append("\",")
-                    .append("\"claimToken\":\"").append(rs.getString("claim_token") == null ? "" : rs.getString("claim_token")).append("\",")
-                    .append("\"claimEpoch\":").append(rs.getLong("claim_epoch")).append(',')
-                    .append("\"streamId\":\"").append(rs.getString("claim_stream_id") == null ? "" : rs.getString("claim_stream_id")).append("\",")
-                    .append("\"error\":\"").append(rs.getString("error_message") == null ? "" : rs.getString("error_message").replace("\"", "'")).append("\"")
-                    .append('}');
+                jobs.add(JobAdminJson.entry(
+                    map(rs),
+                    rs.getString("state"),
+                    rs.getLong("retry_count"),
+                    rs.getString("locked_by"),
+                    rs.getString("error_message"),
+                    timestamp(rs, "updated_at")
+                ));
             }
-            return builder.append("]}").toString();
+            return JobAdminJson.jobs(jobs);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to render jdbc island jobs", exception);
         }
@@ -393,9 +383,9 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
 
     private IslandJob map(ResultSet rs) throws SQLException {
         IslandJob job = new IslandJob(
-            (UUID) rs.getObject("id"),
+            uuid(rs.getObject("id")),
             IslandJobType.valueOf(rs.getString("job_type")),
-            (UUID) rs.getObject("island_id"),
+            uuid(rs.getObject("island_id")),
             rs.getString("target_node"),
             rs.getInt("priority"),
             payload(rs.getString("payload")),
@@ -416,6 +406,22 @@ public final class JdbcIslandJobQueue implements IslandJobQueue {
             lockedUntil.toInstant(),
             rs.getInt("retry_count")
         ));
+    }
+
+    static UUID uuid(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof UUID uuid) {
+            return uuid;
+        }
+        String text = value.toString().trim();
+        return text.isBlank() ? null : UUID.fromString(text);
+    }
+
+    private static Instant timestamp(ResultSet rs, String column) throws SQLException {
+        java.sql.Timestamp value = rs.getTimestamp(column);
+        return value == null ? null : value.toInstant();
     }
 
     static Map<String, String> payload(String json) {

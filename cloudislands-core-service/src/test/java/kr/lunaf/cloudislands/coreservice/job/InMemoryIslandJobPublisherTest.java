@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import kr.lunaf.cloudislands.common.json.JsonCodec;
 import kr.lunaf.cloudislands.protocol.job.IslandJob;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.protocol.job.JobClaimLease;
@@ -97,5 +98,39 @@ class InMemoryIslandJobPublisherTest {
         assertFalse(jobs.retry(jobId));
         assertFalse(jobs.cancel(jobId));
         assertTrue(jobs.findClaimed(jobId, lease).isPresent());
+    }
+
+    @Test
+    void adminJsonEscapesRuntimeTextAndIncludesTypedJobFieldsWithoutClaimSecrets() {
+        InMemoryIslandJobPublisher jobs = new InMemoryIslandJobPublisher();
+        UUID jobId = UUID.randomUUID();
+        UUID islandId = UUID.randomUUID();
+        String payloadValue = "bundle\\path\n\"quoted\"";
+        String error = "storage \\ unavailable\n\"retry later\"";
+        jobs.publish(new IslandJob(
+            jobId,
+            IslandJobType.RESTORE_ISLAND,
+            islandId,
+            "island-node-1",
+            17,
+            Map.of("bundle", payloadValue),
+            Instant.EPOCH
+        ));
+        for (int attempt = 0; attempt < 3; attempt++) {
+            JobClaimLease lease = jobs.claim("island-node-1", List.of(IslandJobType.RESTORE_ISLAND), 1).getFirst().claimLease();
+            assertTrue(jobs.fail("island-node-1", jobId, lease, error));
+        }
+
+        Map<String, Object> root = JsonCodec.readObject(jobs.toJson());
+        Map<?, ?> rendered = (Map<?, ?>) ((List<?>) root.get("jobs")).getFirst();
+
+        assertEquals(jobId.toString(), rendered.get("id"));
+        assertEquals("FAILED", rendered.get("state"));
+        assertEquals(17, rendered.get("priority"));
+        assertEquals(error, rendered.get("error"));
+        assertEquals(payloadValue, ((Map<?, ?>) rendered.get("payload")).get("bundle"));
+        assertTrue(rendered.containsKey("createdAt"));
+        assertTrue(rendered.containsKey("updatedAt"));
+        assertFalse(rendered.containsKey("claimToken"));
     }
 }
