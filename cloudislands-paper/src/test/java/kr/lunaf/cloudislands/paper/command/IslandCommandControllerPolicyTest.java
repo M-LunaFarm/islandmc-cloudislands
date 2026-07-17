@@ -777,6 +777,11 @@ class IslandCommandControllerPolicyTest {
         assertTrue(homeWarpHandler.contains("runtime.routeHome(player, name)"), "single-Paper home outside an island must use the Core selected-island route");
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.warpViews"));
         assertTrue(homeWarpHandler.contains("homeWarpUseCase.publicWarpViews"));
+        assertTrue(homeWarpHandler.contains("private void routeWarpTarget(Player player, String target, String warpName)"), "native and migration warp commands must share target routing");
+        assertTrue(homeWarpHandler.contains("targetResolver.resolve(target)"), "targeted warps must resolve UUIDs, island names, and player primary islands");
+        assertTrue(homeWarpHandler.contains("thenAccept(islandId -> runSync(playerSession, activePlayer -> runtime.routeWarp"), "targeted warp routing must retain the initiating connection and return to the Paper scheduler");
+        assertTrue(homeWarpHandler.contains("routeWarpTarget(player, args[1], args[2])"), "native targeted warp forms must use the shared resolver");
+        assertFalse(homeWarpHandler.contains("input-island-uuid-invalid"), "native targeted warps must not reject valid island and player names as malformed UUIDs");
         assertTrue(homeWarpHandler.contains("private void runSync(PlayerConnectionSession playerSession, Consumer<Player> task)"), "Core callbacks must have one exact-connection Paper scheduler return boundary");
         assertTrue(homeWarpHandler.contains("thenAccept(homes -> runSync(playerSession, activePlayer -> runtime.moveToPoint"), "home lookup must retain the initiating connection before teleporting");
         assertTrue(homeWarpHandler.contains("thenCompose(warps ->"), "warp and island-info lookups must form one observable completion chain");

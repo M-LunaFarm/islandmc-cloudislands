@@ -47,14 +47,7 @@ final class IslandHomeWarpCommandHandler {
                 runtime.message(player, message("input-island-target-required"));
                 return true;
             }
-            String warpName = args.length > 2 ? args[2] : "default";
-            PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
-            targetResolver.resolve(args[1])
-                .thenAccept(islandId -> runSync(playerSession, activePlayer -> runtime.routeWarp(activePlayer, islandId, warpName)))
-                .exceptionally(error -> {
-                    deliverMessage(playerSession, message("input-island-target-not-found"));
-                    return null;
-                });
+            routeWarpTarget(player, args[1], args.length > 2 ? args[2] : "default");
             return true;
         }
         if (subcommand.equals("sethome") || subcommand.equals("setteleport") || subcommand.equals("settp") || subcommand.equals("setgo") || subcommand.equals("setspawnpoint") || subcommand.equals("셋홈")) {
@@ -79,11 +72,8 @@ final class IslandHomeWarpCommandHandler {
         }
         if (subcommand.equals("warps") || subcommand.equals("warp-menu") || subcommand.equals("워프") || subcommand.equals("워프관리")) {
             if (args.length > 2) {
-                UUID islandId = uuid(args[1]);
-                if (islandId != null) {
-                    runtime.routeWarp(player, islandId, args[2]);
-                    return true;
-                }
+                routeWarpTarget(player, args[1], args[2]);
+                return true;
             }
             if (args.length == 2) {
                 UUID islandId = uuid(args[1]);
@@ -113,12 +103,7 @@ final class IslandHomeWarpCommandHandler {
         }
         if (subcommand.equals("warp")) {
             if (args.length > 2) {
-                UUID islandId = uuid(args[1]);
-                if (islandId == null) {
-                    runtime.message(player, message("input-island-uuid-invalid"));
-                    return true;
-                }
-                runtime.routeWarp(player, islandId, args[2]);
+                routeWarpTarget(player, args[1], args[2]);
                 return true;
             }
             if (args.length == 2) {
@@ -382,6 +367,16 @@ final class IslandHomeWarpCommandHandler {
                     return null;
                 });
         });
+    }
+
+    private void routeWarpTarget(Player player, String target, String warpName) {
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        targetResolver.resolve(target)
+            .thenAccept(islandId -> runSync(playerSession, activePlayer -> runtime.routeWarp(activePlayer, islandId, warpName)))
+            .exceptionally(error -> {
+                deliverMessage(playerSession, message("input-island-target-not-found"));
+                return null;
+            });
     }
 
     private void deleteWarp(Player player, String name) {

@@ -1337,7 +1337,7 @@ tasks.register("verifyHomeWarpMessageKeyCoverage") {
             "home-warp-action-reason-prefix",
             "home-warp-action-target-prefix",
             "island-info-load-failed",
-            "input-island-uuid-invalid",
+            "input-island-target-not-found",
             "input-warp-name-required",
             "public-warp-list-category-label",
             "public-warp-list-empty",
