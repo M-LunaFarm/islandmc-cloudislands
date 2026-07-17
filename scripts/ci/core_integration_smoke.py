@@ -856,6 +856,7 @@ def deployment_template_artifacts() -> tuple[dict[str, list[str]], list[dict]]:
             and 'password: "${file:/run/secrets/cloudislands_redis_password}"' in paper_entrypoint_text,
             "protocol-smoke-auth-mode": compose_text.count("CLOUDISLANDS_VELOCITY_ONLINE_MODE: ${CLOUDISLANDS_VELOCITY_ONLINE_MODE:-true}") == 4
             and "online-mode = ${VELOCITY_ONLINE_MODE}" in velocity_entrypoint_text
+            and "force-key-authentication = ${VELOCITY_ONLINE_MODE}" in velocity_entrypoint_text
             and "online-mode: ${VELOCITY_ONLINE_MODE}" in paper_entrypoint_text,
             "core-api-failover": "core-api:" in compose_text
             and "http://core-api:8443" in compose_text

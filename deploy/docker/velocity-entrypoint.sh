@@ -37,7 +37,7 @@ bind = "0.0.0.0:25565"
 motd = "CloudIslands"
 show-max-players = 500
 online-mode = ${VELOCITY_ONLINE_MODE}
-force-key-authentication = true
+force-key-authentication = ${VELOCITY_ONLINE_MODE}
 player-info-forwarding-mode = "modern"
 forwarding-secret-file = "forwarding.secret"
 

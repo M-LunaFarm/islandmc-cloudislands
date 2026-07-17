@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.velocity.command;
 import com.velocitypowered.api.command.CommandManager;
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.command.SimpleCommand;
+import com.velocitypowered.api.permission.Tristate;
 import com.velocitypowered.api.proxy.Player;
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,7 @@ public final class VelocityCommandRegistrar {
                     invocation.source().sendMessage(messages.component("player-only"));
                     return;
                 }
-                if (!player.hasPermission("cloudislands.player")) {
+                if (!canUsePlayerCommands(player.getPermissionValue("cloudislands.player"))) {
                     player.sendMessage(messages.component("no-player-permission"));
                     return;
                 }
@@ -90,6 +91,10 @@ public final class VelocityCommandRegistrar {
             }
         }
         return result.toArray(String[]::new);
+    }
+
+    static boolean canUsePlayerCommands(Tristate permission) {
+        return permission != Tristate.FALSE;
     }
 
     public record PlayerInvocation(Player player, String[] arguments) {
