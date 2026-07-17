@@ -47,5 +47,7 @@ class PaperHeartbeatServicePolicyTest {
         int heartbeat = bootstrap.indexOf("PaperHeartbeatRuntime.start(");
 
         assertTrue(islandRuntime >= 0 && heartbeat > islandRuntime, "the node must not advertise STARTING or READY before its island worker is installed");
+        assertTrue(bootstrap.contains("storageHealth::available"), "heartbeat must read the async storage-health cache");
+        assertTrue(!bootstrap.contains("storage.available()"), "plugin bootstrap and heartbeat paths must never probe object storage on the Bukkit thread");
     }
 }

@@ -1,5 +1,7 @@
 package kr.lunaf.cloudislands.paper;
 
+import java.time.Duration;
+
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.paper.bootstrap.PaperCoreClientFactory;
@@ -46,9 +48,9 @@ import kr.lunaf.cloudislands.paper.session.PaperInviteNotificationListener;
 import kr.lunaf.cloudislands.paper.session.PaperPlayerProfileListener;
 import kr.lunaf.cloudislands.paper.session.PaperScoreboardListener;
 import kr.lunaf.cloudislands.paper.session.PlayerLocaleCache;
+import kr.lunaf.cloudislands.paper.storage.AsyncStorageHealthMonitor;
 import kr.lunaf.cloudislands.paper.storage.MeteredIslandStorage;
 import kr.lunaf.cloudislands.paper.storage.PaperStorageFactory;
-import kr.lunaf.cloudislands.storage.IslandStorage;
 
 
 final class PaperPluginBootstrap {
@@ -187,6 +189,12 @@ final class PaperPluginBootstrap {
         }
         MeteredIslandStorage storage = role == AgentRole.ISLAND_NODE ? PaperStorageFactory.createMetered(plugin, config.storage()) : null;
         plugin.islandStorage = storage;
+        AsyncStorageHealthMonitor storageHealth = AsyncStorageHealthMonitor.start(
+            storage,
+            plugin.getLogger(),
+            Duration.ofMillis(Math.max(1L, config.heartbeat().intervalTicks()) * 50L)
+        );
+        plugin.lifecycle.started("storage-health", storageHealth);
         String supportedTemplates = config.node().supportedTemplatesCsv();
         String templateVersions = config.node().templateVersions();
         String heartbeatSupportedTemplates = templateVersions.isBlank() ? supportedTemplates : supportedTemplates + ";templateVersions=" + templateVersions;
@@ -209,7 +217,7 @@ final class PaperPluginBootstrap {
             config,
             supportedTemplates,
             () -> observability.heartbeatMetadata(heartbeatSupportedTemplates, storage),
-            () -> storageAvailable(storage),
+            storageHealth::available,
             () -> plugin.activeIslands == null ? 0 : plugin.activeIslands.size(),
             () -> plugin.jobWorker == null ? 0 : plugin.jobWorker.activationQueue(),
             () -> plugin.jobWorker == null ? 0 : plugin.jobWorker.recentFailurePenalty()
@@ -258,18 +266,6 @@ final class PaperPluginBootstrap {
         }
         if (config.coreApi().token().isBlank()) {
             plugin.getLogger().warning("CloudIslands security: core-api auth token is empty");
-        }
-    }
-
-    private boolean storageAvailable(IslandStorage storage) {
-        if (storage == null) {
-            return true;
-        }
-        try {
-            return storage.available();
-        } catch (Exception exception) {
-            plugin.getLogger().warning("Island storage health check failed: " + exception.getMessage());
-            return false;
         }
     }
 
