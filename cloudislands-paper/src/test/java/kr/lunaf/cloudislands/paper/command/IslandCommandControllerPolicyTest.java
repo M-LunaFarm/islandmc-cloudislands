@@ -963,6 +963,10 @@ class IslandCommandControllerPolicyTest {
         assertFalse(membership.contains("deliverMessage(actorUuid"), "membership mutation feedback must retain its initiating connection session");
         assertFalse(membership.contains("deliverMessage(playerUuid"), "membership self-service feedback must retain its initiating connection session");
         assertTrue(overview.contains("selectPrimaryIsland(actorUuid, request.islandId(), request.revision())"), "primary-island selection must use the pre-resolved actor identity and reserved newest-intent revision");
+        assertTrue(overview.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "overview lookups and selections must retain the exact initiating player connection");
+        assertTrue(overview.contains("playerSession.isCurrent(activePlayer) && GuiSessions.isCurrent(activePlayer, session)"), "target-info callbacks must reject replacement connections and stale GUI sessions");
+        assertTrue(overview.contains("deliverMessage(playerSession, runtime.routeMessage(\"overview-island-selected\""), "selection feedback must retain its initiating connection session");
+        assertFalse(overview.contains("private void deliverMessage(Player player"), "overview feedback must not rely on a captured Bukkit player alone");
         assertTrue(progression.contains("recalculateLevelView(islandId, actorUuid)"), "level rescans must retain the command-thread actor identity");
         assertTrue(progression.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "progression requests must capture the exact initiating player connection");
         assertTrue(progression.contains("getPlayer(playerSession.playerUuid())"), "progression feedback must re-resolve the online player on the Paper scheduler");
@@ -1065,12 +1069,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(overviewHandler.contains("IslandInfoMenu.open"));
         assertTrue(overviewHandler.contains("IslandMyIslandsMenu.open"));
         assertTrue(overviewHandler.contains("GuiSession session = GuiSessions.begin(player, \"island.info-target\")"), "target lookup must reserve a GUI session before the asynchronous Core request");
-        assertTrue(overviewHandler.contains("thenAccept(islandId -> PaperOnlinePlayer.run(plugin, playerUuid, activePlayer"), "resolved target info must re-resolve the current online player");
+        assertTrue(overviewHandler.contains("thenAccept(islandId -> PaperOnlinePlayer.run(plugin, playerSession.playerUuid(), activePlayer"), "resolved target info must re-resolve the current online player");
         assertTrue(overviewHandler.contains("GuiSessions.isCurrent(activePlayer, session)"), "resolved target info must discard stale responses");
         assertTrue(overviewHandler.contains("GuiStateMenus.openError(plugin, activePlayer, session"), "target lookup failures must replace the matching loading session with an actionable error state");
         assertTrue(overviewHandler.contains("reservePrimaryIslandSelection(actorUuid)"), "primary-island selection must reserve a Core-authoritative newest-intent revision before mutation");
-        assertTrue(overviewHandler.contains("thenAccept(profile -> deliverMessage(player"), "primary-island selection feedback must retain the initiating player connection");
-        assertTrue(overviewHandler.contains("if (activePlayer == player)"), "primary-island selection feedback must reject replacement connections");
+        assertTrue(overviewHandler.contains("thenAccept(profile -> deliverMessage(playerSession"), "primary-island selection feedback must retain the initiating player connection");
+        assertTrue(overviewHandler.contains("playerSession.isCurrent(activePlayer)"), "primary-island selection feedback must reject replacement connections");
     }
 
     @Test
