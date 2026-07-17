@@ -1,6 +1,8 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Proxy;
 import java.util.Collection;
@@ -29,6 +31,34 @@ class IslandCommandVanishCompletionTest {
         List<String> suggestions = completer.onTabComplete(viewer, null, "island", new String[]{"invite", ""});
 
         assertEquals(List.of("Visible"), suggestions);
+    }
+
+    @Test
+    void targetAwareCommandsSuggestOnlyVisibleOnlinePlayersAlongsideLiterals() {
+        Player visible = player("Visible", true);
+        Player hidden = player("Hidden", true);
+        Player viewer = viewer(hidden);
+        IslandCommandTabCompleter completer = new IslandCommandTabCompleter(
+            plugin(server(List.of(visible, hidden))),
+            null,
+            PlayerVisibilityService.metadataOnly()
+        );
+
+        for (String subcommand : List.of("info", "select", "balance", "team", "warp", "accept", "decline")) {
+            assertEquals(List.of("Visible"), completer.onTabComplete(viewer, null, "island", new String[]{subcommand, ""}), subcommand);
+        }
+
+        assertVisibleTargetWithLiteral(completer, viewer, "visit", "random");
+        assertVisibleTargetWithLiteral(completer, viewer, "rate", "current");
+        assertVisibleTargetWithLiteral(completer, viewer, "delete-review", "current");
+        assertVisibleTargetWithLiteral(completer, viewer, "values", "10");
+    }
+
+    private static void assertVisibleTargetWithLiteral(IslandCommandTabCompleter completer, Player viewer, String subcommand, String literal) {
+        List<String> suggestions = completer.onTabComplete(viewer, null, "island", new String[]{subcommand, ""});
+        assertTrue(suggestions.contains("Visible"), subcommand);
+        assertTrue(suggestions.contains(literal), subcommand);
+        assertFalse(suggestions.contains("Hidden"), subcommand);
     }
 
     private static Player viewer(Player hidden) {

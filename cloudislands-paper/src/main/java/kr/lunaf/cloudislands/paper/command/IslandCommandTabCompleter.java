@@ -66,8 +66,8 @@ final class IslandCommandTabCompleter implements TabCompleter {
             if (first.equals("rank") || first.equals("ranking") || first.equals("top") || first.equals("leaderboard") || first.equals("랭킹")) {
                 return literalMatches(List.of("worth", "value", "bank", "balance", "review", "10", "25", "50"), args[1]);
             }
-            if (first.equals("blocks") || first.equals("values") || first.equals("block-details") || first.equals("block-counts") || first.equals("블록상세") || first.equals("블록목록")) {
-                return literalMatches(List.of("10", "25", "50", "100"), args[1]);
+            if (first.equals("blocks") || first.equals("values") || first.equals("counts") || first.equals("block-details") || first.equals("block-counts") || first.equals("블록상세") || first.equals("블록목록")) {
+                return playerTargetMatches(sender, args[1], List.of("10", "25", "50", "100"));
             }
             if (first.equals("reviews") || first.equals("review-list") || first.equals("ratings") || first.equals("후기") || first.equals("후기목록") || first.equals("평가목록")) {
                 return literalMatches(List.of("5", "10", "20", "50"), args[1]);
@@ -76,10 +76,22 @@ final class IslandCommandTabCompleter implements TabCompleter {
                 return literalMatches(List.of("5", "10", "20", "50"), args[1]);
             }
             if (first.equals("rate") || first.equals("review") || first.equals("평가")) {
-                return literalMatches(List.of("current"), args[1]);
+                return playerTargetMatches(sender, args[1], List.of("current", "현재"));
             }
             if (first.equals("delete-review") || first.equals("review-delete") || first.equals("reviewdel") || first.equals("후기삭제") || first.equals("평가삭제")) {
-                return literalMatches(List.of("current"), args[1]);
+                return playerTargetMatches(sender, args[1], List.of("current", "현재"));
+            }
+            if (first.equals("visit") || first.equals("방문")) {
+                return playerTargetMatches(sender, args[1], List.of("random", "랜덤"));
+            }
+            if (first.equals("info") || first.equals("show") || first.equals("정보")
+                || first.equals("select") || first.equals("switch") || first.equals("선택") || first.equals("섬선택")
+                || first.equals("bank-balance") || first.equals("balance") || first.equals("bal") || first.equals("money") || first.equals("은행잔액")
+                || first.equals("team") || first.equals("showteam") || first.equals("online")
+                || first.equals("warp") || first.equals("warps") || first.equals("워프")
+                || first.equals("accept") || first.equals("join") || first.equals("invite-accept") || first.equals("초대수락")
+                || first.equals("decline") || first.equals("invite-decline") || first.equals("초대거절")) {
+                return onlinePlayerMatches(sender, args[1]);
             }
             if (first.equals("limits") || first.equals("limit") || first.equals("제한") || first.equals("setlimit") || first.equals("제한설정")) {
                 return literalMatches(List.of("HOPPER", "SPAWNER", "ENTITY", "REDSTONE"), args[1]);
@@ -279,5 +291,11 @@ final class IslandCommandTabCompleter implements TabCompleter {
             }
         }
         return matches;
+    }
+
+    private List<String> playerTargetMatches(CommandSender sender, String typed, List<String> literals) {
+        List<String> matches = new ArrayList<>(literalMatches(literals, typed));
+        matches.addAll(onlinePlayerMatches(sender, typed));
+        return matches.stream().distinct().sorted(String.CASE_INSENSITIVE_ORDER).toList();
     }
 }

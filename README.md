@@ -736,6 +736,16 @@ Current release: `v1.1.255`
 
 Built for the CloudIslands 1.1.255 baseline.
 
+Unreleased changes:
+
+- review and targeted warp commands resolve UUIDs, island names, and player
+  primary islands through the same Core-backed resolver
+- target-aware info, selection, bank, member, warp, invite, visit, review, and
+  block-value commands suggest visible online players while preserving literal
+  options such as `current`, `random`, and list limits
+- target suggestions reuse vanish-aware visibility checks and never disclose a
+  player hidden from the command sender
+
 Release notes for `v1.1.255`:
 
 - current visitor, public island, review, and visitor-stat reads plus review
