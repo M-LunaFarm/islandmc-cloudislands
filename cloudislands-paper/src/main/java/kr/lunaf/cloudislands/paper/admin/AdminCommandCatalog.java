@@ -139,7 +139,7 @@ final class AdminCommandCatalog {
         "ciadmin island repair <island> [reason]",
         "ciadmin island delete <island> --confirm",
         "ciadmin player info <player>",
-        "ciadmin player setisland <player> <islandUuid>",
+        "ciadmin player setisland <player> <island>",
         "ciadmin player clearisland <player>",
         "ciadmin player setdisbands <player> <value>",
         "ciadmin player givedisbands <player> <delta>",

@@ -180,13 +180,17 @@ class AdminCommandBackendPolicyTest {
         assertTrue(adminSurface.contains("\"givedisbands\""), "Admin player command completion must expose givedisbands");
         assertTrue(adminSurface.contains("ciadmin player setdisbands <player> <value>"), "setdisbands must be listed in help");
         assertTrue(adminSurface.contains("ciadmin player givedisbands <player> <delta>"), "givedisbands must be listed in help");
+        assertTrue(adminSurface.contains("ciadmin player setisland <player> <island>"), "setisland help must accept an island UUID or name");
         assertTrue(source.contains("coreApiClient.playerProfileCommands().setDisbandsRemaining(playerUuid, requestedDisbands)"), "setdisbands must call the typed Core profile mutation with prevalidated input");
         assertTrue(source.contains("coreApiClient.playerProfileCommands().addDisbandsRemaining(playerUuid, requestedDisbands)"), "givedisbands must call the typed Core profile mutation with prevalidated input");
+        assertTrue(source.contains("setPlayerPrimaryIsland(sender, playerUuid, requestedIslandTarget)"), "setisland must resolve its island target before mutating the player profile");
+        assertTrue(source.contains("resolveIslandUuid(sender, islandTarget)"), "setisland must share UUID and exact island-name resolution with other admin commands");
+        assertTrue(source.contains("setPrimaryIsland(playerUuid, islandId)"), "setisland must pass the resolved immutable island UUID to Core");
         int playerHandler = source.indexOf("private boolean handlePlayer(CommandSender sender, String[] args)");
         int playerResolution = source.indexOf("resolvePlayerUuid(sender, args[2]).thenAccept", playerHandler);
         int playerResolutionEnd = source.indexOf("}).exceptionally(error ->", playerResolution);
         String playerResolutionCallback = source.substring(playerResolution, playerResolutionEnd);
-        assertTrue(source.indexOf("UUID requestedIslandId", playerHandler) < playerResolution, "player command arguments must be validated before asynchronous profile resolution");
+        assertTrue(source.indexOf("String requestedIslandTarget", playerHandler) < playerResolution, "player command arguments must be captured before asynchronous profile resolution");
         assertFalse(playerResolutionCallback.contains("sender.sendMessage"), "profile resolution callbacks must not use Bukkit CommandSender directly");
         assertFalse(playerResolutionCallback.contains("uuid(sender"), "profile resolution callbacks must not parse and report UUIDs off-thread");
         assertFalse(playerResolutionCallback.contains("sendCommandUsage"), "profile resolution callbacks must not render usage off-thread");

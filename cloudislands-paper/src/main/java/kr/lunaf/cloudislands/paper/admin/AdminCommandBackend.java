@@ -2059,7 +2059,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     private boolean handlePlayer(CommandSender sender, String[] args) {
         List<String> usage = List.of(
             "/ciadmin player info <playerUuid|playerName>",
-            "/ciadmin player setisland <playerUuid|playerName> <islandUuid>",
+            "/ciadmin player setisland <playerUuid|playerName> <islandUuid|islandName>",
             "/ciadmin player clearisland <playerUuid|playerName>",
             "/ciadmin player setdisbands <playerUuid|playerName> <value>",
             "/ciadmin player givedisbands <playerUuid|playerName> <delta>"
@@ -2075,18 +2075,15 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         }
         if ((operation.equals("setisland") || operation.equals("setdisbands") || operation.equals("givedisbands")) && args.length < 4) {
             String key = operation.equals("setisland")
-                ? "admin-command-island-uuid-required"
+                ? "admin-command-island-target-required"
                 : operation.equals("setdisbands") ? "admin-command-player-disbands-value-required" : "admin-command-player-disbands-delta-required";
             String fallback = operation.equals("setisland")
-                ? "섬 UUID를 입력해주세요."
+                ? "섬 UUID 또는 이름을 입력해주세요."
                 : operation.equals("setdisbands") ? "디스밴드 횟수를 입력해주세요." : "추가할 디스밴드 횟수를 입력해주세요.";
             sender.sendMessage(adminText(key, fallback));
             return true;
         }
-        UUID requestedIslandId = operation.equals("setisland") ? uuid(sender, args[3]) : null;
-        if (operation.equals("setisland") && requestedIslandId == null) {
-            return true;
-        }
+        String requestedIslandTarget = operation.equals("setisland") ? args[3] : "";
         int requestedDisbands = operation.equals("setdisbands")
             ? boundedInt(Math.max(0L, number(args[3], 0L)))
             : operation.equals("givedisbands") ? boundedInt(number(args[3], 0L)) : 0;
@@ -2094,9 +2091,12 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             if (playerUuid == null) {
                 return;
             }
+            if (operation.equals("setisland")) {
+                setPlayerPrimaryIsland(sender, playerUuid, requestedIslandTarget);
+                return;
+            }
             CompletableFuture<? extends CharSequence> action = switch (operation) {
                 case "info" -> coreApiClient.playerProfiles().profile(playerUuid).thenApply(this::playerInfoMessage);
-                case "setisland" -> coreApiClient.playerProfileCommands().setPrimaryIsland(playerUuid, requestedIslandId).thenApply(profile -> playerActionMessage("Player setisland", profile));
                 case "clearisland" -> coreApiClient.playerProfileCommands().clearPrimaryIsland(playerUuid).thenApply(profile -> playerActionMessage("Player clearisland", profile));
                 case "setdisbands" -> coreApiClient.playerProfileCommands().setDisbandsRemaining(playerUuid, requestedDisbands).thenApply(profile -> playerDisbandsActionMessage("Player setdisbands", profile));
                 default -> coreApiClient.playerProfileCommands().addDisbandsRemaining(playerUuid, requestedDisbands).thenApply(profile -> playerDisbandsActionMessage("Player givedisbands", profile));
@@ -2107,6 +2107,20 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return null;
         });
         return true;
+    }
+
+    private void setPlayerPrimaryIsland(CommandSender sender, UUID playerUuid, String islandTarget) {
+        resolveIslandUuid(sender, islandTarget)
+            .thenAccept(islandId -> {
+                if (islandId != null) {
+                    run(sender, "Player setisland", coreApiClient.playerProfileCommands().setPrimaryIsland(playerUuid, islandId)
+                        .thenApply(profile -> playerActionMessage("Player setisland", profile)));
+                }
+            })
+            .exceptionally(error -> {
+                message(sender, adminText("admin-command-island-not-found", "섬을 찾지 못했습니다: ") + islandTarget);
+                return null;
+            });
     }
 
     private boolean handleAdminMessageCommand(CommandSender sender, String[] args) {

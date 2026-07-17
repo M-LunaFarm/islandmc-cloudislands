@@ -745,6 +745,8 @@ Unreleased changes:
   options such as `current`, `random`, and list limits
 - target suggestions reuse vanish-aware visibility checks and never disclose a
   player hidden from the command sender
+- `/ciadmin player setisland <player> <island>` accepts either an island UUID
+  or exact island name and refuses unresolved targets before mutating Core
 
 Release notes for `v1.1.255`:
 

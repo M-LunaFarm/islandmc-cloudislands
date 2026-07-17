@@ -376,7 +376,7 @@ public final class TranslationManager {
         values.put("admin-command-snapshot-required", "스냅샷 번호를 입력해주세요.");
         values.put("admin-command-snapshot-invalid", "스냅샷 번호가 올바르지 않습니다: ");
         values.put("admin-command-player-usage", "사용법: /ciadmin command list");
-        values.put("admin-command-island-uuid-required", "섬 UUID를 입력해주세요.");
+        values.put("admin-command-island-target-required", "섬 UUID 또는 이름을 입력해주세요.");
         values.put("admin-command-player-not-found", "플레이어를 찾지 못했습니다: ");
         values.put("admin-command-job-id-required", "작업 ID를 입력해주세요.");
         values.put("admin-command-jobs-usage", "사용법: /ciadmin command list");
