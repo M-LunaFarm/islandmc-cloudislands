@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 public final class FileBackedCellTransfer {
     private final Path worldContainer;
@@ -43,11 +44,50 @@ public final class FileBackedCellTransfer {
             throw new IOException("invalid world name: " + worldName);
         }
         Path root = worldContainer.toAbsolutePath().normalize();
-        Path world = root.resolve(worldName).normalize();
+        Path modernWorld = modernDimensionDirectory(root, worldName);
+        Path legacyWorld = root.resolve(worldName).normalize();
+        Path world = modernWorld != null && (Files.isDirectory(modernWorld) || !Files.exists(legacyWorld))
+            ? modernWorld
+            : legacyWorld;
         if (!world.startsWith(root)) {
             throw new IOException("world directory escapes container: " + worldName);
         }
         return world;
+    }
+
+    private Path modernDimensionDirectory(Path root, String worldName) throws IOException {
+        Path primaryWorld = primaryWorldDirectory(root);
+        if (primaryWorld == null) {
+            return null;
+        }
+        String namespace = "minecraft";
+        String key = worldName;
+        int separator = worldName.indexOf(':');
+        if (separator >= 0) {
+            namespace = worldName.substring(0, separator);
+            key = worldName.substring(separator + 1);
+        }
+        if (namespace.isBlank() || key.isBlank()) {
+            throw new IOException("invalid world name: " + worldName);
+        }
+        return primaryWorld.resolve("dimensions").resolve(namespace).resolve(key).normalize();
+    }
+
+    private Path primaryWorldDirectory(Path root) throws IOException {
+        Path conventional = root.resolve("world");
+        if (Files.isDirectory(conventional.resolve("dimensions"))) {
+            return conventional;
+        }
+        if (!Files.isDirectory(root)) {
+            return null;
+        }
+        try (Stream<Path> children = Files.list(root)) {
+            return children
+                .filter(child -> Files.isDirectory(child.resolve("dimensions")))
+                .sorted()
+                .findFirst()
+                .orElse(null);
+        }
     }
 
     private void copyRegionFiles(Path source, Path target, int minChunkX, int maxChunkX, int minChunkZ, int maxChunkZ) throws IOException {

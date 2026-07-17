@@ -53,6 +53,51 @@ class FileBackedCellTransferTest {
     }
 
     @Test
+    void extractionPrefersTheModernPaperDimensionDirectory() throws Exception {
+        Path worlds = root.resolve("worlds");
+        Path modern = worlds.resolve("world/dimensions/minecraft/ci_shard_001/region");
+        Path legacy = worlds.resolve("ci_shard_001/region");
+        Path target = root.resolve("bundle/chunks");
+        Files.createDirectories(modern);
+        Files.createDirectories(legacy);
+        Files.writeString(modern.resolve("r.0.0.mca"), "modern-dimension");
+        Files.writeString(legacy.resolve("r.0.0.mca"), "legacy-placeholder");
+
+        new FileBackedCellTransfer(worlds).extract(new CellExtractionPlan(
+            UUID.fromString("00000000-0000-0000-0000-000000001301"),
+            "ci_shard_001",
+            0,
+            0,
+            target,
+            -2,
+            2,
+            -2,
+            2
+        ));
+
+        assertEquals("modern-dimension", Files.readString(target.resolve("r.0.0.mca")));
+    }
+
+    @Test
+    void placementWritesTheModernPaperDimensionDirectory() throws Exception {
+        Path worlds = root.resolve("worlds");
+        Path modern = worlds.resolve("world/dimensions/minecraft/ci_shard_001/region");
+        Path legacy = worlds.resolve("ci_shard_001/region");
+        Path source = root.resolve("bundle/chunks");
+        Files.createDirectories(modern);
+        Files.createDirectories(legacy);
+        Files.createDirectories(source);
+        Files.writeString(modern.resolve("r.0.0.mca"), "old-modern-dimension");
+        Files.writeString(legacy.resolve("r.0.0.mca"), "legacy-placeholder");
+        Files.writeString(source.resolve("r.0.0.mca"), "restored-dimension");
+
+        new FileBackedCellTransfer(worlds).place(plan(source));
+
+        assertEquals("restored-dimension", Files.readString(modern.resolve("r.0.0.mca")));
+        assertEquals("legacy-placeholder", Files.readString(legacy.resolve("r.0.0.mca")));
+    }
+
+    @Test
     void mismatchedBundleCoordinatesFailBeforeChangingTheTargetCell() throws Exception {
         Path source = root.resolve("mismatched/chunks");
         Path worldRegion = root.resolve("worlds/ci_shard_001/region");
