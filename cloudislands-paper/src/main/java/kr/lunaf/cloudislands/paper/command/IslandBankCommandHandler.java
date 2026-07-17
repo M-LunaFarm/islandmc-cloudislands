@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import java.math.BigDecimal;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -136,7 +137,7 @@ final class IslandBankCommandHandler {
                 runtime.message(player, message("bank-deposit-denied", "섬 은행에 입금할 권한이 없습니다."));
                 return;
             }
-            boolean all = amount != null && amount.trim().equals("*");
+            boolean all = allAmount(amount);
             BigDecimal parsedAmount = all ? null : BankUseCase.positiveAmount(amount);
             if (!all && parsedAmount == null) {
                 runtime.message(player, runtime.playerCodeMessage("INVALID_AMOUNT", message("input-amount-invalid", "올바른 금액을 입력해주세요.")));
@@ -167,7 +168,7 @@ final class IslandBankCommandHandler {
                 runtime.message(player, message("bank-withdraw-denied", "섬 은행에서 출금할 권한이 없습니다."));
                 return;
             }
-            boolean all = amount != null && amount.trim().equals("*");
+            boolean all = allAmount(amount);
             BigDecimal parsedAmount = all ? null : BankUseCase.positiveAmount(amount);
             if (!all && parsedAmount == null) {
                 runtime.message(player, runtime.playerCodeMessage("INVALID_AMOUNT", message("input-amount-invalid", "올바른 금액을 입력해주세요.")));
@@ -230,6 +231,16 @@ final class IslandBankCommandHandler {
 
     private String message(String key, String fallback) {
         return runtime.routeMessage(key, fallback);
+    }
+
+    static boolean allAmount(String amount) {
+        if (amount == null || amount.isBlank()) {
+            return false;
+        }
+        return switch (amount.trim().toLowerCase(Locale.ROOT)) {
+            case "*", "all", "max", "전액" -> true;
+            default -> false;
+        };
     }
 
     interface Runtime {

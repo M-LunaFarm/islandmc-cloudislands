@@ -308,7 +308,7 @@ class IslandCommandControllerPolicyTest {
         assertFalse(bankHandler.contains("handleWithdrawResult(player, result)"), "withdraw callbacks must not message a captured Player");
         assertFalse(bankHandler.contains("thenAccept(result -> runtime.message(player"), "bank reads must not message a captured Player");
         assertFalse(bankHandler.contains("deliverMessage(playerUuid"), "UUID-only delivery must not let a replacement connection inherit an older bank response");
-        assertTrue(tabCompleter.contains("List.of(\"*\", \"100\", \"1000\", \"10000\")"), "bank amount completion must advertise the all-balance wildcard");
+        assertTrue(tabCompleter.contains("List.of(\"*\", \"all\", \"max\", \"전액\", \"100\", \"1000\", \"10000\")"), "bank amount completion must advertise all supported full-balance aliases");
         assertTrue(bankHandler.contains("args[1].equalsIgnoreCase(\"logs\")"), "canonical /is bank logs must not discard its logs argument");
         assertTrue(bankHandler.contains("IslandLogMenu.openBankLogs"), "bank logs must open the filtered transaction log view");
         assertTrue(logMenu.contains("ISLAND_BANK_DEPOSIT") && logMenu.contains("ISLAND_BANK_WITHDRAW"), "bank transaction view must exclude unrelated island audit entries");

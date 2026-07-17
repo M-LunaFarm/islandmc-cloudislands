@@ -168,6 +168,21 @@ class IslandCommandCatalogTest {
     }
 
     @Test
+    void bankAllAmountAliasesMatchHelpAndCompletion() throws Exception {
+        String completer = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandCommandTabCompleter.java"));
+
+        for (String value : List.of("*", "all", "ALL", "max", "MAX", "전액", " all ")) {
+            assertTrue(IslandBankCommandHandler.allAmount(value), value);
+        }
+        for (String value : List.of("", "0", "100", "everything", "전체")) {
+            assertFalse(IslandBankCommandHandler.allAmount(value), value);
+        }
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 입금 <amount|all>"));
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 출금 <amount|all>"));
+        assertTrue(completer.contains("List.of(\"*\", \"all\", \"max\", \"전액\", \"100\", \"1000\", \"10000\")"));
+    }
+
+    @Test
     void superiorSkyblockShowIsCanonicalAndTargetAware() throws Exception {
         String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandOverviewCommandHandler.java"));
 
