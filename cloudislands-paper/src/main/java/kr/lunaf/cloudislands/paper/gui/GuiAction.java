@@ -199,6 +199,7 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
     }
 
     enum AdminMenuActionType {
+        DASHBOARD_OPEN("admin.dashboard.open"),
         JOBS_OPEN("admin.jobs.open"),
         JOBS_LIST("admin.jobs.list"),
         JOBS_RETRY_PROMPT("admin.jobs.retry.prompt"),

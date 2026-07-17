@@ -185,11 +185,11 @@ items:
       - main-menu-admin-command
       - main-menu-admin-events-command
     fallback-lore:
-      - "좌클릭: 노드 관리"
+      - "좌클릭: 운영 대시보드"
       - "우클릭: Core 이벤트"
     data:
       rightAction: admin.events.open
-    action: admin.node.open
+    action: admin.dashboard.open
   D:
     material: LAVA_BUCKET
     name-key: menu.main.danger.name

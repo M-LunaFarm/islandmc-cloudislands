@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeActionResult;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeSummary;
 import kr.lunaf.cloudislands.paper.gui.AdminAuditMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminDashboardMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminEventMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMetricsMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
@@ -161,6 +162,10 @@ final class IslandAdminNodeCommandHandler {
 
     private boolean handleAdminMenuAction(Player player, GuiAction.AdminMenuAction action) {
         return switch (action.type()) {
+            case DASHBOARD_OPEN -> {
+                openDashboardMenu(player);
+                yield true;
+            }
             case JOBS_OPEN, JOBS_LIST -> {
                 openJobMenu(player, 0);
                 yield true;
@@ -226,6 +231,14 @@ final class IslandAdminNodeCommandHandler {
                 yield true;
             }
         };
+    }
+
+    private void openDashboardMenu(Player player) {
+        if (!AdminDashboardMenu.canOpen(player)) {
+            runtime.message(player, runtime.routeMessage("admin-dashboard-menu-permission-denied", "관리자 대시보드 권한이 없습니다."));
+            return;
+        }
+        AdminDashboardMenu.open(player, runtime.messagesFor(player));
     }
 
     private void prompt(Player player, String command) {

@@ -75,6 +75,7 @@ import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigReloadResult;
 import kr.lunaf.cloudislands.paper.gui.AdminAuditMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminDashboardMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminEventMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMetricsMenu;
@@ -140,6 +141,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         "island.chat",
         "island.my-islands",
         "admin.audit",
+        "admin.dashboard",
         "admin.events",
         "admin.metrics",
         "admin.node",
@@ -998,6 +1000,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleDashboard(CommandSender sender) {
+        if (sender instanceof Player player) {
+            AdminDashboardMenu.open(player, messagesFor(player));
+            return true;
+        }
         CompletableFuture<CharSequence> metrics = doctorPart("metrics", coreApiClient.adminMetrics().summary().thenApply(this::metricsMessage)).thenApply(DoctorPart::text);
         CompletableFuture<CharSequence> nodes = doctorPart("nodes", coreApiClient.adminNodes().listNodesSummary().thenApply(summary -> adminNodeSummaryMessage("Nodes", summary))).thenApply(DoctorPart::text);
         CompletableFuture<CharSequence> jobs = doctorPart("jobs", coreApiClient.jobs().list().thenApply(this::jobListMessage)).thenApply(DoctorPart::text);
@@ -2821,6 +2827,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "island.chat" -> IslandChatMenu.open(target, targetMessages);
             case "island.my-islands" -> IslandMyIslandsMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.audit" -> AdminAuditMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
+            case "admin.dashboard" -> AdminDashboardMenu.open(target, targetMessages);
             case "admin.events" -> AdminEventMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.metrics" -> AdminMetricsMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.node" -> AdminNodeListMenu.open(agent.plugin(), coreApiClient, target, targetMessages);

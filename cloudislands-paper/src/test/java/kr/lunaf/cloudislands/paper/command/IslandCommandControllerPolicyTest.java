@@ -1238,6 +1238,9 @@ class IslandCommandControllerPolicyTest {
         assertFalse(backend.contains("drainAdminNode("), "admin node mutations belong in IslandAdminNodeCommandHandler");
         assertFalse(backend.contains("shutdownAdminNodeSafely("), "admin danger mutations belong in IslandAdminNodeCommandHandler");
         assertTrue(adminHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
+        assertTrue(adminHandler.contains("case DASHBOARD_OPEN ->"), "dashboard action must open the operational hub");
+        assertTrue(adminHandler.contains("AdminDashboardMenu.open(player, runtime.messagesFor(player))"), "dashboard GUI action must open the config-backed hub");
+        assertTrue(adminHandler.contains("AdminDashboardMenu.canOpen(player)"), "dashboard GUI clicks must recheck dashboard access");
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodeAction"));
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodePage"), "node list paging must use a typed action");
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminEventPage"), "event stream paging must use a typed action");

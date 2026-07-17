@@ -13,6 +13,7 @@ public final class GuiActionParser {
     private static final Set<String> REGISTERED_ACTIONS = Set.of(
         "admin.audit.open",
         "admin.audit.page",
+        "admin.dashboard.open",
         "admin.island.migrate.prompt",
         "admin.island.where.prompt",
         "admin.events.open",
@@ -283,6 +284,7 @@ public final class GuiActionParser {
             }
             return switch (safeAction) {
                 case "gui.close" -> Optional.of(new GuiAction.Close());
+                case "admin.dashboard.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.DASHBOARD_OPEN));
                 case "admin.audit.open" -> Optional.of(new GuiAction.AdminAuditPage(0));
                 case "admin.audit.page" -> Optional.of(new GuiAction.AdminAuditPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.events.open" -> Optional.of(new GuiAction.AdminEventPage(0));

@@ -196,7 +196,7 @@ class GuiMenuDefinitionTest {
         assertEquals("E", definition.itemAt(46).orElseThrow().symbol());
         assertEquals("island.biome.open", definition.itemAt(46).orElseThrow().actionKey());
         assertEquals("A", definition.itemAt(52).orElseThrow().symbol());
-        assertEquals("admin.node.open", definition.itemAt(52).orElseThrow().actionKey());
+        assertEquals("admin.dashboard.open", definition.itemAt(52).orElseThrow().actionKey());
         assertEquals("D", definition.itemAt(53).orElseThrow().symbol());
     }
 

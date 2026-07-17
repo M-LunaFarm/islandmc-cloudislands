@@ -235,6 +235,14 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesAdminDashboardIntoTypedMenuAction() {
+        GuiAction action = GuiActionParser.parse("admin.dashboard.open", Map.of()).orElseThrow();
+
+        assertTrue(action instanceof GuiAction.AdminMenuAction);
+        assertEquals(GuiAction.AdminMenuActionType.DASHBOARD_OPEN, ((GuiAction.AdminMenuAction) action).type());
+    }
+
+    @Test
     void parsesConfirmedMigrationRollbackIntoTypedAction() {
         String actionId = ConfirmationTokenPolicy.ADMIN_MIGRATION_ROLLBACK_CONFIRM_ACTION;
         GuiAction action = GuiActionParser.parse(

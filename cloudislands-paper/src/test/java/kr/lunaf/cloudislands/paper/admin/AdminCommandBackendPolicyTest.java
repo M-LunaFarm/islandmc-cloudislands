@@ -790,6 +790,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(adminSurface.contains("\"dashboard\""), "Dashboard root command must be registered");
         assertTrue(adminSurface.contains("ciadmin dashboard"), "Dashboard command must be listed in help");
         assertTrue(source.contains("handleDashboard"), "Dashboard command must have a handler");
+        assertTrue(source.contains("AdminDashboardMenu.open(player, messagesFor(player))"), "Player dashboard command must open the operations hub");
         assertTrue(source.contains("dashboardMessage(List<CharSequence> parts)"), "Dashboard must render a focused overview message");
         assertTrue(source.contains("coreApiClient.adminMetrics().summary()"), "Dashboard must include typed metrics");
         assertTrue(source.contains("coreApiClient.adminNodes().listNodesSummary()"), "Dashboard must include typed node state");
@@ -797,6 +798,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(source.contains("coreApiClient.adminRoutes().debug(new UUID(0L, 0L))"), "Dashboard must include typed route state");
         assertTrue(source.contains("coreApiClient.adminStorage().status()"), "Dashboard must include typed storage health");
         assertTrue(source.contains("integrationStatusMessage()"), "Dashboard must include integration state");
+        assertTrue(source.contains("case \"admin.dashboard\" -> AdminDashboardMenu.open(target, targetMessages)"), "Admin openmenu must expose the dashboard hub");
         assertTrue(plugin.contains("cloudislands.admin.dashboard"), "Dashboard command must have a plugin permission");
     }
 
@@ -951,9 +953,10 @@ class AdminCommandBackendPolicyTest {
         assertTrue(menu.contains("client.adminEvents().list(EVENT_LIMIT)"), "event menu must load typed Core events");
         assertTrue(menu.contains("Comparator.comparingLong(AdminEventView::seq).reversed()"), "event menu must show newest events first");
         assertTrue(mainMenu.contains("rightAction: admin.events.open"), "main admin button must expose the event stream on right click");
-        String mainMenuSource = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMainMenu.java"));
-        assertTrue(mainMenuSource.contains("player.hasPermission(\"cloudislands.admin.events\")"),
+        String dashboardMenu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminDashboardMenu.java"));
+        assertTrue(dashboardMenu.contains("player.hasPermission(\"cloudislands.admin.events\")") || dashboardMenu.contains("ACTION_PERMISSIONS.values().stream().anyMatch(player::hasPermission)"),
             "events-only operators must be able to use the main admin button");
+        assertTrue(mainMenu.contains("action: admin.dashboard.open"), "main admin button must open the operations dashboard");
     }
 
     @Test
