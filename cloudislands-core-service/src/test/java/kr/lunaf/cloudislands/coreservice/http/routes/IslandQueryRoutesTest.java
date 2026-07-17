@@ -4,12 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.sun.net.httpserver.HttpHandler;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.IslandSnapshot;
+import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
@@ -43,6 +46,12 @@ class IslandQueryRoutesTest {
 
         assertTrue(response.contains("\"playerUuid\":\"" + playerUuid + "\""));
         assertTrue(response.contains("\"playerName\":\"BuilderPlayer\""));
+
+        IslandSnapshot island = new IslandSnapshot(
+            islandId, playerUuid, "Builder Island", IslandState.ACTIVE, 100, 7L, "12", true, Instant.EPOCH, Instant.EPOCH
+        );
+        String islandResponse = routes.islandJson(island);
+        assertTrue(islandResponse.contains("\"ownerName\":\"BuilderPlayer\""));
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

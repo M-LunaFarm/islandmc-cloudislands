@@ -129,7 +129,7 @@ public final class PaperGuiViews {
     }
 
     private static IslandInfoView islandInfo(CoreGuiViews.IslandInfoView view) {
-        return new IslandInfoView(view.name(), view.state(), view.islandId(), view.level(), view.worth(), view.publicAccess(), view.locked(), view.size(), view.border(), view.ownerUuid(), view.description());
+        return new IslandInfoView(view.name(), view.state(), view.islandId(), view.level(), view.worth(), view.publicAccess(), view.locked(), view.size(), view.border(), view.ownerUuid(), view.description(), view.ownerName());
     }
 
     private static BankView bank(CoreGuiViews.BankView view) {
@@ -161,7 +161,7 @@ public final class PaperGuiViews {
     }
 
     private static PublicIslandView publicIsland(CoreGuiViews.PublicIslandView view) {
-        return new PublicIslandView(view.islandId(), view.ownerUuid(), view.name(), view.description(), view.level(), view.worth());
+        return new PublicIslandView(view.islandId(), view.ownerUuid(), view.name(), view.description(), view.level(), view.worth(), view.ownerName());
     }
 
     private static BanView ban(CoreGuiViews.BanView view) {
@@ -216,9 +216,18 @@ public final class PaperGuiViews {
         return new NodeSummaryView(nodeId == null ? "" : nodeId, "UNKNOWN", "island", 0L, 0L, 0L, 0L, 0L, 0L, 0L, "0", true, false, 0L, -1L, false, true, "");
     }
 
-    public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid, String description) {
+    public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid, String description, String ownerName) {
         public IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid) {
-            this(name, state, islandId, level, worth, publicAccess, locked, size, border, ownerUuid, "");
+            this(name, state, islandId, level, worth, publicAccess, locked, size, border, ownerUuid, "", "");
+        }
+
+        public IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid, String description) {
+            this(name, state, islandId, level, worth, publicAccess, locked, size, border, ownerUuid, description, "");
+        }
+
+        public IslandInfoView {
+            description = description == null ? "" : description;
+            ownerName = ownerName == null ? "" : ownerName;
         }
     }
 
@@ -254,7 +263,14 @@ public final class PaperGuiViews {
     public record PlayerIslandView(String islandId, String name, String state, String role, long level, String worth, boolean primary) {
     }
 
-    public record PublicIslandView(String islandId, String ownerUuid, String name, String description, long level, String worth) {
+    public record PublicIslandView(String islandId, String ownerUuid, String name, String description, long level, String worth, String ownerName) {
+        public PublicIslandView(String islandId, String ownerUuid, String name, String description, long level, String worth) {
+            this(islandId, ownerUuid, name, description, level, worth, "");
+        }
+
+        public PublicIslandView {
+            ownerName = ownerName == null ? "" : ownerName;
+        }
     }
 
     public record BanView(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt, String bannedName, String actorName) {

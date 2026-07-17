@@ -623,7 +623,7 @@ class CoreTypedClientsTest {
                             {"islandId":"%s","name":"Named","state":"ACTIVE","level":1}
                             """.formatted(islandId)
                         : """
-                            {"islandId":"%s","name":"Spawn","state":"ACTIVE","level":12,"worth":"34.50","publicAccess":true,"locked":false,"size":300,"border":310,"ownerUuid":"owner","createdAt":"created","updatedAt":"updated"}
+                            {"islandId":"%s","name":"Spawn","state":"ACTIVE","level":12,"worth":"34.50","publicAccess":true,"locked":false,"size":300,"border":310,"ownerUuid":"owner","ownerName":"IslandOwner","createdAt":"created","updatedAt":"updated"}
                             """.formatted(islandId);
                 byte[] response = body.getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
@@ -657,6 +657,7 @@ class CoreTypedClientsTest {
             assertEquals("Spawn", island.name());
             assertEquals("created", island.createdAt());
             assertEquals("updated", island.updatedAt());
+            assertEquals("IslandOwner", island.ownerName());
             assertEquals("Owned", ownedIsland.name());
             assertEquals("owner-created", ownedIsland.createdAt());
             assertEquals("owner-updated", ownedIsland.updatedAt());
@@ -1542,7 +1543,7 @@ class CoreTypedClientsTest {
             server.createContext("/v1/islands/public", exchange -> {
                 calls.add("public:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
                 byte[] response = """
-                    {"islands":[{"islandId":"%s","ownerUuid":"%s","name":"Spawn","level":7,"worth":"1200"}]}
+                    {"islands":[{"islandId":"%s","ownerUuid":"%s","ownerName":"IslandOwner","name":"Spawn","level":7,"worth":"1200"}]}
                     """.formatted(islandId, reviewerUuid).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
                 exchange.getResponseBody().write(response);
@@ -1575,6 +1576,7 @@ class CoreTypedClientsTest {
             assertEquals("Home", playerIsland.name());
             assertEquals("OWNER", playerIsland.role());
             assertEquals("Spawn", island.name());
+            assertEquals("IslandOwner", island.ownerName());
             assertEquals(1L, reviews.count());
             assertEquals(islandId.toString(), reviews.reviews().get(0).islandId());
             assertEquals("nice", reviews.reviews().get(0).comment());

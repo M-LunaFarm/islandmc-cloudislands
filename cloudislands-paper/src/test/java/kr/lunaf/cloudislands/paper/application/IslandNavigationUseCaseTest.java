@@ -58,7 +58,9 @@ class IslandNavigationUseCaseTest {
         UUID islandId = uuid("00000000-0000-0000-0000-000000000020");
         UUID reviewerUuid = uuid("00000000-0000-0000-0000-000000000001");
 
-        assertEquals("spawn", useCase.publicIslandViews(500).join().getFirst().name());
+        var publicIsland = useCase.publicIslandViews(500).join().getFirst();
+        assertEquals("spawn", publicIsland.name());
+        assertEquals("IslandOwner", publicIsland.ownerName());
         assertEquals(1L, useCase.reviewViews(islandId, 0).join().count());
         assertEquals(true, useCase.setReviewAction(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join().accepted());
         assertEquals(true, useCase.deleteReviewAction(islandId, reviewerUuid, idempotentRunner(calls)).join().accepted());
@@ -107,7 +109,7 @@ class IslandNavigationUseCaseTest {
                 case "publicIslands" -> {
                     int limit = Math.max(1, Math.min((int) args[0], 100));
                     calls.add("listPublicIslands:" + limit);
-                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.PublicIslandView("00000000-0000-0000-0000-000000000020", "00000000-0000-0000-0000-000000000030", "spawn", 7L, "1200")));
+                    yield CompletableFuture.completedFuture(List.of(new CoreGuiViews.PublicIslandView("00000000-0000-0000-0000-000000000020", "00000000-0000-0000-0000-000000000030", "spawn", "", 7L, "1200", "IslandOwner")));
                 }
                 case "listReviews" -> {
                     int limit = Math.max(1, Math.min((int) args[1], 100));

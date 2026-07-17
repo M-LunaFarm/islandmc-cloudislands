@@ -45,7 +45,7 @@ class VelocityIslandMessageFormatterTest {
     @Test
     void formatsPublicIslandList() {
         assertEquals(
-            "공개 섬: 1. Market (ID=33333333, 레벨=9, 가치=1200) | 2. 이름 없는 섬 (ID=44444444, 레벨=1, 가치=0)",
+            "공개 섬: 1. Market (ID=33333333, 소유자=99999999, 레벨=9, 가치=1200) | 2. 이름 없는 섬 (ID=44444444, 소유자=99999999, 레벨=1, 가치=0)",
             formatter.publicIslands(List.of(
                 new CoreGuiViews.PublicIslandView("33333333-3333-3333-3333-333333333333", "99999999-9999-9999-9999-999999999999", "Market", 9L, "1200"),
                 new CoreGuiViews.PublicIslandView("44444444-4444-4444-4444-444444444444", "99999999-9999-9999-9999-999999999999", "", 1L, "")
@@ -187,12 +187,12 @@ class VelocityIslandMessageFormatterTest {
     @Test
     void formatsTypedRoutingViewsAndActions() {
         assertEquals(
-            "공개 섬: 1. Market (ID=33333333, 레벨=9, 가치=1200)",
-            formatter.publicIslands(List.of(new CoreGuiViews.PublicIslandView("33333333-3333-3333-3333-333333333333", "99999999-9999-9999-9999-999999999999", "Market", 9L, "1200")))
+            "공개 섬: 1. Market (ID=33333333, 소유자=IslandOwner, 레벨=9, 가치=1200)",
+            formatter.publicIslands(List.of(new CoreGuiViews.PublicIslandView("33333333-3333-3333-3333-333333333333", "99999999-9999-9999-9999-999999999999", "Market", "", 9L, "1200", "IslandOwner")))
         );
         assertEquals(
-            "섬 정보: ID=33333333 소유자=99999999 이름=Market 상태=READY 크기=100 레벨=9 가치=1200 공개=true",
-            formatter.islandInfo(new CoreGuiViews.IslandInfoView("Market", "READY", "33333333-3333-3333-3333-333333333333", 9L, "1200", true, false, 100L, 50L, "99999999-9999-9999-9999-999999999999"))
+            "섬 정보: ID=33333333 소유자=IslandOwner 이름=Market 상태=READY 크기=100 레벨=9 가치=1200 공개=true",
+            formatter.islandInfo(new CoreGuiViews.IslandInfoView("Market", "READY", "33333333-3333-3333-3333-333333333333", 9L, "1200", true, false, 100L, 50L, "99999999-9999-9999-9999-999999999999", "", "", "", "IslandOwner"))
         );
         assertEquals(
             "섬 가치: 섬=33333333 값=1200",

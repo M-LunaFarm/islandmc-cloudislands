@@ -68,6 +68,7 @@ public final class VelocityIslandMessageFormatter {
                 entries.add((entries.size() + 1) + ". "
                     + (island.name().isBlank() ? "이름 없는 섬" : island.name())
                     + " (ID=" + shortId(island.islandId())
+                    + ", 소유자=" + ownerDisplayName(island.ownerUuid(), island.ownerName())
                     + ", 레벨=" + island.level()
                     + ", 가치=" + fallback(island.worth(), "0") + ")");
             }
@@ -189,13 +190,17 @@ public final class VelocityIslandMessageFormatter {
 
     public String islandInfo(CoreGuiViews.IslandInfoView view) {
         return "섬 정보: ID=" + shortId(view.islandId())
-            + " 소유자=" + shortId(view.ownerUuid())
+            + " 소유자=" + ownerDisplayName(view.ownerUuid(), view.ownerName())
             + (view.name().isBlank() ? "" : " 이름=" + view.name())
             + " 상태=" + (view.state().isBlank() ? "UNKNOWN" : view.state())
             + " 크기=" + view.size()
             + " 레벨=" + view.level()
             + " 가치=" + view.worth()
             + " 공개=" + view.publicAccess();
+    }
+
+    private static String ownerDisplayName(String ownerUuid, String ownerName) {
+        return ownerName == null || ownerName.isBlank() ? shortId(ownerUuid) : ownerName.trim();
     }
 
     public String islandStat(String label, String field, CoreGuiViews.IslandInfoView view) {

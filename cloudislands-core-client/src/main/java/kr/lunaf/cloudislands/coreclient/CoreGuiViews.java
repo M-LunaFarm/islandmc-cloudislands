@@ -193,17 +193,22 @@ public final class CoreGuiViews {
             .toList();
     }
 
-    public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid, String createdAt, String updatedAt, String description) {
+    public record IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid, String createdAt, String updatedAt, String description, String ownerName) {
         public IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid) {
-            this(name, state, islandId, level, worth, publicAccess, locked, size, border, ownerUuid, "", "", "");
+            this(name, state, islandId, level, worth, publicAccess, locked, size, border, ownerUuid, "", "", "", "");
         }
 
         public IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid, String createdAt, String updatedAt) {
-            this(name, state, islandId, level, worth, publicAccess, locked, size, border, ownerUuid, createdAt, updatedAt, "");
+            this(name, state, islandId, level, worth, publicAccess, locked, size, border, ownerUuid, createdAt, updatedAt, "", "");
+        }
+
+        public IslandInfoView(String name, String state, String islandId, long level, String worth, boolean publicAccess, boolean locked, long size, long border, String ownerUuid, String createdAt, String updatedAt, String description) {
+            this(name, state, islandId, level, worth, publicAccess, locked, size, border, ownerUuid, createdAt, updatedAt, description, "");
         }
 
         public IslandInfoView {
             description = description == null ? "" : description;
+            ownerName = ownerName == null ? "" : ownerName;
         }
     }
 
@@ -268,13 +273,18 @@ public final class CoreGuiViews {
     public record PlayerIslandView(String islandId, String name, String state, String role, long level, String worth) {
     }
 
-    public record PublicIslandView(String islandId, String ownerUuid, String name, String description, long level, String worth) {
+    public record PublicIslandView(String islandId, String ownerUuid, String name, String description, long level, String worth, String ownerName) {
         public PublicIslandView(String islandId, String ownerUuid, String name, long level, String worth) {
-            this(islandId, ownerUuid, name, "", level, worth);
+            this(islandId, ownerUuid, name, "", level, worth, "");
+        }
+
+        public PublicIslandView(String islandId, String ownerUuid, String name, String description, long level, String worth) {
+            this(islandId, ownerUuid, name, description, level, worth, "");
         }
 
         public PublicIslandView {
             description = description == null ? "" : description;
+            ownerName = ownerName == null ? "" : ownerName;
         }
     }
 

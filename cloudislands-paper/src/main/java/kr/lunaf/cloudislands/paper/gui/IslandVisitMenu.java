@@ -145,11 +145,15 @@ public final class IslandVisitMenu implements Listener {
         if (island.description() != null && !island.description().isBlank()) {
             lore.add(message(messages, "visit-menu-description", "설명: ") + island.description());
         }
-        lore.add(message(messages, "visit-menu-owner", "소유자: ") + shortId(island.ownerUuid()));
+        lore.add(message(messages, "visit-menu-owner", "소유자: ") + ownerDisplayName(island));
         lore.add(message(messages, "visit-menu-level", "레벨: ") + island.level());
         lore.add(message(messages, "visit-menu-worth", "가치: ") + island.worth());
         lore.add(message(messages, "visit-menu-click-to-visit", "클릭하면 방문합니다."));
         return List.copyOf(lore);
+    }
+
+    static String ownerDisplayName(PublicIslandView island) {
+        return island.ownerName().isBlank() ? shortId(island.ownerUuid()) : island.ownerName().trim();
     }
 
 }

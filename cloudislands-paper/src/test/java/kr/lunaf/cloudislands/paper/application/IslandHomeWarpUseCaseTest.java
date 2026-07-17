@@ -29,6 +29,7 @@ class IslandHomeWarpUseCaseTest {
         assertEquals("WARP_SET", useCase.setWarpAction(islandId, actorUuid, "market-spawn", location, true, "Market", mutationRunner(calls)).join().code());
         var homeView = useCase.homeViews(islandId).join().getFirst();
         var warpView = useCase.warpViews(islandId).join().getFirst();
+        var islandInfoView = useCase.islandInfoView(islandId).join();
         assertEquals("home", homeView.name());
         assertEquals("ci_shard_004", homeView.worldName());
         assertEquals(45.0F, homeView.yaw());
@@ -37,7 +38,8 @@ class IslandHomeWarpUseCaseTest {
         assertEquals("ci_shard_004", warpView.worldName());
         assertEquals(90.0F, warpView.yaw());
         assertEquals(15.0F, warpView.pitch());
-        assertEquals("Island", useCase.islandInfoView(islandId).join().name());
+        assertEquals("Island", islandInfoView.name());
+        assertEquals("IslandOwner", islandInfoView.ownerName());
         assertEquals("WARP_DELETED", useCase.deleteWarpAction(islandId, actorUuid, "spawn", idempotentMutationRunner(calls)).join().code());
         assertEquals("WARP_PUBLIC", useCase.setWarpPublicAccessAction(islandId, actorUuid, "spawn", true, mutationRunner(calls)).join().code());
         assertEquals("spawn", useCase.publicWarpViews(200, null, null).join().getFirst().name());
@@ -86,7 +88,7 @@ class IslandHomeWarpUseCaseTest {
                 }
                 case "islandInfo" -> {
                     calls.add("islandInfo");
-                    yield CompletableFuture.completedFuture(new CoreGuiViews.IslandInfoView("Island", "ACTIVE", "00000000-0000-0000-0000-000000000060", 3L, "12.5", true, false, 100L, 100L, "00000000-0000-0000-0000-000000000001"));
+                    yield CompletableFuture.completedFuture(new CoreGuiViews.IslandInfoView("Island", "ACTIVE", "00000000-0000-0000-0000-000000000060", 3L, "12.5", true, false, 100L, 100L, "00000000-0000-0000-0000-000000000001", "", "", "", "IslandOwner"));
                 }
                 case "deleteWarp" -> {
                     calls.add("deleteIslandWarpResult:" + args[2]);

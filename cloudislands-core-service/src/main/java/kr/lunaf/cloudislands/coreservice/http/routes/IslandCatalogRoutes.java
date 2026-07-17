@@ -22,6 +22,7 @@ import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.limit.IslandLimitRepository;
+import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandMetadataRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.role.CoreRoleKeys;
@@ -33,6 +34,7 @@ public final class IslandCatalogRoutes implements RouteGroup {
     private final IslandRepository islandRepository;
     private final IslandMetadataRepository metadataRepository;
     private final IslandLimitRepository limitRepository;
+    private final PlayerProfileRepository playerProfiles;
     private final CreateIslandWorkflow createIsland;
     private final IslandLogRepository islandLogs;
     private final AuditLogger audit;
@@ -43,7 +45,7 @@ public final class IslandCatalogRoutes implements RouteGroup {
             CreateIslandWorkflow createIsland,
             IslandLogRepository islandLogs,
             AuditLogger audit) {
-        this(islandRepository, metadataRepository, null, createIsland, islandLogs, audit);
+        this(islandRepository, metadataRepository, null, null, createIsland, islandLogs, audit);
     }
 
     public IslandCatalogRoutes(
@@ -53,9 +55,21 @@ public final class IslandCatalogRoutes implements RouteGroup {
             CreateIslandWorkflow createIsland,
             IslandLogRepository islandLogs,
             AuditLogger audit) {
+        this(islandRepository, metadataRepository, limitRepository, null, createIsland, islandLogs, audit);
+    }
+
+    public IslandCatalogRoutes(
+            IslandRepository islandRepository,
+            IslandMetadataRepository metadataRepository,
+            IslandLimitRepository limitRepository,
+            PlayerProfileRepository playerProfiles,
+            CreateIslandWorkflow createIsland,
+            IslandLogRepository islandLogs,
+            AuditLogger audit) {
         this.islandRepository = islandRepository;
         this.metadataRepository = metadataRepository;
         this.limitRepository = limitRepository;
+        this.playerProfiles = playerProfiles;
         this.createIsland = createIsland;
         this.islandLogs = islandLogs;
         this.audit = audit;
@@ -76,7 +90,7 @@ public final class IslandCatalogRoutes implements RouteGroup {
         Optional<IslandSnapshot> island = islandId.equals(EMPTY_UUID)
             ? ownerUuid.equals(EMPTY_UUID) ? islandRepository.findByName(name) : islandRepository.findByOwner(ownerUuid)
             : islandRepository.findById(islandId);
-        CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(value -> islandJson(value, limitRepository, metadataRepository)).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+        CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(value -> islandJson(value, limitRepository, metadataRepository, playerProfiles)).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
     }
 
     private void publicIslands(HttpExchange exchange) throws IOException {
@@ -88,7 +102,7 @@ public final class IslandCatalogRoutes implements RouteGroup {
             .flatMap(Optional::stream)
             .sorted(Comparator.comparingLong(IslandSnapshot::level).reversed().thenComparing(IslandSnapshot::name))
             .toList();
-        CoreHttpResponses.write(exchange, 200, islandsJson(islands, limitRepository, metadataRepository));
+        CoreHttpResponses.write(exchange, 200, islandsJson(islands, limitRepository, metadataRepository, playerProfiles));
     }
 
     private void create(HttpExchange exchange) throws IOException {
@@ -126,9 +140,13 @@ public final class IslandCatalogRoutes implements RouteGroup {
     }
 
     static String islandsJson(List<IslandSnapshot> islands, IslandLimitRepository limits, IslandMetadataRepository metadata) {
+        return islandsJson(islands, limits, metadata, null);
+    }
+
+    static String islandsJson(List<IslandSnapshot> islands, IslandLimitRepository limits, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles) {
         List<Object> renderedIslands = new ArrayList<>();
         for (IslandSnapshot island : islands) {
-            renderedIslands.add(islandMap(island, limits, metadata));
+            renderedIslands.add(islandMap(island, limits, metadata, playerProfiles));
         }
         return SimpleJson.stringify(Map.of("islands", renderedIslands));
     }
@@ -142,7 +160,11 @@ public final class IslandCatalogRoutes implements RouteGroup {
     }
 
     static String islandJson(IslandSnapshot island, IslandLimitRepository limits, IslandMetadataRepository metadata) {
-        return SimpleJson.stringify(islandMap(island, limits, metadata));
+        return islandJson(island, limits, metadata, null);
+    }
+
+    static String islandJson(IslandSnapshot island, IslandLimitRepository limits, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles) {
+        return SimpleJson.stringify(islandMap(island, limits, metadata, playerProfiles));
     }
 
     static Map<String, Object> islandMap(IslandSnapshot island, IslandLimitRepository limits) {
@@ -150,9 +172,19 @@ public final class IslandCatalogRoutes implements RouteGroup {
     }
 
     static Map<String, Object> islandMap(IslandSnapshot island, IslandLimitRepository limits, IslandMetadataRepository metadata) {
+        return islandMap(island, limits, metadata, null);
+    }
+
+    static Map<String, Object> islandMap(IslandSnapshot island, IslandLimitRepository limits, IslandMetadataRepository metadata, PlayerProfileRepository playerProfiles) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("islandId", island.islandId());
         values.put("ownerUuid", island.ownerUuid());
+        if (playerProfiles != null) {
+            String ownerName = playerProfiles.find(island.ownerUuid()).lastName();
+            if (ownerName != null && !ownerName.isBlank()) {
+                values.put("ownerName", ownerName);
+            }
+        }
         values.put("name", island.name());
         values.put("description", metadata == null ? "" : metadata.flags(island.islandId()).values().getOrDefault(IslandFlag.PROFILE_DESCRIPTION, ""));
         values.put("state", island.state());

@@ -143,7 +143,7 @@ public final class IslandHomeWarpUseCase {
     }
 
     private static IslandInfoView islandInfoView(CoreGuiViews.IslandInfoView view) {
-        return new IslandInfoView(view.name(), view.state(), view.islandId(), view.level(), view.worth(), view.publicAccess(), view.locked(), view.size(), view.border(), view.ownerUuid());
+        return new IslandInfoView(view.name(), view.state(), view.islandId(), view.level(), view.worth(), view.publicAccess(), view.locked(), view.size(), view.border(), view.ownerUuid(), view.description(), view.ownerName());
     }
 
     private static HomeWarpActionResult actionResult(HomeWarpActionView view) {

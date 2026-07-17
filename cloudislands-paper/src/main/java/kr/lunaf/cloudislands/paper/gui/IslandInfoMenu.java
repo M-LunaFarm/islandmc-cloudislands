@@ -107,7 +107,7 @@ public final class IslandInfoMenu implements Listener {
                 message(messages, "info-menu-size", "섬 크기: ") + view.size(),
                 message(messages, "info-menu-border", "경계: ") + view.border());
             setInfoItem(inventory, "E", messages,
-                message(messages, "info-menu-owner", "소유자: ") + shortId(view.ownerUuid(), messages));
+                message(messages, "info-menu-owner", "소유자: ") + ownerDisplayName(view, messages));
             player.openInventory(inventory);
         });
     }
@@ -134,6 +134,10 @@ public final class IslandInfoMenu implements Listener {
             return message(messages, "info-menu-unknown", "알 수 없음");
         }
         return value.length() <= 8 ? value : value.substring(0, 8);
+    }
+
+    static String ownerDisplayName(IslandInfoView view, MessageRenderer messages) {
+        return view.ownerName().isBlank() ? shortId(view.ownerUuid(), messages) : view.ownerName().trim();
     }
 
     private static String levelTargetLine(IslandInfoView view, List<RankingView> rankings, MessageRenderer messages) {

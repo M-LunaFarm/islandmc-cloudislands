@@ -103,7 +103,8 @@ public final class JdkNavigationQueryClient implements NavigationQueryClient {
             name.isBlank() ? islandId : name,
             CoreJson.text(object, "description"),
             CoreJson.number(object, "level"),
-            CoreJson.text(object, "worth")
+            CoreJson.text(object, "worth"),
+            CoreJson.text(object, "ownerName")
         );
     }
 

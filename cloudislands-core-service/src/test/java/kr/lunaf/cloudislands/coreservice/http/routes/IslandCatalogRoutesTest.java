@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.limit.InMemoryIslandLimitRepository;
+import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
 import org.junit.jupiter.api.Test;
 
@@ -65,9 +66,11 @@ class IslandCatalogRoutesTest {
             Instant.parse("2026-01-02T03:04:05Z"),
             Instant.parse("2026-01-03T03:04:05Z")
         );
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        profiles.touch(ownerUuid, "IslandOwner");
 
-        Map<?, ?> renderedIsland = SimpleJson.object(SimpleJson.parse(IslandCatalogRoutes.islandJson(island)));
-        Map<?, ?> islands = SimpleJson.object(SimpleJson.parse(IslandCatalogRoutes.islandsJson(List.of(island))));
+        Map<?, ?> renderedIsland = SimpleJson.object(SimpleJson.parse(IslandCatalogRoutes.islandJson(island, null, null, profiles)));
+        Map<?, ?> islands = SimpleJson.object(SimpleJson.parse(IslandCatalogRoutes.islandsJson(List.of(island), null, null, profiles)));
         Map<?, ?> listedIsland = SimpleJson.object(SimpleJson.list(islands.get("islands")).get(0));
         Map<?, ?> created = SimpleJson.object(SimpleJson.parse(
             IslandCatalogRoutes.createResultJson(new CreateIslandResult(true, "ACCEPTED", island, null))
@@ -124,6 +127,7 @@ class IslandCatalogRoutesTest {
     private static void assertIsland(UUID islandId, UUID ownerUuid, Map<?, ?> island) {
         assertEquals(islandId.toString(), SimpleJson.text(island.get("islandId")));
         assertEquals(ownerUuid.toString(), SimpleJson.text(island.get("ownerUuid")));
+        assertEquals("IslandOwner", SimpleJson.text(island.get("ownerName")));
         assertEquals("Sky \"Base\"", SimpleJson.text(island.get("name")));
         assertEquals("", SimpleJson.text(island.get("description")));
         assertEquals("ACTIVE", SimpleJson.text(island.get("state")));

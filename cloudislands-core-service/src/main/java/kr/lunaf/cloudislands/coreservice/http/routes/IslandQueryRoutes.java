@@ -100,7 +100,7 @@ public final class IslandQueryRoutes {
         if (method.equalsIgnoreCase("GET") && tail.startsWith("by-owner/")) {
             UUID ownerUuid = uuidPath(tail.substring("by-owner/".length()));
             Optional<IslandSnapshot> island = islandRepository.findByOwner(ownerUuid);
-            CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(value -> IslandCatalogRoutes.islandJson(value, limitRepository)).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+            CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(this::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
             return;
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/members")) {
@@ -192,7 +192,7 @@ public final class IslandQueryRoutes {
         if (method.equalsIgnoreCase("GET") && !tail.contains("/")) {
             UUID islandId = uuidPath(tail);
             Optional<IslandSnapshot> island = islandRepository.findById(islandId);
-            CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(value -> IslandCatalogRoutes.islandJson(value, limitRepository)).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+            CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(this::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
             return;
         }
         if (method.equalsIgnoreCase("DELETE") && !tail.contains("/")) {
@@ -225,7 +225,7 @@ public final class IslandQueryRoutes {
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/island")) {
             UUID playerUuid = uuidPath(tail.substring(0, tail.length() - "/island".length()));
             Optional<IslandSnapshot> island = islandRepository.findByOwner(playerUuid);
-            CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(value -> IslandCatalogRoutes.islandJson(value, limitRepository)).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
+            CoreHttpResponses.write(exchange, island.isPresent() ? 200 : 404, island.map(this::islandJson).orElseGet(() -> ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found")));
             return;
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/islands")) {
@@ -237,7 +237,7 @@ public final class IslandQueryRoutes {
                     islandRepository.findById(member.islandId()).ifPresent(island -> islands.putIfAbsent(island.islandId(), island));
                 }
             }
-            CoreHttpResponses.write(exchange, 200, IslandCatalogRoutes.islandsJson(new ArrayList<>(islands.values()), limitRepository));
+            CoreHttpResponses.write(exchange, 200, IslandCatalogRoutes.islandsJson(new ArrayList<>(islands.values()), limitRepository, metadataRepository, playerProfiles));
             return;
         }
         CoreHttpResponses.write(exchange, 404, ApiResponses.error("ROUTE_NOT_FOUND", "Route was not found"));
@@ -264,6 +264,10 @@ public final class IslandQueryRoutes {
             permissionRules.listPlayerOverrides(islandId),
             playerProfiles
         );
+    }
+
+    String islandJson(IslandSnapshot island) {
+        return IslandCatalogRoutes.islandJson(island, limitRepository, metadataRepository, playerProfiles);
     }
 
     private static UUID queryUuid(HttpExchange exchange, String key, UUID fallback) {
