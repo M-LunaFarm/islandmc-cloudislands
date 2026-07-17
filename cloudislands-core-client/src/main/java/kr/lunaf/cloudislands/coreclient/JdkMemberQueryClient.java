@@ -31,6 +31,14 @@ public final class JdkMemberQueryClient implements MemberQueryClient {
     }
 
     @Override
+    public CompletableFuture<List<CoreGuiViews.InviteView>> pendingInvites(UUID playerUuid) {
+        requirePlayer(playerUuid);
+        return core.postBody("/v1/players/invites", CoreJsonPayload.object("playerUuid", playerUuid))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreMemberJson::inviteViews);
+    }
+
+    @Override
     public CompletableFuture<List<IslandBanSnapshot>> banSnapshots(UUID islandId) {
         requireIsland(islandId);
         return core.getBody("/v1/islands/" + islandId + "/bans")

@@ -295,7 +295,7 @@ class IslandCommandCatalogTest {
         assertEquals(IslandCommandPermission.PROGRESSION, IslandCommandPermission.fromSubcommand("recalc"));
         assertEquals(IslandCommandPermission.CHAT, IslandCommandPermission.fromSubcommand("tc"));
         assertTrue(IslandCommandCatalog.SUBCOMMANDS.containsAll(List.of("join", "recalc", "tc")));
-        assertTrue(IslandCommandCatalog.HELP_COMMANDS.containsAll(List.of("섬 join <플레이어|섬|inviteId>", "섬 recalc", "섬 tc <message|toggle>")));
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.containsAll(List.of("섬 join [플레이어|섬|inviteId]", "섬 recalc", "섬 tc <message|toggle>")));
     }
 
     @Test

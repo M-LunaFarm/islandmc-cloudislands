@@ -31,6 +31,22 @@ class VelocityTargetResolverTest {
     }
 
     @Test
+    void resolvesOnlyPendingInviteWithoutACommandTarget() {
+        UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID inviteId = UUID.fromString("00000000-0000-0000-0000-000000000003");
+        CoreApiClient core = core(Map.of(
+            "listPendingInvites", "{\"invites\":[{\"inviteId\":\"" + inviteId + "\",\"islandId\":\"00000000-0000-0000-0000-000000000010\",\"inviterUuid\":\"00000000-0000-0000-0000-000000000020\"}]}"
+        ));
+        VelocityTargetResolver resolver = new VelocityTargetResolver(core);
+
+        assertEquals(inviteId, resolver.resolveInviteTarget(playerUuid, "").join());
+        assertEquals(new UUID(0L, 0L), VelocityTargetResolver.singlePendingInviteId(java.util.List.of(
+            inviteView(inviteId),
+            inviteView(UUID.fromString("00000000-0000-0000-0000-000000000004"))
+        )));
+    }
+
+    @Test
     void resolvesOnlinePlayerWithoutCoreLookup() {
         UUID onlineUuid = UUID.fromString("00000000-0000-0000-0000-000000000004");
         VelocityTargetResolver resolver = new VelocityTargetResolver(core(Map.of()), name -> Optional.of(onlineUuid));
@@ -76,6 +92,10 @@ class VelocityTargetResolverTest {
                 throw new UnsupportedOperationException(method.getName());
             }
         );
+    }
+
+    private static CoreGuiViews.InviteView inviteView(UUID inviteId) {
+        return new CoreGuiViews.InviteView(inviteId.toString(), "", "", "", "");
     }
 
     private static java.util.List<IslandInviteSnapshot> inviteSnapshots(String json) {

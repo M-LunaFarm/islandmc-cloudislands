@@ -88,6 +88,11 @@ public final class MemberManagementUseCase {
         return memberQueries.pendingInvites(playerUuid);
     }
 
+    public CompletableFuture<UUID> resolveSinglePendingInviteId(UUID playerUuid) {
+        requirePlayerId(playerUuid);
+        return memberQueries.pendingInvites(playerUuid).thenApply(MemberManagementUseCase::singlePendingInviteId);
+    }
+
     public CompletableFuture<UUID> resolveInviteIdOrDirectId(UUID playerUuid, UUID inviteOrTargetUuid) {
         requirePlayerId(playerUuid);
         if (inviteOrTargetUuid == null) {
@@ -267,6 +272,24 @@ public final class MemberManagementUseCase {
             }
         }
         return null;
+    }
+
+    static UUID singlePendingInviteId(List<InviteView> invites) {
+        UUID selected = null;
+        for (InviteView invite : invites == null ? List.<InviteView>of() : invites) {
+            if (invite == null) {
+                continue;
+            }
+            UUID inviteId = uuid(invite.inviteId());
+            if (inviteId == null) {
+                continue;
+            }
+            if (selected != null) {
+                return null;
+            }
+            selected = inviteId;
+        }
+        return selected;
     }
 
     private static MemberActionResult memberAction(MemberActionView view) {

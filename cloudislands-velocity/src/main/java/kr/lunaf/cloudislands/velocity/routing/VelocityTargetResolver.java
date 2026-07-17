@@ -25,7 +25,7 @@ public final class VelocityTargetResolver {
 
     public CompletableFuture<UUID> resolveInviteTarget(UUID playerUuid, String target) {
         if (target == null || target.isBlank()) {
-            return CompletableFuture.completedFuture(EMPTY_UUID);
+            return coreApiClient.members().pendingInvites(playerUuid).thenApply(VelocityTargetResolver::singlePendingInviteId);
         }
         UUID parsed = parseUuid(target);
         if (!parsed.equals(EMPTY_UUID)) {
@@ -107,5 +107,23 @@ public final class VelocityTargetResolver {
             }
         }
         return EMPTY_UUID;
+    }
+
+    static UUID singlePendingInviteId(List<CoreGuiViews.InviteView> invites) {
+        UUID selected = EMPTY_UUID;
+        for (CoreGuiViews.InviteView invite : invites == null ? List.<CoreGuiViews.InviteView>of() : invites) {
+            if (invite == null) {
+                continue;
+            }
+            UUID inviteId = parseUuid(invite.inviteId());
+            if (inviteId.equals(EMPTY_UUID)) {
+                continue;
+            }
+            if (!selected.equals(EMPTY_UUID)) {
+                return EMPTY_UUID;
+            }
+            selected = inviteId;
+        }
+        return selected;
     }
 }

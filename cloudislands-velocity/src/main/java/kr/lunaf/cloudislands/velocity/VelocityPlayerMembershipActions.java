@@ -47,12 +47,12 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     public void acceptInviteTarget(Player player, String target) {
         targetResolver.resolveInviteTarget(player.getUniqueId(), target).thenAccept(inviteId -> {
             if (inviteId.equals(new UUID(0L, 0L))) {
-                player.sendMessage(Component.text("대상 초대를 찾지 못했습니다."));
+                player.sendMessage(Component.text(inviteTargetFailure(target)));
                 return;
             }
             acceptInvite(player, inviteId);
         }).exceptionally(error -> {
-            player.sendMessage(Component.text("대상 초대를 찾지 못했습니다."));
+            player.sendMessage(Component.text(inviteTargetFailure(target)));
             return null;
         });
     }
@@ -69,14 +69,20 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
     public void declineInviteTarget(Player player, String target) {
         targetResolver.resolveInviteTarget(player.getUniqueId(), target).thenAccept(inviteId -> {
             if (inviteId.equals(new UUID(0L, 0L))) {
-                player.sendMessage(Component.text("대상 초대를 찾지 못했습니다."));
+                player.sendMessage(Component.text(inviteTargetFailure(target)));
                 return;
             }
             declineInvite(player, inviteId);
         }).exceptionally(error -> {
-            player.sendMessage(Component.text("대상 초대를 찾지 못했습니다."));
+            player.sendMessage(Component.text(inviteTargetFailure(target)));
             return null;
         });
+    }
+
+    private static String inviteTargetFailure(String target) {
+        return target == null || target.isBlank()
+            ? "대기 중인 초대가 없거나 여러 개입니다. /is invites에서 대상을 선택해주세요."
+            : "대상 초대를 찾지 못했습니다.";
     }
 
     public void listMembers(Player player, UUID islandId) {

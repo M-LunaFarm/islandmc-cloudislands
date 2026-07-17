@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.lang.reflect.Proxy;
 import java.util.List;
@@ -44,6 +45,22 @@ class MemberManagementUseCaseTest {
         )));
 
         assertEquals(requestedInviteId, useCase.resolveInviteIdOrDirectId(playerUuid, requestedInviteId).join());
+    }
+
+    @Test
+    void resolvesOnlyPendingInviteWithoutACommandTarget() {
+        UUID playerUuid = uuid("00000000-0000-0000-0000-000000000001");
+        UUID inviteId = uuid("00000000-0000-0000-0000-000000000010");
+        MemberManagementUseCase useCase = new MemberManagementUseCase(client(Map.of(
+            "listPendingInvites", "{\"invites\":[{\"inviteId\":\"" + inviteId + "\"}]}"
+        )));
+
+        assertEquals(inviteId, useCase.resolveSinglePendingInviteId(playerUuid).join());
+        assertNull(MemberManagementUseCase.singlePendingInviteId(List.of(
+            new CoreGuiViews.InviteView(inviteId.toString(), "", "", "", ""),
+            new CoreGuiViews.InviteView("00000000-0000-0000-0000-000000000011", "", "", "", "")
+        )));
+        assertNull(MemberManagementUseCase.singlePendingInviteId(List.of()));
     }
 
     @Test

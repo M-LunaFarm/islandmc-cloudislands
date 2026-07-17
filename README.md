@@ -448,8 +448,10 @@ Paper and invoke the API directly.
 
 Island invitations are delivered on the target player's current Paper node as
 clickable `[Accept]`, `[Decline]`, and `[Invites]` actions backed by the
-canonical `/is accept <inviteId>`, `/is decline <inviteId>`, and `/is invites`
-commands. Players who were offline when the Core event was published receive
+canonical `/is accept [inviteId]`, `/is decline [inviteId]`, and `/is invites`
+commands. When exactly one invite is pending, omitting the target selects it;
+otherwise players can use an invite ID, island name, or inviter name. Players
+who were offline when the Core event was published receive
 their still-pending invitations after joining. Delivery revalidates the
 authoritative pending state, returns to the Paper scheduler before accessing a
 player, limits join reminders to five entries, and suppresses duplicate event

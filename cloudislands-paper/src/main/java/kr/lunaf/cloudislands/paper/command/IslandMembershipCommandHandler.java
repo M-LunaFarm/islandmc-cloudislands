@@ -83,19 +83,11 @@ final class IslandMembershipCommandHandler {
             return true;
         }
         if (subcommand.equals("accept") || subcommand.equals("join") || subcommand.equals("invite-accept") || subcommand.equals("초대수락")) {
-            if (args.length < 2) {
-                runtime.message(player, message("input-invite-accept-target-required", "수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
-                return true;
-            }
-            acceptIslandInviteTarget(player, args[1]);
+            acceptIslandInviteTarget(player, args.length > 1 ? args[1] : "");
             return true;
         }
         if (subcommand.equals("decline") || subcommand.equals("invite-decline") || subcommand.equals("초대거절")) {
-            if (args.length < 2) {
-                runtime.message(player, message("input-invite-decline-target-required", "거절할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
-                return true;
-            }
-            declineIslandInviteTarget(player, args[1]);
+            declineIslandInviteTarget(player, args.length > 1 ? args[1] : "");
             return true;
         }
         if (subcommand.equals("kick") || subcommand.equals("remove") || subcommand.equals("remove-member") || subcommand.equals("추방")) {
@@ -755,12 +747,12 @@ final class IslandMembershipCommandHandler {
         UUID actorUuid = actorSession.playerUuid();
         resolveInviteTarget(actorUuid, target).thenAccept(inviteId -> {
             if (inviteId == null) {
-                deliverMessage(actorSession, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
+                deliverMessage(actorSession, inviteTargetFailure(target, "input-invite-accept-target-required", "수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
                 return;
             }
             acceptIslandInvite(actorSession, inviteId);
         }).exceptionally(error -> {
-            deliverMessage(actorSession, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
+            deliverMessage(actorSession, inviteTargetFailure(target, "input-invite-accept-target-required", "수락할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
             return null;
         });
     }
@@ -788,12 +780,12 @@ final class IslandMembershipCommandHandler {
         UUID actorUuid = actorSession.playerUuid();
         resolveInviteTarget(actorUuid, target).thenAccept(inviteId -> {
             if (inviteId == null) {
-                deliverMessage(actorSession, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
+                deliverMessage(actorSession, inviteTargetFailure(target, "input-invite-decline-target-required", "거절할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
                 return;
             }
             declineIslandInvite(actorSession, inviteId);
         }).exceptionally(error -> {
-            deliverMessage(actorSession, message("invite-target-not-found", "대상 초대를 찾지 못했습니다."));
+            deliverMessage(actorSession, inviteTargetFailure(target, "input-invite-decline-target-required", "거절할 초대 ID, 섬 ID/이름, 또는 초대한 플레이어를 입력해주세요."));
             return null;
         });
     }
@@ -817,6 +809,9 @@ final class IslandMembershipCommandHandler {
     }
 
     private CompletableFuture<UUID> resolveInviteTarget(UUID actorUuid, String target) {
+        if (target == null || target.isBlank()) {
+            return memberManagement.resolveSinglePendingInviteId(actorUuid);
+        }
         UUID parsed = uuid(target);
         if (parsed != null) {
             return memberManagement.resolveInviteIdOrDirectId(actorUuid, parsed);
@@ -826,6 +821,12 @@ final class IslandMembershipCommandHandler {
             return memberManagement.resolveInviteByPlayerUuid(actorUuid, online.getUniqueId());
         }
         return memberManagement.resolveInviteByPlayerNameOrIslandName(actorUuid, target);
+    }
+
+    private String inviteTargetFailure(String target, String missingKey, String missingFallback) {
+        return target == null || target.isBlank()
+            ? message(missingKey, missingFallback)
+            : message("invite-target-not-found", "대상 초대를 찾지 못했습니다.");
     }
 
     private String memberListMessage(List<MemberView> members) {

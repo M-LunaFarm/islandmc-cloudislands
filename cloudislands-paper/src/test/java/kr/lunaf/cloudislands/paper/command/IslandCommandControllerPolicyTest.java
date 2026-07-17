@@ -1113,6 +1113,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membershipHandler.contains("private void sendIslandInvite(PlayerConnectionSession actorSession, UUID islandId, UUID targetUuid)"), "invite creation mutation belongs in IslandMembershipCommandHandler and must retain its initiating connection");
         assertTrue(membershipHandler.contains("private void acceptIslandInviteTarget(Player player, String target)"), "invite accept execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void declineIslandInviteTarget(Player player, String target)"), "invite decline execution belongs in IslandMembershipCommandHandler");
+        assertTrue(membershipHandler.contains("acceptIslandInviteTarget(player, args.length > 1 ? args[1] : \"\")"), "a single pending invite must be acceptable without copying its id");
+        assertTrue(membershipHandler.contains("declineIslandInviteTarget(player, args.length > 1 ? args[1] : \"\")"), "a single pending invite must be declineable without copying its id");
+        assertTrue(membershipHandler.contains("memberManagement.resolveSinglePendingInviteId(actorUuid)"), "argument-free invite actions must resolve only an unambiguous pending invite");
         assertTrue(membershipHandler.contains("private void listIslandMembers(Player player)"), "member list execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void listIslandBans(Player player)"), "ban list execution belongs in IslandMembershipCommandHandler");
         assertTrue(membershipHandler.contains("private void removeIslandMember(Player player, String target)"), "member removal execution belongs in IslandMembershipCommandHandler");
