@@ -131,7 +131,7 @@ public final class IslandQueryRoutes {
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/permissions")) {
             UUID islandId = uuidPath(tail.substring(0, tail.length() - "/permissions".length()));
-            CoreHttpResponses.write(exchange, 200, PermissionRoleRoutes.permissionsJson(permissionRules.list(islandId), permissionRules.listPlayerOverrides(islandId)));
+            CoreHttpResponses.write(exchange, 200, permissionsJson(islandId));
             return;
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/roles")) {
@@ -256,6 +256,14 @@ public final class IslandQueryRoutes {
         values.put("activatedAt", runtime.activatedAt());
         values.put("lastHeartbeat", runtime.lastHeartbeat());
         return SimpleJson.stringify(values);
+    }
+
+    String permissionsJson(UUID islandId) {
+        return PermissionRoleRoutes.permissionsJson(
+            permissionRules.list(islandId),
+            permissionRules.listPlayerOverrides(islandId),
+            playerProfiles
+        );
     }
 
     private static UUID queryUuid(HttpExchange exchange, String key, UUID fallback) {
