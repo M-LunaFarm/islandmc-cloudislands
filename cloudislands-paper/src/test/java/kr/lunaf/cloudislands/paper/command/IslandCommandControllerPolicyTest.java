@@ -966,6 +966,8 @@ class IslandCommandControllerPolicyTest {
         assertTrue(membership.contains("resolveInviteTarget(UUID actorUuid, String target)"), "invite resolution must carry immutable actor identity");
         assertTrue(membership.contains("PlayerConnectionSession actorSession = PlayerConnectionSession.capture(player)"), "membership mutations must retain the exact initiating player connection");
         assertTrue(membership.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "membership reads and self-service mutations must retain the exact initiating player connection");
+        assertTrue(membership.contains("memberDisplayName(member)"), "chat member lists must show Core profile names instead of opaque UUIDs when available");
+        assertTrue(membership.contains("playerName == null || playerName.isBlank() ? compactId(member.playerUuid())"), "member lists must retain a compact UUID fallback for legacy profiles without names");
         assertTrue(membership.contains("playerSession.isCurrent(activePlayer)"), "membership feedback must reject a same-UUID replacement connection");
         assertFalse(membership.contains("private void deliverMessage(UUID playerUuid"), "UUID-only membership feedback must not survive a reconnect");
         assertFalse(membership.contains("deliverMessage(actorUuid"), "membership mutation feedback must retain its initiating connection session");

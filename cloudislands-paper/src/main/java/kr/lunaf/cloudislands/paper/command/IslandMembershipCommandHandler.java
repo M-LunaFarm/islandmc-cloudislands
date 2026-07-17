@@ -835,10 +835,18 @@ final class IslandMembershipCommandHandler {
             String role = member.role();
             String expiresAt = member.expiresAt();
             if (!playerUuid.isBlank()) {
-                entries.add(compactId(playerUuid) + (role.isBlank() ? "" : message("member-list-role-label", " 역할=") + role) + (expiresAt.isBlank() ? "" : message("member-action-expires-prefix", " 만료=") + expiresAt));
+                entries.add(memberDisplayName(member) + (role.isBlank() ? "" : message("member-list-role-label", " 역할=") + role) + (expiresAt.isBlank() ? "" : message("member-action-expires-prefix", " 만료=") + expiresAt));
             }
         }
         return entries.isEmpty() ? message("member-list-empty", "섬 멤버가 없습니다.") : message("member-list-prefix", "섬 멤버: ") + String.join(", ", entries);
+    }
+
+    static String memberDisplayName(MemberView member) {
+        if (member == null) {
+            return "";
+        }
+        String playerName = member.playerName();
+        return playerName == null || playerName.isBlank() ? compactId(member.playerUuid()) : playerName.trim();
     }
 
     private String banListMessage(List<BanView> bans) {

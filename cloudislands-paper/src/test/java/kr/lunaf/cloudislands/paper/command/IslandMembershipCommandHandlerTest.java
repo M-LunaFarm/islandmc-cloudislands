@@ -35,4 +35,17 @@ class IslandMembershipCommandHandlerTest {
         assertFalse(IslandMembershipCommandHandler.isTemporaryCoop(members, member));
         assertFalse(IslandMembershipCommandHandler.isTemporaryCoop(null, trusted));
     }
+
+    @Test
+    void memberListsPreferProfileNamesAndFallBackToCompactUuids() {
+        String playerUuid = "12345678-0000-0000-0000-000000000001";
+
+        assertEquals("Builder", IslandMembershipCommandHandler.memberDisplayName(
+            new CoreGuiViews.MemberView(playerUuid, "MEMBER", "", " Builder ", "", "ONLINE", "", "")
+        ));
+        assertEquals("12345678", IslandMembershipCommandHandler.memberDisplayName(
+            new CoreGuiViews.MemberView(playerUuid, "MEMBER", "", "", "", "UNKNOWN", "", "")
+        ));
+        assertEquals("", IslandMembershipCommandHandler.memberDisplayName(null));
+    }
 }
