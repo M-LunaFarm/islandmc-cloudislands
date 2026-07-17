@@ -2,7 +2,7 @@
 
 Distributed Skyblock platform for Velocity and Paper networks.
 
-Version: `1.1.254`
+Version: `1.1.255`
 
 CloudIslands treats an island as a global resource, not as a server-bound world.
 Island nodes are runtime hosts. Core API owns the state. Velocity owns routing.
@@ -732,9 +732,19 @@ integration-certified.
 
 ## Release
 
-Current release: `v1.1.254`
+Current release: `v1.1.255`
 
-Built for the CloudIslands 1.1.254 baseline.
+Built for the CloudIslands 1.1.255 baseline.
+
+Release notes for `v1.1.255`:
+
+- current visitor, public island, review, and visitor-stat reads plus review
+  writes and deletes now retain the exact Player connection that initiated them
+- same-UUID reconnects can no longer inherit an older visitor or review result
+- review and visitor-stat responses scoped to the current island also require
+  the viewer to remain on that island, preventing stale data after movement
+- Paper command, review-moderation, visit/review-message, and feature-parity
+  gates certify the complete visit and review callback surface
 
 Release notes for `v1.1.254`:
 
