@@ -13,6 +13,7 @@ import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeA
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeSummary;
 import kr.lunaf.cloudislands.paper.gui.AdminAuditMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminEventMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminMetricsMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
@@ -47,6 +48,10 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminMetricsPage page) {
+            openMetricsMenu(player, page.page());
+            return true;
+        }
         if (action instanceof GuiAction.AdminAuditPage page) {
             openAuditMenu(player, page.page());
             return true;
@@ -116,6 +121,18 @@ final class IslandAdminNodeCommandHandler {
             return handleAdminMenuAction(player, adminMenu);
         }
         return false;
+    }
+
+    private void openMetricsMenu(Player player, int page) {
+        if (!metricsManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-metrics-menu-permission-denied", "Core 메트릭 조회 권한이 없습니다."));
+            return;
+        }
+        AdminMetricsMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page);
+    }
+
+    private static boolean metricsManagementAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.metrics");
     }
 
     private void openAuditMenu(Player player, int page) {

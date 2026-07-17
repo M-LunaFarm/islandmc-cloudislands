@@ -622,6 +622,7 @@ class GuiSystemPolicyTest {
         for (String[] menuCase : List.of(
                 new String[] {"AdminAuditMenu", "admin-audit.yml", "admin.audit.open", "admin.audit.page", "admin.events.open"},
                 new String[] {"AdminEventMenu", "admin-events.yml", "admin.events.open", "admin.events.page", "gui.close"},
+                new String[] {"AdminMetricsMenu", "admin-metrics.yml", "admin.metrics.open", "admin.metrics.page", "admin.audit.open"},
                 new String[] {"AdminNodeListMenu", "admin-node-list.yml", "admin.node.open", "admin.node.page", "gui.close"},
                 new String[] {"AdminJobMenu", "admin-jobs.yml", "admin.jobs.retry", "admin.jobs.page", "admin.jobs.cancel.prepare"},
                 new String[] {"AdminRouteMenu", "admin-route.yml", "admin.route.page", "admin.route.clear.prepare", "admin.route.clear.confirm"},
@@ -645,6 +646,7 @@ class GuiSystemPolicyTest {
         assertTrue(registrar.contains("new AdminEventMenu(messages, registry)"), "admin event menu must be registered");
         assertTrue(registrar.contains("new AdminNodeListMenu(messages, registry)"), "admin node list menu must be registered");
         assertTrue(registrar.contains("new AdminJobMenu(messages, registry)"), "admin job menu must be registered");
+        assertTrue(registrar.contains("new AdminMetricsMenu(messages, registry)"), "admin metrics menu must be registered");
         assertTrue(registrar.contains("new AdminRouteMenu(messages, registry)"), "admin route menu must be registered");
         assertTrue(registrar.contains("new AdminStorageMenu(messages, registry)"), "admin storage menu must be registered");
         assertTrue(registrar.contains("new AdminReviewModerationMenu(messages, registry)"), "admin review moderation menu must be registered");

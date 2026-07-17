@@ -35,6 +35,8 @@ public final class GuiActionParser {
         "admin.migration.scan",
         "admin.migration.verify",
         "admin.migration.wizard",
+        "admin.metrics.open",
+        "admin.metrics.page",
         "admin.reviews.moderate",
         "admin.reviews.open",
         "admin.node.drain",
@@ -285,6 +287,8 @@ public final class GuiActionParser {
                 case "admin.audit.page" -> Optional.of(new GuiAction.AdminAuditPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.events.open" -> Optional.of(new GuiAction.AdminEventPage(0));
                 case "admin.events.page" -> Optional.of(new GuiAction.AdminEventPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
+                case "admin.metrics.open" -> Optional.of(new GuiAction.AdminMetricsPage(0));
+                case "admin.metrics.page" -> Optional.of(new GuiAction.AdminMetricsPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.node.open" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.OPEN, safeData));
                 case "admin.node.page" -> Optional.of(new GuiAction.AdminNodePage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.node.list" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.LIST, safeData));

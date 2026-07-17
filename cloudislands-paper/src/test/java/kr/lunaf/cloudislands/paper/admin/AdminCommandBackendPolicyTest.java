@@ -975,6 +975,24 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void playerMetricsCommandOpensLiveDashboardWhileConsoleKeepsTextOutput() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminMetricsMenu.java"));
+        String eventDefinition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/admin-events.yml"));
+        String auditDefinition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/admin-audit.yml"));
+
+        assertTrue(source.contains("AdminMetricsMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player))"),
+            "player metrics command must open the live dashboard");
+        assertTrue(source.contains("run(sender, \"Core metrics\", coreApiClient.adminMetrics().summary()"),
+            "console metrics output must remain available");
+        assertTrue(source.contains("case \"admin.metrics\" -> AdminMetricsMenu.open(agent.plugin(), coreApiClient, target"),
+            "admin openmenu must expose live Core metrics");
+        assertTrue(menu.contains("client.adminMetrics().summary()"), "metrics menu must load the typed Core metrics summary");
+        assertTrue(eventDefinition.contains("metrics: admin.metrics.open"), "event menu must link to Core metrics");
+        assertTrue(auditDefinition.contains("metrics: admin.metrics.open"), "audit menu must link to Core metrics");
+    }
+
+    @Test
     void adminIslandInfoAndRuntimeUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

@@ -7,7 +7,7 @@ layout:
   - "_________"
   - "_________"
   - "____E____"
-  - "PA.R.X..N"
+  - "PAMR.X..N"
 items:
   _:
     material: REDSTONE_TORCH
@@ -28,6 +28,11 @@ items:
     name-key: admin-event-menu-audit-name
     fallback-name: 감사 로그 보기
     action: audit
+  M:
+    material: COMPARATOR
+    name-key: admin-event-menu-metrics-name
+    fallback-name: Core 메트릭 보기
+    action: metrics
   R:
     material: CLOCK
     name-key: admin-event-menu-refresh-name
@@ -48,4 +53,5 @@ actions:
   page: admin.events.page
   refresh: admin.events.page
   audit: admin.audit.open
+  metrics: admin.metrics.open
   close: gui.close

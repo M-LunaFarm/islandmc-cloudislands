@@ -1,0 +1,57 @@
+id: admin.metrics
+rows: 6
+title-key: admin-metrics-menu-title
+layout:
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "____E____"
+  - "PVAR.X..N"
+items:
+  _:
+    material: COMPARATOR
+    name-key: admin-metrics-menu-entry-name
+    fallback-name: Core 메트릭
+    action: entry
+  E:
+    material: LIME_DYE
+    name-key: admin-metrics-menu-empty-name
+    fallback-name: 수집된 메트릭이 없습니다
+  P:
+    material: ARROW
+    name-key: admin-metrics-menu-previous-name
+    fallback-name: 이전 페이지
+    action: page
+  V:
+    material: REDSTONE_TORCH
+    name-key: admin-metrics-menu-events-name
+    fallback-name: Core 이벤트 보기
+    action: events
+  A:
+    material: WRITABLE_BOOK
+    name-key: admin-metrics-menu-audit-name
+    fallback-name: 감사 로그 보기
+    action: audit
+  R:
+    material: CLOCK
+    name-key: admin-metrics-menu-refresh-name
+    fallback-name: 새로고침
+    action: refresh
+  X:
+    material: OAK_DOOR
+    name-key: admin-menu-close-name
+    fallback-name: 닫기
+    action: close
+  N:
+    material: ARROW
+    name-key: admin-metrics-menu-next-name
+    fallback-name: 다음 페이지
+    action: page
+actions:
+  entry: admin.metrics.page
+  page: admin.metrics.page
+  refresh: admin.metrics.page
+  events: admin.events.open
+  audit: admin.audit.open
+  close: gui.close

@@ -7,7 +7,7 @@ layout:
   - "_________"
   - "_________"
   - "____E____"
-  - "PV.R.X..N"
+  - "PVMR.X..N"
 items:
   _:
     material: WRITABLE_BOOK
@@ -28,6 +28,11 @@ items:
     name-key: admin-audit-menu-events-name
     fallback-name: Core 이벤트 보기
     action: events
+  M:
+    material: COMPARATOR
+    name-key: admin-audit-menu-metrics-name
+    fallback-name: Core 메트릭 보기
+    action: metrics
   R:
     material: CLOCK
     name-key: admin-audit-menu-refresh-name
@@ -48,4 +53,5 @@ actions:
   page: admin.audit.page
   refresh: admin.audit.page
   events: admin.events.open
+  metrics: admin.metrics.open
   close: gui.close
