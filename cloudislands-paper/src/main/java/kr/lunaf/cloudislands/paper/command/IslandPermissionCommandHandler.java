@@ -250,7 +250,7 @@ final class IslandPermissionCommandHandler {
             boolean allowed = booleanValue(allowedValue);
             runtime.resolvePlayerUuid(target)
                 .thenCompose(targetUuid -> permissionUseCase.setPermissionOverrideAction(islandId, actorUuid, targetUuid, permission, allowed, runtime::mutate)
-                    .thenAccept(result -> deliverMessage(playerSession, permissionActionMessage(result, message("permission-override-success-prefix", "섬 권한 예외 변경 완료: ") + compactId(targetUuid.toString()) + ":" + permission.name() + "=" + allowed, message("permission-override-failed", "섬 권한 예외를 변경하지 못했습니다.")))))
+                    .thenAccept(result -> deliverMessage(playerSession, permissionActionMessage(result, message("permission-override-success-prefix", "섬 권한 예외 변경 완료: ") + permissionOverrideDisplayName(result, targetUuid) + ":" + permission.name() + "=" + allowed, message("permission-override-failed", "섬 권한 예외를 변경하지 못했습니다.")))))
                 .exceptionally(error -> {
                     deliverMessage(playerSession, runtime.coreWriteFailureMessage(error, message("permission-override-failed", "섬 권한 예외를 변경하지 못했습니다.")));
                     return null;
@@ -310,6 +310,16 @@ final class IslandPermissionCommandHandler {
 
     static String permissionDisplayName(PermissionView permission) {
         return permission.playerName().isBlank() ? compactId(permission.playerUuid()) : permission.playerName().trim();
+    }
+
+    static String permissionOverrideDisplayName(PermissionActionResult result, UUID fallbackPlayerUuid) {
+        if (result != null && !result.playerName().isBlank()) {
+            return result.playerName().trim();
+        }
+        String playerUuid = result == null || result.playerUuid().isBlank()
+            ? (fallbackPlayerUuid == null ? "" : fallbackPlayerUuid.toString())
+            : result.playerUuid();
+        return compactId(playerUuid);
     }
 
     private String roleListMessage(List<RoleView> roles) {

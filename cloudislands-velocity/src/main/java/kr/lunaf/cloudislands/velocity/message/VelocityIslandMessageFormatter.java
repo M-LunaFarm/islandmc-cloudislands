@@ -583,6 +583,15 @@ public final class VelocityIslandMessageFormatter {
             + (view.code().isBlank() ? "" : " code=" + view.code());
     }
 
+    public String permissionOverrideAction(String label, String fallbackPlayerUuid, PermissionActionView view) {
+        String playerDisplay = !view.playerName().isBlank()
+            ? view.playerName().trim()
+            : compactTarget(view.playerUuid().isBlank() ? fallbackPlayerUuid : view.playerUuid());
+        return label + ": " + (view.accepted() ? "접수됨" : "거부됨")
+            + (playerDisplay == null || playerDisplay.isBlank() ? "" : " 대상=" + playerDisplay)
+            + (view.code().isBlank() ? "" : " code=" + view.code());
+    }
+
     public String roleMutation(String label, MutationResult<CoreGuiViews.RoleView> result) {
         CoreGuiViews.RoleView role = result.value();
         String roleKey = role == null ? "" : role.role();

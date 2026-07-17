@@ -749,14 +749,17 @@ class CoreTypedClientsTest {
             server.createContext("/v1/islands/permissions/set", exchange -> respondMemberTest(exchange, calls, "set", "{\"accepted\":true,\"code\":\"PERMISSION_SET\"}"));
             server.createContext("/v1/admin/islands/permissions/set", exchange -> respondMemberTest(exchange, calls, "adminSet", "{\"accepted\":true,\"code\":\"PERMISSION_SET\"}"));
             server.createContext("/v1/admin/islands/permissions/reset", exchange -> respondMemberTest(exchange, calls, "adminReset", "{\"accepted\":true,\"code\":\"PERMISSION_RESET\"}"));
-            server.createContext("/v1/islands/permissions/overrides/set", exchange -> respondMemberTest(exchange, calls, "override", "plain-success"));
+            server.createContext("/v1/islands/permissions/overrides/set", exchange -> respondMemberTest(exchange, calls, "override", "{\"accepted\":true,\"code\":\"PERMISSION_OVERRIDE_SET\",\"playerUuid\":\"" + targetUuid + "\",\"playerName\":\"BuilderPlayer\"}"));
             server.start();
             PermissionCommandClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).permissions();
 
             assertEquals("PERMISSION_SET", client.setPermission(islandId, actorUuid, "builder", IslandPermission.BUILD, true).join().code());
             assertEquals("PERMISSION_SET", client.adminSetPermission(islandId, "builder", IslandPermission.OPEN_CONTAINER, false).join().code());
             assertEquals("PERMISSION_RESET", client.adminResetPermissions(islandId, "builder").join().code());
-            assertEquals("PERMISSION_OVERRIDE_SET", client.setPermissionOverride(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false).join().code());
+            PermissionActionView override = client.setPermissionOverride(islandId, actorUuid, targetUuid, IslandPermission.BREAK, false).join();
+            assertEquals("PERMISSION_OVERRIDE_SET", override.code());
+            assertEquals(targetUuid.toString(), override.playerUuid());
+            assertEquals("BuilderPlayer", override.playerName());
             assertEquals(List.of(
                 "set:{\"islandId\":\"" + islandId + "\",\"actorUuid\":\"" + actorUuid + "\",\"role\":\"BUILDER\",\"roleKey\":\"BUILDER\",\"permission\":\"BUILD\",\"allowed\":true}",
                 "adminSet:{\"islandId\":\"" + islandId + "\",\"roleKey\":\"BUILDER\",\"permission\":\"OPEN_CONTAINER\",\"allowed\":false}",

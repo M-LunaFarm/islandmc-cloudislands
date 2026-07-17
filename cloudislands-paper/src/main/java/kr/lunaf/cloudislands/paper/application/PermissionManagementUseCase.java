@@ -143,7 +143,7 @@ public final class PermissionManagementUseCase {
     }
 
     private static PermissionActionResult permissionAction(PermissionActionView view) {
-        return new PermissionActionResult(view.accepted(), view.code());
+        return new PermissionActionResult(view.accepted(), view.code(), view.playerUuid(), view.playerName());
     }
 
     @FunctionalInterface
@@ -183,9 +183,15 @@ public final class PermissionManagementUseCase {
         }
     }
 
-    public record PermissionActionResult(boolean accepted, String code) {
+    public record PermissionActionResult(boolean accepted, String code, String playerUuid, String playerName) {
+        public PermissionActionResult(boolean accepted, String code) {
+            this(accepted, code, "", "");
+        }
+
         public PermissionActionResult {
             code = code == null ? "" : code;
+            playerUuid = playerUuid == null ? "" : playerUuid;
+            playerName = playerName == null ? "" : playerName;
         }
     }
 }

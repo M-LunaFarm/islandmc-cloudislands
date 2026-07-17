@@ -135,7 +135,12 @@ public final class JdkPermissionCommandClient implements PermissionCommandClient
 
     static PermissionActionView permissionAction(String body, String successCode) {
         Map<?, ?> root = CoreJson.actionObject(body, successCode);
-        return new PermissionActionView(CoreJson.accepted(root), CoreJson.code(root, successCode));
+        return new PermissionActionView(
+            CoreJson.accepted(root),
+            CoreJson.code(root, successCode),
+            CoreJson.text(root, "playerUuid"),
+            CoreJson.text(root, "playerName")
+        );
     }
 
     private static void requirePermission(IslandPermission permission) {

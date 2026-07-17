@@ -89,6 +89,10 @@ class PermissionRoleRoutesTest {
             PermissionRoleRoutes.permissionsJson(List.of(new IslandPermissionRuleSnapshot(islandId, "MEMBER", IslandPermission.BUILD, true)), List.of(new IslandPermissionOverrideSnapshot(islandId, playerUuid, IslandPermission.BREAK, false)), profiles)
         );
         assertEquals(
+            "{\"accepted\":true,\"code\":\"PERMISSION_OVERRIDE_SET\",\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"playerUuid\":\"00000000-0000-0000-0000-000000000002\",\"playerName\":\"BuilderPlayer\",\"permission\":\"BREAK\",\"allowed\":false,\"version\":\"" + version + "\"}",
+            PermissionRoleRoutes.permissionOverrideSetJson(islandId, playerUuid, IslandPermission.BREAK, false, version, profiles)
+        );
+        assertEquals(
             "{\"roles\":[{\"islandId\":\"00000000-0000-0000-0000-000000000001\",\"role\":\"BUILDER\",\"roleKey\":\"BUILDER\",\"weight\":7,\"displayName\":\"Builder \\\"A\\\"\"}]}",
             PermissionRoleRoutes.rolesJson(List.of(new IslandRoleSnapshot(islandId, "builder", 7, "Builder \"A\"")))
         );

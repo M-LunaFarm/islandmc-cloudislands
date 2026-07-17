@@ -159,7 +159,7 @@ public final class PermissionRoleRoutes implements RouteGroup {
         audit.log(actorUuid, "PLAYER", "ISLAND_PERMISSION_OVERRIDE_SET", "ISLAND", islandId.toString(), Map.of("playerUuid", playerUuid.toString(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
         islandLogs.append(islandId, actorUuid, "ISLAND_PERMISSION_OVERRIDE_SET", Map.of("playerUuid", playerUuid.toString(), "permission", permission.name(), "allowed", Boolean.toString(allowed)));
         events.publish(CloudIslandEventType.ISLAND_PERMISSION_CHANGED.name(), Map.of("islandId", islandId.toString(), "playerUuid", playerUuid.toString(), "permission", permission.name(), "allowed", Boolean.toString(allowed), "scope", "PLAYER"));
-        CoreHttpResponses.write(exchange, 202, permissionOverrideSetJson(islandId, playerUuid, permission, allowed, permissionVersion(islandId)));
+        CoreHttpResponses.write(exchange, 202, permissionOverrideSetJson(islandId, playerUuid, permission, allowed, permissionVersion(islandId), playerProfiles));
     }
 
     private void roles(HttpExchange exchange) throws IOException {
@@ -315,11 +315,20 @@ public final class PermissionRoleRoutes implements RouteGroup {
         return SimpleJson.stringify(values);
     }
 
-    private static String permissionOverrideSetJson(UUID islandId, UUID playerUuid, IslandPermission permission, boolean allowed, String version) {
+    static String permissionOverrideSetJson(UUID islandId, UUID playerUuid, IslandPermission permission, boolean allowed, String version) {
+        return permissionOverrideSetJson(islandId, playerUuid, permission, allowed, version, null);
+    }
+
+    static String permissionOverrideSetJson(UUID islandId, UUID playerUuid, IslandPermission permission, boolean allowed, String version, PlayerProfileRepository playerProfiles) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("accepted", true);
+        values.put("code", "PERMISSION_OVERRIDE_SET");
         values.put("islandId", islandId);
         values.put("playerUuid", playerUuid);
+        String playerName = profileName(playerProfiles, playerUuid);
+        if (!playerName.isBlank()) {
+            values.put("playerName", playerName);
+        }
         values.put("permission", permission.name());
         values.put("allowed", allowed);
         values.put("version", version);
@@ -350,15 +359,21 @@ public final class PermissionRoleRoutes implements RouteGroup {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("islandId", override.islandId());
         values.put("playerUuid", override.playerUuid());
-        if (playerProfiles != null) {
-            String playerName = playerProfiles.find(override.playerUuid()).lastName();
-            if (playerName != null && !playerName.isBlank()) {
-                values.put("playerName", playerName);
-            }
+        String playerName = profileName(playerProfiles, override.playerUuid());
+        if (!playerName.isBlank()) {
+            values.put("playerName", playerName);
         }
         values.put("permission", override.permission().name());
         values.put("allowed", override.allowed());
         return values;
+    }
+
+    private static String profileName(PlayerProfileRepository playerProfiles, UUID playerUuid) {
+        if (playerProfiles == null || playerUuid == null || playerUuid.equals(EMPTY_UUID)) {
+            return "";
+        }
+        String playerName = playerProfiles.find(playerUuid).lastName();
+        return playerName == null ? "" : playerName.trim();
     }
 
     private static Map<String, Object> roleMap(IslandRoleSnapshot role) {

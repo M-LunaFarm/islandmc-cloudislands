@@ -275,6 +275,14 @@ class VelocityIslandMessageFormatterTest {
             formatter.permissionAction("섬 권한 변경", new PermissionActionView(true, "PERMISSION_SET"))
         );
         assertEquals(
+            "섬 권한 예외 변경: 접수됨 대상=BuilderPlayer code=PERMISSION_OVERRIDE_SET",
+            formatter.permissionOverrideAction("섬 권한 예외 변경", "33333333-3333-3333-3333-333333333333", new PermissionActionView(true, "PERMISSION_OVERRIDE_SET", "33333333-3333-3333-3333-333333333333", " BuilderPlayer "))
+        );
+        assertEquals(
+            "섬 권한 예외 변경: 접수됨 대상=33333333 code=PERMISSION_OVERRIDE_SET",
+            formatter.permissionOverrideAction("섬 권한 예외 변경", "33333333-3333-3333-3333-333333333333", new PermissionActionView(true, "PERMISSION_OVERRIDE_SET"))
+        );
+        assertEquals(
             "섬 역할 저장 완료: MEMBER weight=10 name=Member version=v2",
             formatter.roleMutation("섬 역할 저장 완료", new MutationResult<>(new CoreGuiViews.RoleView("MEMBER", 10, "Member"), "v2", true))
         );

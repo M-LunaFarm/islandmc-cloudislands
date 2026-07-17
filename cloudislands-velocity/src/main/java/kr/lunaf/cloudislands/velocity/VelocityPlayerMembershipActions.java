@@ -313,7 +313,7 @@ public final class VelocityPlayerMembershipActions extends VelocityActionSupport
                 return;
             }
             withResolvedIsland(player, islandId, "권한 예외를 설정할 섬을 찾지 못했습니다.", "섬 권한 예외를 변경하지 못했습니다.",
-                resolved -> sendTextResult(player, coreApiClient.permissions().setPermissionOverride(resolved, player.getUniqueId(), targetUuid, permission, allowed).thenApply(result -> islandMessages.permissionAction("섬 권한 예외 변경", result)), "섬 권한 예외를 변경하지 못했습니다."));
+                resolved -> sendTextResult(player, coreApiClient.permissions().setPermissionOverride(resolved, player.getUniqueId(), targetUuid, permission, allowed).thenApply(result -> islandMessages.permissionOverrideAction("섬 권한 예외 변경", targetUuid.toString(), result)), "섬 권한 예외를 변경하지 못했습니다."));
         }).exceptionally(error -> {
             player.sendMessage(Component.text("권한 예외를 설정할 플레이어를 찾지 못했습니다."));
             return null;
