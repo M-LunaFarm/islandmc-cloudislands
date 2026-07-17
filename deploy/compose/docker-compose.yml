@@ -255,7 +255,7 @@ services:
       context: ../..
       dockerfile: deploy/docker/paper.Dockerfile
       args:
-        PAPER_VERSION: ${CLOUDISLANDS_PAPER_VERSION:-1.21.11}
+        PAPER_VERSION: ${CLOUDISLANDS_PAPER_VERSION:-26.1.2}
     restart: unless-stopped
     depends_on:
       velocity:
@@ -295,7 +295,7 @@ services:
       context: ../..
       dockerfile: deploy/docker/paper.Dockerfile
       args:
-        PAPER_VERSION: ${CLOUDISLANDS_PAPER_VERSION:-1.21.11}
+        PAPER_VERSION: ${CLOUDISLANDS_PAPER_VERSION:-26.1.2}
     restart: unless-stopped
     depends_on:
       velocity:
@@ -335,7 +335,7 @@ services:
       context: ../..
       dockerfile: deploy/docker/paper.Dockerfile
       args:
-        PAPER_VERSION: ${CLOUDISLANDS_PAPER_VERSION:-1.21.11}
+        PAPER_VERSION: ${CLOUDISLANDS_PAPER_VERSION:-26.1.2}
     restart: unless-stopped
     depends_on:
       velocity:

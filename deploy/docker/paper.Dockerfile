@@ -1,16 +1,22 @@
 # syntax=docker/dockerfile:1.7
 ARG JAVA_IMAGE=eclipse-temurin:21-jdk-jammy
-ARG JAVA_RUNTIME_IMAGE=eclipse-temurin:21-jre-jammy
+ARG PAPER_JAVA_IMAGE=eclipse-temurin:25-jdk-jammy
+ARG JAVA_RUNTIME_IMAGE=eclipse-temurin:25-jre-jammy
 FROM ${JAVA_IMAGE} AS build
 
-ARG PAPER_VERSION=1.21.11
+WORKDIR /workspace
+COPY . .
+RUN --mount=type=cache,target=/root/.gradle \
+    ./gradlew --no-daemon :cloudislands-paper:shadowJar
+
+FROM ${PAPER_JAVA_IMAGE} AS paper-runtime
+
+ARG PAPER_VERSION=26.1.2
 WORKDIR /workspace
 RUN apt-get update \
     && apt-get install --yes --no-install-recommends python3 \
     && rm -rf /var/lib/apt/lists/*
-COPY . .
-RUN --mount=type=cache,target=/root/.gradle \
-    ./gradlew --no-daemon :cloudislands-paper:shadowJar
+COPY scripts/ci/ scripts/ci/
 RUN python3 scripts/ci/download_papermc.py \
     --project paper \
     --version "${PAPER_VERSION}" \
@@ -26,9 +32,9 @@ RUN apt-get update \
     && apt-get install --yes --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /data
-COPY --from=build /workspace/paper-server.jar /opt/cloudislands/server.jar
-COPY --from=build /workspace/paper-runtime/cache/ /opt/cloudislands/paper-runtime/cache/
-COPY --from=build /workspace/paper-runtime/versions/ /opt/cloudislands/paper-runtime/versions/
+COPY --from=paper-runtime /workspace/paper-server.jar /opt/cloudislands/server.jar
+COPY --from=paper-runtime /workspace/paper-runtime/cache/ /opt/cloudislands/paper-runtime/cache/
+COPY --from=paper-runtime /workspace/paper-runtime/versions/ /opt/cloudislands/paper-runtime/versions/
 COPY --from=build /workspace/cloudislands-paper/build/libs/CloudIslands-Paper-*.jar /opt/cloudislands/CloudIslands-Paper.jar
 COPY deploy/docker/paper-entrypoint.sh /opt/cloudislands/entrypoint.sh
 RUN chmod 0755 /opt/cloudislands/entrypoint.sh

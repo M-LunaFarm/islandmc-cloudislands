@@ -249,6 +249,7 @@ private data class MinecraftVersionMatrix(val entries: List<MinecraftVersionEntr
 
 private val gateVersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 private val gateMinecraftBaselineVersion = gateVersionCatalog.findVersion("minecraft-baseline").orElseThrow().requiredVersion
+private val gateJavaCurrentVersion = gateVersionCatalog.findVersion("java-current").orElseThrow().requiredVersion
 private val minecraftVersionMatrixFile = layout.projectDirectory.file("gradle/minecraft-versions.toml").asFile
 private val minecraftVersionMatrix = MinecraftVersionMatrix.parse(minecraftVersionMatrixFile)
 
@@ -259,10 +260,30 @@ tasks.register("verifyMinecraftVersionMatrix") {
     description = "Validates the typed Minecraft version matrix and writes the external runtime matrix report."
     inputs.file(minecraftVersionMatrixFile)
     inputs.file(layout.projectDirectory.file(".github/workflows/build.yml"))
+    inputs.file(layout.projectDirectory.file("deploy/compose/docker-compose.yml"))
+    inputs.file(layout.projectDirectory.file("deploy/docker/paper.Dockerfile"))
+    inputs.file(layout.projectDirectory.file("README.md"))
     outputs.file(rootProject.layout.projectDirectory.dir("../codex-output").file("runtime-matrix.md"))
     doLast {
         minecraftVersionMatrix.validate(rootProject.projectDir, gateMinecraftBaselineVersion)
         verifyMinecraftCiCoverage(layout.projectDirectory.file(".github/workflows/build.yml").asFile.readText())
+        val latestStable = minecraftVersionMatrix.latestStable
+        val compose = layout.projectDirectory.file("deploy/compose/docker-compose.yml").asFile.readText()
+        val paperDockerfile = layout.projectDirectory.file("deploy/docker/paper.Dockerfile").asFile.readText()
+        val readme = layout.projectDirectory.file("README.md").asFile.readText()
+        val composeVersion = "PAPER_VERSION: \${CLOUDISLANDS_PAPER_VERSION:-${latestStable.bootVersion}}"
+        val requiredSignals = mapOf(
+            "Compose Paper version" to (compose.split(composeVersion).size - 1 == 3),
+            "Paper Docker build version" to paperDockerfile.contains("ARG PAPER_VERSION=${latestStable.bootVersion}"),
+            "Paper plugin build JDK" to paperDockerfile.contains("ARG JAVA_IMAGE=eclipse-temurin:${gateJavaCurrentVersion}-jdk-jammy"),
+            "Paper server preparation JDK" to paperDockerfile.contains("ARG PAPER_JAVA_IMAGE=eclipse-temurin:${latestStable.javaVersion}-jdk-jammy"),
+            "Paper Docker runtime JRE" to paperDockerfile.contains("ARG JAVA_RUNTIME_IMAGE=eclipse-temurin:${latestStable.javaVersion}-jre-jammy"),
+            "README Compose version" to readme.contains("Paper ${latestStable.bootVersion} images")
+        )
+        val deploymentDrift = requiredSignals.filterValues { present -> !present }.keys
+        if (deploymentDrift.isNotEmpty()) {
+            throw GradleException("Latest stable Paper deployment defaults have drifted: ${deploymentDrift.joinToString(", ")}")
+        }
         val output = rootProject.layout.projectDirectory.dir("../codex-output").file("runtime-matrix.md").asFile
         output.parentFile.mkdirs()
         output.writeText(minecraftVersionMatrix.detailedReport())

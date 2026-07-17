@@ -180,7 +180,7 @@ Quickstart, docker compose:
 - export the corresponding `CLOUDISLANDS_*_FILE` variables, set
   `MINECRAFT_EULA=TRUE` only after accepting the Minecraft EULA, then run
   `docker compose -f deploy/compose/docker-compose.yml up -d --build --wait`
-- the Compose project builds Core, Velocity 3.5, and Paper 1.21.11 images from
+- the Compose project builds Core, Velocity 3.5, and Paper 26.1.2 images from
   this repository; set `CLOUDISLANDS_*_IMAGE` to use published/pinned images
 - only Velocity port `25565` is public; Core defaults to loopback `8443`, while
   Paper, PostgreSQL, Redis, and MinIO remain unpublished
