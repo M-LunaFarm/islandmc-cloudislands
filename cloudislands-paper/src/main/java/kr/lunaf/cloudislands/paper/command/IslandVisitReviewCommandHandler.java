@@ -343,8 +343,12 @@ final class IslandVisitReviewCommandHandler {
             + " | " + String.join(" | ", entries);
     }
 
-    private static String reviewEntry(ReviewView review) {
-        return compactId(review.reviewerUuid()) + "=" + review.rating() + "/5" + (review.comment().isBlank() ? "" : " " + review.comment());
+    static String reviewEntry(ReviewView review) {
+        return reviewerDisplayName(review) + "=" + review.rating() + "/5" + (review.comment().isBlank() ? "" : " " + review.comment());
+    }
+
+    static String reviewerDisplayName(ReviewView review) {
+        return review == null || review.reviewerName().isBlank() ? compactId(review == null ? "" : review.reviewerUuid()) : review.reviewerName().trim();
     }
 
     private String visitorStatsMessage(IslandVisitorStatsView stats) {

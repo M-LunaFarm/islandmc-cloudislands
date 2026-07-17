@@ -326,8 +326,12 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
             : "섬 후기: 평균=" + average + " 개수=" + reviews.count() + " | " + String.join(" | ", entries);
     }
 
-    private static String reviewEntry(ReviewView review) {
-        return compactId(review.reviewerUuid()) + "=" + review.rating() + "/5" + (review.comment().isBlank() ? "" : " " + review.comment());
+    static String reviewEntry(ReviewView review) {
+        return reviewerDisplayName(review) + "=" + review.rating() + "/5" + (review.comment().isBlank() ? "" : " " + review.comment());
+    }
+
+    static String reviewerDisplayName(ReviewView review) {
+        return review == null || review.reviewerName().isBlank() ? compactId(review == null ? "" : review.reviewerUuid()) : review.reviewerName().trim();
     }
 
     private static String compactId(String value) {

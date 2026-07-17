@@ -104,10 +104,14 @@ public final class IslandReviewMenu implements Listener {
 
     private static List<String> reviewLore(ReviewView review, MessageRenderer messages) {
         return List.of(
-            message(messages, "reviews-menu-reviewer", "작성자: ") + shortId(review.reviewerUuid()),
+            message(messages, "reviews-menu-reviewer", "작성자: ") + reviewerDisplayName(review),
             message(messages, "reviews-menu-rating", "평점: ") + review.rating() + "/5",
             message(messages, "reviews-menu-comment", "내용: ") + fallback(review.comment(), message(messages, "reviews-menu-no-comment", "내용 없음"))
         );
+    }
+
+    static String reviewerDisplayName(ReviewView review) {
+        return review == null || review.reviewerName().isBlank() ? shortId(review == null ? "" : review.reviewerUuid()) : review.reviewerName().trim();
     }
 
     private static String message(MessageRenderer messages, String key, String fallback) {

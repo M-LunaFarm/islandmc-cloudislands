@@ -152,7 +152,7 @@ public final class IslandNavigationUseCase {
             view.count(),
             view.average(),
             view.reviews().stream()
-                .map(review -> new ReviewView(review.reviewerUuid(), review.rating(), review.comment()))
+                .map(review -> new ReviewView(review.reviewerUuid(), review.rating(), review.comment(), review.reviewerName()))
                 .toList()
         );
     }
@@ -213,10 +213,15 @@ public final class IslandNavigationUseCase {
         }
     }
 
-    public record ReviewView(String reviewerUuid, long rating, String comment) {
+    public record ReviewView(String reviewerUuid, long rating, String comment, String reviewerName) {
+        public ReviewView(String reviewerUuid, long rating, String comment) {
+            this(reviewerUuid, rating, comment, "");
+        }
+
         public ReviewView {
             reviewerUuid = reviewerUuid == null ? "" : reviewerUuid;
             comment = comment == null ? "" : comment;
+            reviewerName = reviewerName == null ? "" : reviewerName;
         }
     }
 

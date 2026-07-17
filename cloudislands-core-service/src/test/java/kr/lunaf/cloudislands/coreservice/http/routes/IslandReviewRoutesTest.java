@@ -18,6 +18,7 @@ import kr.lunaf.cloudislands.api.model.IslandReviewRankSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandReviewRoutesTest {
@@ -93,10 +94,12 @@ class IslandReviewRoutesTest {
             Instant.parse("2026-01-02T03:04:05Z"),
             Instant.parse("2026-01-03T04:05:06Z")
         );
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        profiles.touch(reviewerUuid, "ReviewPlayer");
 
         Map<?, ?> renderedReview = SimpleJson.object(SimpleJson.parse(IslandReviewRoutes.reviewJson(review)));
         Map<?, ?> accepted = SimpleJson.object(SimpleJson.parse(IslandReviewRoutes.reviewAcceptedJson(review)));
-        Map<?, ?> reviewList = SimpleJson.object(SimpleJson.parse(IslandReviewRoutes.reviewsJson(List.of(review))));
+        Map<?, ?> reviewList = SimpleJson.object(SimpleJson.parse(IslandReviewRoutes.reviewsJson(List.of(review), profiles)));
         Map<?, ?> listedReview = SimpleJson.object(SimpleJson.list(reviewList.get("reviews")).get(0));
         Map<?, ?> summary = SimpleJson.object(reviewList.get("summary"));
         Map<?, ?> rankings = SimpleJson.object(SimpleJson.parse(
@@ -108,6 +111,7 @@ class IslandReviewRoutesTest {
         assertEquals(true, accepted.get("accepted"));
         assertReview(islandId, reviewerUuid, SimpleJson.object(accepted.get("review")));
         assertReview(islandId, reviewerUuid, listedReview);
+        assertEquals("ReviewPlayer", SimpleJson.text(listedReview.get("reviewerName")));
         assertEquals(1, ((Number) summary.get("count")).intValue());
         assertEquals("5.00", SimpleJson.text(summary.get("average")));
         assertEquals(islandId.toString(), SimpleJson.text(ranking.get("islandId")));

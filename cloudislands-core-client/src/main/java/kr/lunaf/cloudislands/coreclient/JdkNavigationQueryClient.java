@@ -59,7 +59,8 @@ public final class JdkNavigationQueryClient implements NavigationQueryClient {
                 CoreJson.number(review, "rating"),
                 CoreJson.text(review, "comment"),
                 CoreJson.text(review, "createdAt"),
-                CoreJson.text(review, "updatedAt")
+                CoreJson.text(review, "updatedAt"),
+                CoreJson.text(review, "reviewerName")
             ))
             .filter(review -> !review.reviewerUuid().isBlank())
             .toList();

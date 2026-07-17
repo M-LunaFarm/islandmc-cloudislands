@@ -21,6 +21,7 @@ import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
 import kr.lunaf.cloudislands.coreservice.http.JsonFields;
 import kr.lunaf.cloudislands.coreservice.http.RouteGroup;
 import kr.lunaf.cloudislands.coreservice.islandlog.IslandLogRepository;
+import kr.lunaf.cloudislands.coreservice.profile.PlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.IslandRepository;
 import kr.lunaf.cloudislands.coreservice.review.IslandReviewRepository;
 
@@ -29,13 +30,19 @@ public final class IslandReviewRoutes implements RouteGroup {
 
     private final IslandReviewRepository reviews;
     private final IslandRepository islands;
+    private final PlayerProfileRepository playerProfiles;
     private final IslandLogRepository islandLogs;
     private final AuditLogger audit;
     private final GlobalEventPublisher events;
 
     public IslandReviewRoutes(IslandReviewRepository reviews, IslandRepository islands, IslandLogRepository islandLogs, AuditLogger audit, GlobalEventPublisher events) {
+        this(reviews, islands, null, islandLogs, audit, events);
+    }
+
+    public IslandReviewRoutes(IslandReviewRepository reviews, IslandRepository islands, PlayerProfileRepository playerProfiles, IslandLogRepository islandLogs, AuditLogger audit, GlobalEventPublisher events) {
         this.reviews = reviews;
         this.islands = islands;
+        this.playerProfiles = playerProfiles;
         this.islandLogs = islandLogs;
         this.audit = audit;
         this.events = events;
@@ -66,7 +73,7 @@ public final class IslandReviewRoutes implements RouteGroup {
             CoreHttpResponses.write(exchange, 404, ApiResponses.error("ISLAND_NOT_FOUND", "Island was not found"));
             return;
         }
-        CoreHttpResponses.write(exchange, 200, reviewsJson(reviews.list(islandId, limit)));
+        CoreHttpResponses.write(exchange, 200, reviewsJson(reviews.list(islandId, limit), playerProfiles));
     }
 
     private void setReview(HttpExchange exchange) throws IOException {
@@ -177,11 +184,22 @@ public final class IslandReviewRoutes implements RouteGroup {
     }
 
     static String reviewsJson(List<IslandReviewSnapshot> reviews) {
+        return reviewsJson(reviews, null);
+    }
+
+    static String reviewsJson(List<IslandReviewSnapshot> reviews, PlayerProfileRepository playerProfiles) {
         int count = reviews.size();
         double average = reviews.stream().mapToInt(IslandReviewSnapshot::rating).average().orElse(0.0D);
         List<Object> renderedReviews = new ArrayList<>();
         for (IslandReviewSnapshot review : reviews) {
-            renderedReviews.add(reviewMap(review));
+            LinkedHashMap<String, Object> rendered = new LinkedHashMap<>(reviewMap(review));
+            if (playerProfiles != null) {
+                String reviewerName = playerProfiles.find(review.reviewerUuid()).lastName();
+                if (reviewerName != null && !reviewerName.isBlank()) {
+                    rendered.put("reviewerName", reviewerName.trim());
+                }
+            }
+            renderedReviews.add(rendered);
         }
         LinkedHashMap<String, Object> summary = new LinkedHashMap<>();
         summary.put("count", count);

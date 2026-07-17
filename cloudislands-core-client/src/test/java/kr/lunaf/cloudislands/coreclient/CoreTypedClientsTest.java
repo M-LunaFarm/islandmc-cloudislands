@@ -1590,7 +1590,7 @@ class CoreTypedClientsTest {
             server.createContext("/v1/islands/reviews", exchange -> {
                 calls.add("reviews:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
                 byte[] response = """
-                    {"reviews":[{"islandId":"%s","reviewerUuid":"%s","rating":5,"comment":"nice","createdAt":"2026-06-21T00:00:00Z","updatedAt":"2026-06-21T00:01:00Z"}],"summary":{"count":1,"average":5.0}}
+                    {"reviews":[{"islandId":"%s","reviewerUuid":"%s","reviewerName":"ReviewPlayer","rating":5,"comment":"nice","createdAt":"2026-06-21T00:00:00Z","updatedAt":"2026-06-21T00:01:00Z"}],"summary":{"count":1,"average":5.0}}
                     """.formatted(islandId, reviewerUuid).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
                 exchange.getResponseBody().write(response);
@@ -1617,6 +1617,7 @@ class CoreTypedClientsTest {
             assertEquals("IslandOwner", island.ownerName());
             assertEquals(1L, reviews.count());
             assertEquals(islandId.toString(), reviews.reviews().get(0).islandId());
+            assertEquals("ReviewPlayer", reviews.reviews().get(0).reviewerName());
             assertEquals("nice", reviews.reviews().get(0).comment());
             assertEquals("2026-06-21T00:01:00Z", reviews.reviews().get(0).updatedAt());
             assertFalse(source.contains("private static String text("), "navigation parser must use shared CoreJson text helpers");

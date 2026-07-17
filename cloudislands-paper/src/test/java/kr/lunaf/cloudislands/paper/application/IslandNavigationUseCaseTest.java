@@ -61,7 +61,9 @@ class IslandNavigationUseCaseTest {
         var publicIsland = useCase.publicIslandViews(500).join().getFirst();
         assertEquals("spawn", publicIsland.name());
         assertEquals("IslandOwner", publicIsland.ownerName());
-        assertEquals(1L, useCase.reviewViews(islandId, 0).join().count());
+        var reviews = useCase.reviewViews(islandId, 0).join();
+        assertEquals(1L, reviews.count());
+        assertEquals("ReviewPlayer", reviews.reviews().getFirst().reviewerName());
         assertEquals(true, useCase.setReviewAction(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join().accepted());
         assertEquals(true, useCase.deleteReviewAction(islandId, reviewerUuid, idempotentRunner(calls)).join().accepted());
 
@@ -116,7 +118,7 @@ class IslandNavigationUseCaseTest {
                     calls.add("listIslandReviews:" + limit);
                     UUID islandId = (UUID) args[0];
                     UUID reviewerUuid = UUID.fromString("00000000-0000-0000-0000-000000000001");
-                    yield CompletableFuture.completedFuture(new ReviewListView(1L, 5.0D, List.of(new ReviewView(islandId.toString(), reviewerUuid.toString(), 5L, "nice", "2026-01-02T03:04:05Z", "2026-01-03T04:05:06Z"))));
+                    yield CompletableFuture.completedFuture(new ReviewListView(1L, 5.0D, List.of(new ReviewView(islandId.toString(), reviewerUuid.toString(), 5L, "nice", "2026-01-02T03:04:05Z", "2026-01-03T04:05:06Z", "ReviewPlayer"))));
                 }
                 case "setReview" -> {
                     calls.add("setIslandReview:" + args[2] + ":" + args[3]);
