@@ -277,6 +277,7 @@ services:
       - cloudislands_core_token
       - cloudislands_admin_token
       - cloudislands_forwarding_secret
+      - cloudislands_redis_password
       - cloudislands_storage_access_key
       - cloudislands_storage_secret_key
     networks:
@@ -317,6 +318,7 @@ services:
       - cloudislands_core_token
       - cloudislands_admin_token
       - cloudislands_forwarding_secret
+      - cloudislands_redis_password
       - cloudislands_storage_access_key
       - cloudislands_storage_secret_key
     networks:
@@ -357,6 +359,7 @@ services:
       - cloudislands_core_token
       - cloudislands_admin_token
       - cloudislands_forwarding_secret
+      - cloudislands_redis_password
       - cloudislands_storage_access_key
       - cloudislands_storage_secret_key
     networks:

@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public final class PaperRedisClient implements Closeable {
     private final URI redisUri;
+    private final String password;
     private final int timeoutMillis;
     private final boolean enabled;
     private final ExecutorService observer;
@@ -31,8 +32,9 @@ public final class PaperRedisClient implements Closeable {
     private final AtomicLong nextRefreshNanos = new AtomicLong();
     private volatile PingResult lastResult;
 
-    private PaperRedisClient(URI redisUri, Duration timeout, boolean enabled, PingResult initialResult) {
+    private PaperRedisClient(URI redisUri, String password, Duration timeout, boolean enabled, PingResult initialResult) {
         this.redisUri = redisUri;
+        this.password = password == null ? "" : password;
         this.timeoutMillis = (int) Math.max(1L, timeout == null ? 1000L : timeout.toMillis());
         this.enabled = enabled;
         this.refreshIntervalNanos = TimeUnit.MILLISECONDS.toNanos(Math.max(1000L, timeoutMillis));
@@ -45,13 +47,17 @@ public final class PaperRedisClient implements Closeable {
     }
 
     public static PaperRedisClient create(String redisUri, Duration timeout) {
+        return create(redisUri, "", timeout);
+    }
+
+    public static PaperRedisClient create(String redisUri, String password, Duration timeout) {
         if (redisUri == null || redisUri.isBlank()) {
-            return new PaperRedisClient(null, timeout, false, PingResult.disabled());
+            return new PaperRedisClient(null, password, timeout, false, PingResult.disabled());
         }
         try {
-            return new PaperRedisClient(URI.create(redisUri), timeout, true, PingResult.unavailable(0.0D, 0L, 0L, "not checked yet"));
+            return new PaperRedisClient(URI.create(redisUri), password, timeout, true, PingResult.unavailable(0.0D, 0L, 0L, "not checked yet"));
         } catch (IllegalArgumentException exception) {
-            return new PaperRedisClient(null, timeout, false, PingResult.unavailable(0.0D, 0L, 0L, "invalid redis uri"));
+            return new PaperRedisClient(null, password, timeout, false, PingResult.unavailable(0.0D, 0L, 0L, "invalid redis uri"));
         }
     }
 
@@ -113,13 +119,15 @@ public final class PaperRedisClient implements Closeable {
 
     private void authenticateIfNeeded(BufferedOutputStream out, BufferedInputStream in) throws IOException {
         String userInfo = redisUri.getUserInfo();
-        if (userInfo == null || userInfo.isBlank()) {
+        if ((userInfo == null || userInfo.isBlank()) && password.isBlank()) {
             return;
         }
-        int separator = userInfo.indexOf(':');
-        if (separator < 0) {
+        if (userInfo == null || userInfo.isBlank()) {
+            writeCommand(out, "AUTH", password);
+        } else if (userInfo.indexOf(':') < 0) {
             writeCommand(out, "AUTH", userInfo);
         } else {
+            int separator = userInfo.indexOf(':');
             writeCommand(out, "AUTH", userInfo.substring(0, separator), userInfo.substring(separator + 1));
         }
         String response = readResponse(in);

@@ -45,6 +45,34 @@ class PaperRedisClientTest {
         }
     }
 
+    @Test
+    void passwordIsAuthenticatedBeforePing() throws Exception {
+        try (ServerSocket server = new ServerSocket(0)) {
+            CountDownLatch requestReceived = new CountDownLatch(1);
+            Thread responder = new Thread(() -> authenticatedPong(server, requestReceived), "test-authenticated-redis-responder");
+            responder.setDaemon(true);
+            responder.start();
+
+            try (PaperRedisClient client = PaperRedisClient.create(
+                "redis://127.0.0.1:" + server.getLocalPort(),
+                "secret",
+                Duration.ofSeconds(2)
+            )) {
+                client.ping();
+                assertTrue(requestReceived.await(1, TimeUnit.SECONDS));
+
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+                PaperRedisClient.PingResult observed = client.ping();
+                while (!observed.available() && System.nanoTime() < deadline) {
+                    Thread.sleep(10L);
+                    observed = client.ping();
+                }
+                assertTrue(observed.available());
+                assertTrue(observed.pingsTotal() >= 1L);
+            }
+        }
+    }
+
     private static void delayedPong(ServerSocket server, CountDownLatch requestReceived) {
         try (Socket socket = server.accept()) {
             InputStream input = socket.getInputStream();
@@ -53,6 +81,27 @@ class PaperRedisClientTest {
                 requestReceived.countDown();
             }
             Thread.sleep(500L);
+            socket.getOutputStream().write("+PONG\r\n".getBytes(StandardCharsets.UTF_8));
+            socket.getOutputStream().flush();
+        } catch (Exception ignored) {
+            // Closing the test socket is sufficient cleanup if an assertion fails.
+        }
+    }
+
+    private static void authenticatedPong(ServerSocket server, CountDownLatch requestReceived) {
+        try (Socket socket = server.accept()) {
+            InputStream input = socket.getInputStream();
+            byte[] auth = input.readNBytes(26);
+            if (!new String(auth, StandardCharsets.UTF_8).contains("secret")) {
+                return;
+            }
+            socket.getOutputStream().write("+OK\r\n".getBytes(StandardCharsets.UTF_8));
+            socket.getOutputStream().flush();
+
+            byte[] ping = input.readNBytes(14);
+            if (new String(ping, StandardCharsets.UTF_8).contains("PING")) {
+                requestReceived.countDown();
+            }
             socket.getOutputStream().write("+PONG\r\n".getBytes(StandardCharsets.UTF_8));
             socket.getOutputStream().flush();
         } catch (Exception ignored) {

@@ -95,6 +95,7 @@ final class PaperPluginBootstrap {
         plugin.agent.routeTickets().setMessages(plugin.messages);
         plugin.redisClient = PaperRedisClient.create(
             config.redis().uri(),
+            config.redis().password(),
             config.redis().timeout()
         );
         PaperRuntimeServices runtimeServices = PaperRuntimeServices.register(plugin, client, plugin.agent, config);

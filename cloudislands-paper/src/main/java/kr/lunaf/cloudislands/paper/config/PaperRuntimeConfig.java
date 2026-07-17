@@ -123,14 +123,19 @@ public record PaperRuntimeConfig(
         }
     }
 
-    public record Redis(String uri, Duration timeout) {
+    public record Redis(String uri, String password, Duration timeout) {
         public Redis {
             uri = blankDefault(uri, "redis://redis.internal:6379");
+            password = password == null ? "" : password;
             timeout = timeout == null || timeout.isZero() || timeout.isNegative() ? Duration.ofMillis(1000L) : timeout;
         }
 
+        public Redis(String uri, Duration timeout) {
+            this(uri, "", timeout);
+        }
+
         public static Redis defaults() {
-            return new Redis("redis://redis.internal:6379", Duration.ofMillis(1000L));
+            return new Redis("redis://redis.internal:6379", "", Duration.ofMillis(1000L));
         }
     }
 

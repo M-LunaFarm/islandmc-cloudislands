@@ -354,6 +354,7 @@ public final class PaperRuntimeConfigLoader {
     private static void mapSecurityV2(FileConfiguration source, FileConfiguration target) {
         setIfPresent(source, target, "core-api.auth-token", "setup.core-api.auth-token");
         setIfPresent(source, target, "core-api.admin-token", "setup.core-api.admin-token");
+        setIfPresent(source, target, "redis.password", "setup.redis.password");
         setIfPresent(source, target, "storage.access-key", "setup.storage.access-key");
         setIfPresent(source, target, "storage.secret-key", "setup.storage.secret-key");
         setIfPresent(source, target, "storage.bearer-token", "setup.storage.auth-token");
@@ -545,6 +546,7 @@ public final class PaperRuntimeConfigLoader {
     private static PaperRuntimeConfig.Redis redis(FileConfiguration config, Function<String, String> resolver) {
         return new PaperRuntimeConfig.Redis(
             resolver.apply(string(config, "redis.uri", "redis://redis.internal:6379")),
+            setupString(config, resolver, "setup.redis.password", ""),
             Duration.ofMillis(Math.max(1L, config.getLong("redis.timeout-ms", 1000L)))
         );
     }

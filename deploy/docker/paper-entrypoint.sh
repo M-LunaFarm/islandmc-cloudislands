@@ -25,6 +25,7 @@ require_value() {
 require_file /run/secrets/cloudislands_core_token
 require_file /run/secrets/cloudislands_admin_token
 require_file /run/secrets/cloudislands_forwarding_secret
+require_file /run/secrets/cloudislands_redis_password
 require_file /run/secrets/cloudislands_storage_access_key
 require_file /run/secrets/cloudislands_storage_secret_key
 
@@ -113,8 +114,8 @@ core-api:
     connect: 2s
     request: 3s
 redis:
-  enabled: false
-  uri: ""
+  enabled: true
+  uri: redis://redis:6379
 storage:
   type: S3
   endpoint: ${CLOUDISLANDS_STORAGE_ENDPOINT:-http://minio:9000}
@@ -130,6 +131,8 @@ cat > plugins/CloudIslands/config-v2/security.yml <<'EOF'
 core-api:
   auth-token: "${file:/run/secrets/cloudislands_core_token}"
   admin-token: "${file:/run/secrets/cloudislands_admin_token}"
+redis:
+  password: "${file:/run/secrets/cloudislands_redis_password}"
 storage:
   access-key: "${file:/run/secrets/cloudislands_storage_access_key}"
   secret-key: "${file:/run/secrets/cloudislands_storage_secret_key}"
