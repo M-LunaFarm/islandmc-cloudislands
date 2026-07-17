@@ -660,6 +660,20 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void playerRouteManagementOpensLiveTicketsWithConfirmedCleanup() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminRouteMenu.java"));
+        String handler = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/command/IslandAdminNodeCommandHandler.java"));
+
+        assertTrue(source.contains("AdminRouteMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player))"), "Player operators must receive a live route queue");
+        assertTrue(source.contains("case \"admin.route\" -> AdminRouteMenu.open(agent.plugin(), coreApiClient, target"), "Admin openmenu must expose live route tickets");
+        assertTrue(menu.contains("client.adminRoutes().debug(new UUID(0L, 0L))"), "Route menu must load typed Core diagnostics");
+        assertFalse(menu.contains("routeSession.nonce()"), "Route menu must not render route nonces");
+        assertTrue(handler.contains("coreApiClient.adminRoutes().clear(playerUuid, ticketId, \"ADMIN_GUI\")"), "Confirmed route cleanup must call the typed Core client");
+        assertTrue(handler.contains("AdminRouteMenu.clearConfirmationMaterial()"), "Route cleanup confirmation material must come from config-v2");
+    }
+
+    @Test
     void doctorIsAFirstClassAdminHealthCommand() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

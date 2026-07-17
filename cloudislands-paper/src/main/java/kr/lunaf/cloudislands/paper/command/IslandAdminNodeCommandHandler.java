@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase;
@@ -42,6 +43,18 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminRoutePage page) {
+            openRouteMenu(player, page.page());
+            return true;
+        }
+        if (action instanceof GuiAction.AdminRouteClear clear) {
+            if (clear.type() == GuiAction.AdminRouteClearType.PREPARE) {
+                openRouteClearConfirmation(player, clear.playerUuid(), clear.ticketId(), clear.page());
+            } else if (runtime.confirmationAccepted(player, action, click)) {
+                clearRoute(player, clear.playerUuid(), clear.ticketId(), clear.page());
+            }
+            return true;
+        }
         if (action instanceof GuiAction.AdminJobPage page) {
             openJobMenu(player, page.page());
             return true;
@@ -94,14 +107,8 @@ final class IslandAdminNodeCommandHandler {
                 prompt(player, "/ciadmin jobs cancel <jobId>");
                 yield true;
             }
-            case ROUTE_OPEN -> {
-                AdminRouteMenu.open(player, runtime.messagesFor(player));
-                yield true;
-            }
-            case ROUTE_DEBUG -> {
-                coreApiClient.adminRoutes().debug(new UUID(0L, 0L))
-                    .thenAccept(debug -> deliverMessage(playerUuid, "Route debug: sessions=" + debug.sessions().size() + " tickets=" + debug.tickets().size()))
-                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-route-debug-failed", "라우트 상태를 불러오지 못했습니다.", error));
+            case ROUTE_OPEN, ROUTE_DEBUG -> {
+                openRouteMenu(player, 0);
                 yield true;
             }
             case ROUTE_CLEAR_PROMPT -> {
@@ -167,6 +174,67 @@ final class IslandAdminNodeCommandHandler {
 
     private void prompt(Player player, String command) {
         runtime.message(player, runtime.routeMessage("admin-menu-command-required", "관리 명령 입력 필요: ") + command);
+    }
+
+    private void openRouteMenu(Player player, int page) {
+        if (!routeManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-route-menu-permission-denied", "라우트 관리 권한이 없습니다."));
+            return;
+        }
+        AdminRouteMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page);
+    }
+
+    private void openRouteClearConfirmation(Player player, UUID playerUuid, UUID ticketId, int page) {
+        if (!routeManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-route-menu-permission-denied", "라우트 관리 권한이 없습니다."));
+            return;
+        }
+        runtime.openConfirmation(player,
+            runtime.routeMessage("admin-route-menu-clear-confirm-title", "라우트 정리 확인"),
+            runtime.routeMessage("admin-route-menu-clear-confirm-description", "선택한 플레이어의 라우트 세션과 티켓을 정리합니다."),
+            AdminRouteMenu.clearConfirmationMaterial(),
+            runtime.routeMessage("admin-route-menu-clear-confirm-name", "라우트 정리"),
+            ConfirmationTokenPolicy.ADMIN_ROUTE_CLEAR_CONFIRM_ACTION,
+            Map.of(
+                "playerUuid", playerUuid.toString(),
+                "ticketId", ticketId.toString(),
+                "page", Integer.toString(Math.max(0, page))
+            ),
+            runtime.routeMessage("admin-route-menu-clear-confirm-lore", "클릭하면 Core에 라우트 정리를 요청합니다."),
+            "admin.route.page");
+    }
+
+    private void clearRoute(Player player, UUID playerUuid, UUID ticketId, int page) {
+        if (!routeManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-route-menu-permission-denied", "라우트 관리 권한이 없습니다."));
+            return;
+        }
+        MessageRenderer messages = runtime.messagesFor(player);
+        GuiSession session = GuiSessions.begin(player, "admin.route.clear");
+        GuiStateMenus.openSaving(plugin, player, session, messages,
+            runtime.routeMessage("admin-route-menu-clearing", "라우트를 정리하는 중입니다."));
+        CompletableFuture<AdminRouteClearView> mutation = runtime.mutate("admin.route.clear", () -> coreApiClient.adminRoutes().clear(playerUuid, ticketId, "ADMIN_GUI"));
+        mutation
+            .thenAccept(result -> GuiSessions.runIfCurrent(plugin, player, session, () -> {
+                runtime.message(player, runtime.routeMessage("admin-route-menu-cleared-prefix", "라우트 정리 완료: ")
+                    + "session=" + result.clearedSession() + " ticket=" + result.clearedTicket()
+                    + (result.reason().isBlank() ? "" : " reason=" + result.reason()));
+                AdminRouteMenu.open(plugin, coreApiClient, player, messages, page);
+            }))
+            .exceptionally(error -> {
+                GuiStateMenus.openError(plugin, player, session, messages,
+                    runtime.routeMessage("admin-route-menu-title", "섬 라우트 관리"),
+                    runtime.routeMessage("admin-route-menu-clear-failed", "라우트를 정리하지 못했습니다."),
+                    "admin.route.page",
+                    Map.of("page", Integer.toString(Math.max(0, page))),
+                    "gui.close",
+                    Map.of());
+                return null;
+            });
+    }
+
+    private static boolean routeManagementAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.route");
     }
 
     private void openJobMenu(Player player, int page) {

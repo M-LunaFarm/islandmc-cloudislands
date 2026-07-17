@@ -1254,6 +1254,10 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adminHandler.contains("ConfirmationTokenPolicy.ADMIN_JOB_CANCEL_CONFIRM_ACTION"), "job cancellation must require a confirmation token");
         assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.jobs.mutate\")"), "job mutations must reserve a GUI session before Core mutation");
         assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.jobs\")"), "job mutation clicks must recheck admin jobs permission");
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminRouteClear"), "route cleanup GUI must use a typed action");
+        assertTrue(adminHandler.contains("ConfirmationTokenPolicy.ADMIN_ROUTE_CLEAR_CONFIRM_ACTION"), "route cleanup must require a confirmation token");
+        assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.route.clear\")"), "route cleanup must reserve a GUI session before Core mutation");
+        assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.route\")"), "route cleanup clicks must recheck admin route permission");
         assertTrue(adminHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid, activePlayer -> runtime.message(activePlayer, message))"), "admin Core feedback must use the shared online-player boundary");
         assertFalse(adminHandler.contains("thenAccept(result -> runtime.message(player"), "admin mutation callbacks must not message a captured Player");
         assertTrue(adminHandler.contains("Map.of(\"nodeId\", nodeId), \"admin.node.open\", Map.of(\"nodeId\", nodeId)"), "node refresh error actions must preserve the selected node id");

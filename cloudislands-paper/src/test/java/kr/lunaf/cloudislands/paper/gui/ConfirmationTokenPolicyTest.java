@@ -62,6 +62,16 @@ class ConfirmationTokenPolicyTest {
         );
         assertTrue(ConfirmationTokenPolicy.confirmed(jobCancel, GuiClick.LEFT));
         assertFalse(ConfirmationTokenPolicy.confirmed(jobCancel, GuiClick.RIGHT));
+
+        GuiAction routeClear = new GuiAction.AdminRouteClear(
+            GuiAction.AdminRouteClearType.CONFIRM,
+            UUID.fromString("00000000-0000-0000-0000-000000000005"),
+            UUID.fromString("00000000-0000-0000-0000-000000000006"),
+            0,
+            ConfirmationTokenPolicy.token(ConfirmationTokenPolicy.ADMIN_ROUTE_CLEAR_CONFIRM_ACTION)
+        );
+        assertTrue(ConfirmationTokenPolicy.confirmed(routeClear, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(routeClear, GuiClick.SHIFT_RIGHT));
     }
 
     @Test

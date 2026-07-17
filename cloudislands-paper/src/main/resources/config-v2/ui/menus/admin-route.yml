@@ -1,31 +1,49 @@
 id: admin.route
-rows: 3
+rows: 6
 title-key: admin-route-menu-title
 layout:
-  - "........."
-  - ".D.C....."
-  - "........X"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "____E____"
+  - "P..R.X..N"
 items:
-  D:
+  _:
     material: COMPASS
-    name-key: admin-route-menu-debug-name
-    fallback-name: 라우트 진단
-    fallback-lore:
-      - "/ciadmin route debug all"
-    action: debug
+    name-key: admin-route-menu-entry-name
+    fallback-name: 활성 라우트
+    action: entry
+  E:
+    material: LIME_DYE
+    name-key: admin-route-menu-empty-name
+    fallback-name: 활성 라우트가 없습니다
   C:
     material: REDSTONE_TORCH
-    name-key: admin-route-menu-clear-name
+    name-key: admin-route-menu-clear-confirm-name
     fallback-name: 라우트 정리
-    fallback-lore:
-      - "/ciadmin route clear <player> [ticket]"
-    action: clear
+  P:
+    material: ARROW
+    name-key: admin-route-menu-previous-name
+    fallback-name: 이전 페이지
+    action: page
+  R:
+    material: CLOCK
+    name-key: admin-route-menu-refresh-name
+    fallback-name: 새로고침
+    action: refresh
   X:
     material: OAK_DOOR
     name-key: admin-menu-close-name
     fallback-name: 닫기
     action: close
+  N:
+    material: ARROW
+    name-key: admin-route-menu-next-name
+    fallback-name: 다음 페이지
+    action: page
 actions:
-  debug: admin.route.debug
-  clear: admin.route.clear.prompt
+  entry: admin.route.clear.prepare
+  page: admin.route.page
+  refresh: admin.route.page
   close: gui.close

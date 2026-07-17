@@ -14,6 +14,7 @@ public final class ConfirmationTokenPolicy {
     public static final String ADMIN_NODE_KICKALL_CONFIRM_ACTION = "admin.node.kickall.confirm";
     public static final String ADMIN_NODE_SHUTDOWN_SAFE_CONFIRM_ACTION = "admin.node.shutdown-safe.confirm";
     public static final String ADMIN_JOB_CANCEL_CONFIRM_ACTION = "admin.jobs.cancel.confirm";
+    public static final String ADMIN_ROUTE_CLEAR_CONFIRM_ACTION = "admin.route.clear.confirm";
 
     private static final Set<String> CONFIRMED_ACTIONS = Set.of(
         WARP_DELETE_CONFIRM_ACTION,
@@ -24,6 +25,7 @@ public final class ConfirmationTokenPolicy {
         SNAPSHOT_RESTORE_CONFIRM_ACTION,
         REVIEW_REPORT_CONFIRM_ACTION,
         ADMIN_JOB_CANCEL_CONFIRM_ACTION,
+        ADMIN_ROUTE_CLEAR_CONFIRM_ACTION,
         ADMIN_NODE_KICKALL_CONFIRM_ACTION,
         ADMIN_NODE_SHUTDOWN_SAFE_CONFIRM_ACTION
     );

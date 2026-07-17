@@ -2557,7 +2557,11 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private boolean handleRoute(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sendRouteCommandUsage(sender);
+            if (sender instanceof Player player) {
+                AdminRouteMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player));
+            } else {
+                sendRouteCommandUsage(sender);
+            }
             return true;
         }
         if (args[1].equalsIgnoreCase("debug")) {
@@ -2783,7 +2787,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "island.my-islands" -> IslandMyIslandsMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.node" -> AdminNodeMenu.open(target, nodeId, targetMessages);
             case "admin.storage" -> AdminStorageMenu.open(target, targetMessages);
-            case "admin.route" -> AdminRouteMenu.open(target, targetMessages);
+            case "admin.route" -> AdminRouteMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.jobs" -> AdminJobMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.reviews" -> AdminReviewModerationMenu.open(agent.plugin(), coreApiClient, target, targetMessages, 36);
             case "admin.migration" -> AdminMigrationMenu.open(target, targetMessages);

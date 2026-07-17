@@ -44,8 +44,11 @@ public final class GuiActionParser {
         "admin.node.sweep",
         "admin.node.undrain",
         "admin.route.clear.prompt",
+        "admin.route.clear.confirm",
+        "admin.route.clear.prepare",
         "admin.route.debug",
         "admin.route.open",
+        "admin.route.page",
         "admin.storage.open",
         "admin.storage.status",
         "admin.storage.verify.prompt",
@@ -242,6 +245,15 @@ public final class GuiActionParser {
                     safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
+            if (safeAction.equals("admin.route.clear.prepare") || safeAction.equals(ConfirmationTokenPolicy.ADMIN_ROUTE_CLEAR_CONFIRM_ACTION)) {
+                return Optional.of(new GuiAction.AdminRouteClear(
+                    safeAction.equals("admin.route.clear.prepare") ? GuiAction.AdminRouteClearType.PREPARE : GuiAction.AdminRouteClearType.CONFIRM,
+                    UUID.fromString(required(safeData, "playerUuid")),
+                    UUID.fromString(required(safeData, "ticketId")),
+                    nonNegativeInteger(safeData.getOrDefault("page", "0")),
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
+                ));
+            }
             if (safeAction.equals(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION)) {
                 return Optional.of(new GuiAction.DangerResetConfirm(
                     required(safeData, DangerousGuiActionPolicy.OPERATION_KEY),
@@ -292,6 +304,7 @@ public final class GuiActionParser {
                 case "admin.jobs.retry.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_RETRY_PROMPT));
                 case "admin.jobs.cancel.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.JOBS_CANCEL_PROMPT));
                 case "admin.route.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.ROUTE_OPEN));
+                case "admin.route.page" -> Optional.of(new GuiAction.AdminRoutePage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.route.debug" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.ROUTE_DEBUG));
                 case "admin.route.clear.prompt" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.ROUTE_CLEAR_PROMPT));
                 case "admin.storage.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.STORAGE_OPEN));

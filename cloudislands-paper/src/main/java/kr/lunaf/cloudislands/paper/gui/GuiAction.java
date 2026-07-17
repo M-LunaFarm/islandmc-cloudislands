@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.AdminJobPage, GuiAction.AdminJobRetry, GuiAction.AdminJobCancel, GuiAction.AdminReviewOpen, GuiAction.AdminReviewModeration, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.AdminJobPage, GuiAction.AdminJobRetry, GuiAction.AdminJobCancel, GuiAction.AdminRoutePage, GuiAction.AdminRouteClear, GuiAction.AdminReviewOpen, GuiAction.AdminReviewModeration, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -290,6 +290,75 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         private final String actionId;
 
         AdminJobCancelType(String actionId) {
+            this.actionId = actionId;
+        }
+
+        public String actionId() {
+            return actionId;
+        }
+    }
+
+    record AdminRoutePage(int page) implements GuiAction {
+        public AdminRoutePage {
+            page = Math.max(0, page);
+        }
+
+        @Override
+        public String actionId() {
+            return "admin.route.page";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("page", Integer.toString(page));
+        }
+    }
+
+    record AdminRouteClear(AdminRouteClearType type, UUID playerUuid, UUID ticketId, int page, String confirmationToken) implements GuiAction {
+        public AdminRouteClear {
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
+            }
+            if (playerUuid == null) {
+                throw new IllegalArgumentException("playerUuid is required");
+            }
+            if (ticketId == null) {
+                throw new IllegalArgumentException("ticketId is required");
+            }
+            page = Math.max(0, page);
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type.actionId();
+        }
+
+        @Override
+        public Map<String, String> data() {
+            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+            values.put("playerUuid", playerUuid.toString());
+            values.put("ticketId", ticketId.toString());
+            values.put("page", Integer.toString(page));
+            if (type == AdminRouteClearType.CONFIRM && !confirmationToken.isBlank()) {
+                values.put(ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken);
+            }
+            return Map.copyOf(values);
+        }
+
+        @Override
+        public String confirmationToken() {
+            return confirmationToken;
+        }
+    }
+
+    enum AdminRouteClearType {
+        PREPARE("admin.route.clear.prepare"),
+        CONFIRM(ConfirmationTokenPolicy.ADMIN_ROUTE_CLEAR_CONFIRM_ACTION);
+
+        private final String actionId;
+
+        AdminRouteClearType(String actionId) {
             this.actionId = actionId;
         }
 

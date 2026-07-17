@@ -236,6 +236,33 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesAdminRoutePagesAndConfirmedCleanup() {
+        String playerUuid = "00000000-0000-0000-0000-000000000005";
+        String ticketId = "00000000-0000-0000-0000-000000000006";
+        GuiAction page = GuiActionParser.parse("admin.route.page", Map.of("page", "3")).orElseThrow();
+        GuiAction prepare = GuiActionParser.parse("admin.route.clear.prepare", Map.of(
+            "playerUuid", playerUuid,
+            "ticketId", ticketId,
+            "page", "3"
+        )).orElseThrow();
+        GuiAction confirmed = GuiActionParser.parse(
+            ConfirmationTokenPolicy.ADMIN_ROUTE_CLEAR_CONFIRM_ACTION,
+            ConfirmationTokenPolicy.withToken(
+                ConfirmationTokenPolicy.ADMIN_ROUTE_CLEAR_CONFIRM_ACTION,
+                Map.of("playerUuid", playerUuid, "ticketId", ticketId, "page", "3")
+            )
+        ).orElseThrow();
+
+        assertTrue(page instanceof GuiAction.AdminRoutePage);
+        assertEquals(3, ((GuiAction.AdminRoutePage) page).page());
+        assertTrue(prepare instanceof GuiAction.AdminRouteClear);
+        assertEquals(GuiAction.AdminRouteClearType.PREPARE, ((GuiAction.AdminRouteClear) prepare).type());
+        assertTrue(confirmed instanceof GuiAction.AdminRouteClear);
+        assertEquals(GuiAction.AdminRouteClearType.CONFIRM, ((GuiAction.AdminRouteClear) confirmed).type());
+        assertTrue(ConfirmationTokenPolicy.confirmed(confirmed, GuiClick.LEFT));
+    }
+
+    @Test
     void parsesBankAmountsIntoTypedActions() {
         GuiAction action = GuiActionParser.parse("island.bank.deposit", Map.of("amount", "1000.00")).orElseThrow();
 
@@ -590,6 +617,18 @@ class GuiActionParserTest {
             );
             case "admin.jobs.cancel.confirm" -> Map.of(
                 "jobId", "00000000-0000-0000-0000-000000000004",
+                "page", "0",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
+            case "admin.route.page" -> Map.of("page", "0");
+            case "admin.route.clear.prepare" -> Map.of(
+                "playerUuid", "00000000-0000-0000-0000-000000000005",
+                "ticketId", "00000000-0000-0000-0000-000000000006",
+                "page", "0"
+            );
+            case "admin.route.clear.confirm" -> Map.of(
+                "playerUuid", "00000000-0000-0000-0000-000000000005",
+                "ticketId", "00000000-0000-0000-0000-000000000006",
                 "page", "0",
                 ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
             );
