@@ -109,7 +109,8 @@ final class CoreMemberJson {
             invite.createdAt(),
             invite.expiresAt(),
             CoreJson.text(values, "islandName"),
-            CoreJson.text(values, "inviterName")
+            CoreJson.text(values, "inviterName"),
+            CoreJson.text(values, "targetName")
         );
     }
 

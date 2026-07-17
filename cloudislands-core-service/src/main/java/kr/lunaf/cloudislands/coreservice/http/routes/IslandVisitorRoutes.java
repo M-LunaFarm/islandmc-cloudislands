@@ -103,7 +103,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
         audit.log(inviterUuid, "PLAYER", "ISLAND_INVITE_CREATE", "ISLAND", islandId.toString(), Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
         islandLogs.append(islandId, inviterUuid, "ISLAND_INVITE_CREATE", Map.of("targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString()));
         events.publish(CloudIslandEventType.ISLAND_INVITE_CHANGED.name(), Map.of("islandId", islandId.toString(), "inviterUuid", inviterUuid.toString(), "targetUuid", targetUuid.toString(), "inviteId", invite.inviteId().toString(), "state", invite.state()));
-        CoreHttpResponses.write(exchange, 202, inviteAcceptedJson(invite));
+        CoreHttpResponses.write(exchange, 202, inviteAcceptedJson(invite, islandRepository, playerProfiles));
     }
 
     private void playerInvites(HttpExchange exchange) throws IOException {
@@ -296,9 +296,13 @@ public final class IslandVisitorRoutes implements RouteGroup {
     }
 
     static String inviteAcceptedJson(IslandInviteSnapshot invite) {
+        return inviteAcceptedJson(invite, null, null);
+    }
+
+    static String inviteAcceptedJson(IslandInviteSnapshot invite, IslandRepository islands, PlayerProfileRepository profiles) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("accepted", true);
-        values.putAll(inviteMap(invite));
+        values.putAll(enrichedInviteMap(invite, islands, profiles));
         return SimpleJson.stringify(values);
     }
 
@@ -309,16 +313,21 @@ public final class IslandVisitorRoutes implements RouteGroup {
     static String invitesJson(List<IslandInviteSnapshot> invites, IslandRepository islands, PlayerProfileRepository profiles) {
         List<Object> renderedInvites = new ArrayList<>();
         for (IslandInviteSnapshot invite : invites) {
-            LinkedHashMap<String, Object> rendered = inviteMap(invite);
-            if (islands != null) {
-                islands.findById(invite.islandId()).ifPresent(island -> rendered.put("islandName", island.name()));
-            }
-            if (profiles != null) {
-                putProfileName(rendered, "inviterName", profiles, invite.inviterUuid());
-            }
-            renderedInvites.add(rendered);
+            renderedInvites.add(enrichedInviteMap(invite, islands, profiles));
         }
         return SimpleJson.stringify(Map.of("invites", renderedInvites));
+    }
+
+    private static LinkedHashMap<String, Object> enrichedInviteMap(IslandInviteSnapshot invite, IslandRepository islands, PlayerProfileRepository profiles) {
+        LinkedHashMap<String, Object> rendered = inviteMap(invite);
+        if (islands != null) {
+            islands.findById(invite.islandId()).ifPresent(island -> rendered.put("islandName", island.name()));
+        }
+        if (profiles != null) {
+            putProfileName(rendered, "inviterName", profiles, invite.inviterUuid());
+            putProfileName(rendered, "targetName", profiles, invite.targetUuid());
+        }
+        return rendered;
     }
 
     static String bansJson(List<IslandBanSnapshot> bans) {

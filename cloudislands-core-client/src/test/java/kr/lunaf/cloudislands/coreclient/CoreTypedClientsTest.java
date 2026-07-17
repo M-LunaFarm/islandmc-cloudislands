@@ -54,7 +54,7 @@ class CoreTypedClientsTest {
     @Test
     void inviteViewsParseOptionalHumanReadableNames() {
         CoreGuiViews.InviteView named = CoreMemberJson.inviteView("""
-            {"inviteId":"aaaaaaaa-0000-0000-0000-000000000001","islandId":"bbbbbbbb-0000-0000-0000-000000000002","inviterUuid":"cccccccc-0000-0000-0000-000000000003","islandName":"Builders","inviterName":"Alice"}
+            {"inviteId":"aaaaaaaa-0000-0000-0000-000000000001","islandId":"bbbbbbbb-0000-0000-0000-000000000002","inviterUuid":"cccccccc-0000-0000-0000-000000000003","islandName":"Builders","inviterName":"Alice","targetName":"Bob"}
             """);
         CoreGuiViews.InviteView legacy = CoreMemberJson.inviteView("""
             {"inviteId":"dddddddd-0000-0000-0000-000000000004","islandId":"eeeeeeee-0000-0000-0000-000000000005","inviterUuid":"ffffffff-0000-0000-0000-000000000006"}
@@ -62,8 +62,10 @@ class CoreTypedClientsTest {
 
         assertEquals("Builders", named.islandName());
         assertEquals("Alice", named.inviterName());
+        assertEquals("Bob", named.targetName());
         assertEquals("", legacy.islandName());
         assertEquals("", legacy.inviterName());
+        assertEquals("", legacy.targetName());
     }
 
     @Test
@@ -2051,7 +2053,7 @@ class CoreTypedClientsTest {
             server.createContext("/v1/players/invites", exchange -> {
                 calls.add("invites:" + new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
                 byte[] response = """
-                    {"invites":[{"inviteId":"%s","islandId":"%s","inviterUuid":"%s","targetUuid":"%s","state":"PENDING","islandName":"Builders","inviterName":"Alice"}]}
+                    {"invites":[{"inviteId":"%s","islandId":"%s","inviterUuid":"%s","targetUuid":"%s","state":"PENDING","islandName":"Builders","inviterName":"Alice","targetName":"Bob"}]}
                     """.formatted(inviteId, islandId, playerUuid, playerUuid).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
                 exchange.getResponseBody().write(response);
@@ -2079,6 +2081,7 @@ class CoreTypedClientsTest {
             assertEquals("PENDING", invite.state());
             assertEquals("Builders", invite.islandName());
             assertEquals("Alice", invite.inviterName());
+            assertEquals("Bob", invite.targetName());
             IslandBanSnapshot banSnapshot = client.banSnapshots(islandId).join().get(0);
             assertEquals(playerUuid, banSnapshot.bannedUuid());
             CoreGuiViews.BanView ban = client.bans(islandId).join().get(0);
@@ -2108,7 +2111,7 @@ class CoreTypedClientsTest {
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         try {
             server.createContext("/v1/islands/members/remove", exchange -> respondMemberTest(exchange, calls, "remove", "{\"accepted\":true,\"code\":\"MEMBER_REMOVED\"}"));
-            server.createContext("/v1/islands/invites", exchange -> respondMemberTest(exchange, calls, "invite", "{\"inviteId\":\"" + inviteId + "\",\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\"}"));
+            server.createContext("/v1/islands/invites", exchange -> respondMemberTest(exchange, calls, "invite", "{\"inviteId\":\"" + inviteId + "\",\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\",\"targetUuid\":\"" + targetUuid + "\",\"targetName\":\"Bob\"}"));
             server.createContext("/v1/islands/invites/accept", exchange -> respondMemberTest(exchange, calls, "accept", "{\"accepted\":true,\"code\":\"INVITE_ACCEPTED\"}"));
             server.createContext("/v1/islands/invites/decline", exchange -> respondMemberTest(exchange, calls, "decline", "{\"accepted\":false,\"code\":\"INVITE_EXPIRED\"}"));
             server.createContext("/v1/islands/members/set", exchange -> respondMemberTest(exchange, calls, "role", "{\"accepted\":true,\"code\":\"MEMBER_ROLE_SET\"}"));
@@ -2126,7 +2129,9 @@ class CoreTypedClientsTest {
             MemberCommandClient client = new JdkCoreApiClient(new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)).memberCommands();
 
             assertEquals("MEMBER_REMOVED", client.removeMember(islandId, actorUuid, targetUuid).join().code());
-            assertEquals(inviteId.toString(), client.createInvite(islandId, actorUuid, targetUuid).join().inviteId());
+            CoreGuiViews.InviteView createdInvite = client.createInvite(islandId, actorUuid, targetUuid).join();
+            assertEquals(inviteId.toString(), createdInvite.inviteId());
+            assertEquals("Bob", createdInvite.targetName());
             assertEquals("ACCEPTED", client.acceptInvite(inviteId, targetUuid).join().code());
             assertEquals("INVITE_EXPIRED", client.declineInvite(inviteId, targetUuid).join().code());
             assertEquals("MEMBER_ROLE_SET", client.setRole(islandId, actorUuid, targetUuid, "co-owner").join().code());

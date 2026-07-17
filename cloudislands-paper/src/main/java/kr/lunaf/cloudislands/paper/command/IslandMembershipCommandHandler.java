@@ -892,13 +892,16 @@ final class IslandMembershipCommandHandler {
         return invite == null || invite.inviterName().isBlank() ? compactId(invite == null ? "" : invite.inviterUuid()) : invite.inviterName().trim();
     }
 
+    static String inviteTargetDisplay(InviteView invite) {
+        return invite == null || invite.targetName().isBlank() ? compactId(invite == null ? "" : invite.targetUuid()) : invite.targetName().trim();
+    }
+
     private String inviteActionMessage(String label, UUID inviteId, IslandInviteActionResult result) {
         return actionStatusMessage(label, inviteId == null ? "" : inviteId.toString(), result != null && result.applied(), result == null ? "" : result.code());
     }
 
     private String inviteCreatedMessage(InviteView invite) {
-        String inviteId = invite == null ? "" : invite.inviteId();
-        return actionStatusMessage(message("invite-created-action-label", "섬 초대"), inviteId, true, "");
+        return actionStatusMessage(message("invite-created-action-label", "섬 초대"), inviteTargetDisplay(invite), true, "");
     }
 
     private String memberActionMessage(String label, UUID targetId, MemberActionResult result) {

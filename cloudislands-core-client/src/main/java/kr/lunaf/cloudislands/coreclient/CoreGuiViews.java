@@ -243,13 +243,17 @@ public final class CoreGuiViews {
         }
     }
 
-    public record InviteView(String inviteId, String islandId, String inviterUuid, String targetUuid, String state, String createdAt, String expiresAt, String islandName, String inviterName) {
+    public record InviteView(String inviteId, String islandId, String inviterUuid, String targetUuid, String state, String createdAt, String expiresAt, String islandName, String inviterName, String targetName) {
         public InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt) {
-            this(inviteId, islandId, inviterUuid, "", "PENDING", createdAt, expiresAt, "", "");
+            this(inviteId, islandId, inviterUuid, "", "PENDING", createdAt, expiresAt, "", "", "");
         }
 
         public InviteView(String inviteId, String islandId, String inviterUuid, String targetUuid, String state, String createdAt, String expiresAt) {
-            this(inviteId, islandId, inviterUuid, targetUuid, state, createdAt, expiresAt, "", "");
+            this(inviteId, islandId, inviterUuid, targetUuid, state, createdAt, expiresAt, "", "", "");
+        }
+
+        public InviteView(String inviteId, String islandId, String inviterUuid, String targetUuid, String state, String createdAt, String expiresAt, String islandName, String inviterName) {
+            this(inviteId, islandId, inviterUuid, targetUuid, state, createdAt, expiresAt, islandName, inviterName, "");
         }
 
         public InviteView {
@@ -262,6 +266,7 @@ public final class CoreGuiViews {
             expiresAt = expiresAt == null ? "" : expiresAt;
             islandName = islandName == null ? "" : islandName;
             inviterName = inviterName == null ? "" : inviterName;
+            targetName = targetName == null ? "" : targetName;
         }
     }
 

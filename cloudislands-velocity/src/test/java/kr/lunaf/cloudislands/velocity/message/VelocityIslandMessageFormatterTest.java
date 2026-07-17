@@ -223,6 +223,10 @@ class VelocityIslandMessageFormatterTest {
             formatter.invites(List.of(new CoreGuiViews.InviteView("aaaaaaaa-0000-0000-0000-000000000000", "bbbbbbbb-0000-0000-0000-000000000000", "cccccccc-0000-0000-0000-000000000000", "dddddddd-0000-0000-0000-000000000000", "PENDING", "", "")))
         );
         assertEquals(
+            "초대: 생성됨 invite=aaaaaaaa 섬=bbbbbbbb target=Bob state=PENDING",
+            formatter.inviteCreate(new CoreGuiViews.InviteView("aaaaaaaa-0000-0000-0000-000000000000", "bbbbbbbb-0000-0000-0000-000000000000", "cccccccc-0000-0000-0000-000000000000", "dddddddd-0000-0000-0000-000000000000", "PENDING", "", "", "", "", " Bob "))
+        );
+        assertEquals(
             "초대: 생성됨 invite=aaaaaaaa 섬=bbbbbbbb target=dddddddd state=PENDING",
             formatter.inviteCreate(new CoreGuiViews.InviteView("aaaaaaaa-0000-0000-0000-000000000000", "bbbbbbbb-0000-0000-0000-000000000000", "cccccccc-0000-0000-0000-000000000000", "dddddddd-0000-0000-0000-000000000000", "PENDING", "", ""))
         );

@@ -99,6 +99,10 @@ public final class VelocityIslandMessageFormatter {
         return invite.inviterName().isBlank() ? shortId(invite.inviterUuid()) : invite.inviterName().trim();
     }
 
+    private static String inviteTargetDisplay(CoreGuiViews.InviteView invite) {
+        return invite.targetName().isBlank() ? shortId(invite.targetUuid()) : invite.targetName().trim();
+    }
+
     public String actionResult(String label, String targetId, IslandLifecycleActionView view) {
         if (view == null) {
             return label + ": accepted target=" + compactTarget(targetId);
@@ -177,7 +181,7 @@ public final class VelocityIslandMessageFormatter {
     public String inviteCreate(CoreGuiViews.InviteView invite) {
         return "초대: 생성됨 invite=" + shortId(invite.inviteId())
             + " 섬=" + shortId(invite.islandId())
-            + " target=" + shortId(invite.targetUuid())
+            + " target=" + inviteTargetDisplay(invite)
             + " state=" + invite.state();
     }
 

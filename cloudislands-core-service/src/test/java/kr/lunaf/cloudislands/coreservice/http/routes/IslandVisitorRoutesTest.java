@@ -282,7 +282,7 @@ class IslandVisitorRoutesTest {
     }
 
     @Test
-    void inviteListsIncludeHumanReadableIslandAndInviterNames() {
+    void inviteResponsesIncludeHumanReadableIslandAndPlayerNames() {
         UUID inviteId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000002");
         UUID inviterUuid = UUID.fromString("00000000-0000-0000-0000-000000000003");
@@ -300,13 +300,19 @@ class IslandVisitorRoutesTest {
         islands.createOwnedIsland(islandId, inviterUuid, "default", "Builders");
         InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
         profiles.touch(inviterUuid, "Alice");
+        profiles.touch(targetUuid, "Bob");
 
+        Map<?, ?> accepted = SimpleJson.object(SimpleJson.parse(IslandVisitorRoutes.inviteAcceptedJson(invite, islands, profiles)));
         Map<?, ?> body = SimpleJson.object(SimpleJson.parse(IslandVisitorRoutes.invitesJson(List.of(invite), islands, profiles)));
         Map<?, ?> listedInvite = SimpleJson.object(SimpleJson.list(body.get("invites")).get(0));
 
+        assertEquals("Builders", accepted.get("islandName"));
+        assertEquals("Alice", accepted.get("inviterName"));
+        assertEquals("Bob", accepted.get("targetName"));
         assertInvite(inviteId, islandId, inviterUuid, targetUuid, listedInvite);
         assertEquals("Builders", listedInvite.get("islandName"));
         assertEquals("Alice", listedInvite.get("inviterName"));
+        assertEquals("Bob", listedInvite.get("targetName"));
     }
 
     @Test
