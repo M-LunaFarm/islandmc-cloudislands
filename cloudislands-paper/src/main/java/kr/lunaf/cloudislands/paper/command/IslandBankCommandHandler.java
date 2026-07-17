@@ -200,6 +200,7 @@ final class IslandBankCommandHandler {
             case ECONOMY_WITHDRAW_DENIED -> deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("bank-insufficient-balance", "잔액이 부족합니다.")));
             case CORE_REJECTED -> deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("bank-deposit-failed", "섬 은행에 입금하지 못했습니다.")));
             case REFUND_FAILED_AFTER_CORE_REJECTION -> deliverMessage(playerSession, message("bank-deposit-refund-failed", "섬 은행 입금이 거부되었고 경제 환불도 실패했습니다. 관리자에게 문의해주세요."));
+            case REFUND_FAILED_AFTER_CORE_FAILURE -> deliverMessage(playerSession, message("bank-deposit-core-failure-refund-failed", "Core 입금 처리와 경제 환불이 모두 실패했습니다. 재시도하지 말고 관리자에게 문의해주세요."));
             case ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE, ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE ->
                 deliverMessage(playerSession, message("bank-deposit-failed", "섬 은행에 입금하지 못했습니다."));
         }
@@ -214,7 +215,7 @@ final class IslandBankCommandHandler {
             case ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE -> deliverMessage(playerSession, message("bank-withdraw-economy-rollback", "경제 지급에 실패해 출금을 되돌렸습니다."));
             case ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE -> deliverMessage(playerSession, message("bank-withdraw-rollback-failed", "경제 지급에 실패했고 은행 되돌림도 실패했습니다. 관리자에게 문의해주세요."));
             case ECONOMY_WITHDRAW_DENIED -> deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("bank-insufficient-balance", "잔액이 부족합니다.")));
-            case REFUND_FAILED_AFTER_CORE_REJECTION -> deliverMessage(playerSession, message("bank-operation-refund-failed", "섬 은행 작업이 거부되었고 경제 환불도 실패했습니다. 관리자에게 문의해주세요."));
+            case REFUND_FAILED_AFTER_CORE_REJECTION, REFUND_FAILED_AFTER_CORE_FAILURE -> deliverMessage(playerSession, message("bank-operation-refund-failed", "섬 은행 작업이 실패했고 경제 환불도 실패했습니다. 관리자에게 문의해주세요."));
         }
     }
 

@@ -3,6 +3,7 @@ package kr.lunaf.cloudislands.paper.application;
 import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 import kr.lunaf.cloudislands.api.economy.EconomyBridge;
 import kr.lunaf.cloudislands.api.economy.EconomyProviderState;
@@ -92,7 +93,7 @@ public final class BankUseCase {
                         recordBankBalanceProgress(islandId, actorUuid, mutation.balance());
                         return CompletableFuture.completedFuture(BankOperationResult.success(mutation.balance()));
                     })
-                    .exceptionallyCompose(error -> refundPlayer(actorUuid, amount).thenCompose(_ignored -> CompletableFuture.failedFuture(error)));
+                    .exceptionallyCompose(error -> refundAfterCoreFailure(actorUuid, amount, error));
             });
     }
 
@@ -167,6 +168,17 @@ public final class BankUseCase {
 
     private CompletableFuture<Void> refundPlayer(UUID actorUuid, BigDecimal amount) {
         return economyBridge.deposit(actorUuid, amount, "CloudIslands island bank deposit rollback");
+    }
+
+    private CompletableFuture<BankOperationResult> refundAfterCoreFailure(UUID actorUuid, BigDecimal amount, Throwable coreError) {
+        return refundPlayer(actorUuid, amount).handle((_ignored, refundError) -> {
+            if (refundError != null) {
+                return BankOperationResult.refundFailedAfterCoreFailure();
+            }
+            throw coreError instanceof CompletionException completionException
+                ? completionException
+                : new CompletionException(coreError);
+        });
     }
 
     private BankOperationResult unavailableEconomyResult() {
@@ -262,6 +274,7 @@ public final class BankUseCase {
         ECONOMY_WITHDRAW_DENIED,
         CORE_REJECTED,
         REFUND_FAILED_AFTER_CORE_REJECTION,
+        REFUND_FAILED_AFTER_CORE_FAILURE,
         ROLLED_BACK_AFTER_ECONOMY_DEPOSIT_FAILURE,
         ROLLBACK_FAILED_AFTER_ECONOMY_DEPOSIT_FAILURE
     }
@@ -289,6 +302,10 @@ public final class BankUseCase {
 
         private static BankOperationResult refundFailedAfterCoreRejection(String balance, String code) {
             return new BankOperationResult(Status.REFUND_FAILED_AFTER_CORE_REJECTION, balance, code == null ? "" : code);
+        }
+
+        private static BankOperationResult refundFailedAfterCoreFailure() {
+            return new BankOperationResult(Status.REFUND_FAILED_AFTER_CORE_FAILURE, "", "CORE_DEPOSIT_FAILED");
         }
 
         private static BankOperationResult rolledBackAfterEconomyDepositFailure(String balance) {

@@ -90,6 +90,26 @@ class BankUseCaseTest {
     }
 
     @Test
+    void depositCoreFailureReportsWhenTheEconomyRefundAlsoFails() {
+        FakeEconomy economy = new FakeEconomy(true);
+        economy.failDepositRollback = true;
+        ScriptedCoreBank core = new ScriptedCoreBank();
+        core.depositFailure = new IllegalStateException("core unavailable");
+        BankUseCase useCase = new BankUseCase(coreApiClient(core), economy);
+
+        BankUseCase.BankOperationResult result = useCase.deposit(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            BigDecimal.ONE,
+            (_auditAction, operation) -> operation.get()
+        ).join();
+
+        assertEquals(BankUseCase.Status.REFUND_FAILED_AFTER_CORE_FAILURE, result.status());
+        assertEquals("CORE_DEPOSIT_FAILED", result.code());
+        assertEquals(List.of("withdraw:1:CloudIslands island bank deposit", "deposit:1:CloudIslands island bank deposit rollback"), economy.calls);
+    }
+
+    @Test
     void successfulDepositAdvancesBankBalanceMissionProgress() {
         FakeEconomy economy = new FakeEconomy(true);
         ScriptedCoreBank core = new ScriptedCoreBank();
