@@ -11,6 +11,8 @@ import kr.lunaf.cloudislands.api.model.RoleId;
 
 public final class GuiActionParser {
     private static final Set<String> REGISTERED_ACTIONS = Set.of(
+        "admin.audit.open",
+        "admin.audit.page",
         "admin.island.migrate.prompt",
         "admin.island.where.prompt",
         "admin.events.open",
@@ -279,6 +281,8 @@ public final class GuiActionParser {
             }
             return switch (safeAction) {
                 case "gui.close" -> Optional.of(new GuiAction.Close());
+                case "admin.audit.open" -> Optional.of(new GuiAction.AdminAuditPage(0));
+                case "admin.audit.page" -> Optional.of(new GuiAction.AdminAuditPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.events.open" -> Optional.of(new GuiAction.AdminEventPage(0));
                 case "admin.events.page" -> Optional.of(new GuiAction.AdminEventPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.node.open" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.OPEN, safeData));

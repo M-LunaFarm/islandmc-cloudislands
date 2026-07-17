@@ -620,6 +620,7 @@ class GuiSystemPolicyTest {
     @Test
     void expandedAdminMenusAreBackedByConfigV2DefinitionsAndRegisteredActions() throws Exception {
         for (String[] menuCase : List.of(
+                new String[] {"AdminAuditMenu", "admin-audit.yml", "admin.audit.open", "admin.audit.page", "admin.events.open"},
                 new String[] {"AdminEventMenu", "admin-events.yml", "admin.events.open", "admin.events.page", "gui.close"},
                 new String[] {"AdminNodeListMenu", "admin-node-list.yml", "admin.node.open", "admin.node.page", "gui.close"},
                 new String[] {"AdminJobMenu", "admin-jobs.yml", "admin.jobs.retry", "admin.jobs.page", "admin.jobs.cancel.prepare"},
@@ -640,6 +641,7 @@ class GuiSystemPolicyTest {
             assertTrue(parser.contains("\"" + menuCase[4] + "\""), menuCase[4] + " must be a registered GUI action");
         }
         String registrar = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandGuiMenuRegistrar.java"));
+        assertTrue(registrar.contains("new AdminAuditMenu(messages, registry)"), "admin audit menu must be registered");
         assertTrue(registrar.contains("new AdminEventMenu(messages, registry)"), "admin event menu must be registered");
         assertTrue(registrar.contains("new AdminNodeListMenu(messages, registry)"), "admin node list menu must be registered");
         assertTrue(registrar.contains("new AdminJobMenu(messages, registry)"), "admin job menu must be registered");

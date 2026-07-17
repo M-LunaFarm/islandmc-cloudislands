@@ -957,6 +957,24 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void playerAuditCommandOpensLiveLogsWhileConsoleKeepsTextOutput() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminAuditMenu.java"));
+        String eventDefinition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/admin-events.yml"));
+        String auditDefinition = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/admin-audit.yml"));
+
+        assertTrue(source.contains("AdminAuditMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player))"),
+            "player audit command must open live audit logs");
+        assertTrue(source.contains("run(sender, \"Audit logs\", coreApiClient.adminAudit().list(100)"),
+            "console audit output must remain available");
+        assertTrue(source.contains("case \"admin.audit\" -> AdminAuditMenu.open(agent.plugin(), coreApiClient, target"),
+            "admin openmenu must expose live audit logs");
+        assertTrue(menu.contains("client.adminAudit().list(AUDIT_LIMIT)"), "audit menu must load typed Core audit entries");
+        assertTrue(eventDefinition.contains("audit: admin.audit.open"), "event menu must link to audit logs");
+        assertTrue(auditDefinition.contains("events: admin.events.open"), "audit menu must link back to events");
+    }
+
+    @Test
     void adminIslandInfoAndRuntimeUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

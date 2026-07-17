@@ -74,6 +74,7 @@ import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigReloadResult;
+import kr.lunaf.cloudislands.paper.gui.AdminAuditMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminEventMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
@@ -137,6 +138,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         "island.visit",
         "island.chat",
         "island.my-islands",
+        "admin.audit",
         "admin.events",
         "admin.node",
         "admin.storage",
@@ -287,6 +289,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args[0].equalsIgnoreCase("audit")) {
+            if (sender instanceof Player player) {
+                AdminAuditMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player));
+                return true;
+            }
             run(sender, "Audit logs", coreApiClient.adminAudit().list(100).thenApply(this::auditListMessage));
             return true;
         }
@@ -2808,6 +2814,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "island.visit" -> IslandVisitMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "island.chat" -> IslandChatMenu.open(target, targetMessages);
             case "island.my-islands" -> IslandMyIslandsMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
+            case "admin.audit" -> AdminAuditMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.events" -> AdminEventMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.node" -> AdminNodeListMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.storage" -> AdminStorageMenu.open(agent.plugin(), coreApiClient, target, targetMessages);

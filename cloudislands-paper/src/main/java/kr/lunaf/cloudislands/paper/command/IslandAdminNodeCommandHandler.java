@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeActionResult;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeSummary;
+import kr.lunaf.cloudislands.paper.gui.AdminAuditMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminEventMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
@@ -46,6 +47,10 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminAuditPage page) {
+            openAuditMenu(player, page.page());
+            return true;
+        }
         if (action instanceof GuiAction.AdminEventPage page) {
             openEventMenu(player, page.page());
             return true;
@@ -111,6 +116,18 @@ final class IslandAdminNodeCommandHandler {
             return handleAdminMenuAction(player, adminMenu);
         }
         return false;
+    }
+
+    private void openAuditMenu(Player player, int page) {
+        if (!auditManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-audit-menu-permission-denied", "감사 로그 조회 권한이 없습니다."));
+            return;
+        }
+        AdminAuditMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page);
+    }
+
+    private static boolean auditManagementAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.audit");
     }
 
     private void openEventMenu(Player player, int page) {

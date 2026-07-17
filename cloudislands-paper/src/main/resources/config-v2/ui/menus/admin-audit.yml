@@ -1,0 +1,51 @@
+id: admin.audit
+rows: 6
+title-key: admin-audit-menu-title
+layout:
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "____E____"
+  - "PV.R.X..N"
+items:
+  _:
+    material: WRITABLE_BOOK
+    name-key: admin-audit-menu-entry-name
+    fallback-name: 감사 로그
+    action: entry
+  E:
+    material: LIME_DYE
+    name-key: admin-audit-menu-empty-name
+    fallback-name: 기록된 감사 로그가 없습니다
+  P:
+    material: ARROW
+    name-key: admin-audit-menu-previous-name
+    fallback-name: 이전 페이지
+    action: page
+  V:
+    material: REDSTONE_TORCH
+    name-key: admin-audit-menu-events-name
+    fallback-name: Core 이벤트 보기
+    action: events
+  R:
+    material: CLOCK
+    name-key: admin-audit-menu-refresh-name
+    fallback-name: 새로고침
+    action: refresh
+  X:
+    material: OAK_DOOR
+    name-key: admin-menu-close-name
+    fallback-name: 닫기
+    action: close
+  N:
+    material: ARROW
+    name-key: admin-audit-menu-next-name
+    fallback-name: 다음 페이지
+    action: page
+actions:
+  entry: admin.audit.page
+  page: admin.audit.page
+  refresh: admin.audit.page
+  events: admin.events.open
+  close: gui.close
