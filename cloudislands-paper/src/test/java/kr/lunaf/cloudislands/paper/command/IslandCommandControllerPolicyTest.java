@@ -901,7 +901,9 @@ class IslandCommandControllerPolicyTest {
         String bootstrap = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/PaperPluginBootstrap.java"));
 
         assertTrue(handler.contains("teamChatModes.toggle(player.getUniqueId())"), "no-argument teamchat must toggle mode like canonical SS2");
-        assertTrue(handler.contains("teamChatModes.set(player.getUniqueId(), true)") && handler.contains("teamChatModes.set(player.getUniqueId(), false)"), "explicit on/off modes must be deterministic");
+        assertTrue(handler.contains("teamChatModes.set(playerUuid, true)") && handler.contains("teamChatModes.set(playerUuid, false)"), "explicit on/off modes must be deterministic");
+        assertTrue(handler.contains("runtime.currentIsland(player, message(\"chat-team-required\""), "teamchat must not enter a private mode when the player is outside an island");
+        assertTrue(handler.contains("if (teamChatModes.enabled(player.getUniqueId()))"), "an active teamchat mode must remain possible to disable outside an island");
         assertTrue(listener.contains("event.setCancelled(true)"), "team-mode chat must not leak to global chat viewers");
         assertTrue(listener.contains("@EventHandler(priority = EventPriority.LOWEST)"), "team chat must be cancelled before ordinary chat integrations observe it");
         assertTrue(listener.contains("event.viewers().clear()"), "team chat must remove the global audience even if another plugin re-enables the event");

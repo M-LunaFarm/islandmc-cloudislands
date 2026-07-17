@@ -62,14 +62,11 @@ final class IslandChatLogCommandHandler {
         }
         if (subcommand.equals("teamchat") || subcommand.equals("team-chat") || subcommand.equals("teamchat-toggle") || subcommand.equals("tc") || subcommand.equals("팀채팅")) {
             if (args.length < 2) {
-                setTeamChatMode(player, teamChatModes.toggle(player.getUniqueId()));
+                toggleTeamChatMode(player);
                 return true;
             }
             if (isChatModeArgument(args[1])) {
-                boolean enabled = enabledArgument(args[1]) ? teamChatModes.set(player.getUniqueId(), true)
-                    : disabledArgument(args[1]) ? teamChatModes.set(player.getUniqueId(), false)
-                    : teamChatModes.toggle(player.getUniqueId());
-                setTeamChatMode(player, enabled);
+                updateTeamChatMode(player, args[1]);
                 return true;
             }
             sendChat(player, "TEAM", joined(args, 1), "chat-team-label", "팀 채팅", "chat-team-required", "섬 안에서만 팀 채팅을 사용할 수 있습니다.");
@@ -96,6 +93,29 @@ final class IslandChatLogCommandHandler {
         runtime.message(player, enabled
             ? message("chat-local-mode-enabled", "로컬 채팅 모드를 켰습니다. 일반 채팅이 현재 섬 채널로 전송됩니다.")
             : message("chat-local-mode-disabled", "로컬 채팅 모드를 껐습니다."));
+    }
+
+    private void toggleTeamChatMode(Player player) {
+        if (teamChatModes.enabled(player.getUniqueId())) {
+            setTeamChatMode(player, teamChatModes.toggle(player.getUniqueId()));
+            return;
+        }
+        runtime.currentIsland(player, message("chat-team-required", "섬 안에서만 팀 채팅을 사용할 수 있습니다."))
+            .ifPresent(_islandId -> setTeamChatMode(player, teamChatModes.toggle(player.getUniqueId())));
+    }
+
+    private void updateTeamChatMode(Player player, String argument) {
+        UUID playerUuid = player.getUniqueId();
+        if (disabledArgument(argument)) {
+            setTeamChatMode(player, teamChatModes.set(playerUuid, false));
+            return;
+        }
+        if (!enabledArgument(argument)) {
+            toggleTeamChatMode(player);
+            return;
+        }
+        runtime.currentIsland(player, message("chat-team-required", "섬 안에서만 팀 채팅을 사용할 수 있습니다."))
+            .ifPresent(_islandId -> setTeamChatMode(player, teamChatModes.set(playerUuid, true)));
     }
 
     private void toggleLocalChatMode(Player player) {

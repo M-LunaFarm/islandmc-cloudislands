@@ -52,6 +52,38 @@ class IslandChatLogCommandHandlerTest {
         assertFalse(modes.islandEnabled(playerUuid));
     }
 
+    @Test
+    void teamChatCannotBeEnabledOutsideAnIslandButCanAlwaysBeDisabled() {
+        UUID playerUuid = UUID.randomUUID();
+        TeamChatModeRegistry modes = new TeamChatModeRegistry();
+        TestRuntime runtime = new TestRuntime(Optional.empty());
+        IslandChatLogCommandHandler handler = new IslandChatLogCommandHandler(null, coreClient(), runtime, modes);
+        Player player = player(playerUuid);
+
+        handler.handleCommand(player, "teamchat", new String[]{"teamchat"});
+        assertFalse(modes.enabled(playerUuid));
+
+        handler.handleCommand(player, "teamchat", new String[]{"teamchat", "on"});
+        assertFalse(modes.enabled(playerUuid));
+
+        modes.set(playerUuid, true);
+        handler.handleCommand(player, "teamchat", new String[]{"teamchat", "끄기"});
+        assertFalse(modes.enabled(playerUuid));
+    }
+
+    @Test
+    void teamChatCanBeEnabledWhenThePlayerIsOnAnIsland() {
+        UUID playerUuid = UUID.randomUUID();
+        TeamChatModeRegistry modes = new TeamChatModeRegistry();
+        TestRuntime runtime = new TestRuntime(Optional.of(UUID.randomUUID()));
+        IslandChatLogCommandHandler handler = new IslandChatLogCommandHandler(null, coreClient(), runtime, modes);
+        Player player = player(playerUuid);
+
+        handler.handleCommand(player, "teamchat", new String[]{"teamchat", "켜기"});
+        assertTrue(modes.enabled(playerUuid));
+        assertTrue(runtime.messages.getLast().contains("켰습니다"));
+    }
+
     private static CoreApiClient coreClient() {
         CommunicationQueryClient queries = proxy(CommunicationQueryClient.class);
         CommunicationCommandClient commands = proxy(CommunicationCommandClient.class);
