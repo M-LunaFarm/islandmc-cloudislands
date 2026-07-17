@@ -1063,6 +1063,7 @@ public final class TranslationManager {
         values.put("invite-menu-main-menu-command", "/섬 메뉴");
         values.put("invite-menu-title-prefix", "섬 초대 ");
         values.put("invite-menu-island-id", "섬 ID: ");
+        values.put("invite-menu-island", "섬: ");
         values.put("invite-menu-inviter", "초대한 사람: ");
         values.put("invite-menu-no-created-info", "생성 정보 없음");
         values.put("invite-menu-created-at", "생성 시각: ");

@@ -153,7 +153,7 @@ public final class PaperGuiViews {
     }
 
     private static InviteView invite(CoreGuiViews.InviteView view) {
-        return new InviteView(view.inviteId(), view.islandId(), view.inviterUuid(), view.createdAt(), view.expiresAt());
+        return new InviteView(view.inviteId(), view.islandId(), view.inviterUuid(), view.createdAt(), view.expiresAt(), view.islandName(), view.inviterName());
     }
 
     private static PlayerIslandView playerIsland(CoreGuiViews.PlayerIslandView view, String primaryIslandId) {
@@ -240,7 +240,15 @@ public final class PaperGuiViews {
     public record MemberView(String playerUuid, String role, String joinedAt, String playerName, String lastSeenAt, String presenceState, String presenceSource, String expiresAt) {
     }
 
-    public record InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt) {
+    public record InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt, String islandName, String inviterName) {
+        public InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt) {
+            this(inviteId, islandId, inviterUuid, createdAt, expiresAt, "", "");
+        }
+
+        public InviteView {
+            islandName = islandName == null ? "" : islandName;
+            inviterName = inviterName == null ? "" : inviterName;
+        }
     }
 
     public record PlayerIslandView(String islandId, String name, String state, String role, long level, String worth, boolean primary) {

@@ -83,11 +83,19 @@ public final class VelocityIslandMessageFormatter {
         for (CoreGuiViews.InviteView invite : invites) {
             if (!invite.inviteId().isBlank()) {
                 entries.add(shortId(invite.inviteId())
-                    + (invite.islandId().isBlank() ? "" : " 섬=" + shortId(invite.islandId()))
-                    + (invite.inviterUuid().isBlank() ? "" : " 초대한사람=" + shortId(invite.inviterUuid())));
+                    + (invite.islandId().isBlank() ? "" : " 섬=" + inviteIslandDisplay(invite))
+                    + (invite.inviterUuid().isBlank() ? "" : " 초대한사람=" + inviteInviterDisplay(invite)));
             }
         }
         return entries.isEmpty() ? "대기 중인 섬 초대가 없습니다." : "섬 초대: " + String.join(", ", entries);
+    }
+
+    private static String inviteIslandDisplay(CoreGuiViews.InviteView invite) {
+        return invite.islandName().isBlank() ? shortId(invite.islandId()) : invite.islandName().trim();
+    }
+
+    private static String inviteInviterDisplay(CoreGuiViews.InviteView invite) {
+        return invite.inviterName().isBlank() ? shortId(invite.inviterUuid()) : invite.inviterName().trim();
     }
 
     public String actionResult(String label, String targetId, IslandLifecycleActionView view) {

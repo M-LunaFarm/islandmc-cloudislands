@@ -70,6 +70,24 @@ class VelocityIslandMessageFormatterTest {
     }
 
     @Test
+    void inviteListPrefersIslandAndInviterNames() {
+        assertEquals(
+            "섬 초대: aaaaaaaa 섬=Builders 초대한사람=Alice",
+            formatter.invites(List.of(new CoreGuiViews.InviteView(
+                "aaaaaaaa-0000-0000-0000-000000000000",
+                "bbbbbbbb-0000-0000-0000-000000000000",
+                "cccccccc-0000-0000-0000-000000000000",
+                "dddddddd-0000-0000-0000-000000000000",
+                "PENDING",
+                "",
+                "",
+                "Builders",
+                "Alice"
+            )))
+        );
+    }
+
+    @Test
     void formatsEmptyInviteList() {
         assertEquals("대기 중인 섬 초대가 없습니다.", formatter.invites(List.of()));
     }

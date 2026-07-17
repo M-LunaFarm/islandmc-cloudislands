@@ -71,7 +71,7 @@ class MemberManagementUseCaseTest {
 
         MemberManagementUseCase useCase = new MemberManagementUseCase(client(Map.of(
             "listIslandMembers", "{\"members\":[{\"playerUuid\":\"" + targetUuid + "\",\"role\":\"TRUSTED\",\"expiresAt\":\"2026-06-21T10:00:00Z\"}]}",
-            "listPendingInvites", "{\"invites\":[{\"inviteId\":\"" + inviteId + "\",\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\"}]}",
+            "listPendingInvites", "{\"invites\":[{\"inviteId\":\"" + inviteId + "\",\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\",\"islandName\":\"Builders\",\"inviterName\":\"Alice\"}]}",
             "createIslandInvite", "{\"inviteId\":\"" + inviteId + "\",\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\"}",
             "acceptIslandInviteResult", "{\"accepted\":true,\"code\":\"INVITE_ACCEPTED\"}",
             "declineIslandInviteResult", "{\"accepted\":false,\"code\":\"INVITE_EXPIRED\"}",
@@ -81,6 +81,8 @@ class MemberManagementUseCaseTest {
         assertEquals("TRUSTED", useCase.listMemberViews(islandId).join().get(0).role());
         assertEquals("2026-06-21T10:00:00Z", useCase.listMemberViews(islandId).join().get(0).expiresAt());
         assertEquals(inviteId.toString(), useCase.listPendingInviteViews(playerUuid).join().get(0).inviteId());
+        assertEquals("Builders", useCase.listPendingInviteViews(playerUuid).join().get(0).islandName());
+        assertEquals("Alice", useCase.listPendingInviteViews(playerUuid).join().get(0).inviterName());
         assertEquals(inviteId.toString(), useCase.createInviteView(islandId, actorUuid, targetUuid).join().inviteId());
         assertEquals("ACCEPTED", useCase.acceptInviteAction(inviteId, playerUuid).join().code());
         assertEquals("INVITE_EXPIRED", useCase.declineInviteAction(inviteId, playerUuid).join().code());
@@ -242,7 +244,9 @@ class MemberManagementUseCaseTest {
             text(value, "targetUuid"),
             text(value, "state"),
             text(value, "createdAt"),
-            text(value, "expiresAt")
+            text(value, "expiresAt"),
+            text(value, "islandName"),
+            text(value, "inviterName")
         );
     }
 

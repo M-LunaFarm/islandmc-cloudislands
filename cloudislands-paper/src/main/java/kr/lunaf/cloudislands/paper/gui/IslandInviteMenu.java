@@ -122,10 +122,10 @@ public final class IslandInviteMenu implements Listener {
     }
 
     private static ItemStack inviteItem(InviteView invite, MessageRenderer messages) {
-        return GuiItems.action(GuiMenuRenderer.material(MENU, "_", "WRITABLE_BOOK"), message(messages, "invite-menu-title-prefix", "섬 초대 ") + shortUuid(invite.islandId()), "island.invite.accept",
+        return GuiItems.action(GuiMenuRenderer.material(MENU, "_", "WRITABLE_BOOK"), message(messages, "invite-menu-title-prefix", "섬 초대 ") + islandDisplay(invite), "island.invite.accept",
             Map.of("inviteId", invite.inviteId()),
-            message(messages, "invite-menu-island-id", "섬 ID: ") + shortUuid(invite.islandId()),
-            message(messages, "invite-menu-inviter", "초대한 사람: ") + shortUuid(invite.inviterUuid()),
+            message(messages, "invite-menu-island", "섬: ") + islandDisplay(invite),
+            message(messages, "invite-menu-inviter", "초대한 사람: ") + inviterDisplay(invite),
             invite.createdAt().isBlank() ? message(messages, "invite-menu-no-created-info", "생성 정보 없음") : message(messages, "invite-menu-created-at", "생성 시각: ") + invite.createdAt(),
             invite.expiresAt().isBlank() ? message(messages, "invite-menu-no-expire-info", "만료 정보 없음") : message(messages, "invite-menu-expires-at", "만료 시각: ") + invite.expiresAt(),
             message(messages, "invite-menu-left-click", "좌클릭: 초대 수락"),
@@ -148,6 +148,14 @@ public final class IslandInviteMenu implements Listener {
 
     private static String shortUuid(String uuid) {
         return uuid.length() <= 8 ? uuid : uuid.substring(0, 8);
+    }
+
+    static String islandDisplay(InviteView invite) {
+        return invite.islandName().isBlank() ? shortUuid(invite.islandId()) : invite.islandName().trim();
+    }
+
+    static String inviterDisplay(InviteView invite) {
+        return invite.inviterName().isBlank() ? shortUuid(invite.inviterUuid()) : invite.inviterName().trim();
     }
 
 }

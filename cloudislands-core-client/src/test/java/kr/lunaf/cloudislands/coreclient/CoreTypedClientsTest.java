@@ -52,6 +52,21 @@ import org.junit.jupiter.api.Test;
 
 class CoreTypedClientsTest {
     @Test
+    void inviteViewsParseOptionalHumanReadableNames() {
+        CoreGuiViews.InviteView named = CoreMemberJson.inviteView("""
+            {"inviteId":"aaaaaaaa-0000-0000-0000-000000000001","islandId":"bbbbbbbb-0000-0000-0000-000000000002","inviterUuid":"cccccccc-0000-0000-0000-000000000003","islandName":"Builders","inviterName":"Alice"}
+            """);
+        CoreGuiViews.InviteView legacy = CoreMemberJson.inviteView("""
+            {"inviteId":"dddddddd-0000-0000-0000-000000000004","islandId":"eeeeeeee-0000-0000-0000-000000000005","inviterUuid":"ffffffff-0000-0000-0000-000000000006"}
+            """);
+
+        assertEquals("Builders", named.islandName());
+        assertEquals("Alice", named.inviterName());
+        assertEquals("", legacy.islandName());
+        assertEquals("", legacy.inviterName());
+    }
+
+    @Test
     void coreGuiViewsDoesNotExposeRawJsonBodyParsersPublicly() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/CoreGuiViews.java"));
 

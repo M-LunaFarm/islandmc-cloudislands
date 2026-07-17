@@ -48,4 +48,33 @@ class IslandMembershipCommandHandlerTest {
         ));
         assertEquals("", IslandMembershipCommandHandler.memberDisplayName(null));
     }
+
+    @Test
+    void inviteListsPreferNamesAndFallBackToCompactUuids() {
+        CoreGuiViews.InviteView named = new CoreGuiViews.InviteView(
+            "aaaaaaaa-0000-0000-0000-000000000001",
+            "bbbbbbbb-0000-0000-0000-000000000002",
+            "cccccccc-0000-0000-0000-000000000003",
+            "dddddddd-0000-0000-0000-000000000004",
+            "PENDING",
+            "",
+            "",
+            " Builders ",
+            " Alice "
+        );
+        CoreGuiViews.InviteView legacy = new CoreGuiViews.InviteView(
+            "aaaaaaaa-0000-0000-0000-000000000001",
+            "bbbbbbbb-0000-0000-0000-000000000002",
+            "cccccccc-0000-0000-0000-000000000003",
+            "",
+            ""
+        );
+
+        assertEquals("Builders", IslandMembershipCommandHandler.inviteIslandDisplay(named));
+        assertEquals("Alice", IslandMembershipCommandHandler.inviteInviterDisplay(named));
+        assertEquals("bbbbbbbb", IslandMembershipCommandHandler.inviteIslandDisplay(legacy));
+        assertEquals("cccccccc", IslandMembershipCommandHandler.inviteInviterDisplay(legacy));
+        assertEquals("", IslandMembershipCommandHandler.inviteIslandDisplay(null));
+        assertEquals("", IslandMembershipCommandHandler.inviteInviterDisplay(null));
+    }
 }

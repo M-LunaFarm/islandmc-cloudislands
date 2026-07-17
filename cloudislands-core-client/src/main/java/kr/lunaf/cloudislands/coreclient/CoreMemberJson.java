@@ -99,7 +99,18 @@ final class CoreMemberJson {
     }
 
     private static CoreGuiViews.InviteView inviteView(Map<?, ?> values) {
-        return inviteView(invite(values));
+        CoreGuiViews.InviteView invite = inviteView(invite(values));
+        return new CoreGuiViews.InviteView(
+            invite.inviteId(),
+            invite.islandId(),
+            invite.inviterUuid(),
+            invite.targetUuid(),
+            invite.state(),
+            invite.createdAt(),
+            invite.expiresAt(),
+            CoreJson.text(values, "islandName"),
+            CoreJson.text(values, "inviterName")
+        );
     }
 
     static CoreGuiViews.BanView banView(IslandBanSnapshot ban) {

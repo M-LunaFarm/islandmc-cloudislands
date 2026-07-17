@@ -21,7 +21,9 @@ import kr.lunaf.cloudislands.api.model.IslandInviteSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandMemberSnapshot;
 import kr.lunaf.cloudislands.common.json.SimpleJson;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandMetadataRepository;
+import kr.lunaf.cloudislands.coreservice.repository.InMemoryIslandRepository;
 import org.junit.jupiter.api.Test;
 
 class IslandVisitorRoutesTest {
@@ -277,6 +279,34 @@ class IslandVisitorRoutesTest {
         assertEquals(true, accepted.get("accepted"));
         assertInvite(inviteId, islandId, inviterUuid, targetUuid, accepted);
         assertInvite(inviteId, islandId, inviterUuid, targetUuid, listedInvite);
+    }
+
+    @Test
+    void inviteListsIncludeHumanReadableIslandAndInviterNames() {
+        UUID inviteId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        UUID inviterUuid = UUID.fromString("00000000-0000-0000-0000-000000000003");
+        UUID targetUuid = UUID.fromString("00000000-0000-0000-0000-000000000004");
+        IslandInviteSnapshot invite = new IslandInviteSnapshot(
+            inviteId,
+            islandId,
+            inviterUuid,
+            targetUuid,
+            "PENDING",
+            Instant.parse("2026-01-02T03:04:05Z"),
+            Instant.parse("2026-01-09T03:04:05Z")
+        );
+        InMemoryIslandRepository islands = new InMemoryIslandRepository();
+        islands.createOwnedIsland(islandId, inviterUuid, "default", "Builders");
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        profiles.touch(inviterUuid, "Alice");
+
+        Map<?, ?> body = SimpleJson.object(SimpleJson.parse(IslandVisitorRoutes.invitesJson(List.of(invite), islands, profiles)));
+        Map<?, ?> listedInvite = SimpleJson.object(SimpleJson.list(body.get("invites")).get(0));
+
+        assertInvite(inviteId, islandId, inviterUuid, targetUuid, listedInvite);
+        assertEquals("Builders", listedInvite.get("islandName"));
+        assertEquals("Alice", listedInvite.get("inviterName"));
     }
 
     @Test

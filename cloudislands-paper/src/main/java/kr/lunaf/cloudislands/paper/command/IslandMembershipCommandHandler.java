@@ -868,10 +868,20 @@ final class IslandMembershipCommandHandler {
             String islandId = invite.islandId();
             String inviterUuid = invite.inviterUuid();
             if (!inviteId.isBlank()) {
-                entries.add(compactId(inviteId) + (islandId.isBlank() ? "" : message("invite-list-island-label", " 섬=") + compactId(islandId)) + (inviterUuid.isBlank() ? "" : message("invite-list-inviter-label", " 초대한사람=") + compactId(inviterUuid)));
+                entries.add(compactId(inviteId)
+                    + (islandId.isBlank() ? "" : message("invite-list-island-label", " 섬=") + inviteIslandDisplay(invite))
+                    + (inviterUuid.isBlank() ? "" : message("invite-list-inviter-label", " 초대한사람=") + inviteInviterDisplay(invite)));
             }
         }
         return entries.isEmpty() ? message("invite-list-empty", "대기 중인 섬 초대가 없습니다.") : message("invite-list-prefix", "섬 초대: ") + String.join(", ", entries);
+    }
+
+    static String inviteIslandDisplay(InviteView invite) {
+        return invite == null || invite.islandName().isBlank() ? compactId(invite == null ? "" : invite.islandId()) : invite.islandName().trim();
+    }
+
+    static String inviteInviterDisplay(InviteView invite) {
+        return invite == null || invite.inviterName().isBlank() ? compactId(invite == null ? "" : invite.inviterUuid()) : invite.inviterName().trim();
     }
 
     private String inviteActionMessage(String label, UUID inviteId, IslandInviteActionResult result) {

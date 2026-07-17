@@ -108,7 +108,11 @@ public final class IslandVisitorRoutes implements RouteGroup {
 
     private void playerInvites(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
-        CoreHttpResponses.write(exchange, 200, invitesJson(metadataRepository.pendingInvites(JsonFields.uuid(body, "playerUuid", EMPTY_UUID))));
+        CoreHttpResponses.write(exchange, 200, invitesJson(
+            metadataRepository.pendingInvites(JsonFields.uuid(body, "playerUuid", EMPTY_UUID)),
+            islandRepository,
+            playerProfiles
+        ));
     }
 
     private void acceptInvite(HttpExchange exchange) throws IOException {
@@ -299,9 +303,23 @@ public final class IslandVisitorRoutes implements RouteGroup {
     }
 
     static String invitesJson(List<IslandInviteSnapshot> invites) {
+        return invitesJson(invites, null, null);
+    }
+
+    static String invitesJson(List<IslandInviteSnapshot> invites, IslandRepository islands, PlayerProfileRepository profiles) {
         List<Object> renderedInvites = new ArrayList<>();
         for (IslandInviteSnapshot invite : invites) {
-            renderedInvites.add(inviteMap(invite));
+            LinkedHashMap<String, Object> rendered = inviteMap(invite);
+            if (islands != null) {
+                islands.findById(invite.islandId()).ifPresent(island -> rendered.put("islandName", island.name()));
+            }
+            if (profiles != null) {
+                String inviterName = profiles.find(invite.inviterUuid()).lastName();
+                if (inviterName != null && !inviterName.isBlank()) {
+                    rendered.put("inviterName", inviterName);
+                }
+            }
+            renderedInvites.add(rendered);
         }
         return SimpleJson.stringify(Map.of("invites", renderedInvites));
     }
@@ -314,7 +332,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
         return SimpleJson.stringify(Map.of("bans", renderedBans));
     }
 
-    private static Map<String, Object> inviteMap(IslandInviteSnapshot invite) {
+    private static LinkedHashMap<String, Object> inviteMap(IslandInviteSnapshot invite) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("inviteId", invite.inviteId());
         values.put("islandId", invite.islandId());

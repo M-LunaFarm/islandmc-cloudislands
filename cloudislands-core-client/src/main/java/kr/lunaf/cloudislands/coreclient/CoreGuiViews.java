@@ -240,9 +240,13 @@ public final class CoreGuiViews {
         }
     }
 
-    public record InviteView(String inviteId, String islandId, String inviterUuid, String targetUuid, String state, String createdAt, String expiresAt) {
+    public record InviteView(String inviteId, String islandId, String inviterUuid, String targetUuid, String state, String createdAt, String expiresAt, String islandName, String inviterName) {
         public InviteView(String inviteId, String islandId, String inviterUuid, String createdAt, String expiresAt) {
-            this(inviteId, islandId, inviterUuid, "", "PENDING", createdAt, expiresAt);
+            this(inviteId, islandId, inviterUuid, "", "PENDING", createdAt, expiresAt, "", "");
+        }
+
+        public InviteView(String inviteId, String islandId, String inviterUuid, String targetUuid, String state, String createdAt, String expiresAt) {
+            this(inviteId, islandId, inviterUuid, targetUuid, state, createdAt, expiresAt, "", "");
         }
 
         public InviteView {
@@ -253,6 +257,8 @@ public final class CoreGuiViews {
             state = state == null || state.isBlank() ? "PENDING" : state;
             createdAt = createdAt == null ? "" : createdAt;
             expiresAt = expiresAt == null ? "" : expiresAt;
+            islandName = islandName == null ? "" : islandName;
+            inviterName = inviterName == null ? "" : inviterName;
         }
     }
 
