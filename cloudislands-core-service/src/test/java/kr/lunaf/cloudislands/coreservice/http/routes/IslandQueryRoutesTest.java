@@ -14,6 +14,7 @@ import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.IslandSnapshot;
 import kr.lunaf.cloudislands.api.model.IslandState;
 import kr.lunaf.cloudislands.coreservice.http.CoreRouteRegistry;
+import kr.lunaf.cloudislands.coreservice.islandlog.InMemoryIslandLogRepository;
 import kr.lunaf.cloudislands.coreservice.permission.InMemoryIslandPermissionRuleRepository;
 import kr.lunaf.cloudislands.coreservice.profile.InMemoryPlayerProfileRepository;
 import org.junit.jupiter.api.Test;
@@ -30,16 +31,18 @@ class IslandQueryRoutesTest {
     }
 
     @Test
-    void permissionQueryIncludesPlayerNameForOverrides() {
+    void queryResponsesIncludePlayerProfileNames() {
         UUID islandId = UUID.fromString("00000000-0000-0000-0000-000000000001");
         UUID playerUuid = UUID.fromString("00000000-0000-0000-0000-000000000002");
         InMemoryIslandPermissionRuleRepository permissions = new InMemoryIslandPermissionRuleRepository();
         InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        InMemoryIslandLogRepository logs = new InMemoryIslandLogRepository();
         permissions.putPlayerOverride(islandId, playerUuid, IslandPermission.BREAK, false);
         profiles.touch(playerUuid, "BuilderPlayer");
+        logs.append(islandId, playerUuid, "ISLAND_RENAME", Map.of("name", "Builder Island"));
         IslandQueryRoutes routes = new IslandQueryRoutes(
             null, null, null, null, null, permissions, null, null,
-            null, null, null, null, null, profiles, null, null
+            null, null, null, null, logs, profiles, null, null
         );
 
         String response = routes.permissionsJson(islandId);
@@ -52,6 +55,8 @@ class IslandQueryRoutesTest {
         );
         String islandResponse = routes.islandJson(island);
         assertTrue(islandResponse.contains("\"ownerName\":\"BuilderPlayer\""));
+        String logResponse = routes.logsJson(islandId);
+        assertTrue(logResponse.contains("\"actorName\":\"BuilderPlayer\""));
     }
 
     private static final class RecordingRegistry implements CoreRouteRegistry {

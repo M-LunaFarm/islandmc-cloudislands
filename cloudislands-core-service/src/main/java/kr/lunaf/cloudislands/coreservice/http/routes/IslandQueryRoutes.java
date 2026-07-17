@@ -186,7 +186,7 @@ public final class IslandQueryRoutes {
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/logs")) {
             UUID islandId = uuidPath(tail.substring(0, tail.length() - "/logs".length()));
-            CoreHttpResponses.write(exchange, 200, IslandCommunicationRoutes.islandLogsJson(islandLogs.list(islandId, 30)));
+            CoreHttpResponses.write(exchange, 200, logsJson(islandId));
             return;
         }
         if (method.equalsIgnoreCase("GET") && !tail.contains("/")) {
@@ -268,6 +268,10 @@ public final class IslandQueryRoutes {
 
     String islandJson(IslandSnapshot island) {
         return IslandCatalogRoutes.islandJson(island, limitRepository, metadataRepository, playerProfiles);
+    }
+
+    String logsJson(UUID islandId) {
+        return IslandCommunicationRoutes.islandLogsJson(islandLogs.list(islandId, 30), playerProfiles);
     }
 
     private static UUID queryUuid(HttpExchange exchange, String key, UUID fallback) {

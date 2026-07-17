@@ -1,6 +1,7 @@
 package kr.lunaf.cloudislands.paper.command;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Proxy;
@@ -19,6 +20,13 @@ import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
 class IslandChatLogCommandHandlerTest {
+    @Test
+    void logActorUsesProfileNameWithCompactUuidFallback() {
+        assertEquals("IslandOwner", IslandChatLogCommandHandler.actorDisplay("11111111-1111-1111-1111-111111111111", " IslandOwner "));
+        assertEquals("11111111", IslandChatLogCommandHandler.actorDisplay("11111111-1111-1111-1111-111111111111", ""));
+        assertEquals("unknown", IslandChatLogCommandHandler.actorDisplay("", ""));
+    }
+
     @Test
     void explicitLocalChatModesDoNotSendTheirArgumentsAsMessages() {
         UUID playerUuid = UUID.randomUUID();

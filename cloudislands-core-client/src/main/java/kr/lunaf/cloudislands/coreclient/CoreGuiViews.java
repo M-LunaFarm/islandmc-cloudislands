@@ -158,13 +158,11 @@ public final class CoreGuiViews {
     }
 
     public static CompletableFuture<List<LogEntryView>> islandLogs(CoreApiClient client, UUID islandId, int limit) {
-        return client.communication().records(islandId, limit).thenApply(CoreGuiViews::logs);
+        return client.communication().listLogs(islandId, limit);
     }
 
     static List<LogEntryView> logViews(String body) {
-        return CoreCommunicationJson.records(body).stream()
-            .map(CoreCommunicationJson::view)
-            .toList();
+        return CoreCommunicationJson.views(body);
     }
 
     static NodeSummaryView nodeSummary(String nodeId, String body) {
@@ -424,7 +422,18 @@ public final class CoreGuiViews {
         }
     }
 
-    public record LogEntryView(String actorUuid, String action, Map<String, String> payload, String createdAt) {
+    public record LogEntryView(String actorUuid, String action, Map<String, String> payload, String createdAt, String actorName) {
+        public LogEntryView(String actorUuid, String action, Map<String, String> payload, String createdAt) {
+            this(actorUuid, action, payload, createdAt, "");
+        }
+
+        public LogEntryView {
+            actorUuid = actorUuid == null ? "" : actorUuid;
+            action = action == null ? "" : action;
+            payload = payload == null ? Map.of() : Map.copyOf(payload);
+            createdAt = createdAt == null ? "" : createdAt;
+            actorName = actorName == null ? "" : actorName;
+        }
     }
 
     public record NodeSummaryView(

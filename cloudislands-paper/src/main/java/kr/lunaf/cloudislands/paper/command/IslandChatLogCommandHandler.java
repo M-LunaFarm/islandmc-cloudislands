@@ -160,17 +160,17 @@ final class IslandChatLogCommandHandler {
             return true;
         }
         if (action instanceof GuiAction.LogDetail detail) {
-            showLogDetail(player, detail.logAction(), detail.createdAt(), detail.actorUuid(), detail.payload());
+            showLogDetail(player, detail.logAction(), detail.createdAt(), detail.actorUuid(), detail.actorName(), detail.payload());
             return true;
         }
         return false;
     }
 
-    private void showLogDetail(Player player, String action, String createdAt, String actorUuid, String payload) {
+    private void showLogDetail(Player player, String action, String createdAt, String actorUuid, String actorName, String payload) {
         runtime.message(player, runtime.routeMessage("log-menu-detail-title", "섬 로그 상세"));
         runtime.message(player, "- " + runtime.routeMessage("log-menu-action", "작업: ") + action);
         runtime.message(player, "- " + runtime.routeMessage("log-menu-time", "시간: ") + (createdAt == null || createdAt.isBlank() ? "unknown" : createdAt));
-        runtime.message(player, "- " + runtime.routeMessage("log-menu-actor", "처리자: ") + (actorUuid == null || actorUuid.isBlank() ? "unknown" : actorUuid));
+        runtime.message(player, "- " + runtime.routeMessage("log-menu-actor", "처리자: ") + actorDisplay(actorUuid, actorName));
         runtime.message(player, "- " + runtime.routeMessage("log-menu-payload", "payload: ") + (payload == null || payload.isBlank() ? runtime.routeMessage("log-menu-payload-empty", "없음") : payload));
     }
 
@@ -230,9 +230,19 @@ final class IslandChatLogCommandHandler {
     private String logListMessage(List<LogEntryView> logs) {
         List<String> entries = logs.stream()
             .filter(log -> !log.action().isBlank())
-            .map(log -> log.action() + (log.actorUuid().isBlank() ? "" : message("log-list-actor-prefix", " by ") + log.actorUuid()))
+            .map(log -> log.action() + (log.actorUuid().isBlank() && log.actorName().isBlank() ? "" : message("log-list-actor-prefix", " by ") + actorDisplay(log.actorUuid(), log.actorName())))
             .toList();
         return entries.isEmpty() ? message("log-list-empty", "섬 로그가 없습니다.") : message("log-list-prefix", "섬 로그: ") + String.join(" | ", entries);
+    }
+
+    static String actorDisplay(String actorUuid, String actorName) {
+        if (actorName != null && !actorName.isBlank()) {
+            return actorName.trim();
+        }
+        if (actorUuid == null || actorUuid.isBlank()) {
+            return "unknown";
+        }
+        return actorUuid.length() > 8 ? actorUuid.substring(0, 8) : actorUuid;
     }
 
     private void deliverMessage(PlayerConnectionSession playerSession, String detail) {

@@ -1413,12 +1413,17 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         }
     }
 
-    record LogDetail(String logAction, String actorUuid, String createdAt, String payload) implements GuiAction {
+    record LogDetail(String logAction, String actorUuid, String createdAt, String payload, String actorName) implements GuiAction {
+        public LogDetail(String logAction, String actorUuid, String createdAt, String payload) {
+            this(logAction, actorUuid, createdAt, payload, "");
+        }
+
         public LogDetail {
             logAction = requiredName(logAction, "logAction");
             actorUuid = actorUuid == null ? "" : actorUuid.trim();
             createdAt = createdAt == null ? "" : createdAt.trim();
             payload = payload == null ? "" : payload.trim();
+            actorName = actorName == null ? "" : actorName.trim();
         }
 
         @Override
@@ -1431,6 +1436,7 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
             return Map.of(
                 "action", logAction,
                 "actorUuid", actorUuid,
+                "actorName", actorName,
                 "createdAt", createdAt,
                 "payload", payload
             );

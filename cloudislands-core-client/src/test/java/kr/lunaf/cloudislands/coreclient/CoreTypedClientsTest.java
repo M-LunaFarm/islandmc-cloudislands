@@ -1208,7 +1208,7 @@ class CoreTypedClientsTest {
             new Class<?>[] { CoreApiClient.class, CommunicationQueryClient.class },
             (_proxy, method, args) -> switch (method.getName()) {
                 case "records" -> CompletableFuture.completedFuture(List.of(new IslandLogRecord(UUID.randomUUID(), islandId, actorUuid, "CREATE", Map.of("target", "island"), Instant.parse("2026-01-02T03:04:05Z"))));
-                case "listLogs" -> CompletableFuture.completedFuture(List.of(new CoreGuiViews.LogEntryView(actorUuid.toString(), "CREATE", Map.of("target", "island"), "2026-01-02T03:04:05Z")));
+                case "listLogs" -> CompletableFuture.completedFuture(List.of(new CoreGuiViews.LogEntryView(actorUuid.toString(), "CREATE", Map.of("target", "island"), "2026-01-02T03:04:05Z", "IslandOwner")));
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
@@ -1223,12 +1223,45 @@ class CoreTypedClientsTest {
         assertFalse(record.payload().containsKey("activeNode"));
         assertEquals(actorUuid.toString(), log.actorUuid());
         assertEquals("CREATE", log.action());
+        assertEquals("IslandOwner", log.actorName());
         assertEquals("island", log.payload().get("target"));
         assertFalse(log.payload().containsKey("activeNode"));
         assertFalse(source.contains("private static String text("), "communication parser must use shared CoreJson text helpers");
         assertTrue(source.contains("CoreJson.objectValue(values, \"payload\")"), "communication parser must use shared CoreJson nested object helper");
         assertFalse(assertDoesNotThrow(() -> Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/coreclient/JdkCommunicationQueryClient.java"))).contains("CoreResponseBody::value"), "communication query client must pass typed response envelopes to its parser");
         assertTrue(source.contains("records(CoreResponseBody body)"), "communication log parser must accept typed response envelopes");
+    }
+
+    @Test
+    void jdkCommunicationQueryPreservesLogActorName() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID actorUuid = UUID.randomUUID();
+        List<String> requests = new ArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/islands/logs", exchange -> {
+                requests.add(new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8));
+                byte[] response = """
+                    {"logs":[{"logId":"%s","islandId":"%s","actorUuid":"%s","actorName":"IslandOwner","action":"CREATE","payload":{"target":"island"},"createdAt":"2026-01-02T03:04:05Z"}]}
+                    """.formatted(UUID.randomUUID(), islandId, actorUuid).getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.close();
+            });
+            server.start();
+            CommunicationQueryClient client = new JdkCoreApiClient(
+                new URI("http://127.0.0.1:" + server.getAddress().getPort()), "token", Duration.ofSeconds(2)
+            ).communication();
+
+            CoreGuiViews.LogEntryView log = client.listLogs(islandId, 500).join().getFirst();
+
+            assertEquals(List.of("{\"islandId\":\"" + islandId + "\",\"limit\":100}"), requests);
+            assertEquals(actorUuid.toString(), log.actorUuid());
+            assertEquals("IslandOwner", log.actorName());
+            assertEquals("island", log.payload().get("target"));
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test

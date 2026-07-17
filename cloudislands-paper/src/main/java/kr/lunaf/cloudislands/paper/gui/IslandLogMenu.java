@@ -139,7 +139,7 @@ public final class IslandLogMenu implements Listener {
     private static List<String> lore(LogEntryView entry, MessageRenderer messages) {
         List<String> lore = new ArrayList<>();
         lore.add(message(messages, "log-menu-time", "시간: ") + fallback(entry.createdAt(), message(messages, "log-menu-unknown", "unknown")));
-        lore.add(message(messages, "log-menu-actor", "처리자: ") + shorten(entry.actorUuid()));
+        lore.add(message(messages, "log-menu-actor", "처리자: ") + actorDisplay(entry));
         if (entry.payload().isEmpty()) {
             lore.add(message(messages, "log-menu-payload-empty", "payload: 없음"));
         } else {
@@ -159,10 +159,15 @@ public final class IslandLogMenu implements Listener {
             Map.of(
                 "action", fallback(entry.action(), "unknown"),
                 "actorUuid", fallback(entry.actorUuid(), ""),
+                "actorName", fallback(entry.actorName(), ""),
                 "createdAt", fallback(entry.createdAt(), ""),
                 "payload", payloadSummary(entry.payload(), messages)
             ),
             lore(entry, messages).toArray(String[]::new));
+    }
+
+    static String actorDisplay(LogEntryView entry) {
+        return entry.actorName().isBlank() ? shorten(entry.actorUuid()) : entry.actorName().trim();
     }
 
     private static String payloadSummary(Map<String, String> payload, MessageRenderer messages) {

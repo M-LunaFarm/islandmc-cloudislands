@@ -40,6 +40,17 @@ final class CoreCommunicationJson {
         return records(body.value());
     }
 
+    static List<CoreGuiViews.LogEntryView> views(String body) {
+        return CoreJson.entries(body, "logs").stream()
+            .map(values -> view(record(values), CoreJson.text(values, "actorName")))
+            .filter(view -> !view.action().isBlank())
+            .toList();
+    }
+
+    static List<CoreGuiViews.LogEntryView> views(CoreResponseBody body) {
+        return views(body.value());
+    }
+
     static ChatActionView chatAction(String body, String successCode) {
         Map<?, ?> root = CoreJson.object(body);
         return new ChatActionView(CoreJson.accepted(root), CoreJson.code(root, successCode), CoreJson.text(root, "channel"), CoreJson.text(root, "message"));
@@ -50,6 +61,10 @@ final class CoreCommunicationJson {
     }
 
     static CoreGuiViews.LogEntryView view(IslandLogRecord log) {
+        return view(log, "");
+    }
+
+    private static CoreGuiViews.LogEntryView view(IslandLogRecord log, String actorName) {
         if (log == null) {
             return new CoreGuiViews.LogEntryView("", "", Map.of(), "");
         }
@@ -57,7 +72,8 @@ final class CoreCommunicationJson {
             log.actorUuid() == null || log.actorUuid().equals(EMPTY_UUID) ? "" : log.actorUuid().toString(),
             log.action(),
             log.payload() == null ? Map.of() : log.payload(),
-            log.createdAt() == null || log.createdAt().equals(Instant.EPOCH) ? "" : log.createdAt().toString()
+            log.createdAt() == null || log.createdAt().equals(Instant.EPOCH) ? "" : log.createdAt().toString(),
+            actorName
         );
     }
 

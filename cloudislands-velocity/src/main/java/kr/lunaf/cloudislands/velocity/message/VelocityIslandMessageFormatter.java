@@ -453,11 +453,15 @@ public final class VelocityIslandMessageFormatter {
             total++;
             if (entries.size() < 10) {
                 entries.add(fallback(log.action(), "UNKNOWN")
-                    + " 처리자=" + shortId(log.actorUuid())
+                    + " 처리자=" + logActorDisplayName(log)
                     + " 시각=" + log.createdAt());
             }
         }
         return "섬 로그: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private static String logActorDisplayName(CoreGuiViews.LogEntryView log) {
+        return log.actorName().isBlank() ? shortId(log.actorUuid()) : log.actorName().trim();
     }
 
     public String bankInfo(java.util.UUID islandId, CoreGuiViews.BankView view) {

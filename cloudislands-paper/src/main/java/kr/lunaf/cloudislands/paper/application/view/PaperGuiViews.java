@@ -205,7 +205,7 @@ public final class PaperGuiViews {
     }
 
     private static LogEntryView logEntry(CoreGuiViews.LogEntryView view) {
-        return new LogEntryView(view.actorUuid(), view.action(), view.payload(), view.createdAt());
+        return new LogEntryView(view.actorUuid(), view.action(), view.payload(), view.createdAt(), view.actorName());
     }
 
     public static NodeSummaryView nodeSummary(CoreGuiViews.NodeSummaryView view) {
@@ -381,7 +381,15 @@ public final class PaperGuiViews {
         }
     }
 
-    public record LogEntryView(String actorUuid, String action, Map<String, String> payload, String createdAt) {
+    public record LogEntryView(String actorUuid, String action, Map<String, String> payload, String createdAt, String actorName) {
+        public LogEntryView(String actorUuid, String action, Map<String, String> payload, String createdAt) {
+            this(actorUuid, action, payload, createdAt, "");
+        }
+
+        public LogEntryView {
+            actorUuid = actorUuid == null ? "" : actorUuid;
+            actorName = actorName == null ? "" : actorName;
+        }
     }
 
     public record NodeSummaryView(

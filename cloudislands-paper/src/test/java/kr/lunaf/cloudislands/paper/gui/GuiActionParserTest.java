@@ -255,6 +255,7 @@ class GuiActionParserTest {
         GuiAction action = GuiActionParser.parse("island.log.detail", Map.of(
             "action", " BANK_DEPOSIT ",
             "actorUuid", " 00000000-0000-0000-0000-000000000000 ",
+            "actorName", " IslandOwner ",
             "createdAt", " now ",
             "payload", " amount=100 "
         )).orElseThrow();
@@ -264,6 +265,7 @@ class GuiActionParserTest {
         assertEquals(Map.of(
             "action", "BANK_DEPOSIT",
             "actorUuid", "00000000-0000-0000-0000-000000000000",
+            "actorName", "IslandOwner",
             "createdAt", "now",
             "payload", "amount=100"
         ), action.data());

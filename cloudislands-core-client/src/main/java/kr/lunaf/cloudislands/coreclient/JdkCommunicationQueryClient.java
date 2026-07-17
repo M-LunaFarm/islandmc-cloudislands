@@ -23,6 +23,14 @@ final class JdkCommunicationQueryClient implements CommunicationQueryClient {
             .thenApply(CoreCommunicationJson::records);
     }
 
+    @Override
+    public CompletableFuture<List<CoreGuiViews.LogEntryView>> listLogs(UUID islandId, int limit) {
+        requireId(islandId, "islandId");
+        int safeLimit = Math.max(1, Math.min(limit, 100));
+        return core.postBody("/v1/islands/logs", CoreJsonPayload.object("islandId", islandId, "limit", safeLimit))
+            .thenApply(CoreCommunicationJson::views);
+    }
+
     private static void requireId(UUID id, String name) {
         if (id == null) {
             throw new IllegalArgumentException(name + " is required");

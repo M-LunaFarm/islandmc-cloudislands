@@ -52,7 +52,7 @@ public final class IslandCommunicationRoutes implements RouteGroup {
 
     private void logs(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
-        CoreHttpResponses.write(exchange, 200, islandLogsJson(islandLogs.list(JsonFields.uuid(body, "islandId", EMPTY_UUID), JsonFields.integer(body, "limit", 30))));
+        CoreHttpResponses.write(exchange, 200, islandLogsJson(islandLogs.list(JsonFields.uuid(body, "islandId", EMPTY_UUID), JsonFields.integer(body, "limit", 30)), playerProfiles));
     }
 
     private void chat(HttpExchange exchange) throws IOException {
@@ -98,12 +98,22 @@ public final class IslandCommunicationRoutes implements RouteGroup {
     }
 
     static String islandLogsJson(List<IslandLogRecord> logs) {
+        return islandLogsJson(logs, null);
+    }
+
+    static String islandLogsJson(List<IslandLogRecord> logs, PlayerProfileRepository playerProfiles) {
         List<Object> renderedLogs = new ArrayList<>();
         for (IslandLogRecord log : logs) {
             LinkedHashMap<String, Object> rendered = new LinkedHashMap<>();
             rendered.put("logId", log.logId());
             rendered.put("islandId", log.islandId());
             rendered.put("actorUuid", log.actorUuid());
+            if (playerProfiles != null && log.actorUuid() != null && !log.actorUuid().equals(EMPTY_UUID)) {
+                String actorName = playerProfiles.find(log.actorUuid()).lastName();
+                if (actorName != null && !actorName.isBlank()) {
+                    rendered.put("actorName", actorName);
+                }
+            }
             rendered.put("action", log.action());
             rendered.put("payload", stringMap(log.payload()));
             rendered.put("createdAt", log.createdAt());

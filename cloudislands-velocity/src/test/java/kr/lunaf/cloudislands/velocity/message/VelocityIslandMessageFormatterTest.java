@@ -316,6 +316,17 @@ class VelocityIslandMessageFormatterTest {
         );
     }
 
+    @Test
+    void islandLogListUsesActorNameWithCompactUuidFallback() {
+        assertEquals(
+            "섬 로그: 전체 2개 / ISLAND_RENAME 처리자=IslandOwner 시각=now | BANK_DEPOSIT 처리자=22222222 시각=later",
+            formatter.islandLogList(List.of(
+                new CoreGuiViews.LogEntryView("11111111-1111-1111-1111-111111111111", "ISLAND_RENAME", Map.of(), "now", "IslandOwner"),
+                new CoreGuiViews.LogEntryView("22222222-2222-2222-2222-222222222222", "BANK_DEPOSIT", Map.of(), "later")
+            ))
+        );
+    }
+
     private static AdminIslandRuntimeView runtimeView() {
         return new AdminIslandRuntimeView(
             "33333333-3333-3333-3333-333333333333",

@@ -30,6 +30,7 @@ class IslandCommunicationUseCaseTest {
         List<LogEntryView> logs = useCase.logViews(islandId, 500).join();
         assertEquals("CREATE", logs.get(0).action());
         assertEquals("00000000-0000-0000-0000-000000000001", logs.get(0).actorUuid());
+        assertEquals("IslandOwner", logs.get(0).actorName());
 
         assertEquals(List.of(
             "audit:island.chat.send",
@@ -51,7 +52,7 @@ class IslandCommunicationUseCaseTest {
                 }
                 case "listLogs" -> {
                     calls.add("listIslandLogs:" + args[1]);
-                    yield CompletableFuture.completedFuture(List.of(new LogEntryView("00000000-0000-0000-0000-000000000001", "CREATE", java.util.Map.of("target", "island"), "now")));
+                    yield CompletableFuture.completedFuture(List.of(new LogEntryView("00000000-0000-0000-0000-000000000001", "CREATE", java.util.Map.of("target", "island"), "now", "IslandOwner")));
                 }
                 case "records" -> CompletableFuture.completedFuture(List.of(new IslandLogRecord(UUID.randomUUID(), (UUID) args[0], uuid("00000000-0000-0000-0000-000000000001"), "CREATE", java.util.Map.of("target", "island"), java.time.Instant.parse("2026-01-02T03:04:05Z"))));
                 default -> throw new UnsupportedOperationException(method.getName());

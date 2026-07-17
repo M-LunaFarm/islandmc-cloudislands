@@ -486,7 +486,8 @@ public final class GuiActionParser {
                     required(safeData, "action"),
                     safeData.getOrDefault("actorUuid", ""),
                     safeData.getOrDefault("createdAt", ""),
-                    safeData.getOrDefault("payload", "")
+                    safeData.getOrDefault("payload", ""),
+                    safeData.getOrDefault("actorName", "")
                 ));
                 case "island.ranking.list" -> Optional.of(new GuiAction.RankingList(
                     safeData.getOrDefault("kind", "")
