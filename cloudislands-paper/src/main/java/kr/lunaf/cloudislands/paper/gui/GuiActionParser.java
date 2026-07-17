@@ -26,6 +26,7 @@ public final class GuiActionParser {
         "admin.migration.import.prompt",
         "admin.migration.open",
         "admin.migration.rollback-plan",
+        "admin.migration.rollback.confirm",
         "admin.migration.rollback.prompt",
         "admin.migration.scan",
         "admin.migration.verify",
@@ -253,6 +254,11 @@ public final class GuiActionParser {
                     UUID.fromString(required(safeData, "playerUuid")),
                     UUID.fromString(required(safeData, "ticketId")),
                     nonNegativeInteger(safeData.getOrDefault("page", "0")),
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
+                ));
+            }
+            if (safeAction.equals(ConfirmationTokenPolicy.ADMIN_MIGRATION_ROLLBACK_CONFIRM_ACTION)) {
+                return Optional.of(new GuiAction.AdminMigrationRollback(
                     safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }

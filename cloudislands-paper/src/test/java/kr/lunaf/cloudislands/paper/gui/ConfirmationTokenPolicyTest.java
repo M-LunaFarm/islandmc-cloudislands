@@ -72,6 +72,12 @@ class ConfirmationTokenPolicyTest {
         );
         assertTrue(ConfirmationTokenPolicy.confirmed(routeClear, GuiClick.LEFT));
         assertFalse(ConfirmationTokenPolicy.confirmed(routeClear, GuiClick.SHIFT_RIGHT));
+
+        GuiAction migrationRollback = new GuiAction.AdminMigrationRollback(
+            ConfirmationTokenPolicy.token(ConfirmationTokenPolicy.ADMIN_MIGRATION_ROLLBACK_CONFIRM_ACTION)
+        );
+        assertTrue(ConfirmationTokenPolicy.confirmed(migrationRollback, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(migrationRollback, GuiClick.RIGHT));
     }
 
     @Test

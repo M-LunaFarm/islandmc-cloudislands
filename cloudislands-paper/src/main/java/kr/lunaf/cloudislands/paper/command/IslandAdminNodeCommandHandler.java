@@ -4,6 +4,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
+import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
@@ -44,6 +45,12 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminMigrationRollback) {
+            if (runtime.confirmationAccepted(player, action, click)) {
+                runMigrationAction(player, "rollback", "admin.migration.superiorskyblock2.rollback", false);
+            }
+            return true;
+        }
         if (action instanceof GuiAction.AdminStoragePage page) {
             openStorageMenu(player, page.page());
             return true;
@@ -102,7 +109,6 @@ final class IslandAdminNodeCommandHandler {
     }
 
     private boolean handleAdminMenuAction(Player player, GuiAction.AdminMenuAction action) {
-        UUID playerUuid = player.getUniqueId();
         return switch (action.type()) {
             case JOBS_OPEN, JOBS_LIST -> {
                 openJobMenu(player, 0);
@@ -137,43 +143,35 @@ final class IslandAdminNodeCommandHandler {
                 yield true;
             }
             case MIGRATION_OPEN, MIGRATION_WIZARD -> {
-                AdminMigrationMenu.open(player, runtime.messagesFor(player));
+                openMigrationMenu(player);
                 yield true;
             }
             case MIGRATION_SCAN -> {
-                runtime.mutateIdempotent("admin.migration.superiorskyblock2.scan", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("scan", ""))
-                    .thenAccept(snapshot -> deliverMessage(playerUuid, migrationSummary("Migration scan", snapshot.state(), snapshot.manifests(), snapshot.blockingIssues(), snapshot.warningIssues())))
-                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-migration-scan-failed", "마이그레이션 스캔을 실행하지 못했습니다.", error));
+                runMigrationAction(player, "scan", "admin.migration.superiorskyblock2.scan", true);
                 yield true;
             }
             case MIGRATION_DRYRUN -> {
-                runtime.mutateIdempotent("admin.migration.superiorskyblock2.dryrun", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("dryrun", ""))
-                    .thenAccept(snapshot -> deliverMessage(playerUuid, migrationSummary("Migration dry-run", snapshot.state(), snapshot.manifests(), snapshot.blockingIssues(), snapshot.warningIssues())))
-                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-migration-dryrun-failed", "마이그레이션 dry-run을 실행하지 못했습니다.", error));
+                runMigrationAction(player, "dryrun", "admin.migration.superiorskyblock2.dryrun", true);
                 yield true;
             }
             case MIGRATION_VERIFY -> {
-                runtime.mutateIdempotent("admin.migration.superiorskyblock2.verify", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("verify", ""))
-                    .thenAccept(snapshot -> deliverMessage(playerUuid, "Migration verify: state=" + snapshot.state() + " passed=" + snapshot.passed() + " expected=" + snapshot.expected()))
-                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-migration-verify-failed", "마이그레이션 검증을 실행하지 못했습니다.", error));
+                runMigrationAction(player, "verify", "admin.migration.superiorskyblock2.verify", true);
                 yield true;
             }
             case MIGRATION_IMPORT_PROMPT -> {
-                prompt(player, "/ciadmin migrate-superiorskyblock2 import <approvalToken>");
+                migrationPrompt(player, "/ciadmin migrate-superiorskyblock2 import <approvalToken>");
                 yield true;
             }
             case MIGRATION_APPROVE_PROMPT -> {
-                prompt(player, "/ciadmin migrate-superiorskyblock2 approve <approvalToken>");
+                migrationPrompt(player, "/ciadmin migrate-superiorskyblock2 approve <approvalToken>");
                 yield true;
             }
             case MIGRATION_ROLLBACK_PLAN -> {
-                runtime.mutateIdempotent("admin.migration.superiorskyblock2.rollback-plan", () -> coreApiClient.migrations().migrateSuperiorSkyblock2("rollback-plan", ""))
-                    .thenAccept(snapshot -> deliverMessage(playerUuid, "Migration rollback-plan: state=" + snapshot.state() + " available=" + snapshot.rollbackPlanAvailable()))
-                    .exceptionally(error -> adminNodeFailure(playerUuid, "admin-migration-rollback-plan-failed", "마이그레이션 롤백 계획을 불러오지 못했습니다.", error));
+                runMigrationAction(player, "rollback-plan", "admin.migration.superiorskyblock2.rollback-plan", true);
                 yield true;
             }
             case MIGRATION_ROLLBACK_PROMPT -> {
-                prompt(player, "/ciadmin migrate-superiorskyblock2 rollback");
+                openMigrationRollbackConfirmation(player);
                 yield true;
             }
         };
@@ -374,8 +372,77 @@ final class IslandAdminNodeCommandHandler {
         return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.island");
     }
 
-    private static String migrationSummary(String label, String state, int manifests, int blockingIssues, int warningIssues) {
-        return label + ": state=" + state + " manifests=" + manifests + " blockingIssues=" + blockingIssues + " warningIssues=" + warningIssues;
+    private void openMigrationMenu(Player player) {
+        if (!migrationManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-migration-menu-permission-denied", "마이그레이션 관리 권한이 없습니다."));
+            return;
+        }
+        AdminMigrationMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player));
+    }
+
+    private void migrationPrompt(Player player, String command) {
+        if (!migrationManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-migration-menu-permission-denied", "마이그레이션 관리 권한이 없습니다."));
+            return;
+        }
+        prompt(player, command);
+    }
+
+    private void runMigrationAction(Player player, String action, String auditAction, boolean idempotent) {
+        if (!migrationManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-migration-menu-permission-denied", "마이그레이션 관리 권한이 없습니다."));
+            return;
+        }
+        MessageRenderer messages = runtime.messagesFor(player);
+        GuiSession session = GuiSessions.begin(player, "admin.migration.mutate");
+        GuiStateMenus.openSaving(plugin, player, session, messages,
+            runtime.routeMessage("admin-migration-menu-running-prefix", "마이그레이션 작업 실행 중: ") + action);
+        CompletableFuture<MigrationRunSnapshot> mutation = idempotent
+            ? runtime.mutateIdempotent(auditAction, () -> coreApiClient.migrations().migrateSuperiorSkyblock2(action, ""))
+            : runtime.mutate(auditAction, () -> coreApiClient.migrations().migrateSuperiorSkyblock2(action, ""));
+        mutation
+            .thenAccept(snapshot -> GuiSessions.runIfCurrent(plugin, player, session, () -> {
+                runtime.message(player, migrationSummary(action, snapshot));
+                AdminMigrationMenu.open(plugin, coreApiClient, player, messages);
+            }))
+            .exceptionally(error -> {
+                GuiStateMenus.openError(plugin, player, session, messages,
+                    runtime.routeMessage("admin-migration-menu-title", "SuperiorSkyblock2 이전 마법사"),
+                    runtime.routeMessage("admin-migration-menu-action-failed-prefix", "마이그레이션 작업 실패: ") + action,
+                    action.equals("rollback") ? "admin.migration.open" : "admin.migration." + action,
+                    "gui.close");
+                return null;
+            });
+    }
+
+    private void openMigrationRollbackConfirmation(Player player) {
+        if (!migrationManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-migration-menu-permission-denied", "마이그레이션 관리 권한이 없습니다."));
+            return;
+        }
+        runtime.openConfirmation(player,
+            runtime.routeMessage("admin-migration-menu-rollback-confirm-title", "마이그레이션 롤백 확인"),
+            runtime.routeMessage("admin-migration-menu-rollback-confirm-description", "가져온 섬 데이터를 롤백 계획에 따라 제거합니다."),
+            AdminMigrationMenu.rollbackConfirmationMaterial(),
+            runtime.routeMessage("admin-migration-menu-rollback-confirm-name", "롤백 실행"),
+            ConfirmationTokenPolicy.ADMIN_MIGRATION_ROLLBACK_CONFIRM_ACTION,
+            Map.of(),
+            runtime.routeMessage("admin-migration-menu-rollback-confirm-lore", "클릭하면 Core에 마이그레이션 롤백을 요청합니다."),
+            "admin.migration.open");
+    }
+
+    private String migrationSummary(String action, MigrationRunSnapshot snapshot) {
+        if (snapshot == null) {
+            return runtime.routeMessage("admin-migration-menu-action-complete-prefix", "마이그레이션 작업 완료: ") + action;
+        }
+        return runtime.routeMessage("admin-migration-menu-action-complete-prefix", "마이그레이션 작업 완료: ") + action
+            + " state=" + snapshot.state()
+            + " manifests=" + snapshot.manifests()
+            + " issues=" + snapshot.blockingIssues() + "/" + snapshot.warningIssues();
+    }
+
+    private static boolean migrationManagementAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.migrate-superiorskyblock2");
     }
 
     private boolean handleAdminNodeAction(Player player, GuiAction.AdminNodeAction action, GuiClick click) {

@@ -202,6 +202,19 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesConfirmedMigrationRollbackIntoTypedAction() {
+        String actionId = ConfirmationTokenPolicy.ADMIN_MIGRATION_ROLLBACK_CONFIRM_ACTION;
+        GuiAction action = GuiActionParser.parse(
+            actionId,
+            ConfirmationTokenPolicy.withToken(actionId, Map.of())
+        ).orElseThrow();
+
+        assertTrue(action instanceof GuiAction.AdminMigrationRollback);
+        assertTrue(ConfirmationTokenPolicy.confirmed(action, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(action, GuiClick.RIGHT));
+    }
+
+    @Test
     void parsesAdminReviewModerationIntoTypedAction() {
         GuiAction open = GuiActionParser.parse("admin.reviews.open", Map.of()).orElseThrow();
         GuiAction moderation = GuiActionParser.parse("admin.reviews.moderate", Map.of(
@@ -621,6 +634,10 @@ class GuiActionParserTest {
 
     private static Map<String, String> sampleDataFor(String actionId) {
         return switch (actionId) {
+            case "admin.migration.rollback.confirm" -> Map.of(
+                ConfirmationTokenPolicy.TOKEN_KEY,
+                ConfirmationTokenPolicy.token(actionId)
+            );
             case "admin.storage.page" -> Map.of("page", "0");
             case "admin.node.page" -> Map.of("page", "0");
             case "admin.jobs.page" -> Map.of("page", "0");

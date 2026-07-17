@@ -98,7 +98,7 @@ final class AdminMigrationCommandHandler {
 
     private void openWizard(CommandSender sender) {
         if (sender instanceof Player player) {
-            AdminMigrationMenu.open(player, messageProvider.messagesFor(player));
+            AdminMigrationMenu.open(agent.plugin(), coreApiClient, player, messageProvider.messagesFor(player));
             player.sendMessage(text.get("admin-command-migration-wizard-opened", "SuperiorSkyblock2 migration wizard opened."));
             return;
         }

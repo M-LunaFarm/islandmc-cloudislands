@@ -1240,7 +1240,7 @@ class AdminCommandBackendPolicyTest {
         assertTrue(handler.contains("action.equalsIgnoreCase(\"compare\") && args.length < 3"), "Migration compare must require an island selector");
         assertTrue(handler.contains("action.equalsIgnoreCase(\"rollback-plan\")"), "Migration rollback-plan must not receive a default source path");
         assertTrue(handler.contains("action.equalsIgnoreCase(\"unlock\") && (args.length < 4 || !args[2].equalsIgnoreCase(\"--confirm\"))"), "Migration unlock must require explicit confirmation");
-        assertTrue(handler.contains("AdminMigrationMenu.open(player, messageProvider.messagesFor(player))"), "Migration wizard must open the existing GUI for player operators");
+        assertTrue(handler.contains("AdminMigrationMenu.open(agent.plugin(), coreApiClient, player, messageProvider.messagesFor(player))"), "Migration wizard must open live typed status for player operators");
         assertTrue(handler.contains("AdminCommandCatalog.MIGRATION_HELP_COMMANDS"), "Migration wizard console fallback must reuse the migration command catalog");
         assertTrue(backend.contains("this::messagesFor"), "Admin backend must pass localized messages into the migration wizard handler");
     }

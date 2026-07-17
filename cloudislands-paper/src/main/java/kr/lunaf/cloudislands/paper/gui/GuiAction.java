@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminNodePage, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.AdminStoragePage, GuiAction.AdminJobPage, GuiAction.AdminJobRetry, GuiAction.AdminJobCancel, GuiAction.AdminRoutePage, GuiAction.AdminRouteClear, GuiAction.AdminReviewOpen, GuiAction.AdminReviewModeration, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminNodePage, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.AdminMigrationRollback, GuiAction.AdminStoragePage, GuiAction.AdminJobPage, GuiAction.AdminJobRetry, GuiAction.AdminJobCancel, GuiAction.AdminRoutePage, GuiAction.AdminRouteClear, GuiAction.AdminReviewOpen, GuiAction.AdminReviewModeration, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -227,6 +227,24 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
 
         public String actionId() {
             return actionId;
+        }
+    }
+
+    record AdminMigrationRollback(String confirmationToken) implements GuiAction {
+        public AdminMigrationRollback {
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return ConfirmationTokenPolicy.ADMIN_MIGRATION_ROLLBACK_CONFIRM_ACTION;
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return confirmationToken.isBlank()
+                ? Map.of()
+                : Map.of(ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken);
         }
     }
 

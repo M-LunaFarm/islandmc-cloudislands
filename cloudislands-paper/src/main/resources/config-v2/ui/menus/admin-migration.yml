@@ -2,10 +2,15 @@ id: admin.migration
 rows: 3
 title-key: admin-migration-menu-title
 layout:
-  - "........."
+  - "....H...."
   - ".SDAIVP.."
   - ".R......X"
 items:
+  H:
+    material: COMPASS
+    name-key: admin-migration-menu-status-name
+    fallback-name: 현재 마이그레이션 상태
+    action: status
   S:
     material: MAP
     name-key: admin-migration-menu-scan-name
@@ -61,6 +66,7 @@ items:
     fallback-name: 닫기
     action: close
 actions:
+  status: admin.migration.open
   scan: admin.migration.scan
   dryrun: admin.migration.dryrun
   approve: admin.migration.approve.prompt

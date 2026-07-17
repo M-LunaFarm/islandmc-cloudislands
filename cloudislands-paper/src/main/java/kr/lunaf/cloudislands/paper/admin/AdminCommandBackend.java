@@ -2807,7 +2807,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "admin.route" -> AdminRouteMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.jobs" -> AdminJobMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.reviews" -> AdminReviewModerationMenu.open(agent.plugin(), coreApiClient, target, targetMessages, 36);
-            case "admin.migration" -> AdminMigrationMenu.open(target, targetMessages);
+            case "admin.migration" -> AdminMigrationMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             default -> throw new IllegalArgumentException("Unsupported menu id: " + menuId);
         }
     }
