@@ -53,6 +53,10 @@ final class IslandChatLogCommandHandler {
                 toggleLocalChatMode(player);
                 return true;
             }
+            if (isChatModeArgument(args[1])) {
+                updateLocalChatMode(player, args[1]);
+                return true;
+            }
             sendChat(player, "ISLAND", joined(args, 1), "chat-island-label", "섬 채팅", "chat-island-required", "섬 안에서만 섬 채팅을 사용할 수 있습니다.");
             return true;
         }
@@ -61,9 +65,9 @@ final class IslandChatLogCommandHandler {
                 setTeamChatMode(player, teamChatModes.toggle(player.getUniqueId()));
                 return true;
             }
-            if (isTeamChatToggle(args[1])) {
-                boolean enabled = args[1].equalsIgnoreCase("on") ? teamChatModes.set(player.getUniqueId(), true)
-                    : args[1].equalsIgnoreCase("off") ? teamChatModes.set(player.getUniqueId(), false)
+            if (isChatModeArgument(args[1])) {
+                boolean enabled = enabledArgument(args[1]) ? teamChatModes.set(player.getUniqueId(), true)
+                    : disabledArgument(args[1]) ? teamChatModes.set(player.getUniqueId(), false)
                     : teamChatModes.toggle(player.getUniqueId());
                 setTeamChatMode(player, enabled);
                 return true;
@@ -101,6 +105,20 @@ final class IslandChatLogCommandHandler {
         }
         runtime.currentIsland(player, message("chat-island-required", "섬 안에서만 섬 채팅을 사용할 수 있습니다."))
             .ifPresent(_islandId -> setLocalChatMode(player, teamChatModes.toggleIsland(player.getUniqueId())));
+    }
+
+    private void updateLocalChatMode(Player player, String argument) {
+        UUID playerUuid = player.getUniqueId();
+        if (disabledArgument(argument)) {
+            setLocalChatMode(player, teamChatModes.setIsland(playerUuid, false));
+            return;
+        }
+        if (!enabledArgument(argument)) {
+            toggleLocalChatMode(player);
+            return;
+        }
+        runtime.currentIsland(player, message("chat-island-required", "섬 안에서만 섬 채팅을 사용할 수 있습니다."))
+            .ifPresent(_islandId -> setLocalChatMode(player, teamChatModes.setIsland(playerUuid, true)));
     }
 
     boolean handleGuiAction(Player player, GuiAction action) {
@@ -158,8 +176,18 @@ final class IslandChatLogCommandHandler {
         });
     }
 
-    private static boolean isTeamChatToggle(String value) {
-        return value.equalsIgnoreCase("toggle") || value.equalsIgnoreCase("mode") || value.equalsIgnoreCase("on") || value.equalsIgnoreCase("off") || value.equals("전환") || value.equals("모드");
+    private static boolean isChatModeArgument(String value) {
+        return value.equalsIgnoreCase("toggle") || value.equalsIgnoreCase("mode")
+            || enabledArgument(value) || disabledArgument(value)
+            || value.equals("전환") || value.equals("모드");
+    }
+
+    private static boolean enabledArgument(String value) {
+        return value.equalsIgnoreCase("on") || value.equals("켜기");
+    }
+
+    private static boolean disabledArgument(String value) {
+        return value.equalsIgnoreCase("off") || value.equals("끄기");
     }
 
     private void listLogs(Player player, int limit) {

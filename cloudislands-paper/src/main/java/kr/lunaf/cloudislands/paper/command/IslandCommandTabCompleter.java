@@ -192,8 +192,11 @@ final class IslandCommandTabCompleter implements TabCompleter {
         if (args.length == 3 && (args[0].equalsIgnoreCase("toggle") || args[0].equals("토글")) && (args[1].equalsIgnoreCase("border") || args[1].equalsIgnoreCase("border-visible") || args[1].equalsIgnoreCase("blocks") || args[1].equalsIgnoreCase("stacked-blocks") || args[1].equals("경계") || args[1].equals("경계표시") || args[1].equals("블록") || args[1].equals("스택블록"))) {
             return literalMatches(List.of("true", "false", "on", "off", "show", "hide", "켜기", "끄기", "표시", "숨김"), args[2]);
         }
-        if (args.length == 2 && (args[0].equalsIgnoreCase("teamchat") || args[0].equalsIgnoreCase("team-chat") || args[0].equals("팀채팅"))) {
-            return literalMatches(List.of("toggle", "mode", "on", "off", "전환", "모드"), args[1]);
+        if (args.length == 2 && (args[0].equalsIgnoreCase("teamchat") || args[0].equalsIgnoreCase("team-chat")
+            || args[0].equalsIgnoreCase("teamchat-toggle") || args[0].equalsIgnoreCase("tc") || args[0].equals("팀채팅")
+            || args[0].equalsIgnoreCase("localchat") || args[0].equalsIgnoreCase("local-chat")
+            || args[0].equalsIgnoreCase("lc") || args[0].equals("로컬채팅"))) {
+            return literalMatches(List.of("toggle", "mode", "on", "off", "전환", "모드", "켜기", "끄기"), args[1]);
         }
         if (args.length == 2 && (args[0].equalsIgnoreCase("border-color") || args[0].equalsIgnoreCase("경계색상"))) {
             return literalMatches(List.of("blue", "green", "red", "파랑", "초록", "빨강"), args[1]);

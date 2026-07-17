@@ -121,7 +121,7 @@ class IslandCommandCatalogTest {
         assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 toggle border"), "SS2-style toggle border help must be advertised");
         assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 toggle blocks"), "SS2-style toggle blocks help must be advertised");
         assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 teamchat toggle"), "Team chat toggle-mode help must be advertised");
-        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 localchat [message]"), "Local chat mode and direct message help must be advertised");
+        assertTrue(IslandCommandCatalog.HELP_COMMANDS.contains("섬 localchat <message|on|off|toggle>"), "Local chat mode and direct message help must be advertised");
         assertEquals(IslandCommandPermission.ENVIRONMENT, IslandCommandPermission.fromSubcommand("toggle"), "toggle must use the environment permission policy");
         assertEquals(IslandCommandPermission.ENVIRONMENT, IslandCommandPermission.fromSubcommand("toggleblocks"), "toggleblocks must use the environment permission policy");
         assertEquals(IslandCommandPermission.CHAT, IslandCommandPermission.fromSubcommand("teamchat-toggle"), "teamchat toggle must use the chat permission policy");
@@ -135,8 +135,11 @@ class IslandCommandCatalogTest {
         assertTrue(environmentHandler.contains("deliverPersonalBorderVisibility(playerSession, revision, profile)"), "Core profile callbacks must retain the initiating connection and request revision");
         assertTrue(environmentHandler.contains("PaperSchedulers.run(plugin, () ->"), "Core profile callbacks must return to the Paper scheduler before applying a border");
         assertTrue(environmentHandler.contains("setPersonalBorderColor(player, mode)"), "official /is border <red|green|blue> must update the personal border color");
-        assertTrue(chatHandler.contains("isTeamChatToggle(args[1])"), "teamchat toggle mode must be handled before message dispatch");
+        assertTrue(chatHandler.contains("isChatModeArgument(args[1])"), "teamchat and localchat mode arguments must be handled before message dispatch");
         assertTrue(chatHandler.contains("teamChatModes.toggleIsland(player.getUniqueId())"), "localchat without a message must toggle island-local mode");
+        assertTrue(chatHandler.contains("teamChatModes.setIsland(playerUuid, true)"), "localchat on must deterministically enable island-local mode");
+        assertTrue(chatHandler.contains("teamChatModes.setIsland(playerUuid, false)"), "localchat off must deterministically disable island-local mode");
+        assertTrue(completer.contains("args[0].equalsIgnoreCase(\"localchat\")"), "localchat mode arguments must be tab-completable");
         assertTrue(completer.contains("List.of(\"border\", \"border-visible\", \"blocks\", \"stacked-blocks\", \"경계\", \"경계표시\", \"블록\", \"스택블록\")"), "toggle completions must expose SS2-style border and blocks targets");
     }
 

@@ -922,6 +922,9 @@ class IslandCommandControllerPolicyTest {
         String listener = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/session/PaperChatListener.java"));
 
         assertTrue(handler.contains("teamChatModes.toggleIsland(player.getUniqueId())"));
+        assertTrue(handler.contains("teamChatModes.setIsland(playerUuid, true)"), "explicit localchat on must enable island-local mode instead of sending an on message");
+        assertTrue(handler.contains("teamChatModes.setIsland(playerUuid, false)"), "explicit localchat off must disable island-local mode instead of sending an off message");
+        assertTrue(handler.contains("if (isChatModeArgument(args[1]))"), "localchat mode arguments must be parsed before direct message dispatch");
         assertTrue(listener.contains("teamChatModes.islandEnabled(event.getPlayer().getUniqueId())"));
         assertTrue(listener.contains("runIfStillOnline(event.getPlayer(), activePlayer -> sendLocalChat(activePlayer, message))"), "async local chat must re-resolve the same online player before location access");
         assertTrue(listener.contains("communicationCommands().sendChat(islandId, playerUuid, \"ISLAND\""));
