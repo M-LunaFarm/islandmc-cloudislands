@@ -74,6 +74,7 @@ import kr.lunaf.cloudislands.paper.cache.LocalCacheManager;
 import kr.lunaf.cloudislands.paper.CloudIslandsPaperPlugin;
 import kr.lunaf.cloudislands.paper.PlayerConnectionSession;
 import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfigReloadResult;
+import kr.lunaf.cloudislands.paper.gui.AdminAddonMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminAuditMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminDashboardMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminEventMenu;
@@ -141,6 +142,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         "island.visit",
         "island.chat",
         "island.my-islands",
+        "admin.addons",
         "admin.audit",
         "admin.dashboard",
         "admin.events",
@@ -627,6 +629,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
+            if (sender instanceof Player player) {
+                AdminAddonMenu.open(agent.plugin(), api.addons(), player, messagesFor(player));
+                return true;
+            }
             run(sender, "Addons list", api.addons().list().thenApply(this::addonListMessage));
             return true;
         }
@@ -2828,6 +2834,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "island.visit" -> IslandVisitMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "island.chat" -> IslandChatMenu.open(target, targetMessages);
             case "island.my-islands" -> IslandMyIslandsMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
+            case "admin.addons" -> openAdminAddonMenu(target, targetMessages);
             case "admin.audit" -> AdminAuditMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.dashboard" -> AdminDashboardMenu.open(target, targetMessages);
             case "admin.events" -> AdminEventMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
@@ -2841,6 +2848,13 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "admin.migration" -> AdminMigrationMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             default -> throw new IllegalArgumentException("Unsupported menu id: " + menuId);
         }
+    }
+
+    private void openAdminAddonMenu(Player target, MessageRenderer messages) {
+        CloudIslandsProvider.get().ifPresentOrElse(
+            api -> AdminAddonMenu.open(agent.plugin(), api.addons(), target, messages),
+            () -> target.sendMessage(adminText("admin-command-addons-api-missing", "CloudIslands API가 준비되지 않았습니다."))
+        );
     }
 
     private String normalizeMenuId(String value) {

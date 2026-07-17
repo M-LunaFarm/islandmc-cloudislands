@@ -1,0 +1,53 @@
+id: admin.addons
+rows: 6
+title-key: admin-addon-menu-title
+layout:
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "____E____"
+  - "P..R.B..N"
+items:
+  _:
+    material: JIGSAW
+    name-key: admin-addon-menu-entry-name
+    fallback-name: Addon
+    action: entry
+  A:
+    material: LIME_DYE
+    name-key: admin-addon-menu-enabled
+    fallback-name: 활성
+  D:
+    material: GRAY_DYE
+    name-key: admin-addon-menu-disabled
+    fallback-name: 비활성
+  E:
+    material: LIGHT_GRAY_DYE
+    name-key: admin-addon-menu-empty-name
+    fallback-name: 등록된 Addon이 없습니다
+  P:
+    material: ARROW
+    name-key: admin-addon-menu-previous-name
+    fallback-name: 이전 페이지
+    action: page
+  R:
+    material: CLOCK
+    name-key: admin-addon-menu-refresh-name
+    fallback-name: 새로고침
+    action: refresh
+  B:
+    material: COMMAND_BLOCK
+    name-key: admin-addon-menu-dashboard-name
+    fallback-name: 운영 대시보드로 돌아가기
+    action: dashboard
+  N:
+    material: ARROW
+    name-key: admin-addon-menu-next-name
+    fallback-name: 다음 페이지
+    action: page
+actions:
+  entry: admin.addons.toggle.prepare
+  page: admin.addons.page
+  refresh: admin.addons.page
+  dashboard: admin.dashboard.open

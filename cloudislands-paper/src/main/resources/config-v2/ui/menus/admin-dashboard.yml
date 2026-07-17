@@ -5,7 +5,7 @@ layout:
   - "........."
   - ".N.J.R.S."
   - ".E.A.M.V."
-  - "...GT...."
+  - "..DGT...."
   - "...B.X..."
 items:
   N:
@@ -80,6 +80,15 @@ items:
     fallback-lore:
       - "신고된 후기 검토와 처리"
     action: reviews
+  D:
+    material: JIGSAW
+    name-key: admin-dashboard-menu-addons-name
+    fallback-name: Addon 관리
+    lore-keys:
+      - admin-dashboard-menu-addons-lore
+    fallback-lore:
+      - "등록 Addon 상태와 기능 가용성"
+    action: addons
   G:
     material: STRUCTURE_BLOCK
     name-key: admin-dashboard-menu-migration-name
@@ -109,6 +118,7 @@ items:
     fallback-name: 닫기
     action: close
 actions:
+  addons: admin.addons.open
   nodes: admin.node.list
   jobs: admin.jobs.open
   routes: admin.route.open

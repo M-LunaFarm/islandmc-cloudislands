@@ -12,6 +12,7 @@ import org.bukkit.inventory.Inventory;
 public final class AdminDashboardMenu implements Listener {
     private static final String TITLE = "CloudIslands 운영 대시보드";
     private static final Map<String, String> ACTION_PERMISSIONS = Map.ofEntries(
+        Map.entry("admin.addons.open", "cloudislands.admin.addons"),
         Map.entry("admin.node.list", "cloudislands.admin.node"),
         Map.entry("admin.jobs.open", "cloudislands.admin.jobs"),
         Map.entry("admin.route.open", "cloudislands.admin.route"),
@@ -26,6 +27,7 @@ public final class AdminDashboardMenu implements Listener {
     private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
         "config-v2/ui/menus/admin-dashboard.yml",
         new GuiMenuDefinition("admin.dashboard", 5, "admin-dashboard-menu-title", Map.ofEntries(
+            Map.entry("addons", "admin.addons.open"),
             Map.entry("nodes", "admin.node.list"),
             Map.entry("jobs", "admin.jobs.open"),
             Map.entry("routes", "admin.route.open"),

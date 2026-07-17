@@ -13,6 +13,10 @@ public final class GuiActionParser {
     private static final Set<String> REGISTERED_ACTIONS = Set.of(
         "admin.audit.open",
         "admin.audit.page",
+        "admin.addons.open",
+        "admin.addons.page",
+        "admin.addons.toggle.confirm",
+        "admin.addons.toggle.prepare",
         "admin.dashboard.open",
         "admin.island.migrate.prompt",
         "admin.island.where.prompt",
@@ -273,6 +277,18 @@ public final class GuiActionParser {
                     safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
+            if (safeAction.equals("admin.addons.toggle.prepare")
+                || safeAction.equals(ConfirmationTokenPolicy.ADMIN_ADDON_TOGGLE_CONFIRM_ACTION)) {
+                return Optional.of(new GuiAction.AdminAddonToggle(
+                    safeAction.equals(ConfirmationTokenPolicy.ADMIN_ADDON_TOGGLE_CONFIRM_ACTION)
+                        ? GuiAction.AdminAddonToggleType.CONFIRM
+                        : GuiAction.AdminAddonToggleType.PREPARE,
+                    required(safeData, "addonId"),
+                    bool(required(safeData, "enable")),
+                    nonNegativeInteger(safeData.getOrDefault("page", "0")),
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
+                ));
+            }
             if (safeAction.equals("admin.templates.toggle.prepare")
                 || safeAction.equals(ConfirmationTokenPolicy.ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION)) {
                 return Optional.of(new GuiAction.AdminTemplateToggle(
@@ -302,6 +318,8 @@ public final class GuiActionParser {
             return switch (safeAction) {
                 case "gui.close" -> Optional.of(new GuiAction.Close());
                 case "admin.dashboard.open" -> Optional.of(new GuiAction.AdminMenuAction(GuiAction.AdminMenuActionType.DASHBOARD_OPEN));
+                case "admin.addons.open" -> Optional.of(new GuiAction.AdminAddonPage(0));
+                case "admin.addons.page" -> Optional.of(new GuiAction.AdminAddonPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.audit.open" -> Optional.of(new GuiAction.AdminAuditPage(0));
                 case "admin.audit.page" -> Optional.of(new GuiAction.AdminAuditPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.events.open" -> Optional.of(new GuiAction.AdminEventPage(0));

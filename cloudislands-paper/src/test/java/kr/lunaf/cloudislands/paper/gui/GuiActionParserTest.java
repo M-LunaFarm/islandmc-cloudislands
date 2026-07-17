@@ -202,6 +202,31 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesAdminAddonNavigationAndConfirmedToggleIntoTypedActions() {
+        GuiAction open = GuiActionParser.parse("admin.addons.open", Map.of()).orElseThrow();
+        GuiAction page = GuiActionParser.parse("admin.addons.page", Map.of("page", "2")).orElseThrow();
+        GuiAction prepare = GuiActionParser.parse("admin.addons.toggle.prepare", Map.of(
+            "addonId", " machines ", "enable", "false", "page", "2"
+        )).orElseThrow();
+        String confirmAction = ConfirmationTokenPolicy.ADMIN_ADDON_TOGGLE_CONFIRM_ACTION;
+        GuiAction confirm = GuiActionParser.parse(confirmAction, ConfirmationTokenPolicy.withToken(confirmAction, Map.of(
+            "addonId", "machines", "enable", "false", "page", "2"
+        ))).orElseThrow();
+
+        assertTrue(open instanceof GuiAction.AdminAddonPage);
+        assertEquals(Map.of("page", "0"), open.data());
+        assertTrue(page instanceof GuiAction.AdminAddonPage);
+        assertEquals(Map.of("page", "2"), page.data());
+        assertTrue(prepare instanceof GuiAction.AdminAddonToggle);
+        assertEquals(GuiAction.AdminAddonToggleType.PREPARE, ((GuiAction.AdminAddonToggle) prepare).type());
+        assertEquals("machines", prepare.data().get("addonId"));
+        assertTrue(confirm instanceof GuiAction.AdminAddonToggle);
+        assertEquals(GuiAction.AdminAddonToggleType.CONFIRM, ((GuiAction.AdminAddonToggle) confirm).type());
+        assertTrue(ConfirmationTokenPolicy.confirmed(confirm, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(confirm, GuiClick.RIGHT));
+    }
+
+    @Test
     void parsesAdminTemplateNavigationAndConfirmedToggleIntoTypedActions() {
         GuiAction open = GuiActionParser.parse("admin.templates.open", Map.of()).orElseThrow();
         GuiAction page = GuiActionParser.parse("admin.templates.page", Map.of("page", "3")).orElseThrow();
@@ -705,6 +730,14 @@ class GuiActionParserTest {
                 ConfirmationTokenPolicy.token(actionId)
             );
             case "admin.audit.page" -> Map.of("page", "0");
+            case "admin.addons.page" -> Map.of("page", "0");
+            case "admin.addons.toggle.prepare" -> Map.of(
+                "addonId", "machines", "enable", "true", "page", "0"
+            );
+            case "admin.addons.toggle.confirm" -> Map.of(
+                "addonId", "machines", "enable", "false", "page", "0",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
             case "admin.events.page" -> Map.of("page", "0");
             case "admin.metrics.page" -> Map.of("page", "0");
             case "admin.storage.page" -> Map.of("page", "0");

@@ -1251,6 +1251,25 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void playerAddonCommandOpensLiveManagerWhileConsoleKeepsTextOutput() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminAddonMenu.java"));
+        String dashboard = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/admin-dashboard.yml"));
+
+        assertTrue(source.contains("AdminAddonMenu.open(agent.plugin(), api.addons(), player, messagesFor(player))"),
+            "player addon list command must open the live manager");
+        assertTrue(source.contains("run(sender, \"Addons list\", api.addons().list().thenApply(this::addonListMessage))"),
+            "console addon list output must remain available");
+        assertTrue(source.contains("case \"admin.addons\" -> openAdminAddonMenu(target, targetMessages)"),
+            "admin openmenu must expose the live addon manager");
+        assertTrue(menu.contains("service.list()"), "addon manager must load the typed addon registry");
+        assertTrue(menu.contains("GuiSessions.runIfCurrent(plugin, player, session"),
+            "addon list responses must retain the initiating player connection");
+        assertTrue(dashboard.contains("addons: admin.addons.open"),
+            "operations dashboard must link to addon management");
+    }
+
+    @Test
     void adminCoreConfigUsesTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
 

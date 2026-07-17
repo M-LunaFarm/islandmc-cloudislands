@@ -1264,6 +1264,12 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminStoragePage"), "storage paging must use a typed action");
         assertTrue(adminHandler.contains("AdminStorageMenu.open(plugin, coreApiClient, player"), "storage GUI actions must open live typed status");
         assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.storage\")"), "storage GUI clicks must recheck storage permission");
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminAddonPage"), "addon paging must use a typed action");
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminAddonToggle"), "addon state changes must use a typed action");
+        assertTrue(adminHandler.contains("ConfirmationTokenPolicy.ADMIN_ADDON_TOGGLE_CONFIRM_ACTION"), "addon state changes must require a confirmation token");
+        assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.addons.mutate\")"), "addon mutations must reserve a GUI session");
+        assertTrue(adminHandler.contains("api.addons().setEnabled(toggle.addonId(), toggle.enable())"), "addon state changes must use the typed addon API");
+        assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.addons\")"), "addon GUI clicks must recheck addon permission");
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminTemplatePage"), "template paging must use a typed action");
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminTemplateToggle"), "template state changes must use a typed action");
         assertTrue(adminHandler.contains("ConfirmationTokenPolicy.ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION"), "template state changes must require a confirmation token");

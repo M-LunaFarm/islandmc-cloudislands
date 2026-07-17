@@ -9,6 +9,7 @@ class AdminDashboardMenuTest {
     @Test
     void everyOperationalButtonHasItsNarrowPermission() {
         Map<String, String> expected = Map.ofEntries(
+            Map.entry("admin.addons.open", "cloudislands.admin.addons"),
             Map.entry("admin.node.list", "cloudislands.admin.node"),
             Map.entry("admin.jobs.open", "cloudislands.admin.jobs"),
             Map.entry("admin.route.open", "cloudislands.admin.route"),
