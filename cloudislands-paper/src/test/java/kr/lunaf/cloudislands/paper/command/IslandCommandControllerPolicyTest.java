@@ -532,8 +532,11 @@ class IslandCommandControllerPolicyTest {
         assertTrue(chatLogHandler.contains("IslandCommunicationUseCase"));
         assertTrue(chatLogHandler.contains("communicationUseCase.sendChatAction"));
         assertTrue(chatLogHandler.contains("communicationUseCase.logViews"));
-        assertTrue(chatLogHandler.contains("PaperOnlinePlayer.run(plugin, playerUuid"), "chat and log callbacks must use the shared online-player delivery boundary");
-        assertTrue(chatLogHandler.contains("sendChatAction(islandId, playerUuid"), "chat sends must retain immutable sender identity");
+        assertTrue(chatLogHandler.contains("PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player)"), "chat and log callbacks must retain the exact initiating connection");
+        assertTrue(chatLogHandler.contains("PaperOnlinePlayer.run(plugin, playerSession.playerUuid()"), "chat and log callbacks must use the shared online-player delivery boundary");
+        assertTrue(chatLogHandler.contains("playerSession.isCurrent(activePlayer)"), "chat and log feedback must reject a same-UUID replacement connection");
+        assertTrue(chatLogHandler.contains("sendChatAction(islandId, playerSession.playerUuid()"), "chat sends must retain immutable sender identity");
+        assertFalse(chatLogHandler.contains("private void deliverMessage(UUID playerUuid"), "UUID-only chat feedback must not survive a reconnect");
         assertFalse(chatLogHandler.contains("thenAccept(result -> {\n                    if (!result.accepted()) {\n                        runtime.message(player"), "chat callbacks must not message a captured Player");
         assertFalse(chatLogHandler.contains("thenAccept(logs -> runtime.message(player"), "log callbacks must not message a captured Player");
         assertFalse(chatLogHandler.contains("coreApiClient.sendIslandChat"));
