@@ -341,6 +341,7 @@ public final class PaperRuntimeConfigLoader {
         if (source.contains("core-api.timeout.request")) {
             target.set("core-api.timeout-ms", durationMillis(source.getString("core-api.timeout.request", "3s")));
         }
+        setIfPresent(source, target, "redis.enabled", "redis.enabled");
         setIfPresent(source, target, "redis.uri", "redis.uri");
         setIfPresent(source, target, "storage.type", "setup.storage.type");
         setIfPresent(source, target, "storage.endpoint", "setup.storage.endpoint");
@@ -544,8 +545,9 @@ public final class PaperRuntimeConfigLoader {
     }
 
     private static PaperRuntimeConfig.Redis redis(FileConfiguration config, Function<String, String> resolver) {
+        boolean enabled = booleanValue(config, "redis.enabled", true);
         return new PaperRuntimeConfig.Redis(
-            resolver.apply(string(config, "redis.uri", "redis://redis.internal:6379")),
+            enabled ? resolver.apply(string(config, "redis.uri", "redis://redis.internal:6379")) : "",
             setupString(config, resolver, "setup.redis.password", ""),
             Duration.ofMillis(Math.max(1L, config.getLong("redis.timeout-ms", 1000L)))
         );

@@ -53,6 +53,8 @@ class PaperRuntimeConfigLoaderTest {
         assertTrue(loader.contains("\"capacity.max-active-islands\", \"node.max-active-islands\""), "Config v2 capacity must feed runtime node capacity");
         assertTrue(loader.contains("\"core-api.base-url\", \"setup.core-api.base-url\""), "Config v2 Core API endpoint must feed setup-owned runtime Core API config");
         assertTrue(loader.contains("\"redis.uri\", \"redis.uri\""), "Config v2 Redis URI must feed runtime Redis config");
+        assertTrue(loader.contains("\"redis.enabled\", \"redis.enabled\""), "Config v2 must preserve the Redis enable switch");
+        assertTrue(loader.contains("enabled ? resolver.apply") && loader.contains(": \"\""), "Disabled Redis must not fall back to the production default URI");
         assertTrue(loader.contains("\"redis.password\", \"setup.redis.password\""), "Config v2 Redis password secret must feed runtime Redis authentication");
         assertTrue(loader.contains("\"storage.type\", \"setup.storage.type\""), "Config v2 storage type must feed setup-owned runtime storage config");
         assertTrue(loader.contains("\"storage.local-path\", \"setup.storage.local-path\""), "Config v2 local storage path must feed single-Paper storage config");

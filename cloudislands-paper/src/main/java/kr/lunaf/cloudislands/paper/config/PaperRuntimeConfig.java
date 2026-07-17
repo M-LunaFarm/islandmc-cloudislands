@@ -125,7 +125,7 @@ public record PaperRuntimeConfig(
 
     public record Redis(String uri, String password, Duration timeout) {
         public Redis {
-            uri = blankDefault(uri, "redis://redis.internal:6379");
+            uri = uri == null ? "" : uri.trim();
             password = password == null ? "" : password;
             timeout = timeout == null || timeout.isZero() || timeout.isNegative() ? Duration.ofMillis(1000L) : timeout;
         }

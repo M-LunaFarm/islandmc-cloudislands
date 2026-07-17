@@ -10,9 +10,21 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import kr.lunaf.cloudislands.paper.config.PaperRuntimeConfig;
 import org.junit.jupiter.api.Test;
 
 class PaperRedisClientTest {
+    @Test
+    void blankUriKeepsRedisDisabledWithoutSyntheticFailures() {
+        PaperRuntimeConfig.Redis config = new PaperRuntimeConfig.Redis("", "", Duration.ofSeconds(1));
+        assertTrue(config.uri().isBlank());
+        try (PaperRedisClient client = PaperRedisClient.create(config.uri(), config.password(), config.timeout())) {
+            PaperRedisClient.PingResult result = client.ping();
+            assertFalse(result.available());
+            assertTrue(result.failuresTotal() == 0L);
+        }
+    }
+
     @Test
     void pingReturnsCachedObservationWithoutBlockingCaller() throws Exception {
         try (ServerSocket server = new ServerSocket(0)) {

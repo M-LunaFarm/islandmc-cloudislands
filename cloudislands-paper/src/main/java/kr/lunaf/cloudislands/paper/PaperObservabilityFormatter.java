@@ -23,6 +23,7 @@ final class PaperObservabilityFormatter {
     String healthJson(AgentRole role, String nodeId) {
         PaperRedisClient.PingResult redis = plugin.redisClient() == null ? PaperRedisClient.PingResult.disabled() : plugin.redisClient().ping();
         boolean directLocalRouting = config.routing().directLocalTeleport();
+        boolean redisEnabled = !config.redis().uri().isBlank();
         boolean forwardingRequired = !directLocalRouting && config.security().requireVelocityForwarding();
         boolean forwardingSecretConfigured = !config.security().forwardingSecret().isBlank();
         boolean routeSessionEnforced = !directLocalRouting && (config.security().enforceRouteSession() || config.security().requireRouteSession());
@@ -121,16 +122,17 @@ final class PaperObservabilityFormatter {
             + "\"storageUploadFailuresTotal\":" + (storage == null ? 0L : storage.uploadFailures()) + ","
             + "\"storageDownloadFailuresTotal\":" + (storage == null ? 0L : storage.downloadFailures()) + ","
             + "\"storageOperationFailuresTotal\":" + (storage == null ? 0L : storage.operationFailures()) + ","
+            + "\"redisEnabled\":" + redisEnabled + ","
             + "\"redisAvailable\":" + redis.available() + ","
             + "\"redisLatencySeconds\":" + redis.latencySeconds() + ","
             + "\"redisFailuresTotal\":" + redis.failuresTotal() + ","
-            + "\"backendAccessPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CONTRACT + "\","
-            + "\"velocityForwardingModePolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.MODERN_FORWARDING_POLICY + "\","
+            + "\"backendAccessPolicy\":\"" + (directLocalRouting ? "single-paper-direct-online-authentication" : kr.lunaf.cloudislands.common.security.BackendAccessPolicy.CONTRACT) + "\","
+            + "\"velocityForwardingModePolicy\":\"" + (directLocalRouting ? "not-required-for-single-paper-direct-local-routing" : kr.lunaf.cloudislands.common.security.BackendAccessPolicy.MODERN_FORWARDING_POLICY) + "\","
             + "\"velocityForwardingRequired\":" + forwardingRequired + ","
             + "\"forwardingSecretConfigured\":" + forwardingSecretConfigured + ","
-            + "\"forwardingSecretPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.FORWARDING_SECRET_POLICY + "\","
-            + "\"paperDirectAccessPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY + "\","
-            + "\"paperOnlineModePolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_ONLINE_MODE_POLICY + "\","
+            + "\"forwardingSecretPolicy\":\"" + (directLocalRouting ? "not-required-for-single-paper-direct-local-routing" : kr.lunaf.cloudislands.common.security.BackendAccessPolicy.FORWARDING_SECRET_POLICY) + "\","
+            + "\"paperDirectAccessPolicy\":\"" + (directLocalRouting ? "single-paper-direct-access-requires-paper-online-mode" : kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_DIRECT_ACCESS_POLICY) + "\","
+            + "\"paperOnlineModePolicy\":\"" + (directLocalRouting ? "online-mode-required-when-single-paper-is-public" : kr.lunaf.cloudislands.common.security.BackendAccessPolicy.PAPER_ONLINE_MODE_POLICY) + "\","
             + "\"backendFirewallPolicy\":\"" + kr.lunaf.cloudislands.common.security.BackendAccessPolicy.INFRASTRUCTURE_EXPOSURE_POLICY + "\","
             + "\"routeSessionEnforced\":" + routeSessionEnforced + ","
             + "\"routeTicketOneTimeConsume\":" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ONE_TIME_CONSUME + ","
@@ -138,10 +140,10 @@ final class PaperObservabilityFormatter {
             + "\"routeTicketTargetNodeRequired\":" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.TARGET_NODE_REQUIRED + ","
             + "\"routeTicketOneTimePolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ONE_TIME_POLICY + "\","
             + "\"routeTicketNoncePolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.NONCE_POLICY + "\","
-            + "\"routeTicketArrivalConsumePolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ARRIVAL_CONSUME_POLICY + "\","
-            + "\"routeTicketDirectAccessPolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.DIRECT_ACCESS_POLICY + "\","
+            + "\"routeTicketArrivalConsumePolicy\":\"" + (directLocalRouting ? "command-route-consumes-one-time-ticket-before-local-teleport" : kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.ARRIVAL_CONSUME_POLICY) + "\","
+            + "\"routeTicketDirectAccessPolicy\":\"" + (directLocalRouting ? "single-paper-direct-local-routing-does-not-use-proxy-route-sessions" : kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.DIRECT_ACCESS_POLICY) + "\","
             + "\"routeTicketReplayPolicy\":\"" + kr.lunaf.cloudislands.protocol.route.RouteTicketPolicy.REPLAY_POLICY + "\","
-            + "\"routeTicketConsumeSequence\":\"prelogin-session-check>playerjoin-session-consume>route-ticket-consume>teleport\","
+            + "\"routeTicketConsumeSequence\":\"" + (directLocalRouting ? "command>route-ticket-consume>local-teleport" : "prelogin-session-check>playerjoin-session-consume>route-ticket-consume>teleport") + "\","
             + "\"hideNodeNames\":" + hideNodeNames + ","
             + "\"playerTopologyPolicy\":\"logical-island-only\","
             + "\"playerNodeNamePolicy\":\"" + (hideNodeNames ? "hidden-from-player-routing-messages" : "visible-risk-admin-debug-only") + "\","
