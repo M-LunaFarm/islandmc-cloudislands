@@ -3,7 +3,10 @@ package kr.lunaf.cloudislands.paper.platform.world;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -19,6 +22,13 @@ import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
 import org.junit.jupiter.api.Test;
 
 class BukkitIslandWorldFlushTest {
+    @Test
+    void productionFlushWaitsForChunkRegionWrites() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/platform/world/BukkitIslandWorldFlush.java"));
+
+        assertTrue(source.contains("world.save(true);"), "snapshot export must wait for Paper to flush region files");
+    }
+
     @Test
     void shutdownOnGlobalThreadDrainsAsyncFlushWithoutDeadlockingPaper() throws Exception {
         AtomicBoolean primaryThread = new AtomicBoolean();

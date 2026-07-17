@@ -214,14 +214,15 @@ public final class RouteTicketConsumer {
             teleportSuccesses.incrementAndGet();
             hideLoading(playerSession, player);
             player.sendActionBar(arrivalComponent(player, ticket.action()));
-            kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new RouteTicketConsumedEvent(
+            RouteTicketConsumedEvent consumedEvent = new RouteTicketConsumedEvent(
                     ticket.ticketId(),
                     ticket.islandId(),
                     playerUuid,
                     ticket.action().name(),
                     ticket.targetNode(),
                     routeEventFields(ticket, target, payload)
-            ));
+            );
+            PaperSchedulers.runAsync(plugin, () -> kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(consumedEvent));
             if (ticket.action() == RouteAction.VISIT) {
                 kr.lunaf.cloudislands.paper.platform.event.PaperEvents.call(new IslandVisitEvent(ticket.islandId(), playerUuid, player, ticket.targetWorld(), placementSource));
             }

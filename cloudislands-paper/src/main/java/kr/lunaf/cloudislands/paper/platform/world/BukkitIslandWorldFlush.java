@@ -172,7 +172,7 @@ public final class BukkitIslandWorldFlush implements IslandWorldFlush {
             throw new IOException("active island world is not loaded: " + worldName);
         }
         try {
-            world.save();
+            world.save(true);
         } catch (RuntimeException error) {
             throw new IOException("Paper world save failed: " + worldName, error);
         }

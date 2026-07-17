@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.api.model.NodeState;
 import kr.lunaf.cloudislands.api.model.PermissionResult;
 import kr.lunaf.cloudislands.api.model.RoleId;
 import kr.lunaf.cloudislands.api.model.RouteTicket;
@@ -378,7 +379,7 @@ public final class PermissionEventPoller {
         String state = fields.getOrDefault("state", "");
         String operation = fields.getOrDefault("operation", "");
         if (type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && state.equals("DOWN")) {
-            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () -> moveAllPlayersToFallback(message("node-down-evacuate", "섬 서버 장애로 로비로 이동합니다. 사유: " + reason)));
+            evacuateIfNodeStillDown(targetNode, reason);
             return true;
         }
         if ((type.equals(CloudIslandEventType.NODE_STATE_CHANGED.name()) && state.equals("KICKALL")) || type.equals("NODE_KICKALL")) {
@@ -393,6 +394,20 @@ public final class PermissionEventPoller {
             return true;
         }
         return false;
+    }
+
+    private void evacuateIfNodeStillDown(String targetNode, String reason) {
+        client.adminNodes().nodeSnapshot(targetNode).thenAccept(snapshot -> {
+            if (snapshot.isEmpty() || snapshot.get().state() != NodeState.DOWN) {
+                return;
+            }
+            kr.lunaf.cloudislands.paper.platform.scheduler.PaperSchedulers.run(plugin, () ->
+                moveAllPlayersToFallback(message("node-down-evacuate", "섬 서버 장애로 로비로 이동합니다. 사유: " + reason))
+            );
+        }).exceptionally(error -> {
+            plugin.getLogger().warning("Failed to confirm DOWN state for node " + targetNode + ": " + error.getMessage());
+            return null;
+        });
     }
 
     private boolean handlesIslandChat(String type, Map<String, String> fields) {

@@ -47,6 +47,17 @@ class PermissionEventPollerThreadingPolicyTest {
     }
 
     @Test
+    void downEventsRequireCurrentCoreConfirmationBeforeEvacuation() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPoller.java"));
+        int lookup = source.indexOf("client.adminNodes().nodeSnapshot(targetNode)");
+        int confirmation = source.indexOf("snapshot.get().state() != NodeState.DOWN", lookup);
+        int evacuation = source.indexOf("moveAllPlayersToFallback", confirmation);
+
+        assertTrue(lookup >= 0 && confirmation > lookup && evacuation > confirmation,
+            "a delayed DOWN event must not evacuate players after the node has recovered");
+    }
+
+    @Test
     void migrationTicketCallbacksFenceTheInitiatingPlayerSessionOnGlobalThread() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/cache/PermissionEventPoller.java"));
         int create = source.indexOf("private void createMigrationReturnTicket");

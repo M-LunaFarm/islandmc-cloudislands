@@ -93,7 +93,10 @@ public final class VelocityRoutingController {
         this.eventCodec = eventCodec == null ? new CoreEventJsonCodec() : eventCodec;
         this.servers = new VelocityServerGateway(proxy, this.islandPool, hideNodeNames);
         this.fallbackService = new RouteFallbackService(proxy, fallbackServer, metrics, this::playerComponent);
-        this.nodeStateEvents = new CoreNodeStateEventHandler(nodeId -> fallbackService.moveNodePlayersToFallback(nodeId));
+        this.nodeStateEvents = new CoreNodeStateEventHandler(
+            nodeId -> coreApiClient.adminNodes().nodeSnapshot(nodeId).thenApply(snapshot -> snapshot.map(node -> node.state()).orElse(null)),
+            nodeId -> fallbackService.moveNodePlayersToFallback(nodeId)
+        );
         this.eventPoller = new CoreEventPoller(coreApiClient, this.eventCodec, this::handleCoreEvent, EVENT_BATCH_SIZE);
         RouteProgressPresenter progressPresenter = new RouteProgressPresenter(useActionBar, useBossBarLoading, this::playerComponent);
         RouteRequestGuard routeRequestGuard = new RouteRequestGuard(PLAYER_ROUTE_COOLDOWN_MILLIS);
