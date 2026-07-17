@@ -17,5 +17,7 @@ public interface NavigationCommandClient {
 
     CompletableFuture<ReviewActionView> setReview(UUID islandId, UUID reviewerUuid, int rating, String comment);
 
+    CompletableFuture<ReviewActionView> reportReview(UUID islandId, UUID reviewerUuid, UUID reporterUuid, String reason);
+
     CompletableFuture<ReviewActionView> deleteReview(UUID islandId, UUID reviewerUuid);
 }

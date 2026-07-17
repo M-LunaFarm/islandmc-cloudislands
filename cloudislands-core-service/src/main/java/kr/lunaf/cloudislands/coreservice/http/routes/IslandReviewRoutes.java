@@ -134,8 +134,16 @@ public final class IslandReviewRoutes implements RouteGroup {
         UUID reviewerUuid = JsonFields.uuid(body, "reviewerUuid", EMPTY_UUID);
         UUID reporterUuid = JsonFields.uuid(body, "reporterUuid", EMPTY_UUID);
         String reason = JsonFields.text(body, "reason", "");
+        if (reviewerUuid.equals(EMPTY_UUID)) {
+            CoreHttpResponses.write(exchange, 400, ApiResponses.error("REVIEWER_REQUIRED", "Reviewer UUID is required"));
+            return;
+        }
         if (reporterUuid.equals(EMPTY_UUID)) {
             CoreHttpResponses.write(exchange, 400, ApiResponses.error("REPORTER_REQUIRED", "Reporter UUID is required"));
+            return;
+        }
+        if (reviewerUuid.equals(reporterUuid)) {
+            CoreHttpResponses.write(exchange, 409, ApiResponses.error("REVIEW_SELF_REPORT_DENIED", "Players cannot report their own review"));
             return;
         }
         var moderation = reviews.report(islandId, reviewerUuid, reporterUuid, reason);

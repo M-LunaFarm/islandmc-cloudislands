@@ -143,6 +143,17 @@ public final class IslandNavigationUseCase {
             .thenApply(result -> new ReviewActionResult(result.accepted(), result.code()));
     }
 
+    public CompletableFuture<ReviewActionResult> reportReviewAction(UUID islandId, UUID reviewerUuid, UUID reporterUuid, String reason, IdempotentMutationRunner runner) {
+        if (islandId == null) {
+            throw new IllegalArgumentException("islandId is required");
+        }
+        requirePlayer(reviewerUuid);
+        requirePlayer(reporterUuid);
+        requireIdempotentRunner(runner);
+        return runner.mutateIdempotent("island.review.report", () -> navigationCommands.reportReview(islandId, reviewerUuid, reporterUuid, reason))
+            .thenApply(result -> new ReviewActionResult(result.accepted(), result.code(), result.moderationState(), result.reportCount()));
+    }
+
     private static PublicIslandView publicIslandView(CoreGuiViews.PublicIslandView view) {
         return new PublicIslandView(view.islandId(), view.ownerUuid(), view.name(), view.description(), view.level(), view.worth(), view.ownerName());
     }
@@ -225,9 +236,15 @@ public final class IslandNavigationUseCase {
         }
     }
 
-    public record ReviewActionResult(boolean accepted, String code) {
+    public record ReviewActionResult(boolean accepted, String code, String moderationState, int reportCount) {
+        public ReviewActionResult(boolean accepted, String code) {
+            this(accepted, code, "", 0);
+        }
+
         public ReviewActionResult {
             code = code == null ? "" : code;
+            moderationState = moderationState == null ? "" : moderationState;
+            reportCount = Math.max(0, reportCount);
         }
     }
 }

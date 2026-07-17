@@ -115,7 +115,8 @@ public final class JdbcSchemaBootstrap {
         "/db/migration/V85__player_border_color.sql",
         "/db/migration/V86__mission_kind_identity.sql",
         "/db/migration/V87__player_primary_island_selection_revision.sql",
-        "/db/migration/V88__player_preference_mutation_revisions.sql"
+        "/db/migration/V88__player_preference_mutation_revisions.sql",
+        "/db/migration/V89__review_report_deduplication.sql"
     };
     private static final String[] MYSQL_MIGRATIONS = {
         MYSQL_COMPATIBLE_SCHEMA_RESOURCE,
@@ -129,7 +130,8 @@ public final class JdbcSchemaBootstrap {
         "/db/mysql/V9__repair_player_island_fly_preference.sql",
         "/db/mysql/V10__mission_kind_identity.sql",
         "/db/mysql/V11__player_primary_island_selection_revision.sql",
-        "/db/mysql/V12__player_preference_mutation_revisions.sql"
+        "/db/mysql/V12__player_preference_mutation_revisions.sql",
+        "/db/mysql/V13__review_report_deduplication.sql"
     };
 
     private enum Dialect {

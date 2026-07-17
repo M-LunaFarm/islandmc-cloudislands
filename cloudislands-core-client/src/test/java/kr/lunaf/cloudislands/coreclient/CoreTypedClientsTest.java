@@ -1657,6 +1657,10 @@ class CoreTypedClientsTest {
                     calls.add("review:" + args[2] + ":" + args[3]);
                     yield CompletableFuture.completedFuture(new ReviewActionView(true, "REVIEW_SET"));
                 }
+                case "reportReview" -> {
+                    calls.add("report:" + args[1] + ":" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture(new ReviewActionView(true, "REVIEW_REPORTED", "REPORTED", 2));
+                }
                 default -> throw new UnsupportedOperationException(method.getName());
             }
         );
@@ -1667,10 +1671,52 @@ class CoreTypedClientsTest {
         assertEquals(ticket, client.createVisitTicketForOwner(reviewerUuid, ownerUuid).join());
         assertEquals(ticket, client.createRandomVisitTicket(reviewerUuid).join());
         ReviewActionView result = client.setReview(islandId, reviewerUuid, 5, "nice").join();
+        ReviewActionView reported = client.reportReview(islandId, reviewerUuid, ownerUuid, "spam").join();
 
         assertTrue(result.accepted());
         assertEquals("REVIEW_SET", result.code());
-        assertEquals(List.of("visit-id", "visit-name: spawn ", "visit-owner:" + ownerUuid, "visit-random", "review:5:nice"), calls);
+        assertEquals("REVIEW_REPORTED", reported.code());
+        assertEquals("REPORTED", reported.moderationState());
+        assertEquals(2, reported.reportCount());
+        assertEquals(List.of("visit-id", "visit-name: spawn ", "visit-owner:" + ownerUuid, "visit-random", "review:5:nice", "report:" + reviewerUuid + ":" + ownerUuid + ":spam"), calls);
+    }
+
+    @Test
+    void navigationCommandClientParsesReviewReportModeration() {
+        ReviewActionView result = JdkNavigationCommandClient.reviewReportActionResult("""
+            {"accepted":true,"moderation":{"moderationState":"REPORTED","reportCount":3}}
+            """);
+
+        assertTrue(result.accepted());
+        assertEquals("REVIEW_REPORTED", result.code());
+        assertEquals("REPORTED", result.moderationState());
+        assertEquals(3, result.reportCount());
+    }
+
+    @Test
+    void navigationCommandClientPostsTypedReviewReport() throws Exception {
+        UUID islandId = UUID.randomUUID();
+        UUID reviewerUuid = UUID.randomUUID();
+        UUID reporterUuid = UUID.randomUUID();
+        List<String> calls = new ArrayList<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        try {
+            server.createContext("/v1/islands/reviews/report", exchange -> respondMemberTest(exchange, calls, "report", "{\"accepted\":true,\"moderation\":{\"moderationState\":\"REPORTED\",\"reportCount\":1}}"));
+            server.start();
+            NavigationCommandClient client = new JdkCoreApiClient(
+                new URI("http://127.0.0.1:" + server.getAddress().getPort()),
+                "token",
+                Duration.ofSeconds(2)
+            ).navigationCommands();
+
+            ReviewActionView result = client.reportReview(islandId, reviewerUuid, reporterUuid, "spam").join();
+
+            assertEquals("REVIEW_REPORTED", result.code());
+            assertEquals(1, result.reportCount());
+            assertEquals(List.of("report:{\"islandId\":\"" + islandId + "\",\"reviewerUuid\":\"" + reviewerUuid + "\",\"reporterUuid\":\"" + reporterUuid + "\",\"reason\":\"spam\"}"), calls);
+        } finally {
+            server.stop(0);
+        }
     }
 
     @Test

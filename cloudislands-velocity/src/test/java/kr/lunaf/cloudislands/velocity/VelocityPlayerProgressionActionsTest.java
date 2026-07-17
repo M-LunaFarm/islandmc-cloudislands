@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.List;
 import kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView;
+import kr.lunaf.cloudislands.coreclient.ReviewActionView;
 import kr.lunaf.cloudislands.coreclient.ReviewView;
 import org.junit.jupiter.api.Test;
 
@@ -25,5 +26,13 @@ class VelocityPlayerProgressionActionsTest {
         ));
 
         assertEquals("방문 통계: total=3 unique=2 recent=VisitPlayer@now, 44444444@later", VelocityPlayerProgressionActions.visitorStatsMessage(stats));
+    }
+
+    @Test
+    void reviewReportMessageIncludesModerationCountAndState() {
+        assertEquals(
+            "후기 신고 접수: 누적 신고=2 상태=REPORTED",
+            VelocityPlayerProgressionActions.reviewReportMessage(new ReviewActionView(true, "REVIEW_REPORTED", "REPORTED", 2))
+        );
     }
 }

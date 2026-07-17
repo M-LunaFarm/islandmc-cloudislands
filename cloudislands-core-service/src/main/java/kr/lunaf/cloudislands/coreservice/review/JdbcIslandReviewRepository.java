@@ -113,15 +113,44 @@ public final class JdbcIslandReviewRepository implements IslandReviewRepository 
 
     @Override
     public Optional<IslandReviewModerationSnapshot> report(UUID islandId, UUID reviewerUuid, UUID reporterUuid, String reason) {
-        try (Connection connection = dataSource.getConnection();
-             PreparedStatement statement = connection.prepareStatement(reportSql(connection))) {
-            statement.setString(1, IslandReviewModerationSnapshot.normalizeText(reason, 180));
-            statement.setObject(2, islandId);
-            statement.setObject(3, reviewerUuid);
-            if (statement.executeUpdate() <= 0) {
-                return Optional.empty();
+        if (reporterUuid == null) {
+            throw new IllegalArgumentException("reporterUuid is required");
+        }
+        try (Connection connection = dataSource.getConnection()) {
+            connection.setAutoCommit(false);
+            try {
+                int inserted;
+                try (PreparedStatement statement = connection.prepareStatement(insertReportSql(connection))) {
+                    statement.setObject(1, reporterUuid);
+                    statement.setString(2, IslandReviewModerationSnapshot.normalizeText(reason, 180));
+                    statement.setObject(3, islandId);
+                    statement.setObject(4, reviewerUuid);
+                    inserted = statement.executeUpdate();
+                }
+                Optional<IslandReviewModerationSnapshot> current = moderation(connection, islandId, reviewerUuid);
+                if (current.isEmpty()) {
+                    connection.rollback();
+                    return Optional.empty();
+                }
+                if (inserted > 0) {
+                    try (PreparedStatement statement = connection.prepareStatement(reportSql(connection))) {
+                        statement.setString(1, IslandReviewModerationSnapshot.normalizeText(reason, 180));
+                        statement.setObject(2, islandId);
+                        statement.setObject(3, reviewerUuid);
+                        statement.executeUpdate();
+                    }
+                }
+                Optional<IslandReviewModerationSnapshot> result = moderation(connection, islandId, reviewerUuid);
+                connection.commit();
+                return result;
+            } catch (SQLException exception) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackFailure) {
+                    exception.addSuppressed(rollbackFailure);
+                }
+                throw exception;
             }
-            return moderation(connection, islandId, reviewerUuid);
         } catch (SQLException exception) {
             throw new IllegalStateException("failed to report island review", exception);
         }
@@ -175,6 +204,13 @@ public final class JdbcIslandReviewRepository implements IslandReviewRepository 
             return "UPDATE island_reviews SET report_count = report_count + 1, report_reason = ?, moderation_state = CASE WHEN moderation_state = 'HIDDEN' THEN 'HIDDEN' ELSE 'REPORTED' END, updated_at = CURRENT_TIMESTAMP(6) WHERE island_id = ? AND reviewer_uuid = ?";
         }
         return "UPDATE island_reviews SET report_count = report_count + 1, report_reason = ?, moderation_state = CASE WHEN moderation_state = 'HIDDEN' THEN 'HIDDEN' ELSE 'REPORTED' END, updated_at = now() WHERE island_id = ? AND reviewer_uuid = ?";
+    }
+
+    private String insertReportSql(Connection connection) throws SQLException {
+        if (mysqlLike(connection)) {
+            return "INSERT IGNORE INTO island_review_reports(island_id, reviewer_uuid, reporter_uuid, reason) SELECT island_id, reviewer_uuid, ?, ? FROM island_reviews WHERE island_id = ? AND reviewer_uuid = ?";
+        }
+        return "INSERT INTO island_review_reports(island_id, reviewer_uuid, reporter_uuid, reason) SELECT island_id, reviewer_uuid, ?, ? FROM island_reviews WHERE island_id = ? AND reviewer_uuid = ? ON CONFLICT (island_id, reviewer_uuid, reporter_uuid) DO NOTHING";
     }
 
     private String moderateSql(Connection connection) throws SQLException {

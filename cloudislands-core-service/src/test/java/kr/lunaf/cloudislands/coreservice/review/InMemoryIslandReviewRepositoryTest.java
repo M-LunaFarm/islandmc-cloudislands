@@ -18,9 +18,13 @@ class InMemoryIslandReviewRepositoryTest {
         reviews.upsert(ISLAND_ID, REVIEWER_ID, 5, "useful visit");
 
         var reported = reviews.report(ISLAND_ID, REVIEWER_ID, REPORTER_ID, "spam").orElseThrow();
+        var duplicate = reviews.report(ISLAND_ID, REVIEWER_ID, REPORTER_ID, "repeat").orElseThrow();
+        var secondReporter = reviews.report(ISLAND_ID, REVIEWER_ID, MODERATOR_ID, "also spam").orElseThrow();
 
         assertEquals("REPORTED", reported.moderationState());
         assertEquals(1, reported.reportCount());
+        assertEquals(1, duplicate.reportCount());
+        assertEquals(2, secondReporter.reportCount());
         assertEquals(1, reviews.list(ISLAND_ID, 10).size());
         assertEquals(1, reviews.topByRating(10).size());
         assertEquals(1, reviews.moderationQueue(10).size());

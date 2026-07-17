@@ -57,6 +57,7 @@ class IslandNavigationUseCaseTest {
         IslandNavigationUseCase useCase = new IslandNavigationUseCase(client(calls));
         UUID islandId = uuid("00000000-0000-0000-0000-000000000020");
         UUID reviewerUuid = uuid("00000000-0000-0000-0000-000000000001");
+        UUID reporterUuid = uuid("00000000-0000-0000-0000-000000000002");
 
         var publicIsland = useCase.publicIslandViews(500).join().getFirst();
         assertEquals("spawn", publicIsland.name());
@@ -65,6 +66,9 @@ class IslandNavigationUseCaseTest {
         assertEquals(1L, reviews.count());
         assertEquals("ReviewPlayer", reviews.reviews().getFirst().reviewerName());
         assertEquals(true, useCase.setReviewAction(islandId, reviewerUuid, 5, "nice", idempotentRunner(calls)).join().accepted());
+        var report = useCase.reportReviewAction(islandId, reviewerUuid, reporterUuid, "spam", idempotentRunner(calls)).join();
+        assertEquals(2, report.reportCount());
+        assertEquals("REPORTED", report.moderationState());
         assertEquals(true, useCase.deleteReviewAction(islandId, reviewerUuid, idempotentRunner(calls)).join().accepted());
 
         assertEquals(List.of(
@@ -72,6 +76,8 @@ class IslandNavigationUseCaseTest {
             "listIslandReviews:1",
             "audit-idempotent:island.review.set",
             "setIslandReview:5:nice",
+            "audit-idempotent:island.review.report",
+            "reportIslandReview:" + reviewerUuid + ":" + reporterUuid + ":spam",
             "audit-idempotent:island.review.delete",
             "deleteIslandReview"
         ), calls);
@@ -127,6 +133,10 @@ class IslandNavigationUseCaseTest {
                 case "deleteReview" -> {
                     calls.add("deleteIslandReview");
                     yield CompletableFuture.completedFuture(new ReviewActionView(true, "REVIEW_DELETED"));
+                }
+                case "reportReview" -> {
+                    calls.add("reportIslandReview:" + args[1] + ":" + args[2] + ":" + args[3]);
+                    yield CompletableFuture.completedFuture(new ReviewActionView(true, "REVIEW_REPORTED", "REPORTED", 2));
                 }
                 default -> throw new UnsupportedOperationException(method.getName());
             });

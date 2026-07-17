@@ -81,6 +81,14 @@ final class IslandVisitReviewCommandHandler {
             rateIslandReview(player, args[1], integer(args[2], 0), args.length > 3 ? joined(args, 3) : "");
             return true;
         }
+        if (subcommand.equals("report-review") || subcommand.equals("review-report") || subcommand.equals("reviewreport") || subcommand.equals("후기신고") || subcommand.equals("평가신고")) {
+            if (args.length < 3) {
+                runtime.message(player, message("input-review-report-required", "신고할 섬과 후기 작성자를 입력해주세요."));
+                return true;
+            }
+            reportIslandReview(player, args[1], args[2], args.length > 3 ? joined(args, 3) : "");
+            return true;
+        }
         if (subcommand.equals("delete-review") || subcommand.equals("review-delete") || subcommand.equals("reviewdel") || subcommand.equals("후기삭제") || subcommand.equals("평가삭제")) {
             deleteIslandReview(player, args.length > 1 ? args[1] : "current");
             return true;
@@ -258,6 +266,45 @@ final class IslandVisitReviewCommandHandler {
             })
             .exceptionally(error -> {
                 deliverMessage(playerSession, runtime.coreWriteFailureMessage(error, message("review-save-failed", "섬 평가를 저장하지 못했습니다.")));
+                return null;
+            });
+    }
+
+    private void reportIslandReview(Player player, String islandTarget, String reviewerTarget, String reason) {
+        PlayerConnectionSession playerSession = PlayerConnectionSession.capture(player);
+        if (islandTarget.equalsIgnoreCase("current") || islandTarget.equals("현재")) {
+            runtime.currentIsland(player, message("review-report-current-island-required", "섬 안에서만 현재 섬 후기를 신고할 수 있습니다."))
+                .ifPresent(islandId -> resolveAndSubmitReviewReport(playerSession, islandId, reviewerTarget, reason));
+            return;
+        }
+        targetResolver.resolve(islandTarget)
+            .thenAccept(islandId -> resolveAndSubmitReviewReport(playerSession, islandId, reviewerTarget, reason))
+            .exceptionally(error -> {
+                deliverMessage(playerSession, message("review-report-target-not-found", "신고할 섬 또는 후기 작성자를 찾지 못했습니다."));
+                return null;
+            });
+    }
+
+    private void resolveAndSubmitReviewReport(PlayerConnectionSession playerSession, UUID islandId, String reviewerTarget, String reason) {
+        targetResolver.resolvePlayerUuid(reviewerTarget)
+            .thenAccept(reviewerUuid -> submitReviewReport(playerSession, islandId, reviewerUuid, reason))
+            .exceptionally(error -> {
+                deliverMessage(playerSession, message("review-report-target-not-found", "신고할 섬 또는 후기 작성자를 찾지 못했습니다."));
+                return null;
+            });
+    }
+
+    private void submitReviewReport(PlayerConnectionSession playerSession, UUID islandId, UUID reviewerUuid, String reason) {
+        navigationUseCase.reportReviewAction(islandId, reviewerUuid, playerSession.playerUuid(), reason, runtime::mutateIdempotent)
+            .thenAccept(result -> {
+                if (!result.accepted()) {
+                    deliverMessage(playerSession, runtime.playerCodeMessage(result.code(), message("review-report-failed", "섬 후기를 신고하지 못했습니다.")));
+                    return;
+                }
+                deliverMessage(playerSession, message("review-report-success-prefix", "후기 신고 접수 완료: 누적 신고=") + result.reportCount());
+            })
+            .exceptionally(error -> {
+                deliverMessage(playerSession, runtime.coreWriteFailureMessage(error, message("review-report-failed", "섬 후기를 신고하지 못했습니다.")));
                 return null;
             });
     }

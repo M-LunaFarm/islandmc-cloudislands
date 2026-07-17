@@ -7,11 +7,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import kr.lunaf.cloudislands.api.model.CreateIslandResult;
 import kr.lunaf.cloudislands.api.model.IslandLocation;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailView;
 import kr.lunaf.cloudislands.coreclient.ProgressionBlockDetailsView;
+import kr.lunaf.cloudislands.coreclient.ReviewActionView;
 import kr.lunaf.cloudislands.coreclient.ReviewListView;
 import kr.lunaf.cloudislands.coreclient.ReviewView;
 import kr.lunaf.cloudislands.coreclient.WarehouseItemView;
@@ -127,6 +129,30 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
         })
             .exceptionally(error -> {
                 player.sendMessage(Component.text("평가를 삭제할 섬을 찾지 못했습니다."));
+                return null;
+            });
+    }
+
+    public void reportReview(Player player, String islandTarget, String reviewerTarget, String reason) {
+        CompletableFuture<UUID> island = islandTarget == null || islandTarget.isBlank() || islandTarget.equalsIgnoreCase("current")
+            ? resolvePlayerIsland(player)
+            : targetResolver.resolveIslandId(islandTarget);
+        island.thenCombine(targetResolver.resolvePlayerUuid(reviewerTarget), ReviewReportTarget::new)
+            .thenAccept(target -> {
+                if (target.islandId().equals(new UUID(0L, 0L)) || target.reviewerUuid().equals(new UUID(0L, 0L))) {
+                    player.sendMessage(Component.text("신고할 섬 또는 후기 작성자를 찾지 못했습니다."));
+                    return;
+                }
+                if (target.reviewerUuid().equals(player.getUniqueId())) {
+                    player.sendMessage(Component.text("자신이 작성한 후기는 신고할 수 없습니다."));
+                    return;
+                }
+                sendTextResult(player, coreApiClient.navigationCommands()
+                    .reportReview(target.islandId(), target.reviewerUuid(), player.getUniqueId(), reason)
+                    .thenApply(VelocityPlayerProgressionActions::reviewReportMessage), "섬 후기를 신고하지 못했습니다.");
+            })
+            .exceptionally(error -> {
+                player.sendMessage(Component.text("신고할 섬 또는 후기 작성자를 찾지 못했습니다."));
                 return null;
             });
     }
@@ -334,6 +360,11 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
         return review == null || review.reviewerName().isBlank() ? compactId(review == null ? "" : review.reviewerUuid()) : review.reviewerName().trim();
     }
 
+    static String reviewReportMessage(ReviewActionView result) {
+        return "후기 신고 접수: 누적 신고=" + result.reportCount()
+            + (result.moderationState().isBlank() ? "" : " 상태=" + result.moderationState());
+    }
+
     static String visitorStatsMessage(kr.lunaf.cloudislands.coreclient.IslandVisitorStatsView stats) {
         List<String> recent = stats.recentVisitors().stream()
             .limit(10)
@@ -356,4 +387,6 @@ public final class VelocityPlayerProgressionActions extends VelocityActionSuppor
         }
         return value.substring(0, 8);
     }
+
+    private record ReviewReportTarget(UUID islandId, UUID reviewerUuid) {}
 }

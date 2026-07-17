@@ -83,6 +83,9 @@ final class IslandCommandTabCompleter implements TabCompleter {
             if (first.equals("rate") || first.equals("review") || first.equals("평가")) {
                 return playerTargetMatches(sender, args[1], List.of("current", "현재"));
             }
+            if (first.equals("report-review") || first.equals("review-report") || first.equals("reviewreport") || first.equals("후기신고") || first.equals("평가신고")) {
+                return playerTargetMatches(sender, args[1], List.of("current", "현재"));
+            }
             if (first.equals("delete-review") || first.equals("review-delete") || first.equals("reviewdel") || first.equals("후기삭제") || first.equals("평가삭제")) {
                 return playerTargetMatches(sender, args[1], List.of("current", "현재"));
             }
@@ -170,6 +173,9 @@ final class IslandCommandTabCompleter implements TabCompleter {
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("rate") || args[0].equalsIgnoreCase("review") || args[0].equals("평가"))) {
             return literalMatches(List.of("5", "4", "3", "2", "1"), args[2]);
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("report-review") || args[0].equalsIgnoreCase("review-report") || args[0].equalsIgnoreCase("reviewreport") || args[0].equals("후기신고") || args[0].equals("평가신고"))) {
+            return onlinePlayerMatches(sender, args[2]);
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("role-upsert") || args[0].equalsIgnoreCase("role-edit") || args[0].equals("역할편집"))) {
             return literalMatches(List.of("1", "2", "3", "4", "5", "10"), args[2]);

@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import kr.lunaf.cloudislands.api.model.IslandReviewModerationSnapshot;
@@ -14,6 +15,7 @@ import kr.lunaf.cloudislands.api.model.IslandReviewSnapshot;
 public final class InMemoryIslandReviewRepository implements IslandReviewRepository {
     private final Map<UUID, Map<UUID, IslandReviewSnapshot>> reviews = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, IslandReviewModerationSnapshot>> moderation = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, Set<UUID>>> reporters = new ConcurrentHashMap<>();
 
     @Override
     public synchronized IslandReviewSnapshot upsert(UUID islandId, UUID reviewerUuid, int rating, String comment) {
@@ -69,6 +71,10 @@ public final class InMemoryIslandReviewRepository implements IslandReviewReposit
         if (islandModeration != null) {
             islandModeration.remove(reviewerUuid);
         }
+        Map<UUID, Set<UUID>> islandReporters = reporters.get(islandId);
+        if (islandReporters != null) {
+            islandReporters.remove(reviewerUuid);
+        }
         return removed;
     }
 
@@ -78,6 +84,12 @@ public final class InMemoryIslandReviewRepository implements IslandReviewReposit
             return Optional.empty();
         }
         IslandReviewModerationSnapshot current = moderation(islandId, reviewerUuid);
+        if (reporterUuid == null || !reporters
+                .computeIfAbsent(islandId, ignored -> new ConcurrentHashMap<>())
+                .computeIfAbsent(reviewerUuid, ignored -> ConcurrentHashMap.newKeySet())
+                .add(reporterUuid)) {
+            return Optional.of(current);
+        }
         String nextState = current.moderationState().equals("HIDDEN") ? "HIDDEN" : "REPORTED";
         IslandReviewModerationSnapshot next = new IslandReviewModerationSnapshot(
             islandId,

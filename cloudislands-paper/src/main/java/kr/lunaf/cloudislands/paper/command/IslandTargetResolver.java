@@ -28,6 +28,19 @@ final class IslandTargetResolver {
                 : client.navigation().playerProfileByName(query).thenApply(profile -> requiredUuid(profile == null ? "" : profile.primaryIslandId(), query)));
     }
 
+    CompletableFuture<UUID> resolvePlayerUuid(String target) {
+        UUID direct = uuid(target);
+        if (direct != null) {
+            return CompletableFuture.completedFuture(direct);
+        }
+        String query = target == null ? "" : target.trim();
+        if (query.isBlank()) {
+            return CompletableFuture.failedFuture(new IllegalArgumentException("player target is blank"));
+        }
+        return client.members().playerProfileByName(query)
+            .thenApply(profile -> requiredUuid(profile == null ? "" : profile.playerUuid(), query));
+    }
+
     private static UUID islandId(CoreGuiViews.IslandInfoView island) {
         return island == null ? null : uuid(island.islandId());
     }

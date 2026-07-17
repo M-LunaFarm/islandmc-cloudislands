@@ -301,6 +301,14 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             }
             return;
         }
+        if (args[0].equalsIgnoreCase("report-review") || args[0].equalsIgnoreCase("review-report") || args[0].equalsIgnoreCase("reviewreport") || args[0].equals("후기신고") || args[0].equals("평가신고")) {
+            if (args.length < 3) {
+                player.sendMessage(Component.text("사용법: /is report-review <island|current> <reviewer> [reason]"));
+            } else {
+                playerProgression.reportReview(player, args[1], args[2], joinArgs(args, 3));
+            }
+            return;
+        }
         if (args[0].equalsIgnoreCase("delete-review") || args[0].equalsIgnoreCase("review-delete") || args[0].equalsIgnoreCase("reviewdel") || args[0].equals("후기삭제") || args[0].equals("평가삭제")) {
             playerProgression.deleteReview(player, args.length > 1 ? args[1] : "current");
             return;

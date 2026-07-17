@@ -43,15 +43,15 @@ class JdbcSchemaBootstrapTest {
         assertEquals("mariadb-uses-mysql-compatible-core-schema-bootstrap", JdbcSchemaBootstrap.MARIADB_SCHEMA_POLICY);
         assertEquals("/db/mysql/V1__cloudislands_mysql_schema.sql", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_RESOURCE);
         assertEquals("mysql-v1", JdbcSchemaBootstrap.MYSQL_COMPATIBLE_SCHEMA_ID);
-        assertEquals("mysql-compatible-migration-chain:12", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
-        assertEquals("mysql-compatible-migration-chain:12", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
+        assertEquals("mysql-compatible-migration-chain:13", JdbcSchemaBootstrap.schemaResourceForProduct("MariaDB Server"));
+        assertEquals("mysql-compatible-migration-chain:13", JdbcSchemaBootstrap.schemaResourceForProduct("MySQL"));
         assertEquals("cloudislands:core-schema-bootstrap:v1", JdbcSchemaBootstrap.MYSQL_MIGRATION_LOCK_NAME);
         assertEquals(60, JdbcSchemaBootstrap.MIGRATION_LOCK_TIMEOUT_SECONDS);
     }
 
     @Test
     void exposesPostgresqlChainAndRejectsUnsupportedProducts() {
-        assertEquals("postgresql-migration-chain:88", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
+        assertEquals("postgresql-migration-chain:89", JdbcSchemaBootstrap.schemaResourceForProduct("PostgreSQL"));
         assertEquals("", JdbcSchemaBootstrap.schemaResourceForProduct("SQLite"));
         assertTrue(JdbcSchemaBootstrap.POSTGRESQL_MIGRATION_LOCK_KEY > 0L);
     }
@@ -183,6 +183,22 @@ class JdbcSchemaBootstrapTest {
                 assertTrue(migration.contains("CREATE TABLE IF NOT EXISTS player_preference_revisions"));
                 assertTrue(migration.contains("PRIMARY KEY (player_uuid, preference_key)"));
                 assertTrue(migration.contains("revision >= 0"));
+                assertTrue(migration.contains("ON DELETE CASCADE"));
+            }
+        }
+    }
+
+    @Test
+    void reviewReportDeduplicationShipsForPostgresqlAndMysql() throws IOException {
+        for (String resource : new String[]{
+            "/db/migration/V89__review_report_deduplication.sql",
+            "/db/mysql/V13__review_report_deduplication.sql"
+        }) {
+            try (var input = JdbcSchemaBootstrapTest.class.getResourceAsStream(resource)) {
+                assertTrue(input != null, "missing migration " + resource);
+                String migration = new String(input.readAllBytes(), StandardCharsets.UTF_8);
+                assertTrue(migration.contains("CREATE TABLE IF NOT EXISTS island_review_reports"));
+                assertTrue(migration.contains("PRIMARY KEY (island_id, reviewer_uuid, reporter_uuid)"));
                 assertTrue(migration.contains("ON DELETE CASCADE"));
             }
         }

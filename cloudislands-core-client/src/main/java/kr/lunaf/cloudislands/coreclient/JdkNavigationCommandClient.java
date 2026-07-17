@@ -71,9 +71,35 @@ public final class JdkNavigationCommandClient implements NavigationCommandClient
             .thenApply(JdkNavigationCommandClient::reviewActionResult);
     }
 
+    @Override
+    public CompletableFuture<ReviewActionView> reportReview(UUID islandId, UUID reviewerUuid, UUID reporterUuid, String reason) {
+        requireId(islandId, "islandId");
+        requireId(reviewerUuid, "reviewerUuid");
+        requireId(reporterUuid, "reporterUuid");
+        return core.postResultBody("/v1/islands/reviews/report", CoreJsonPayload.object(
+                "islandId", islandId,
+                "reviewerUuid", reviewerUuid,
+                "reporterUuid", reporterUuid,
+                "reason", reason == null ? "" : reason))
+            .thenApply(CoreResponseBody::value)
+            .thenApply(JdkNavigationCommandClient::reviewReportActionResult);
+    }
+
     static ReviewActionView reviewActionResult(String body) {
         Map<?, ?> root = CoreJson.object(body);
         return new ReviewActionView(CoreJson.accepted(root), CoreJson.text(root, "code"));
+    }
+
+    static ReviewActionView reviewReportActionResult(String body) {
+        Map<?, ?> root = CoreJson.object(body);
+        Map<?, ?> moderation = CoreJson.objectValue(root, "moderation");
+        long reportCount = Math.max(0L, CoreJson.number(moderation, "reportCount"));
+        return new ReviewActionView(
+            CoreJson.accepted(root),
+            CoreJson.code(root, "REVIEW_REPORTED"),
+            CoreJson.text(moderation, "moderationState"),
+            (int) Math.min(Integer.MAX_VALUE, reportCount)
+        );
     }
 
     private static void requireId(UUID id, String name) {

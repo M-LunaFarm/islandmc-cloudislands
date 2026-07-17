@@ -25,6 +25,10 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             if (first.equals("values") || first.equals("blocks") || first.equals("block-details") || first.equals("block-counts") || first.equals("ratings") || first.equals("reviews") || first.equals("review-list") || first.equals("블록상세") || first.equals("블록목록")) {
                 addLiteralSuggestions(matches, args[1], List.of("10", "25", "50", "100"));
             }
+            if (first.equals("report-review") || first.equals("review-report") || first.equals("reviewreport") || first.equals("후기신고") || first.equals("평가신고")) {
+                addLiteralSuggestions(matches, args[1], List.of("current", "현재"));
+                addOnlinePlayerSuggestions(matches, args[1]);
+            }
             if (first.equals("limits") || first.equals("limit") || first.equals("limit-list") || first.equals("setlimit") || first.equals("limit-set") || first.equals("제한") || first.equals("제한목록") || first.equals("제한설정")) {
                 addLiteralSuggestions(matches, args[1], List.of("HOPPER", "SPAWNER", "ENTITY", "REDSTONE"));
             }
@@ -61,6 +65,9 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
         }
         if (args.length == 3 && (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정")) && !isUuid(args[1])) {
             addLiteralSuggestions(matches, args[2], roleKeyExamples(false));
+        }
+        if (args.length == 3 && (args[0].equalsIgnoreCase("report-review") || args[0].equalsIgnoreCase("review-report") || args[0].equalsIgnoreCase("reviewreport") || args[0].equals("후기신고") || args[0].equals("평가신고"))) {
+            addOnlinePlayerSuggestions(matches, args[2]);
         }
         if (args.length == 4 && (args[0].equalsIgnoreCase("setrole") || args[0].equalsIgnoreCase("role-set") || args[0].equals("역할설정")) && isUuid(args[1])) {
             addLiteralSuggestions(matches, args[3], roleKeyExamples(false));
