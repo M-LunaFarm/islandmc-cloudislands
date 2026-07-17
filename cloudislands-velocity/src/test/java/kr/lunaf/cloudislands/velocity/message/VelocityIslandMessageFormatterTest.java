@@ -272,6 +272,22 @@ class VelocityIslandMessageFormatterTest {
         );
     }
 
+    @Test
+    void banListPrefersBannedPlayerName() {
+        assertEquals(
+            "섬 밴: 전체 1개 / Griefer 사유=spam",
+            formatter.banList(List.of(new CoreGuiViews.BanView(
+                "22222222-2222-2222-2222-222222222222",
+                "11111111-1111-1111-1111-111111111111",
+                "spam",
+                "",
+                "",
+                "Griefer",
+                "Moderator"
+            )))
+        );
+    }
+
     private static AdminIslandRuntimeView runtimeView() {
         return new AdminIslandRuntimeView(
             "33333333-3333-3333-3333-333333333333",

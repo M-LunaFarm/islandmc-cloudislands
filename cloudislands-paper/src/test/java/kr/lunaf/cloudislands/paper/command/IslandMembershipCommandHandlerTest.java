@@ -77,4 +77,17 @@ class IslandMembershipCommandHandlerTest {
         assertEquals("", IslandMembershipCommandHandler.inviteIslandDisplay(null));
         assertEquals("", IslandMembershipCommandHandler.inviteInviterDisplay(null));
     }
+
+    @Test
+    void banListsPreferProfileNamesAndFallBackToCompactUuids() {
+        String bannedUuid = "12345678-0000-0000-0000-000000000001";
+
+        assertEquals("Griefer", IslandMembershipCommandHandler.banDisplayName(
+            new CoreGuiViews.BanView(bannedUuid, "", "spam", "", "", " Griefer ", "")
+        ));
+        assertEquals("12345678", IslandMembershipCommandHandler.banDisplayName(
+            new CoreGuiViews.BanView(bannedUuid, "", "spam", "", "")
+        ));
+        assertEquals("", IslandMembershipCommandHandler.banDisplayName(null));
+    }
 }

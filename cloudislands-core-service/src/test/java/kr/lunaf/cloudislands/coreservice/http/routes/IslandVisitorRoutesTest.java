@@ -337,6 +337,14 @@ class IslandVisitorRoutesTest {
         assertEquals("bad \"visit\"", SimpleJson.text(listedBan.get("reason")));
         assertEquals("2026-01-02T03:04:05Z", SimpleJson.text(listedBan.get("createdAt")));
         assertEquals(null, listedBan.get("expiresAt"));
+
+        InMemoryPlayerProfileRepository profiles = new InMemoryPlayerProfileRepository();
+        profiles.touch(bannedUuid, "Griefer");
+        profiles.touch(actorUuid, "Moderator");
+        Map<?, ?> namedBody = SimpleJson.object(SimpleJson.parse(IslandVisitorRoutes.bansJson(List.of(ban), profiles)));
+        Map<?, ?> namedBan = SimpleJson.object(SimpleJson.list(namedBody.get("bans")).get(0));
+        assertEquals("Griefer", namedBan.get("bannedName"));
+        assertEquals("Moderator", namedBan.get("actorName"));
     }
 
     private static void assertInvite(UUID inviteId, UUID islandId, UUID inviterUuid, UUID targetUuid, Map<?, ?> invite) {

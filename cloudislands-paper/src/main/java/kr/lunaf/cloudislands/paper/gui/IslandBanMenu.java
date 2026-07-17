@@ -103,8 +103,8 @@ public final class IslandBanMenu implements Listener {
             return;
         }
         player.sendMessage(message(messages, "ban-menu-detail-title", "방문자 밴 상세"));
-        player.sendMessage("- " + message(messages, "ban-menu-player", "대상: ") + shortUuid(bannedUuid));
-        player.sendMessage("- " + message(messages, "ban-menu-actor", "처리자: ") + shortUuid(data.getOrDefault("actorUuid", "")));
+        player.sendMessage("- " + message(messages, "ban-menu-player", "대상: ") + displayName(data.get("bannedName"), bannedUuid));
+        player.sendMessage("- " + message(messages, "ban-menu-actor", "처리자: ") + displayName(data.get("actorName"), data.getOrDefault("actorUuid", "")));
         player.sendMessage("- " + message(messages, "ban-menu-reason", "사유: ") + fallback(data.get("reason"), message(messages, "ban-menu-none", "없음")));
         player.sendMessage("- " + message(messages, "ban-menu-created-at", "생성 시각: ") + fallback(data.get("createdAt"), message(messages, "ban-menu-no-created-info", "생성 정보 없음")));
         player.sendMessage("- " + message(messages, "ban-menu-expires-at", "만료 시각: ") + fallback(data.get("expiresAt"), message(messages, "ban-menu-no-expire", "만료 없음")));
@@ -137,15 +137,17 @@ public final class IslandBanMenu implements Listener {
     }
 
     private static ItemStack banItem(BanView ban, MessageRenderer messages) {
-        return GuiItems.action(GuiMenuRenderer.material(MENU, "_", "BARRIER"), message(messages, "ban-menu-title-prefix", "밴 ") + shortUuid(ban.bannedUuid()), "island.ban.pardon.prepare",
+        return GuiItems.action(GuiMenuRenderer.material(MENU, "_", "BARRIER"), message(messages, "ban-menu-title-prefix", "밴 ") + bannedDisplay(ban), "island.ban.pardon.prepare",
             Map.of(
                 "playerUuid", ban.bannedUuid(),
                 "actorUuid", ban.actorUuid(),
+                "bannedName", ban.bannedName(),
+                "actorName", ban.actorName(),
                 "reason", ban.reason(),
                 "createdAt", ban.createdAt(),
                 "expiresAt", ban.expiresAt()
             ),
-            message(messages, "ban-menu-actor", "처리자: ") + shortUuid(ban.actorUuid()),
+            message(messages, "ban-menu-actor", "처리자: ") + actorDisplay(ban),
             message(messages, "ban-menu-reason", "사유: ") + (ban.reason().isBlank() ? message(messages, "ban-menu-none", "없음") : ban.reason()),
             ban.createdAt().isBlank() ? message(messages, "ban-menu-no-created-info", "생성 정보 없음") : message(messages, "ban-menu-created-at", "생성 시각: ") + ban.createdAt(),
             ban.expiresAt().isBlank() ? message(messages, "ban-menu-no-expire", "만료 없음") : message(messages, "ban-menu-expires-at", "만료 시각: ") + ban.expiresAt(),
@@ -170,6 +172,18 @@ public final class IslandBanMenu implements Listener {
 
     private static String shortUuid(String uuid) {
         return uuid.length() <= 8 ? uuid : uuid.substring(0, 8);
+    }
+
+    static String bannedDisplay(BanView ban) {
+        return ban == null ? "" : displayName(ban.bannedName(), ban.bannedUuid());
+    }
+
+    static String actorDisplay(BanView ban) {
+        return ban == null ? "" : displayName(ban.actorName(), ban.actorUuid());
+    }
+
+    private static String displayName(String name, String uuid) {
+        return name == null || name.isBlank() ? shortUuid(uuid == null ? "" : uuid) : name.trim();
     }
 
     private static String fallback(String value, String fallback) {

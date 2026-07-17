@@ -165,7 +165,7 @@ public final class PaperGuiViews {
     }
 
     private static BanView ban(CoreGuiViews.BanView view) {
-        return new BanView(view.bannedUuid(), view.actorUuid(), view.reason(), view.createdAt(), view.expiresAt());
+        return new BanView(view.bannedUuid(), view.actorUuid(), view.reason(), view.createdAt(), view.expiresAt(), view.bannedName(), view.actorName());
     }
 
     private static HomeView home(CoreGuiViews.HomeView view) {
@@ -257,7 +257,20 @@ public final class PaperGuiViews {
     public record PublicIslandView(String islandId, String ownerUuid, String name, String description, long level, String worth) {
     }
 
-    public record BanView(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt) {
+    public record BanView(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt, String bannedName, String actorName) {
+        public BanView(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt) {
+            this(bannedUuid, actorUuid, reason, createdAt, expiresAt, "", "");
+        }
+
+        public BanView {
+            bannedUuid = bannedUuid == null ? "" : bannedUuid;
+            actorUuid = actorUuid == null ? "" : actorUuid;
+            reason = reason == null ? "" : reason;
+            createdAt = createdAt == null ? "" : createdAt;
+            expiresAt = expiresAt == null ? "" : expiresAt;
+            bannedName = bannedName == null ? "" : bannedName;
+            actorName = actorName == null ? "" : actorName;
+        }
     }
 
     public record HomeView(String name, String worldName, double x, double y, double z, float yaw, float pitch, String createdAt) {

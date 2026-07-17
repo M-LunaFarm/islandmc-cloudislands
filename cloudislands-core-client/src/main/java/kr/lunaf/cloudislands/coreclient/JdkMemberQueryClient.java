@@ -46,6 +46,14 @@ public final class JdkMemberQueryClient implements MemberQueryClient {
             .thenApply(body -> CoreMemberJson.bans(islandId, body));
     }
 
+    @Override
+    public CompletableFuture<List<CoreGuiViews.BanView>> bans(UUID islandId) {
+        requireIsland(islandId);
+        return core.getBody("/v1/islands/" + islandId + "/bans")
+            .thenApply(CoreResponseBody::value)
+            .thenApply(CoreMemberJson::banViews);
+    }
+
     private static void requirePlayer(UUID playerUuid) {
         if (playerUuid == null) {
             throw new IllegalArgumentException("playerUuid is required");

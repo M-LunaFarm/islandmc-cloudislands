@@ -856,10 +856,17 @@ final class IslandMembershipCommandHandler {
             String bannedUuid = ban.bannedUuid();
             String reason = ban.reason();
             if (!bannedUuid.isBlank()) {
-                entries.add(bannedUuid + (reason.isBlank() ? "" : " " + reason));
+                entries.add(banDisplayName(ban) + (reason.isBlank() ? "" : " " + reason));
             }
         }
         return entries.isEmpty() ? message("ban-list-empty", "섬 밴 목록이 비어 있습니다.") : message("ban-list-prefix", "섬 밴 목록: ") + String.join(", ", entries);
+    }
+
+    static String banDisplayName(BanView ban) {
+        if (ban == null) {
+            return "";
+        }
+        return ban.bannedName().isBlank() ? compactId(ban.bannedUuid()) : ban.bannedName().trim();
     }
 
     private String inviteListMessage(List<InviteView> invites) {

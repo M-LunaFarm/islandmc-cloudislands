@@ -141,7 +141,7 @@ public final class IslandQueryRoutes {
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/bans")) {
             UUID islandId = uuidPath(tail.substring(0, tail.length() - "/bans".length()));
-            CoreHttpResponses.write(exchange, 200, IslandVisitorRoutes.bansJson(metadataRepository.bans(islandId)));
+            CoreHttpResponses.write(exchange, 200, IslandVisitorRoutes.bansJson(metadataRepository.bans(islandId), playerProfiles));
             return;
         }
         if (method.equalsIgnoreCase("GET") && tail.endsWith("/biome")) {

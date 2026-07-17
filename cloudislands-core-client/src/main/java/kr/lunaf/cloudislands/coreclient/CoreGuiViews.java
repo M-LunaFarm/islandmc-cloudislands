@@ -278,7 +278,20 @@ public final class CoreGuiViews {
         }
     }
 
-    public record BanView(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt) {
+    public record BanView(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt, String bannedName, String actorName) {
+        public BanView(String bannedUuid, String actorUuid, String reason, String createdAt, String expiresAt) {
+            this(bannedUuid, actorUuid, reason, createdAt, expiresAt, "", "");
+        }
+
+        public BanView {
+            bannedUuid = bannedUuid == null ? "" : bannedUuid;
+            actorUuid = actorUuid == null ? "" : actorUuid;
+            reason = reason == null ? "" : reason;
+            createdAt = createdAt == null ? "" : createdAt;
+            expiresAt = expiresAt == null ? "" : expiresAt;
+            bannedName = bannedName == null ? "" : bannedName;
+            actorName = actorName == null ? "" : actorName;
+        }
     }
 
     public record HomeView(String islandId, String name, String worldName, double x, double y, double z, float yaw, float pitch, String createdBy, String createdAt) {

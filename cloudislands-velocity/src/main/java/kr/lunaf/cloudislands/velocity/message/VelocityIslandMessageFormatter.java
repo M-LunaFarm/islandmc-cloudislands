@@ -389,10 +389,14 @@ public final class VelocityIslandMessageFormatter {
         for (CoreGuiViews.BanView ban : bans) {
             total++;
             if (entries.size() < 10) {
-                entries.add(shortId(ban.bannedUuid()) + " 사유=" + fallback(ban.reason(), "-"));
+                entries.add(banDisplayName(ban) + " 사유=" + fallback(ban.reason(), "-"));
             }
         }
         return "섬 밴: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private static String banDisplayName(CoreGuiViews.BanView ban) {
+        return ban.bannedName().isBlank() ? shortId(ban.bannedUuid()) : ban.bannedName().trim();
     }
 
     public String permissionList(List<PermissionAssignmentView> permissions) {

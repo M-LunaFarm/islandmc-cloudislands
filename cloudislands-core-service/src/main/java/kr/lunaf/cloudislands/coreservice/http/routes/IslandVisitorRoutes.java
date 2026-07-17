@@ -205,7 +205,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
 
     private void bans(HttpExchange exchange) throws IOException {
         String body = CoreHttpResponses.readBody(exchange);
-        CoreHttpResponses.write(exchange, 200, bansJson(metadataRepository.bans(JsonFields.uuid(body, "islandId", EMPTY_UUID))));
+        CoreHttpResponses.write(exchange, 200, bansJson(metadataRepository.bans(JsonFields.uuid(body, "islandId", EMPTY_UUID)), playerProfiles));
     }
 
     private void removeBan(HttpExchange exchange) throws IOException {
@@ -314,10 +314,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
                 islands.findById(invite.islandId()).ifPresent(island -> rendered.put("islandName", island.name()));
             }
             if (profiles != null) {
-                String inviterName = profiles.find(invite.inviterUuid()).lastName();
-                if (inviterName != null && !inviterName.isBlank()) {
-                    rendered.put("inviterName", inviterName);
-                }
+                putProfileName(rendered, "inviterName", profiles, invite.inviterUuid());
             }
             renderedInvites.add(rendered);
         }
@@ -325,11 +322,30 @@ public final class IslandVisitorRoutes implements RouteGroup {
     }
 
     static String bansJson(List<IslandBanSnapshot> bans) {
+        return bansJson(bans, null);
+    }
+
+    static String bansJson(List<IslandBanSnapshot> bans, PlayerProfileRepository profiles) {
         List<Object> renderedBans = new ArrayList<>();
         for (IslandBanSnapshot ban : bans) {
-            renderedBans.add(banMap(ban));
+            LinkedHashMap<String, Object> rendered = banMap(ban);
+            if (profiles != null) {
+                putProfileName(rendered, "bannedName", profiles, ban.bannedUuid());
+                putProfileName(rendered, "actorName", profiles, ban.actorUuid());
+            }
+            renderedBans.add(rendered);
         }
         return SimpleJson.stringify(Map.of("bans", renderedBans));
+    }
+
+    private static void putProfileName(LinkedHashMap<String, Object> values, String key, PlayerProfileRepository profiles, UUID playerUuid) {
+        if (playerUuid == null || playerUuid.equals(EMPTY_UUID)) {
+            return;
+        }
+        String playerName = profiles.find(playerUuid).lastName();
+        if (playerName != null && !playerName.isBlank()) {
+            values.put(key, playerName);
+        }
     }
 
     private static LinkedHashMap<String, Object> inviteMap(IslandInviteSnapshot invite) {
@@ -344,7 +360,7 @@ public final class IslandVisitorRoutes implements RouteGroup {
         return values;
     }
 
-    private static Map<String, Object> banMap(IslandBanSnapshot ban) {
+    private static LinkedHashMap<String, Object> banMap(IslandBanSnapshot ban) {
         LinkedHashMap<String, Object> values = new LinkedHashMap<>();
         values.put("islandId", ban.islandId());
         values.put("bannedUuid", ban.bannedUuid());

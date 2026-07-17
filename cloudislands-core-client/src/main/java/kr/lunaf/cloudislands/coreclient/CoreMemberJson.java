@@ -55,7 +55,7 @@ final class CoreMemberJson {
 
     static List<CoreGuiViews.BanView> banViews(String body) {
         return CoreJson.entries(body, "bans").stream()
-            .map(values -> banView(ban(null, values)))
+            .map(CoreMemberJson::banView)
             .filter(ban -> !ban.bannedUuid().isBlank())
             .toList();
     }
@@ -120,6 +120,19 @@ final class CoreMemberJson {
             ban == null ? "" : ban.reason(),
             ban == null || ban.createdAt() == null || ban.createdAt().equals(Instant.EPOCH) ? "" : ban.createdAt().toString(),
             ban == null || ban.expiresAt() == null || ban.expiresAt().equals(Instant.EPOCH) ? "" : ban.expiresAt().toString()
+        );
+    }
+
+    private static CoreGuiViews.BanView banView(Map<?, ?> values) {
+        CoreGuiViews.BanView ban = banView(ban(null, values));
+        return new CoreGuiViews.BanView(
+            ban.bannedUuid(),
+            ban.actorUuid(),
+            ban.reason(),
+            ban.createdAt(),
+            ban.expiresAt(),
+            CoreJson.text(values, "bannedName"),
+            CoreJson.text(values, "actorName")
         );
     }
 

@@ -2024,7 +2024,7 @@ class CoreTypedClientsTest {
             server.createContext("/v1/islands/" + islandId + "/bans", exchange -> {
                 calls.add("bans");
                 byte[] response = """
-                    {"bans":[{"bannedUuid":"%s","actorUuid":"%s","reason":"test"}]}
+                    {"bans":[{"bannedUuid":"%s","actorUuid":"%s","reason":"test","bannedName":"Griefer","actorName":"Moderator"}]}
                     """.formatted(playerUuid, islandId).getBytes(StandardCharsets.UTF_8);
                 exchange.sendResponseHeaders(200, response.length);
                 exchange.getResponseBody().write(response);
@@ -2045,7 +2045,10 @@ class CoreTypedClientsTest {
             assertEquals("Alice", invite.inviterName());
             IslandBanSnapshot banSnapshot = client.banSnapshots(islandId).join().get(0);
             assertEquals(playerUuid, banSnapshot.bannedUuid());
-            assertEquals("test", client.bans(islandId).join().get(0).reason());
+            CoreGuiViews.BanView ban = client.bans(islandId).join().get(0);
+            assertEquals("test", ban.reason());
+            assertEquals("Griefer", ban.bannedName());
+            assertEquals("Moderator", ban.actorName());
             assertEquals(List.of(
                 "{\"lastName\":\"Alice\"}",
                 "{\"playerUuid\":\"" + playerUuid + "\"}",

@@ -92,7 +92,7 @@ class MemberManagementUseCaseTest {
             "createIslandInvite", "{\"inviteId\":\"" + inviteId + "\",\"islandId\":\"" + islandId + "\",\"inviterUuid\":\"" + actorUuid + "\"}",
             "acceptIslandInviteResult", "{\"accepted\":true,\"code\":\"INVITE_ACCEPTED\"}",
             "declineIslandInviteResult", "{\"accepted\":false,\"code\":\"INVITE_EXPIRED\"}",
-            "listIslandBans", "{\"bans\":[{\"bannedUuid\":\"" + targetUuid + "\",\"reason\":\"test\"}]}"
+            "listIslandBans", "{\"bans\":[{\"bannedUuid\":\"" + targetUuid + "\",\"reason\":\"test\",\"bannedName\":\"Griefer\",\"actorName\":\"Moderator\"}]}"
         )));
 
         assertEquals("TRUSTED", useCase.listMemberViews(islandId).join().get(0).role());
@@ -104,6 +104,8 @@ class MemberManagementUseCaseTest {
         assertEquals("ACCEPTED", useCase.acceptInviteAction(inviteId, playerUuid).join().code());
         assertEquals("INVITE_EXPIRED", useCase.declineInviteAction(inviteId, playerUuid).join().code());
         assertEquals("test", useCase.listBanViews(islandId).join().get(0).reason());
+        assertEquals("Griefer", useCase.listBanViews(islandId).join().get(0).bannedName());
+        assertEquals("Moderator", useCase.listBanViews(islandId).join().get(0).actorName());
     }
 
     @Test
@@ -276,7 +278,9 @@ class MemberManagementUseCaseTest {
             text(value, "actorUuid"),
             text(value, "reason"),
             text(value, "createdAt"),
-            text(value, "expiresAt")
+            text(value, "expiresAt"),
+            text(value, "bannedName"),
+            text(value, "actorName")
         ));
     }
 
