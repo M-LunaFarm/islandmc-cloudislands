@@ -8,7 +8,7 @@ import kr.lunaf.cloudislands.api.model.IslandFlag;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
 import kr.lunaf.cloudislands.api.model.RoleId;
 
-public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminNodePage, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.AdminAuditPage, GuiAction.AdminEventPage, GuiAction.AdminMetricsPage, GuiAction.AdminMigrationRollback, GuiAction.AdminStoragePage, GuiAction.AdminJobPage, GuiAction.AdminJobRetry, GuiAction.AdminJobCancel, GuiAction.AdminRoutePage, GuiAction.AdminRouteClear, GuiAction.AdminReviewOpen, GuiAction.AdminReviewModeration, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
+public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAction, GuiAction.AdminNodePage, GuiAction.AdminIslandPrompt, GuiAction.AdminMenuAction, GuiAction.AdminAuditPage, GuiAction.AdminEventPage, GuiAction.AdminMetricsPage, GuiAction.AdminMigrationRollback, GuiAction.AdminTemplatePage, GuiAction.AdminTemplateToggle, GuiAction.AdminStoragePage, GuiAction.AdminJobPage, GuiAction.AdminJobRetry, GuiAction.AdminJobCancel, GuiAction.AdminRoutePage, GuiAction.AdminRouteClear, GuiAction.AdminReviewOpen, GuiAction.AdminReviewModeration, GuiAction.MainOpen, GuiAction.InfoOpen, GuiAction.IslandListOpen, GuiAction.IslandListPage, GuiAction.ChatOpen, GuiAction.LogsOpen, GuiAction.LogsList, GuiAction.LogPage, GuiAction.NoPayload, GuiAction.IslandCreate, GuiAction.IslandCreatePrepare, GuiAction.IslandCreateLocked, GuiAction.TemplatePage, GuiAction.BankAmount, GuiAction.SnapshotCreate, GuiAction.SnapshotRestore, GuiAction.SnapshotPage, GuiAction.BiomeSet, GuiAction.BiomePage, GuiAction.FlagSet, GuiAction.BorderColorSet, GuiAction.LimitSet, GuiAction.LimitPage, GuiAction.VisitTarget, GuiAction.PublicIslandPage, GuiAction.SelectIslandTarget, GuiAction.ReviewSet, GuiAction.ReviewReport, GuiAction.ReviewDelete, GuiAction.HomeTeleport, GuiAction.HomeSet, GuiAction.HomePage, GuiAction.WarpTeleport, GuiAction.WarpPage, GuiAction.PublicWarpCategory, GuiAction.PublicWarpPage, GuiAction.WarpDelete, GuiAction.WarpAccess, GuiAction.InviteAction, GuiAction.InvitePage, GuiAction.MemberPage, GuiAction.MemberDetail, GuiAction.MemberRoleChange, GuiAction.BanPardon, GuiAction.BanPage, GuiAction.LogDetail, GuiAction.RoleWeightAdjust, GuiAction.RolePage, GuiAction.RankingList, GuiAction.RankingPage, GuiAction.MissionsOpen, GuiAction.MissionComplete, GuiAction.MissionPage, GuiAction.UpgradePurchase, GuiAction.UpgradePage, GuiAction.WarehousePage, GuiAction.DangerResetConfirm, GuiAction.DangerDeleteConfirm, GuiAction.PermissionPage, GuiAction.ChangePermission, GuiAction.MemberRemoval {
     String actionId();
 
     Map<String, String> data();
@@ -294,6 +294,63 @@ public sealed interface GuiAction permits GuiAction.Close, GuiAction.AdminNodeAc
         @Override
         public Map<String, String> data() {
             return Map.of("page", Integer.toString(page));
+        }
+    }
+
+    record AdminTemplatePage(int page) implements GuiAction {
+        public AdminTemplatePage {
+            page = Math.max(0, page);
+        }
+
+        @Override
+        public String actionId() {
+            return "admin.templates.page";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            return Map.of("page", Integer.toString(page));
+        }
+    }
+
+    enum AdminTemplateToggleType {
+        PREPARE,
+        CONFIRM
+    }
+
+    record AdminTemplateToggle(AdminTemplateToggleType type, String templateId, boolean enable, int page,
+                               int enabledCount, String confirmationToken) implements GuiAction {
+        public AdminTemplateToggle {
+            if (type == null) {
+                throw new IllegalArgumentException("type is required");
+            }
+            templateId = templateId == null ? "" : templateId.trim();
+            if (templateId.isBlank()) {
+                throw new IllegalArgumentException("templateId is required");
+            }
+            page = Math.max(0, page);
+            enabledCount = Math.max(0, enabledCount);
+            confirmationToken = confirmationToken == null ? "" : confirmationToken.trim();
+        }
+
+        @Override
+        public String actionId() {
+            return type == AdminTemplateToggleType.CONFIRM
+                ? ConfirmationTokenPolicy.ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION
+                : "admin.templates.toggle.prepare";
+        }
+
+        @Override
+        public Map<String, String> data() {
+            java.util.LinkedHashMap<String, String> values = new java.util.LinkedHashMap<>();
+            values.put("templateId", templateId);
+            values.put("enable", Boolean.toString(enable));
+            values.put("page", Integer.toString(page));
+            values.put("enabledCount", Integer.toString(enabledCount));
+            if (!confirmationToken.isBlank()) {
+                values.put(ConfirmationTokenPolicy.TOKEN_KEY, confirmationToken);
+            }
+            return Map.copyOf(values);
         }
     }
 

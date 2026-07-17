@@ -5,7 +5,7 @@ layout:
   - "........."
   - ".N.J.R.S."
   - ".E.A.M.V."
-  - "...G....."
+  - "...GT...."
   - "...B.X..."
 items:
   N:
@@ -89,6 +89,15 @@ items:
     fallback-lore:
       - "SuperiorSkyblock2 이전 상태와 작업"
     action: migration
+  T:
+    material: STRUCTURE_BLOCK
+    name-key: admin-dashboard-menu-templates-name
+    fallback-name: 섬 템플릿
+    lore-keys:
+      - admin-dashboard-menu-templates-lore
+    fallback-lore:
+      - "생성 템플릿 상태와 가용성"
+    action: templates
   B:
     material: NETHER_STAR
     name-key: admin-dashboard-menu-main-name
@@ -109,5 +118,6 @@ actions:
   metrics: admin.metrics.open
   reviews: admin.reviews.open
   migration: admin.migration.open
+  templates: admin.templates.open
   main: island.main.open
   close: gui.close

@@ -202,6 +202,31 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesAdminTemplateNavigationAndConfirmedToggleIntoTypedActions() {
+        GuiAction open = GuiActionParser.parse("admin.templates.open", Map.of()).orElseThrow();
+        GuiAction page = GuiActionParser.parse("admin.templates.page", Map.of("page", "3")).orElseThrow();
+        GuiAction prepare = GuiActionParser.parse("admin.templates.toggle.prepare", Map.of(
+            "templateId", " starter ", "enable", "false", "page", "3", "enabledCount", "2"
+        )).orElseThrow();
+        String confirmAction = ConfirmationTokenPolicy.ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION;
+        GuiAction confirm = GuiActionParser.parse(confirmAction, ConfirmationTokenPolicy.withToken(confirmAction, Map.of(
+            "templateId", "starter", "enable", "false", "page", "3", "enabledCount", "2"
+        ))).orElseThrow();
+
+        assertTrue(open instanceof GuiAction.AdminTemplatePage);
+        assertEquals(Map.of("page", "0"), open.data());
+        assertTrue(page instanceof GuiAction.AdminTemplatePage);
+        assertEquals(Map.of("page", "3"), page.data());
+        assertTrue(prepare instanceof GuiAction.AdminTemplateToggle);
+        assertEquals(GuiAction.AdminTemplateToggleType.PREPARE, ((GuiAction.AdminTemplateToggle) prepare).type());
+        assertEquals("starter", prepare.data().get("templateId"));
+        assertTrue(confirm instanceof GuiAction.AdminTemplateToggle);
+        assertEquals(GuiAction.AdminTemplateToggleType.CONFIRM, ((GuiAction.AdminTemplateToggle) confirm).type());
+        assertTrue(ConfirmationTokenPolicy.confirmed(confirm, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(confirm, GuiClick.RIGHT));
+    }
+
+    @Test
     void parsesAdminEventNavigationIntoTypedPageActions() {
         GuiAction open = GuiActionParser.parse("admin.events.open", Map.of()).orElseThrow();
         GuiAction page = GuiActionParser.parse("admin.events.page", Map.of("page", "4")).orElseThrow();
@@ -683,6 +708,14 @@ class GuiActionParserTest {
             case "admin.events.page" -> Map.of("page", "0");
             case "admin.metrics.page" -> Map.of("page", "0");
             case "admin.storage.page" -> Map.of("page", "0");
+            case "admin.templates.page" -> Map.of("page", "0");
+            case "admin.templates.toggle.prepare" -> Map.of(
+                "templateId", "starter", "enable", "true", "page", "0", "enabledCount", "1"
+            );
+            case "admin.templates.toggle.confirm" -> Map.of(
+                "templateId", "starter", "enable", "false", "page", "0", "enabledCount", "2",
+                ConfirmationTokenPolicy.TOKEN_KEY, ConfirmationTokenPolicy.token(actionId)
+            );
             case "admin.node.page" -> Map.of("page", "0");
             case "admin.jobs.page" -> Map.of("page", "0");
             case "admin.jobs.retry", "admin.jobs.cancel.prepare" -> Map.of(

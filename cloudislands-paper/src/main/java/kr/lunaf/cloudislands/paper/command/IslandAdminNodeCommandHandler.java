@@ -8,6 +8,7 @@ import kr.lunaf.cloudislands.api.model.MigrationRunSnapshot;
 import kr.lunaf.cloudislands.coreclient.AdminRouteClearView;
 import kr.lunaf.cloudislands.coreclient.CoreApiClient;
 import kr.lunaf.cloudislands.coreclient.JobActionView;
+import kr.lunaf.cloudislands.coreclient.TemplateView;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeActionResult;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeSummary;
@@ -22,6 +23,7 @@ import kr.lunaf.cloudislands.paper.gui.AdminNodeListMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminReviewModerationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminStorageMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminTemplateMenu;
 import kr.lunaf.cloudislands.paper.gui.ConfirmationTokenPolicy;
 import kr.lunaf.cloudislands.paper.gui.GuiAction;
 import kr.lunaf.cloudislands.paper.gui.GuiClick;
@@ -49,6 +51,18 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminTemplatePage page) {
+            openTemplateMenu(player, page.page());
+            return true;
+        }
+        if (action instanceof GuiAction.AdminTemplateToggle toggle) {
+            if (toggle.type() == GuiAction.AdminTemplateToggleType.PREPARE) {
+                openTemplateToggleConfirmation(player, toggle);
+            } else if (runtime.confirmationAccepted(player, action, click)) {
+                toggleTemplate(player, toggle);
+            }
+            return true;
+        }
         if (action instanceof GuiAction.AdminMetricsPage page) {
             openMetricsMenu(player, page.page());
             return true;
@@ -122,6 +136,80 @@ final class IslandAdminNodeCommandHandler {
             return handleAdminMenuAction(player, adminMenu);
         }
         return false;
+    }
+
+    private void openTemplateMenu(Player player, int page) {
+        if (!templateManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-template-menu-permission-denied", "템플릿 관리 권한이 없습니다."));
+            return;
+        }
+        AdminTemplateMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page);
+    }
+
+    private void openTemplateToggleConfirmation(Player player, GuiAction.AdminTemplateToggle toggle) {
+        if (!templateManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-template-menu-permission-denied", "템플릿 관리 권한이 없습니다."));
+            return;
+        }
+        if (!toggle.enable() && toggle.enabledCount() <= 1) {
+            runtime.message(player, runtime.routeMessage("admin-template-menu-last-enabled", "마지막 활성 템플릿은 비활성화할 수 없습니다."));
+            AdminTemplateMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), toggle.page());
+            return;
+        }
+        String operation = toggle.enable()
+            ? runtime.routeMessage("admin-template-menu-enable-label", "활성화")
+            : runtime.routeMessage("admin-template-menu-disable-label", "비활성화");
+        runtime.openConfirmation(player,
+            runtime.routeMessage("admin-template-menu-toggle-confirm-title", "템플릿 상태 변경 확인"),
+            runtime.routeMessage("admin-template-menu-toggle-confirm-description", "섬 생성 목록에 표시되는 템플릿 상태를 변경합니다."),
+            AdminTemplateMenu.toggleConfirmationMaterial(),
+            operation + ": " + toggle.templateId(),
+            ConfirmationTokenPolicy.ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION,
+            Map.of(
+                "templateId", toggle.templateId(),
+                "enable", Boolean.toString(toggle.enable()),
+                "page", Integer.toString(toggle.page()),
+                "enabledCount", Integer.toString(toggle.enabledCount())
+            ),
+            runtime.routeMessage("admin-template-menu-toggle-confirm-lore", "확인하면 Core 템플릿 상태를 변경합니다."),
+            "admin.templates.open");
+    }
+
+    private void toggleTemplate(Player player, GuiAction.AdminTemplateToggle toggle) {
+        if (!templateManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-template-menu-permission-denied", "템플릿 관리 권한이 없습니다."));
+            return;
+        }
+        MessageRenderer messages = runtime.messagesFor(player);
+        GuiSession session = GuiSessions.begin(player, "admin.templates.mutate");
+        GuiStateMenus.openSaving(plugin, player, session, messages,
+            runtime.routeMessage("admin-template-menu-saving", "템플릿 상태를 변경하는 중입니다."));
+        CompletableFuture<TemplateView> mutation;
+        if (toggle.enable()) {
+            mutation = runtime.mutateIdempotent("admin.template.enable", () -> coreApiClient.templateCommands().enable(toggle.templateId()));
+        } else {
+            mutation = runtime.mutateIdempotent("admin.template.disable", () -> coreApiClient.templateCommands().disable(toggle.templateId()));
+        }
+        mutation
+            .thenAccept(template -> GuiSessions.runIfCurrent(plugin, player, session, () -> {
+                runtime.message(player, runtime.routeMessage("admin-template-menu-updated-prefix", "템플릿 상태 변경 완료: ")
+                    + template.id() + "=" + template.enabled());
+                AdminTemplateMenu.open(plugin, coreApiClient, player, messages, toggle.page());
+            }))
+            .exceptionally(error -> {
+                GuiStateMenus.openError(plugin, player, session, messages,
+                    runtime.routeMessage("admin-template-menu-title", "섬 템플릿 관리"),
+                    runtime.routeMessage("admin-template-menu-update-failed", "템플릿 상태를 변경하지 못했습니다."),
+                    "admin.templates.page",
+                    Map.of("page", Integer.toString(toggle.page())),
+                    "admin.dashboard.open",
+                    Map.of());
+                return null;
+            });
+    }
+
+    private static boolean templateManagementAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.templates");
     }
 
     private void openMetricsMenu(Player player, int page) {

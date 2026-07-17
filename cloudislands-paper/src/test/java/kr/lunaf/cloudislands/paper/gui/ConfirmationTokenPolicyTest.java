@@ -78,6 +78,17 @@ class ConfirmationTokenPolicyTest {
         );
         assertTrue(ConfirmationTokenPolicy.confirmed(migrationRollback, GuiClick.LEFT));
         assertFalse(ConfirmationTokenPolicy.confirmed(migrationRollback, GuiClick.RIGHT));
+
+        GuiAction templateToggle = new GuiAction.AdminTemplateToggle(
+            GuiAction.AdminTemplateToggleType.CONFIRM,
+            "starter",
+            false,
+            0,
+            2,
+            ConfirmationTokenPolicy.token(ConfirmationTokenPolicy.ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION)
+        );
+        assertTrue(ConfirmationTokenPolicy.confirmed(templateToggle, GuiClick.LEFT));
+        assertFalse(ConfirmationTokenPolicy.confirmed(templateToggle, GuiClick.RIGHT));
     }
 
     @Test

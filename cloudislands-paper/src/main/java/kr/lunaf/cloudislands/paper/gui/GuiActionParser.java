@@ -62,6 +62,10 @@ public final class GuiActionParser {
         "admin.storage.page",
         "admin.storage.status",
         "admin.storage.verify.prompt",
+        "admin.templates.open",
+        "admin.templates.page",
+        "admin.templates.toggle.confirm",
+        "admin.templates.toggle.prepare",
         "gui.close",
         "island.ban.pardon.confirm",
         "island.ban.pardon.prepare",
@@ -269,6 +273,19 @@ public final class GuiActionParser {
                     safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
                 ));
             }
+            if (safeAction.equals("admin.templates.toggle.prepare")
+                || safeAction.equals(ConfirmationTokenPolicy.ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION)) {
+                return Optional.of(new GuiAction.AdminTemplateToggle(
+                    safeAction.equals(ConfirmationTokenPolicy.ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION)
+                        ? GuiAction.AdminTemplateToggleType.CONFIRM
+                        : GuiAction.AdminTemplateToggleType.PREPARE,
+                    required(safeData, "templateId"),
+                    bool(required(safeData, "enable")),
+                    nonNegativeInteger(safeData.getOrDefault("page", "0")),
+                    nonNegativeInteger(safeData.getOrDefault("enabledCount", "0")),
+                    safeData.getOrDefault(ConfirmationTokenPolicy.TOKEN_KEY, "")
+                ));
+            }
             if (safeAction.equals(DangerousGuiActionPolicy.RESET_CONFIRM_ACTION)) {
                 return Optional.of(new GuiAction.DangerResetConfirm(
                     required(safeData, DangerousGuiActionPolicy.OPERATION_KEY),
@@ -291,6 +308,8 @@ public final class GuiActionParser {
                 case "admin.events.page" -> Optional.of(new GuiAction.AdminEventPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.metrics.open" -> Optional.of(new GuiAction.AdminMetricsPage(0));
                 case "admin.metrics.page" -> Optional.of(new GuiAction.AdminMetricsPage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
+                case "admin.templates.open" -> Optional.of(new GuiAction.AdminTemplatePage(0));
+                case "admin.templates.page" -> Optional.of(new GuiAction.AdminTemplatePage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.node.open" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.OPEN, safeData));
                 case "admin.node.page" -> Optional.of(new GuiAction.AdminNodePage(nonNegativeInteger(safeData.getOrDefault("page", "0"))));
                 case "admin.node.list" -> Optional.of(adminNode(GuiAction.AdminNodeActionType.LIST, safeData));

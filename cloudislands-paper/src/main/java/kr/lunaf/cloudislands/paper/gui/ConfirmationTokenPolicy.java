@@ -16,6 +16,7 @@ public final class ConfirmationTokenPolicy {
     public static final String ADMIN_JOB_CANCEL_CONFIRM_ACTION = "admin.jobs.cancel.confirm";
     public static final String ADMIN_ROUTE_CLEAR_CONFIRM_ACTION = "admin.route.clear.confirm";
     public static final String ADMIN_MIGRATION_ROLLBACK_CONFIRM_ACTION = "admin.migration.rollback.confirm";
+    public static final String ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION = "admin.templates.toggle.confirm";
 
     private static final Set<String> CONFIRMED_ACTIONS = Set.of(
         WARP_DELETE_CONFIRM_ACTION,
@@ -28,6 +29,7 @@ public final class ConfirmationTokenPolicy {
         ADMIN_JOB_CANCEL_CONFIRM_ACTION,
         ADMIN_ROUTE_CLEAR_CONFIRM_ACTION,
         ADMIN_MIGRATION_ROLLBACK_CONFIRM_ACTION,
+        ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION,
         ADMIN_NODE_KICKALL_CONFIRM_ACTION,
         ADMIN_NODE_SHUTDOWN_SAFE_CONFIRM_ACTION
     );

@@ -85,6 +85,7 @@ import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminRouteMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminReviewModerationMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminStorageMenu;
+import kr.lunaf.cloudislands.paper.gui.AdminTemplateMenu;
 import kr.lunaf.cloudislands.paper.gui.GuiSession;
 import kr.lunaf.cloudislands.paper.gui.GuiSessions;
 import kr.lunaf.cloudislands.paper.gui.GuiStateMenus;
@@ -146,6 +147,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
         "admin.metrics",
         "admin.node",
         "admin.storage",
+        "admin.templates",
         "admin.route",
         "admin.jobs",
         "admin.reviews",
@@ -2832,6 +2834,7 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
             case "admin.metrics" -> AdminMetricsMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.node" -> AdminNodeListMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.storage" -> AdminStorageMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
+            case "admin.templates" -> AdminTemplateMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.route" -> AdminRouteMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.jobs" -> AdminJobMenu.open(agent.plugin(), coreApiClient, target, targetMessages);
             case "admin.reviews" -> AdminReviewModerationMenu.open(agent.plugin(), coreApiClient, target, targetMessages, 36);
@@ -2846,6 +2849,10 @@ final class AdminCommandBackend implements CommandExecutor, TabCompleter {
 
     private boolean handleTemplate(CommandSender sender, String[] args) {
         if (args.length < 2 || args[1].equalsIgnoreCase("list")) {
+            if (sender instanceof Player player) {
+                AdminTemplateMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player));
+                return true;
+            }
             run(sender, "Template list", coreApiClient.templates().list().thenApply(this::templateListMessage));
             return true;
         }

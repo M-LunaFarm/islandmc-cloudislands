@@ -20,6 +20,7 @@ public final class AdminDashboardMenu implements Listener {
         Map.entry("admin.audit.open", "cloudislands.admin.audit"),
         Map.entry("admin.metrics.open", "cloudislands.admin.metrics"),
         Map.entry("admin.reviews.open", "cloudislands.admin.island"),
+        Map.entry("admin.templates.open", "cloudislands.admin.templates"),
         Map.entry("admin.migration.open", "cloudislands.admin.migrate-superiorskyblock2")
     );
     private static final GuiMenuDefinition MENU = GuiMenuDefinition.bundled(
@@ -33,6 +34,7 @@ public final class AdminDashboardMenu implements Listener {
             Map.entry("audit", "admin.audit.open"),
             Map.entry("metrics", "admin.metrics.open"),
             Map.entry("reviews", "admin.reviews.open"),
+            Map.entry("templates", "admin.templates.open"),
             Map.entry("migration", "admin.migration.open"),
             Map.entry("main", "island.main.open"),
             Map.entry("close", "gui.close")

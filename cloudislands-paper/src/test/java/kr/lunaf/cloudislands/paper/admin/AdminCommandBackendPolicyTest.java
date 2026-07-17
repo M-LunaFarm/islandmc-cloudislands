@@ -1215,6 +1215,25 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void playerTemplateCommandOpensLiveManagerWhileConsoleKeepsTextOutput() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminTemplateMenu.java"));
+        String dashboard = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/admin-dashboard.yml"));
+
+        assertTrue(source.contains("AdminTemplateMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player))"),
+            "player template list command must open the live manager");
+        assertTrue(source.contains("run(sender, \"Template list\", coreApiClient.templates().list().thenApply(this::templateListMessage))"),
+            "console template list output must remain available");
+        assertTrue(source.contains("case \"admin.templates\" -> AdminTemplateMenu.open(agent.plugin(), coreApiClient, target"),
+            "admin openmenu must expose the live template manager");
+        assertTrue(menu.contains("client.templates().list()"), "template manager must load the typed Core catalog");
+        assertTrue(menu.contains("GuiSessions.runIfCurrent(plugin, player, session"),
+            "template catalog responses must retain the initiating player connection");
+        assertTrue(dashboard.contains("templates: admin.templates.open"),
+            "operations dashboard must link to template management");
+    }
+
+    @Test
     void adminMaintenanceCommandsUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
 

@@ -628,6 +628,7 @@ class GuiSystemPolicyTest {
                 new String[] {"AdminJobMenu", "admin-jobs.yml", "admin.jobs.retry", "admin.jobs.page", "admin.jobs.cancel.prepare"},
                 new String[] {"AdminRouteMenu", "admin-route.yml", "admin.route.page", "admin.route.clear.prepare", "admin.route.clear.confirm"},
                 new String[] {"AdminStorageMenu", "admin-storage.yml", "admin.storage.status", "admin.storage.page", "admin.storage.verify.prompt"},
+                new String[] {"AdminTemplateMenu", "admin-templates.yml", "admin.templates.open", "admin.templates.page", "admin.templates.toggle.prepare"},
                 new String[] {"AdminReviewModerationMenu", "admin-reviews.yml", "admin.reviews.moderate", "admin.reviews.open", "gui.close"},
                 new String[] {"AdminMigrationMenu", "admin-migration.yml", "admin.migration.scan", "admin.migration.dryrun", "admin.migration.approve.prompt", "admin.migration.rollback-plan", "admin.migration.rollback.prompt"}
         )) {
@@ -651,6 +652,7 @@ class GuiSystemPolicyTest {
         assertTrue(registrar.contains("new AdminMetricsMenu(messages, registry)"), "admin metrics menu must be registered");
         assertTrue(registrar.contains("new AdminRouteMenu(messages, registry)"), "admin route menu must be registered");
         assertTrue(registrar.contains("new AdminStorageMenu(messages, registry)"), "admin storage menu must be registered");
+        assertTrue(registrar.contains("new AdminTemplateMenu(messages, registry)"), "admin template menu must be registered");
         assertTrue(registrar.contains("new AdminReviewModerationMenu(messages, registry)"), "admin review moderation menu must be registered");
         assertTrue(registrar.contains("new AdminMigrationMenu(messages, registry)"), "admin migration menu must be registered");
         assertTrue(Files.exists(Path.of("src/main/resources/config-v2/menus/main.yml")), "edit.md checklist path for the main menu must exist");

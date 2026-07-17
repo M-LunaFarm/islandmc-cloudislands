@@ -1264,6 +1264,13 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminStoragePage"), "storage paging must use a typed action");
         assertTrue(adminHandler.contains("AdminStorageMenu.open(plugin, coreApiClient, player"), "storage GUI actions must open live typed status");
         assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.storage\")"), "storage GUI clicks must recheck storage permission");
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminTemplatePage"), "template paging must use a typed action");
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminTemplateToggle"), "template state changes must use a typed action");
+        assertTrue(adminHandler.contains("ConfirmationTokenPolicy.ADMIN_TEMPLATE_TOGGLE_CONFIRM_ACTION"), "template state changes must require a confirmation token");
+        assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.templates.mutate\")"), "template mutations must reserve a GUI session");
+        assertTrue(adminHandler.contains("coreApiClient.templateCommands().enable(toggle.templateId())"), "template enable must use the typed Core client");
+        assertTrue(adminHandler.contains("coreApiClient.templateCommands().disable(toggle.templateId())"), "template disable must use the typed Core client");
+        assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.templates\")"), "template GUI clicks must recheck template permission");
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminMigrationRollback"), "migration rollback must use a typed confirmation action");
         assertTrue(adminHandler.contains("ConfirmationTokenPolicy.ADMIN_MIGRATION_ROLLBACK_CONFIRM_ACTION"), "migration rollback must require a confirmation token");
         assertTrue(adminHandler.contains("GuiSession session = GuiSessions.begin(player, \"admin.migration.mutate\")"), "migration actions must reserve a GUI session before Core mutation");

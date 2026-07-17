@@ -1,0 +1,45 @@
+id: admin.templates
+rows: 6
+title-key: admin-template-menu-title
+layout:
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "____E____"
+  - "P..R.B..N"
+items:
+  _:
+    material: STRUCTURE_BLOCK
+    name-key: admin-template-menu-entry-name
+    fallback-name: 섬 템플릿
+    action: entry
+  E:
+    material: LIME_DYE
+    name-key: admin-template-menu-empty-name
+    fallback-name: 등록된 템플릿이 없습니다
+  P:
+    material: ARROW
+    name-key: admin-template-menu-previous-name
+    fallback-name: 이전 페이지
+    action: page
+  R:
+    material: CLOCK
+    name-key: admin-template-menu-refresh-name
+    fallback-name: 새로고침
+    action: refresh
+  B:
+    material: COMMAND_BLOCK
+    name-key: admin-template-menu-dashboard-name
+    fallback-name: 운영 대시보드로 돌아가기
+    action: dashboard
+  N:
+    material: ARROW
+    name-key: admin-template-menu-next-name
+    fallback-name: 다음 페이지
+    action: page
+actions:
+  entry: admin.templates.toggle.prepare
+  page: admin.templates.page
+  refresh: admin.templates.page
+  dashboard: admin.dashboard.open

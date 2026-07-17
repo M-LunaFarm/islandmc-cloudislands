@@ -17,6 +17,7 @@ class AdminDashboardMenuTest {
             Map.entry("admin.audit.open", "cloudislands.admin.audit"),
             Map.entry("admin.metrics.open", "cloudislands.admin.metrics"),
             Map.entry("admin.reviews.open", "cloudislands.admin.island"),
+            Map.entry("admin.templates.open", "cloudislands.admin.templates"),
             Map.entry("admin.migration.open", "cloudislands.admin.migrate-superiorskyblock2")
         );
 
