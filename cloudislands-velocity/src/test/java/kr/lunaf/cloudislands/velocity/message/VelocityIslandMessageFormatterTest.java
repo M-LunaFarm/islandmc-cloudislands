@@ -227,7 +227,7 @@ class VelocityIslandMessageFormatterTest {
             formatter.inviteCreate(new CoreGuiViews.InviteView("aaaaaaaa-0000-0000-0000-000000000000", "bbbbbbbb-0000-0000-0000-000000000000", "cccccccc-0000-0000-0000-000000000000", "dddddddd-0000-0000-0000-000000000000", "PENDING", "", ""))
         );
         assertEquals(
-            "섬 멤버: 전체 1개 / 11111111 역할=MEMBER",
+            "섬 멤버: 전체 1개 / Player 역할=MEMBER",
             formatter.memberList(List.of(new CoreGuiViews.MemberView("11111111-1111-1111-1111-111111111111", "MEMBER", "", "Player", "", "", "")))
         );
         assertEquals(
@@ -284,6 +284,22 @@ class VelocityIslandMessageFormatterTest {
                 "",
                 "Griefer",
                 "Moderator"
+            )))
+        );
+    }
+
+    @Test
+    void memberListFallsBackToCompactUuidWithoutAProfileName() {
+        assertEquals(
+            "섬 멤버: 전체 1개 / 11111111 역할=MEMBER",
+            formatter.memberList(List.of(new CoreGuiViews.MemberView(
+                "11111111-1111-1111-1111-111111111111",
+                "MEMBER",
+                "",
+                "",
+                "",
+                "",
+                ""
             )))
         );
     }

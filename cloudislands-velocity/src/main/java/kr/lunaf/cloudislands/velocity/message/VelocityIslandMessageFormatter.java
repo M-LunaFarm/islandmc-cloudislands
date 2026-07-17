@@ -374,10 +374,14 @@ public final class VelocityIslandMessageFormatter {
         for (CoreGuiViews.MemberView member : members) {
             total++;
             if (entries.size() < 10) {
-                entries.add(shortId(member.playerUuid()) + " 역할=" + member.role());
+                entries.add(memberDisplayName(member) + " 역할=" + member.role());
             }
         }
         return "섬 멤버: 전체 " + total + "개" + (entries.isEmpty() ? "" : " / " + String.join(" | ", entries));
+    }
+
+    private static String memberDisplayName(CoreGuiViews.MemberView member) {
+        return member.playerName().isBlank() ? shortId(member.playerUuid()) : member.playerName().trim();
     }
 
     public String banList(List<CoreGuiViews.BanView> bans) {
