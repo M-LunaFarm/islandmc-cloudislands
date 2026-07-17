@@ -937,6 +937,26 @@ class AdminCommandBackendPolicyTest {
     }
 
     @Test
+    void playerEventsCommandOpensLiveStreamWhileConsoleKeepsTextOutput() throws Exception {
+        String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
+        String menu = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/AdminEventMenu.java"));
+        String mainMenu = Files.readString(Path.of("src/main/resources/config-v2/ui/menus/main.yml"));
+
+        assertTrue(source.contains("AdminEventMenu.open(agent.plugin(), coreApiClient, player, messagesFor(player))"),
+            "player events command must open the live event stream");
+        assertTrue(source.contains("run(sender, \"Events list\", coreApiClient.adminEvents().list(100)"),
+            "console event output must remain available");
+        assertTrue(source.contains("case \"admin.events\" -> AdminEventMenu.open(agent.plugin(), coreApiClient, target"),
+            "admin openmenu must expose the live event stream");
+        assertTrue(menu.contains("client.adminEvents().list(EVENT_LIMIT)"), "event menu must load typed Core events");
+        assertTrue(menu.contains("Comparator.comparingLong(AdminEventView::seq).reversed()"), "event menu must show newest events first");
+        assertTrue(mainMenu.contains("rightAction: admin.events.open"), "main admin button must expose the event stream on right click");
+        String mainMenuSource = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/gui/IslandMainMenu.java"));
+        assertTrue(mainMenuSource.contains("player.hasPermission(\"cloudislands.admin.events\")"),
+            "events-only operators must be able to use the main admin button");
+    }
+
+    @Test
     void adminIslandInfoAndRuntimeUseTypedCoreClient() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandBackend.java"));
         String catalog = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/paper/admin/AdminCommandCatalog.java"));

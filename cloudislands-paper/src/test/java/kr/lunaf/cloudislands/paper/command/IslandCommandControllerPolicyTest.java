@@ -1240,6 +1240,9 @@ class IslandCommandControllerPolicyTest {
         assertTrue(adminHandler.contains("boolean handleGuiAction(Player player, GuiAction action, GuiClick click)"));
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodeAction"));
         assertTrue(adminHandler.contains("action instanceof GuiAction.AdminNodePage"), "node list paging must use a typed action");
+        assertTrue(adminHandler.contains("action instanceof GuiAction.AdminEventPage"), "event stream paging must use a typed action");
+        assertTrue(adminHandler.contains("AdminEventMenu.open(plugin, coreApiClient, player"), "event GUI actions must open the typed Core event stream");
+        assertTrue(adminHandler.contains("player.hasPermission(\"cloudislands.admin.events\")"), "event GUI clicks must recheck events permission");
         assertTrue(adminHandler.contains("case LIST ->"));
         assertTrue(adminHandler.contains("IslandAdminNodeUseCase"));
         assertTrue(adminHandler.contains("adminNodeUseCase.drainAction"));

@@ -11,6 +11,7 @@ import kr.lunaf.cloudislands.coreclient.JobActionView;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeActionResult;
 import kr.lunaf.cloudislands.paper.application.IslandAdminNodeUseCase.AdminNodeSummary;
+import kr.lunaf.cloudislands.paper.gui.AdminEventMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminNodeMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminJobMenu;
 import kr.lunaf.cloudislands.paper.gui.AdminMigrationMenu;
@@ -45,6 +46,10 @@ final class IslandAdminNodeCommandHandler {
     }
 
     boolean handleGuiAction(Player player, GuiAction action, GuiClick click) {
+        if (action instanceof GuiAction.AdminEventPage page) {
+            openEventMenu(player, page.page());
+            return true;
+        }
         if (action instanceof GuiAction.AdminMigrationRollback) {
             if (runtime.confirmationAccepted(player, action, click)) {
                 runMigrationAction(player, "rollback", "admin.migration.superiorskyblock2.rollback", false);
@@ -106,6 +111,18 @@ final class IslandAdminNodeCommandHandler {
             return handleAdminMenuAction(player, adminMenu);
         }
         return false;
+    }
+
+    private void openEventMenu(Player player, int page) {
+        if (!eventManagementAllowed(player)) {
+            runtime.message(player, runtime.routeMessage("admin-event-menu-permission-denied", "이벤트 스트림 조회 권한이 없습니다."));
+            return;
+        }
+        AdminEventMenu.open(plugin, coreApiClient, player, runtime.messagesFor(player), page);
+    }
+
+    private static boolean eventManagementAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.events");
     }
 
     private boolean handleAdminMenuAction(Player player, GuiAction.AdminMenuAction action) {

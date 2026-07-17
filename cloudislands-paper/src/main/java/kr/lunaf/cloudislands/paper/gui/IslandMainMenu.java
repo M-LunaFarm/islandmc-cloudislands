@@ -76,7 +76,7 @@ public final class IslandMainMenu implements Listener {
         if (!item.actionKey().equals("admin.node.open")) {
             return true;
         }
-        return player.hasPermission("cloudislands.admin") || player.hasPermission("cloudislands.admin.node");
+        return adminMenuAllowed(player);
     }
 
     private static void applyPermissionLocks(Player player, Inventory inventory, MessageRenderer messages) {
@@ -89,12 +89,21 @@ public final class IslandMainMenu implements Listener {
     }
 
     private static boolean permitted(Player player, GuiMenuDefinition.MenuItem item) {
+        if (item.actionKey().equals("admin.node.open") && adminMenuAllowed(player)) {
+            return true;
+        }
         String actionId = MENU.action(item.actionKey(), item.actionKey());
         IslandCommandPermission permission = IslandCommandPermission.fromGuiActionId(actionId);
         if (permission == null) {
             return true;
         }
         return permission.allows(player);
+    }
+
+    private static boolean adminMenuAllowed(Player player) {
+        return player.hasPermission("cloudislands.admin")
+            || player.hasPermission("cloudislands.admin.node")
+            || player.hasPermission("cloudislands.admin.events");
     }
 
     private static org.bukkit.inventory.ItemStack lockedItem(GuiMenuDefinition.MenuItem item, MessageRenderer messages) {

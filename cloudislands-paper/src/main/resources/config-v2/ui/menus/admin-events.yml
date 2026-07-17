@@ -1,0 +1,45 @@
+id: admin.events
+rows: 6
+title-key: admin-event-menu-title
+layout:
+  - "_________"
+  - "_________"
+  - "_________"
+  - "_________"
+  - "____E____"
+  - "P..R.X..N"
+items:
+  _:
+    material: REDSTONE_TORCH
+    name-key: admin-event-menu-entry-name
+    fallback-name: Core 이벤트
+    action: entry
+  E:
+    material: LIME_DYE
+    name-key: admin-event-menu-empty-name
+    fallback-name: 기록된 이벤트가 없습니다
+  P:
+    material: ARROW
+    name-key: admin-event-menu-previous-name
+    fallback-name: 이전 페이지
+    action: page
+  R:
+    material: CLOCK
+    name-key: admin-event-menu-refresh-name
+    fallback-name: 새로고침
+    action: refresh
+  X:
+    material: OAK_DOOR
+    name-key: admin-menu-close-name
+    fallback-name: 닫기
+    action: close
+  N:
+    material: ARROW
+    name-key: admin-event-menu-next-name
+    fallback-name: 다음 페이지
+    action: page
+actions:
+  entry: admin.events.page
+  page: admin.events.page
+  refresh: admin.events.page
+  close: gui.close

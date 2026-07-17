@@ -202,6 +202,17 @@ class GuiActionParserTest {
     }
 
     @Test
+    void parsesAdminEventNavigationIntoTypedPageActions() {
+        GuiAction open = GuiActionParser.parse("admin.events.open", Map.of()).orElseThrow();
+        GuiAction page = GuiActionParser.parse("admin.events.page", Map.of("page", "4")).orElseThrow();
+
+        assertTrue(open instanceof GuiAction.AdminEventPage);
+        assertEquals(Map.of("page", "0"), open.data());
+        assertTrue(page instanceof GuiAction.AdminEventPage);
+        assertEquals(Map.of("page", "4"), page.data());
+    }
+
+    @Test
     void parsesConfirmedMigrationRollbackIntoTypedAction() {
         String actionId = ConfirmationTokenPolicy.ADMIN_MIGRATION_ROLLBACK_CONFIRM_ACTION;
         GuiAction action = GuiActionParser.parse(
@@ -638,6 +649,7 @@ class GuiActionParserTest {
                 ConfirmationTokenPolicy.TOKEN_KEY,
                 ConfirmationTokenPolicy.token(actionId)
             );
+            case "admin.events.page" -> Map.of("page", "0");
             case "admin.storage.page" -> Map.of("page", "0");
             case "admin.node.page" -> Map.of("page", "0");
             case "admin.jobs.page" -> Map.of("page", "0");

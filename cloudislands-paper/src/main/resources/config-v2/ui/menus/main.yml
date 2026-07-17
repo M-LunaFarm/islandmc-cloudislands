@@ -183,8 +183,12 @@ items:
     fallback-name: 관리자 메뉴
     lore-keys:
       - main-menu-admin-command
+      - main-menu-admin-events-command
     fallback-lore:
-      - "/ciadmin node menu"
+      - "좌클릭: 노드 관리"
+      - "우클릭: Core 이벤트"
+    data:
+      rightAction: admin.events.open
     action: admin.node.open
   D:
     material: LAVA_BUCKET
