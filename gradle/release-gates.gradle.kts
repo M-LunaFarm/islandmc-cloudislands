@@ -64,7 +64,7 @@ val clusterSmokeReleaseReportFile = layout.buildDirectory.file("smoke/cluster-sm
 
 tasks.register<Exec>("generateReleaseClusterEvidence") {
     group = "verification"
-    description = "Combines Core integration smoke and boot smoke logs into production GA cluster evidence."
+    description = "Combines observed Core, Lobby Paper, and Velocity smoke results into partial cluster evidence."
     dependsOn(tasks.named("coreIntegrationSmoke"))
     dependsOn(tasks.named("ciBootSmoke"))
     doFirst {
@@ -74,10 +74,20 @@ tasks.register<Exec>("generateReleaseClusterEvidence") {
             "--core-evidence", clusterSmokeEvidenceFile.get().asFile.absolutePath,
             "--paper-log", layout.buildDirectory.file("smoke/paper-$latestStableBootVersion/server.log").get().asFile.absolutePath,
             "--velocity-log", layout.buildDirectory.file("smoke/velocity/server.log").get().asFile.absolutePath,
-            "--repo-root", layout.projectDirectory.asFile.absolutePath,
             "--out", clusterSmokeReleaseEvidenceFile.get().asFile.absolutePath
         )
     }
+}
+
+tasks.register<Exec>("verifyReleaseClusterEvidenceGenerator") {
+    group = "verification"
+    description = "Verifies boot smoke logs cannot claim unobserved cluster nodes or failure injections."
+    environment("PYTHONDONTWRITEBYTECODE", "1")
+    commandLine("python3", file("scripts/ci/test_release_cluster_evidence.py").absolutePath)
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("verifyReleaseClusterEvidenceGenerator"))
 }
 
 tasks.register<JavaExec>("clusterSmokePartialReport") {
@@ -135,6 +145,7 @@ tasks.register("ciIntegrationSmoke") {
 tasks.register("releaseClusterSmokeGate") {
     group = "verification"
     description = "Requires complete production GA cluster-smoke evidence before release."
+    dependsOn(tasks.named("verifyReleaseClusterEvidenceGenerator"))
     dependsOn(tasks.named("clusterSmokeVerify"))
 }
 
@@ -144,11 +155,15 @@ tasks.register("verifyReleaseGateCoverage") {
     inputs.files(
         layout.projectDirectory.file(".github/workflows/integration.yml"),
         layout.projectDirectory.file("scripts/ci/core_integration_smoke.py"),
+        layout.projectDirectory.file("scripts/ci/release_cluster_evidence.py"),
+        layout.projectDirectory.file("scripts/ci/test_release_cluster_evidence.py"),
         layout.projectDirectory.file("gradle/release-gates.gradle.kts")
     )
     doLast {
         val workflow = layout.projectDirectory.file(".github/workflows/integration.yml").asFile.readText()
         val coreSmoke = layout.projectDirectory.file("scripts/ci/core_integration_smoke.py").asFile.readText()
+        val releaseEvidence = layout.projectDirectory.file("scripts/ci/release_cluster_evidence.py").asFile.readText()
+        val releaseEvidenceTest = layout.projectDirectory.file("scripts/ci/test_release_cluster_evidence.py").asFile.readText()
         val buildLogic = layout.projectDirectory.file("gradle/release-gates.gradle.kts").asFile.readText()
         val requiredSignals = listOf(
             "postgres:",
@@ -188,6 +203,27 @@ tasks.register("verifyReleaseGateCoverage") {
         val missingMysqlRuntimeSignals = mysqlRuntimeSignals.filterNot(coreSmoke::contains)
         if (missingMysqlRuntimeSignals.isNotEmpty()) {
             throw GradleException("Core integration smoke is missing MySQL runtime assertions: ${missingMysqlRuntimeSignals.joinToString(", ")}")
+        }
+        for (required in listOf(
+            "partial-release-cluster-smoke",
+            "components.update([\"velocity\", \"lobby-paper\"])",
+            "CloudIslands agent role=LOBBY"
+        )) {
+            if (!releaseEvidence.contains(required)) {
+                throw GradleException("Release evidence generator is missing observed-only signal: $required")
+            }
+        }
+        for (forbidden in listOf(
+            "release[\"failureInjections\"] =",
+            "island-paper-a\", \"island-paper-b\", \"virtual-player",
+            "FAILURE_INJECTION_EVIDENCE_SOURCES"
+        )) {
+            if (releaseEvidence.contains(forbidden)) {
+                throw GradleException("Release evidence generator must not certify unobserved runtime signals: $forbidden")
+            }
+        }
+        if (!releaseEvidenceTest.contains("test_boot_logs_only_add_observed_lobby_and_velocity_components")) {
+            throw GradleException("Release evidence generator observed-only regression test is missing")
         }
         for (forbidden in listOf(
             "secrets.CI_CLUSTER_SMOKE_EVIDENCE_JSON",
