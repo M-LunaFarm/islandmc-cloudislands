@@ -105,6 +105,28 @@ tasks.register<JavaExec>("clusterSmokePartialReport") {
     )
 }
 
+tasks.register<JavaExec>("ciReleaseClusterEvidenceReport") {
+    group = "verification"
+    description = "Validates and reports the release evidence observed by the CI integration environment."
+    dependsOn(tasks.named("generateReleaseClusterEvidence"))
+    dependsOn(project(":cloudislands-testkit").tasks.named("classes"))
+    val testkitSourceSets = project(":cloudislands-testkit").extensions.getByType<SourceSetContainer>()
+    classpath = testkitSourceSets.named("main").get().runtimeClasspath
+    mainClass.set("kr.lunaf.cloudislands.testkit.ClusterSmokeVerifierCli")
+    args(
+        "--evidence", clusterSmokeReleaseEvidenceFile.get().asFile.absolutePath,
+        "--report-out", clusterSmokeReleaseReportFile.get().asFile.absolutePath,
+        "--allow-partial"
+    )
+}
+
+tasks.register("ciReleaseClusterEvidenceGate") {
+    group = "verification"
+    description = "Requires valid observed-only Core, Lobby Paper, and Velocity release evidence in CI."
+    dependsOn(tasks.named("verifyReleaseClusterEvidenceGenerator"))
+    dependsOn(tasks.named("ciReleaseClusterEvidenceReport"))
+}
+
 tasks.register<JavaExec>("clusterSmokeVerify") {
     group = "verification"
     description = "Verifies a full production GA cluster-smoke evidence JSON file. Pass -PclusterSmokeEvidence=/path/to/evidence.json or CI_CLUSTER_SMOKE_EVIDENCE_JSON."
@@ -175,12 +197,16 @@ tasks.register("verifyReleaseGateCoverage") {
             "build/smoke/core-integration/cluster-evidence.json",
             "build/smoke/core-integration/cluster-smoke-report.json",
             "build/smoke/core-integration-mysql/mysql-evidence.json",
-            "./gradlew releaseClusterSmokeGate --no-daemon",
+            "./gradlew ciReleaseClusterEvidenceGate --no-daemon",
+            "build/smoke/cluster-smoke/cluster-evidence.json",
             "build/smoke/cluster-smoke/cluster-smoke-report.json"
         )
         val missing = requiredSignals.filterNot(workflow::contains)
         if (missing.isNotEmpty()) {
             throw GradleException("Integration workflow is missing cluster evidence gate signals: ${missing.joinToString(", ")}")
+        }
+        if (workflow.contains("./gradlew releaseClusterSmokeGate --no-daemon")) {
+            throw GradleException("Integration workflow must not treat observed-only CI evidence as full production GA certification")
         }
         val mysqlBuildSignals = listOf(
             "tasks.register<Exec>(\"mysqlCoreIntegrationSmoke\")",

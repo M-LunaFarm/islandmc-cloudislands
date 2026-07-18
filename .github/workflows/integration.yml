@@ -129,15 +129,16 @@ jobs:
             build/smoke/velocity/server.log
           if-no-files-found: error
 
-      - name: Generate and verify release cluster smoke evidence
+      - name: Generate and verify observed CI release evidence
         if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs['verify-cluster-evidence'])
-        run: ./gradlew releaseClusterSmokeGate --no-daemon
+        run: ./gradlew ciReleaseClusterEvidenceGate --no-daemon
 
-      - name: Upload release cluster smoke report
+      - name: Upload observed CI release evidence
         if: always() && (startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && inputs['verify-cluster-evidence']))
         uses: actions/upload-artifact@v4
         with:
           name: cloudislands-release-cluster-smoke-report
           path: |
+            build/smoke/cluster-smoke/cluster-evidence.json
             build/smoke/cluster-smoke/cluster-smoke-report.json
           if-no-files-found: warn
