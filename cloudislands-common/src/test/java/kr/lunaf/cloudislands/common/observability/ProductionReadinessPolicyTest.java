@@ -285,7 +285,7 @@ class ProductionReadinessPolicyTest {
     void releaseClusterEvidenceRecognizesLegacyAndModernPaperReadyMarkers() throws Exception {
         String evidence = Files.readString(repositoryRoot().resolve("scripts/ci/release_cluster_evidence.py"));
 
-        assertTrue(evidence.contains("require_markers(paper_log, [\"CloudIslands Paper agent enabled\"])"));
+        assertTrue(evidence.contains("require_markers(paper_log, [\"CloudIslands Paper agent enabled\", \"CloudIslands agent role=LOBBY\"])"));
         assertTrue(evidence.contains("require_any_marker(paper_log, [\"Done (\", \"Done preparing level\"])"));
         assertTrue(evidence.contains("require_markers(velocity_log, [\"CloudIslands Velocity router enabled\", \"Listening on\"])"));
     }
