@@ -1,11 +1,665 @@
 # CloudIslands
 
+[한국어](#한국어) | [English](#english)
+
+## 한국어
+
+CloudIslands는 Paper와 Velocity에서 섬을 운영하기 위한 Skyblock 플랫폼입니다.
+섬을 특정 Minecraft 서버에 묶어 두지 않고, 필요할 때 사용 가능한 Paper 노드에
+불러옵니다. 섬 정보는 Core가 관리하고, Paper는 실제 월드를 실행하며, Velocity는
+플레이어를 올바른 서버로 보냅니다.
+
+**현재 버전:** `1.1.255`
+
+서버 규모에 따라 두 가지 구성을 쓸 수 있습니다.
+
+- **Paper 한 대:** 공개 Paper 서버 한 대와 Core, PostgreSQL, Redis로 구성합니다.
+  Velocity나 별도 로비 서버 없이 바로 운영할 수 있습니다.
+- **분산 네트워크:** Velocity, 로비, 여러 Paper 노드, Core 이중화, PostgreSQL,
+  Redis, S3 호환 스토리지를 함께 사용합니다.
+
+처음 확인할 때는 Docker Compose 구성을 권장합니다. 이미 운영 중인 인프라가 있다면
+설정 팩이나 Helm 차트만 가져다 쓸 수 있습니다.
+
+### 목차
+
+- [CloudIslands를 쓰는 이유](#cloudislands를-쓰는-이유)
+- [실행 환경](#실행-환경)
+- [지원하는 Minecraft 버전](#지원하는-minecraft-버전)
+- [배포 구성 고르기](#배포-구성-고르기)
+- [Paper 한 대로 시작하기](#paper-한-대로-시작하기)
+- [분산 구성으로 시작하기](#분산-구성으로-시작하기)
+- [설정](#설정)
+- [설치 후 확인](#설치-후-확인)
+- [명령어와 권한](#명령어와-권한)
+- [구조와 데이터 저장 위치](#구조와-데이터-저장-위치)
+- [장애와 복구](#장애와-복구)
+- [보안](#보안)
+- [백업과 복원](#백업과-복원)
+- [SuperiorSkyblock2에서 이전하기](#superiorskyblock2에서-이전하기)
+- [연동과 애드온](#연동과-애드온)
+- [빌드와 릴리스](#빌드와-릴리스)
+- [문제 해결](#문제-해결)
+- [이번 릴리스](#이번-릴리스)
+
+### CloudIslands를 쓰는 이유
+
+일반적인 Skyblock 플러그인은 섬 월드와 서버가 강하게 묶입니다. CloudIslands는
+섬의 소유권과 현재 월드를 실행하는 서버를 분리합니다.
+
+- 준비된 Paper 노드라면 어느 곳에서든 섬을 열 수 있습니다.
+- 섬 데이터는 매니페스트와 SHA-256 체크섬을 포함한 묶음으로 저장합니다.
+- fencing token으로 오래된 노드가 뒤늦게 저장 결과를 덮어쓰는 일을 막습니다.
+- 이동 티켓은 플레이어, 출발 노드, nonce, 만료 시간에 묶여 있습니다.
+- 섬, 멤버, 권한, 경제, 미션, 랭킹, 스냅샷, 작업, 감사 기록은 SQL에 저장합니다.
+- Redis는 큐, 이벤트, 잠금, 캐시를 빠르게 처리하는 용도이며 원본 데이터 저장소가
+  아닙니다.
+- Paper의 블록 보호 판정은 로컬 인덱스를 사용합니다. 블록 이벤트를 처리하면서
+  HTTP, SQL, Redis를 기다리지 않습니다.
+- 스토리지 저장에 실패해도 이미 열린 섬은 계속 플레이할 수 있고 저장은 재시도됩니다.
+- Paper 한 대 구성에서도 같은 섬 수명 주기와 이동 티켓을 사용하되, 서버 이동 대신
+  로컬 텔레포트를 수행합니다.
+
+여기서 이동 가능한 섬 데이터란 CloudIslands가 관리하는 월드와 섬 상태를 뜻합니다.
+CoreProtect 기록, WorldEdit 실행 취소 기록, 다른 플러그인이 자체 DB에 저장한 값까지
+섬 파일에 몰래 포함하지는 않습니다.
+
+### 실행 환경
+
+| 항목 | 기준 |
+|---|---|
+| Paper | `1.21.x` 또는 안정 버전 `26.1.x` |
+| Java | Paper `1.21.x`는 Java 21, Paper `26.1.x`와 `26.2.x`는 Java 25 |
+| Velocity | 분산 구성은 `3.5.0-SNAPSHOT` 컴파일 기준 |
+| 데이터베이스 | PostgreSQL 16 권장, MySQL과 MariaDB도 지원 |
+| Redis | Core 큐, 이벤트, 잠금, 캐시 용도로 Redis 7 권장 |
+| 섬 스토리지 | 여러 서버면 S3 호환 스토리지, 한 호스트면 로컬 파일 시스템 사용 가능 |
+| 빌드 | 저장소에 포함된 Gradle Wrapper 9.1 사용 |
+
+필요한 CPU와 메모리는 섬 수, 시야 거리, 추가 플러그인, 자동화 장치 규모에 따라 크게
+달라집니다. 예제의 메모리 제한은 개발용 시작값입니다. 운영 서버에서는 MSPT와 힙
+사용량을 보고 Core와 Paper를 따로 조정해야 합니다.
+
+외부에 서버를 열기 전에 다음 항목은 반드시 확인하십시오.
+
+- DB, Redis, Paper 데이터는 영구 볼륨이나 외부 관리형 서비스에 둡니다.
+- Core, DB, Redis, 오브젝트 스토리지, 백엔드 Paper 포트는 외부에 공개하지 않습니다.
+- Paper 노드 ID와 Velocity 서버 이름은 중복되지 않아야 합니다.
+- SQL과 섬 스토리지는 같은 시점에 백업합니다.
+- 실제로 사용할 권한, 경제, 커스텀 블록, 스태커 플러그인 조합으로 테스트합니다.
+
+### 지원하는 Minecraft 버전
+
+| 대상 | 컴파일 검사 | 부팅 검사 | 지원 상태 |
+|---|---|---|---|
+| Paper `1.21.x` | `paper121Compile` | `paper121BootSmoke` | 정식 지원 |
+| Paper `26.1.x` | `paper261Compile` | `paper261BootSmoke` | 정식 지원, 현재 기준 `26.1.2` |
+| Paper `26.2.x` | `paper262Compile` | `paper262BootSmoke` | 실험적 지원, beta build 60 기준 |
+
+한 번 컴파일됐다는 이유만으로 지원 버전으로 표시하지 않습니다. 정식 지원에는 컴파일,
+실제 부팅, 플러그인 패키징, 릴리스 검증 결과가 모두 필요합니다. 버전 기준 파일은
+`gradle/minecraft-versions.toml`입니다.
+
+버전 정보를 바꿨다면 다음 검사도 함께 실행하십시오.
+
+```bash
+./gradlew verifyReadmeVersionTable verifyMinecraftVersionMatrix
+```
+
+### 배포 구성 고르기
+
+| 구성 | 이런 경우에 사용 | 접속 포트 | 섬 스토리지 |
+|---|---|---|---|
+| Paper 한 대 | Minecraft 서버 한 대면 충분할 때 | Paper `25565` | 영구 로컬 경로 또는 S3 |
+| 분산 Compose | 로비 분리, Core 이중화, 여러 섬 노드가 필요할 때 | Velocity `25565` | S3 또는 MinIO |
+| Helm | Kubernetes와 외부 영구 스토리지를 이미 운영할 때 | Velocity Service | 공유 오브젝트 스토리지 |
+| 설정 팩 | DB와 프로세스 관리 환경을 직접 갖추고 있을 때 | Paper 또는 Velocity | 로컬 또는 S3 |
+
+예제는 `deploy/examples`, 전체 분산 Compose 구성은 `deploy/compose`, Helm 차트는
+`deploy/helm/cloudislands`에 있습니다.
+
+### Paper 한 대로 시작하기
+
+이 구성은 PostgreSQL, 비공개 Redis, Core, 공개 Paper 서버 한 대를 실행합니다.
+Paper가 섬 생성, 보호, 명령어, GUI, 저장, 복원, 로컬 이동을 모두 처리합니다.
+Redis는 Core에서만 사용하고 Paper 플러그인에서는 끕니다.
+
+#### 1. 설정과 비밀값 준비
+
+```bash
+cd deploy/examples/single-paper
+cp .env.example .env
+mkdir -p secrets
+umask 077
+openssl rand -hex 32 > secrets/database-password
+openssl rand -hex 32 > secrets/core-token
+openssl rand -hex 32 > secrets/admin-token
+mkdir -p /srv/cloudislands/islands-storage
+```
+
+`.env`를 열어 `CLOUDISLANDS_STORAGE_PATH`를 위에서 만든 절대 경로로 지정합니다.
+아래 값은 운영 환경에서도 그대로 두는 편이 좋습니다.
+
+```dotenv
+CLOUDISLANDS_PAPER_ONLINE_MODE=true
+CLOUDISLANDS_PAPER_VERSION=26.1.2
+MINECRAFT_EULA=TRUE
+```
+
+`MINECRAFT_EULA=TRUE`는 Minecraft EULA에 동의한다는 뜻입니다.
+
+#### 2. 실행
+
+```bash
+docker compose up -d --build --wait
+docker compose ps
+```
+
+포트를 바꾸지 않았다면 `localhost:25565`로 접속합니다.
+
+#### 3. 상태 확인
+
+```bash
+curl --fail http://127.0.0.1:8443/ready
+docker compose exec paper curl --fail --silent http://127.0.0.1:8789/health
+docker compose logs --tail=200 core paper
+```
+
+게임 안에서는 다음 순서로 확인합니다.
+
+```text
+/is create default
+/is home
+/ciadmin setup verify
+/ciadmin doctor
+```
+
+섬을 만든 뒤 나갔다가 다시 접속해 `/is home`이 정상적으로 작동하는지 확인하십시오.
+마지막으로 있던 섬이 아직 열리지 않은 상태에서 접속해도 기본 월드의 같은 좌표로 잘못
+보내지 않고, 설정한 대기 월드의 스폰으로 돌려보냅니다.
+
+#### 4. 데이터 유지한 채 종료
+
+```bash
+docker compose down
+```
+
+PostgreSQL, Redis, Paper 볼륨까지 지울 생각이 아니라면 `-v`를 붙이지 마십시오.
+`CLOUDISLANDS_STORAGE_PATH`의 섬 데이터는 Compose 볼륨 밖에 있으므로 별도로 백업해야
+합니다.
+
+### 분산 구성으로 시작하기
+
+분산 Compose는 PostgreSQL, 비밀번호가 설정된 Redis, MinIO, Core 두 대와 HAProxy,
+Velocity, 로비 Paper 한 대, 섬 Paper 두 대를 실행합니다. 외부에는 Velocity만
+공개됩니다. Core 관리 포트는 로컬 호스트에서만 접근할 수 있고 나머지 백엔드는 호스트
+포트를 열지 않습니다.
+
+#### 1. 비밀값 만들기
+
+저장소 최상위에서 실행합니다.
+
+```bash
+mkdir -p /srv/cloudislands/secrets
+umask 077
+openssl rand -hex 32 > /srv/cloudislands/secrets/database-password
+openssl rand -hex 32 > /srv/cloudislands/secrets/redis-password
+openssl rand -hex 20 > /srv/cloudislands/secrets/storage-access-key
+openssl rand -hex 32 > /srv/cloudislands/secrets/storage-secret-key
+openssl rand -hex 32 > /srv/cloudislands/secrets/core-token
+openssl rand -hex 32 > /srv/cloudislands/secrets/admin-token
+openssl rand -base64 48 | tr -d '\n' > /srv/cloudislands/secrets/forwarding-secret
+```
+
+Compose가 파일을 찾을 수 있도록 경로를 내보냅니다.
+
+```bash
+export CLOUDISLANDS_DATABASE_PASSWORD_FILE=/srv/cloudislands/secrets/database-password
+export CLOUDISLANDS_REDIS_PASSWORD_FILE=/srv/cloudislands/secrets/redis-password
+export CLOUDISLANDS_STORAGE_ACCESS_KEY_FILE=/srv/cloudislands/secrets/storage-access-key
+export CLOUDISLANDS_STORAGE_SECRET_KEY_FILE=/srv/cloudislands/secrets/storage-secret-key
+export CLOUDISLANDS_CORE_TOKEN_FILE=/srv/cloudislands/secrets/core-token
+export CLOUDISLANDS_ADMIN_TOKEN_FILE=/srv/cloudislands/secrets/admin-token
+export CLOUDISLANDS_FORWARDING_SECRET_FILE=/srv/cloudislands/secrets/forwarding-secret
+export MINECRAFT_EULA=TRUE
+```
+
+forwarding secret은 Velocity와 모든 백엔드 Paper가 같은 값을 써야 합니다. Core token이나
+admin token과 같은 값을 재사용하지 마십시오.
+
+#### 2. 실행
+
+```bash
+docker compose -f deploy/compose/docker-compose.yml up -d --build --wait
+docker compose -f deploy/compose/docker-compose.yml ps
+```
+
+기본 접속 주소는 `localhost:25565`입니다.
+
+#### 3. 라우팅 확인
+
+```bash
+curl --fail http://127.0.0.1:8443/live
+curl --fail http://127.0.0.1:8443/ready
+docker compose -f deploy/compose/docker-compose.yml logs --tail=200 core-1 core-2 velocity lobby-paper island-paper-a island-paper-b
+```
+
+`/ready`에서 DB, Redis, 오브젝트 스토리지, 큐, Paper 노드 heartbeat가 모두 준비된
+상태여야 합니다. 기본 구성이라면 섬을 열 수 있는 노드가 두 대 보여야 합니다.
+
+게임 안에서는 실제 이동까지 확인합니다.
+
+```text
+/is create default
+/is home
+/is visit <플레이어-또는-섬>
+/ciadmin node list
+/ciadmin doctor
+```
+
+#### 4. Paper 노드 추가
+
+새 Paper 노드는 다음 조건을 지켜야 합니다.
+
+- 다른 노드와 겹치지 않는 `node.id`
+- Velocity 설정에 등록한 이름과 같은 서버 이름
+- 같은 섬을 처리할 노드끼리는 같은 island pool
+- 같은 Core 주소, 스토리지 bucket, forwarding secret
+- 노드마다 분리된 쓰기 가능한 Paper 데이터 디렉터리
+
+실행 중인 Paper 데이터 디렉터리를 복사해서 다른 노드로 쓰면 안 됩니다. 섬 소유권은
+Core와 스토리지에서 결정하며, 서버 폴더 복제로 이전하지 않습니다.
+
+### 설정
+
+CloudIslands는 Config v2 YAML을 사용합니다. 첫 실행 때 플러그인 데이터 디렉터리에
+기본 파일이 생성됩니다.
+
+| 설정 팩 | 용도 |
+|---|---|
+| `deploy/examples/single-paper/config-pack.yml` | Paper 한 대와 로컬 라우팅 |
+| `deploy/examples/single-node/config-pack.yml` | 분산 네트워크의 섬 노드 한 대 |
+| `deploy/examples/two-island-nodes/config-pack.yml` | 섬 노드 두 대와 용량 분배 예제 |
+| `deploy/examples/production-ha/config-pack.yml` | 이중화를 고려한 운영 기준 |
+| `deploy/examples/migration-lab/config-pack.yml` | SuperiorSkyblock2 이전 연습 환경 |
+
+Paper 설정은 역할별로 나뉩니다.
+
+- `runtime.yml`: 노드 ID, 역할, pool, 용량, heartbeat, 상태 확인
+- `integrations.yml`: Core, Redis, 스토리지, 라우팅 방식, 외부 연동
+- `security.yml`: token, Velocity forwarding, route session, proxy 경계
+- `features.yml`: GUI와 기능 켜기/끄기
+- `gameplay.yml`: 생성기, 보호, 제한, 게임 규칙
+- `ui/`: 메시지, 테마, 메뉴
+
+섬 월드를 여는 서버는 `ISLAND_NODE`, 명령어와 GUI만 제공하는 분산 로비는 `LOBBY`를
+사용합니다.
+
+Paper 한 대 구성에서 중요한 값은 다음과 같습니다.
+
+```yaml
+redis:
+  enabled: false
+routing:
+  direct-local-teleport: true
+  local-fallback-world: world
+forwarding:
+  required: false
+route-session:
+  enforce: false
+  required: false
+```
+
+분산 구성에서는 local routing을 끄고 Velocity modern forwarding, route session,
+proxy source 검사를 켜야 합니다.
+
+운영 모드의 Core는 메모리 저장소를 원본으로 사용할 수 없습니다. PostgreSQL, MySQL,
+MariaDB 중 하나를 사용하고 JDBC fallback은 끄십시오. Core가 여러 대라면 한 대만 자동
+스키마 생성을 켜고, 스키마가 준비된 뒤 나머지 Core를 시작하는 구성이 안전합니다.
+제공된 분산 Compose가 이 방식으로 설정되어 있습니다.
+
+비밀번호와 token은 Docker/Kubernetes Secret이나 별도 비밀 관리 도구로 전달하십시오.
+`.env`, access key, forwarding secret, 실제 값이 채워진 런타임 설정을 저장소에 올리면
+안 됩니다.
+
+Helm 차트는 `deploy/helm/cloudislands`에 있습니다. 모든 이미지 태그를 고정하고,
+영구 StorageClass와 기존 Secret을 연결하십시오. 운영 환경에서는 Core를 두 개 이상
+두고 NetworkPolicy, TLS, 백업, PodDisruptionBudget도 직접 준비해야 합니다.
+
+### 설치 후 확인
+
+프로세스가 켜졌다는 사실만으로 설치가 끝난 것은 아닙니다. 실제 플레이와 복원 경로까지
+확인하십시오.
+
+1. Core의 `/live`, `/ready`가 모두 `UP`인지 확인합니다.
+2. `/ciadmin node list`에 예상한 Paper 노드가 모두 보이는지 확인합니다.
+3. `/ciadmin setup verify`와 `/ciadmin doctor`를 실행합니다.
+4. 섬을 만들고 생성된 스폰 위치로 이동하는지 확인합니다.
+5. 접속을 끊었다가 다시 들어와 `/is home`을 실행합니다.
+6. 스냅샷을 만든 뒤 섬을 비활성화하고 복원합니다.
+7. Paper를 재시작하고 노드가 `STARTING`에서 `READY`로 돌아오는지 봅니다.
+8. 스토리지를 잠시 끊어 열린 섬은 계속 플레이되고 저장은 재시도되는지 확인합니다.
+9. Core, Paper, Velocity 상태 페이지와 로그에서 재시도나 stale node 오류를 확인합니다.
+10. 플레이어를 받기 전에 운영 데이터가 아닌 섬 하나로 백업과 복원을 연습합니다.
+
+### 명령어와 권한
+
+플레이어가 주로 사용하는 명령어입니다.
+
+- `/is`, `/island`, `/섬`: 섬 메뉴와 기본 명령어
+- `/is help`: 현재 켜진 기능에 맞춘 도움말
+- `/is create [template]`, `/is home`, `/is visit`, `/is warp`: 섬 생성과 이동
+- `/is members`, `/is invite`, `/is trust`, `/is permissions`: 멤버와 권한
+- `/is bank`, `/is warehouse`, `/is upgrades`, `/is missions`: 성장 기능
+- `/is settings`, `/is fly`, `/is biome`, `/is border`: 섬 환경 설정
+- `/is snapshot`, `/is restore`: 허용된 범위의 사용자 복구 기능
+
+플레이어 권한은 `cloudislands.island.*` 아래에 있습니다. 기본 권한
+`cloudislands.player`는 플레이어에게 주어지며, 서버의 권한 플러그인에서 변경 명령을
+더 제한할 수 있습니다.
+
+운영자 명령어는 다음과 같습니다.
+
+- `/ciadmin status`: 서비스와 노드 상태 요약
+- `/ciadmin setup verify`: 배포 설정 연결 상태 확인
+- `/ciadmin doctor`: 장애 원인과 복구 방향 확인
+- `/ciadmin node ...`: 노드 조회, drain, 복귀, 이동, 안전 종료
+- `/ciadmin island ...`: 섬 조회, 활성화, 저장, 복원, 수리, 격리, 이전, 삭제
+- `/ciadmin jobs`, `/ciadmin route`, `/ciadmin storage`: 작업과 이동, 스토리지 진단
+- `/ciadmin audit`, `/ciadmin metrics`, `/ciadmin support-bundle`: 감사와 운영 자료 수집
+- `/ciadmin integrations report`: 선택 연동 플러그인 상태
+- `/ciadmin migrate-superiorskyblock2 ...`: SuperiorSkyblock2 이전
+
+Paper 권한은 `cloudislands.admin.*`를 사용합니다. Core는 별도로 admin token의 서버 측
+권한을 검사하므로 Bukkit 권한만 준다고 Core 관리 기능을 우회할 수는 없습니다.
+
+### 구조와 데이터 저장 위치
+
+```text
+플레이어
+   |
+   +--> Paper 한 대 -------------------------+
+   |         |                               |
+   |         +-- 이동 티켓을 로컬에서 처리   |
+   |                                         v
+   +--> Velocity --> 로비 / 섬 Paper ------> Core API
+                                             |   |   |
+                                             |   |   +--> Redis
+                                             |   +------> SQL
+                                             +----------> 섬 스토리지
+```
+
+| 모듈 | 역할 |
+|---|---|
+| `cloudislands-api` | 공개 애드온 API, 이벤트, 서비스 계약 |
+| `cloudislands-common` | 보안, 라우팅, 설정, 실패 처리, 캐시 공통 코드 |
+| `cloudislands-protocol` | 통신 DTO와 호환성 계약 |
+| `cloudislands-core-client` | 비동기 Core 클라이언트 |
+| `cloudislands-core-service` | DB 원본 상태, API, 작업, 감사, 노드 할당 |
+| `cloudislands-paper` | 명령어, GUI, 보호, 섬 열기, 저장, 복원, 텔레포트 |
+| `cloudislands-velocity` | 이동 준비, session, 프록시 전송 |
+| `cloudislands-storage` | 섬 묶음, 매니페스트, 체크섬, 스냅샷, 보관 정책 |
+| `cloudislands-migration` | SuperiorSkyblock2 가져오기와 검증 |
+| `cloudislands-satis` | 선택 설치하는 공식 공장·성장 기능 팩 |
+| `cloudislands-testkit` | 애드온과 연동 테스트 도구 |
+| `cloudislands-bom` | 애드온 의존성 버전 정렬 |
+
+섬을 열 때는 Core가 권한과 상태를 확인하고, 여유 있는 노드를 고른 뒤 fencing token이
+붙은 작업을 보냅니다. Paper가 섬을 만들거나 복원하고 준비가 끝났다고 보고하면 Core가
+현재 실행 위치를 확정합니다. 그다음 Velocity가 플레이어를 옮기거나, Paper 한 대
+구성에서는 같은 서버 안에서 안전한 위치로 텔레포트합니다.
+
+데이터별 원본 위치는 다음과 같습니다.
+
+- **SQL:** 섬, 실행 상태, 작업, 멤버, 권한, 경제, 미션, 랭킹, 스냅샷, 감사 기록
+- **S3 또는 로컬 스토리지:** 이동 가능한 섬 묶음과 매니페스트
+- **Redis:** 큐, 이벤트, 잠금, heartbeat와 캐시
+- **Paper 로컬 디스크:** 현재 열린 월드와 저장 재시도 기록
+
+Paper 로컬 디스크는 분산 구성의 최종 원본이 아닙니다.
+
+### 장애와 복구
+
+**Paper 노드 장애:** Core는 heartbeat가 충분히 오래 끊겼는지 확인한 뒤 노드를 장애
+상태로 바꿉니다. 새 이동을 중단하고 영향을 받은 섬을 복구 대상으로 돌립니다. 다른
+노드가 마지막으로 검증된 섬 묶음을 열며, 늦게 도착한 이전 노드의 저장 결과는 fencing
+검사에서 거부됩니다.
+
+**정상 재시작:** Paper는 다시 켜질 때 `STARTING`으로 등록한 뒤 `READY`로 전환합니다.
+이전 프로세스가 남긴 `SHUTTING_DOWN` 상태 때문에 재시작한 노드가 계속 제외되지는
+않습니다.
+
+**오브젝트 스토리지 장애:** 이미 열린 섬은 계속 플레이할 수 있습니다. 새로 섬을 열거나
+복원하는 작업은 안전하게 실패하고 저장 실패는 재시도 큐에 남습니다. 상태 확인은 Paper
+메인 스레드 밖에서 수행합니다.
+
+**Core 장애:** 이미 열린 섬의 보호와 제한된 로컬 동작은 유지됩니다. 다만 새로운 섬
+열기, 멤버 변경, 경제 처리처럼 Core 확인이 필요한 작업은 실패로 닫힙니다. 분산 구성은
+Core를 두 대 이상 두고 준비 상태를 확인하는 내부 로드밸런서를 사용하십시오.
+
+**Redis 장애:** SQL과 섬 스토리지는 남지만 큐, 이벤트, 잠금, 캐시가 영향을 받습니다.
+Core 준비 상태가 내려가면 새 작업을 받지 말고 Redis가 복구될 때까지 원본 데이터를
+임의로 캐시에서 재구성하지 마십시오.
+
+비동기 응답은 요청을 시작한 정확한 플레이어 연결과 일치할 때만 적용됩니다. 같은 UUID가
+다시 접속했더라도 이전 연결에서 늦게 도착한 텔레포트, GUI, 인벤토리 결과를 새 연결에
+적용하지 않습니다.
+
+### 보안
+
+Paper 한 대를 online mode로 직접 공개하는 경우 Core와 Redis는 비공개 네트워크에 두고,
+Core token과 admin token은 서로 다른 무작위 값으로 설정합니다. direct-local routing을
+쓸 때는 Velocity forwarding과 route session이 필요하지 않습니다.
+
+분산 구성에서는 다음 항목이 필수입니다.
+
+- 플레이어는 Velocity로만 접속
+- 백엔드 Paper 포트는 외부 차단
+- Velocity modern forwarding 사용
+- 모든 백엔드에서 같은 forwarding secret 사용
+- route session과 proxy source 검사 활성화
+- Core, DB, Redis, S3는 내부 네트워크에만 노출
+
+Core 관리 API는 별도 admin token과 서버 측 권한을 사용합니다. token을 URL query에
+넣거나 로그에 출력하지 말고, 주기적으로 교체하십시오. 관리 포트는 loopback, VPN,
+내부 ingress 중 하나로 제한합니다.
+
+운영 중에는 비밀값을 커밋하지 말고, 업로드된 섬 묶음의 경로와 체크섬을 검증하며,
+감사 로그와 support bundle에 token이나 개인정보가 포함되지 않는지 확인하십시오.
+
+### 백업과 복원
+
+다음 항목은 같은 복구 지점으로 묶어 백업합니다.
+
+- PostgreSQL/MySQL 덤프 또는 일관된 스냅샷
+- S3 bucket 또는 로컬 섬 스토리지
+- Paper 저장 재시도 기록과 운영 설정
+- 사용한 릴리스 버전, 이미지 digest, 설정 팩
+- 암호화해 보관한 비밀값 복구 절차
+
+Redis는 최종 원본이 아니므로 Redis만 백업해서는 복구할 수 없습니다.
+
+복원은 별도 환경에서 먼저 연습합니다.
+
+1. DB와 섬 스토리지를 같은 시점의 백업으로 복원합니다.
+2. Core를 먼저 켜고 `/live`, `/ready`를 확인합니다.
+3. Paper 노드를 켜고 heartbeat가 `READY`가 되는지 확인합니다.
+4. 운영 데이터가 아닌 섬을 열고 체크섬 검증, 이동, 저장을 확인합니다.
+5. 감사 로그에 복원과 이동 기록이 남았는지 확인합니다.
+6. 확인이 끝난 뒤에만 플레이어 접속을 엽니다.
+
+릴리스 단위의 전체 복구 검사는 다음 명령으로 실행합니다.
+
+```bash
+./gradlew releaseClusterSmokeGate
+```
+
+### SuperiorSkyblock2에서 이전하기
+
+이전 작업은 운영 서버에서 바로 시작하지 말고 복사한 데이터로 먼저 연습하십시오.
+
+1. 기존 서버와 SuperiorSkyblock2 데이터를 백업합니다.
+2. `deploy/examples/migration-lab/config-pack.yml`로 격리된 환경을 만듭니다.
+3. `/ciadmin migrate-superiorskyblock2 preflight`를 실행합니다.
+4. dry-run 보고서에서 매핑되지 않은 월드, 멤버, 권한, 경제 값을 확인합니다.
+5. 문제가 없을 때 실제 import를 실행합니다.
+6. 섬 수, 소유자, 멤버, 홈, 워프, 은행, 역할, 설정을 대조합니다.
+7. 일부 플레이어로 접속, 섬 이동, 저장, 재접속을 확인합니다.
+8. 검증 자료와 원본 백업을 보관한 뒤 전환합니다.
+
+가져오기는 재실행해도 같은 결과를 만들도록 설계되어 있지만, 확인 없이 운영 DB에
+반복 실행해서는 안 됩니다. 월드와 플러그인 DB를 동시에 바꾸는 동안에는 기존 서버를
+읽기 전용으로 두는 편이 안전합니다.
+
+### 연동과 애드온
+
+Vault, PlaceholderAPI, Plan, vanish 플러그인, ItemsAdder, Oraxen, Nexo,
+CraftEngine, Slimefun, RoseStacker, WildStacker, AdvancedSpawners 연동이 포함되어
+있습니다. `/ciadmin integrations report`에서 현재 서버에 설치된 연동 상태를 확인할 수
+있습니다.
+
+커스텀 블록과 가구는 일반 블록 보호 경계를 그대로 따라야 합니다. 스태커 연동은 화면에
+보이는 엔티티 수가 아니라 논리 수량으로 제한과 드롭을 계산합니다. 실제 운영 조합은
+플러그인별 버전 차이가 있으므로 공개 전에 반드시 직접 확인하십시오.
+
+애드온은 `cloudislands-api`를 컴파일 의존성으로 사용하고 런타임 이벤트와 서비스는
+Paper 메인 스레드 규칙을 따라야 합니다. `cloudislands-testkit`으로 호환성 검사를 만들 수
+있고, 예제는 `cloudislands-example-addon`에 있습니다.
+
+Satis는 선택 설치하는 공식 기능 팩입니다. 공장, 창고, 성장 기능을 제공하며 별도
+플러그인으로 패키징됩니다. 사용하지 않는 서버에는 넣을 필요가 없습니다.
+
+### 빌드와 릴리스
+
+전체 검사는 저장소 최상위에서 실행합니다.
+
+```bash
+./gradlew check
+```
+
+자주 쓰는 검사는 다음과 같습니다.
+
+```bash
+./gradlew verifyMinecraftVersionMatrix verifyReadmeVersionTable
+./gradlew apiCompatibilityCheck protocolCompatibilityCheck
+./gradlew verifySnapshotRestoreCoverage verifyIntegrationRuntimeSmoke
+./gradlew ciIntegrationSmoke
+./gradlew ciBootSmoke
+```
+
+릴리스 묶음은 아래 명령으로 만듭니다.
+
+```bash
+./gradlew clean check distBundle distChecksums distSbom distProvenance distChangelog
+```
+
+결과는 `build/dist`에 생성됩니다.
+
+- `cloudislands-<version>.zip`: 전체 배포 묶음
+- `checksums-sha256.txt`: SHA-256 체크섬
+- `sbom/cyclonedx.json`: CycloneDX SBOM
+- `provenance.json`: 빌드 출처와 커밋 정보
+- `CHANGELOG.txt`: README 릴리스 노트에서 만든 변경 내역
+- `plugins/`, `services/`, `tools/`, `devkit/`: 설치 대상별 파일
+
+배포 전에 체크섬, SBOM, provenance가 현재 커밋과 버전을 가리키는지 확인하십시오.
+공개 API는 semantic versioning을 따르며 `apiCompatibilityCheck`에서 기준 시그니처와
+비교합니다.
+
+### 문제 해결
+
+#### Core `/ready`가 내려간 경우
+
+`/live`부터 확인합니다. 프로세스는 살아 있는데 `/ready`만 내려갔다면 DB, Redis,
+스토리지, 큐, Paper heartbeat 상태를 차례로 봅니다. 준비되지 않은 Core에 공개 트래픽을
+보내지 마십시오.
+
+#### DB 스키마 오류로 Core가 켜지지 않는 경우
+
+로그에 나온 migration 번호와 checksum을 확인합니다. 이미 적용된 migration 파일을
+수정하지 말고 새 migration을 추가해야 합니다. 여러 Core가 동시에 스키마를 만들도록
+설정하지 않았는지도 확인하십시오.
+
+#### Paper 노드가 `READY`가 되지 않는 경우
+
+`node.id`, 역할, pool, Core 주소, 인증 token, 스토리지 접근 권한을 확인합니다.
+분산 구성이라면 Velocity 서버 이름, forwarding secret, route session 설정도 함께
+대조합니다.
+
+#### 플레이어가 섬에 들어가지 못하는 경우
+
+`/ciadmin node list`, `/ciadmin route`, `/ciadmin jobs` 순서로 확인합니다. 사용 가능한
+노드의 용량, heartbeat, 이동 티켓 만료, Velocity backend 이름, proxy source 경계를
+점검하십시오. Paper 한 대라면 direct-local routing과 fallback world 설정을 봅니다.
+
+#### 스냅샷이나 비활성화 작업이 끝나지 않는 경우
+
+스토리지 상태, 저장 재시도 기록, 작업 claim, fencing token 충돌을 확인합니다. 저장되지
+않은 로컬 월드 폴더를 먼저 지우면 안 됩니다. 원인을 해결한 뒤 같은 작업을 재시도합니다.
+
+#### Paper 한 대인데 Redis 오류가 보이는 경우
+
+Paper 설정의 `redis.enabled`가 `false`인지 확인합니다. Core는 여전히 Redis를 사용하므로
+Core 쪽 Redis가 정상인지는 별도로 확인해야 합니다.
+
+#### 설정 reload가 거부되는 경우
+
+메시지와 일부 UI 설정은 즉시 반영되지만 노드 ID, 역할, pool, 네트워크 경계처럼 실행
+구조를 바꾸는 값은 재시작이 필요합니다. 거부된 reload는 현재 실행 설정을 반쯤 바꾸지
+않습니다.
+
+#### 운영 자료가 필요한 경우
+
+`/ciadmin support-bundle`을 사용하고 Core, Paper, Velocity 로그와 상태 응답을 함께
+수집합니다. 외부에 전달하기 전에 token, 접속 정보, 플레이어 개인정보를 지우십시오.
+
+### 이번 릴리스
+
+`v1.1.255`의 주요 변경 사항입니다.
+
+- PostgreSQL, 비공개 Redis, 로컬 섬 스토리지를 사용하는 Paper 한 대 구성을 정식으로
+  지원합니다.
+- 섬 생성 직후 같은 이동 티켓과 안전 텔레포트 경로로 바로 이동합니다.
+- 정상 재시작한 Paper 노드가 `STARTING`을 거쳐 다시 합류합니다.
+- S3 상태 확인을 비동기로 처리해 Paper 메인 스레드를 막지 않습니다.
+- 마지막 섬 위치를 기록하고, 아직 열리지 않은 섬에서 재접속한 플레이어를 대기 월드로
+  안전하게 돌려보냅니다.
+- Paper에서 `redis.enabled: false`가 실제로 적용되며 상태 페이지에도 올바르게 표시됩니다.
+- 늦게 도착한 비동기 응답을 새 플레이어 연결에 적용하지 않습니다.
+- 1.0.x 공개 API 호환성을 유지하면서 지원 버전용 Paper 파일을 하나로 제공합니다.
+
+현재 `1.1.255` 기준으로 Paper 한 대와 분산 구성 모두 실제 운영에 필요한 경로가 구현되어
+있습니다. 저장소의 자동 검사는 DB, Redis, 오브젝트 스토리지, Core 이중화, Paper와
+Velocity 부팅, 섬 생성과 복원, 노드 재시작, 스토리지 장애, 체크섬, SBOM, provenance를
+다룹니다. 다만 운영 환경의 플러그인 조합, 네트워크, 저장소, 권한, 플레이어 부하는 배포
+전에 별도로 확인해야 합니다.
+
+주요 경로는 다음과 같습니다.
+
+- `deploy/examples/single-paper/docker-compose.yml`: 가장 작은 전체 구성
+- `deploy/compose/docker-compose.yml`: 분산 구성
+- `deploy/helm/cloudislands`: Kubernetes 차트
+- `gradle/minecraft-versions.toml`: 지원 Minecraft 버전 기준
+- `build/dist`: 릴리스 결과물
+- `cloudislands-paper/src/main/resources/config-v2`: Paper 기본 설정
+- `cloudislands-velocity/src/main/resources/config-v2`: Velocity 기본 설정
+- `cloudislands-core-service/src/main/resources`: Core 설정과 DB migration
+
+상세한 검증 근거 표는 아래 영어 문서의 **Verified feature coverage**에서 확인할 수
+있습니다.
+
+저장소: <https://github.com/M-LunaFarm/islandmc-cloudislands>
+
+---
+
+# English
+
 CloudIslands is a production-oriented Skyblock platform for Paper and Velocity.
 It treats each island as a portable, globally owned resource instead of tying it
 to one Minecraft server. Core owns durable state, Paper runs island worlds, and
 Velocity routes players with short-lived tickets.
 
-**Current version:** `1.1.255`
+Version: `1.1.255`
 
 CloudIslands supports both of these deployment shapes:
 
@@ -76,6 +730,9 @@ state are not silently embedded in an island bundle.
 | Redis | Redis 7 recommended for Core queues, events, locks, and caches |
 | Storage | S3-compatible shared storage for a cluster; local filesystem for one host |
 | Build | Gradle Wrapper 9.1; no system Gradle installation required |
+
+Velocity `3.5.0-SNAPSHOT` remains the proxy compile baseline for distributed
+deployments.
 
 ### Host sizing
 
