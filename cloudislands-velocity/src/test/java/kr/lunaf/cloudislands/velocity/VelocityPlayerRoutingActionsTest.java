@@ -25,7 +25,7 @@ class VelocityPlayerRoutingActionsTest {
     }
 
     @Test
-    void playerRoutingUsesActionSpecificCooldownPermissions() throws Exception {
+    void playerRoutingUsesInternalCooldownKeysWithoutShowingPermissionNodes() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityActionSupport.java"));
         String routing = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerRoutingActions.java"));
         String progression = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/VelocityPlayerProgressionActions.java"));
@@ -34,18 +34,16 @@ class VelocityPlayerRoutingActionsTest {
 
         for (String node : java.util.List.of(
             "cloudislands.bypass.cooldown",
-            "cloudislands.bypass.warmup",
-            "cloudislands.island.home.cooldown",
-            "cloudislands.island.visit.cooldown",
-            "cloudislands.island.create.cooldown",
-            "cloudislands.island.delete.cooldown",
-            "cloudislands.island.reset.cooldown",
-            "cloudislands.island.snapshot.cooldown",
-            "cloudislands.island.restore.cooldown"
+            "cloudislands.bypass.warmup"
         )) {
             assertTrue(support.contains("\"" + node + "\""), node + " must be a runtime permission constant");
             assertTrue(plugin.contains(node + ":"), node + " must be declared in plugin.yml");
         }
+        for (String action : java.util.List.of("create", "home", "visit", "delete", "reset", "snapshot", "restore")) {
+            assertTrue(support.contains("= \"" + action + "\""), action + " must use a private cooldown action key");
+            assertTrue(!plugin.contains("cloudislands.island." + action + ".cooldown:"), action + " cooldown key must not be exposed as a permission");
+        }
+        assertTrue(support.contains("actionDisplayName(action)"), "warmup UI must translate internal action keys");
 
         assertTrue(support.contains("player.hasPermission(BYPASS_COOLDOWN)"), "cooldown bypass must be checked before guard rejection");
         assertTrue(support.contains("player.hasPermission(BYPASS_WARMUP)"), "warmup bypass must suppress route warmup presentation");

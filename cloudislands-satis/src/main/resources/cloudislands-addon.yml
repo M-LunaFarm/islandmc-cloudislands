@@ -64,7 +64,7 @@ runtime:
   activation-block-reasons: unsupported-mode,mode-disabled,root-disabled,feature-disabled,cloudislands-api-missing,external-addon-descriptor-missing
   owns-islands: false
   standalone-island-runtime: false
-  missing-cloudislands-behavior: disable-satis-runtime-no-standalone-island-management
+  missing-cloudislands-behavior: wait-for-api-without-standalone-island-management-then-start-automatically
   cloudislands-api-status-key: runtime-cloudislands-api-available
   storage-key: cloudislands-island-uuid
   default-database-mode: CORE_API

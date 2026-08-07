@@ -1,5 +1,17 @@
 config-version: 2
-profile: production
+# BASIC: edit only this file. ADVANCED: the split runtime/security/integration files win.
+configuration-mode: BASIC
+basic:
+  # SINGLE_PAPER, NETWORK_ISLAND, or LOBBY.
+  # LOBBY is the lightweight non-island role: API, /is commands and addon tab completion remain available,
+  # but it never loads or executes island worlds.
+  topology: SINGLE_PAPER
+  node-id: island-1
+  velocity-server-name: island-1
+  core-url: http://127.0.0.1:8443
+  redis-url: ""
+  local-storage-path: islands-storage
+profile: basic
 language: ko_kr
 strict-validation: true
 files:

@@ -121,6 +121,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.File;
 import java.time.Instant;
@@ -199,6 +200,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private String databaseFallbackReason = "none";
     private String pendingDatabaseConfigFallbackReason = "none";
     private String databaseSettingsFingerprint = "";
+    private BukkitTask apiRegistrationRetryTask;
 
     @Override
     public void onEnable() {
@@ -214,8 +216,14 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             unregisterAddonCommands();
             return;
         }
+        boolean registered = registerCloudIslandsAddon();
+        if (!registered && cloudIslandsApiMissing) {
+            unregisterAddonCommands();
+            scheduleApiRegistrationRetry();
+            return;
+        }
         SatisRuntimeBootstrap.RuntimeBootstrapDecision bootstrapDecision = runtimeBootstrap.decide(
-                new SatisRuntimeBootstrap.RuntimeBootstrapSnapshot(registerCloudIslandsAddon(), cloudIslandsApiMissing));
+                new SatisRuntimeBootstrap.RuntimeBootstrapSnapshot(registered, cloudIslandsApiMissing));
         if (!bootstrapDecision.startRuntime()) {
             unregisterAddonCommands();
             if (bootstrapDecision.disablePlugin()) {
@@ -291,6 +299,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     @Override
     public void onDisable() {
+        cancelApiRegistrationRetry();
         flushPendingSatisStateBeforeDisable("plugin-disable", effectiveFeatures);
         stopRuntimeTasks(SatisRuntimeLifecycle.StopMode.STOP_ONLY);
         unregisterPlaceholders();
@@ -1597,7 +1606,6 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         cloudIslandsApiMissing = false;
         cloudIslandsApi = addonRegistration.resolveApi();
         if (cloudIslandsApi == null) {
-            getLogger().severe("CloudIslands API is required. Satis will not start a standalone island runtime.");
             applyAddonRegistrationState(SatisAddonRegistration.missingApiState());
             return false;
         }
@@ -1622,6 +1630,37 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
             return false;
         }
         return true;
+    }
+
+    private void scheduleApiRegistrationRetry() {
+        if (apiRegistrationRetryTask != null) {
+            return;
+        }
+        getLogger().warning("CloudIslands API is not ready yet; Satis will wait and attach automatically when the CloudIslands runtime becomes ready.");
+        apiRegistrationRetryTask = getServer().getScheduler().runTaskTimer(this, () -> {
+            if (!isEnabled()) {
+                cancelApiRegistrationRetry();
+                return;
+            }
+            if (!registerCloudIslandsAddon()) {
+                return;
+            }
+            cancelApiRegistrationRetry();
+            SatisRuntimeBootstrap.RuntimeBootstrapDecision decision = runtimeBootstrap.decide(
+                    new SatisRuntimeBootstrap.RuntimeBootstrapSnapshot(true, false));
+            if (decision.startRuntime()) {
+                getLogger().info("CloudIslands API became ready; starting the Satis runtime.");
+                startRuntime();
+            }
+        }, 1L, 100L);
+    }
+
+    private void cancelApiRegistrationRetry() {
+        BukkitTask task = apiRegistrationRetryTask;
+        apiRegistrationRetryTask = null;
+        if (task != null) {
+            task.cancel();
+        }
     }
 
     private boolean requiresCloudIslandsApi() {

@@ -34,13 +34,13 @@ import net.kyori.adventure.text.Component;
 abstract class VelocityActionSupport {
     protected static final String BYPASS_COOLDOWN = "cloudislands.bypass.cooldown";
     protected static final String BYPASS_WARMUP = "cloudislands.bypass.warmup";
-    protected static final String CREATE_COOLDOWN = "cloudislands.island.create.cooldown";
-    protected static final String HOME_COOLDOWN = "cloudislands.island.home.cooldown";
-    protected static final String VISIT_COOLDOWN = "cloudislands.island.visit.cooldown";
-    protected static final String DELETE_COOLDOWN = "cloudislands.island.delete.cooldown";
-    protected static final String RESET_COOLDOWN = "cloudislands.island.reset.cooldown";
-    protected static final String SNAPSHOT_COOLDOWN = "cloudislands.island.snapshot.cooldown";
-    protected static final String RESTORE_COOLDOWN = "cloudislands.island.restore.cooldown";
+    protected static final String CREATE_COOLDOWN = "create";
+    protected static final String HOME_COOLDOWN = "home";
+    protected static final String VISIT_COOLDOWN = "visit";
+    protected static final String DELETE_COOLDOWN = "delete";
+    protected static final String RESET_COOLDOWN = "reset";
+    protected static final String SNAPSHOT_COOLDOWN = "snapshot";
+    protected static final String RESTORE_COOLDOWN = "restore";
 
     protected final CoreApiClient coreApiClient;
     protected final boolean hideNodeNames;
@@ -161,8 +161,21 @@ abstract class VelocityActionSupport {
 
     protected void presentWarmup(Player player, String action) {
         if (!player.hasPermission(BYPASS_WARMUP)) {
-            progressPresenter.actionBar(player, "섬 작업을 준비하고 있습니다: " + action);
+            progressPresenter.actionBar(player, "섬 작업을 준비하고 있습니다: " + actionDisplayName(action));
         }
+    }
+
+    private static String actionDisplayName(String action) {
+        return switch (action == null ? "" : action) {
+            case CREATE_COOLDOWN -> "생성";
+            case HOME_COOLDOWN -> "홈 이동";
+            case VISIT_COOLDOWN -> "방문";
+            case DELETE_COOLDOWN -> "삭제";
+            case RESET_COOLDOWN -> "초기화";
+            case SNAPSHOT_COOLDOWN -> "스냅샷";
+            case RESTORE_COOLDOWN -> "복원";
+            default -> "이동";
+        };
     }
 
     protected Component playerComponent(String message) {

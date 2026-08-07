@@ -1,0 +1,32 @@
+# BASIC Core profile. Enable with CI_CONFIGURATION_MODE=BASIC.
+# Only the MySQL credentials and the shared CI_CORE_TOKEN are required.
+server:
+  bind: 127.0.0.1
+  port: 8443
+  admin-listener-enabled: false
+runtime:
+  mode: development
+setup:
+  repository-mode: JDBC
+  job-queue-mode: JDBC
+  event-bus-mode: IN_MEMORY
+  database:
+    type: MYSQL
+    host: 127.0.0.1
+    port: 3306
+    name: cloudislands
+    username: cloudislands
+    password: "${CI_DB_PASSWORD}"
+    auto-schema: true
+    fallback:
+      enabled: false
+storage:
+  type: LOCAL_FILESYSTEM
+  local-path: cloudislands-storage
+redis:
+  uri: redis://127.0.0.1:6379
+security:
+  auth-mode: TOKEN_REQUIRED
+  require-mtls: false
+  core-token: "${CI_CORE_TOKEN}"
+  admin-api-enabled: false

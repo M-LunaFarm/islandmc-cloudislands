@@ -52,20 +52,24 @@ public final class PaperRuntimeConfigLoader {
         saveBundledConfigV2Defaults(plugin);
         List<ConfigSource> sources = paperConfigV2Sources(plugin);
         if (sources.isEmpty()) {
-            return loadV2(List.of(new ConfigSource("paper/config-v2/empty", 10, "")), envResolver);
+            return loadV2(List.of(new ConfigSource("paper/config-v2/empty", 10, "")), envResolver, plugin.getDataFolder().toPath());
         }
-        return loadV2(sources, envResolver);
+        return loadV2(sources, envResolver, plugin.getDataFolder().toPath());
     }
 
     public static PaperRuntimeConfig loadV2(List<ConfigSource> sources, Function<String, String> envResolver) {
+        return loadV2(sources, envResolver, null);
+    }
+
+    private static PaperRuntimeConfig loadV2(List<ConfigSource> sources, Function<String, String> envResolver, Path dataFolder) {
         validateV2Sources(sources);
         YamlConfiguration mapped = mapV2Sources(sources);
         if (mapped.getKeys(true).isEmpty()) {
-            return loadMappedConfig(new YamlConfiguration(), envResolver, null);
+            return loadMappedConfig(new YamlConfiguration(), envResolver, null, dataFolder);
         }
         ConfigSnapshot snapshot = ConfigV2Loader.load(List.of(new ConfigSource("paper-config-v2-runtime", 10, mapped.saveToString())));
         requireValidSnapshot(snapshot);
-        return loadMappedConfig(mapped, envResolver, snapshot);
+        return loadMappedConfig(mapped, envResolver, snapshot, dataFolder);
     }
 
     private static void validateV2Sources(List<ConfigSource> sources) {
@@ -104,7 +108,7 @@ public final class PaperRuntimeConfigLoader {
         }
     }
 
-    private static PaperRuntimeConfig loadMappedConfig(FileConfiguration config, Function<String, String> envResolver, ConfigSnapshot sourceConfig) {
+    private static PaperRuntimeConfig loadMappedConfig(FileConfiguration config, Function<String, String> envResolver, ConfigSnapshot sourceConfig, Path dataFolder) {
         Function<String, String> resolver = envResolver == null ? value -> value == null ? "" : value.trim() : envResolver;
         FileConfiguration safeConfig = config == null ? new YamlConfiguration() : config;
         PaperRuntimeConfig.Node node = node(safeConfig);
@@ -113,7 +117,7 @@ public final class PaperRuntimeConfigLoader {
             node,
             coreApi(safeConfig, resolver),
             redis(safeConfig, resolver),
-            security(safeConfig, resolver),
+            security(safeConfig, resolver, dataFolder),
             routing(safeConfig),
             protection(safeConfig),
             new PaperRuntimeConfig.Generator(string(safeConfig, "generators.default-key", "default")),
@@ -310,11 +314,52 @@ public final class PaperRuntimeConfigLoader {
                 mapMessagesV2(yaml, mapped, name);
             }
         }
+        applyAccessMode(mapped);
         return mapped;
     }
 
     private static void mapRootV2(FileConfiguration source, FileConfiguration target) {
         setIfPresent(source, target, "language", "plugin.language");
+        setIfPresent(source, target, "configuration-mode", "access.mode");
+        setIfPresent(source, target, "basic.topology", "access.topology");
+        setIfPresent(source, target, "basic.node-id", "access.node-id");
+        setIfPresent(source, target, "basic.velocity-server-name", "access.velocity-server-name");
+        setIfPresent(source, target, "basic.core-url", "access.core-url");
+        setIfPresent(source, target, "basic.redis-url", "access.redis-url");
+        setIfPresent(source, target, "basic.local-storage-path", "access.local-storage-path");
+    }
+
+    private static void applyAccessMode(FileConfiguration target) {
+        if (!"BASIC".equalsIgnoreCase(string(target, "access.mode", "ADVANCED"))) {
+            return;
+        }
+        String topology = string(target, "access.topology", "SINGLE_PAPER").trim().toUpperCase(Locale.ROOT).replace('-', '_');
+        String nodeId = string(target, "access.node-id", topology.equals("LOBBY") ? "lobby-1" : "island-1");
+        target.set("node.id", nodeId);
+        target.set("node.velocity-server-name", string(target, "access.velocity-server-name", nodeId));
+        target.set("node.reject-default-identity", false);
+        target.set("setup.core-api.base-url", string(target, "access.core-url", "http://127.0.0.1:8443"));
+        String redisUrl = string(target, "access.redis-url", "");
+        target.set("redis.enabled", !redisUrl.isBlank());
+        if (!redisUrl.isBlank()) {
+            target.set("redis.uri", redisUrl);
+        }
+        if (topology.equals("SINGLE_PAPER")) {
+            target.set("node.role", "ISLAND_NODE");
+            target.set("routing.direct-local-teleport", true);
+            target.set("security.require-velocity-forwarding", false);
+            target.set("security.enforce-route-session", false);
+            target.set("routing.require-route-session", false);
+            target.set("security.require-proxy-source-allowlist", false);
+            target.set("setup.storage.type", "LOCAL_FILESYSTEM");
+            target.set("setup.storage.local-path", string(target, "access.local-storage-path", "islands-storage"));
+            return;
+        }
+        target.set("node.role", topology.equals("LOBBY") ? "LOBBY" : "ISLAND_NODE");
+        target.set("routing.direct-local-teleport", false);
+        target.set("security.require-velocity-forwarding", true);
+        target.set("security.enforce-route-session", true);
+        target.set("routing.require-route-session", true);
     }
 
     private static void mapRuntimeV2(FileConfiguration source, FileConfiguration target) {
@@ -553,17 +598,41 @@ public final class PaperRuntimeConfigLoader {
         );
     }
 
-    private static PaperRuntimeConfig.Security security(FileConfiguration config, Function<String, String> resolver) {
+    private static PaperRuntimeConfig.Security security(FileConfiguration config, Function<String, String> resolver, Path dataFolder) {
+        String forwardingSecret = resolver.apply(string(config, "security.forwarding-secret", ""));
+        if (forwardingSecret.isBlank()) {
+            forwardingSecret = System.getenv().getOrDefault("VELOCITY_FORWARDING_SECRET", "").trim();
+        }
+        if (forwardingSecret.isBlank()) {
+            forwardingSecret = nativePaperForwardingSecret(dataFolder);
+        }
         return new PaperRuntimeConfig.Security(
             booleanValue(config, "security.allow-bungee-connect-plugin-messaging", false),
             booleanValue(config, "security.enforce-route-session", true),
             booleanValue(config, "routing.require-route-session", true),
             booleanValue(config, "security.require-velocity-forwarding", true),
-            resolver.apply(string(config, "security.forwarding-secret", "")),
+            forwardingSecret,
             config.getStringList("security.proxy-source-allowlist"),
             booleanValue(config, "security.require-proxy-source-allowlist", true),
             booleanValue(config, "security.admin-command-dispatch.enabled", false)
         );
+    }
+
+    private static String nativePaperForwardingSecret(Path dataFolder) {
+        if (dataFolder == null) {
+            return "";
+        }
+        Path plugins = dataFolder.toAbsolutePath().normalize().getParent();
+        Path serverRoot = plugins == null ? null : plugins.getParent();
+        if (serverRoot == null) {
+            return "";
+        }
+        Path paperGlobal = serverRoot.resolve("config").resolve("paper-global.yml");
+        if (!Files.isRegularFile(paperGlobal)) {
+            return "";
+        }
+        YamlConfiguration nativeConfig = YamlConfiguration.loadConfiguration(paperGlobal.toFile());
+        return nativeConfig.getString("proxies.velocity.secret", "").trim();
     }
 
     private static PaperRuntimeConfig.Routing routing(FileConfiguration config) {

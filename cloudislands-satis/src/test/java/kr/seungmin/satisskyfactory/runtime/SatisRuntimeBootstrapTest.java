@@ -19,12 +19,12 @@ class SatisRuntimeBootstrapTest {
     }
 
     @Test
-    void bootstrapBlocksStartupWhenApiMissingAndAddonRegistrationFails() {
+    void bootstrapWaitsWithoutDisablingWhenApiIsTemporarilyMissing() {
         SatisRuntimeBootstrap.RuntimeBootstrapDecision decision = bootstrap.decide(
                 new SatisRuntimeBootstrap.RuntimeBootstrapSnapshot(false, true));
 
         assertFalse(decision.startRuntime());
         assertTrue(decision.unregisterCommands());
-        assertTrue(decision.disablePlugin());
+        assertFalse(decision.disablePlugin());
     }
 }

@@ -10,7 +10,7 @@ public final class InMemoryIslandTemplateRepository implements IslandTemplateRep
     private final Map<String, IslandTemplateSnapshot> templates = new ConcurrentHashMap<>();
 
     public InMemoryIslandTemplateRepository() {
-        templates.put("default", new IslandTemplateSnapshot("default", "Default Island", true, ""));
+        BuiltInIslandTemplates.playable().forEach(template -> templates.put(template.id(), template));
         templates.put("superiorskyblock2", new IslandTemplateSnapshot("superiorskyblock2", "SuperiorSkyblock2 Migration Input", false, ""));
     }
 

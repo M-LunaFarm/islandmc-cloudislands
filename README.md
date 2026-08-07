@@ -275,8 +275,26 @@ Core와 스토리지에서 결정하며, 서버 폴더 복제로 이전하지 �
 CloudIslands는 Config v2 YAML을 사용합니다. 첫 실행 때 플러그인 데이터 디렉터리에
 기본 파일이 생성됩니다.
 
+일반 사용자는 Paper와 Velocity의 `config-v2/config.yml`에서
+`configuration-mode: BASIC`만 사용하면 됩니다. Paper의 `basic.topology`는
+`SINGLE_PAPER`, `NETWORK_ISLAND`, `LOBBY` 중 하나이며, `LOBBY`는 섬 월드를 열지
+않으면서 CloudIslands API, `/is`, 애드온 명령과 tab completion을 제공합니다.
+세부 파일을 직접 조정하려면 `configuration-mode: ADVANCED`로 바꾸십시오.
+
+Core는 `CI_CONFIGURATION_MODE=BASIC`으로 실행하면 내장 MySQL 프로필을 사용합니다.
+기본값은 `127.0.0.1:3306/cloudislands`, 자동 스키마 생성이며
+`CI_DB_USERNAME`, `CI_DB_PASSWORD`, `CI_CORE_TOKEN`으로 값을 덮어쓸 수 있습니다.
+고급 사용자는 `CI_CONFIG_FILE` 또는 `-Dcloudislands.config=...`로 단일 Core YAML을
+지정할 수 있습니다.
+
+Velocity forwarding secret은 설정이 비어 있으면 `velocity.toml`의
+`forwarding-secret-file`을 읽습니다. 파일도 없으면 Java `SecureRandom`으로 32바이트
+hex 값을 생성하므로 Windows와 Linux 모두 `openssl rand`가 필요 없습니다. Paper는
+`config/paper-global.yml`의 `proxies.velocity.secret`을 자동 인식합니다.
+
 | 설정 팩 | 용도 |
 |---|---|
+| `deploy/examples/basic-mysql/config-pack.yml` | BASIC 모드와 로컬 MySQL 빠른 시작 |
 | `deploy/examples/single-paper/config-pack.yml` | Paper 한 대와 로컬 라우팅 |
 | `deploy/examples/single-node/config-pack.yml` | 분산 네트워크의 섬 노드 한 대 |
 | `deploy/examples/two-island-nodes/config-pack.yml` | 섬 노드 두 대와 용량 분배 예제 |
@@ -955,10 +973,29 @@ comes from Core and storage, not from copying one server's local world state.
 CloudIslands uses Config v2 YAML. Bundled defaults are materialized under the
 plugin data directory on first start.
 
+For a compact setup, keep `configuration-mode: BASIC` in the Paper and Velocity
+`config-v2/config.yml` files. Paper accepts `SINGLE_PAPER`, `NETWORK_ISLAND`, or
+`LOBBY`; the lobby role exposes the API, `/is`, addon commands, and tab
+completion without executing island worlds. Switch to `ADVANCED` to manage the
+split configuration files directly.
+
+Run Core with `CI_CONFIGURATION_MODE=BASIC` for the bundled local MySQL profile.
+It defaults to `127.0.0.1:3306/cloudislands` with automatic schema creation and
+accepts `CI_DB_USERNAME`, `CI_DB_PASSWORD`, and `CI_CORE_TOKEN` overrides. An
+advanced single YAML can be selected with `CI_CONFIG_FILE` or
+`-Dcloudislands.config=...`.
+
+When the forwarding secret is blank, Velocity reads the path configured by
+`forwarding-secret-file` in `velocity.toml`. If the file is absent, a 32-byte
+hex secret is created with Java `SecureRandom` on both Windows and Linux; no
+`openssl rand` command is required. Paper automatically recognizes
+`proxies.velocity.secret` from `config/paper-global.yml`.
+
 ### Config packs
 
 | Path | Purpose |
 |---|---|
+| `deploy/examples/basic-mysql/config-pack.yml` | BASIC mode with a local MySQL quick start |
 | `deploy/examples/single-paper/config-pack.yml` | One public Paper server with direct-local routing |
 | `deploy/examples/single-node/config-pack.yml` | One clustered island node |
 | `deploy/examples/two-island-nodes/config-pack.yml` | Two-node routing and capacity example |
@@ -1276,8 +1313,9 @@ Core request per scoreboard line and player.
 External addons can register collision-safe `/is` subcommands through
 `AddonIslandCommand`. The API supports permissions, argument bounds,
 asynchronous results, tab completion, help integration, and automatic cleanup
-when an addon is disabled. Use `cloudislands-testkit` and the example addon as
-the compatibility reference.
+when an addon is disabled. `SimpleAddonIslandCommand.builder(...)` provides a
+short executor-and-suggestions form for common commands. Use
+`cloudislands-testkit` and the example addon as the compatibility reference.
 
 ### Satis
 

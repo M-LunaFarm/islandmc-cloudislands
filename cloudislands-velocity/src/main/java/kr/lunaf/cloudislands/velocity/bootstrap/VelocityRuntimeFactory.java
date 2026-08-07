@@ -69,7 +69,7 @@ public final class VelocityRuntimeFactory {
 
     private static void logSecurityPosture(Logger logger, VelocityConfig config, String coreToken, String adminToken) {
         if (config.requireModernForwarding() && config.forwardingSecret().isBlank()) {
-            logger.warn("CloudIslands security: Velocity modern forwarding is required but security.forwarding-secret is empty");
+            logger.warn("CloudIslands security: Velocity modern forwarding is required but the configured/native forwarding secret could not be loaded or generated");
         }
         if (coreToken == null || coreToken.isBlank()) {
             logger.warn("CloudIslands security: core-api auth token is empty");

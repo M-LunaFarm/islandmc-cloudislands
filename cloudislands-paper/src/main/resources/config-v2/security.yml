@@ -9,7 +9,9 @@ storage:
   bearer-token: "${file:/run/secrets/s3_bearer_token}"
 forwarding:
   required: true
-  secret: "${file:/run/secrets/velocity_forwarding_secret}"
+  # Leave blank to reuse proxies.velocity.secret from paper-global.yml.
+  # VELOCITY_FORWARDING_SECRET remains available for managed deployments.
+  secret: ""
 route-session:
   enforce: true
   required: true

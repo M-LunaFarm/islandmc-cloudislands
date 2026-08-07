@@ -1,0 +1,40 @@
+package kr.lunaf.cloudislands.paper.config;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.List;
+import kr.lunaf.cloudislands.common.config.ConfigSource;
+import kr.lunaf.cloudislands.paper.AgentRole;
+import org.junit.jupiter.api.Test;
+
+class PaperAccessModeTest {
+    @Test
+    void basicSinglePaperModeDisablesProxyRequirements() {
+        PaperRuntimeConfig config = load("SINGLE_PAPER");
+
+        assertEquals(AgentRole.ISLAND_NODE, config.node().role());
+        assertTrue(config.routing().directLocalTeleport());
+        assertFalse(config.security().requireVelocityForwarding());
+        assertFalse(config.security().enforceRouteSession());
+        assertEquals("LOCAL_FILESYSTEM", config.storage().primary().backend());
+    }
+
+    @Test
+    void basicLobbyModeKeepsApiAndCommandsWithoutIslandWorldExecutionRole() {
+        PaperRuntimeConfig config = load("LOBBY");
+
+        assertEquals(AgentRole.LOBBY, config.node().role());
+        assertFalse(config.routing().directLocalTeleport());
+        assertTrue(config.security().requireVelocityForwarding());
+    }
+
+    private static PaperRuntimeConfig load(String topology) {
+        return PaperRuntimeConfigLoader.loadV2(List.of(new ConfigSource(
+            "paper/config-v2/config.yml",
+            10,
+            "configuration-mode: BASIC\nbasic:\n  topology: " + topology + "\n  core-url: http://127.0.0.1:8443\n"
+        )), value -> value == null ? "" : value);
+    }
+}

@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.jar.JarFile;
+import kr.lunaf.cloudislands.common.security.SecureSecretFile;
 import org.slf4j.Logger;
 
 public final class VelocityConfigLoader {
@@ -35,6 +36,8 @@ public final class VelocityConfigLoader {
         } catch (IOException | RuntimeException exception) {
             logger.warn("Failed to load CloudIslands Velocity config, using defaults", exception);
         }
+        applyAccessMode(values);
+        String forwardingSecret = forwardingSecret(dataDirectory, values, logger);
         return new VelocityConfig(
             values.getOrDefault("language", "ko_kr"),
             bool(values.get("debug"), false),
@@ -50,7 +53,7 @@ public final class VelocityConfigLoader {
             bool(values.get("messages.use-actionbar"), true),
             bool(values.get("messages.use-bossbar-loading"), true),
             bool(values.get("forwarding.require-modern"), true),
-            values.getOrDefault("forwarding.secret", ""),
+            forwardingSecret,
             bool(values.get("plugin-message.block-cloudislands-channel"), true),
             bool(values.get("enabled"), false),
             values.getOrDefault("bind-host", "127.0.0.1"),
@@ -221,9 +224,86 @@ public final class VelocityConfigLoader {
                     return "";
                 }
             }
+            if (expression.startsWith("env:")) {
+                return System.getenv().getOrDefault(expression.substring("env:".length()), "");
+            }
             return System.getenv().getOrDefault(expression, "");
         }
         return trimmed;
+    }
+
+    private static String forwardingSecret(Path dataDirectory, Map<String, String> values, Logger logger) {
+        String configured = values.getOrDefault("forwarding.secret", "").trim();
+        if (!configured.isBlank()) {
+            return configured;
+        }
+        String environment = System.getenv().getOrDefault("VELOCITY_FORWARDING_SECRET", "").trim();
+        if (!environment.isBlank()) {
+            return environment;
+        }
+        Path serverRoot = serverRoot(dataDirectory);
+        Path secretPath = forwardingSecretPath(serverRoot, values.get("forwarding.secret-file"));
+        boolean autoGenerate = bool(values.get("forwarding.auto-generate"), true);
+        try {
+            if (autoGenerate) {
+                SecureSecretFile.Result result = SecureSecretFile.loadOrCreate(secretPath, 32);
+                if (result.created()) {
+                    logger.info("Generated Velocity forwarding secret at {} using Java SecureRandom; no openssl command is required", result.path());
+                }
+                return result.secret();
+            }
+            return SecureSecretFile.read(secretPath);
+        } catch (IOException exception) {
+            logger.warn("Could not load or generate the Velocity forwarding secret at {}", secretPath, exception);
+            return "";
+        }
+    }
+
+    private static void applyAccessMode(Map<String, String> values) {
+        if (!"BASIC".equalsIgnoreCase(values.getOrDefault("configuration-mode", "ADVANCED"))) {
+            return;
+        }
+        copyIfPresent(values, "basic.core-url", "base-url");
+        copyIfPresent(values, "basic.fallback-server", "failure.fallback-server");
+        copyIfPresent(values, "basic.island-pool", "island-pool");
+        values.putIfAbsent("forwarding.auto-generate", "true");
+        values.putIfAbsent("forwarding.require-modern", "true");
+    }
+
+    private static void copyIfPresent(Map<String, String> values, String source, String target) {
+        String value = values.get(source);
+        if (value != null && !value.isBlank()) {
+            values.put(target, value);
+        }
+    }
+
+    private static Path serverRoot(Path dataDirectory) {
+        Path absolute = (dataDirectory == null ? Path.of(".") : dataDirectory).toAbsolutePath().normalize();
+        Path plugins = absolute.getParent();
+        return plugins == null || plugins.getParent() == null ? Path.of(".").toAbsolutePath().normalize() : plugins.getParent();
+    }
+
+    private static Path forwardingSecretPath(Path serverRoot, String configuredPath) {
+        String path = configuredPath == null ? "" : configuredPath.trim();
+        if (path.isBlank()) {
+            Path velocityToml = serverRoot.resolve("velocity.toml");
+            if (Files.isRegularFile(velocityToml)) {
+                try {
+                    for (String line : Files.readAllLines(velocityToml, java.nio.charset.StandardCharsets.UTF_8)) {
+                        String trimmed = line.trim();
+                        if (!trimmed.startsWith("forwarding-secret-file") || !trimmed.contains("=")) {
+                            continue;
+                        }
+                        path = unquote(trimmed.substring(trimmed.indexOf('=') + 1).trim());
+                        break;
+                    }
+                } catch (IOException ignored) {
+                    // Fall back to Velocity's standard forwarding.secret path.
+                }
+            }
+        }
+        Path resolved = Path.of(path.isBlank() ? "forwarding.secret" : path);
+        return resolved.isAbsolute() ? resolved.normalize() : serverRoot.resolve(resolved).normalize();
     }
 
     private static String value(Map<String, String> values, String key, String fallback) {

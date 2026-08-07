@@ -20,7 +20,7 @@ public final class SatisAddonIntegrationPolicy {
     public static final String FORBIDDEN_DIRECT_ACCESS_POLICY = "no-direct-cloudislands-storage-runtime-or-world-owner-access";
     public static final String CLOUDISLANDS_REQUIRED_POLICY = "cloudislands-api-required-no-standalone-island-runtime";
     public static final String API_RESOLUTION_POLICY = "bootstrap-or-services-manager";
-    public static final String MISSING_API_BEHAVIOR = "disable-plugin-clear-features-register-no-components";
+    public static final String MISSING_API_BEHAVIOR = "wait-for-api-clear-features-register-no-components-then-start";
     public static final String RUNTIME_HARD_DEPEND_PLUGIN = "CloudIslands";
     public static final String STANDALONE_ISLAND_MANAGEMENT = "false";
     public static final String ROOT_GATE_POLICY = "addons.cloudislands-satis.enabled&&satis.enabled";

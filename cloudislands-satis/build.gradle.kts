@@ -49,6 +49,9 @@ tasks.shadowJar {
     archiveBaseName.set("CloudIslands-Satis")
     archiveClassifier.set("")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    // CloudIslands is a hard dependency and owns this API package. Bundling a
+    // transitive copy creates a different Bukkit service type per classloader.
+    exclude("kr/lunaf/cloudislands/api/**")
     mergeServiceFiles()
     manifest {
         attributes(
@@ -168,6 +171,7 @@ tasks.register("verifyPackagingCoverage") {
             "com/zaxxer/hikari/HikariDataSource.class"
         )
         val missingJarEntries = requiredJarEntries.filterNot { entry -> entries.contains(entry) }
+        val bundledCloudIslandsApi = entries.any { entry -> entry.startsWith("kr/lunaf/cloudislands/api/") }
         val missingTests = listOf(
             "pluginMetadataUsesCentralProjectVersionPaperBaselineAndShadowBundledDependencies",
             "cloudIslandsApiStaysProvidedForSatisRuntime"
@@ -176,6 +180,7 @@ tasks.register("verifyPackagingCoverage") {
             if (missingBuildPolicy.isNotEmpty()) add("Satis shadow packaging build policy missing: ${missingBuildPolicy.joinToString(", ")}")
             if (forbiddenPaperLibraries.isNotEmpty()) add("Satis plugin.yml still declares duplicate Paper libraries: ${forbiddenPaperLibraries.joinToString(", ")}")
             if (missingJarEntries.isNotEmpty()) add("Satis shadow jar missing bundled database runtime classes: ${missingJarEntries.joinToString(", ")}")
+            if (bundledCloudIslandsApi) add("Satis shadow jar must use the CloudIslands plugin API and must not bundle kr/lunaf/cloudislands/api")
             if (missingTests.isNotEmpty()) add("Satis packaging policy tests missing: ${missingTests.joinToString(", ")}")
         }
         if (failures.isNotEmpty()) {

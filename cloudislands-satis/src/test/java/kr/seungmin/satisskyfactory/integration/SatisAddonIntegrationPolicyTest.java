@@ -76,7 +76,7 @@ class SatisAddonIntegrationPolicyTest {
         assertEquals("cloudislands-core-owns-island-lifecycle-routing-storage-protection-and-public-api", SatisAddonIntegrationPolicy.CORE_BOUNDARY_POLICY);
         assertEquals("cloudislands-api-required-no-standalone-island-runtime", SatisAddonIntegrationPolicy.CLOUDISLANDS_REQUIRED_POLICY);
         assertEquals("bootstrap-or-services-manager", SatisAddonIntegrationPolicy.API_RESOLUTION_POLICY);
-        assertEquals("disable-plugin-clear-features-register-no-components", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR);
+        assertEquals("wait-for-api-clear-features-register-no-components-then-start", SatisAddonIntegrationPolicy.MISSING_API_BEHAVIOR);
         assertEquals("CloudIslands", SatisAddonIntegrationPolicy.RUNTIME_HARD_DEPEND_PLUGIN);
         assertEquals("false", SatisAddonIntegrationPolicy.STANDALONE_ISLAND_MANAGEMENT);
         assertEquals("addons.cloudislands-satis.enabled&&satis.enabled", SatisAddonIntegrationPolicy.ROOT_GATE_POLICY);

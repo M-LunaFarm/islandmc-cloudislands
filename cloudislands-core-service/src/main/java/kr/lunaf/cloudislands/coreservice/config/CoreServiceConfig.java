@@ -12,6 +12,8 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -867,10 +869,36 @@ public record CoreServiceConfig(
     }
 
     private static Map<String, String> applicationConfig() {
-        try (InputStream stream = CoreServiceConfig.class.getClassLoader().getResourceAsStream("application.yaml")) {
+        Map<String, String> values = readClasspathConfig("application.yaml");
+        if ("BASIC".equalsIgnoreCase(System.getenv().getOrDefault("CI_CONFIGURATION_MODE", ""))) {
+            values.putAll(readClasspathConfig("config-basic-mysql.yml"));
+        }
+        String configuredPath = System.getProperty("cloudislands.config", System.getenv().getOrDefault("CI_CONFIG_FILE", ""));
+        Path external = configuredPath.isBlank() ? Path.of("cloudislands.yml") : Path.of(configuredPath.trim());
+        if (Files.isRegularFile(external)) {
+            try (InputStream stream = Files.newInputStream(external)) {
+                values.putAll(readConfig(stream));
+            } catch (IOException exception) {
+                throw new IllegalStateException("Could not read CloudIslands Core config " + external.toAbsolutePath(), exception);
+            }
+        } else if (!configuredPath.isBlank()) {
+            throw new IllegalStateException("CloudIslands Core config does not exist: " + external.toAbsolutePath());
+        }
+        return Map.copyOf(values);
+    }
+
+    private static Map<String, String> readClasspathConfig(String resource) {
+        try (InputStream stream = CoreServiceConfig.class.getClassLoader().getResourceAsStream(resource)) {
             if (stream == null) {
                 return Map.of();
             }
+            return readConfig(stream);
+        } catch (IOException exception) {
+            return Map.of();
+        }
+    }
+
+    private static Map<String, String> readConfig(InputStream stream) throws IOException {
             Map<String, String> values = new HashMap<>();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
                 String[] path = new String[16];
@@ -908,9 +936,6 @@ public record CoreServiceConfig(
                 }
             }
             return values;
-        } catch (IOException exception) {
-            return Map.of();
-        }
     }
 
     private static int leadingSpaces(String value) {

@@ -111,7 +111,7 @@ class SatisSkyFactoryPluginTest {
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-removal-dirty-save-reattach-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-reload-runtime-restart-policy"));
         assertTrue(metadata.get("dirty-save-state-keys").contains("addon-core-refresh-reapply-policy"));
-        assertEquals("disable-plugin-clear-features-register-no-components", metadata.get("missing-cloudislands-behavior"));
+        assertEquals("wait-for-api-clear-features-register-no-components-then-start", metadata.get("missing-cloudislands-behavior"));
         assertEquals("no-hardcoded-island-node-count", metadata.get("island-state-node-count-policy"));
         assertEquals("node-id-is-routing-context-not-addon-state-key", metadata.get("island-state-node-identity-policy"));
         assertEquals("five-or-six-island-nodes-are-supported-when-each-node-has-unique-node-id-unique-velocity-server-name-shared-storage-and-route-candidate-readiness", metadata.get("island-state-five-six-node-policy"));

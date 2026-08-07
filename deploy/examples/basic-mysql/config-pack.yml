@@ -1,0 +1,31 @@
+profile: basic-mysql
+purpose: first-install-or-small-server
+configuration:
+  paper-mode: BASIC
+  paper-topology: SINGLE_PAPER
+  core-mode-environment: BASIC
+database:
+  type: MYSQL
+  host: 127.0.0.1
+  port: 3306
+  name: cloudislands
+  username-environment: CI_DB_USERNAME
+  password-environment: CI_DB_PASSWORD
+  auto-schema: true
+storage:
+  type: LOCAL_FILESYSTEM
+  path: islands-storage
+security:
+  core-token-environment: CI_CORE_TOKEN
+  forwarding-secret: auto-generated-by-velocity-java-secure-random
+startup:
+  linux:
+    - CI_CONFIGURATION_MODE=BASIC CI_DB_PASSWORD=change-me CI_CORE_TOKEN=change-me ./cloudislands-core
+  windows:
+    - set CI_CONFIGURATION_MODE=BASIC
+    - set CI_DB_PASSWORD=change-me
+    - set CI_CORE_TOKEN=change-me
+    - cloudislands-core.bat
+notes:
+  - Use unique random database and Core tokens before accepting players.
+  - Switch configuration-mode to ADVANCED before enabling a multi-node production topology.

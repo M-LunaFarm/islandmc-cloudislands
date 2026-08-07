@@ -243,6 +243,7 @@ class RuntimeDependencyPolicyTest {
         assertTrue(satisBuild.contains("testImplementation(project(\":cloudislands-api\"))"));
         assertTrue(satisBuild.contains("id(\"com.gradleup.shadow\")") || satisBuild.contains("alias(libs.plugins.shadow)"));
         assertTrue(satisBuild.contains("tasks.shadowJar"));
+        assertTrue(satisBuild.contains("exclude(\"kr/lunaf/cloudislands/api/**\")"));
         assertTrue(satisBuild.contains("mergeServiceFiles()"));
         assertFalse(satisBuild.contains("implementation(project(\":cloudislands-api\"))"));
         assertFalse(satisBuild.contains("project(\":cloudislands-core-service\")"));

@@ -252,7 +252,7 @@ final class PaperPluginBootstrap {
         }
         if (!directLocalRouting && config.security().requireVelocityForwarding()) {
             if (config.security().forwardingSecret().isBlank()) {
-                plugin.getLogger().warning("CloudIslands security: Velocity forwarding is required but security.forwarding-secret is empty");
+                plugin.getLogger().warning("CloudIslands security: Velocity forwarding is required but no secret was found in VELOCITY_FORWARDING_SECRET, CloudIslands security.yml, or config/paper-global.yml proxies.velocity.secret");
             }
         }
         if (!directLocalRouting && !config.security().enforceRouteSession()) {

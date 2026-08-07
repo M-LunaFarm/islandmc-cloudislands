@@ -1,5 +1,11 @@
 config-version: 2
-profile: production
+# BASIC users only need to edit this file. ADVANCED keeps every split file available.
+configuration-mode: BASIC
+basic:
+  core-url: http://127.0.0.1:8443
+  fallback-server: Lobby
+  island-pool: island
+profile: basic
 language: ko_kr
 strict-validation: true
 files:

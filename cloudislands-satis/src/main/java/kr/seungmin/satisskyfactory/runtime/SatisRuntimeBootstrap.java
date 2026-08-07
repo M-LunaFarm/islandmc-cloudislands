@@ -6,7 +6,7 @@ public final class SatisRuntimeBootstrap {
         return new RuntimeBootstrapDecision(
                 startRuntime,
                 !startRuntime,
-                !startRuntime && snapshot.cloudIslandsApiMissing()
+                false
         );
     }
 

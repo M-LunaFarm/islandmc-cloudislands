@@ -104,6 +104,7 @@ import kr.lunaf.cloudislands.coreservice.snapshot.InMemoryIslandSnapshotReposito
 import kr.lunaf.cloudislands.coreservice.snapshot.IslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.snapshot.JdbcIslandSnapshotRepository;
 import kr.lunaf.cloudislands.coreservice.template.CachingIslandTemplateRepository;
+import kr.lunaf.cloudislands.coreservice.template.BuiltInIslandTemplates;
 import kr.lunaf.cloudislands.coreservice.template.InMemoryIslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.template.IslandTemplateRepository;
 import kr.lunaf.cloudislands.coreservice.template.JdbcIslandTemplateRepository;
@@ -261,6 +262,11 @@ final class CoreBootstrap {
             ? new CachingIslandLimitRepository(baseLimitRepository, config.redisUri())
             : baseLimitRepository;
         IslandTemplateRepository baseTemplateRepository = config.jdbcRepositories() ? new JdbcIslandTemplateRepository(dataSource) : new InMemoryIslandTemplateRepository();
+        BuiltInIslandTemplates.playable().forEach(template -> {
+            if (baseTemplateRepository.find(template.id()).isEmpty()) {
+                baseTemplateRepository.upsert(template);
+            }
+        });
         IslandTemplateRepository templateRepository = redisEnabled
             ? new CachingIslandTemplateRepository(baseTemplateRepository, config.redisUri())
             : baseTemplateRepository;
