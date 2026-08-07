@@ -1,8 +1,8 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-com.fasterxml.jackson.core:jackson-core:2.22.0=runtimeClasspath,testRuntimeClasspath
-com.fasterxml.jackson:jackson-bom:2.22.0=runtimeClasspath,testRuntimeClasspath
+com.fasterxml.jackson.core:jackson-core:2.22.1=runtimeClasspath,testRuntimeClasspath
+com.fasterxml.jackson:jackson-bom:2.22.1=runtimeClasspath,testRuntimeClasspath
 com.github.plan-player-analytics:Plan:5.7.3232=compileClasspath,testCompileClasspath,testRuntimeClasspath
 com.google.auto.service:auto-service-annotations:1.1.1=compileClasspath,testCompileClasspath
 com.google.code.findbugs:jsr305:3.0.2=compileClasspath,testCompileClasspath,testRuntimeClasspath
