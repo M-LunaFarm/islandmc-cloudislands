@@ -870,7 +870,11 @@ public record CoreServiceConfig(
 
     private static Map<String, String> applicationConfig() {
         Map<String, String> values = readClasspathConfig("application.yaml");
-        if ("BASIC".equalsIgnoreCase(System.getenv().getOrDefault("CI_CONFIGURATION_MODE", ""))) {
+        String configurationMode = System.getProperty(
+            "cloudislands.mode",
+            System.getenv().getOrDefault("CI_CONFIGURATION_MODE", "")
+        );
+        if ("BASIC".equalsIgnoreCase(configurationMode)) {
             values.putAll(readClasspathConfig("config-basic-mysql.yml"));
         }
         String configuredPath = System.getProperty("cloudislands.config", System.getenv().getOrDefault("CI_CONFIG_FILE", ""));
