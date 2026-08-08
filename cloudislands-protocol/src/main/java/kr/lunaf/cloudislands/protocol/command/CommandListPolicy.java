@@ -1,7 +1,10 @@
 package kr.lunaf.cloudislands.protocol.command;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 
 public final class CommandListPolicy {
@@ -29,21 +32,32 @@ public final class CommandListPolicy {
 
     public static Page page(List<String> commands, int requestedPage, String navigationCommand, int pageSize) {
         Objects.requireNonNull(commands, "commands");
+        List<String> distinctCommands = distinct(commands);
         int safePageSize = Math.max(1, pageSize);
-        int maxPage = pages(commands.size(), safePageSize);
+        int maxPage = pages(distinctCommands.size(), safePageSize);
         int safePage = Math.max(1, Math.min(requestedPage, maxPage));
-        int from = Math.min(commands.size(), (safePage - 1) * safePageSize);
-        int to = Math.min(commands.size(), from + safePageSize);
+        int from = Math.min(distinctCommands.size(), (safePage - 1) * safePageSize);
+        int to = Math.min(distinctCommands.size(), from + safePageSize);
         List<String> entries = new ArrayList<>();
-        for (String command : commands.subList(from, to)) {
-            entries.add(oneLine(command));
-        }
+        entries.addAll(distinctCommands.subList(from, to));
         String base = oneLine(navigationCommand);
         String previous = safePage > 1 ? base + " " + (safePage - 1) : null;
         String next = safePage < maxPage ? base + " " + (safePage + 1) : null;
-        int displayFrom = commands.isEmpty() ? 0 : from + 1;
-        int displayTo = commands.isEmpty() ? 0 : to;
-        return new Page(safePage, maxPage, displayFrom, displayTo, commands.size(), List.copyOf(entries), previous, next);
+        int displayFrom = distinctCommands.isEmpty() ? 0 : from + 1;
+        int displayTo = distinctCommands.isEmpty() ? 0 : to;
+        return new Page(safePage, maxPage, displayFrom, displayTo, distinctCommands.size(), List.copyOf(entries), previous, next);
+    }
+
+    public static List<String> distinct(List<String> commands) {
+        Objects.requireNonNull(commands, "commands");
+        Map<String, String> distinct = new LinkedHashMap<>();
+        for (String command : commands) {
+            String oneLine = oneLine(command);
+            if (!oneLine.isBlank()) {
+                distinct.putIfAbsent(oneLine.toLowerCase(Locale.ROOT), oneLine);
+            }
+        }
+        return List.copyOf(distinct.values());
     }
 
     public static String oneLine(String command) {

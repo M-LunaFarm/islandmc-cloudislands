@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.protocol.command.CommandHelpCategory;
 import kr.lunaf.cloudislands.velocity.VelocityAdminActions;
 import kr.lunaf.cloudislands.velocity.VelocityPlayerMembershipActions;
 import kr.lunaf.cloudislands.velocity.VelocityPlayerProgressionActions;
@@ -40,7 +41,7 @@ abstract class VelocityCommandSupport {
 
     protected void sendCommandList(Player player, String title, List<String> commands, int page, String nextCommand) {
         CommandListPolicy.Page commandPage = CommandListPolicy.page(commands, page, nextCommand);
-        player.sendMessage(Component.text(title + " " + commandPage.page() + "/" + commandPage.pages() + " commands=" + commandPage.rangeSummary() + CommandListPolicy.HEADER_SUFFIX, NamedTextColor.GOLD)
+        player.sendMessage(Component.text(title + " · " + commandPage.page() + "/" + commandPage.pages() + " 페이지 (" + commandPage.rangeSummary() + ")", NamedTextColor.GOLD)
             .hoverEvent(Component.text("명령어를 클릭하면 채팅 입력창에 안전하게 입력합니다.", NamedTextColor.GRAY)));
         for (String command : commandPage.entries()) {
             player.sendMessage(commandEntryComponent(command));
@@ -51,6 +52,35 @@ abstract class VelocityCommandSupport {
         if (commandPage.nextCommand() != null) {
             player.sendMessage(navigationEntryComponent(commandPage.nextCommand(), "다음 명령어 페이지를 엽니다."));
         }
+    }
+
+    protected void sendPlayerHelpOverview(Player player) {
+        player.sendMessage(Component.text("섬 명령어", NamedTextColor.GOLD)
+            .append(Component.text(" · 필요한 종류를 선택하세요", NamedTextColor.GRAY)));
+        player.sendMessage(quickCommand("[내 섬]", "섬 목록", "내 섬 목록을 확인합니다.")
+            .append(Component.space())
+            .append(quickCommand("[홈]", "섬 홈", "현재 섬의 기본 홈으로 이동합니다."))
+            .append(Component.space())
+            .append(quickCommand("[섬 생성]", "섬 생성메뉴", "생성할 섬 템플릿을 선택합니다.")));
+        for (CommandHelpCategory category : IslandCommandCatalog.playerHelpCategories()) {
+            int count = CommandListPolicy.distinct(category.commands()).size();
+            String command = "섬 도움말 " + category.name();
+            player.sendMessage(Component.text("  • ", NamedTextColor.DARK_GRAY)
+                .append(Component.text(category.name(), NamedTextColor.AQUA))
+                .append(Component.text(" · " + count + "개", NamedTextColor.GRAY))
+                .clickEvent(ClickEvent.runCommand("/" + command))
+                .hoverEvent(Component.text(category.title() + "를 엽니다.", NamedTextColor.GRAY)));
+        }
+        player.sendMessage(Component.text("전체 목록: ", NamedTextColor.GRAY)
+            .append(Component.text("/섬 command list [페이지]", NamedTextColor.GREEN)
+                .clickEvent(ClickEvent.runCommand("/섬 command list 1"))
+                .hoverEvent(Component.text("대표 명령만 모은 전체 목록을 엽니다.", NamedTextColor.GRAY))));
+    }
+
+    private Component quickCommand(String label, String command, String hover) {
+        return Component.text(label, NamedTextColor.GREEN)
+            .clickEvent(ClickEvent.runCommand("/" + command))
+            .hoverEvent(Component.text(hover, NamedTextColor.GRAY));
     }
 
     private Component commandEntryComponent(String command) {
@@ -201,7 +231,7 @@ abstract class VelocityCommandSupport {
     protected List<String> suggestions(List<String> catalog, String root, String[] args) {
         String typed = String.join(" ", args).toLowerCase(Locale.ROOT);
         List<String> matches = new ArrayList<>();
-        for (String command : catalog) {
+        for (String command : CommandListPolicy.distinct(catalog)) {
             String suffix = command.equals(root) ? "" : command.startsWith(root + " ") ? command.substring(root.length() + 1) : command;
             if (suffix.isBlank()) {
                 continue;
@@ -211,11 +241,15 @@ abstract class VelocityCommandSupport {
             }
             String[] parts = suffix.split(" ");
             int index = Math.max(0, args.length - 1);
-            if (index < parts.length && !matches.contains(parts[index])) {
+            if (index < parts.length && !isSyntaxPlaceholder(parts[index]) && matches.stream().noneMatch(value -> value.equalsIgnoreCase(parts[index]))) {
                 matches.add(parts[index]);
             }
         }
         return matches;
+    }
+
+    private boolean isSyntaxPlaceholder(String value) {
+        return value.startsWith("<") || value.startsWith("[");
     }
 
     protected List<String> adminCommands() {

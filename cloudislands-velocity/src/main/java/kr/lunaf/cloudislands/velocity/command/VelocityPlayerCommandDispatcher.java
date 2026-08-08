@@ -5,6 +5,7 @@ import com.velocitypowered.api.proxy.ProxyServer;
 import java.util.List;
 import java.util.UUID;
 import kr.lunaf.cloudislands.api.model.IslandPermission;
+import kr.lunaf.cloudislands.protocol.command.CommandHelpCategory;
 import kr.lunaf.cloudislands.velocity.VelocityRoutingController;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
 import net.kyori.adventure.text.Component;
@@ -18,15 +19,15 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
 
     public void dispatch(Player player, String[] args) {
         if (isCommandListRequest(args)) {
-            sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), commandListPage(args), "섬 command list");
+            sendRequestedHelp(player, args);
             return;
         }
         if (args.length == 0) {
-            sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 command list");
+            sendPlayerHelpOverview(player);
             return;
         }
         if (args.length > 0 && (args[0].equalsIgnoreCase("menu") || args[0].equalsIgnoreCase("panel") || args[0].equalsIgnoreCase("manager") || args[0].equalsIgnoreCase("cp") || args[0].equals("메뉴"))) {
-            sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 command list");
+            sendPlayerHelpOverview(player);
             return;
         }
         if (args[0].equalsIgnoreCase("home") || args[0].equalsIgnoreCase("teleport") || args[0].equalsIgnoreCase("tp") || args[0].equalsIgnoreCase("go") || args[0].equals("홈")) {
@@ -520,7 +521,41 @@ final class VelocityPlayerCommandDispatcher extends VelocityCommandSupport {
             playerMembership.leaveIsland(player, islandId);
             return;
         }
-        sendCommandList(player, "섬 명령어 목록", IslandCommandCatalog.playerCommands(), 1, "섬 command list");
+        sendPlayerHelpOverview(player);
+    }
+
+    private void sendRequestedHelp(Player player, String[] args) {
+        int valueIndex = commandListValueIndex(args);
+        if (args.length > valueIndex) {
+            CommandHelpCategory category = IslandCommandCatalog.playerHelpCategory(args[valueIndex]);
+            if (category != null) {
+                int page = args.length > valueIndex + 1 ? (int) parseLongOrZero(args[valueIndex + 1]) : 1;
+                sendCommandList(player, category.title(), category.commands(), page, "섬 도움말 " + category.name());
+                return;
+            }
+            if (isLong(args[valueIndex])) {
+                sendCommandList(player, "섬 전체 명령어", IslandCommandCatalog.playerDisplayCommands(), (int) parseLongOrZero(args[valueIndex]), "섬 command list");
+                return;
+            }
+        }
+        if (isExplicitCommandList(args)) {
+            sendCommandList(player, "섬 전체 명령어", IslandCommandCatalog.playerDisplayCommands(), 1, "섬 command list");
+            return;
+        }
+        sendPlayerHelpOverview(player);
+    }
+
+    private int commandListValueIndex(String[] args) {
+        return args.length > 1
+            && args[0].equalsIgnoreCase("command")
+            && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))
+            ? 2
+            : 1;
+    }
+
+    private boolean isExplicitCommandList(String[] args) {
+        return commandListValueIndex(args) == 2
+            || (args.length > 0 && (args[0].equalsIgnoreCase("command-list") || args[0].equals("명령어목록")));
     }
 
     private static boolean isBorderColor(String value) {

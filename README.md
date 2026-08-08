@@ -9,7 +9,7 @@ CloudIslands는 Paper와 Velocity에서 섬을 운영하기 위한 Skyblock 플�
 불러옵니다. 섬 정보는 Core가 관리하고, Paper는 실제 월드를 실행하며, Velocity는
 플레이어를 올바른 서버로 보냅니다.
 
-**현재 버전:** `1.1.257`
+**현재 버전:** `1.1.258`
 
 서버 규모에 따라 두 가지 구성을 쓸 수 있습니다.
 
@@ -281,7 +281,7 @@ CloudIslands는 Config v2 YAML을 사용합니다. 첫 실행 때 플러그인 �
 않으면서 CloudIslands API, `/is`, 애드온 명령과 tab completion을 제공합니다.
 세부 파일을 직접 조정하려면 `configuration-mode: ADVANCED`로 바꾸십시오.
 
-Core는 `CI_CONFIGURATION_MODE=BASIC`으로 실행하면 내장 MySQL 프로필을 사용합니다.
+Core는 `CI_CONFIGURATION_MODE=BASIC` 또는 `-Dcloudislands.mode=BASIC`으로 실행하면 내장 MySQL 프로필을 사용합니다.
 기본값은 `127.0.0.1:3306/cloudislands`, 자동 스키마 생성이며
 `CI_DB_USERNAME`, `CI_DB_PASSWORD`, `CI_CORE_TOKEN`으로 값을 덮어쓸 수 있습니다.
 고급 사용자는 `CI_CONFIG_FILE` 또는 `-Dcloudislands.config=...`로 단일 Core YAML을
@@ -633,7 +633,7 @@ Core 쪽 Redis가 정상인지는 별도로 확인해야 합니다.
 
 ### 이번 릴리스
 
-`v1.1.257`의 주요 변경 사항입니다.
+`v1.1.258`의 주요 변경 사항입니다.
 
 - 태그 CI가 실제로 확인한 Core, PostgreSQL, MySQL, Redis, MinIO, 로비 Paper,
   Velocity 증거를 전용 게이트로 검증합니다.
@@ -659,7 +659,7 @@ Core 쪽 Redis가 정상인지는 별도로 확인해야 합니다.
 - 늦게 도착한 비동기 응답을 새 플레이어 연결에 적용하지 않습니다.
 - 1.0.x 공개 API 호환성을 유지하면서 지원 버전용 Paper 파일을 하나로 제공합니다.
 
-현재 `1.1.257` 기준으로 Paper 한 대와 분산 구성 모두 실제 운영에 필요한 경로가 구현되어
+현재 `1.1.258` 기준으로 Paper 한 대와 분산 구성 모두 실제 운영에 필요한 경로가 구현되어
 있습니다. 저장소의 자동 검사는 DB, Redis, 오브젝트 스토리지, Core 이중화, Paper와
 Velocity 부팅, 섬 생성과 복원, 노드 재시작, 스토리지 장애, 체크섬, SBOM, provenance를
 다룹니다. 다만 운영 환경의 플러그인 조합, 네트워크, 저장소, 권한, 플레이어 부하는 배포
@@ -690,7 +690,7 @@ It treats each island as a portable, globally owned resource instead of tying it
 to one Minecraft server. Core owns durable state, Paper runs island worlds, and
 Velocity routes players with short-lived tickets.
 
-Version: `1.1.257`
+Version: `1.1.258`
 
 CloudIslands supports both of these deployment shapes:
 
@@ -979,7 +979,7 @@ For a compact setup, keep `configuration-mode: BASIC` in the Paper and Velocity
 completion without executing island worlds. Switch to `ADVANCED` to manage the
 split configuration files directly.
 
-Run Core with `CI_CONFIGURATION_MODE=BASIC` for the bundled local MySQL profile.
+Run Core with `CI_CONFIGURATION_MODE=BASIC` or `-Dcloudislands.mode=BASIC` for the bundled local MySQL profile.
 It defaults to `127.0.0.1:3306/cloudislands` with automatic schema creation and
 accepts `CI_DB_USERNAME`, `CI_DB_PASSWORD`, and `CI_CORE_TOKEN` overrides. An
 advanced single YAML can be selected with `CI_CONFIG_FILE` or
@@ -1501,9 +1501,16 @@ The block below is generated from repository evidence and verified by
 
 ## Release notes
 
-Current release: `v1.1.257`
+Current release: `v1.1.258`
 
-Release notes for `v1.1.257`:
+Release notes for `v1.1.258`:
+
+- Replaces the Velocity player command dump with a clickable category overview,
+  concise quick actions, and a canonical alias-free command list.
+- Limits the initial tab-completion response to common commands in the configured
+  language while retaining legacy aliases when a player starts typing one.
+- Removes blank and case-insensitive duplicate commands before pagination and
+  suppresses raw syntax placeholders from completion results.
 
 - Validates the Core, PostgreSQL, MySQL, Redis, MinIO, Lobby Paper, and Velocity
   evidence actually observed by tag CI through a dedicated gate.
@@ -1540,7 +1547,7 @@ Release notes for `v1.1.257`:
 
 ## Project status
 
-The current `1.1.257` source baseline is implemented and verified for practical
+The current `1.1.258` source baseline is implemented and verified for practical
 single-Paper and distributed use. Repository evidence includes unit and policy
 tests, real PostgreSQL/Redis/object-storage integration, multi-Core behavior,
 Paper and Velocity boot smokes, real player create/home/restore flows, node

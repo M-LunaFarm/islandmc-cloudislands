@@ -1,7 +1,12 @@
 package kr.lunaf.cloudislands.velocity.command;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import kr.lunaf.cloudislands.protocol.command.CommandHelpCategory;
+import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.protocol.command.IslandPlayerCommandRegistry;
 
 public final class IslandCommandCatalog {
@@ -9,6 +14,61 @@ public final class IslandCommandCatalog {
 
     public static List<String> playerCommands() {
         return IslandPlayerCommandRegistry.playerCommands();
+    }
+
+    /**
+     * Player-facing help intentionally contains one preferred spelling per action.
+     * Execution aliases stay in the shared descriptor registry, but must not flood
+     * chat help and the first tab-completion response.
+     */
+    public static List<String> playerDisplayCommands() {
+        Map<String, String> commands = new LinkedHashMap<>();
+        for (CommandHelpCategory category : playerHelpCategories()) {
+            for (String command : category.commands()) {
+                String oneLine = CommandListPolicy.oneLine(command);
+                commands.putIfAbsent(oneLine.toLowerCase(Locale.ROOT), oneLine);
+            }
+        }
+        return List.copyOf(commands.values());
+    }
+
+    public static List<CommandHelpCategory> playerHelpCategories() {
+        return IslandPlayerCommandRegistry.helpCategories();
+    }
+
+    public static CommandHelpCategory playerHelpCategory(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        String requested = value.trim().toLowerCase(Locale.ROOT);
+        for (CommandHelpCategory category : playerHelpCategories()) {
+            if (category.aliases().stream().anyMatch(alias -> alias.equalsIgnoreCase(requested))) {
+                return category;
+            }
+        }
+        return null;
+    }
+
+    public static List<String> playerPrimaryRoots(String language) {
+        if (language != null && language.toLowerCase(Locale.ROOT).startsWith("en")) {
+            return List.of(
+                "menu", "create", "home", "info", "list", "members", "invite", "visit", "warp",
+                "ranking", "level", "worth", "bank", "upgrade", "mission", "settings", "fly", "permissions", "help"
+            );
+        }
+        return List.of(
+            "메뉴", "생성", "홈", "정보", "목록", "멤버", "초대", "방문", "워프",
+            "랭킹", "레벨", "가치", "은행", "업그레이드", "미션", "설정", "비행", "권한", "도움말"
+        );
+    }
+
+    public static List<String> playerAliases() {
+        Map<String, String> aliases = new LinkedHashMap<>();
+        IslandPlayerCommandRegistry.playerDescriptors().stream()
+            .flatMap(descriptor -> descriptor.aliases().stream())
+            .filter(alias -> !alias.isBlank())
+            .forEach(alias -> aliases.putIfAbsent(alias.toLowerCase(Locale.ROOT), alias));
+        return List.copyOf(aliases.values());
     }
 
     public static List<String> adminCommands() {

@@ -2,8 +2,12 @@ package kr.lunaf.cloudislands.velocity.command;
 
 import com.velocitypowered.api.command.CommandSource;
 import com.velocitypowered.api.proxy.ProxyServer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.stream.IntStream;
+import kr.lunaf.cloudislands.protocol.command.CommandHelpCategory;
+import kr.lunaf.cloudislands.protocol.command.CommandListPolicy;
 import kr.lunaf.cloudislands.velocity.VelocityRoutingController;
 import kr.lunaf.cloudislands.velocity.config.VelocityConfig;
 
@@ -13,7 +17,10 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
     }
 
     public List<String> playerSuggestions(String[] args) {
-        List<String> matches = suggestions(IslandCommandCatalog.playerCommands(), "섬", args);
+        List<String> matches = initialPlayerSuggestions(args);
+        if (isPlayerHelpSuggestion(args)) {
+            return matches;
+        }
         if (args.length == 2) {
             String first = args[0].toLowerCase(Locale.ROOT);
             if (first.equals("fly") || first.equals("비행") || first.equals("keepinventory") || first.equals("keepinv") || first.equals("인벤보존") || first.equals("pvp") || first.equals("피빕") || first.equals("publicwarps") || first.equals("public-warps") || first.equals("공개워프")) {
@@ -95,6 +102,62 @@ final class VelocityCommandSuggestions extends VelocityCommandSupport {
             addLiteralSuggestions(matches, args[3], List.of("true", "false", "on", "off", "yes", "no", "1", "0", "켜기", "끄기"));
         }
         return matches;
+    }
+
+    private List<String> initialPlayerSuggestions(String[] args) {
+        if (args.length <= 1) {
+            String typed = args.length == 0 ? "" : args[0];
+            List<String> matches = new ArrayList<>();
+            addLiteralSuggestions(matches, typed, IslandCommandCatalog.playerPrimaryRoots(config.language()));
+            if (matches.isEmpty() && !typed.isBlank()) {
+                addLiteralSuggestions(matches, typed, IslandCommandCatalog.playerAliases());
+            }
+            return matches.size() > 20 ? new ArrayList<>(matches.subList(0, 20)) : matches;
+        }
+        if (isPlayerHelpRoot(args[0])) {
+            List<String> matches = new ArrayList<>();
+            if (args[0].equalsIgnoreCase("command") && args.length == 2
+                && !args[1].equalsIgnoreCase("list") && !args[1].equals("목록")) {
+                addLiteralSuggestions(matches, args[1], List.of("list", "목록"));
+                return matches;
+            }
+            int valueIndex = args[0].equalsIgnoreCase("command")
+                && args.length > 1
+                && (args[1].equalsIgnoreCase("list") || args[1].equals("목록"))
+                ? 2
+                : 1;
+            if (args.length == valueIndex + 1) {
+                addLiteralSuggestions(matches, args[valueIndex], IslandCommandCatalog.playerHelpCategories().stream()
+                    .map(category -> category.name())
+                    .toList());
+                addLiteralSuggestions(matches, args[valueIndex], IntStream.rangeClosed(1, CommandListPolicy.pages(IslandCommandCatalog.playerDisplayCommands().size()))
+                    .mapToObj(Integer::toString)
+                    .toList());
+            } else if (args.length == valueIndex + 2) {
+                CommandHelpCategory category = IslandCommandCatalog.playerHelpCategory(args[valueIndex]);
+                if (category != null) {
+                    addLiteralSuggestions(matches, args[valueIndex + 1], IntStream.rangeClosed(1, CommandListPolicy.pages(category.commands().size()))
+                        .mapToObj(Integer::toString)
+                        .toList());
+                }
+            }
+            return matches;
+        }
+        return suggestions(IslandCommandCatalog.playerDisplayCommands(), "섬", args);
+    }
+
+    private boolean isPlayerHelpSuggestion(String[] args) {
+        return args.length > 1 && isPlayerHelpRoot(args[0]);
+    }
+
+    private boolean isPlayerHelpRoot(String value) {
+        return value.equalsIgnoreCase("help")
+            || value.equals("도움말")
+            || value.equalsIgnoreCase("commands")
+            || value.equalsIgnoreCase("command")
+            || value.equalsIgnoreCase("command-list")
+            || value.equals("명령어")
+            || value.equals("명령어목록");
     }
 
     private static List<String> roleKeyExamples(boolean includeVisitor) {

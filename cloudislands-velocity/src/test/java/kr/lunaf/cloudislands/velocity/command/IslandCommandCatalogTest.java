@@ -10,8 +10,34 @@ import kr.lunaf.cloudislands.protocol.command.CommandExecutionTarget;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class IslandCommandCatalogTest {
+    @Test
+    void playerFacingCatalogKeepsAliasesOutOfTheDefaultCommandList() {
+        List<String> displayCommands = IslandCommandCatalog.playerDisplayCommands();
+
+        assertTrue(displayCommands.size() < IslandCommandCatalog.playerCommands().size());
+        assertTrue(displayCommands.contains("섬 랭킹 [level|worth|bank] [limit]"));
+        assertTrue(displayCommands.contains("섬 은행 [player|island]"));
+        assertFalse(displayCommands.contains("섬 top [limit]"));
+        assertFalse(displayCommands.contains("섬 leaderboard [limit]"));
+        assertFalse(displayCommands.contains("섬 bal [player|island]"));
+        assertFalse(displayCommands.contains("섬 money [player|island]"));
+    }
+
+    @Test
+    void firstTabCompletionScreenIsShortAndLanguageAware() {
+        List<String> korean = IslandCommandCatalog.playerPrimaryRoots("ko_kr");
+        List<String> english = IslandCommandCatalog.playerPrimaryRoots("en_us");
+
+        assertTrue(korean.size() <= 20);
+        assertTrue(korean.containsAll(List.of("생성", "홈", "멤버", "도움말")));
+        assertTrue(english.containsAll(List.of("create", "home", "members", "help")));
+        assertEquals(korean.size(), korean.stream().map(String::toLowerCase).distinct().count());
+        assertEquals(english.size(), english.stream().map(String::toLowerCase).distinct().count());
+    }
+
     @Test
     void invalidPermissionAndFlagTokensNeverFallbackToDestructiveDefaults() throws Exception {
         String support = Files.readString(Path.of("src/main/java/kr/lunaf/cloudislands/velocity/command/VelocityCommandSupport.java"));

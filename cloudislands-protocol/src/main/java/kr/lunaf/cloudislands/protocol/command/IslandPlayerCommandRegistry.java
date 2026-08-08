@@ -7,16 +7,16 @@ public final class IslandPlayerCommandRegistry {
 
     private static final List<CommandHelpCategory> HELP_CATEGORIES = List.of(
         new CommandHelpCategory("기본", List.of("기본", "basic", "start", "시작"), "섬 기본 명령어", List.of(
-            "섬", "섬 메뉴", "섬 생성메뉴", "섬 템플릿", "섬 생성 [template]", "섬 목록", "섬 내섬", "섬 선택 <player|island>", "섬 정보", "섬 show [player|island]"
+            "섬", "섬 생성메뉴", "섬 템플릿", "섬 생성 [template]", "섬 목록", "섬 선택 <player|island>", "섬 정보 [player|island]"
         )),
         new CommandHelpCategory("멤버", List.of("멤버", "member", "members", "team", "팀"), "섬 멤버 명령어", List.of(
             "섬 멤버", "섬 초대 <player>", "섬 초대목록", "섬 초대수락 [플레이어|섬|inviteId]", "섬 초대거절 [플레이어|섬|inviteId]", "섬 탈퇴 confirm", "섬 추방 <player>", "섬 승급 <player>", "섬 강등 <player>", "섬 역할설정 <player> <role>", "섬 역할목록", "섬 역할편집 <role> <weight> <displayName>", "섬 역할초기화 <role>", "섬 양도 <player>", "섬 신뢰 <player> [duration]", "섬 협동 <player> [duration]", "섬 신뢰해제 <player>", "섬 밴 <player>", "섬 밴해제 <player>", "섬 밴목록", "섬 방문자추방 <player>"
         )),
         new CommandHelpCategory("방문", List.of("방문", "visit", "visitor", "travel"), "섬 방문 명령어", List.of(
-            "섬 홈 [name]", "섬 홈목록", "섬 셋홈 [name]", "섬 setteleport [name]", "섬 방문 <섬|플레이어|random>", "섬 랜덤방문", "섬 공개섬 [limit]", "섬 visitors", "섬 방문통계 [limit]", "섬 후기", "섬 ratings [limit]", "섬 평가 <섬|플레이어|current> <1-5> [후기]", "섬 후기신고 <섬|플레이어|current> <작성자> [사유]", "섬 후기삭제 [섬|플레이어|current]", "섬 워프목록", "섬 워프 <name>", "섬 워프 <섬|플레이어> <warp>", "섬 워프설정 <name> [category]", "섬 워프삭제 <name>", "섬 워프공개 <name>", "섬 워프비공개 <name>", "섬 공개워프목록 [category] [query]"
+            "섬 홈 [name]", "섬 홈목록", "섬 셋홈 [name]", "섬 홈삭제 [name]", "섬 방문 <섬|플레이어|random>", "섬 랜덤방문", "섬 공개섬 [limit]", "섬 방문통계 [limit]", "섬 후기", "섬 평가 <섬|플레이어|current> <1-5> [후기]", "섬 후기신고 <섬|플레이어|current> <작성자> [사유]", "섬 후기삭제 [섬|플레이어|current]", "섬 워프목록", "섬 워프 <name>", "섬 워프 <섬|플레이어> <warp>", "섬 워프설정 <name> [category]", "섬 워프삭제 <name>", "섬 워프공개 <name>", "섬 워프비공개 <name>", "섬 공개워프목록 [category] [query]"
         )),
         new CommandHelpCategory("성장", List.of("성장", "growth", "progression", "경제", "economy"), "섬 성장 명령어", List.of(
-            "섬 랭킹 [limit]", "섬 top [limit]", "섬 leaderboard [limit]", "섬 랭킹 worth [limit]", "섬 가치랭킹 [limit]", "섬 레벨", "섬 레벨계산", "섬 가치", "섬 블록상세 [limit]", "섬 values [player|island] [limit]", "섬 counts [player|island] [limit]", "섬 은행", "섬 balance [player|island]", "섬 bal [player|island]", "섬 money [player|island]", "섬 입금 <amount|all>", "섬 출금 <amount|all>", "섬 창고", "섬 chest", "섬 창고입금 <material> <amount>", "섬 창고출금 <material> <amount>", "섬 업그레이드", "섬 업그레이드목록", "섬 업그레이드구매 <upgradeKey>", "섬 rankup <upgradeKey>", "섬 생성기", "섬 미션 [missionKey]", "섬 챌린지 [challengeKey]"
+            "섬 랭킹 [level|worth|bank] [limit]", "섬 레벨", "섬 레벨계산", "섬 가치", "섬 블록상세 [player|island] [limit]", "섬 은행 [player|island]", "섬 입금 <amount|all>", "섬 출금 <amount|all>", "섬 창고", "섬 창고입금 <material> <amount>", "섬 창고출금 <material> <amount>", "섬 업그레이드", "섬 업그레이드구매 <upgradeKey>", "섬 생성기", "섬 미션 [missionKey]", "섬 챌린지 [challengeKey]"
         )),
         new CommandHelpCategory("설정", List.of("설정", "setting", "settings", "config"), "섬 설정 명령어", List.of(
             "섬 공개", "섬 비공개", "섬 잠금", "섬 잠금해제", "섬 비행 [on|off]", "섬 인벤보존 [true|false|on|off]", "섬 피빕 [true|false|on|off]", "섬 공개워프 [true|false|on|off]", "섬 크기", "섬 경계", "섬 바이옴 [biomeKey]", "섬 설정", "섬 언어 <ko_kr|en_us>", "섬 이름 <name>", "섬 설명 <text|clear>", "섬 setdiscord <handle|clear>", "섬 setpaypal <value|clear>", "섬 권한", "섬 권한설정 <role> <permission> <true|false|허용|거부>", "섬 플래그", "섬 권한예외 <player> <permission> <true|false|허용|거부>", "섬 권한예외목록", "섬 제한 [limitKey value]", "섬 toggle blocks", "섬 호퍼 <limit>", "섬 스포너 <limit>", "섬 엔티티 <limit>", "섬 레드스톤 <limit>"

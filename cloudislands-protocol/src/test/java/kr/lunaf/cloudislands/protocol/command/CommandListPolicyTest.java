@@ -77,6 +77,19 @@ class CommandListPolicyTest {
     }
 
     @Test
+    void removesBlankAndCaseInsensitiveDuplicateEntriesBeforePaging() {
+        CommandListPolicy.Page page = CommandListPolicy.page(
+            List.of("섬 홈", "  섬   홈  ", "IS HELP", "is help", "\n"),
+            1,
+            "섬 command list"
+        );
+
+        assertEquals(List.of("섬 홈", "IS HELP"), page.entries());
+        assertEquals(2, page.totalCommands());
+        assertEquals("1-2/2", page.rangeSummary());
+    }
+
+    @Test
     void exposesOneLineCommandPrefixContract() {
         assertEquals(" - 1 line > 1 command", CommandListPolicy.HEADER_SUFFIX);
         assertEquals("> /", CommandListPolicy.ENTRY_PREFIX);
