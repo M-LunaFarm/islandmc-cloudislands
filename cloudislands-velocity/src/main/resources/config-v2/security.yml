@@ -1,6 +1,9 @@
 core-api:
-  auth-token: "${file:/run/secrets/cloudislands_core_token}"
-  admin-token: "${file:/run/secrets/cloudislands_admin_token}"
+  # Relative file references are resolved from this config-v2 directory.
+  # BASIC mode creates both files with Java SecureRandom on Windows and Linux.
+  auth-token: "${file:../secrets/core-token}"
+  admin-token: "${file:../secrets/admin-token}"
+  auto-generate-tokens: true
 forwarding:
   require-modern: true
   # Leave blank to reuse velocity.toml's forwarding-secret-file automatically.

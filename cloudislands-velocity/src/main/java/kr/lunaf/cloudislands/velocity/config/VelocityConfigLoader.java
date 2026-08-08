@@ -30,6 +30,7 @@ public final class VelocityConfigLoader {
         try {
             Path configRoot = dataDirectory.resolve("config-v2");
             saveBundledConfigV2Defaults(configRoot);
+            migrateLegacyDockerSecretDefaults(configRoot.resolve("security.yml"), logger);
             for (Path configPath : dataConfigV2Files(configRoot)) {
                 readConfig(configPath, values, aliases);
             }
@@ -37,13 +38,15 @@ public final class VelocityConfigLoader {
             logger.warn("Failed to load CloudIslands Velocity config, using defaults", exception);
         }
         applyAccessMode(values);
+        String coreToken = coreApiSecret(dataDirectory, values, "core-api.auth-token", "core-token", logger);
+        String adminToken = coreApiSecret(dataDirectory, values, "core-api.admin-token", "admin-token", logger);
         String forwardingSecret = forwardingSecret(dataDirectory, values, logger);
         return new VelocityConfig(
             values.getOrDefault("language", "ko_kr"),
             bool(values.get("debug"), false),
             value(values, "base-url", "https://core-api.internal:8443"),
-            value(values, "core-api.auth-token", ""),
-            value(values, "core-api.admin-token", ""),
+            coreToken,
+            adminToken,
             durationMillis(values.get("timeout.request"), 3000),
             values.getOrDefault("failure.fallback-server", values.getOrDefault("default-lobby", "Lobby")),
             durationSeconds(values.get("ticket.wait-timeout"), 20),
@@ -165,7 +168,10 @@ public final class VelocityConfigLoader {
                 sections.put(indent, fullKey);
                 continue;
             }
-            values.put(fullKey, resolveEnv(value));
+            values.put(fullKey, resolveValue(value, configPath.getParent()));
+            if (fullKey.equals("core-api.auth-token") || fullKey.equals("core-api.admin-token")) {
+                values.put(fullKey + ".source", value);
+            }
         }
     }
 
@@ -209,7 +215,7 @@ public final class VelocityConfigLoader {
         return value;
     }
 
-    private static String resolveEnv(String value) {
+    private static String resolveValue(String value, Path relativeRoot) {
         if (value == null) {
             return "";
         }
@@ -219,6 +225,9 @@ public final class VelocityConfigLoader {
             if (expression.startsWith("file:")) {
                 try {
                     Path path = Path.of(expression.substring("file:".length()));
+                    if (!path.isAbsolute() && relativeRoot != null) {
+                        path = relativeRoot.resolve(path).normalize();
+                    }
                     return Files.exists(path) ? Files.readString(path).trim() : "";
                 } catch (IOException exception) {
                     return "";
@@ -230,6 +239,54 @@ public final class VelocityConfigLoader {
             return System.getenv().getOrDefault(expression, "");
         }
         return trimmed;
+    }
+
+    private static String coreApiSecret(Path dataDirectory, Map<String, String> values, String key, String fileName, Logger logger) {
+        String configured = values.getOrDefault(key, "").trim();
+        if (!configured.isBlank() || !bool(values.get("core-api.auto-generate-tokens"), true)) {
+            return configured;
+        }
+        String source = values.getOrDefault(key + ".source", "").trim();
+        String generatedFileExpression = "${file:../secrets/" + fileName + "}";
+        if (!source.isBlank() && !source.equals(generatedFileExpression)) {
+            logger.warn("Velocity Core API {} source could not be resolved; automatic generation is limited to the bundled local secret path", fileName);
+            return "";
+        }
+        Path secretPath = dataDirectory.resolve("secrets").resolve(fileName).toAbsolutePath().normalize();
+        try {
+            SecureSecretFile.Result result = SecureSecretFile.loadOrCreate(secretPath, 32);
+            if (result.created()) {
+                logger.info("Generated Velocity Core API {} at {} using Java SecureRandom; no openssl command is required", fileName, result.path());
+            }
+            return result.secret();
+        } catch (IOException exception) {
+            logger.warn("Could not load or generate Velocity Core API {} at {}", fileName, secretPath, exception);
+            return "";
+        }
+    }
+
+    private static void migrateLegacyDockerSecretDefaults(Path securityConfig, Logger logger) throws IOException {
+        if (!Files.isRegularFile(securityConfig)) {
+            return;
+        }
+        String source = Files.readString(securityConfig);
+        String migrated = source;
+        if (Files.notExists(Path.of("/run/secrets/cloudislands_core_token"))) {
+            migrated = migrated.replace(
+                "${file:/run/secrets/cloudislands_core_token}",
+                "${file:../secrets/core-token}"
+            );
+        }
+        if (Files.notExists(Path.of("/run/secrets/cloudislands_admin_token"))) {
+            migrated = migrated.replace(
+                "${file:/run/secrets/cloudislands_admin_token}",
+                "${file:../secrets/admin-token}"
+            );
+        }
+        if (!migrated.equals(source)) {
+            Files.writeString(securityConfig, migrated);
+            logger.info("Migrated Velocity Docker-only Core API secret defaults to local cross-platform secret files at {}", securityConfig);
+        }
     }
 
     private static String forwardingSecret(Path dataDirectory, Map<String, String> values, Logger logger) {
