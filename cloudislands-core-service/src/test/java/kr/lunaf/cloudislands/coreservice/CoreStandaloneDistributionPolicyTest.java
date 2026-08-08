@@ -16,11 +16,13 @@ class CoreStandaloneDistributionPolicyTest {
         String release = Files.readString(repository.resolve(".github/workflows/release.yml"));
         String velocityBuild = Files.readString(repository.resolve("cloudislands-velocity/build.gradle.kts"));
 
-        assertTrue(coreBuild.contains("alias(libs.plugins.shadow)"));
+        assertTrue(coreBuild.contains("val standaloneJar by tasks.registering(Jar::class)"));
         assertTrue(coreBuild.contains("archiveBaseName.set(\"CloudIslands-Core\")"));
         assertTrue(coreBuild.contains("\"Main-Class\" to \"kr.lunaf.cloudislands.coreservice.CloudIslandsCoreApplication\""));
+        assertTrue(coreBuild.contains("val generateStandaloneServices by tasks.registering"));
+        assertTrue(coreBuild.contains("META-INF/services/java.sql.Driver"));
         assertTrue(coreBuild.contains("val verifyStandaloneJar by tasks.registering"));
-        assertTrue(distribution.contains("val standaloneJar = coreService.tasks.named<Jar>(\"shadowJar\")"));
+        assertTrue(distribution.contains("val standaloneJar = coreService.tasks.named<Jar>(\"standaloneJar\")"));
         assertTrue(release.contains("build/dist/services/core/CloudIslands-Core-*.jar"));
         assertFalse(velocityBuild.contains("project(\":cloudislands-core-service\")"));
         assertFalse(velocityBuild.contains("kr.lunaf.cloudislands.coreservice"));

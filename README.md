@@ -9,7 +9,7 @@ CloudIslands는 Paper와 Velocity에서 섬을 운영하기 위한 Skyblock 플�
 불러옵니다. 섬 정보는 Core가 관리하고, Paper는 실제 월드를 실행하며, Velocity는
 플레이어를 올바른 서버로 보냅니다.
 
-**현재 버전:** `1.1.262`
+**현재 버전:** `1.1.263`
 
 서버 규모에 따라 두 가지 구성을 쓸 수 있습니다.
 
@@ -289,7 +289,7 @@ Core는 `CI_CONFIGURATION_MODE=BASIC` 또는 `-Dcloudislands.mode=BASIC`으로 �
 
 #### Core Service 단독 JAR 실행
 
-Release에서 `CloudIslands-Core-1.1.262.jar`를 내려받아 Velocity의 `plugins` 폴더가 아닌
+Release에서 `CloudIslands-Core-1.1.263.jar`를 내려받아 Velocity의 `plugins` 폴더가 아닌
 별도 Core 폴더에 둡니다. BASIC 모드는 로컬 MySQL과 로컬 섬 스토리지를 사용합니다.
 
 Windows CMD 예시:
@@ -299,7 +299,7 @@ set CI_CONFIGURATION_MODE=BASIC
 set CI_DB_USERNAME=cloudislands
 set CI_DB_PASSWORD=데이터베이스비밀번호
 set CI_CORE_TOKEN=generate-cloudislands-keys.cmd로_만든_core_token
-java -Xms256m -Xmx1g -jar CloudIslands-Core-1.1.262.jar
+java -Xms256m -Xmx1g -jar CloudIslands-Core-1.1.263.jar
 ```
 
 Linux 예시:
@@ -309,7 +309,7 @@ export CI_CONFIGURATION_MODE=BASIC
 export CI_DB_USERNAME=cloudislands
 export CI_DB_PASSWORD='데이터베이스비밀번호'
 export CI_CORE_TOKEN='충분히-긴-무작위-core-token'
-java -Xms256m -Xmx1g -jar CloudIslands-Core-1.1.262.jar
+java -Xms256m -Xmx1g -jar CloudIslands-Core-1.1.263.jar
 ```
 
 고급 단일 YAML을 쓰려면 `CI_CONFIG_FILE=cloudislands.yml` 또는
@@ -664,14 +664,16 @@ Core 쪽 Redis가 정상인지는 별도로 확인해야 합니다.
 
 ### 이번 릴리스
 
-`v1.1.262`의 주요 변경 사항입니다.
+`v1.1.263`의 주요 변경 사항입니다.
 
-- Core Service를 `java -jar CloudIslands-Core-1.1.262.jar`로 실행할 수 있는 독립 fat JAR로
+- Core Service를 `java -jar CloudIslands-Core-1.1.263.jar`로 실행할 수 있는 독립 fat JAR로
   배포하며 PostgreSQL, MySQL, MariaDB 드라이버와 필요한 런타임을 함께 포함합니다.
 - Velocity의 사용되지 않던 embedded Core 설정, 모델, 기본 리소스를 제거했습니다.
   Velocity는 기존처럼 외부 Core API에 연결하며 라우팅과 명령 기능은 그대로 유지됩니다.
 - 명시적인 ADVANCED 로비 설정을 BASIC 자동 감지가 덮어쓰지 않도록 부팅 검증 구성을
   분리했습니다.
+- Gradle 9와 Java 25에서도 전체 Build 게이트가 동작하도록 application 배포와 독립
+  Core JAR 패키징을 분리하고 JDBC ServiceLoader 항목을 직접 병합합니다.
 
 - PlaceholderAPI가 설치되지 않아도 Satis 전체가 중단되지 않고 플레이스홀더 확장만
   건너뜁니다. PlaceholderAPI는 계속 선택 의존성입니다.
@@ -717,7 +719,7 @@ Core 쪽 Redis가 정상인지는 별도로 확인해야 합니다.
 - 늦게 도착한 비동기 응답을 새 플레이어 연결에 적용하지 않습니다.
 - 1.0.x 공개 API 호환성을 유지하면서 지원 버전용 Paper 파일을 하나로 제공합니다.
 
-현재 `1.1.262` 기준으로 Paper 한 대와 분산 구성 모두 실제 운영에 필요한 경로가 구현되어
+현재 `1.1.263` 기준으로 Paper 한 대와 분산 구성 모두 실제 운영에 필요한 경로가 구현되어
 있습니다. 저장소의 자동 검사는 DB, Redis, 오브젝트 스토리지, Core 이중화, Paper와
 Velocity 부팅, 섬 생성과 복원, 노드 재시작, 스토리지 장애, 체크섬, SBOM, provenance를
 다룹니다. 다만 운영 환경의 플러그인 조합, 네트워크, 저장소, 권한, 플레이어 부하는 배포
@@ -748,7 +750,7 @@ It treats each island as a portable, globally owned resource instead of tying it
 to one Minecraft server. Core owns durable state, Paper runs island worlds, and
 Velocity routes players with short-lived tickets.
 
-Version: `1.1.262`
+Version: `1.1.263`
 
 CloudIslands supports both of these deployment shapes:
 
@@ -1559,16 +1561,18 @@ The block below is generated from repository evidence and verified by
 
 ## Release notes
 
-Current release: `v1.1.262`
+Current release: `v1.1.263`
 
-Release notes for `v1.1.262`:
+Release notes for `v1.1.263`:
 
-- Publishes `CloudIslands-Core-1.1.262.jar` as an executable standalone fat jar
+- Publishes `CloudIslands-Core-1.1.263.jar` as an executable standalone fat jar
   with the Core runtime and supported JDBC drivers included.
 - Removes the unused embedded-Core model, settings, and bundled resources from
   Velocity while preserving its external Core API client, routing, and commands.
 - Keeps explicit ADVANCED lobby boot fixtures separate from BASIC folder-based
   topology inference.
+- Uses a Gradle-native standalone jar task with merged JDBC ServiceLoader
+  descriptors so the full Java 25/Gradle 9 Build gate remains compatible.
 
 - Keeps Satis running without PlaceholderAPI by deferring all PlaceholderAPI
   class loading until the optional dependency is actually present.
@@ -1639,7 +1643,7 @@ Release notes for `v1.1.262`:
 
 ## Project status
 
-The current `1.1.262` source baseline is implemented and verified for practical
+The current `1.1.263` source baseline is implemented and verified for practical
 single-Paper and distributed use. Repository evidence includes unit and policy
 tests, real PostgreSQL/Redis/object-storage integration, multi-Core behavior,
 Paper and Velocity boot smokes, real player create/home/restore flows, node

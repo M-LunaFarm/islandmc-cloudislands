@@ -1,9 +1,8 @@
 import java.util.jar.JarFile
+import java.util.zip.ZipFile
+import org.gradle.jvm.tasks.Jar
 
-plugins {
-    application
-    alias(libs.plugins.shadow)
-}
+plugins { application }
 
 dependencies {
     implementation(project(":cloudislands-api"))
@@ -86,22 +85,65 @@ tasks.jar {
     }
 }
 
-tasks.shadowJar {
+val standaloneServicesDirectory = layout.buildDirectory.dir("generated/standalone-services")
+
+val generateStandaloneServices by tasks.registering {
+    group = "build"
+    description = "Merges ServiceLoader descriptors for the standalone Core jar."
+    inputs.files(configurations.runtimeClasspath)
+    outputs.dir(standaloneServicesDirectory)
+    doLast {
+        val outputRoot = standaloneServicesDirectory.get().asFile
+        delete(outputRoot)
+        val merged = linkedMapOf<String, LinkedHashSet<String>>()
+        configurations.runtimeClasspath.get()
+            .filter { it.isFile && it.extension.equals("jar", ignoreCase = true) }
+            .forEach { archive ->
+                ZipFile(archive).use { zip ->
+                    zip.entries().asSequence()
+                        .filter { !it.isDirectory && it.name.startsWith("META-INF/services/") }
+                        .forEach { entry ->
+                            val providers = merged.computeIfAbsent(entry.name) { linkedSetOf() }
+                            zip.getInputStream(entry).bufferedReader().useLines { lines ->
+                                lines.map(String::trim)
+                                    .filter { it.isNotEmpty() && !it.startsWith("#") }
+                                    .forEach(providers::add)
+                            }
+                        }
+                }
+            }
+        merged.forEach { (path, providers) ->
+            val output = outputRoot.resolve(path)
+            output.parentFile.mkdirs()
+            output.writeText(providers.joinToString(System.lineSeparator(), postfix = System.lineSeparator()))
+        }
+    }
+}
+
+val standaloneJar by tasks.registering(Jar::class) {
     archiveBaseName.set("CloudIslands-Core")
     archiveClassifier.set("")
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    mergeServiceFiles()
-    exclude("META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA")
+    dependsOn(generateStandaloneServices)
+    from(sourceSets.main.get().output)
+    from({
+        configurations.runtimeClasspath.get()
+            .filter { it.isFile && it.extension.equals("jar", ignoreCase = true) }
+            .map(::zipTree)
+    }) {
+        exclude("META-INF/MANIFEST.MF", "META-INF/services/**", "META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA")
+    }
+    from(standaloneServicesDirectory)
     manifest {
-        attributes("Main-Class" to "kr.lunaf.cloudislands.coreservice.CloudIslandsCoreApplication")
+        from(tasks.jar.get().manifest)
     }
 }
 
 val verifyStandaloneJar by tasks.registering {
     group = "verification"
     description = "Verifies the standalone Core service jar contains its entrypoint and JDBC runtime drivers."
-    dependsOn(tasks.shadowJar)
-    val archive = tasks.shadowJar.flatMap { it.archiveFile }
+    dependsOn(standaloneJar)
+    val archive = standaloneJar.flatMap { it.archiveFile }
     inputs.file(archive)
     doLast {
         JarFile(archive.get().asFile).use { jar ->
@@ -119,6 +161,16 @@ val verifyStandaloneJar by tasks.registering {
                     throw GradleException("Standalone Core jar is missing runtime entry: $entry")
                 }
             }
+            val jdbcProviders = jar.getInputStream(jar.getJarEntry("META-INF/services/java.sql.Driver"))
+                .bufferedReader()
+                .readLines()
+                .toSet()
+            setOf("org.postgresql.Driver", "com.mysql.cj.jdbc.Driver", "org.mariadb.jdbc.Driver")
+                .forEach { driver ->
+                    if (driver !in jdbcProviders) {
+                        throw GradleException("Standalone Core jar service descriptor is missing JDBC driver: $driver")
+                    }
+                }
         }
     }
 }
@@ -128,7 +180,7 @@ tasks.check {
 }
 
 tasks.build {
-    dependsOn(tasks.shadowJar)
+    dependsOn(standaloneJar)
 }
 
 tasks.test {

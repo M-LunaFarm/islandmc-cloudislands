@@ -124,7 +124,7 @@ tasks.register<Copy>("distServices") {
 
     val coreService = project(":cloudislands-core-service")
     val installTask = coreService.tasks.named("installDist")
-    val standaloneJar = coreService.tasks.named<Jar>("shadowJar")
+    val standaloneJar = coreService.tasks.named<Jar>("standaloneJar")
     dependsOn(installTask)
     dependsOn(standaloneJar)
     from(coreService.layout.buildDirectory.dir("install/cloudislands-core-service"))
