@@ -63,6 +63,7 @@ jobs:
             build/dist/plugins/*.jar
             build/dist/addons/*.jar
             build/dist/tools/*.jar
+            build/dist/services/core/CloudIslands-Core-*.jar
             build/dist/scripts/windows/*.cmd
           )
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then

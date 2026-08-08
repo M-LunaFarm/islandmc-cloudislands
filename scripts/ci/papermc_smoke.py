@@ -69,6 +69,10 @@ def prepare_paper(work_dir: Path, plugin: Path, java_command: str, bootstrap_fai
     cloudislands_dir.mkdir(parents=True, exist_ok=True)
     config_v2_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(plugin, work_dir / "plugins" / plugin.name)
+    (config_v2_dir / "config.yml").write_text(
+        "config-version: 2\nconfiguration-mode: ADVANCED\nprofile: smoke\nlanguage: ko_kr\nstrict-validation: true\n",
+        encoding="utf-8",
+    )
     (work_dir / "eula.txt").write_text("eula=true\n", encoding="utf-8")
     (work_dir / "server.properties").write_text(
         "\n".join(

@@ -1,4 +1,9 @@
-plugins { application }
+import java.util.jar.JarFile
+
+plugins {
+    application
+    alias(libs.plugins.shadow)
+}
 
 dependencies {
     implementation(project(":cloudislands-api"))
@@ -19,6 +24,7 @@ application {
 tasks.jar {
     manifest {
         attributes(
+            "Main-Class" to "kr.lunaf.cloudislands.coreservice.CloudIslandsCoreApplication",
             "CloudIslands-Core-Setup-Database-Path" to "setup.database",
             "CloudIslands-Core-Setup-Database-Supported-Targets" to "POSTGRESQL,MYSQL,MARIADB,CORE_API",
             "CloudIslands-Core-JDBC-Native-Backend" to "POSTGRESQL,MYSQL,MARIADB",
@@ -78,6 +84,51 @@ tasks.jar {
             "SuperiorSkyblock2-Runtime-Dependency" to "false"
         )
     }
+}
+
+tasks.shadowJar {
+    archiveBaseName.set("CloudIslands-Core")
+    archiveClassifier.set("")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    mergeServiceFiles()
+    exclude("META-INF/*.SF", "META-INF/*.RSA", "META-INF/*.DSA")
+    manifest {
+        attributes("Main-Class" to "kr.lunaf.cloudislands.coreservice.CloudIslandsCoreApplication")
+    }
+}
+
+val verifyStandaloneJar by tasks.registering {
+    group = "verification"
+    description = "Verifies the standalone Core service jar contains its entrypoint and JDBC runtime drivers."
+    dependsOn(tasks.shadowJar)
+    val archive = tasks.shadowJar.flatMap { it.archiveFile }
+    inputs.file(archive)
+    doLast {
+        JarFile(archive.get().asFile).use { jar ->
+            val mainClass = jar.manifest.mainAttributes.getValue("Main-Class")
+            if (mainClass != "kr.lunaf.cloudislands.coreservice.CloudIslandsCoreApplication") {
+                throw GradleException("Standalone Core jar has no executable Main-Class")
+            }
+            listOf(
+                "kr/lunaf/cloudislands/coreservice/CloudIslandsCoreApplication.class",
+                "org/postgresql/Driver.class",
+                "com/mysql/cj/jdbc/Driver.class",
+                "org/mariadb/jdbc/Driver.class"
+            ).forEach { entry ->
+                if (jar.getJarEntry(entry) == null) {
+                    throw GradleException("Standalone Core jar is missing runtime entry: $entry")
+                }
+            }
+        }
+    }
+}
+
+tasks.check {
+    dependsOn(verifyStandaloneJar)
+}
+
+tasks.build {
+    dependsOn(tasks.shadowJar)
 }
 
 tasks.test {
