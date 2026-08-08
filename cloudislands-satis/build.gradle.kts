@@ -334,7 +334,7 @@ tasks.register("verifyRuntimeComponentCoverage") {
         val missingTests = listOf(
             "buildsComponentPlanForFeatureGateRuntime",
             "registeredStateCarriesFeatureSnapshotWhenActivationAllowsRuntime",
-            "bootstrapBlocksStartupWhenApiMissingAndAddonRegistrationFails",
+            "bootstrapWaitsWithoutDisablingWhenApiIsTemporarilyMissing",
             "databaseRuntimeFingerprintsBackendSettingsAndMasksPasswords",
             "cloudIslandsApiMissingBlocksStandaloneRuntime",
             "lifecycleBridgeParsesMigrationOperationPlacement",
