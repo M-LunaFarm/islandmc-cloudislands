@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -224,13 +225,19 @@ class SatisSkyFactoryPluginTest {
     @Test
     void placeholderFeatureGateUnregistersExpansionWhenDisabled() throws Exception {
         String source = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/SatisSkyFactoryPlugin.java"));
+        String factory = Files.readString(Path.of("src/main/java/kr/seungmin/satisskyfactory/hook/PlaceholderHookFactory.java"));
 
         assertTrue(source.contains("private void registerPlaceholders()"));
-        assertTrue(source.contains("placeholderHook = placeholderRuntime.refresh(placeholderHook, this::newPlaceholderHook, placeholderRuntimeEnabled());"));
+        assertTrue(source.contains("boolean enabled = placeholderRuntimeEnabled();"));
+        assertTrue(source.indexOf("if (!enabled)") < source.indexOf("this::newPlaceholderHook"));
+        assertTrue(source.contains("private SatisPlaceholderRuntime.PlaceholderExpansionHandle newPlaceholderHook()"));
+        assertFalse(source.contains("import kr.seungmin.satisskyfactory.hook.PlaceholderHook;"));
+        assertTrue(factory.contains("return new PlaceholderHook("));
         assertTrue(source.contains("placeholderHook = placeholderRuntime.unregister(placeholderHook);"));
         assertTrue(source.contains("private boolean placeholderRuntimeEnabled()"));
         assertTrue(source.contains("return placeholderRuntime.runtimeEnabled(operationalFeatureEnabled(\"placeholders\"), operationalFeatureEnabled(\"machines\"));"));
         assertTrue(source.contains("runtime-placeholder-policy\", \"disabled-feature-or-missing-placeholderapi-registers-no-expansion"));
+        assertTrue(source.contains("PlaceholderAPI is not installed; optional Satis placeholders are disabled."));
     }
 
     @Test

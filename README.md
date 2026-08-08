@@ -9,7 +9,7 @@ CloudIslands는 Paper와 Velocity에서 섬을 운영하기 위한 Skyblock 플�
 불러옵니다. 섬 정보는 Core가 관리하고, Paper는 실제 월드를 실행하며, Velocity는
 플레이어를 올바른 서버로 보냅니다.
 
-**현재 버전:** `1.1.260`
+**현재 버전:** `1.1.261`
 
 서버 규모에 따라 두 가지 구성을 쓸 수 있습니다.
 
@@ -633,7 +633,16 @@ Core 쪽 Redis가 정상인지는 별도로 확인해야 합니다.
 
 ### 이번 릴리스
 
-`v1.1.260`의 주요 변경 사항입니다.
+`v1.1.261`의 주요 변경 사항입니다.
+
+- PlaceholderAPI가 설치되지 않아도 Satis 전체가 중단되지 않고 플레이스홀더 확장만
+  건너뜁니다. PlaceholderAPI는 계속 선택 의존성입니다.
+- 기존 Satis 설정 파일을 다시 저장하려다 출력하던 `already exists` 경고를 제거하고,
+  기본 설정의 오래된 Core API 별칭과 `port: 0` 센티널 경고를 무시합니다.
+- BASIC 모드에서 서버별 진단 포트 충돌을 막기 위해 내장 health endpoint를 기본
+  비활성화하고, `island-1`/`islands-1` 폴더를 네트워크 섬 노드로 자동 인식합니다.
+- 같은 컴퓨터의 Velocity를 위한 기본 신뢰 주소 `127.0.0.1`과 `::1`을 제공하며,
+  `basic.trusted-proxies`에서 다른 프록시 주소나 CIDR로 바꿀 수 있습니다.
 
 - Windows에서 Paper의 기존 평문 Core/Admin 토큰을 값 변경 없이
   `plugins/CloudIslands/secrets`로 자동 이관하고 안전한 파일 참조로 교체합니다.
@@ -670,7 +679,7 @@ Core 쪽 Redis가 정상인지는 별도로 확인해야 합니다.
 - 늦게 도착한 비동기 응답을 새 플레이어 연결에 적용하지 않습니다.
 - 1.0.x 공개 API 호환성을 유지하면서 지원 버전용 Paper 파일을 하나로 제공합니다.
 
-현재 `1.1.260` 기준으로 Paper 한 대와 분산 구성 모두 실제 운영에 필요한 경로가 구현되어
+현재 `1.1.261` 기준으로 Paper 한 대와 분산 구성 모두 실제 운영에 필요한 경로가 구현되어
 있습니다. 저장소의 자동 검사는 DB, Redis, 오브젝트 스토리지, Core 이중화, Paper와
 Velocity 부팅, 섬 생성과 복원, 노드 재시작, 스토리지 장애, 체크섬, SBOM, provenance를
 다룹니다. 다만 운영 환경의 플러그인 조합, 네트워크, 저장소, 권한, 플레이어 부하는 배포
@@ -701,7 +710,7 @@ It treats each island as a portable, globally owned resource instead of tying it
 to one Minecraft server. Core owns durable state, Paper runs island worlds, and
 Velocity routes players with short-lived tickets.
 
-Version: `1.1.260`
+Version: `1.1.261`
 
 CloudIslands supports both of these deployment shapes:
 
@@ -1512,9 +1521,17 @@ The block below is generated from repository evidence and verified by
 
 ## Release notes
 
-Current release: `v1.1.260`
+Current release: `v1.1.261`
 
-Release notes for `v1.1.260`:
+Release notes for `v1.1.261`:
+
+- Keeps Satis running without PlaceholderAPI by deferring all PlaceholderAPI
+  class loading until the optional dependency is actually present.
+- Stops re-saving existing Satis resources, ignores legacy Core API marker and
+  zero-port sentinel noise, and preserves real alias conflicts as diagnostics.
+- Disables the per-Paper health listener in BASIC mode to avoid same-host port
+  collisions, recognizes `island-1`/`islands-1` folders as network Island nodes,
+  and supplies localhost Velocity proxy trust defaults.
 
 - Migrates existing plaintext Paper Core and admin tokens into protected,
   cross-platform files without changing their values before Config v2 validation.
@@ -1577,7 +1594,7 @@ Release notes for `v1.1.260`:
 
 ## Project status
 
-The current `1.1.260` source baseline is implemented and verified for practical
+The current `1.1.261` source baseline is implemented and verified for practical
 single-Paper and distributed use. Repository evidence includes unit and policy
 tests, real PostgreSQL/Redis/object-storage integration, multi-Core behavior,
 Paper and Velocity boot smokes, real player create/home/restore flows, node

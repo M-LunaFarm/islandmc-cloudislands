@@ -73,6 +73,26 @@ class SatisConfigValidatorTest {
         assertTrue(report.warningSummary().contains("deprecated-alias-used:set-satis.database.type"));
     }
 
+    @Test
+    void ignoresLegacyCoreApiMarkersAndZeroPortSentinelsWhenCanonicalDatabaseTypeExists() {
+        Map<String, YamlConfiguration> files = defaultFiles();
+        YamlConfiguration config = files.get("config.yml");
+        config.set("satis.database.type", "CORE_API");
+        config.set("setup.database.core-api.enabled", true);
+        config.set("addons.cloudislands-satis.database.core-api.enabled", true);
+        config.set("addons.cloudislands-satis.database.postgresql.port", 0);
+        config.set("addons.cloudislands-satis.database.mysql.port", 0);
+        config.set("addons.cloudislands-satis.database.mariadb.port", 0);
+
+        SatisConfigValidator.ValidationReport report = validator.validate(files);
+
+        assertFalse(report.hasErrors(), report.errorSummary());
+        assertFalse(report.warningSummary().contains("core-api.enabled"), report.warningSummary());
+        assertFalse(report.warningSummary().contains("alias-conflict:satis.database.postgresql.port"), report.warningSummary());
+        assertFalse(report.warningSummary().contains("alias-conflict:satis.database.mysql.port"), report.warningSummary());
+        assertFalse(report.warningSummary().contains("alias-conflict:satis.database.mariadb.port"), report.warningSummary());
+    }
+
     private Map<String, YamlConfiguration> defaultFiles() {
         Map<String, YamlConfiguration> files = new LinkedHashMap<>();
         for (String file : java.util.List.of(

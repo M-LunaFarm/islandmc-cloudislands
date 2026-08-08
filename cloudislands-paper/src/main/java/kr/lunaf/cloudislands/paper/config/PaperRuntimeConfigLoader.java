@@ -64,7 +64,7 @@ public final class PaperRuntimeConfigLoader {
         return loadV2(sources, envResolver, null);
     }
 
-    private static PaperRuntimeConfig loadV2(List<ConfigSource> sources, Function<String, String> envResolver, Path dataFolder) {
+    static PaperRuntimeConfig loadV2(List<ConfigSource> sources, Function<String, String> envResolver, Path dataFolder) {
         validateV2Sources(sources);
         YamlConfiguration mapped = mapV2Sources(sources, dataFolder);
         if (mapped.getKeys(true).isEmpty()) {
@@ -453,6 +453,7 @@ public final class PaperRuntimeConfigLoader {
         setIfPresent(source, target, "basic.core-url", "access.core-url");
         setIfPresent(source, target, "basic.redis-url", "access.redis-url");
         setIfPresent(source, target, "basic.local-storage-path", "access.local-storage-path");
+        setIfPresent(source, target, "basic.trusted-proxies", "security.proxy-source-allowlist");
     }
 
     private static void applyAccessMode(FileConfiguration target, Path dataFolder) {
@@ -460,10 +461,16 @@ public final class PaperRuntimeConfigLoader {
             return;
         }
         String topology = effectiveBasicTopology(string(target, "access.topology", "AUTO"), target, dataFolder);
-        String nodeId = string(target, "access.node-id", topology.equals("LOBBY") ? "lobby-1" : "island-1");
+        String inferredIdentity = inferredNetworkIdentity(topology, target, dataFolder);
+        String nodeId = inferredIdentity.isBlank()
+            ? string(target, "access.node-id", topology.equals("LOBBY") ? "lobby-1" : "island-1")
+            : inferredIdentity;
         target.set("node.id", nodeId);
-        target.set("node.velocity-server-name", string(target, "access.velocity-server-name", nodeId));
+        target.set("node.velocity-server-name", inferredIdentity.isBlank()
+            ? string(target, "access.velocity-server-name", nodeId)
+            : inferredIdentity);
         target.set("node.reject-default-identity", false);
+        target.set("health.enabled", false);
         target.set("setup.core-api.base-url", string(target, "access.core-url", "http://127.0.0.1:8443"));
         String redisUrl = string(target, "access.redis-url", "");
         target.set("redis.enabled", !redisUrl.isBlank());
@@ -490,6 +497,9 @@ public final class PaperRuntimeConfigLoader {
         target.set("security.require-velocity-forwarding", true);
         target.set("security.enforce-route-session", true);
         target.set("routing.require-route-session", true);
+        if (target.getStringList("security.proxy-source-allowlist").isEmpty()) {
+            target.set("security.proxy-source-allowlist", List.of("127.0.0.1", "::1"));
+        }
     }
 
     private static String effectiveBasicTopology(String configured, FileConfiguration target, Path dataFolder) {
@@ -503,7 +513,23 @@ public final class PaperRuntimeConfigLoader {
         String identity = string(target, "access.node-id", "") + " "
             + string(target, "access.velocity-server-name", "") + " " + serverDirectoryName(dataFolder);
         String lower = identity.toLowerCase(Locale.ROOT);
-        return lower.matches(".*\\b(lobby|hub|spawn)\\b.*") ? "LOBBY" : "SINGLE_PAPER";
+        if (lower.matches(".*\\b(lobby|hub|spawn)\\b.*")) {
+            return "LOBBY";
+        }
+        return lower.matches(".*\\bislands?[-_ ]?\\d+\\b.*") ? "NETWORK_ISLAND" : "SINGLE_PAPER";
+    }
+
+    private static String inferredNetworkIdentity(String topology, FileConfiguration target, Path dataFolder) {
+        if (topology.equals("SINGLE_PAPER")) {
+            return "";
+        }
+        String nodeId = string(target, "access.node-id", "island-1");
+        String velocityName = string(target, "access.velocity-server-name", "island-1");
+        if (!nodeId.equalsIgnoreCase("island-1") || !velocityName.equalsIgnoreCase("island-1")) {
+            return "";
+        }
+        String directory = serverDirectoryName(dataFolder);
+        return directory.matches("[A-Za-z0-9._-]{1,64}") ? directory : "";
     }
 
     private static String serverDirectoryName(Path dataFolder) {

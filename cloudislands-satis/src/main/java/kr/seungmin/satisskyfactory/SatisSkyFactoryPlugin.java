@@ -74,7 +74,7 @@ import kr.seungmin.satisskyfactory.gui.FactoryGuiHolder;
 import kr.seungmin.satisskyfactory.gui.FactoryGuiService;
 import kr.seungmin.satisskyfactory.hook.CloudIslandsSkyblockProvider;
 import kr.seungmin.satisskyfactory.hook.PlaceholderFeaturePolicy;
-import kr.seungmin.satisskyfactory.hook.PlaceholderHook;
+import kr.seungmin.satisskyfactory.hook.PlaceholderHookFactory;
 import kr.seungmin.satisskyfactory.hook.SkyblockProvider;
 import kr.seungmin.satisskyfactory.integration.SatisAddonIntegrationPolicy;
 import kr.seungmin.satisskyfactory.item.CustomItemFactory;
@@ -169,7 +169,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     private MachineTickService ticker;
     private MaintenanceTickService maintenanceTicker;
     private SatisServiceContainer services;
-    private PlaceholderHook placeholderHook;
+    private SatisPlaceholderRuntime.PlaceholderExpansionHandle placeholderHook;
     private CloudIslandsApi cloudIslandsApi;
     private SatisRuntimeAuthority runtimeAuthority;
     private boolean addonRuntimeEnabled;
@@ -549,7 +549,7 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
         state.put("runtime-placeholder-status", placeholderHook != null ? "registered" : placeholderBlockReason());
         state.put("runtime-placeholder-policy", "disabled-feature-or-missing-placeholderapi-registers-no-expansion");
         state.put("runtime-placeholder-exposure-policy", PlaceholderFeaturePolicy.exposurePolicy());
-        state.put("runtime-placeholder-exposed-keys", placeholderHook != null ? placeholderHook.exposedKeys() : PlaceholderFeaturePolicy.exposedKeys());
+        state.put("runtime-placeholder-exposed-keys", PlaceholderFeaturePolicy.exposedKeys());
         state.put("runtime-placeholder-denied-internal-fields", PlaceholderFeaturePolicy.deniedInternalFields());
         state.put("runtime-placeholder-topology-privacy-policy", SatisAddonIntegrationPolicy.TOPOLOGY_PRIVACY_POLICY);
         state.put("runtime-placeholder-internal-placement-exposure", "false");
@@ -1394,19 +1394,25 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
     }
 
     private void registerPlaceholders() {
-        placeholderHook = placeholderRuntime.refresh(placeholderHook, this::newPlaceholderHook, placeholderRuntimeEnabled());
+        refreshPlaceholders();
     }
 
     private void refreshPlaceholders() {
-        placeholderHook = placeholderRuntime.refresh(placeholderHook, this::newPlaceholderHook, placeholderRuntimeEnabled());
+        boolean enabled = placeholderRuntimeEnabled();
+        if (!enabled) {
+            placeholderHook = placeholderRuntime.unregister(placeholderHook);
+            return;
+        }
+        placeholderHook = placeholderRuntime.refresh(placeholderHook, this::newPlaceholderHook, true);
     }
 
     private void unregisterPlaceholders() {
         placeholderHook = placeholderRuntime.unregister(placeholderHook);
     }
 
-    private PlaceholderHook newPlaceholderHook() {
-        return new PlaceholderHook(this, islands, machines, storage, nodes, power, boosts, research, contracts, this::operationalFeatureEnabled);
+    private SatisPlaceholderRuntime.PlaceholderExpansionHandle newPlaceholderHook() {
+        return PlaceholderHookFactory.create(
+                this, islands, machines, storage, nodes, power, boosts, research, contracts, this::operationalFeatureEnabled);
     }
 
     private boolean placeholderRuntimeEnabled() {
@@ -4323,7 +4329,9 @@ public final class SatisSkyFactoryPlugin extends JavaPlugin implements CloudIsla
 
     private void logFeatureWarnings() {
         String warnings = featureWarnings();
-        if (!warnings.equals("none")) {
+        if (warnings.equals("placeholderapi-not-installed")) {
+            getLogger().info("PlaceholderAPI is not installed; optional Satis placeholders are disabled.");
+        } else if (!warnings.equals("none")) {
             getLogger().warning("CloudIslands Satis feature warnings: " + warnings);
         }
         if (!configValidationReport.warnings().isEmpty()) {

@@ -39,8 +39,10 @@ public final class ConfigService {
     public void load() {
         plugin.getDataFolder().mkdirs();
         for (String fileName : FILES) {
-            plugin.saveResource(fileName, false);
             File file = new File(plugin.getDataFolder(), fileName);
+            if (!file.isFile()) {
+                plugin.saveResource(fileName, false);
+            }
             YamlConfiguration defaults = bundledDefaults(fileName);
             FileConfiguration existing = configs.get(fileName);
             if (existing instanceof YamlConfiguration yaml) {

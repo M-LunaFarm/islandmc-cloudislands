@@ -227,6 +227,9 @@ public final class SatisConfigValidator {
                 "jdbc.max-pool-size",
                 "jdbc.connection-timeout-ms"
         )) {
+            if (path.equals("core-api.enabled") && config.contains("satis.database.type")) {
+                continue;
+            }
             compare(config, "satis.database." + path, "setup.database." + path, builder);
             compare(config, "satis.database." + path, "addons.cloudislands-satis.database." + path, builder);
             compare(config, "satis.database." + path, "database." + path, builder);
@@ -264,8 +267,8 @@ public final class SatisConfigValidator {
         if (!config.contains(firstPath) || !config.contains(secondPath)) {
             return;
         }
-        String first = normalized(config.get(firstPath));
-        String second = normalized(config.get(secondPath));
+        String first = normalizedAliasValue(config.get(firstPath));
+        String second = normalizedAliasValue(config.get(secondPath));
         if (!first.isBlank() && !second.isBlank() && !first.equals(second)) {
             builder.warn("config.yml:" + firstPath + "," + secondPath, "alias-conflict:" + firstPath + "!=" + secondPath);
         }
@@ -300,7 +303,17 @@ public final class SatisConfigValidator {
         if (value instanceof ConfigurationSection section) {
             return section.getKeys(false).isEmpty();
         }
+        if (value instanceof Number number) {
+            return number.doubleValue() <= 0.0D;
+        }
         return value.toString().isBlank();
+    }
+
+    private String normalizedAliasValue(Object value) {
+        if (value instanceof Number number && number.doubleValue() <= 0.0D) {
+            return "";
+        }
+        return normalized(value);
     }
 
     private void validateItemAmountSection(FileConfiguration config, String base, String first, String second,

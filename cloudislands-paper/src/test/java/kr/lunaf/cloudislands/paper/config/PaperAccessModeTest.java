@@ -4,10 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.nio.file.Path;
 import java.util.List;
 import kr.lunaf.cloudislands.common.config.ConfigSource;
 import kr.lunaf.cloudislands.paper.AgentRole;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class PaperAccessModeTest {
     @Test
@@ -18,6 +20,7 @@ class PaperAccessModeTest {
         assertTrue(config.routing().directLocalTeleport());
         assertFalse(config.security().requireVelocityForwarding());
         assertFalse(config.security().enforceRouteSession());
+        assertFalse(config.health().enabled());
         assertEquals("LOCAL_FILESYSTEM", config.storage().primary().backend());
     }
 
@@ -44,6 +47,24 @@ class PaperAccessModeTest {
         assertEquals("redis://127.0.0.1:6379", config.redis().uri());
         assertEquals("LOCAL_FILESYSTEM", config.storage().primary().backend());
         assertTrue(config.storage().primary().accessKey().isBlank());
+    }
+
+    @Test
+    void basicAutoModeRecognizesIslandsFolderAndSuppliesLocalProxyDefaults(@TempDir Path tempDir) {
+        Path dataFolder = tempDir.resolve("islands-1/plugins/CloudIslands");
+        PaperRuntimeConfig config = PaperRuntimeConfigLoader.loadV2(List.of(new ConfigSource(
+            "paper/config-v2/config.yml",
+            10,
+            "configuration-mode: BASIC\nbasic:\n  topology: AUTO\n  node-id: island-1\n  velocity-server-name: island-1\n"
+        )), value -> value == null ? "" : value, dataFolder);
+
+        assertEquals(AgentRole.ISLAND_NODE, config.node().role());
+        assertEquals("islands-1", config.node().id());
+        assertEquals("islands-1", config.node().velocityServerName());
+        assertFalse(config.routing().directLocalTeleport());
+        assertTrue(config.security().requireVelocityForwarding());
+        assertEquals(List.of("127.0.0.1", "::1"), config.security().proxySourceAllowlist());
+        assertFalse(config.health().enabled());
     }
 
     private static PaperRuntimeConfig load(String topology) {

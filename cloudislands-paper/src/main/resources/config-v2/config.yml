@@ -16,6 +16,10 @@ basic:
   redis-url: ""
   # SINGLE_PAPER에서 섬 백업을 저장할 플러그인 데이터 폴더 기준 경로입니다.
   local-storage-path: islands-storage
+  # 같은 컴퓨터의 Velocity 주소입니다. 다른 컴퓨터라면 해당 Velocity IP 또는 CIDR로 바꾸세요.
+  trusted-proxies:
+    - "127.0.0.1"
+    - "::1"
 # 배포 도구가 읽는 설정 프로필 이름입니다. 일반 설치에서는 basic을 유지하세요.
 profile: basic
 # 기본 메시지 언어입니다. 한국어는 ko_kr, 영어는 en_us를 입력하세요.
