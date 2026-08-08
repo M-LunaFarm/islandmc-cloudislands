@@ -18,8 +18,8 @@ class IslandCommandCatalogTest {
         List<String> displayCommands = IslandCommandCatalog.playerDisplayCommands();
 
         assertTrue(displayCommands.size() < IslandCommandCatalog.playerCommands().size());
-        assertTrue(displayCommands.contains("섬 랭킹 [level|worth|bank] [limit]"));
-        assertTrue(displayCommands.contains("섬 은행 [player|island]"));
+        assertTrue(displayCommands.contains("섬 랭킹 [limit]"));
+        assertTrue(displayCommands.contains("섬 은행"));
         assertFalse(displayCommands.contains("섬 top [limit]"));
         assertFalse(displayCommands.contains("섬 leaderboard [limit]"));
         assertFalse(displayCommands.contains("섬 bal [player|island]"));
