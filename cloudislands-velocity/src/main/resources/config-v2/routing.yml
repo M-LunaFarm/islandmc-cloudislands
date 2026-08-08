@@ -1,11 +1,22 @@
+# 접속 직후와 섬 이동 실패 시 사용하는 velocity.toml [servers]의 기본 로비 이름입니다.
 default-lobby: Lobby
+# 섬 서버들이 등록된 Core 노드 풀 이름입니다. Paper node.pool과 맞추세요.
 island-pool: island
+# 위조나 중복 이동을 막는 일회성 라우팅 티켓 설정입니다.
 ticket:
+  # 발급된 티켓이 유효한 시간입니다. 네트워크 지연보다 충분히 길어야 합니다.
   ttl: 30s
+  # 섬 활성화와 티켓 소비가 끝날 때까지 플레이어가 기다리는 최대 시간입니다.
   wait-timeout: 20s
+# Core 또는 섬 서버 장애 때 적용할 동작입니다.
 failure:
+  # 이동 실패 시 되돌려 보낼 velocity.toml [servers]의 서버 이름입니다.
   fallback-server: Lobby
+  # true이면 사용자 메시지와 명령 목록에 실제 백엔드 서버 이름을 노출하지 않습니다.
   hide-backend-node-names: true
+# Velocity가 Core에 전달하는 프록시 접속자 상태 설정입니다.
 presence:
+  # 온라인 플레이어 상태를 Core에 갱신하는 주기입니다.
   publish-interval: 5s
+  # 이 시간 이상 갱신되지 않은 상태를 오프라인으로 판단합니다.
   offline-timeout: 15s

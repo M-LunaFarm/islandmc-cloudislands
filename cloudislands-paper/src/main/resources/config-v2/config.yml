@@ -1,27 +1,46 @@
+# 설정 형식 버전입니다. 플러그인이 자동 관리하므로 2를 유지하세요.
 config-version: 2
-# BASIC: edit only this file. ADVANCED: the split runtime/security/integration files win.
+# BASIC은 이 파일만 수정하는 일반 사용자 모드, ADVANCED는 분리된 모든 설정을 직접 다루는 전문가 모드입니다.
 configuration-mode: BASIC
+# BASIC 모드에서 사용하는 필수 설정 묶음입니다.
 basic:
-  # SINGLE_PAPER, NETWORK_ISLAND, or LOBBY.
-  # LOBBY is the lightweight non-island role: API, /is commands and addon tab completion remain available,
-  # but it never loads or executes island worlds.
-  topology: SINGLE_PAPER
+  # AUTO는 lobby/hub/spawn 폴더를 로비로 감지하고 나머지는 단일 Paper로 실행합니다. 직접 지정하려면 SINGLE_PAPER, NETWORK_ISLAND, LOBBY 중 하나를 입력하세요.
+  topology: AUTO
+  # Core API에 등록할 고유 노드 이름입니다. 여러 서버를 운영하면 lobby-1, island-1처럼 서로 다르게 입력하세요.
   node-id: island-1
+  # velocity.toml의 [servers]에 등록한 서버 이름과 정확히 같게 입력하세요.
   velocity-server-name: island-1
+  # Core 서비스 주소입니다. 같은 컴퓨터이면 아래 기본값을 쓰고, 다른 컴퓨터이면 그 서버의 IP를 입력하세요.
   core-url: http://127.0.0.1:8443
+  # Redis를 사용할 때만 redis://IP:포트를 입력하세요. 빈 값이면 Redis를 설치하거나 연결하지 않습니다.
   redis-url: ""
+  # SINGLE_PAPER에서 섬 백업을 저장할 플러그인 데이터 폴더 기준 경로입니다.
   local-storage-path: islands-storage
+# 배포 도구가 읽는 설정 프로필 이름입니다. 일반 설치에서는 basic을 유지하세요.
 profile: basic
+# 기본 메시지 언어입니다. 한국어는 ko_kr, 영어는 en_us를 입력하세요.
 language: ko_kr
+# 잘못되거나 위험한 설정을 시작 전에 차단합니다. 운영 서버에서는 true를 권장합니다.
 strict-validation: true
+# ADVANCED 모드에서 불러올 분리 설정 파일 경로 모음입니다. 파일을 옮기지 않았다면 수정하지 마세요.
 files:
+  # 노드 역할·용량·상태 보고 설정 파일입니다.
   runtime: runtime.yml
+  # Core API·Redis·S3·라우팅 연동 설정 파일입니다.
   integrations: integrations.yml
+  # 인증 토큰·Velocity 전달 보안 설정 파일입니다. 이전 문서의 auth.yml에 해당합니다.
   security: security.yml
+  # 기능별 활성화 설정 파일입니다.
   features: features.yml
+  # 섬 월드·보호·생성기 설정 파일입니다.
   gameplay: gameplay.yml
+  # SuperiorSkyblock2 등 이전 데이터 이관 설정 파일입니다.
   migration: migration.yml
+  # GUI 색상과 공통 꾸밈 설정 파일입니다.
   theme: ui/theme.yml
+  # 스코어보드 표시 설정 파일입니다.
   scoreboard: ui/scoreboard.yml
+  # 현재 언어의 메시지 파일입니다.
   locale: ui/messages/ko_kr.yml
+  # GUI 메뉴 파일들이 들어 있는 폴더입니다.
   menus: ui/menus

@@ -144,6 +144,19 @@ tasks.register<Copy>("distTools") {
     into(layout.buildDirectory.dir("dist/tools"))
 }
 
+tasks.register<Copy>("distScripts") {
+    group = "distribution"
+    description = "Collects cross-platform operator setup scripts."
+    doFirst {
+        delete(layout.buildDirectory.dir("dist/scripts"))
+    }
+    from(layout.projectDirectory.dir("scripts/windows")) {
+        include("*.cmd")
+        into("windows")
+    }
+    into(layout.buildDirectory.dir("dist/scripts"))
+}
+
 val cleanDeveloperKitMaven = tasks.register<Delete>("cleanDeveloperKitMaven") {
     delete(layout.buildDirectory.dir("devkit-maven"))
 }
@@ -287,6 +300,7 @@ tasks.register<Zip>("distBundle") {
     dependsOn(tasks.named("distAddonDescriptors"))
     dependsOn(tasks.named("distServices"))
     dependsOn(tasks.named("distTools"))
+    dependsOn(tasks.named("distScripts"))
     dependsOn(tasks.named("distDeveloperKit"))
     archiveBaseName.set("cloudislands")
     archiveVersion.set(project.version.toString())
@@ -309,6 +323,9 @@ tasks.register<Zip>("distBundle") {
     }
     from(layout.buildDirectory.dir("dist/tools")) {
         into("tools")
+    }
+    from(layout.buildDirectory.dir("dist/scripts")) {
+        into("scripts")
     }
     from(layout.buildDirectory.dir("dist/devkit")) {
         into("devkit")
@@ -350,6 +367,7 @@ tasks.register("distChecksums") {
         val files = fileTree(layout.buildDirectory.dir("dist")) {
             include("**/*.zip")
             include("**/*.jar")
+            include("scripts/**/*.cmd")
             include("CHANGELOG.txt")
             include("cloudislands-sbom.cdx.json")
         }.files.sortedBy { it.relativeTo(layout.buildDirectory.dir("dist").get().asFile).path }

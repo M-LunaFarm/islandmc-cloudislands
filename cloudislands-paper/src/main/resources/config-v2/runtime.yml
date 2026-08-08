@@ -1,20 +1,40 @@
+# ADVANCED 모드의 서버 노드 식별 설정입니다. BASIC 사용자는 config.yml의 basic 항목만 수정하세요.
 node:
+  # Core API에 등록되는 고유 ID입니다. 다른 Paper 서버와 중복되면 안 됩니다.
   id: island-node-01
+  # LOBBY는 명령/API 전용이며 섬 월드를 열지 않고, ISLAND_NODE는 실제 섬 월드를 실행합니다.
   role: ISLAND_NODE
+  # 여러 섬 노드를 묶는 풀 이름입니다. Velocity의 island-pool 설정과 맞추세요.
   pool: island
+  # velocity.toml의 [servers] 키와 정확히 같은 백엔드 서버 이름입니다.
   velocity-server-name: island-1
+  # 기본 island-1 이름으로 여러 노드를 실수로 실행하지 못하게 차단합니다.
   reject-default-identity: true
+  # 이 노드가 실행할 수 있는 섬 템플릿 ID 목록입니다.
   supported-templates:
+    # 별표는 등록된 모든 템플릿을 허용합니다. 제한하려면 템플릿 ID를 한 줄씩 입력하세요.
     - "*"
+# 이 노드에 작업을 배정할 때 사용하는 수용량 한도입니다.
 capacity:
+  # 동시에 활성 상태로 유지할 수 있는 최대 섬 수입니다.
   max-active-islands: 600
+  # 이 인원부터 새 섬 배정을 줄이는 소프트 플레이어 한도입니다.
   soft-player-limit: 90
+  # 이 인원 이상이면 새 연결과 섬 배정을 막는 하드 플레이어 한도입니다.
   hard-player-limit: 110
+  # 동시에 대기시킬 수 있는 섬 생성·활성화 작업 수입니다.
   max-activation-queue: 20
+# Core API로 보내는 노드 생존 신호 설정입니다.
 heartbeat:
+  # 상태를 전송하는 주기입니다. 너무 짧게 설정하면 불필요한 요청이 늘어납니다.
   interval: 5s
+  # 이 시간 동안 상태 신호가 없으면 Core가 노드를 비정상으로 판단합니다.
   timeout: 20s
+# 모니터링 도구가 읽을 로컬 상태 HTTP 서버 설정입니다.
 health:
+  # true이면 상태·메트릭 포트를 열고 false이면 열지 않습니다.
   enabled: true
+  # 127.0.0.1은 같은 컴퓨터에서만 접근을 허용합니다. 외부 공개 시 방화벽을 함께 설정하세요.
   bind-host: 127.0.0.1
+  # 상태·메트릭 HTTP 서버가 사용할 포트입니다. 다른 프로그램과 겹치면 변경하세요.
   port: 8789

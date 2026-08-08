@@ -85,6 +85,7 @@ import kr.lunaf.cloudislands.paper.event.RouteTicketClearedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketCreatedEvent;
 import kr.lunaf.cloudislands.paper.event.RouteTicketFailedEvent;
 import kr.lunaf.cloudislands.paper.AdminChatSpyRegistry;
+import kr.lunaf.cloudislands.paper.failure.CoreApiFailureLogLimiter;
 import kr.lunaf.cloudislands.protocol.job.IslandJobType;
 import kr.lunaf.cloudislands.paper.generator.CropGrowthLevelCache;
 import kr.lunaf.cloudislands.paper.generator.GeneratorLevelCache;
@@ -124,6 +125,9 @@ public final class PermissionEventPoller {
     private long lastEventSequence;
     private boolean eventCursorInitialized;
     private BukkitTask task;
+    private final CoreApiFailureLogLimiter coreFailures;
+    private long nextPollAtMillis;
+    private int consecutivePollFailures;
     private final AtomicLong cacheEventInvalidations = new AtomicLong();
     private final AtomicLong cacheGapInvalidations = new AtomicLong();
     private final AtomicLong chatBroadcasts = new AtomicLong();
@@ -167,6 +171,7 @@ public final class PermissionEventPoller {
         this.players = players;
         this.adminChatSpies = adminChatSpies;
         this.nodeId = nodeId;
+        this.coreFailures = CoreApiFailureLogLimiter.forPlugin(plugin);
         this.fallbackServerName = fallbackServerName == null || fallbackServerName.isBlank() ? "Lobby" : fallbackServerName;
     }
 
@@ -219,6 +224,10 @@ public final class PermissionEventPoller {
     }
 
     private void poll() {
+        long now = System.currentTimeMillis();
+        if (now < nextPollAtMillis) {
+            return;
+        }
         try {
             for (int batch = 0; batch < MAX_BATCHES_PER_POLL; batch++) {
                 AdminEventStreamView stream = client.adminEvents().listSince(lastEventSequence, EVENT_BATCH_SIZE).join();
@@ -252,8 +261,14 @@ public final class PermissionEventPoller {
                     break;
                 }
             }
+            consecutivePollFailures = 0;
+            nextPollAtMillis = 0L;
+            coreFailures.recovered("permission-events");
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("Failed to poll permission cache events: " + exception.getMessage());
+            consecutivePollFailures++;
+            long backoffMillis = Math.min(60_000L, 1_000L << Math.min(consecutivePollFailures, 6));
+            nextPollAtMillis = now + backoffMillis;
+            coreFailures.failed("permission-events", exception, backoffMillis);
         }
     }
 

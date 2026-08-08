@@ -12,6 +12,7 @@ import kr.lunaf.cloudislands.coreclient.RuntimeCommandClient;
 import kr.lunaf.cloudislands.paper.platform.scheduler.BukkitPlatformScheduler;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PlatformScheduler;
 import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
+import kr.lunaf.cloudislands.paper.failure.CoreApiFailureLogLimiter;
 import kr.lunaf.cloudislands.protocol.node.NodeHeartbeatRequest;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
@@ -37,7 +38,9 @@ public final class PaperHeartbeatService {
     private final IntSupplier recentFailurePenalty;
     private final PlatformScheduler scheduler;
     private TaskHandle task;
-    private volatile long lastFailureLogMillis;
+    private final CoreApiFailureLogLimiter coreFailures;
+    private volatile long nextPublishAtMillis;
+    private volatile int consecutiveFailures;
 
     public PaperHeartbeatService(Plugin plugin, CoreApiClient coreApiClient, String nodeId, String pool, String velocityServerName) {
         this(plugin, coreApiClient, nodeId, pool, velocityServerName, "", "*", () -> true);
@@ -83,6 +86,7 @@ public final class PaperHeartbeatService {
         this.chunkLoadPressure = chunkLoadPressure;
         this.recentFailurePenalty = recentFailurePenalty;
         this.scheduler = scheduler == null ? new BukkitPlatformScheduler(plugin) : scheduler;
+        this.coreFailures = CoreApiFailureLogLimiter.forPlugin(plugin);
     }
 
     public void start(long intervalTicks) {
@@ -109,6 +113,9 @@ public final class PaperHeartbeatService {
     }
 
     private void publish(NodeState overrideState) {
+        if (overrideState == null && System.currentTimeMillis() < nextPublishAtMillis) {
+            return;
+        }
         try {
             publishHeartbeat(overrideState);
         } catch (RuntimeException exception) {
@@ -154,17 +161,19 @@ public final class PaperHeartbeatService {
             if (error != null) {
                 Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
                 logHeartbeatFailure(cause);
+            } else {
+                consecutiveFailures = 0;
+                nextPublishAtMillis = 0L;
+                coreFailures.recovered("heartbeat");
             }
         });
     }
 
     private void logHeartbeatFailure(Throwable exception) {
-        long now = System.currentTimeMillis();
-        if (now - lastFailureLogMillis < 30_000L) {
-            return;
-        }
-        lastFailureLogMillis = now;
-        plugin.getLogger().warning("CloudIslands heartbeat failed: " + exception.getMessage());
+        consecutiveFailures++;
+        long backoffMillis = Math.min(60_000L, 1_000L << Math.min(consecutiveFailures, 6));
+        nextPublishAtMillis = System.currentTimeMillis() + backoffMillis;
+        coreFailures.failed("heartbeat", exception, backoffMillis);
     }
 
     private NodeState nodeState(int players, int softCap, int hardCap, int activeIslands, int maxActive, boolean storageOk) {

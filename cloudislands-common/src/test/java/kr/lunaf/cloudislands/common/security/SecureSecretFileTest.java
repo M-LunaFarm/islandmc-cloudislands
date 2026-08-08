@@ -27,4 +27,15 @@ class SecureSecretFileTest {
         assertEquals(created.secret(), reused.secret());
         assertEquals(created.secret(), Files.readString(path).trim());
     }
+
+    @Test
+    void safelyStoresAnExistingSecretForPlaintextConfigMigration() throws Exception {
+        Path path = temporaryDirectory.resolve("secrets").resolve("core-token");
+
+        SecureSecretFile.store(path, "existing-config-token");
+        SecureSecretFile.store(path, "updated-config-token");
+
+        assertEquals("updated-config-token", SecureSecretFile.read(path));
+        assertFalse(Files.exists(path.resolveSibling("core-token.tmp")));
+    }
 }

@@ -28,6 +28,22 @@ class PaperAccessModeTest {
         assertEquals(AgentRole.LOBBY, config.node().role());
         assertFalse(config.routing().directLocalTeleport());
         assertTrue(config.security().requireVelocityForwarding());
+        assertTrue(config.redis().uri().isBlank());
+        assertEquals("LOCAL_FILESYSTEM", config.storage().primary().backend());
+    }
+
+    @Test
+    void basicRedisUrlOptsIntoLocalRedisWithoutS3Credentials() {
+        PaperRuntimeConfig config = PaperRuntimeConfigLoader.loadV2(List.of(new ConfigSource(
+            "paper/config-v2/config.yml",
+            10,
+            "configuration-mode: BASIC\nbasic:\n  topology: LOBBY\n  redis-url: redis://127.0.0.1:6379\n"
+        )), value -> value == null ? "" : value);
+
+        assertFalse(config.redis().uri().isBlank());
+        assertEquals("redis://127.0.0.1:6379", config.redis().uri());
+        assertEquals("LOCAL_FILESYSTEM", config.storage().primary().backend());
+        assertTrue(config.storage().primary().accessKey().isBlank());
     }
 
     private static PaperRuntimeConfig load(String topology) {

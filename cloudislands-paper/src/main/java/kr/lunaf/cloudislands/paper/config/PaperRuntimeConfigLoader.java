@@ -9,6 +9,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -28,6 +29,7 @@ import kr.lunaf.cloudislands.common.config.ConfigSource;
 import kr.lunaf.cloudislands.common.config.ConfigValidationResult;
 import kr.lunaf.cloudislands.common.config.ConfigV2Loader;
 import kr.lunaf.cloudislands.common.config.ConfigV2Validator;
+import kr.lunaf.cloudislands.common.security.SecureSecretFile;
 import kr.lunaf.cloudislands.paper.AgentRole;
 import kr.lunaf.cloudislands.paper.gui.GuiActionSchema;
 import kr.lunaf.cloudislands.storage.StorageBackendPolicy;
@@ -50,6 +52,7 @@ public final class PaperRuntimeConfigLoader {
             return PaperRuntimeConfig.defaults();
         }
         saveBundledConfigV2Defaults(plugin);
+        migrateSecurityDefaults(plugin);
         List<ConfigSource> sources = paperConfigV2Sources(plugin);
         if (sources.isEmpty()) {
             return loadV2(List.of(new ConfigSource("paper/config-v2/empty", 10, "")), envResolver, plugin.getDataFolder().toPath());
@@ -63,7 +66,7 @@ public final class PaperRuntimeConfigLoader {
 
     private static PaperRuntimeConfig loadV2(List<ConfigSource> sources, Function<String, String> envResolver, Path dataFolder) {
         validateV2Sources(sources);
-        YamlConfiguration mapped = mapV2Sources(sources);
+        YamlConfiguration mapped = mapV2Sources(sources, dataFolder);
         if (mapped.getKeys(true).isEmpty()) {
             return loadMappedConfig(new YamlConfiguration(), envResolver, null, dataFolder);
         }
@@ -162,6 +165,129 @@ public final class PaperRuntimeConfigLoader {
                 throw new UncheckedIOException("Failed to save bundled Paper config-v2 default " + file, exception);
             }
         }
+    }
+
+    private static void migrateSecurityDefaults(JavaPlugin plugin) {
+        Path dataFolder = plugin.getDataFolder().toPath().toAbsolutePath().normalize();
+        SecurityMigration migration = migrateSecurityConfig(dataFolder);
+        if (!migration.changed()) {
+            return;
+        }
+        if (migration.imported().isEmpty()) {
+            plugin.getLogger().info("Migrated Docker-only Paper secret paths to cross-platform paths in " + migration.config());
+        } else {
+            plugin.getLogger().info("Moved " + migration.imported().size() + " plaintext Paper secret(s) into protected files: "
+                + String.join(", ", migration.imported()));
+        }
+    }
+
+    static SecurityMigration migrateSecurityConfig(Path dataFolder) {
+        Path securityConfig = dataFolder.resolve("config-v2").resolve("security.yml");
+        if (!Files.isRegularFile(securityConfig)) {
+            return new SecurityMigration(securityConfig, false, List.of());
+        }
+        try {
+            String original = Files.readString(securityConfig, StandardCharsets.UTF_8);
+            String migrated = migrateLegacyDockerSecretReferences(original);
+            YamlConfiguration yaml = yaml(migrated, securityConfig.toString());
+            Map<String, String> secretFiles = Map.of(
+                "core-api.auth-token", "core-token",
+                "core-api.admin-token", "admin-token",
+                "redis.password", "redis-password",
+                "storage.access-key", "s3-access-key",
+                "storage.secret-key", "s3-secret-key",
+                "storage.bearer-token", "s3-bearer-token",
+                "forwarding.secret", "forwarding-secret"
+            );
+            List<String> imported = new ArrayList<>();
+            for (Map.Entry<String, String> entry : secretFiles.entrySet()) {
+                String value = yaml.getString(entry.getKey(), "").trim();
+                if (!plaintextSecret(value)) {
+                    continue;
+                }
+                Path secretPath = SecureSecretFile.store(dataFolder.resolve("secrets").resolve(entry.getValue()), value);
+                migrated = replaceYamlScalar(migrated, entry.getKey(), "${file:secrets/" + entry.getValue() + "}");
+                imported.add(entry.getKey() + " -> " + secretPath);
+            }
+            if (!migrated.equals(original)) {
+                Path temporary = Files.createTempFile(securityConfig.getParent(), "security.", ".yml.tmp");
+                try {
+                    Files.writeString(temporary, migrated, StandardCharsets.UTF_8);
+                    try {
+                        Files.move(temporary, securityConfig, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                    } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
+                        Files.move(temporary, securityConfig, StandardCopyOption.REPLACE_EXISTING);
+                    }
+                } finally {
+                    Files.deleteIfExists(temporary);
+                }
+            }
+            return new SecurityMigration(securityConfig, !migrated.equals(original), List.copyOf(imported));
+        } catch (IOException exception) {
+            throw new UncheckedIOException("Failed to migrate Paper security config " + securityConfig, exception);
+        }
+    }
+
+    private static String migrateLegacyDockerSecretReferences(String source) {
+        String migrated = source;
+        if (Files.notExists(Path.of("/run/secrets/cloudislands_core_token"))) {
+            migrated = migrated.replace("${file:/run/secrets/cloudislands_core_token}", "${file:secrets/core-token}");
+        }
+        if (Files.notExists(Path.of("/run/secrets/cloudislands_admin_token"))) {
+            migrated = migrated.replace("${file:/run/secrets/cloudislands_admin_token}", "${file:secrets/admin-token}");
+        }
+        if (Files.notExists(Path.of("/run/secrets/redis_password"))) {
+            migrated = migrated.replace("${file:/run/secrets/redis_password}", "");
+        }
+        if (Files.notExists(Path.of("/run/secrets/s3_access_key"))) {
+            migrated = migrated.replace("${file:/run/secrets/s3_access_key}", "");
+        }
+        if (Files.notExists(Path.of("/run/secrets/s3_secret_key"))) {
+            migrated = migrated.replace("${file:/run/secrets/s3_secret_key}", "");
+        }
+        if (Files.notExists(Path.of("/run/secrets/s3_bearer_token"))) {
+            migrated = migrated.replace("${file:/run/secrets/s3_bearer_token}", "");
+        }
+        return migrated;
+    }
+
+    private static boolean plaintextSecret(String value) {
+        return value != null && !value.isBlank()
+            && !value.startsWith("${env:")
+            && !value.startsWith("${file:")
+            && !value.startsWith("<");
+    }
+
+    private static String replaceYamlScalar(String source, String path, String replacement) {
+        int separator = path.indexOf('.');
+        String section = separator < 0 ? "" : path.substring(0, separator);
+        String key = separator < 0 ? path : path.substring(separator + 1);
+        String currentSection = "";
+        List<String> output = new ArrayList<>();
+        for (String line : source.split("\\R", -1)) {
+            String trimmed = line.trim();
+            int indent = leadingSpaces(line);
+            if (indent == 0 && trimmed.endsWith(":")) {
+                currentSection = trimmed.substring(0, trimmed.length() - 1).trim();
+            }
+            if (currentSection.equals(section) && indent > 0 && trimmed.startsWith(key + ":")) {
+                output.add(line.substring(0, indent) + key + ": \"" + replacement + "\"");
+            } else {
+                output.add(line);
+            }
+        }
+        return String.join(System.lineSeparator(), output);
+    }
+
+    private static int leadingSpaces(String value) {
+        int spaces = 0;
+        while (spaces < value.length() && value.charAt(spaces) == ' ') {
+            spaces++;
+        }
+        return spaces;
+    }
+
+    record SecurityMigration(Path config, boolean changed, List<String> imported) {
     }
 
     private static Set<String> configV2ResourceNames(JavaPlugin plugin, Path dataRoot) {
@@ -285,7 +411,7 @@ public final class PaperRuntimeConfigLoader {
         }
     }
 
-    private static YamlConfiguration mapV2Sources(List<ConfigSource> sources) {
+    private static YamlConfiguration mapV2Sources(List<ConfigSource> sources, Path dataFolder) {
         YamlConfiguration mapped = new YamlConfiguration();
         if (sources == null || sources.isEmpty()) {
             return mapped;
@@ -314,7 +440,7 @@ public final class PaperRuntimeConfigLoader {
                 mapMessagesV2(yaml, mapped, name);
             }
         }
-        applyAccessMode(mapped);
+        applyAccessMode(mapped, dataFolder);
         return mapped;
     }
 
@@ -329,11 +455,11 @@ public final class PaperRuntimeConfigLoader {
         setIfPresent(source, target, "basic.local-storage-path", "access.local-storage-path");
     }
 
-    private static void applyAccessMode(FileConfiguration target) {
+    private static void applyAccessMode(FileConfiguration target, Path dataFolder) {
         if (!"BASIC".equalsIgnoreCase(string(target, "access.mode", "ADVANCED"))) {
             return;
         }
-        String topology = string(target, "access.topology", "SINGLE_PAPER").trim().toUpperCase(Locale.ROOT).replace('-', '_');
+        String topology = effectiveBasicTopology(string(target, "access.topology", "AUTO"), target, dataFolder);
         String nodeId = string(target, "access.node-id", topology.equals("LOBBY") ? "lobby-1" : "island-1");
         target.set("node.id", nodeId);
         target.set("node.velocity-server-name", string(target, "access.velocity-server-name", nodeId));
@@ -356,10 +482,37 @@ public final class PaperRuntimeConfigLoader {
             return;
         }
         target.set("node.role", topology.equals("LOBBY") ? "LOBBY" : "ISLAND_NODE");
+        if (topology.equals("LOBBY")) {
+            target.set("setup.storage.type", "LOCAL_FILESYSTEM");
+            target.set("setup.storage.local-path", string(target, "access.local-storage-path", "islands-storage"));
+        }
         target.set("routing.direct-local-teleport", false);
         target.set("security.require-velocity-forwarding", true);
         target.set("security.enforce-route-session", true);
         target.set("routing.require-route-session", true);
+    }
+
+    private static String effectiveBasicTopology(String configured, FileConfiguration target, Path dataFolder) {
+        String normalized = configured == null ? "AUTO" : configured.trim().toUpperCase(Locale.ROOT).replace('-', '_');
+        boolean legacyDefault = normalized.equals("SINGLE_PAPER")
+            && string(target, "access.node-id", "island-1").equalsIgnoreCase("island-1")
+            && string(target, "access.velocity-server-name", "island-1").equalsIgnoreCase("island-1");
+        if (!normalized.equals("AUTO") && !legacyDefault) {
+            return normalized;
+        }
+        String identity = string(target, "access.node-id", "") + " "
+            + string(target, "access.velocity-server-name", "") + " " + serverDirectoryName(dataFolder);
+        String lower = identity.toLowerCase(Locale.ROOT);
+        return lower.matches(".*\\b(lobby|hub|spawn)\\b.*") ? "LOBBY" : "SINGLE_PAPER";
+    }
+
+    private static String serverDirectoryName(Path dataFolder) {
+        if (dataFolder == null) {
+            return "";
+        }
+        Path plugins = dataFolder.toAbsolutePath().normalize().getParent();
+        Path server = plugins == null ? null : plugins.getParent();
+        return server == null || server.getFileName() == null ? "" : server.getFileName().toString();
     }
 
     private static void mapRuntimeV2(FileConfiguration source, FileConfiguration target) {
@@ -527,14 +680,16 @@ public final class PaperRuntimeConfigLoader {
     private static PaperRuntimeConfig.StorageTarget storageTarget(FileConfiguration config, Function<String, String> resolver, boolean fallback) {
         String setupPrefix = fallback ? "setup.storage.fallback." : "setup.storage.";
         String typePath = fallback ? FALLBACK_STORAGE_TYPE_PATH : PRIMARY_STORAGE_TYPE_PATH;
+        String backend = normalizeBackend(setupString(config, resolver, typePath, "LOCAL_FILESYSTEM"));
+        boolean shared = StorageBackendPolicy.sharedBackend(backend);
         return new PaperRuntimeConfig.StorageTarget(
-            normalizeBackend(setupString(config, resolver, typePath, fallback ? "LOCAL_FILESYSTEM" : "S3")),
+            backend,
             setupString(config, resolver, setupPrefix + "endpoint", "http://minio.internal:9000"),
             setupString(config, resolver, setupPrefix + "bucket", "cloudislands"),
             setupString(config, resolver, setupPrefix + "region", "us-east-1"),
-            envOrConfig("S3_ACCESS_KEY", setupString(config, resolver, setupPrefix + "access-key", "")),
-            envOrConfig("S3_SECRET_KEY", setupString(config, resolver, setupPrefix + "secret-key", "")),
-            envOrConfig("S3_BEARER_TOKEN", setupString(config, resolver, setupPrefix + "auth-token", "")),
+            shared ? envOrConfig("S3_ACCESS_KEY", setupString(config, resolver, setupPrefix + "access-key", "")) : "",
+            shared ? envOrConfig("S3_SECRET_KEY", setupString(config, resolver, setupPrefix + "secret-key", "")) : "",
+            shared ? envOrConfig("S3_BEARER_TOKEN", setupString(config, resolver, setupPrefix + "auth-token", "")) : "",
             setupString(config, resolver, setupPrefix + "local-path", fallback ? "islands-storage-fallback" : "islands-storage")
         );
     }
@@ -591,6 +746,9 @@ public final class PaperRuntimeConfigLoader {
 
     private static PaperRuntimeConfig.Redis redis(FileConfiguration config, Function<String, String> resolver) {
         boolean enabled = booleanValue(config, "redis.enabled", true);
+        if (!enabled) {
+            return new PaperRuntimeConfig.Redis("", "", Duration.ofMillis(Math.max(1L, config.getLong("redis.timeout-ms", 1000L))));
+        }
         return new PaperRuntimeConfig.Redis(
             enabled ? resolver.apply(string(config, "redis.uri", "redis://redis.internal:6379")) : "",
             setupString(config, resolver, "setup.redis.password", ""),

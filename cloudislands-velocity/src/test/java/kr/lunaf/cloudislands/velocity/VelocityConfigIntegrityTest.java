@@ -23,7 +23,7 @@ class VelocityConfigIntegrityTest {
 
         assertFalse(Files.exists(root.resolve("src/main/resources/config.yaml")), "Velocity must not bundle the legacy config.yaml alongside authoritative config-v2 files");
         assertTrue(resources.contains("language: ko_kr"));
-        assertTrue(resources.contains("base-url: https://core-api.internal:8443"));
+        assertTrue(resources.contains("base-url: http://127.0.0.1:8443"));
         assertTrue(resources.contains("auth-token:"));
         assertTrue(resources.contains("default-lobby: Lobby"));
         assertTrue(resources.contains("island-pool: island"));

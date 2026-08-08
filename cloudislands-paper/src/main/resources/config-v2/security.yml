@@ -1,22 +1,40 @@
+# Core API 요청 인증 설정입니다. 기존 평문 값은 시작 시 secrets 폴더로 안전하게 자동 이관됩니다.
 core-api:
-  auth-token: "${file:/run/secrets/cloudislands_core_token}"
-  admin-token: "${file:/run/secrets/cloudislands_admin_token}"
+  # 일반 API 토큰 파일입니다. Core 서비스와 Velocity/Paper에 같은 값을 사용하세요.
+  auth-token: "${file:secrets/core-token}"
+  # 관리자 API 토큰 파일입니다. auth-token과 서로 다른 값을 권장합니다.
+  admin-token: "${file:secrets/admin-token}"
+# Redis를 integrations.yml에서 활성화했을 때만 사용하는 인증 설정입니다.
 redis:
-  password: "${file:/run/secrets/redis_password}"
+  # 비밀번호가 없으면 빈 값을 유지하고, 있으면 ${env:REDIS_PASSWORD} 또는 ${file:secrets/redis-password} 형식으로 입력하세요.
+  password: ""
+# S3 또는 MinIO 저장소를 선택했을 때만 읽는 인증 설정입니다. LOCAL_FILESYSTEM에서는 모두 무시됩니다.
 storage:
-  access-key: "${file:/run/secrets/s3_access_key}"
-  secret-key: "${file:/run/secrets/s3_secret_key}"
-  bearer-token: "${file:/run/secrets/s3_bearer_token}"
+  # S3/MinIO Access Key입니다. 파일 참조 사용을 권장합니다.
+  access-key: ""
+  # S3/MinIO Secret Key입니다. 파일 참조 사용을 권장합니다.
+  secret-key: ""
+  # Access/Secret Key 대신 Bearer 인증을 제공하는 저장소에서만 입력하세요.
+  bearer-token: ""
+# Velocity modern forwarding으로 전달된 플레이어를 검증하는 설정입니다.
 forwarding:
+  # 네트워크·로비 구성에서는 true로 유지하세요. SINGLE_PAPER BASIC 모드는 자동으로 false를 적용합니다.
   required: true
-  # Leave blank to reuse proxies.velocity.secret from paper-global.yml.
-  # VELOCITY_FORWARDING_SECRET remains available for managed deployments.
+  # 빈 값이면 config/paper-global.yml의 proxies.velocity.secret을 자동 재사용합니다. 직접 입력할 때는 ${file:...} 형식을 쓰세요.
   secret: ""
+# Velocity가 발급하고 Core가 확인하는 일회성 라우팅 세션 설정입니다.
 route-session:
+  # true이면 유효한 라우팅 세션이 없는 플레이어의 섬 접근을 거부합니다.
   enforce: true
+  # true이면 섬 이동 요청에도 라우팅 세션을 필수로 요구합니다.
   required: true
+# Velocity가 접속하는 원본 IP/CIDR 목록입니다. 예: ["127.0.0.1", "10.0.0.0/8"]
 trusted-proxies: []
+# trusted-proxies 검사를 강제할지 정합니다.
 proxy-source-allowlist:
+  # 네트워크 운영에서는 true를 권장하며, 같은 컴퓨터의 Velocity는 127.0.0.1을 등록하세요.
   required: true
+# Core를 통한 원격 관리자 명령 실행 기능입니다.
 admin-command-dispatch:
+  # 보안상 기본은 false입니다. 필요한 권한·감사 정책을 구성한 경우에만 true로 바꾸세요.
   enabled: false

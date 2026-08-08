@@ -5,14 +5,17 @@ core-api:
     connect: 2s
     request: 3s
 redis:
-  enabled: true
-  uri: redis://redis.internal:6379
+  # Optional. BASIC mode keeps this disabled unless basic.redis-url is set.
+  enabled: false
+  uri: redis://127.0.0.1:6379
   database: 0
 storage:
-  type: S3
-  endpoint: http://minio.internal:9000
+  # LOCAL_FILESYSTEM needs no S3/MinIO service. Multi-node pools should explicitly use S3 or MINIO.
+  type: LOCAL_FILESYSTEM
+  endpoint: http://127.0.0.1:9000
   bucket: cloudislands
   region: us-east-1
+  local-path: islands-storage
 routing:
   transport: CORE_TICKET
   # Enable only when this plugin is the sole Paper server and also owns island worlds.

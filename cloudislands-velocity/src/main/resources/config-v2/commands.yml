@@ -1,8 +1,16 @@
+# 일반 사용자가 실행하는 CloudIslands 루트 명령어 설정입니다.
 root:
+  # /is와 같은 별칭 목록입니다. 중복 별칭은 런타임에서 한 번만 등록됩니다.
   aliases:
+    # 짧은 영문 기본 명령어 /is입니다.
     - is
+    # 긴 영문 별칭 /island입니다.
     - island
+    # 한국어 별칭 /섬입니다.
     - 섬
+# 관리자 전용 명령어 설정입니다.
 admin:
+  # cloudislands.admin 권한을 확인하는 관리자 명령어 별칭 목록입니다.
   aliases:
+    # 기본 관리자 명령어 /ciadmin입니다.
     - ciadmin

@@ -15,6 +15,7 @@ import kr.lunaf.cloudislands.paper.event.IslandDeactivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandDeleteEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreActivateEvent;
 import kr.lunaf.cloudislands.paper.event.IslandPreCreateEvent;
+import kr.lunaf.cloudislands.paper.failure.CoreApiFailureLogLimiter;
 import kr.lunaf.cloudislands.paper.platform.scheduler.BukkitPlatformScheduler;
 import kr.lunaf.cloudislands.paper.platform.scheduler.PlatformScheduler;
 import kr.lunaf.cloudislands.paper.platform.scheduler.TaskHandle;
@@ -37,6 +38,7 @@ public final class PaperIslandJobWorker {
     private final PaperJobCompletionReporter completionReporter;
     private final PendingJobCompletionStore pendingCompletions;
     private final ShutdownDrainer shutdownDrainer;
+    private final CoreApiFailureLogLimiter coreFailures;
     private final AtomicBoolean acceptingJobs = new AtomicBoolean();
     private final AtomicBoolean polling = new AtomicBoolean();
     private final Object pollingMonitor = new Object();
@@ -75,6 +77,7 @@ public final class PaperIslandJobWorker {
         this.nodeId = nodeId;
         this.scheduler = scheduler == null ? new BukkitPlatformScheduler(plugin) : scheduler;
         this.shutdownDrainer = shutdownDrainer == null ? ShutdownDrainer.noop() : shutdownDrainer;
+        this.coreFailures = CoreApiFailureLogLimiter.forPlugin(plugin);
         this.completionReporter = new PaperJobCompletionReporter(
             this.nodeId,
             this.jobSource::complete,
@@ -160,15 +163,17 @@ public final class PaperIslandJobWorker {
             List<IslandJob> claimed = jobSource.claim(nodeId, List.of(IslandJobType.CREATE_ISLAND, IslandJobType.ACTIVATE_ISLAND, IslandJobType.SAVE_ISLAND, IslandJobType.DEACTIVATE_ISLAND, IslandJobType.SNAPSHOT_ISLAND, IslandJobType.DELETE_ISLAND, IslandJobType.MIGRATE_ISLAND, IslandJobType.RESTORE_ISLAND, IslandJobType.RESET_ISLAND), 4);
             inFlightJobs = claimed.size();
             consecutiveFailures = 0;
+            nextPollAtMillis = 0L;
+            coreFailures.recovered("island-jobs");
             for (IslandJob job : claimed) {
                 handle(job);
                 inFlightJobs = Math.max(0, inFlightJobs - 1);
             }
         } catch (RuntimeException exception) {
             consecutiveFailures++;
-            long backoffMillis = Math.min(30_000L, 1_000L * (1L << Math.min(consecutiveFailures, 5)));
+            long backoffMillis = Math.min(60_000L, 1_000L * (1L << Math.min(consecutiveFailures, 6)));
             nextPollAtMillis = now + backoffMillis;
-            plugin.getLogger().warning("CloudIslands job poll failed; backing off for " + backoffMillis + "ms: " + exception.getMessage());
+            coreFailures.failed("island-jobs", exception, backoffMillis);
         } finally {
             inFlightJobs = 0;
             polling.set(false);

@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.PosixFilePermission;
 import java.security.SecureRandom;
 import java.util.HexFormat;
@@ -54,6 +55,36 @@ public final class SecureSecretFile {
             return "";
         }
         return Files.readString(path, StandardCharsets.UTF_8).trim();
+    }
+
+    /** Stores an existing secret without exposing it in configuration or logs. */
+    public static Path store(Path path, String secret) throws IOException {
+        if (path == null) {
+            throw new IllegalArgumentException("secret path is required");
+        }
+        String value = secret == null ? "" : secret.trim();
+        if (value.isBlank()) {
+            throw new IllegalArgumentException("secret value is required");
+        }
+        Path target = path.toAbsolutePath().normalize();
+        Path parent = target.getParent();
+        if (parent != null) {
+            Files.createDirectories(parent);
+        }
+        Path temporary = Files.createTempFile(parent, target.getFileName().toString() + ".", ".tmp");
+        try {
+            Files.writeString(temporary, value + System.lineSeparator(), StandardCharsets.UTF_8);
+            restrictToOwner(temporary);
+            try {
+                Files.move(temporary, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException ignored) {
+                Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING);
+            }
+            restrictToOwner(target);
+            return target;
+        } finally {
+            Files.deleteIfExists(temporary);
+        }
     }
 
     private static void restrictToOwner(Path path) {

@@ -9,7 +9,7 @@ CloudIslands는 Paper와 Velocity에서 섬을 운영하기 위한 Skyblock 플�
 불러옵니다. 섬 정보는 Core가 관리하고, Paper는 실제 월드를 실행하며, Velocity는
 플레이어를 올바른 서버로 보냅니다.
 
-**현재 버전:** `1.1.259`
+**현재 버전:** `1.1.260`
 
 서버 규모에 따라 두 가지 구성을 쓸 수 있습니다.
 
@@ -633,7 +633,18 @@ Core 쪽 Redis가 정상인지는 별도로 확인해야 합니다.
 
 ### 이번 릴리스
 
-`v1.1.259`의 주요 변경 사항입니다.
+`v1.1.260`의 주요 변경 사항입니다.
+
+- Windows에서 Paper의 기존 평문 Core/Admin 토큰을 값 변경 없이
+  `plugins/CloudIslands/secrets`로 자동 이관하고 안전한 파일 참조로 교체합니다.
+- BASIC 로비는 Redis와 S3를 기본 요구하지 않으며, Redis를 사용할 때만
+  `redis://127.0.0.1:6379` 같은 주소를 명시적으로 입력합니다.
+- Core 중단 시 권한 이벤트, 섬 작업, heartbeat 경고를 하나의 장애 메시지로 합치고
+  최대 60초 백오프와 5분 요약을 적용하며, 복구 시 한 번만 알립니다.
+- Paper와 Velocity의 주요 설정 모든 항목에 용도와 입력 방법을 설명하는 주석을
+  추가하고, `lobby`, `hub`, `spawn` 서버 폴더를 BASIC 로비로 자동 감지합니다.
+- OpenSSL 없이 Core/Admin/forwarding 키를 만드는 Windows
+  `generate-cloudislands-keys.cmd`를 릴리스 ZIP과 개별 자산으로 배포합니다.
 
 - 태그 CI가 실제로 확인한 Core, PostgreSQL, MySQL, Redis, MinIO, 로비 Paper,
   Velocity 증거를 전용 게이트로 검증합니다.
@@ -659,7 +670,7 @@ Core 쪽 Redis가 정상인지는 별도로 확인해야 합니다.
 - 늦게 도착한 비동기 응답을 새 플레이어 연결에 적용하지 않습니다.
 - 1.0.x 공개 API 호환성을 유지하면서 지원 버전용 Paper 파일을 하나로 제공합니다.
 
-현재 `1.1.259` 기준으로 Paper 한 대와 분산 구성 모두 실제 운영에 필요한 경로가 구현되어
+현재 `1.1.260` 기준으로 Paper 한 대와 분산 구성 모두 실제 운영에 필요한 경로가 구현되어
 있습니다. 저장소의 자동 검사는 DB, Redis, 오브젝트 스토리지, Core 이중화, Paper와
 Velocity 부팅, 섬 생성과 복원, 노드 재시작, 스토리지 장애, 체크섬, SBOM, provenance를
 다룹니다. 다만 운영 환경의 플러그인 조합, 네트워크, 저장소, 권한, 플레이어 부하는 배포
@@ -690,7 +701,7 @@ It treats each island as a portable, globally owned resource instead of tying it
 to one Minecraft server. Core owns durable state, Paper runs island worlds, and
 Velocity routes players with short-lived tickets.
 
-Version: `1.1.259`
+Version: `1.1.260`
 
 CloudIslands supports both of these deployment shapes:
 
@@ -1501,9 +1512,21 @@ The block below is generated from repository evidence and verified by
 
 ## Release notes
 
-Current release: `v1.1.259`
+Current release: `v1.1.260`
 
-Release notes for `v1.1.259`:
+Release notes for `v1.1.260`:
+
+- Migrates existing plaintext Paper Core and admin tokens into protected,
+  cross-platform files without changing their values before Config v2 validation.
+- Makes BASIC lobby installs Redis- and S3-optional, resolves Redis/S3 credentials
+  only when those integrations are enabled, and auto-detects common lobby folders.
+- Coalesces permission-event, island-job, and heartbeat connection failures into
+  one outage warning, exponential retry up to 60 seconds, five-minute summaries,
+  and one recovery notice.
+- Documents every primary Paper and Velocity configuration field inline with its
+  purpose, accepted values, and safe local defaults.
+- Ships a tested Windows `generate-cloudislands-keys.cmd` that creates 256-bit
+  Core, admin, and forwarding secrets without OpenSSL and preserves existing keys.
 
 - Replaces Velocity's Docker-only `/run/secrets` Core API defaults with local,
   cross-platform secret files under the plugin data directory.
@@ -1554,7 +1577,7 @@ Release notes for `v1.1.259`:
 
 ## Project status
 
-The current `1.1.259` source baseline is implemented and verified for practical
+The current `1.1.260` source baseline is implemented and verified for practical
 single-Paper and distributed use. Repository evidence includes unit and policy
 tests, real PostgreSQL/Redis/object-storage integration, multi-Core behavior,
 Paper and Velocity boot smokes, real player create/home/restore flows, node
